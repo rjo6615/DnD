@@ -2,7 +2,6 @@ import React from "react";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 
 export default function ZombiesHome() {
- // This following section will display the form that takes the input from the user.
  return (
 <body style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
 <center>
@@ -25,7 +24,7 @@ export default function ZombiesHome() {
       </Row>
     </Container>
     <br></br>
-    <Button href="/Zombie-Random-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
+    <Button href="/zombies-character-sheet" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
     <Button href="/Zombie-Manual-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Manual)</Button>
     <br></br>
     <br></br>
