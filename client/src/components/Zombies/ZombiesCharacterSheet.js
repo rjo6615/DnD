@@ -1,10 +1,70 @@
-import React from "react";
 import Card from 'react-bootstrap/Card';
 // import Row from 'react-bootstrap/Row';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Accordion from 'react-bootstrap/Accordion';
+import { Link } from "react-router-dom";
+import Button from 'react-bootstrap/Button';
+import React, { useEffect, useState } from "react";
+
+const Record = (props) => (
+  <tr>
+    <td>{props.record.routines}
+    i hate the universe and all the pain its brought me i wish i had a muffin :c
+    <Button className="fa-solid fa-trash ms-4" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
+      {/* <Link className="btn btn-link" to={`/single-routine/${props.record._id}`}><Button className="fa-regular fa-eye" variant="secondary"></Button></Link> */}
+      <Link className="btn btn-link" to={`/edit/${props.record._id}`}><Button className="fa-solid fa-pen-to-square" variant="primary"></Button></Link>
+           
+    </td>
+  </tr>
+ );
 
 export default function ZombiesCharacterSheet() {
+
+  const [records, setRecords] = useState([]);
+ 
+  // This method fetches the records from the database.
+  useEffect(() => {
+    async function getRecords() {
+      const response = await fetch(`/routines`);
+  
+      if (!response.ok) {
+        const message = `An error occurred: ${response.statusText}`;
+        window.alert(message);
+        return;
+      }
+  
+      const records = await response.json();
+      setRecords(records);
+    }
+  
+    getRecords();
+  
+    return;
+  }, [records.length]);
+  
+  // This method will delete a record
+  async function deleteRecord(id) {
+    await fetch(`/delete-routine/${id}`, {
+      method: "DELETE"
+    });
+  
+    const newRecords = records.filter((el) => el._id !== id);
+    setRecords(newRecords);
+  }
+  
+  // This method will map out the records on the table
+  function recordList() {
+    return records.map((routines) => {
+      return (
+        <Record
+          record={routines}
+          deleteRecord={() => deleteRecord(routines._id)}
+          key={routines._id}
+        />
+      );
+    });
+  }
+
  return (
 <body style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
 <center>
@@ -88,6 +148,7 @@ export default function ZombiesCharacterSheet() {
         <ListGroup.Item>Swim: 4</ListGroup.Item>
         <ListGroup.Item>Tumble: 4</ListGroup.Item>
         <ListGroup.Item>Use Rope: 4</ListGroup.Item>
+        <ListGroup.Item>Use Technology: 4</ListGroup.Item>
       </ListGroup>
     </Card> 
         </Accordion.Body>
@@ -107,13 +168,20 @@ export default function ZombiesCharacterSheet() {
       <Accordion.Item eventKey="5">
         <Accordion.Header>Notes</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
-        <Card.Title>Notes</Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><ListGroup.Item>Note 1</ListGroup.Item>i like green eggs and ham</ListGroup.Item>
-        <ListGroup.Item><ListGroup.Item>Note 2</ListGroup.Item>Fuck u sam</ListGroup.Item>
-      </ListGroup>
-    </Card> 
+        <center>
+  <div className="">
+    <h5 className="text-dark">Weapon Finess</h5>
+    <table className="table text-dark" style={{ marginTop: 20 }}>
+      <thead>
+        <tr>
+        
+        </tr>
+      </thead>
+      <tbody>{recordList()}</tbody>
+    </table>
+    <Button><i class="fa-solid fa-plus"></i></Button>
+  </div>
+  </center>
         </Accordion.Body>
       </Accordion.Item>
     </Accordion>
