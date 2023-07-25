@@ -162,10 +162,22 @@ export default function ZombiesCharacterSheet() {
         <ListGroup.Item><ListGroup.Item>Iron Sword</ListGroup.Item>Attack Bonus: +8 | Damage: 1d8+4 | Critical: 19/20</ListGroup.Item>
         <ListGroup.Item><ListGroup.Item>Rusty Dagger</ListGroup.Item>Attack Bonus: +6 | Damage: 1d10 | Critical: 20</ListGroup.Item>
       </ListGroup>
-      </Card> 
+    </Card> 
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="5">
+        <Accordion.Header>Armor</Accordion.Header>
+        <Accordion.Body>
+        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card.Title>Armor</Card.Title>
+      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
+        <ListGroup.Item><ListGroup.Item>Platemail</ListGroup.Item>Armor Bonus: +8 | Max Dex 1 | Check penalty -6</ListGroup.Item>
+        <ListGroup.Item><ListGroup.Item>Shield Heavy (steel)</ListGroup.Item>Armor Bonus: +2 | Max Dex - | Check penalty -2</ListGroup.Item>
+      </ListGroup>
+    </Card> 
+        </Accordion.Body>
+      </Accordion.Item>
+      <Accordion.Item eventKey="6">
         <Accordion.Header>Notes</Accordion.Header>
         <Accordion.Body>
         <center>
