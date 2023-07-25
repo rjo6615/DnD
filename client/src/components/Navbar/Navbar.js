@@ -2,6 +2,7 @@ import React from "react";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
+import Button from 'react-bootstrap/Button';
 
 function NavbarComponent() {
     return (
@@ -14,7 +15,8 @@ function NavbarComponent() {
           <Navbar.Toggle aria-controls="navbarScroll" className="text-dark" />
           <Navbar.Collapse id="navbarScroll">
             <Nav className="me-auto my-2 my-lg-0" style={{ maxHeight: '100px' }} navbarScroll>
-              <Nav.Link className="text-dark" href="/#">Zombies</Nav.Link>            
+              <Button href="/zombies" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", minWidth: 300}} variant="primary">Zombies</Button>  
+              <Button href="./#" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(./images/homebackground.jpg)', backgroundSize: "cover", minWidth: 300}} variant="primary">Fantasy</Button>         
             </Nav>
           </Navbar.Collapse>
         </Container>

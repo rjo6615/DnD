@@ -17,7 +17,7 @@ function Home() {
 </div>
 </Col>
     <div>
-    <Button href="/Zombies" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "contain", minWidth: 300}} variant="primary">Zombies</Button>
+    <Button href="/zombies" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "contain", minWidth: 300}} variant="primary">Zombies</Button>
     <Button href="./#" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(./images/homebackground.jpg)', backgroundSize: "contain", minWidth: 300}} variant="primary">Fantasy</Button>
     </div>
     </center>
