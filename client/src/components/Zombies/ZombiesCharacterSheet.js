@@ -141,12 +141,12 @@ export default function ZombiesCharacterSheet() {
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Stats</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>STR: 10</ListGroup.Item>
-        <ListGroup.Item>DEX: 10</ListGroup.Item>
-        <ListGroup.Item>CON: 10</ListGroup.Item>
-        <ListGroup.Item>INT: 10</ListGroup.Item>
-        <ListGroup.Item>WIS: 10</ListGroup.Item>
-        <ListGroup.Item>CHA: 10</ListGroup.Item>
+        <ListGroup.Item>STR: {form.str}</ListGroup.Item>
+        <ListGroup.Item>DEX: {form.dex}</ListGroup.Item>
+        <ListGroup.Item>CON: {form.con}</ListGroup.Item>
+        <ListGroup.Item>INT: {form.int}</ListGroup.Item>
+        <ListGroup.Item>WIS: {form.wis}</ListGroup.Item>
+        <ListGroup.Item>CHA: {form.cha}</ListGroup.Item>
       </ListGroup>
     </Card> 
         </Accordion.Body>

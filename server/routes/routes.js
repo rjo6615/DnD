@@ -50,6 +50,12 @@ routes.route("/character/add").post(function (req, response) {
   sex: req.body.sex,
   height: req.body.height,
   weight: req.body.weight,
+  str: req.body.str,
+  dex: req.body.dex,
+  con: req.body.con,
+  int: req.body.int,
+  wis: req.body.wis,
+  cha: req.body.cha,
   };
   db_connect.collection("Characters").insertOne(myobj, function (err, res) {
     if (err) throw err;

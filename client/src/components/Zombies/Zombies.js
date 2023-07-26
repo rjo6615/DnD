@@ -14,6 +14,12 @@ export default function ZombiesHome() {
   sex: "",
   height: "",
   weight: "",
+  str: "",
+  dex: "",
+  con: "",
+  int: "",
+  wis: "",
+  cha: "",
 });
 
 const [occupation, setOccupation] = useState({ 
@@ -85,6 +91,14 @@ let newHeight = ( feet + "ft " + inches + 'in');
 let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
 let newWeight= randomWeight;
 
+// Stat Randomizer
+let randomStr = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomDex = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomCon = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomInt = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomWis = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomCha = Math.round(Math.random() * (18 - 3)) + 3; 
+
 
 useEffect(() => {
   updateForm({ occupation: newOccupation }); 
@@ -92,7 +106,13 @@ useEffect(() => {
   updateForm({ sex: newSex }); 
   updateForm({ height: newHeight }); 
   updateForm({ weight: newWeight }); 
-}, [newOccupation, newAge, newSex, newHeight, newWeight]);
+  updateForm({ str: randomStr }); 
+  updateForm({ dex: randomDex }); 
+  updateForm({ con: randomCon }); 
+  updateForm({ int: randomInt }); 
+  updateForm({ wis: randomWis }); 
+  updateForm({ cha: randomCha }); 
+}, [newOccupation, newAge, newSex, newHeight, newWeight, randomStr, randomDex, randomCon, randomInt, randomWis, randomCha]);
 
  // Sends form data to database
  async function sendToDb(){
@@ -117,7 +137,13 @@ useEffect(() => {
     age: "",
     sex: "",
     height: "",
-    weight: "",});
+    weight: "",
+    str: "",
+    dex: "",
+    con: "",
+    int: "",
+    wis: "",
+    cha: "",});
    navigate(`/zombies-character-sheet`);
  }
  return (
