@@ -1,52 +1,96 @@
-// dependencies
-const fs = require('fs');
-const path = require('path');
-var uniqid = require('uniqid');
+const express = require("express"); 
+const routes = express.Router(); 
+const dbo = require("../db/conn"); 
+const ObjectId = require("mongodb").ObjectId;
 
-// routing
-module.exports = (app) => {
-
-
-    // Routes for API's
-    app.get('/api/notes', (req, res) => {
-        res.sendFile(path.join(__dirname, '../db/db.json'));
+// This section will get a single character
+routes.route("/characters").get(function (req, res) {
+    let db_connect = dbo.getDb();
+    let myquery = { characterName: "Timmy" };
+    db_connect
+      .collection("Characters")
+      .findOne(myquery, function (err, result) {
+        if (err) throw err;
+        res.json(result);
       });
+   });
 
-    // is used to create new notes and save them on the db.json file
-    app.post('/api/notes', (req, res) => {
-        let database = fs.readFileSync('db/db.json');
-        database = JSON.parse(database);
-        res.json(database);
+// This section will get a list of all the occupations.
+routes.route("/occupations").get(function (req, res) {
+    let db_connect = dbo.getDb();
+    db_connect
+      .collection("Occupations")
+      .find({})
+      .toArray(function (err, result) {
+        if (err) throw err;
+        res.json(result);
+      });
+   });
 
-        // creating body for note
-        let newNote = {
-          title: req.body.title,
-          text: req.body.text,
+// This section will get a workouts.
+// routes.route("/routines/goal/:goal/:difficulty/:day").get(function (req, res) {
+//   let db_connect = dbo.getDb();
+//   db_connect
+//     .collection(req.params.goal)
+//     .find({ difficulty: req.params.difficulty, day: req.params.day })
+//     .toArray(function (err, result) {
+//       if (err) throw err;
+//       res.json(result);
+//     });
+//  });
 
-        // creates a unique id for new notes
-          id: uniqid(),
-        };
+// This section will create a new character.
+routes.route("/character/add").post(function (req, response) {
+  let db_connect = dbo.getDb();
+  let myobj = {
+  characterName: req.body.characterName,
+  level: req.body.level, 
+  occupation: req.body.occupation,
+  age: req.body.age,
+  sex: req.body.sex,
+  height: req.body.height,
+  weight: req.body.weight,
+  };
+  db_connect.collection("Characters").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
+  });
+ });
 
+ // This section will update routine.
+routes.route('/update/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("routines").updateOne(id, {$set:{
+  'routineName': req.body.routineName, 
+  'age': req.body.age, 
+  'sex': req.body.sex,
+  'height': req.body.height,
+  'currentWeight': req.body.currentWeight,
+  'targetWeight': req.body.targetWeight,
+  'goal': req.body.goal,
+  'workoutDifficulty': req.body.workoutDifficulty,
+  'calorieIntake': req.body.calorieIntake,
+  'calorieMaintain': req.body.calorieMaintain,
+  'daysToTarget': req.body.daysToTarget}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("1 routine updated");
+    res.send('user updated sucessfully');
+  });
+});
 
-        // pushes the created note to be written in the db.json file
-        database.push(newNote);
-        fs.writeFileSync('db/db.json', JSON.stringify(database));
-    });
+ // This section will delete a routine
+routes.route("/delete-routine/:id").delete((req, response) => {
+  let db_connect = dbo.getDb();
+  let myquery = { _id: ObjectId(req.params.id) };
+  db_connect.collection("routines").deleteOne(myquery, function (err, obj) {
+    if (err) throw err;
+    console.log("1 routine deleted");
+    response.json(obj);
+  });
+ });
+  
 
-    app.delete('/api/notes/:id', (req, res) => {
-        let database = JSON.parse(fs.readFileSync('db/db.json'))
-        let deleteNote = database.filter(item => item.id !== req.params.id);
-        fs.writeFileSync('db/db.json', JSON.stringify(deleteNote));
-        res.json(deleteNote);
-
-    })
-
-    // Routes for HTML
-    app.get('/notes', function(req,res) {
-        res.sendFile(path.join(__dirname, "../public/notes.html"));
-    });
-
-    app.get('*', function(req,res) {
-        res.sendFile(path.join(__dirname, "../public/index.html"));
-    });
-}
+   module.exports = routes;

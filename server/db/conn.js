@@ -14,7 +14,7 @@ module.exports = {
       // Verify we got a good "db" object
       if (db)
       {
-        _db = db.db("fitquestdb");
+        _db = db.db("dnd");
         console.log("Successfully connected to MongoDB."); 
       }
       return callback(err);

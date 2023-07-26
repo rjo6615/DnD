@@ -12,8 +12,7 @@ const Record = (props) => (
     i hate the universe and all the pain its brought me i wish i had a muffin :c
     <Button className="fa-solid fa-trash ms-4" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
       {/* <Link className="btn btn-link" to={`/single-routine/${props.record._id}`}><Button className="fa-regular fa-eye" variant="secondary"></Button></Link> */}
-      <Link className="btn btn-link" to={`/edit/${props.record._id}`}><Button className="fa-solid fa-pen-to-square" variant="primary"></Button></Link>
-           
+      <Link className="btn btn-link" to={`/edit/${props.record._id}`}><Button className="fa-solid fa-pen-to-square" variant="primary"></Button></Link>           
     </td>
   </tr>
  );
@@ -21,6 +20,41 @@ const Record = (props) => (
 export default function ZombiesCharacterSheet() {
 
   const [records, setRecords] = useState([]);
+  const [form, setForm] = useState({ 
+    characterName: "",
+    level: "", 
+    occupation: "", 
+    age: "",
+    sex: "",
+    height: "",
+    weight: "",
+  });
+
+   //Fetches character data
+ useEffect(() => {
+  async function fetchData() {
+    const response = await fetch(`/characters`);
+    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+     //  window.alert(`Record not found`);
+      // navigate("/");
+      return;
+    }
+
+    setForm(record);
+  }
+  fetchData();   
+  return;
+  
+}, []);
  
   // This method fetches the records from the database.
   useEffect(() => {
@@ -28,8 +62,8 @@ export default function ZombiesCharacterSheet() {
       const response = await fetch(`/routines`);
   
       if (!response.ok) {
-        const message = `An error occurred: ${response.statusText}`;
-        window.alert(message);
+        // const message = `An error occurred: ${response.statusText}`;
+        // window.alert(message);
         return;
       }
   
@@ -68,7 +102,7 @@ export default function ZombiesCharacterSheet() {
  return (
 <body style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
 <center>
-      <h1 className="text-light">Timmy</h1> 
+      <h1 className="text-light">{form.characterName}</h1> 
       <Accordion className="mx-2 mt-4">
       <Accordion.Item eventKey="0">
         <Accordion.Header>Character Info</Accordion.Header>
@@ -76,11 +110,12 @@ export default function ZombiesCharacterSheet() {
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Character Info</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>Level: 3</ListGroup.Item>
-        <ListGroup.Item>Occupation: Doctor</ListGroup.Item>
-        <ListGroup.Item>Age: 35</ListGroup.Item>
-        <ListGroup.Item>Height: 70in</ListGroup.Item>
-        <ListGroup.Item>Weight: 200lbs</ListGroup.Item>
+        <ListGroup.Item>Level: {form.level}</ListGroup.Item>
+        <ListGroup.Item>Occupation: {form.occupation.Occupation}</ListGroup.Item>        
+        <ListGroup.Item>Age: {form.age}</ListGroup.Item>
+        <ListGroup.Item>Sex: {form.sex}</ListGroup.Item>
+        <ListGroup.Item>Height: {form.height}in</ListGroup.Item>
+        <ListGroup.Item>Weight: {form.weight}lbs</ListGroup.Item>
       </ListGroup>
     </Card> 
         </Accordion.Body>
