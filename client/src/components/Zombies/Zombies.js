@@ -77,11 +77,14 @@ let newSex = sexArr[randomSex];
 
 // Height Randomizer
 let randomHeight = Math.round(Math.random() * (76 - 60)) + 60;
-let newHeight = randomHeight;
+let feet = Math.floor(randomHeight / 12);
+let inches = randomHeight %= 12;
+let newHeight = ( feet + "ft " + inches + 'in');
 
 // Weight Randomizer
 let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
 let newWeight= randomWeight;
+
 
 useEffect(() => {
   updateForm({ occupation: newOccupation }); 

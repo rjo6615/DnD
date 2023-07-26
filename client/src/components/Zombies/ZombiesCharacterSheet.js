@@ -114,7 +114,7 @@ export default function ZombiesCharacterSheet() {
         <ListGroup.Item>Occupation: {form.occupation.Occupation}</ListGroup.Item>        
         <ListGroup.Item>Age: {form.age}</ListGroup.Item>
         <ListGroup.Item>Sex: {form.sex}</ListGroup.Item>
-        <ListGroup.Item>Height: {form.height}in</ListGroup.Item>
+        <ListGroup.Item>Height: {form.height}</ListGroup.Item>
         <ListGroup.Item>Weight: {form.weight}lbs</ListGroup.Item>
       </ListGroup>
     </Card> 
@@ -128,6 +128,9 @@ export default function ZombiesCharacterSheet() {
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
         <ListGroup.Item>HP: 24</ListGroup.Item>
         <ListGroup.Item>AC: 10</ListGroup.Item>
+        <ListGroup.Item>Fort: 4</ListGroup.Item>
+        <ListGroup.Item>Reflex: 4</ListGroup.Item>
+        <ListGroup.Item>Will: 4</ListGroup.Item>
       </ListGroup>
     </Card> 
         </Accordion.Body>
