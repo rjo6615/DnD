@@ -67,56 +67,54 @@ useEffect(() => {
    sendToDb();
 }
 // Big Maffs
-
+function bigMaff() {
 // Occupation Randomizer
 let occupationLength = occupation.length;
 let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
 let newOccupation = occupation[randomOccupation];
+updateForm({ occupation: newOccupation }); 
 
 // Age Randomizer
 let newAge = Math.round(Math.random() * (50 - 19)) + 19;
+console.log(newAge);
+updateForm({ age: newAge }); 
+console.log(form.age);
 
 // Sex Randomizer
 let sexArr = ["Male", "Female"];
 let randomSex = Math.round(Math.random() * 1);
 let newSex = sexArr[randomSex];
+console.log(newSex);
+updateForm({ sex: newSex }); 
 
 // Height Randomizer
 let randomHeight = Math.round(Math.random() * (76 - 60)) + 60;
 let feet = Math.floor(randomHeight / 12);
 let inches = randomHeight %= 12;
 let newHeight = ( feet + "ft " + inches + 'in');
+updateForm({ height: newHeight }); 
 
 // Weight Randomizer
 let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
 let newWeight= randomWeight;
+updateForm({ weight: newWeight });
 
 // Stat Randomizer
 let randomStr = Math.round(Math.random() * (18 - 3)) + 3; 
+updateForm({ str: randomStr });
 let randomDex = Math.round(Math.random() * (18 - 3)) + 3; 
+updateForm({ dex: randomDex }); 
 let randomCon = Math.round(Math.random() * (18 - 3)) + 3; 
+updateForm({ con: randomCon }); 
 let randomInt = Math.round(Math.random() * (18 - 3)) + 3; 
+updateForm({ int: randomInt });
 let randomWis = Math.round(Math.random() * (18 - 3)) + 3; 
-let randomCha = Math.round(Math.random() * (18 - 3)) + 3; 
-
-
-useEffect(() => {
-  updateForm({ occupation: newOccupation }); 
-  updateForm({ age: newAge }); 
-  updateForm({ sex: newSex }); 
-  updateForm({ height: newHeight }); 
-  updateForm({ weight: newWeight }); 
-  updateForm({ str: randomStr }); 
-  updateForm({ dex: randomDex }); 
-  updateForm({ con: randomCon }); 
-  updateForm({ int: randomInt }); 
-  updateForm({ wis: randomWis }); 
-  updateForm({ cha: randomCha }); 
-}, [newOccupation, newAge, newSex, newHeight, newWeight, randomStr, randomDex, randomCon, randomInt, randomWis, randomCha]);
-
+updateForm({ wis: randomWis });
+let randomCha = Math.round(Math.random() * (18 - 3)) + 3;
+updateForm({ cha: randomCha });
+}
  // Sends form data to database
  async function sendToDb(){
-  console.log(occupation);
   const newCharacter = { ...form };
     await fetch("/character/add", {
      method: "POST",
@@ -147,8 +145,8 @@ useEffect(() => {
    navigate(`/zombies-character-sheet`);
  }
  return (
-<body style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
-<center>
+
+<center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">Zombies</h1>    
       <Container className="mt-5">
       <Row>
@@ -168,7 +166,7 @@ useEffect(() => {
       </Row>
     </Container>
     <br></br>
-    <Button onClick={() => {handleShow();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
+    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
     <Button href="/Zombie-Manual-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Manual)</Button>
     <br></br>
     <br></br>
@@ -196,6 +194,5 @@ useEffect(() => {
      </Modal.Body>        
       </Modal>
     </center>
-    </body>
  );
 }

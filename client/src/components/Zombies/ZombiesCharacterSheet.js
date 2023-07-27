@@ -100,8 +100,8 @@ export default function ZombiesCharacterSheet() {
   }
 
  return (
-<body style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
-<center>
+
+<center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">{form.characterName}</h1> 
       <Accordion className="mx-2 mt-4">
       <Accordion.Item eventKey="0">
@@ -229,7 +229,7 @@ export default function ZombiesCharacterSheet() {
       </thead>
       <tbody>{recordList()}</tbody>
     </table>
-    <Button><i class="fa-solid fa-plus"></i></Button>
+    <Button><i className="fa-solid fa-plus"></i></Button>
   </div>
   </center>
         </Accordion.Body>
@@ -237,6 +237,5 @@ export default function ZombiesCharacterSheet() {
     </Accordion>
     <br></br>
     </center>
-    </body>
  );
 }
