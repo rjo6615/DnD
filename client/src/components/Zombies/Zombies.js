@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 
 export default function ZombiesHome() {
-  // Global Variables
+  // --------------------Global Variables Section------------------------
  const navigate = useNavigate();
  const [form, setForm] = useState({ 
   characterName: "Timmy", 
@@ -29,6 +29,7 @@ const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
 const handleShow = () => setShow(true);
 
+// Fetch Occupations
 useEffect(() => {
   async function fetchData() {
     const response = await fetch(`/occupations`);    
@@ -66,7 +67,25 @@ useEffect(() => {
   e.preventDefault();   
    sendToDb();
 }
-// Big Maffs
+// -------------------Big Maffs Section-------------------
+
+// Dice Randomizer
+const [sumArray, setSumArray] = useState([]);
+useEffect(() => {
+  rollDiceSixTimes();
+}, []);
+const rollDiceSixTimes = () => {
+  const newSumArray = [];
+  for (let i = 0; i < 6; i++) {
+    const rolls = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
+    rolls.sort((a, b) => a - b);
+    rolls.shift(); // Remove the lowest value
+    const totalSum = rolls.reduce((acc, value) => acc + value, 0);
+    newSumArray.push(totalSum);
+  }
+  setSumArray(newSumArray);
+};
+
 function bigMaff() {
 // Occupation Randomizer
 let occupationLength = occupation.length;
@@ -100,17 +119,17 @@ let newWeight= randomWeight;
 updateForm({ weight: newWeight });
 
 // Stat Randomizer
-let randomStr = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomStr = sumArray[0]; 
 updateForm({ str: randomStr });
-let randomDex = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomDex = sumArray[1]; 
 updateForm({ dex: randomDex }); 
-let randomCon = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomCon = sumArray[2]; 
 updateForm({ con: randomCon }); 
-let randomInt = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomInt = sumArray[3]; 
 updateForm({ int: randomInt });
-let randomWis = Math.round(Math.random() * (18 - 3)) + 3; 
+let randomWis = sumArray[4]; 
 updateForm({ wis: randomWis });
-let randomCha = Math.round(Math.random() * (18 - 3)) + 3;
+let randomCha = sumArray[5];
 updateForm({ cha: randomCha });
 }
  // Sends form data to database
