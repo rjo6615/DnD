@@ -133,13 +133,21 @@ updateForm({ cha: randomCha });
 
 // Health Randomizer
 const [healthArray, setHealthArray] = useState([]);
-const lvl = 4;
+let newHealth;
+const parsedCon = parseFloat(form.con);
+let conMod;
+let lvl = form.level;
+conMod = Math.floor((parsedCon - 10) / 2);
+console.log(conMod);
+newHealth =  healthArray[0] + (lvl * conMod);
+console.log(newHealth);
 
-useEffect(() => {  
-  updateForm({ health: healthArray[0]});
-}, [ healthArray ]);
+useEffect(() => {    
+  updateForm({ health: newHealth});
+}, [ newHealth ]);
 
   useEffect(() => {  
+  const lvl = form.level;
   const diceValue = form.occupation.Health;
   const rollHealthDice = () => {
     const newHealthArray = [];
@@ -147,19 +155,13 @@ useEffect(() => {
       const rolls = Array.from({ length: lvl }, () => Math.floor(Math.random() * diceValue) + 1);
       const totalSum = rolls.reduce((acc, value) => acc + value, 0);
       newHealthArray.push(totalSum);
+      console.log(rolls);
     }
     setHealthArray(newHealthArray);  
   };
   rollHealthDice();
   return;
-}, [ form.occupation.Health ]);
-
-
-// const parsedCon = parseFloat(form.con);
-// let conMod;
-// conMod = Math.floor((parsedCon - 10) / 2);
-// console.log(conMod);
-
+}, [ form.occupation.Health, form.level ]);
 
  // Sends form data to database
  async function sendToDb(){
