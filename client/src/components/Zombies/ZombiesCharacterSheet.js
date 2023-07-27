@@ -118,7 +118,7 @@ export default function ZombiesCharacterSheet() {
   intMod = Math.floor((parsedInt - 10) / 2);
   wisMod = Math.floor((parsedWis - 10) / 2);  
   chaMod = Math.floor((parsedCha - 10) / 2);
-  
+
  return (
 <center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">{form.characterName}</h1> 
@@ -145,7 +145,7 @@ export default function ZombiesCharacterSheet() {
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Health/Defense</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>HP: 24</ListGroup.Item>
+        <ListGroup.Item>HP: {form.health}</ListGroup.Item>
         <ListGroup.Item>AC: 10</ListGroup.Item>
         <ListGroup.Item>Fort: 4</ListGroup.Item>
         <ListGroup.Item>Reflex: 4</ListGroup.Item>

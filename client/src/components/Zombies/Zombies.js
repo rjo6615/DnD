@@ -20,6 +20,7 @@ export default function ZombiesHome() {
   int: "",
   wis: "",
   cha: "",
+  health: "",
 });
 
 const [occupation, setOccupation] = useState({ 
@@ -95,15 +96,12 @@ updateForm({ occupation: newOccupation });
 
 // Age Randomizer
 let newAge = Math.round(Math.random() * (50 - 19)) + 19;
-console.log(newAge);
 updateForm({ age: newAge }); 
-console.log(form.age);
 
 // Sex Randomizer
 let sexArr = ["Male", "Female"];
 let randomSex = Math.round(Math.random() * 1);
 let newSex = sexArr[randomSex];
-console.log(newSex);
 updateForm({ sex: newSex }); 
 
 // Height Randomizer
@@ -132,6 +130,37 @@ updateForm({ wis: randomWis });
 let randomCha = sumArray[5];
 updateForm({ cha: randomCha });
 }
+
+// Health Randomizer
+const [healthArray, setHealthArray] = useState([]);
+const lvl = 4;
+
+useEffect(() => {  
+  updateForm({ health: healthArray[0]});
+}, [ healthArray ]);
+
+  useEffect(() => {  
+  const diceValue = form.occupation.Health;
+  const rollHealthDice = () => {
+    const newHealthArray = [];
+    for (let i = 0; i < 1; i++) { //array amount
+      const rolls = Array.from({ length: lvl }, () => Math.floor(Math.random() * diceValue) + 1);
+      const totalSum = rolls.reduce((acc, value) => acc + value, 0);
+      newHealthArray.push(totalSum);
+    }
+    setHealthArray(newHealthArray);  
+  };
+  rollHealthDice();
+  return;
+}, [ form.occupation.Health ]);
+
+
+// const parsedCon = parseFloat(form.con);
+// let conMod;
+// conMod = Math.floor((parsedCon - 10) / 2);
+// console.log(conMod);
+
+
  // Sends form data to database
  async function sendToDb(){
   const newCharacter = { ...form };
@@ -160,7 +189,9 @@ updateForm({ cha: randomCha });
     con: "",
     int: "",
     wis: "",
-    cha: "",});
+    cha: "",
+    health: "",
+  });
    navigate(`/zombies-character-sheet`);
  }
  return (
