@@ -99,8 +99,27 @@ export default function ZombiesCharacterSheet() {
     });
   }
 
- return (
+  const parsedStr = parseFloat(form.str);
+  const parsedDex = parseFloat(form.dex);
+  const parsedCon = parseFloat(form.con);
+  const parsedInt = parseFloat(form.int);
+  const parsedWis = parseFloat(form.wis);
+  const parsedCha = parseFloat(form.cha);
+  let strMod;
+  let dexMod;
+  let conMod;
+  let intMod;
+  let wisMod;
+  let chaMod;
 
+  strMod = Math.floor((parsedStr - 10) / 2); 
+  dexMod = Math.floor((parsedDex - 10) / 2); 
+  conMod = Math.floor((parsedCon - 10) / 2); 
+  intMod = Math.floor((parsedInt - 10) / 2);
+  wisMod = Math.floor((parsedWis - 10) / 2);  
+  chaMod = Math.floor((parsedCha - 10) / 2);
+  
+ return (
 <center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">{form.characterName}</h1> 
       <Accordion className="mx-2 mt-4">
@@ -141,12 +160,12 @@ export default function ZombiesCharacterSheet() {
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Stats</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>STR: {form.str}</ListGroup.Item>
-        <ListGroup.Item>DEX: {form.dex}</ListGroup.Item>
-        <ListGroup.Item>CON: {form.con}</ListGroup.Item>
-        <ListGroup.Item>INT: {form.int}</ListGroup.Item>
-        <ListGroup.Item>WIS: {form.wis}</ListGroup.Item>
-        <ListGroup.Item>CHA: {form.cha}</ListGroup.Item>
+        <ListGroup.Item>STR: {form.str} | {strMod}</ListGroup.Item>
+        <ListGroup.Item>DEX: {form.dex} | {dexMod}</ListGroup.Item>
+        <ListGroup.Item>CON: {form.con} | {conMod}</ListGroup.Item>
+        <ListGroup.Item>INT: {form.int} | {intMod}</ListGroup.Item>
+        <ListGroup.Item>WIS: {form.wis} | {wisMod}</ListGroup.Item>
+        <ListGroup.Item>CHA: {form.cha} | {chaMod}</ListGroup.Item>
       </ListGroup>
     </Card> 
         </Accordion.Body>
