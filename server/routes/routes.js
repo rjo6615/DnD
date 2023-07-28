@@ -39,11 +39,24 @@ routes.route("/occupations").get(function (req, res) {
       });
    });
 
+// This section will get a list of all the campaigns.
+routes.route("/campaigns").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Campaigns")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
 // This section will create a new character.
 routes.route("/character/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
   characterName: req.body.characterName,
+  campaign: req.body.campaign,
   level: req.body.level, 
   occupation: req.body.occupation,
   age: req.body.age,

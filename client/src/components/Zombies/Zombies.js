@@ -8,6 +8,7 @@ export default function ZombiesHome() {
  const navigate = useNavigate();
  const [form, setForm] = useState({ 
   characterName: "", 
+  campaign: "",
   level: "",
   occupation: "", 
   age: "",
@@ -30,6 +31,11 @@ const [form1, setForm1] = useState({
 const [occupation, setOccupation] = useState({ 
   occupation: [], 
 });
+
+const [campaign, setCampaign] = useState({ 
+    campaign: [], 
+  });
+
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
 const handleShow = () => setShow(true);
@@ -62,6 +68,29 @@ useEffect(() => {
   
 }, [navigate]);
 
+// Fetch Campaigns
+useEffect(() => {
+    async function fetchData1() {
+      const response = await fetch(`/campaigns`);    
+  
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        window.alert(message);
+        return;
+      }
+  
+      const record = await response.json();
+      if (!record) {
+        window.alert(`Record not found`);
+        navigate("/");
+        return;
+      }
+      setCampaign({campaign: record});
+    }
+    fetchData1();   
+    return;
+    
+  }, [navigate]);
 
 //  Update the state properties.
   function updateForm(value) {
@@ -154,9 +183,7 @@ const parsedCon = parseFloat(form.con);
 let conMod;
 let lvl = form.level;
 conMod = Math.floor((parsedCon - 10) / 2);
-console.log(conMod);
 newHealth =  healthArray[0] + (lvl * conMod);
-console.log(newHealth);
 
 useEffect(() => {    
   updateForm({ health: newHealth});
@@ -171,7 +198,6 @@ useEffect(() => {
       const rolls = Array.from({ length: lvl }, () => Math.floor(Math.random() * diceValue) + 1);
       const totalSum = rolls.reduce((acc, value) => acc + value, 0);
       newHealthArray.push(totalSum);
-      console.log(rolls);
     }
     setHealthArray(newHealthArray);  
   };
@@ -195,7 +221,8 @@ useEffect(() => {
    });
  
    setForm({
-    characterName: "", 
+    characterName: "",
+    campaign: "", 
     level: "",
     occupation: "",
     age: "",
@@ -237,17 +264,20 @@ useEffect(() => {
 
 <center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">Zombies</h1>    
-      <Container className="mt-5">
+      <Container className="mt-3">
       <Row>
-        <Col sm={12}>
-          <Form className="d-flex">
-            <Form.Control
-              type="search"
-              placeholder="Search Character"
-              className="me-2 rounded-pill"
-              aria-label="Search"
-            />
-            <Button className="rounded-pill" variant="outline-primary">
+        <Col>
+          <Form>
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-light">Select Campaign</Form.Label>
+        <Form.Select type="text">
+          <option></option>
+          {campaign.campaign.map((el) => (  
+          <option>{el.campaignName}</option>
+          ))};
+        </Form.Select>
+      </Form.Group>
+            <Button className="rounded-pill" variant="outline-primary" type="submit">
               Search
             </Button>
           </Form>
@@ -261,6 +291,7 @@ useEffect(() => {
     <Button href="/Zombie-Manual-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Manual)</Button>
     <br></br>
     <br></br>
+    {/* ---------------------------Modals------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Create Random</Modal.Title>
@@ -273,8 +304,15 @@ useEffect(() => {
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
         type="text" placeholder="Enter character name" />       
        <Form.Label className="text-dark">Starting Level</Form.Label>
-       <Form.Control onChange={(e) => updateForm({ level: e.target.value })}
-        type="text" placeholder="Enter starting level" />     
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ level: e.target.value })}
+        type="text" placeholder="Enter starting level" />   
+        <Form.Label className="text-dark">Select Campaign</Form.Label>
+        <Form.Select onChange={(e) => updateForm({ campaign: e.target.value })} type="text">
+          <option></option>
+          {campaign.campaign.map((el) => (  
+          <option>{el.campaignName}</option>
+          ))};
+        </Form.Select>       
      </Form.Group>
      <center>
      <Button variant="primary" onClick={handleClose} type="submit">
