@@ -296,7 +296,6 @@ useEffect(() => {
     </Container>
     <br></br>
     <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Campaign</Button>
-    <Button href="/zombies-character-select" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">View all Characters</Button>
     <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
     <Button href="/Zombie-Manual-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Manual)</Button>
     <br></br>
