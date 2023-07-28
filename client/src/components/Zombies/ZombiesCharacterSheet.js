@@ -2,24 +2,15 @@ import Card from 'react-bootstrap/Card';
 // import Row from 'react-bootstrap/Row';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Accordion from 'react-bootstrap/Accordion';
-import { Link } from "react-router-dom";
 import Button from 'react-bootstrap/Button';
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router";
 
-const Record = (props) => (
-  <tr>
-    <td>{props.record.routines}
-    i hate the universe and all the pain its brought me i wish i had a muffin :c
-    <Button className="fa-solid fa-trash ms-4" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
-      {/* <Link className="btn btn-link" to={`/single-routine/${props.record._id}`}><Button className="fa-regular fa-eye" variant="secondary"></Button></Link> */}
-      <Link className="btn btn-link" to={`/edit/${props.record._id}`}><Button className="fa-solid fa-pen-to-square" variant="primary"></Button></Link>           
-    </td>
-  </tr>
- );
+
 
 export default function ZombiesCharacterSheet() {
 
-  const [records, setRecords] = useState([]);
+  const params = useParams();
   const [form, setForm] = useState({ 
     characterName: "",
     level: "", 
@@ -28,12 +19,19 @@ export default function ZombiesCharacterSheet() {
     sex: "",
     height: "",
     weight: "",
+    str: "",
+    dex: "",
+    con: "",
+    int: "",
+    wis: "",
+    cha: "",
+    health: "",
   });
 
    //Fetches character data
  useEffect(() => {
   async function fetchData() {
-    const response = await fetch(`/characters`);
+    const response = await fetch(`/characters/${params.id.toString()}`);
     
 
     if (!response.ok) {
@@ -54,51 +52,8 @@ export default function ZombiesCharacterSheet() {
   fetchData();   
   return;
   
-}, []);
+}, [params.id]);
  
-  // This method fetches the records from the database.
-  useEffect(() => {
-    async function getRecords() {
-      const response = await fetch(`/routines`);
-  
-      if (!response.ok) {
-        // const message = `An error occurred: ${response.statusText}`;
-        // window.alert(message);
-        return;
-      }
-  
-      const records = await response.json();
-      setRecords(records);
-    }
-  
-    getRecords();
-  
-    return;
-  }, [records.length]);
-  
-  // This method will delete a record
-  async function deleteRecord(id) {
-    await fetch(`/delete-routine/${id}`, {
-      method: "DELETE"
-    });
-  
-    const newRecords = records.filter((el) => el._id !== id);
-    setRecords(newRecords);
-  }
-  
-  // This method will map out the records on the table
-  function recordList() {
-    return records.map((routines) => {
-      return (
-        <Record
-          record={routines}
-          deleteRecord={() => deleteRecord(routines._id)}
-          key={routines._id}
-        />
-      );
-    });
-  }
-
   const parsedStr = parseFloat(form.str);
   const parsedDex = parseFloat(form.dex);
   const parsedCon = parseFloat(form.con);
@@ -120,7 +75,7 @@ export default function ZombiesCharacterSheet() {
   chaMod = Math.floor((parsedCha - 10) / 2);
 
  return (
-<center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+<center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">{form.characterName}</h1> 
       <Accordion className="mx-2 mt-4">
       <Accordion.Item eventKey="0">
@@ -242,11 +197,10 @@ export default function ZombiesCharacterSheet() {
     <h5 className="text-dark">Weapon Finess</h5>
     <table className="table text-dark" style={{ marginTop: 20 }}>
       <thead>
-        <tr>
-        
+        <tr>        
         </tr>
       </thead>
-      <tbody>{recordList()}</tbody>
+      <tbody></tbody>
     </table>
     <Button><i className="fa-solid fa-plus"></i></Button>
   </div>

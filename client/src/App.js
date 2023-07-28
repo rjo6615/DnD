@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar/Navbar";
 import Footer from "./components/Footer/Footer";
 import Zombies from "./components/Zombies/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
+import ZombiesCharacterSelect from "./components/Zombies/ZombiesCharacterSelect";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.css";
@@ -17,7 +18,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/zombies" element={<Zombies />} />
-          <Route path="/zombies-character-sheet" element={<ZombiesCharacterSheet />} />
+          <Route path="/zombies-character-select" element={<ZombiesCharacterSelect />} />
+          <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
           <Route path="*" element={<Navigate to="/"/>} />
         </Routes>
         <Footer />

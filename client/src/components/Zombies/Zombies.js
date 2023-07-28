@@ -7,7 +7,7 @@ export default function ZombiesHome() {
   // --------------------Global Variables Section------------------------
  const navigate = useNavigate();
  const [form, setForm] = useState({ 
-  characterName: "Timmy", 
+  characterName: "", 
   level: "",
   occupation: "", 
   age: "",
@@ -22,6 +22,10 @@ export default function ZombiesHome() {
   cha: "",
   health: "",
 });
+const [form1, setForm1] = useState({ 
+    campaignName: "", 
+    gameMode: "zombies",
+  });
 
 const [occupation, setOccupation] = useState({ 
   occupation: [], 
@@ -29,6 +33,9 @@ const [occupation, setOccupation] = useState({
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
 const handleShow = () => setShow(true);
+const [show1, setShow1] = useState(false);
+const handleClose1 = () => setShow1(false);
+const handleShow1 = () => setShow1(true);
 
 // Fetch Occupations
 useEffect(() => {
@@ -62,12 +69,21 @@ useEffect(() => {
       return { ...prev, ...value };
     });
   }
+  function updateForm1(value) {
+    return setForm1((prev) => {
+      return { ...prev, ...value };
+    });
+  }
 
  // Function to handle submission.
  async function onSubmit(e) {
   e.preventDefault();   
    sendToDb();
 }
+async function onSubmit1(e) {
+    e.preventDefault();   
+     sendToDb1();
+  }
 // -------------------Big Maffs Section-------------------
 
 // Dice Randomizer
@@ -163,7 +179,7 @@ useEffect(() => {
   return;
 }, [ form.occupation.Health, form.level ]);
 
- // Sends form data to database
+ // ----------------------Sends form data to database--------------------------------------
  async function sendToDb(){
   const newCharacter = { ...form };
     await fetch("/character/add", {
@@ -194,8 +210,29 @@ useEffect(() => {
     cha: "",
     health: "",
   });
-   navigate(`/zombies-character-sheet`);
+   navigate(`/zombies-character-select`);
  }
+
+ async function sendToDb1(){
+    const newCampaign = { ...form1 };
+      await fetch("/campaign/add", {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+       },
+       body: JSON.stringify(newCampaign),
+     })
+     .catch(error => {
+       window.alert(error);
+       return;
+     });
+   
+     setForm({
+      campaignName: "", 
+      gameMode: "zombies",
+    });
+     navigate(`/`);
+   }
  return (
 
 <center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
@@ -218,6 +255,8 @@ useEffect(() => {
       </Row>
     </Container>
     <br></br>
+    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Campaign</Button>
+    <Button href="/zombies-character-select" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">View all Characters</Button>
     <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
     <Button href="/Zombie-Manual-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Manual)</Button>
     <br></br>
@@ -227,22 +266,51 @@ useEffect(() => {
           <Modal.Title>Create Random</Modal.Title>
         </Modal.Header>
         <Modal.Body>   
+        <center>
       <Form onSubmit={onSubmit} className="px-5">
-     
-     <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+      <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+       <Form.Label className="text-dark">Character Name</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
+        type="text" placeholder="Enter character name" />       
        <Form.Label className="text-dark">Starting Level</Form.Label>
        <Form.Control onChange={(e) => updateForm({ level: e.target.value })}
         type="text" placeholder="Enter starting level" />     
      </Form.Group>
      <center>
      <Button variant="primary" onClick={handleClose} type="submit">
-            Save
+            Create
           </Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose}>
             Close
           </Button>
           </center>
      </Form>
+     </center>
+     </Modal.Body>        
+      </Modal>
+      {/* Create Campaign */}
+      <Modal show={show1} onHide={handleClose1}>
+        <Modal.Header closeButton>
+          <Modal.Title>Create Campaign</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>   
+        <center>
+      <Form onSubmit={onSubmit1} className="px-5">
+      <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+       <Form.Label className="text-dark">Campaign Name</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm1({ campaignName: e.target.value })}
+        type="text" placeholder="Enter campaign name" />         
+     </Form.Group>
+     <center>
+     <Button variant="primary" onClick={handleClose1} type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={handleClose1}>
+            Close
+          </Button>
+          </center>
+     </Form>
+     </center>
      </Modal.Body>        
       </Modal>
     </center>

@@ -3,17 +3,29 @@ const routes = express.Router();
 const dbo = require("../db/conn"); 
 const ObjectId = require("mongodb").ObjectId;
 
-// This section will get a single character
-routes.route("/characters").get(function (req, res) {
-    let db_connect = dbo.getDb();
-    let myquery = { characterName: "Timmy" };
-    db_connect
-      .collection("Characters")
-      .findOne(myquery, function (err, result) {
-        if (err) throw err;
-        res.json(result);
-      });
-   });
+// This section will get a single character by id
+routes.route("/characters/:id").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  let myquery = { _id: ObjectId(req.params.id) };
+  db_connect
+    .collection("Characters")
+    .findOne(myquery, function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+// This section will get a list of all the characters.
+routes.route("/character/select").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Characters")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });   
 
 // This section will get a list of all the occupations.
 routes.route("/occupations").get(function (req, res) {
@@ -26,18 +38,6 @@ routes.route("/occupations").get(function (req, res) {
         res.json(result);
       });
    });
-
-// This section will get a workouts.
-// routes.route("/routines/goal/:goal/:difficulty/:day").get(function (req, res) {
-//   let db_connect = dbo.getDb();
-//   db_connect
-//     .collection(req.params.goal)
-//     .find({ difficulty: req.params.difficulty, day: req.params.day })
-//     .toArray(function (err, result) {
-//       if (err) throw err;
-//       res.json(result);
-//     });
-//  });
 
 // This section will create a new character.
 routes.route("/character/add").post(function (req, response) {
@@ -64,37 +64,26 @@ routes.route("/character/add").post(function (req, response) {
   });
  });
 
- // This section will update routine.
-routes.route('/update/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
+ // This section will create a new campaign.
+routes.route("/campaign/add").post(function (req, response) {
   let db_connect = dbo.getDb();
-  db_connect.collection("routines").updateOne(id, {$set:{
-  'routineName': req.body.routineName, 
-  'age': req.body.age, 
-  'sex': req.body.sex,
-  'height': req.body.height,
-  'currentWeight': req.body.currentWeight,
-  'targetWeight': req.body.targetWeight,
-  'goal': req.body.goal,
-  'workoutDifficulty': req.body.workoutDifficulty,
-  'calorieIntake': req.body.calorieIntake,
-  'calorieMaintain': req.body.calorieMaintain,
-  'daysToTarget': req.body.daysToTarget}}, (err, result) => {
-    if(err) {
-      throw err;
-    }
-    console.log("1 routine updated");
-    res.send('user updated sucessfully');
+  let myobj = {
+  campaignName: req.body.campaignName,
+  gameMode: req.body.gameMode,
+  };
+  db_connect.collection("Campaigns").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
   });
-});
+ });
 
- // This section will delete a routine
-routes.route("/delete-routine/:id").delete((req, response) => {
+ // This section will delete a character
+routes.route("/delete-character/:id").delete((req, response) => {
   let db_connect = dbo.getDb();
   let myquery = { _id: ObjectId(req.params.id) };
-  db_connect.collection("routines").deleteOne(myquery, function (err, obj) {
+  db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
     if (err) throw err;
-    console.log("1 routine deleted");
+    console.log("1 character deleted");
     response.json(obj);
   });
  });
