@@ -73,6 +73,25 @@ export default function ZombiesCharacterSheet() {
   wisMod = Math.floor((parsedWis - 10) / 2);  
   chaMod = Math.floor((parsedCha - 10) / 2);
 
+  // Saves Maffs
+  let fortSave;
+  let reflexSave;
+  let willSave;
+  if (form.occupation.Fort === "0") {
+    fortSave = Math.floor(form.level / 3);
+  } if (form.occupation.Fort === "1") {
+    fortSave = Math.floor((form.level / 2) + 2);
+  }
+  if (form.occupation.Reflex === "0") {
+    reflexSave = Math.floor(form.level / 3);
+  } else if (form.occupation.Reflex === "1") {
+    reflexSave = Math.floor((form.level / 2) + 2);
+  }
+  if (form.occupation.Will === "0") {
+    willSave = Math.floor(form.level / 3);
+  } else if (form.occupation.Will === "1") {
+    willSave = Math.floor((form.level / 2) + 2);
+  }
  return (
 <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">{form.characterName}</h1> 
@@ -100,10 +119,10 @@ export default function ZombiesCharacterSheet() {
         <Card.Title>Health/Defense</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
         <ListGroup.Item>HP: {form.health}</ListGroup.Item>
-        <ListGroup.Item>AC: 10</ListGroup.Item>
-        <ListGroup.Item>Fort: 4</ListGroup.Item>
-        <ListGroup.Item>Reflex: 4</ListGroup.Item>
-        <ListGroup.Item>Will: 4</ListGroup.Item>
+        <ListGroup.Item>AC: {Number(10) + Number(dexMod)}</ListGroup.Item>
+        <ListGroup.Item>Fort: {fortSave}</ListGroup.Item>
+        <ListGroup.Item>Reflex: {reflexSave}</ListGroup.Item>
+        <ListGroup.Item>Will: {willSave}</ListGroup.Item>
       </ListGroup>
     </Card> 
         </Accordion.Body>
