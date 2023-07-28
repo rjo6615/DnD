@@ -90,6 +90,18 @@ routes.route("/campaign/add").post(function (req, response) {
   });
  });
 
+ // This section will find all characters in a specific campaign.
+routes.route("/campaign/:campaign").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Characters")
+    .find({ campaign: req.params.campaign })
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
  // This section will delete a character
 routes.route("/delete-character/:id").delete((req, response) => {
   let db_connect = dbo.getDb();

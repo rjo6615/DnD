@@ -1,5 +1,4 @@
 import Card from 'react-bootstrap/Card';
-// import Row from 'react-bootstrap/Row';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Accordion from 'react-bootstrap/Accordion';
 import Button from 'react-bootstrap/Button';
@@ -31,7 +30,7 @@ export default function ZombiesCharacterSheet() {
    //Fetches character data
  useEffect(() => {
   async function fetchData() {
-    const response = await fetch(`/characters/${params.id.toString()}`);
+    const response = await fetch(`/characters/${params.id}`);
     
 
     if (!response.ok) {

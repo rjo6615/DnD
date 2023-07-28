@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
+import { useParams } from "react-router";
  
 const Record = (props) => (
  <tr>
@@ -17,12 +18,13 @@ const Record = (props) => (
 );
  
 export default function RecordList() {
+ const params = useParams();
  const [records, setRecords] = useState([]);
  
  // This method fetches the records from the database.
  useEffect(() => {
    async function getRecords() {
-     const response = await fetch(`/character/select`);
+     const response = await fetch(`/campaign/${params.campaign}`);
  
      if (!response.ok) {
        const message = `An error occurred: ${response.statusText}`;
@@ -37,7 +39,7 @@ export default function RecordList() {
    getRecords();
  
    return;
- }, [records.length]);
+ }, [records.length, params.campaign]);
  
  // This method will delete a record
  async function deleteRecord(id) {
@@ -64,9 +66,9 @@ export default function RecordList() {
  
  // This following section will display the table with the records of individuals.
  return (
-  <center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+  <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
    <div className="px-3 w-100">
-     <h3 className="text-light">Campaign Name</h3>
+     <h3 className="text-light">{params.campaign.toString()}</h3>
      <Table striped bordered condensed hover className="bg-light">
        <thead>
          <tr>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
+import { Link } from "react-router-dom";
 
 export default function ZombiesHome() {
   // --------------------Global Variables Section------------------------
@@ -26,6 +27,10 @@ export default function ZombiesHome() {
 const [form1, setForm1] = useState({ 
     campaignName: "", 
     gameMode: "zombies",
+  });
+
+const [campaignSearch, setCampaignSearch] = useState({ 
+    campaign: "", 
   });
 
 const [occupation, setOccupation] = useState({ 
@@ -100,6 +105,11 @@ useEffect(() => {
   }
   function updateForm1(value) {
     return setForm1((prev) => {
+      return { ...prev, ...value };
+    });
+  }
+  function updateCampaignSearch(value) {
+    return setCampaignSearch((prev) => {
       return { ...prev, ...value };
     });
   }
@@ -260,8 +270,8 @@ useEffect(() => {
     });
      navigate(`/`);
    }
- return (
 
+ return (
 <center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">Zombies</h1>    
       <Container className="mt-3">
@@ -270,16 +280,16 @@ useEffect(() => {
           <Form>
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-light">Select Campaign</Form.Label>
-        <Form.Select type="text">
+        <Form.Select onChange={(e) => updateCampaignSearch({ campaign: e.target.value })} type="text">
           <option></option>
           {campaign.campaign.map((el) => (  
           <option>{el.campaignName}</option>
           ))};
         </Form.Select>
       </Form.Group>
-            <Button className="rounded-pill" variant="outline-primary" type="submit">
-              Search
-            </Button>
+      <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}>
+        <Button className="rounded-pill" variant="outline-primary" type="submit">Search</Button>
+      </Link>
           </Form>
         </Col>
       </Row>

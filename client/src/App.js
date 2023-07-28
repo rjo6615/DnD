@@ -18,7 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/zombies" element={<Zombies />} />
-          <Route path="/zombies-character-select" element={<ZombiesCharacterSelect />} />
+          <Route path="/zombies-character-select/:campaign" element={<ZombiesCharacterSelect />} />
           <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
           <Route path="*" element={<Navigate to="/"/>} />
         </Routes>
