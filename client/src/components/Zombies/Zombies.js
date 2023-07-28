@@ -22,6 +22,7 @@ export default function ZombiesHome() {
   int: "",
   wis: "",
   cha: "",
+  startStatTotal: "",
   health: "",
 });
 const [form1, setForm1] = useState({ 
@@ -184,6 +185,9 @@ let randomWis = sumArray[4];
 updateForm({ wis: randomWis });
 let randomCha = sumArray[5];
 updateForm({ cha: randomCha });
+
+let startStatTotal = sumArray[0] + sumArray[1]+ sumArray[2] + sumArray[3] + sumArray[4] + sumArray[5];
+updateForm({ startStatTotal: startStatTotal });
 }
 
 // Health Randomizer
@@ -245,6 +249,7 @@ useEffect(() => {
     int: "",
     wis: "",
     cha: "",
+    startStatTotal: "",
     health: "",
   });
    navigate(`/zombies-character-select`);

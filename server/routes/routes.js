@@ -69,6 +69,7 @@ routes.route("/character/add").post(function (req, response) {
   int: req.body.int,
   wis: req.body.wis,
   cha: req.body.cha,
+  startStatTotal: req.body.startStatTotal,
   health: req.body.health,
   };
   db_connect.collection("Characters").insertOne(myobj, function (err, res) {

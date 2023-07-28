@@ -24,6 +24,7 @@ export default function ZombiesCharacterSheet() {
     int: "",
     wis: "",
     cha: "",
+    startStatTotal: "",
     health: "",
   });
 
@@ -53,6 +54,7 @@ export default function ZombiesCharacterSheet() {
   
 }, [params.id]);
  
+//Stat Mods
   const parsedStr = parseFloat(form.str);
   const parsedDex = parseFloat(form.dex);
   const parsedCon = parseFloat(form.con);
@@ -72,6 +74,34 @@ export default function ZombiesCharacterSheet() {
   intMod = Math.floor((parsedInt - 10) / 2);
   wisMod = Math.floor((parsedWis - 10) / 2);  
   chaMod = Math.floor((parsedCha - 10) / 2);
+
+  let currStr = form.str; 
+  let currDex = form.dex;
+  let currCon = form.con;
+  let currInt = form.int;
+  let currWis = form.wis;
+  let currCha = form.cha;
+
+  let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
+  let statPointsLeft = (form.level / 4) - (statTotal - form.startStatTotal);
+
+  function addStr() {
+    currStr++;
+    statPointsLeft--;
+    document.getElementById("str").innerHTML = currStr;
+    document.getElementById("statPointLeft").innerHTML = statPointsLeft;
+    document.getElementById("strMod").innerHTML = Math.floor((currStr - 10) / 2);
+  };
+  function removeStr() {
+    if (currStr === form.str){
+    } else {
+    currStr--;
+    statPointsLeft++;
+    document.getElementById("str").innerHTML = currStr;
+    document.getElementById("statPointLeft").innerHTML = statPointsLeft;
+    document.getElementById("strMod").innerHTML = Math.floor((currStr - 10) / 2);
+    }
+  };
 
   // Saves Maffs
   let fortSave;
@@ -130,17 +160,19 @@ export default function ZombiesCharacterSheet() {
       <Accordion.Item eventKey="2">
         <Accordion.Header>Stats</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
+        <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
         <Card.Title>Stats</Card.Title>
+       <Card.Title>Points Left:<span id="statPointLeft">{statPointsLeft}</span></Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>STR: {form.str} | {strMod}</ListGroup.Item>
-        <ListGroup.Item>DEX: {form.dex} | {dexMod}</ListGroup.Item>
-        <ListGroup.Item>CON: {form.con} | {conMod}</ListGroup.Item>
-        <ListGroup.Item>INT: {form.int} | {intMod}</ListGroup.Item>
-        <ListGroup.Item>WIS: {form.wis} | {wisMod}</ListGroup.Item>
-        <ListGroup.Item>CHA: {form.cha} | {chaMod}</ListGroup.Item>
+        <ListGroup.Item><Button onClick={removeStr} className="bg-danger fa-solid fa-minus"></Button> STR: <span id="str">{currStr} </span> | <span id="strMod">{strMod} </span><Button onClick={addStr} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> DEX: {currDex} | {dexMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> CON: {currCon} | {conMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> INT: {currInt} | {intMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> WIS: {currWis} | {wisMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> CHA: {currCha} | {chaMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
       </ListGroup>
     </Card> 
+    <Button className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="3">
