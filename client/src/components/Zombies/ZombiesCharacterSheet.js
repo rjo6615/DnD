@@ -86,11 +86,14 @@ export default function ZombiesCharacterSheet() {
   let statPointsLeft = (form.level / 4) - (statTotal - form.startStatTotal);
 
   function addStr() {
+      if (statPointsLeft === 0){
+    } else {
     currStr++;
     statPointsLeft--;
     document.getElementById("str").innerHTML = currStr;
     document.getElementById("statPointLeft").innerHTML = statPointsLeft;
     document.getElementById("strMod").innerHTML = Math.floor((currStr - 10) / 2);
+    }
   };
   function removeStr() {
     if (currStr === form.str){
