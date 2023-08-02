@@ -113,6 +113,26 @@ routes.route("/delete-character/:id").delete((req, response) => {
     response.json(obj);
   });
  });
+
+  // This section will update stats.
+routes.route('/update-stats/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'str': req.body.str, 
+  'dex': req.body.dex, 
+  'con': req.body.con,
+  'int': req.body.int,
+  'wis': req.body.wis,
+  'cha': req.body.cha
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character stats updated");
+    res.send('user updated sucessfully');
+  });
+});
   
 
    module.exports = routes;

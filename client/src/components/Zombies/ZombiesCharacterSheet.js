@@ -4,11 +4,10 @@ import Accordion from 'react-bootstrap/Accordion';
 import Button from 'react-bootstrap/Button';
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
-
-
+import { useNavigate } from "react-router";
 
 export default function ZombiesCharacterSheet() {
-
+  const navigate = useNavigate();
   const params = useParams();
   const [form, setForm] = useState({ 
     characterName: "",
@@ -31,8 +30,7 @@ export default function ZombiesCharacterSheet() {
    //Fetches character data
  useEffect(() => {
   async function fetchData() {
-    const response = await fetch(`/characters/${params.id}`);
-    
+    const response = await fetch(`/characters/${params.id}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -53,7 +51,39 @@ export default function ZombiesCharacterSheet() {
   return;
   
 }, [params.id]);
- 
+//------------------------------Stats-------------------------------------------------------------
+let currStr = form.str; 
+let currDex = form.dex;
+let currCon = form.con;
+let currInt = form.int;
+let currWis = form.wis;
+let currCha = form.cha;
+
+const statForm = {
+  str: currStr,
+  dex: currDex,
+  con: currCon,
+  int: currInt,
+  wis: currWis,
+  cha: currCha,
+}
+
+ // Sends statForm data to database for update
+ async function statsUpdate(){
+  const updatedStats = { ...statForm };
+    await fetch(`/update-stats/${params.id}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify(updatedStats),
+   })
+   .catch(error => {
+     window.alert(error);
+     return;
+   });
+   navigate(0);
+ }
 //Stat Mods
   const parsedStr = parseFloat(form.str);
   const parsedDex = parseFloat(form.dex);
@@ -75,37 +105,30 @@ export default function ZombiesCharacterSheet() {
   wisMod = Math.floor((parsedWis - 10) / 2);  
   chaMod = Math.floor((parsedCha - 10) / 2);
 
-  let currStr = form.str; 
-  let currDex = form.dex;
-  let currCon = form.con;
-  let currInt = form.int;
-  let currWis = form.wis;
-  let currCha = form.cha;
-
   let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
   let statPointsLeft = (form.level / 4) - (statTotal - form.startStatTotal);
 
-  function addStr() {
-      if (statPointsLeft === 0){
+  function addStat(stat, statMod) {
+    if (statPointsLeft === 0){
     } else {
-    currStr++;
+    statForm[stat]++;
     statPointsLeft--;
-    document.getElementById("str").innerHTML = currStr;
+    document.getElementById(stat).innerHTML = statForm[stat];
     document.getElementById("statPointLeft").innerHTML = statPointsLeft;
-    document.getElementById("strMod").innerHTML = Math.floor((currStr - 10) / 2);
+    document.getElementById(statMod).innerHTML = Math.floor((statForm[stat] - 10) / 2);
     }
   };
-  function removeStr() {
-    if (currStr === form.str){
+  function removeStat(stat, statMod) {
+    if (statForm[stat] === form[stat]){
     } else {
-    currStr--;
+    statForm[stat]--;
     statPointsLeft++;
-    document.getElementById("str").innerHTML = currStr;
+    document.getElementById(stat).innerHTML = statForm[stat];
     document.getElementById("statPointLeft").innerHTML = statPointsLeft;
-    document.getElementById("strMod").innerHTML = Math.floor((currStr - 10) / 2);
+    document.getElementById(statMod).innerHTML = Math.floor((statForm[stat] - 10) / 2);
     }
   };
-
+//-----------------------Health/Defense------------------------------------------------------------
   // Saves Maffs
   let fortSave;
   let reflexSave;
@@ -167,15 +190,15 @@ export default function ZombiesCharacterSheet() {
         <Card.Title>Stats</Card.Title>
        <Card.Title>Points Left:<span id="statPointLeft">{statPointsLeft}</span></Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><Button onClick={removeStr} className="bg-danger fa-solid fa-minus"></Button> STR: <span id="str">{currStr} </span> | <span id="strMod">{strMod} </span><Button onClick={addStr} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> DEX: {currDex} | {dexMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> CON: {currCon} | {conMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> INT: {currInt} | {intMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> WIS: {currWis} | {wisMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button className="bg-danger fa-solid fa-minus"></Button> CHA: {currCha} | {chaMod} <Button className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeStat('str', 'strMod')} className="bg-danger fa-solid fa-minus"></Button> STR: <span id="str">{currStr} </span> | <span id="strMod">{strMod} </span><Button onClick={() => addStat('str', 'strMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeStat('dex', 'dexMod')} className="bg-danger fa-solid fa-minus"></Button> DEX: <span id="dex">{currDex} </span> | <span id="dexMod">{dexMod} </span><Button onClick={() => addStat('dex', 'dexMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeStat('con', 'conMod')} className="bg-danger fa-solid fa-minus"></Button> CON: <span id="con">{currCon} </span> | <span id="conMod">{conMod} </span><Button onClick={() => addStat('con', 'conMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeStat('int', 'intMod')} className="bg-danger fa-solid fa-minus"></Button> INT: <span id="int">{currInt} </span> | <span id="intMod">{intMod} </span><Button onClick={() => addStat('int', 'intMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeStat('wis', 'wisMod')} className="bg-danger fa-solid fa-minus"></Button> WIS: <span id="wis">{currWis} </span> | <span id="wisMod">{wisMod} </span><Button onClick={() => addStat('wis', 'wisMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeStat('cha', 'chaMod')} className="bg-danger fa-solid fa-minus"></Button> CHA: <span id="cha">{currCha} </span> | <span id="chaMod">{chaMod} </span><Button onClick={() => addStat('cha', 'chaMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
       </ListGroup>
     </Card> 
-    <Button className="bg-warning fa-solid fa-floppy-disk"></Button>
+    <Button onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="3">
