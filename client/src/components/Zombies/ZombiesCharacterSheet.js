@@ -40,8 +40,8 @@ export default function ZombiesCharacterSheet() {
 
     const record = await response.json();
     if (!record) {
-     //  window.alert(`Record not found`);
-      // navigate("/");
+      window.alert(`Character not found`);
+      navigate("/");
       return;
     }
 
@@ -50,7 +50,7 @@ export default function ZombiesCharacterSheet() {
   fetchData();   
   return;
   
-}, [params.id]);
+}, [params.id, navigate]);
 //------------------------------Stats-------------------------------------------------------------
 let currStr = form.str; 
 let currDex = form.dex;
@@ -135,6 +135,7 @@ const statForm = {
   } else if (form.occupation.Will === "1") {
     willSave = Math.floor((form.level / 2) + 2);
   }
+  
  return (
 <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
       <h1 className="text-light">{form.characterName}</h1> 
@@ -161,7 +162,7 @@ const statForm = {
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Health/Defense</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>HP: {form.health}</ListGroup.Item>
+        <ListGroup.Item>HP: {form.health + Number(conMod * form.level)}</ListGroup.Item>
         <ListGroup.Item>AC: {Number(10) + Number(dexMod)}</ListGroup.Item>
         <ListGroup.Item>Fort: {fortSave}</ListGroup.Item>
         <ListGroup.Item>Reflex: {reflexSave}</ListGroup.Item>

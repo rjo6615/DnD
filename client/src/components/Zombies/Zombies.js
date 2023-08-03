@@ -192,12 +192,7 @@ updateForm({ startStatTotal: startStatTotal });
 
 // Health Randomizer
 const [healthArray, setHealthArray] = useState([]);
-let newHealth;
-const parsedCon = parseFloat(form.con);
-let conMod;
-let lvl = form.level;
-conMod = Math.floor((parsedCon - 10) / 2);
-newHealth =  healthArray[0] + (lvl * conMod);
+let newHealth =  healthArray[0];
 
 useEffect(() => {    
   updateForm({ health: newHealth});
