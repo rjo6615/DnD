@@ -173,17 +173,17 @@ let newWeight= randomWeight;
 updateForm({ weight: newWeight });
 
 // Stat Randomizer
-let randomStr = sumArray[0]; 
+let randomStr = sumArray[0] + Number(newOccupation.str); 
 updateForm({ str: randomStr });
-let randomDex = sumArray[1]; 
+let randomDex = sumArray[1] + Number(newOccupation.dex); 
 updateForm({ dex: randomDex }); 
-let randomCon = sumArray[2]; 
+let randomCon = sumArray[2] + Number(newOccupation.con); 
 updateForm({ con: randomCon }); 
-let randomInt = sumArray[3]; 
+let randomInt = sumArray[3] + Number(newOccupation.int); 
 updateForm({ int: randomInt });
-let randomWis = sumArray[4]; 
+let randomWis = sumArray[4] + Number(newOccupation.wis); 
 updateForm({ wis: randomWis });
-let randomCha = sumArray[5];
+let randomCha = sumArray[5] + Number(newOccupation.cha);
 updateForm({ cha: randomCha });
 
 let startStatTotal = sumArray[0] + sumArray[1]+ sumArray[2] + sumArray[3] + sumArray[4] + sumArray[5];
