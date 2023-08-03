@@ -24,6 +24,10 @@ export default function ZombiesHome() {
   cha: "",
   startStatTotal: "",
   health: "",
+  climb: 0,
+  gatherInfo: 0,
+  heal: 0,
+  jump: 0,
 });
 const [form1, setForm1] = useState({ 
     campaignName: "", 
@@ -186,21 +190,20 @@ updateForm({ wis: randomWis });
 let randomCha = sumArray[5] + Number(newOccupation.cha);
 updateForm({ cha: randomCha });
 
-let startStatTotal = sumArray[0] + sumArray[1]+ sumArray[2] + sumArray[3] + sumArray[4] + sumArray[5];
+let startStatTotal = sumArray[0] + Number(newOccupation.str) + sumArray[1] + Number(newOccupation.dex) + sumArray[2] + Number(newOccupation.con)
+ + sumArray[3] + Number(newOccupation.int) + sumArray[4] + Number(newOccupation.wis) + sumArray[5] + Number(newOccupation.cha);
 updateForm({ startStatTotal: startStatTotal });
 }
 
 // Health Randomizer
 const [healthArray, setHealthArray] = useState([]);
 let newHealth =  healthArray[0] + Number(form.occupation.Health);
-console.log(newHealth);
 useEffect(() => {    
   updateForm({ health: newHealth});
 }, [ newHealth ]);
 
   useEffect(() => {  
   const lvl = (form.level - 1);
-  console.log(lvl);
   const diceValue = form.occupation.Health;
   const rollHealthDice = () => {
     const newHealthArray = [];
@@ -247,8 +250,12 @@ useEffect(() => {
     cha: "",
     startStatTotal: "",
     health: "",
+    climb: 0,
+    gatherInfo: 0,
+    heal: 0,
+    jump: 0,
   });
-   navigate(`/zombies-character-select`);
+   navigate(`/zombies-character-select/${form.campaign}`);
  }
 
  async function sendToDb1(){
@@ -289,18 +296,20 @@ useEffect(() => {
         </Form.Select>
       </Form.Group>
       <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}>
-        <Button className="rounded-pill" variant="outline-primary" type="submit">Search</Button>
+        <Button className="rounded-pill" variant="outline-light" type="submit">Search</Button>
       </Link>
           </Form>
         </Col>
       </Row>
     </Container>
-    <br></br>
-    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Campaign</Button>
-    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Random)</Button>
-    <Button href="/Zombie-Manual-Creation" className="p-1 m-1" size="lg"  style={{minWidth: 300}} variant="secondary">Create Character (Manual)</Button>
-    <br></br>
-    <br></br>
+    <br></br>    
+    <Col xs={10} md={10} lg={10} xl={10}>
+    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
+    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
+    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
+    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
+    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
+    </Col>   
     {/* ---------------------------Modals------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>

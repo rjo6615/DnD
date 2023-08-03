@@ -71,6 +71,10 @@ routes.route("/character/add").post(function (req, response) {
   cha: req.body.cha,
   startStatTotal: req.body.startStatTotal,
   health: req.body.health,
+  climb: req.body.climb,
+  gatherInfo: req.body.gatherInfo,
+  heal: req.body.heal,
+  jump: req.body.jump,
   };
   db_connect.collection("Characters").insertOne(myobj, function (err, res) {
     if (err) throw err;
@@ -133,6 +137,24 @@ routes.route('/update-stats/:id').put((req, res, next) => {
     res.send('user updated sucessfully');
   });
 });
+
+  // This section will update skills.
+  routes.route('/update-skills/:id').put((req, res, next) => {
+    let id = { _id: ObjectId(req.params.id) };
+    let db_connect = dbo.getDb();
+    db_connect.collection("Characters").updateOne(id, {$set:{
+    'climb': req.body.climb, 
+    'gatherInfo': req.body.gatherInfo, 
+    'heal': req.body.heal,
+    'jump': req.body.jump
+  }}, (err, result) => {
+      if(err) {
+        throw err;
+      }
+      console.log("character skills updated");
+      res.send('user updated sucessfully');
+    });
+  });
   
 
    module.exports = routes;

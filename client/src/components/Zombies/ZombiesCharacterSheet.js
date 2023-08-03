@@ -25,6 +25,10 @@ export default function ZombiesCharacterSheet() {
     cha: "",
     startStatTotal: "",
     health: "",
+    climb: "",
+    gatherInfo: "",
+    heal: "",
+    jump: "",
   });
 
    //Fetches character data
@@ -92,8 +96,13 @@ const statForm = {
  let wisMod = Math.floor((form.wis - 10) / 2);  
  let chaMod = Math.floor((form.cha - 10) / 2);
 
-  let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
-  let statPointsLeft = (form.level / 4) - (statTotal - form.startStatTotal);
+let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
+let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTotal));
+
+  let showBtn = "";
+  if (statPointsLeft === 0) {
+    showBtn = "none";
+  }
 
   function addStat(stat, statMod) {
     if (statPointsLeft === 0){
@@ -135,7 +144,79 @@ const statForm = {
   } else if (form.occupation.Will === "1") {
     willSave = Math.floor((form.level / 2) + 2);
   }
+//-----------------------Skills-----------------------------------------------------------------------
+let currClimb = form.climb; 
+let currGatherInfo = form.gatherInfo;
+let currHeal = form.heal;
+let currJump = form.jump;
 
+const skillForm = {
+  climb: currClimb,
+  gatherInfo: currGatherInfo,
+  heal: currHeal,
+  jump: currJump,
+}
+ // Sends skillForm data to database for update
+ async function skillsUpdate(){
+  const updatedSkills = { ...skillForm };
+    await fetch(`/update-skills/${params.id}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify(updatedSkills),
+   })
+   .catch(error => {
+     window.alert(error);
+     return;
+   });
+   navigate(0);
+ }
+let totalClimb = form.climb + strMod;
+let totalGatherInfo = form.gatherInfo + chaMod;
+let totalHeal = form.heal + wisMod;
+let totalJump = form.jump + strMod;
+
+const skillTotalForm = {
+  climb: totalClimb,
+  gatherInfo: totalGatherInfo,
+  heal: totalHeal,
+  jump: totalJump,
+}
+
+let skillTotal = form.climb + form.gatherInfo + form.heal + form.jump;
+let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal);
+
+let showSkillBtn = "";
+if (skillPointsLeft === 0) {
+  showSkillBtn = "none";
+}
+
+function addSkill(skill, totalSkill) {
+  if (skillPointsLeft === 0){
+  } else if (form.occupation[skill] === "0" && skillForm[skill] === Math.floor((Number(form.level) + 3) / 2)) {  
+  } else if (form.occupation[skill] === "1" && skillForm[skill] === Math.floor(Number(form.level) + 3)){
+  } else {
+  skillForm[skill]++;
+  skillTotalForm[skill]++;
+  skillPointsLeft--;
+  document.getElementById(skill).innerHTML = skillForm[skill];
+  document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
+  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  }
+};
+function removeSkill(skill, totalSkill) {
+  if (skillForm[skill] === form[skill]){
+  } else {
+  skillForm[skill]--;
+  skillTotalForm[skill]--;
+  skillPointsLeft++;
+  document.getElementById(skill).innerHTML = skillForm[skill];
+  document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
+  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  }
+};
+//--------------------------------------------Display---------------------------------------------------
  return (
 <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">{form.characterName}</h1> 
@@ -176,57 +257,33 @@ const statForm = {
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
         <Card.Title>Stats</Card.Title>
-       <Card.Title>Points Left:<span id="statPointLeft">{statPointsLeft}</span></Card.Title>
+       <Card.Title style={{ display: showBtn}}>Points Left:<span className="mx-1" id="statPointLeft">{statPointsLeft}</span></Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><Button onClick={() => removeStat('str', 'strMod')} className="bg-danger fa-solid fa-minus"></Button> STR: <span id="str">{currStr} </span> | <span id="strMod">{strMod} </span><Button onClick={() => addStat('str', 'strMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button onClick={() => removeStat('dex', 'dexMod')} className="bg-danger fa-solid fa-minus"></Button> DEX: <span id="dex">{currDex} </span> | <span id="dexMod">{dexMod} </span><Button onClick={() => addStat('dex', 'dexMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button onClick={() => removeStat('con', 'conMod')} className="bg-danger fa-solid fa-minus"></Button> CON: <span id="con">{currCon} </span> | <span id="conMod">{conMod} </span><Button onClick={() => addStat('con', 'conMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button onClick={() => removeStat('int', 'intMod')} className="bg-danger fa-solid fa-minus"></Button> INT: <span id="int">{currInt} </span> | <span id="intMod">{intMod} </span><Button onClick={() => addStat('int', 'intMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button onClick={() => removeStat('wis', 'wisMod')} className="bg-danger fa-solid fa-minus"></Button> WIS: <span id="wis">{currWis} </span> | <span id="wisMod">{wisMod} </span><Button onClick={() => addStat('wis', 'wisMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button onClick={() => removeStat('cha', 'chaMod')} className="bg-danger fa-solid fa-minus"></Button> CHA: <span id="cha">{currCha} </span> | <span id="chaMod">{chaMod} </span><Button onClick={() => addStat('cha', 'chaMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('str', 'strMod')} className="bg-danger fa-solid fa-minus"></Button> STR: <span id="str">{currStr} </span> | <span id="strMod">{strMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('str', 'strMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('dex', 'dexMod')} className="bg-danger fa-solid fa-minus"></Button> DEX: <span id="dex">{currDex} </span> | <span id="dexMod">{dexMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('dex', 'dexMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('con', 'conMod')} className="bg-danger fa-solid fa-minus"></Button> CON: <span id="con">{currCon} </span> | <span id="conMod">{conMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('con', 'conMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('int', 'intMod')} className="bg-danger fa-solid fa-minus"></Button> INT: <span id="int">{currInt} </span> | <span id="intMod">{intMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('int', 'intMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('wis', 'wisMod')} className="bg-danger fa-solid fa-minus"></Button> WIS: <span id="wis">{currWis} </span> | <span id="wisMod">{wisMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('wis', 'wisMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('cha', 'chaMod')} className="bg-danger fa-solid fa-minus"></Button> CHA: <span id="cha">{currCha} </span> | <span id="chaMod">{chaMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('cha', 'chaMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
       </ListGroup>
     </Card> 
-    <Button onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
+    <Button style={{ display: showBtn}} onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="3">
         <Accordion.Header>Skills</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '10rem' }}>
+        <Card className="mx-2 mb-4" style={{ width: '15rem' }}>
         <Card.Title>Skills</Card.Title>
+        <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>Appraise: 4</ListGroup.Item>
-        <ListGroup.Item>Balance: 4</ListGroup.Item>
-        <ListGroup.Item>Bluff: 4</ListGroup.Item>
-        <ListGroup.Item>Climb: 4</ListGroup.Item>
-        <ListGroup.Item>Concentration: 4</ListGroup.Item>
-        <ListGroup.Item>Decipher Script: 4</ListGroup.Item>
-        <ListGroup.Item>Diplomacy: 4</ListGroup.Item>
-        <ListGroup.Item>Disable Device: 4</ListGroup.Item>
-        <ListGroup.Item>Disguise: 4</ListGroup.Item>
-        <ListGroup.Item>Escape Artist: 4</ListGroup.Item>
-        <ListGroup.Item>Forgery: 4</ListGroup.Item>
-        <ListGroup.Item>Gather Info: 4</ListGroup.Item>
-        <ListGroup.Item>Handle Animal: 4</ListGroup.Item>
-        <ListGroup.Item>Heal: 4</ListGroup.Item>
-        <ListGroup.Item>Intimidate: 4</ListGroup.Item>
-        <ListGroup.Item>Jump: 4</ListGroup.Item>
-        <ListGroup.Item>Listen: 4</ListGroup.Item>
-        <ListGroup.Item>Move Silently: 4</ListGroup.Item>
-        <ListGroup.Item>Open Lock: 4</ListGroup.Item>
-        <ListGroup.Item>Ride: 4</ListGroup.Item>
-        <ListGroup.Item>Search: 4</ListGroup.Item>
-        <ListGroup.Item>Sense Motive: 4</ListGroup.Item>
-        <ListGroup.Item>Sleight of Hand: 4</ListGroup.Item>
-        <ListGroup.Item>Spellcraft: 4</ListGroup.Item>
-        <ListGroup.Item>Spot: 4</ListGroup.Item>
-        <ListGroup.Item>Survival: 4</ListGroup.Item>
-        <ListGroup.Item>Swim: 4</ListGroup.Item>
-        <ListGroup.Item>Tumble: 4</ListGroup.Item>
-        <ListGroup.Item>Use Rope: 4</ListGroup.Item>
-        <ListGroup.Item>Use Technology: 4</ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('climb', "totalClimb")} className="bg-danger fa-solid fa-minus"></Button> Climb: <span id="totalClimb">{totalClimb} </span> | <span id="climb">{currClimb} </span> | <span id="strMod">{strMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('climb', "totalClimb")} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('gatherInfo', "totalGatherInfo")} className="bg-danger fa-solid fa-minus"></Button> Gather Info: <span id="totalGatherInfo">{totalGatherInfo} </span> | <span id="gatherInfo">{currGatherInfo} </span> | <span id="dexMod">{chaMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('gatherInfo', "totalGatherInfo")} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('heal', "totalHeal")} className="bg-danger fa-solid fa-minus"></Button> Heal: <span id="totalHeal">{totalHeal} </span> | <span id="heal">{currHeal} </span> | <span id="conMod">{wisMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('heal', "totalHeal")} className="fa-solid fa-plus"></Button></ListGroup.Item>
+        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('jump', "totalJump")} className="bg-danger fa-solid fa-minus"></Button> Jump: <span id="totalJump">{totalJump} </span> | <span id="jump">{currJump} </span> | <span id="intMod">{strMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></ListGroup.Item>   
       </ListGroup>
     </Card> 
+    <Button style={{ display: showSkillBtn}} onClick={() => skillsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="4">
