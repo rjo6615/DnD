@@ -9,9 +9,7 @@ const Record = (props) => (
    <td>{props.record.characterName}</td>
    <td>{props.record.level}</td>
    <td>{props.record.occupation.Occupation}</td>
-   <td>
-     {/* <Link className="btn btn-link" to={`/edit/${props.record._id}`}>Edit</Link> | */}
-     <Button className="fa-solid fa-trash" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
+   <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
      <Link className="btn btn-link" to={`/zombies-character-sheet/${props.record._id}`}><Button className="fa-regular fa-eye" variant="primary"></Button></Link>     
    </td>
  </tr>
@@ -66,7 +64,7 @@ export default function RecordList() {
  
  // This following section will display the table with the records of individuals.
  return (
-  <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+  <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
    <div className="px-3 w-100">
      <h3 className="text-light">{params.campaign.toString()}</h3>
      <Table striped bordered condensed hover className="bg-light">

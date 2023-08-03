@@ -135,9 +135,9 @@ const statForm = {
   } else if (form.occupation.Will === "1") {
     willSave = Math.floor((form.level / 2) + 2);
   }
-  
+
  return (
-<center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+<center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">{form.characterName}</h1> 
       <Accordion className="mx-2 mt-4">
       <Accordion.Item eventKey="0">

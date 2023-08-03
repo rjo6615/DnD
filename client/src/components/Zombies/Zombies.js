@@ -192,14 +192,15 @@ updateForm({ startStatTotal: startStatTotal });
 
 // Health Randomizer
 const [healthArray, setHealthArray] = useState([]);
-let newHealth =  healthArray[0];
-
+let newHealth =  healthArray[0] + Number(form.occupation.Health);
+console.log(newHealth);
 useEffect(() => {    
   updateForm({ health: newHealth});
 }, [ newHealth ]);
 
   useEffect(() => {  
-  const lvl = form.level;
+  const lvl = (form.level - 1);
+  console.log(lvl);
   const diceValue = form.occupation.Health;
   const rollHealthDice = () => {
     const newHealthArray = [];
@@ -272,7 +273,7 @@ useEffect(() => {
    }
 
  return (
-<center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+<center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">Zombies</h1>    
       <Container className="mt-3">
       <Row>
