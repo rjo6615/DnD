@@ -85,25 +85,12 @@ const statForm = {
    navigate(0);
  }
 //Stat Mods
-  const parsedStr = parseFloat(form.str);
-  const parsedDex = parseFloat(form.dex);
-  const parsedCon = parseFloat(form.con);
-  const parsedInt = parseFloat(form.int);
-  const parsedWis = parseFloat(form.wis);
-  const parsedCha = parseFloat(form.cha);
-  let strMod;
-  let dexMod;
-  let conMod;
-  let intMod;
-  let wisMod;
-  let chaMod;
-
-  strMod = Math.floor((parsedStr - 10) / 2); 
-  dexMod = Math.floor((parsedDex - 10) / 2); 
-  conMod = Math.floor((parsedCon - 10) / 2); 
-  intMod = Math.floor((parsedInt - 10) / 2);
-  wisMod = Math.floor((parsedWis - 10) / 2);  
-  chaMod = Math.floor((parsedCha - 10) / 2);
+ let strMod = Math.floor((form.str - 10) / 2); 
+ let dexMod = Math.floor((form.dex - 10) / 2); 
+ let conMod = Math.floor((form.con - 10) / 2); 
+ let intMod = Math.floor((form.int - 10) / 2);
+ let wisMod = Math.floor((form.wis - 10) / 2);  
+ let chaMod = Math.floor((form.cha - 10) / 2);
 
   let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
   let statPointsLeft = (form.level / 4) - (statTotal - form.startStatTotal);
