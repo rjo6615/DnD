@@ -2,6 +2,7 @@ import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Accordion from 'react-bootstrap/Accordion';
 import Button from 'react-bootstrap/Button';
+import Table from 'react-bootstrap/Table';
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
@@ -273,17 +274,59 @@ function removeSkill(skill, totalSkill) {
       <Accordion.Item eventKey="1">
         <Accordion.Header>Health/Defense</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
-        <Card.Title>Health/Defense</Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><Button onClick={() => removeHealth('health')} className="bg-danger fa-solid fa-minus"></Button> Health: <span id="health">{form.tempHealth} </span> | <span>{form.health + Number(conMod * form.level)} </span><Button onClick={() => addHealth()} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item>AC: {Number(10) + Number(dexMod)}</ListGroup.Item>
-        <ListGroup.Item>Fort: {fortSave}</ListGroup.Item>
-        <ListGroup.Item>Reflex: {reflexSave}</ListGroup.Item>
-        <ListGroup.Item>Will: {willSave}</ListGroup.Item>
-      </ListGroup>
-    </Card> 
-    <Button onClick={() => tempHealthUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
+        <Card className="mx-2 mb-1" style={{ width: '19rem' }}>      
+        <Card.Title>Health</Card.Title>
+        <Table striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Health</th>
+              <th>Temp</th>
+              <th>Max</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><Button onClick={() => removeHealth('health')} className="bg-danger fa-solid fa-minus"></Button></td>
+              <td>Health</td>
+              <td><span id="health">{form.tempHealth} </span></td>
+              <td><span>{form.health + Number(conMod * form.level)} </span></td>
+              <td><Button onClick={() => addHealth()} className="fa-solid fa-plus"></Button></td>
+            </tr>
+          </tbody>
+        </Table>
+        </Card> 
+        <Button onClick={() => tempHealthUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
+        <Card className="mx-2 mb-4 mt-2" style={{ width: '12rem' }}>      
+        <Card.Title>Saving Throws</Card.Title>
+        <Table striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>Saves</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>AC</td>
+              <td>{Number(10) + Number(dexMod)}</td>
+            </tr>
+            <tr>
+              <td>Fort</td>
+              <td>{fortSave}</td>
+            </tr>
+            <tr>
+              <td>Reflex</td>
+              <td>{reflexSave}</td>
+            </tr>
+            <tr>
+              <td>Will</td>
+              <td>{willSave}</td>
+            </tr>
+          </tbody>
+          </Table>
+          </Card>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="2">
@@ -292,14 +335,61 @@ function removeSkill(skill, totalSkill) {
         <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
         <Card.Title>Stats</Card.Title>
        <Card.Title style={{ display: showBtn}}>Points Left:<span className="mx-1" id="statPointLeft">{statPointsLeft}</span></Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('str', 'strMod')} className="bg-danger fa-solid fa-minus"></Button> STR: <span id="str">{currStr} </span> | <span id="strMod">{strMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('str', 'strMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('dex', 'dexMod')} className="bg-danger fa-solid fa-minus"></Button> DEX: <span id="dex">{currDex} </span> | <span id="dexMod">{dexMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('dex', 'dexMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('con', 'conMod')} className="bg-danger fa-solid fa-minus"></Button> CON: <span id="con">{currCon} </span> | <span id="conMod">{conMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('con', 'conMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('int', 'intMod')} className="bg-danger fa-solid fa-minus"></Button> INT: <span id="int">{currInt} </span> | <span id="intMod">{intMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('int', 'intMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('wis', 'wisMod')} className="bg-danger fa-solid fa-minus"></Button> WIS: <span id="wis">{currWis} </span> | <span id="wisMod">{wisMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('wis', 'wisMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showBtn}} onClick={() => removeStat('cha', 'chaMod')} className="bg-danger fa-solid fa-minus"></Button> CHA: <span id="cha">{currCha} </span> | <span id="chaMod">{chaMod} </span><Button style={{ display: showBtn}} onClick={() => addStat('cha', 'chaMod')} className="fa-solid fa-plus"></Button></ListGroup.Item>
-      </ListGroup>
+       <Table striped bordered hover size="sm">        
+        <thead>
+          <tr>
+          <th></th>
+          <th>Stat</th>
+          <th>Level</th>
+          <th>Mod</th>
+          <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><Button style={{ display: showBtn}} onClick={() => removeStat('str', 'strMod')} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>STR</td>
+            <td><span id="str">{currStr} </span></td>
+            <td><span id="strMod">{strMod} </span></td>
+            <td><Button style={{ display: showBtn}} onClick={() => addStat('str', 'strMod')} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>
+            <td><Button style={{ display: showBtn}} onClick={() => removeStat('dex', 'dexMod')} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>DEX</td>
+            <td><span id="dex">{currDex} </span></td>
+            <td><span id="dexMod">{dexMod} </span></td>
+            <td><Button style={{ display: showBtn}} onClick={() => addStat('dex', 'dexMod')} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>
+            <td><Button style={{ display: showBtn}} onClick={() => removeStat('con', 'conMod')} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>CON</td>
+            <td><span id="con">{currCon} </span></td>
+            <td><span id="conMod">{conMod} </span></td>
+            <td><Button style={{ display: showBtn}} onClick={() => addStat('con', 'conMod')} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>
+            <td><Button style={{ display: showBtn}} onClick={() => removeStat('int', 'intMod')} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>INT</td>
+            <td><span id="int">{currInt} </span></td>
+            <td><span id="intMod">{intMod} </span></td>
+            <td><Button style={{ display: showBtn}} onClick={() => addStat('int', 'intMod')} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>
+            <td><Button style={{ display: showBtn}} onClick={() => removeStat('wis', 'wisMod')} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>WIS</td>
+            <td><span id="wis">{currWis} </span></td>
+            <td><span id="wisMod">{wisMod} </span></td>
+            <td><Button style={{ display: showBtn}} onClick={() => addStat('wis', 'wisMod')} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>
+            <td><Button style={{ display: showBtn}} onClick={() => removeStat('cha', 'chaMod')} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>CHA</td>
+            <td><span id="cha">{currCha} </span></td>
+            <td><span id="chaMod">{chaMod} </span></td>
+            <td><Button style={{ display: showBtn}} onClick={() => addStat('cha', 'chaMod')} className="fa-solid fa-plus"></Button></td>
+          </tr>
+        </tbody>        
+       </Table>
     </Card> 
     <Button style={{ display: showBtn}} onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
@@ -307,15 +397,55 @@ function removeSkill(skill, totalSkill) {
       <Accordion.Item eventKey="3">
       <Accordion.Header>Skills <span style={{ display: showSkillBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '15rem' }}>
+        <Card className="mx-2 mb-4" style={{ width: '19rem' }}>
         <Card.Title>Skills</Card.Title>
         <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('climb', "totalClimb")} className="bg-danger fa-solid fa-minus"></Button> Climb: <span id="totalClimb">{totalClimb} </span> | <span id="climb">{currClimb} </span> | <span id="strMod">{strMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('climb', "totalClimb")} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('gatherInfo', "totalGatherInfo")} className="bg-danger fa-solid fa-minus"></Button> Gather Info: <span id="totalGatherInfo">{totalGatherInfo} </span> | <span id="gatherInfo">{currGatherInfo} </span> | <span id="dexMod">{chaMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('gatherInfo', "totalGatherInfo")} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('heal', "totalHeal")} className="bg-danger fa-solid fa-minus"></Button> Heal: <span id="totalHeal">{totalHeal} </span> | <span id="heal">{currHeal} </span> | <span id="conMod">{wisMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('heal', "totalHeal")} className="fa-solid fa-plus"></Button></ListGroup.Item>
-        <ListGroup.Item><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('jump', "totalJump")} className="bg-danger fa-solid fa-minus"></Button> Jump: <span id="totalJump">{totalJump} </span> | <span id="jump">{currJump} </span> | <span id="intMod">{strMod} </span><Button style={{ display: showSkillBtn}} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></ListGroup.Item>   
-      </ListGroup>
+      <Table striped bordered hover size="sm">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Skill</th>
+            <th>Total</th>
+            <th>Rank</th>
+            <th>Mod</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>            
+            <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('climb', "totalClimb")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>Climb</td>
+            <td><span id="totalClimb">{totalClimb} </span></td>
+            <td><span id="climb">{currClimb} </span></td>
+            <td><span id="strMod">{strMod} </span></td>
+            <td><Button style={{ display: showSkillBtn}} onClick={() => addSkill('climb', "totalClimb")} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>            
+            <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('gatherInfo', "totalGatherInfo")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>Gather Info</td>
+            <td><span id="totalGatherInfo">{totalGatherInfo} </span></td>
+            <td><span id="gatherInfo">{currGatherInfo} </span></td>
+            <td><span id="chaMod">{chaMod} </span></td>
+            <td><Button style={{ display: showSkillBtn}} onClick={() => addSkill('gatherInfo', "totalGatherInfo")} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>            
+            <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('heal', "totalHeal")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>Heal</td>
+            <td><span id="totalHeal">{totalHeal} </span></td>
+            <td><span id="heal">{currHeal} </span></td>
+            <td><span id="wisMod">{wisMod} </span></td>
+            <td><Button style={{ display: showSkillBtn}} onClick={() => addSkill('heal', "totalHeal")} className="fa-solid fa-plus"></Button></td>
+          </tr>
+          <tr>            
+            <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkill('jump', "totalJump")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td>Jump</td>
+            <td><span id="totalJump">{totalJump} </span></td>
+            <td><span id="jump">{currJump} </span></td>
+            <td><span id="strMod">{strMod} </span></td>
+            <td><Button style={{ display: showSkillBtn}} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></td>
+          </tr>
+        </tbody>
+      </Table>
     </Card> 
     <Button style={{ display: showSkillBtn}} onClick={() => skillsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
@@ -325,10 +455,24 @@ function removeSkill(skill, totalSkill) {
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
         <Card.Title>Weapons</Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><ListGroup.Item>Iron Sword</ListGroup.Item>Attack Bonus: +8 | Damage: 1d8+4 | Critical: 19/20</ListGroup.Item>
-        <ListGroup.Item><ListGroup.Item>Rusty Dagger</ListGroup.Item>Attack Bonus: +6 | Damage: 1d10 | Critical: 20</ListGroup.Item>
-      </ListGroup>
+        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>Weapon Name</th>
+              <th>Attack Bonus</th>
+              <th>Damage</th>
+              <th>Critical</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Iron Sword</td>
+              <td>+8</td>
+              <td>1d8+4</td>
+              <td>19/20</td>
+            </tr>
+          </tbody>
+        </Table>        
     </Card> 
         </Accordion.Body>
       </Accordion.Item>

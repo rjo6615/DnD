@@ -171,6 +171,21 @@ routes.route('/update-stats/:id').put((req, res, next) => {
         res.send('user updated sucessfully');
       });
     });
+
+// This section will create a new weapon.
+routes.route("/weapon/add").post(function (req, response) {
+  let db_connect = dbo.getDb();
+  let myobj = {
+  weaponName: req.body.weaponName,
+  attackBonus: req.body.attackBonus,
+  damage: req.body.damage,
+  critical: req.body.critical
+  };
+  db_connect.collection("Weapons").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
+  });
+ });
   
 
    module.exports = routes;

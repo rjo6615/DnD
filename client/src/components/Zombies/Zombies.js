@@ -35,6 +35,13 @@ const [form1, setForm1] = useState({
     gameMode: "zombies",
   });
 
+const [form2, setForm2] = useState({ 
+    weaponName: "", 
+    attackBonus: "",
+    damage: "",
+    critical: "",
+  });
+
 const [campaignSearch, setCampaignSearch] = useState({ 
     campaign: "", 
   });
@@ -53,6 +60,9 @@ const handleShow = () => setShow(true);
 const [show1, setShow1] = useState(false);
 const handleClose1 = () => setShow1(false);
 const handleShow1 = () => setShow1(true);
+const [show2, setShow2] = useState(false);
+const handleClose2 = () => setShow2(false);
+const handleShow2 = () => setShow2(true);
 
 // Fetch Occupations
 useEffect(() => {
@@ -114,6 +124,11 @@ useEffect(() => {
       return { ...prev, ...value };
     });
   }
+  function updateForm2(value) {
+    return setForm2((prev) => {
+      return { ...prev, ...value };
+    });
+  }
   function updateCampaignSearch(value) {
     return setCampaignSearch((prev) => {
       return { ...prev, ...value };
@@ -128,6 +143,10 @@ useEffect(() => {
 async function onSubmit1(e) {
     e.preventDefault();   
      sendToDb1();
+  }
+  async function onSubmit2(e) {
+    e.preventDefault();   
+     sendToDb2();
   }
 // -------------------Big Maffs Section-------------------
 
@@ -277,13 +296,35 @@ useEffect(() => {
        return;
      });
    
-     setForm({
+     setForm1({
       campaignName: "", 
       gameMode: "zombies",
     });
      navigate(`/`);
    }
-
+//-------------------Weapons-----------------------------------------------------------------
+async function sendToDb2(){
+  const newWeapon = { ...form2 };
+    await fetch("/weapon/add", {
+     method: "POST",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify(newWeapon),
+   })
+   .catch(error => {
+     window.alert(error);
+     return;
+   });
+ 
+   setForm2({
+    weaponName: "", 
+    attackBonus: "",
+    damage: "",
+    critical: "",
+  });
+   navigate(`/`);
+ }
  return (
 <center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">Zombies</h1>    
@@ -312,7 +353,7 @@ useEffect(() => {
     <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
     <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
-    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
+    <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
     </Col>   
@@ -369,6 +410,40 @@ useEffect(() => {
             Create
           </Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose1}>
+            Close
+          </Button>
+          </center>
+     </Form>
+     </center>
+     </Modal.Body>        
+      </Modal>
+      {/* ----------------------------------Weapon Modal---------------------------------------- */}
+      <Modal show={show2} onHide={handleClose2}>
+        <Modal.Header closeButton>
+          <Modal.Title>Create Weapon</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>   
+        <center>
+      <Form onSubmit={onSubmit2} className="px-5">
+      <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+       <Form.Label className="text-dark">Weapon Name</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm2({ weaponName: e.target.value })}
+        type="text" placeholder="Enter Weapon name" />   
+       <Form.Label className="text-dark">Attack Bonus</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm2({ attackBonus: e.target.value })}
+        type="text" placeholder="Enter Attack Bonus" />
+       <Form.Label className="text-dark">Damage</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
+        type="text" placeholder="Enter Damage" />  
+       <Form.Label className="text-dark">Critical</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm2({ critical: e.target.value })}
+        type="text" placeholder="Enter Critical" />          
+     </Form.Group>
+     <center>
+     <Button variant="primary" onClick={handleClose2} type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={handleClose2}>
             Close
           </Button>
           </center>
