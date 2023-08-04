@@ -144,6 +144,39 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   } else if (form.occupation.Will === "1") {
     willSave = Math.floor((form.level / 2) + 2);
   }
+  // Health
+  let currHealth = form.tempHealth
+
+ // Sends tempHealth data to database for update
+ async function tempHealthUpdate(){
+    await fetch(`/update-temphealth/${params.id}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify({
+      tempHealth: currHealth,
+     }),
+   })
+   .catch(error => {
+     window.alert(error);
+     return;
+   });
+ }
+  function addHealth() {
+    if (currHealth === form.health + Number(conMod * form.level)){
+    } else {
+    currHealth++;
+    document.getElementById("health").innerHTML = currHealth;
+    }
+  };
+  function removeHealth() {
+    if (currHealth === -10){
+    } else {
+    currHealth--;
+    document.getElementById("health").innerHTML = currHealth;
+    }
+  };
 //-----------------------Skills-----------------------------------------------------------------------
 let currClimb = form.climb; 
 let currGatherInfo = form.gatherInfo;
@@ -240,20 +273,21 @@ function removeSkill(skill, totalSkill) {
       <Accordion.Item eventKey="1">
         <Accordion.Header>Health/Defense</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
+        <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
         <Card.Title>Health/Defense</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>HP: {form.health + Number(conMod * form.level)}</ListGroup.Item>
+        <ListGroup.Item><Button onClick={() => removeHealth('health')} className="bg-danger fa-solid fa-minus"></Button> Health: <span id="health">{form.tempHealth} </span> | <span>{form.health + Number(conMod * form.level)} </span><Button onClick={() => addHealth()} className="fa-solid fa-plus"></Button></ListGroup.Item>
         <ListGroup.Item>AC: {Number(10) + Number(dexMod)}</ListGroup.Item>
         <ListGroup.Item>Fort: {fortSave}</ListGroup.Item>
         <ListGroup.Item>Reflex: {reflexSave}</ListGroup.Item>
         <ListGroup.Item>Will: {willSave}</ListGroup.Item>
       </ListGroup>
     </Card> 
+    <Button onClick={() => tempHealthUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="2">
-        <Accordion.Header>Stats</Accordion.Header>
+        <Accordion.Header>Stats <span style={{ display: showBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
         <Card.Title>Stats</Card.Title>
@@ -271,7 +305,7 @@ function removeSkill(skill, totalSkill) {
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="3">
-        <Accordion.Header>Skills</Accordion.Header>
+      <Accordion.Header>Skills <span style={{ display: showSkillBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '15rem' }}>
         <Card.Title>Skills</Card.Title>

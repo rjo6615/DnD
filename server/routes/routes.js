@@ -71,6 +71,7 @@ routes.route("/character/add").post(function (req, response) {
   cha: req.body.cha,
   startStatTotal: req.body.startStatTotal,
   health: req.body.health,
+  tempHealth: req.body.tempHealth,
   climb: req.body.climb,
   gatherInfo: req.body.gatherInfo,
   heal: req.body.heal,
@@ -155,6 +156,21 @@ routes.route('/update-stats/:id').put((req, res, next) => {
       res.send('user updated sucessfully');
     });
   });
+
+    // This section will update tempHealth.
+    routes.route('/update-temphealth/:id').put((req, res, next) => {
+      let id = { _id: ObjectId(req.params.id) };
+      let db_connect = dbo.getDb();
+      db_connect.collection("Characters").updateOne(id, {$set:{
+      'tempHealth': req.body.tempHealth
+    }}, (err, result) => {
+        if(err) {
+          throw err;
+        }
+        console.log("character tempHealth updated");
+        res.send('user updated sucessfully');
+      });
+    });
   
 
    module.exports = routes;

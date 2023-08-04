@@ -24,6 +24,7 @@ export default function ZombiesHome() {
   cha: "",
   startStatTotal: "",
   health: "",
+  tempHealth: "",
   climb: 0,
   gatherInfo: 0,
   heal: 0,
@@ -196,11 +197,14 @@ updateForm({ startStatTotal: startStatTotal });
 }
 
 // Health Randomizer
+let conMod = Math.floor((form.con - 10) / 2); 
 const [healthArray, setHealthArray] = useState([]);
 let newHealth =  healthArray[0] + Number(form.occupation.Health);
+let tempHealth = newHealth + Number(conMod) * Number(form.level);
 useEffect(() => {    
   updateForm({ health: newHealth});
-}, [ newHealth ]);
+  updateForm({ tempHealth: tempHealth});
+}, [ newHealth, tempHealth]);
 
   useEffect(() => {  
   const lvl = (form.level - 1);
@@ -250,6 +254,7 @@ useEffect(() => {
     cha: "",
     startStatTotal: "",
     health: "",
+    tempHealth: "",
     climb: 0,
     gatherInfo: 0,
     heal: 0,
@@ -309,6 +314,7 @@ useEffect(() => {
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
+    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
     </Col>   
     {/* ---------------------------Modals------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>
@@ -371,5 +377,5 @@ useEffect(() => {
      </Modal.Body>        
       </Modal>
     </center>
- );
+ )
 }
