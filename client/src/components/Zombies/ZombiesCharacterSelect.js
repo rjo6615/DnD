@@ -64,9 +64,9 @@ export default function RecordList() {
  
  // This following section will display the table with the records of individuals.
  return (
-  <center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
+  <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
    <div className="px-3 w-100">
-     <h3 className="text-light">{params.campaign.toString()}</h3>
+     <h2 className="text-light">{params.campaign.toString()}</h2>
      <Table striped bordered condensed hover className="bg-light">
        <thead>
          <tr>

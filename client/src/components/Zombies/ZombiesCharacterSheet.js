@@ -251,9 +251,9 @@ function removeSkill(skill, totalSkill) {
 };
 //--------------------------------------------Display---------------------------------------------------
  return (
-<center style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
-      <h1 className="text-light">{form.characterName}</h1> 
-      <Accordion className="mx-2 mt-4">
+<center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
+      <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
+      <Accordion className="mx-2">
       <Accordion.Item eventKey="0">
         <Accordion.Header>Character Info</Accordion.Header>
         <Accordion.Body>

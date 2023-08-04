@@ -285,7 +285,7 @@ useEffect(() => {
    }
 
  return (
-<center style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
+<center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">Zombies</h1>    
       <Container className="mt-3">
       <Row>
