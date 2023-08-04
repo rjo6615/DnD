@@ -561,9 +561,7 @@ useEffect(() => {
           ))};
         </Form.Select>
       </Form.Group>
-      {/* <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}> */}
         <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-      {/* </Link> */}
           </Form>
         </Col>
       </Row>
