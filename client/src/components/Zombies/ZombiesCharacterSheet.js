@@ -1,8 +1,9 @@
 import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Accordion from 'react-bootstrap/Accordion';
-import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
+import { Button, Col, Form, Row } from "react-bootstrap";
+// import { Link } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
@@ -14,6 +15,7 @@ export default function ZombiesCharacterSheet() {
     characterName: "",
     level: "", 
     occupation: "", 
+    weapon: [],
     age: "",
     sex: "",
     height: "",
@@ -250,6 +252,65 @@ function removeSkill(skill, totalSkill) {
   document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
   }
 };
+//--------------------------------------------Weapons---------------------------------------------------
+const [weapon, setWeapon] = useState({ 
+  weapon: [], 
+});
+const [addWeapon, setAddWeapon] = useState({ 
+  weapon: "",
+});
+function updateWeapon(value) {
+  return setAddWeapon((prev) => {
+    return { ...prev, ...value };
+  });
+}
+// Fetch Weapons
+useEffect(() => {
+  async function fetchWeapons() {
+    const response = await fetch(`/weapons`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setWeapon({weapon: record});
+  }
+  fetchWeapons();   
+  return;
+  
+}, [navigate]);
+ // Sends weapon data to database for update
+ let newWeapon;
+ if (form.weapon === "") {
+  newWeapon = addWeapon.weapon.split(',')
+ } else {
+  newWeapon = (form.weapon + "," + addWeapon.weapon).split(',');
+ }
+ async function addWeaponToDb(e){
+  e.preventDefault();
+  await fetch(`/update-weapon/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    weapon: newWeapon,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ navigate(0);
+}
 //--------------------------------------------Display---------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
@@ -466,14 +527,46 @@ function removeSkill(skill, totalSkill) {
           </thead>
           <tbody>
             <tr>
-              <td>Iron Sword</td>
-              <td>+8</td>
-              <td>1d8+4</td>
-              <td>19/20</td>
+              <td>{form.weapon[0]}</td>
+              <td>{form.weapon[1]}</td>
+              <td>{form.weapon[2]}</td>
+              <td>{form.weapon[3]}</td>
+            </tr>
+            <tr>
+              <td>{form.weapon[4]}</td>
+              <td>{form.weapon[5]}</td>
+              <td>{form.weapon[6]}</td>
+              <td>{form.weapon[7]}</td>
+            </tr>
+            <tr>
+              <td>{form.weapon[8]}</td>
+              <td>{form.weapon[9]}</td>
+              <td>{form.weapon[10]}</td>
+              <td>{form.weapon[11]}</td>
             </tr>
           </tbody>
         </Table>        
     </Card> 
+    <Row>
+        <Col>
+          <Form onSubmit={addWeaponToDb}>
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-light">Select Weapon</Form.Label>
+        <Form.Select 
+        onChange={(e) => updateWeapon({ weapon: e.target.value })}
+         type="text">
+          <option></option>
+          {weapon.weapon.map((el) => (  
+          <option value={[el.weaponName, el.attackBonus, el.damage, el.critical]}>{el.weaponName}</option>
+          ))};
+        </Form.Select>
+      </Form.Group>
+      {/* <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}> */}
+        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+      {/* </Link> */}
+          </Form>
+        </Col>
+      </Row>
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="5">

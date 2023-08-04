@@ -51,6 +51,18 @@ routes.route("/campaigns").get(function (req, res) {
     });
  });
 
+ // This section will get a list of all the weapons.
+routes.route("/weapons").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Weapons")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
 // This section will create a new character.
 routes.route("/character/add").post(function (req, response) {
   let db_connect = dbo.getDb();
@@ -59,6 +71,7 @@ routes.route("/character/add").post(function (req, response) {
   campaign: req.body.campaign,
   level: req.body.level, 
   occupation: req.body.occupation,
+  weapon: req.body.weapon,
   age: req.body.age,
   sex: req.body.sex,
   height: req.body.height,
@@ -171,6 +184,21 @@ routes.route('/update-stats/:id').put((req, res, next) => {
         res.send('user updated sucessfully');
       });
     });
+
+        // This section will update weapons.
+        routes.route('/update-weapon/:id').put((req, res, next) => {
+          let id = { _id: ObjectId(req.params.id) };
+          let db_connect = dbo.getDb();
+          db_connect.collection("Characters").updateOne(id, {$set:{
+          'weapon': req.body.weapon
+        }}, (err, result) => {
+            if(err) {
+              throw err;
+            }
+            console.log("character weapon updated");
+            res.send('user updated sucessfully');
+          });
+        });
 
 // This section will create a new weapon.
 routes.route("/weapon/add").post(function (req, response) {
