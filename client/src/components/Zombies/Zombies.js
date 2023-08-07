@@ -5,7 +5,7 @@ import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 
 export default function ZombiesHome() {
-  // --------------------Global Variables Section------------------------
+  // --------------------------Random Character Creator Section------------------------------------
  const navigate = useNavigate();
  const [form, setForm] = useState({ 
   characterName: "", 
@@ -32,39 +32,14 @@ export default function ZombiesHome() {
   heal: 0,
   jump: 0,
 });
-const [form1, setForm1] = useState({ 
-    campaignName: "", 
-    gameMode: "zombies",
-  });
-
-const [form2, setForm2] = useState({ 
-    weaponName: "", 
-    attackBonus: "",
-    damage: "",
-    critical: "",
-  });
-
-const [campaignSearch, setCampaignSearch] = useState({ 
-    campaign: "", 
-  });
 
 const [occupation, setOccupation] = useState({ 
   occupation: [], 
 });
 
-const [campaign, setCampaign] = useState({ 
-    campaign: [], 
-  });
-
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
 const handleShow = () => setShow(true);
-const [show1, setShow1] = useState(false);
-const handleClose1 = () => setShow1(false);
-const handleShow1 = () => setShow1(true);
-const [show2, setShow2] = useState(false);
-const handleClose2 = () => setShow2(false);
-const handleShow2 = () => setShow2(true);
 
 // Fetch Occupations
 useEffect(() => {
@@ -91,48 +66,9 @@ useEffect(() => {
   
 }, [navigate]);
 
-// Fetch Campaigns
-useEffect(() => {
-    async function fetchData1() {
-      const response = await fetch(`/campaigns`);    
-  
-      if (!response.ok) {
-        const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
-        return;
-      }
-  
-      const record = await response.json();
-      if (!record) {
-        window.alert(`Record not found`);
-        navigate("/");
-        return;
-      }
-      setCampaign({campaign: record});
-    }
-    fetchData1();   
-    return;
-    
-  }, [navigate]);
-
 //  Update the state properties.
   function updateForm(value) {
     return setForm((prev) => {
-      return { ...prev, ...value };
-    });
-  }
-  function updateForm1(value) {
-    return setForm1((prev) => {
-      return { ...prev, ...value };
-    });
-  }
-  function updateForm2(value) {
-    return setForm2((prev) => {
-      return { ...prev, ...value };
-    });
-  }
-  function updateCampaignSearch(value) {
-    return setCampaignSearch((prev) => {
       return { ...prev, ...value };
     });
   }
@@ -142,15 +78,6 @@ useEffect(() => {
   e.preventDefault();   
    sendToDb();
 }
-async function onSubmit1(e) {
-    e.preventDefault();   
-     sendToDb1();
-  }
-async function onSubmit2(e) {
-    e.preventDefault();   
-     sendToDb2();
-  }
-// -------------------Big Maffs Section-------------------
 
 // Dice Randomizer
 const [sumArray, setSumArray] = useState([]);
@@ -243,7 +170,7 @@ useEffect(() => {
   return;
 }, [ form.occupation.Health, form.level ]);
 
- // ----------------------Sends form data to database--------------------------------------
+ // Sends form data to database
  async function sendToDb(){
   const newCharacter = { ...form };
     await fetch("/character/add", {
@@ -286,6 +213,64 @@ useEffect(() => {
    navigate(`/zombies-character-select/${form.campaign}`);
  }
 
+//--------------------------------------------Campaign Section------------------------------
+
+const [form1, setForm1] = useState({ 
+  campaignName: "", 
+  gameMode: "zombies",
+});
+
+const [campaignSearch, setCampaignSearch] = useState({ 
+  campaign: "", 
+});
+
+const [campaign, setCampaign] = useState({ 
+  campaign: [], 
+});
+
+const [show1, setShow1] = useState(false);
+const handleClose1 = () => setShow1(false);
+const handleShow1 = () => setShow1(true);
+
+// Fetch Campaigns
+useEffect(() => {
+  async function fetchData1() {
+    const response = await fetch(`/campaigns`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setCampaign({campaign: record});
+  }
+  fetchData1();   
+  return;
+  
+}, [navigate]);
+
+function updateForm1(value) {
+  return setForm1((prev) => {
+    return { ...prev, ...value };
+  });
+}
+function updateCampaignSearch(value) {
+  return setCampaignSearch((prev) => {
+    return { ...prev, ...value };
+  });
+}
+
+async function onSubmit1(e) {
+  e.preventDefault();   
+   sendToDb1();
+}
  async function sendToDb1(){
     const newCampaign = { ...form1 };
       await fetch("/campaign/add", {
@@ -306,7 +291,30 @@ useEffect(() => {
     });
      navigate(`/`);
    }
-//-------------------Weapons-----------------------------------------------------------------
+//---------------------------------------Weapons----------------------------------------------
+
+const [form2, setForm2] = useState({ 
+  weaponName: "", 
+  attackBonus: "",
+  damage: "",
+  critical: "",
+});
+
+const [show2, setShow2] = useState(false);
+const handleClose2 = () => setShow2(false);
+const handleShow2 = () => setShow2(true);
+
+function updateForm2(value) {
+  return setForm2((prev) => {
+    return { ...prev, ...value };
+  });
+}
+
+async function onSubmit2(e) {
+  e.preventDefault();   
+   sendToDb2();
+}
+
 async function sendToDb2(){
   const newWeapon = { ...form2 };
     await fetch("/weapon/add", {
@@ -373,6 +381,8 @@ async function sendToDb3(){
 });
  navigate(`/`);
 }
+
+// -----------------------------------Display-----------------------------------------------------------------------------
  return (
 <center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">Zombies</h1>    
@@ -499,7 +509,7 @@ async function sendToDb3(){
      </center>
      </Modal.Body>        
       </Modal>
-{/* --------------------------------------- Modal For Armor --------------------------------- */}
+{/* --------------------------------------- Armor Modal --------------------------------- */}
 <Modal show={show3} onHide={handleClose3}>
 <Modal.Header closeButton>
   <Modal.Title>Create Armor</Modal.Title>
