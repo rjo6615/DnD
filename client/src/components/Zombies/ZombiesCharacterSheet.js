@@ -447,6 +447,54 @@ useEffect(() => {
  });
  navigate(0);
 }
+ // This method will delete a armor
+ function deleteArmors(el) {
+  const index = form.armor.indexOf(el);
+  form.armor.splice(index, 1);
+  updateArmor(form.armor);
+  addDeleteArmorToDb();
+ }
+ let showDeleteArmorBtn = "";
+ if (JSON.stringify(form.armor) === JSON.stringify([["","",""]])){
+  showDeleteArmorBtn = "none";
+ }
+async function addDeleteArmorToDb(){
+  let newArmorForm = form.armor;
+  if (JSON.stringify(form.armor) === JSON.stringify([])){
+    newArmorForm = [["","",""]];
+    await fetch(`/update-armor/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+       armor: newArmorForm,
+      }),
+    })
+    .catch(error => {
+      window.alert(error);
+      return;
+    });
+    console.log("Armor Deleted")
+    navigate(0);
+  } else {
+  await fetch(`/update-armor/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    armor: newArmorForm,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ console.log("Armor Deleted")
+ navigate(0);
+}
+}
 //--------------------------------------------Display---------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
@@ -680,7 +728,7 @@ useEffect(() => {
         <Col>
           <Form onSubmit={addWeaponToDb}>
           <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-light">Select Weapon</Form.Label>
+        <Form.Label className="text-dark">Select Weapon</Form.Label>
         <Form.Select 
         onChange={(e) => updateWeapon({ weapon: e.target.value })}
          type="text">
@@ -717,9 +765,9 @@ useEffect(() => {
               <td>{el[0]}</td>
               <td>{el[1]}</td>
               <td>{el[2]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" ></Button></td>
+              <td><Button style={{ display: showDeleteArmorBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteArmors(el);}}></Button></td>
             </tr>
-            ))};       
+            ))}     
           </tbody>
         </Table>        
     </Card> 
@@ -727,7 +775,7 @@ useEffect(() => {
         <Col>
           <Form onSubmit={addArmorToDb}>
           <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-light">Select Armor</Form.Label>
+        <Form.Label className="text-dark">Select Armor</Form.Label>
         <Form.Select 
         onChange={(e) => updateArmor({ armor: e.target.value })}
          type="text">
