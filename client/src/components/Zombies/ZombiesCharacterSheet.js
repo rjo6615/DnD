@@ -16,6 +16,7 @@ export default function ZombiesCharacterSheet() {
     level: "", 
     occupation: "", 
     weapon: [],
+    armor: [],
     age: "",
     sex: "",
     height: "",
@@ -311,6 +312,65 @@ useEffect(() => {
  });
  navigate(0);
 }
+// -------------------------------------------Armor---------------------------------------------------------
+const [armor, setArmor] = useState({ 
+  armor: [], 
+});
+const [addArmor, setAddArmor] = useState({ 
+  armor: "",
+});
+function updateArmor(value) {
+  return setAddArmor((prev) => {
+    return { ...prev, ...value };
+  });
+}
+// Fetch Armors
+useEffect(() => {
+  async function fetchArmor() {
+    const response = await fetch(`/armor`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setArmor({armor: record});
+  }
+  fetchArmor();   
+  return;
+  
+}, [navigate]);
+ // Sends armor data to database for update
+ let newArmor;
+ if (form.armor === "") {
+  newArmor = addArmor.armor.split(',')
+ } else {
+  newArmor = (form.armor + "," + addArmor.armor).split(',');
+ }
+ async function addArmorToDb(e){
+  e.preventDefault();
+  await fetch(`/update-armor/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    armor: newArmor,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ navigate(0);
+}
 //--------------------------------------------Display---------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
@@ -512,6 +572,7 @@ useEffect(() => {
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="4">
+      {/* -----------------------------------------Weapons section------------------------------------------------------------------- */}
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
@@ -523,6 +584,7 @@ useEffect(() => {
               <th>Attack Bonus</th>
               <th>Damage</th>
               <th>Critical</th>
+              <th>Delete</th>
             </tr>
           </thead>
           <tbody>
@@ -531,18 +593,21 @@ useEffect(() => {
               <td>{form.weapon[1]}</td>
               <td>{form.weapon[2]}</td>
               <td>{form.weapon[3]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
             </tr>
             <tr>
               <td>{form.weapon[4]}</td>
               <td>{form.weapon[5]}</td>
               <td>{form.weapon[6]}</td>
               <td>{form.weapon[7]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
             </tr>
             <tr>
               <td>{form.weapon[8]}</td>
               <td>{form.weapon[9]}</td>
               <td>{form.weapon[10]}</td>
               <td>{form.weapon[11]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
             </tr>
           </tbody>
         </Table>        
@@ -565,6 +630,7 @@ useEffect(() => {
           </Form>
         </Col>
       </Row>
+            {/* ------------------------------------------------Armor--------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="5">
@@ -572,11 +638,56 @@ useEffect(() => {
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
         <Card.Title>Armor</Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item><ListGroup.Item>Platemail</ListGroup.Item>Armor Bonus: +8 | Max Dex 1 | Check penalty -6</ListGroup.Item>
-        <ListGroup.Item><ListGroup.Item>Shield Heavy (steel)</ListGroup.Item>Armor Bonus: +2 | Max Dex - | Check penalty -2</ListGroup.Item>
-      </ListGroup>
+        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>Armor Name</th>
+              <th>Ac Bns</th>
+              <th>Max Dex Bns</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{form.armor[0]}</td>
+              <td>{form.armor[1]}</td>
+              <td>{form.armor[2]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
+            </tr>
+            <tr>
+              <td>{form.armor[3]}</td>
+              <td>{form.armor[4]}</td>
+              <td>{form.armor[5]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
+            </tr>
+            <tr>
+              <td>{form.armor[6]}</td>
+              <td>{form.armor[7]}</td>
+              <td>{form.armor[8]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
+            </tr>
+          </tbody>
+        </Table>        
     </Card> 
+    <Row>
+        <Col>
+          <Form onSubmit={addArmorToDb}>
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-light">Select Armor</Form.Label>
+        <Form.Select 
+        onChange={(e) => updateArmor({ armor: e.target.value })}
+         type="text">
+          <option></option>
+          {armor.armor.map((el) => (  
+          <option value={[el.armorName, el.armorBonus, el.maxDex]}>{el.armorName}</option>
+          ))};
+        </Form.Select>
+      </Form.Group>
+        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+          </Form>
+        </Col>
+      </Row>
+      {/* -----------------------------------------Notes------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="6">
@@ -584,7 +695,7 @@ useEffect(() => {
         <Accordion.Body>
         <center>
   <div className="">
-    <h5 className="text-dark">Weapon Finess</h5>
+    <h5 className="text-dark">Notes</h5>
     <table className="table text-dark" style={{ marginTop: 20 }}>
       <thead>
         <tr>        

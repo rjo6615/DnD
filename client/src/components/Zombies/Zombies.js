@@ -13,6 +13,7 @@ export default function ZombiesHome() {
   level: "",
   occupation: "", 
   weapon: "",
+  armor: "",
   age: "",
   sex: "",
   height: "",
@@ -145,7 +146,7 @@ async function onSubmit1(e) {
     e.preventDefault();   
      sendToDb1();
   }
-  async function onSubmit2(e) {
+async function onSubmit2(e) {
     e.preventDefault();   
      sendToDb2();
   }
@@ -263,6 +264,7 @@ useEffect(() => {
     level: "",
     occupation: "",
     weapon: "",
+    armor: "",
     age: "",
     sex: "",
     height: "",
@@ -327,6 +329,50 @@ async function sendToDb2(){
   });
    navigate(`/`);
  }
+ //  ------------------------------------Armor-----------------------------------
+
+const [show3, setShow3] = useState(false);
+const handleClose3 = () => setShow3(false);
+const handleShow3 = () => setShow3(true);
+
+ const [form3, setForm3] = useState({ 
+  armorName: "", 
+  armorBonus: "",
+  maxDex: "",
+});
+
+function updateForm3(value) {
+  return setForm3((prev) => {
+    return { ...prev, ...value };
+  });
+}
+
+async function onSubmit3(e) {
+  e.preventDefault();   
+   sendToDb3();
+}
+
+async function sendToDb3(){
+  const newArmor = { ...form3 };
+  await fetch("/armor/add", {
+   method: "POST",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify(newArmor),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+
+ setForm3({
+  armorName: "", 
+  armorBonus: "",
+  maxDex: "",
+});
+ navigate(`/`);
+}
  return (
 <center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 className="text-light">Zombies</h1>    
@@ -356,7 +402,7 @@ async function sendToDb2(){
     <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
     <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
-    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
+    <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
     </Col>   
     {/* ---------------------------Modals------------------------------------------------------- */}
@@ -453,6 +499,37 @@ async function sendToDb2(){
      </center>
      </Modal.Body>        
       </Modal>
+{/* --------------------------------------- Modal For Armor --------------------------------- */}
+<Modal show={show3} onHide={handleClose3}>
+<Modal.Header closeButton>
+  <Modal.Title>Create Armor</Modal.Title>
+</Modal.Header>
+<Modal.Body>   
+<center>
+<Form onSubmit={onSubmit3} className="px-5">
+<Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+<Form.Label className="text-dark">Armor Name</Form.Label>
+<Form.Control className="mb-2" onChange={(e) => updateForm3({ armorName: e.target.value })}
+type="text" placeholder="Enter Armor name" />   
+<Form.Label className="text-dark">Armor Bonus</Form.Label>
+<Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })}
+type="text" placeholder="Enter Armor Bonus" />
+<Form.Label className="text-dark">Max Dex Bonus</Form.Label>
+<Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })}
+type="text" placeholder="Enter Max Dex Bonus" />        
+</Form.Group>
+<center>
+<Button variant="primary" onClick={handleClose3} type="submit">
+    Create
+  </Button>
+  <Button className="ms-4" variant="secondary" onClick={handleClose3}>
+    Close
+  </Button>
+  </center>
+</Form>
+</center>
+</Modal.Body>        
+</Modal>
     </center>
  )
 }

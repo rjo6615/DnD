@@ -72,6 +72,7 @@ routes.route("/character/add").post(function (req, response) {
   level: req.body.level, 
   occupation: req.body.occupation,
   weapon: req.body.weapon,
+  armor: req.body.armor,
   age: req.body.age,
   sex: req.body.sex,
   height: req.body.height,
@@ -152,53 +153,53 @@ routes.route('/update-stats/:id').put((req, res, next) => {
   });
 });
 
-  // This section will update skills.
-  routes.route('/update-skills/:id').put((req, res, next) => {
-    let id = { _id: ObjectId(req.params.id) };
-    let db_connect = dbo.getDb();
-    db_connect.collection("Characters").updateOne(id, {$set:{
-    'climb': req.body.climb, 
-    'gatherInfo': req.body.gatherInfo, 
-    'heal': req.body.heal,
-    'jump': req.body.jump
-  }}, (err, result) => {
-      if(err) {
-        throw err;
-      }
-      console.log("character skills updated");
-      res.send('user updated sucessfully');
-    });
+// This section will update skills.
+routes.route('/update-skills/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'climb': req.body.climb, 
+  'gatherInfo': req.body.gatherInfo, 
+  'heal': req.body.heal,
+  'jump': req.body.jump
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character skills updated");
+    res.send('user updated sucessfully');
   });
+});
 
-    // This section will update tempHealth.
-    routes.route('/update-temphealth/:id').put((req, res, next) => {
-      let id = { _id: ObjectId(req.params.id) };
-      let db_connect = dbo.getDb();
-      db_connect.collection("Characters").updateOne(id, {$set:{
-      'tempHealth': req.body.tempHealth
-    }}, (err, result) => {
-        if(err) {
-          throw err;
-        }
-        console.log("character tempHealth updated");
-        res.send('user updated sucessfully');
-      });
-    });
+// This section will update tempHealth.
+routes.route('/update-temphealth/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'tempHealth': req.body.tempHealth
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character tempHealth updated");
+    res.send('user updated sucessfully');
+  });
+});
 
-        // This section will update weapons.
-        routes.route('/update-weapon/:id').put((req, res, next) => {
-          let id = { _id: ObjectId(req.params.id) };
-          let db_connect = dbo.getDb();
-          db_connect.collection("Characters").updateOne(id, {$set:{
-          'weapon': req.body.weapon
-        }}, (err, result) => {
-            if(err) {
-              throw err;
-            }
-            console.log("character weapon updated");
-            res.send('user updated sucessfully');
-          });
-        });
+// This section will update weapons.
+routes.route('/update-weapon/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'weapon': req.body.weapon
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character weapon updated");
+    res.send('user updated sucessfully');
+  });
+});
 
 // This section will create a new weapon.
 routes.route("/weapon/add").post(function (req, response) {
@@ -214,6 +215,47 @@ routes.route("/weapon/add").post(function (req, response) {
     response.json(res);
   });
  });
-  
+// -----------------------------------------------------Armor Section--------------------------------------------------------
+
+// This section will get a list of all the armor.
+routes.route("/armor").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Armor")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+// This section will create a new armor.
+routes.route("/armor/add").post(function (req, response) {
+  let db_connect = dbo.getDb();
+  let myobj = {
+  armorName: req.body.armorName,
+  armorBonus: req.body.armorBonus,
+  maxDex: req.body.maxDex
+  };
+  db_connect.collection("Armor").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
+  });
+ });
+
+// This section will update armors.
+routes.route('/update-armor/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'armor': req.body.armor
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character armor updated");
+    res.send('user updated sucessfully');
+  });
+});
 
    module.exports = routes;
