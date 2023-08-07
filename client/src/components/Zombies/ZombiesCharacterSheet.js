@@ -326,6 +326,52 @@ useEffect(() => {
  });
  navigate(0);
 }
+ // This method will delete a weapon
+ function deleteWeapons(el) {
+  const index = form.weapon.indexOf(el);
+  form.weapon.splice(index, 1);
+  updateWeapon(form.weapon);
+  addDeleteWeaponToDb();
+ }
+ let showDeleteBtn = "";
+ if (JSON.stringify(form.weapon) === JSON.stringify([["","","",""]])){
+  showDeleteBtn = "none";
+ }
+async function addDeleteWeaponToDb(){
+  let newWeaponForm = form.weapon;
+  if (JSON.stringify(form.weapon) === JSON.stringify([])){
+    newWeaponForm = [["","","",""]];
+    await fetch(`/update-weapon/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+       weapon: newWeaponForm,
+      }),
+    })
+    .catch(error => {
+      window.alert(error);
+      return;
+    });
+    console.log("Weapon Deleted")
+  } else {
+  await fetch(`/update-weapon/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    weapon: newWeaponForm,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ console.log("Weapon Deleted")
+}
+}
 // -------------------------------------------Armor---------------------------------------------------------
 const [armor, setArmor] = useState({ 
   armor: [], 
@@ -622,7 +668,7 @@ useEffect(() => {
               <td>{el[1]}</td>
               <td>{el[2]}</td>
               <td>{el[3]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
+              <td><Button style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
             </tr>
              ))}
           </tbody>
