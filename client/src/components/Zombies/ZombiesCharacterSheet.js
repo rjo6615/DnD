@@ -59,7 +59,7 @@ export default function ZombiesCharacterSheet() {
   return;
   
 }, [params.id, navigate]);
-//------------------------------Stats-------------------------------------------------------------
+//------------------------------Stats--------------------------------------------------------------------------------------------------------------------------------------------
 let currStr = form.str; 
 let currDex = form.dex;
 let currCon = form.con;
@@ -128,7 +128,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     document.getElementById(statMod).innerHTML = Math.floor((statForm[stat] - 10) / 2);
     }
   };
-//-----------------------Health/Defense------------------------------------------------------------
+//-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
   // Saves Maffs
   let fortSave;
   let reflexSave;
@@ -181,7 +181,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     document.getElementById("health").innerHTML = currHealth;
     }
   };
-//-----------------------Skills-----------------------------------------------------------------------
+//-----------------------Skills--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 let currClimb = form.climb; 
 let currGatherInfo = form.gatherInfo;
 let currHeal = form.heal;
@@ -253,7 +253,7 @@ function removeSkill(skill, totalSkill) {
   document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
   }
 };
-//--------------------------------------------Weapons---------------------------------------------------
+//--------------------------------------------Weapons-----------------------------------------------------------------------------------------------------------------------------------------------
 const [weapon, setWeapon] = useState({ 
   weapon: [], 
 });
@@ -374,7 +374,7 @@ async function addDeleteWeaponToDb(){
  navigate(0);
 }
 }
-// -------------------------------------------Armor---------------------------------------------------------
+// -------------------------------------------Armor---------------------------------------------------------------------------------------------------------------------------------------------------
 const [armor, setArmor] = useState({ 
   armor: [], 
 });
@@ -495,7 +495,7 @@ async function addDeleteArmorToDb(){
  navigate(0);
 }
 }
-//--------------------------------------------Display---------------------------------------------------
+//--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
@@ -696,7 +696,7 @@ async function addDeleteArmorToDb(){
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="4">
-      {/* -----------------------------------------Weapons section------------------------------------------------------------------- */}
+      {/* -----------------------------------------Weapons section---------------------------------------------------------------------------------------------------------------------------------- */}
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
@@ -742,7 +742,7 @@ async function addDeleteArmorToDb(){
           </Form>
         </Col>
       </Row>
-            {/* ------------------------------------------------Armor--------------------------------------------------- */}
+            {/* ------------------------------------------------Armor---------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="5">
@@ -789,7 +789,7 @@ async function addDeleteArmorToDb(){
           </Form>
         </Col>
       </Row>
-      {/* -----------------------------------------Items----------------------------------------------- */}
+      {/* -----------------------------------------Items------------------------------------------------------------------------------------------------------------------------------- */}
       </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="6">
@@ -842,7 +842,7 @@ async function addDeleteArmorToDb(){
           </Form>
         </Col>
       </Row>
-      {/* -----------------------------------------Notes------------------------------------------------ */}
+      {/* -----------------------------------------Notes------------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="7">
