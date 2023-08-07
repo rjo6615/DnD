@@ -355,6 +355,7 @@ async function addDeleteWeaponToDb(){
       return;
     });
     console.log("Weapon Deleted")
+    navigate(0);
   } else {
   await fetch(`/update-weapon/${params.id}`, {
    method: "PUT",
@@ -370,6 +371,7 @@ async function addDeleteWeaponToDb(){
    return;
  });
  console.log("Weapon Deleted")
+ navigate(0);
 }
 }
 // -------------------------------------------Armor---------------------------------------------------------
