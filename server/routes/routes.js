@@ -3,6 +3,8 @@ const routes = express.Router();
 const dbo = require("../db/conn"); 
 const ObjectId = require("mongodb").ObjectId;
 
+// -------------------------------------------------Character Section-----------------------------------------------
+
 // This section will get a single character by id
 routes.route("/characters/:id").get(function (req, res) {
   let db_connect = dbo.getDb();
@@ -20,42 +22,6 @@ routes.route("/character/select").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Characters")
-    .find({})
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });   
-
-// This section will get a list of all the occupations.
-routes.route("/occupations").get(function (req, res) {
-    let db_connect = dbo.getDb();
-    db_connect
-      .collection("Occupations")
-      .find({})
-      .toArray(function (err, result) {
-        if (err) throw err;
-        res.json(result);
-      });
-   });
-
-// This section will get a list of all the campaigns.
-routes.route("/campaigns").get(function (req, res) {
-  let db_connect = dbo.getDb();
-  db_connect
-    .collection("Campaigns")
-    .find({})
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
- // This section will get a list of all the weapons.
-routes.route("/weapons").get(function (req, res) {
-  let db_connect = dbo.getDb();
-  db_connect
-    .collection("Weapons")
     .find({})
     .toArray(function (err, result) {
       if (err) throw err;
@@ -97,6 +63,43 @@ routes.route("/character/add").post(function (req, response) {
   });
  });
 
+// This section will delete a character
+routes.route("/delete-character/:id").delete((req, response) => {
+  let db_connect = dbo.getDb();
+  let myquery = { _id: ObjectId(req.params.id) };
+  db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
+    if (err) throw err;
+    console.log("1 character deleted");
+    response.json(obj);
+  });
+ });
+
+// -------------------------------------------------Campaign Section---------------------------------------------------
+
+// This section will find all characters in a specific campaign.
+routes.route("/campaign/:campaign").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Characters")
+    .find({ campaign: req.params.campaign })
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+// This section will get a list of all the campaigns.
+routes.route("/campaigns").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Campaigns")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
  // This section will create a new campaign.
 routes.route("/campaign/add").post(function (req, response) {
   let db_connect = dbo.getDb();
@@ -110,28 +113,21 @@ routes.route("/campaign/add").post(function (req, response) {
   });
  });
 
- // This section will find all characters in a specific campaign.
-routes.route("/campaign/:campaign").get(function (req, res) {
+// --------------------------------------------Occupations Section----------------------------------------
+
+// This section will get a list of all the occupations.
+routes.route("/occupations").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
-    .collection("Characters")
-    .find({ campaign: req.params.campaign })
+    .collection("Occupations")
+    .find({})
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
     });
  });
 
- // This section will delete a character
-routes.route("/delete-character/:id").delete((req, response) => {
-  let db_connect = dbo.getDb();
-  let myquery = { _id: ObjectId(req.params.id) };
-  db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
-    if (err) throw err;
-    console.log("1 character deleted");
-    response.json(obj);
-  });
- });
+// ---------------------------------------------Stats Section----------------------------------------------------------
 
   // This section will update stats.
 routes.route('/update-stats/:id').put((req, res, next) => {
@@ -153,6 +149,8 @@ routes.route('/update-stats/:id').put((req, res, next) => {
   });
 });
 
+// --------------------------------------------------Skills Section------------------------------------------------
+
 // This section will update skills.
 routes.route('/update-skills/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
@@ -171,6 +169,8 @@ routes.route('/update-skills/:id').put((req, res, next) => {
   });
 });
 
+// --------------------------------------------------Health Section--------------------------------------------------------
+
 // This section will update tempHealth.
 routes.route('/update-temphealth/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
@@ -185,6 +185,20 @@ routes.route('/update-temphealth/:id').put((req, res, next) => {
     res.send('user updated sucessfully');
   });
 });
+
+// ----------------------------------------------------Weapon Section----------------------------------------------------
+
+ // This section will get a list of all the weapons.
+ routes.route("/weapons").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Weapons")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
 
 // This section will update weapons.
 routes.route('/update-weapon/:id').put((req, res, next) => {
