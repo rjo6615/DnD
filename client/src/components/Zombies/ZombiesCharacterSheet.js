@@ -15,8 +15,8 @@ export default function ZombiesCharacterSheet() {
     characterName: "",
     level: "", 
     occupation: "", 
-    weapon: [],
-    armor: [],
+    weapon: [["","","",""]],
+    armor: [["","",""]],
     age: "",
     sex: "",
     height: "",
@@ -288,12 +288,26 @@ useEffect(() => {
   return;
   
 }, [navigate]);
- // Sends weapon data to database for update
+//  Sends weapon data to database for update
+ const splitWeaponArr = (array, size) => {
+  let result = [];
+  for (let i = 0; i < array.length; i += size) {
+    let chunk = array.slice(i, i + size);
+    result.push(chunk);
+  }
+  return result;
+};
  let newWeapon;
- if (form.weapon === "") {
-  newWeapon = addWeapon.weapon.split(',')
+ if (JSON.stringify(form.weapon) === JSON.stringify([["","","",""]])) {
+  let newWeaponArr = addWeapon.weapon.split(',');
+  const weaponArrSize = 4;
+  const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
+  newWeapon = weaponArrChunks;
  } else {
-  newWeapon = (form.weapon + "," + addWeapon.weapon).split(',');
+  let newWeaponArr = (form.weapon + "," + addWeapon.weapon).split(',');
+  const weaponArrSize = 4;
+  const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
+  newWeapon = weaponArrChunks;
  }
  async function addWeaponToDb(e){
   e.preventDefault();
@@ -348,11 +362,25 @@ useEffect(() => {
   
 }, [navigate]);
  // Sends armor data to database for update
+ const splitArmorArr = (array, size) => {
+  let result = [];
+  for (let i = 0; i < array.length; i += size) {
+    let chunk = array.slice(i, i + size);
+    result.push(chunk);
+  }
+  return result;
+};
  let newArmor;
- if (form.armor === "") {
-  newArmor = addArmor.armor.split(',')
+ if (JSON.stringify(form.armor) === JSON.stringify([["","",""]])) {
+  let newArmorArr = addArmor.armor.split(',');
+  const armorArrSize = 3;
+  const armorArrChunks = splitArmorArr(newArmorArr, armorArrSize);
+  newArmor = armorArrChunks;
  } else {
-  newArmor = (form.armor + "," + addArmor.armor).split(',');
+  let newArmorArr = (form.armor + "," + addArmor.armor).split(',');
+  const armorArrSize = 3;
+  const armorArrChunks = splitArmorArr(newArmorArr, armorArrSize);
+  newArmor = armorArrChunks;
  }
  async function addArmorToDb(e){
   e.preventDefault();
@@ -588,27 +616,15 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
+            {form.weapon.map((el) => (  
             <tr>
-              <td>{form.weapon[0]}</td>
-              <td>{form.weapon[1]}</td>
-              <td>{form.weapon[2]}</td>
-              <td>{form.weapon[3]}</td>
+              <td>{el[0]}</td>
+              <td>{el[1]}</td>
+              <td>{el[2]}</td>
+              <td>{el[3]}</td>
               <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
             </tr>
-            <tr>
-              <td>{form.weapon[4]}</td>
-              <td>{form.weapon[5]}</td>
-              <td>{form.weapon[6]}</td>
-              <td>{form.weapon[7]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
-            </tr>
-            <tr>
-              <td>{form.weapon[8]}</td>
-              <td>{form.weapon[9]}</td>
-              <td>{form.weapon[10]}</td>
-              <td>{form.weapon[11]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
-            </tr>
+             ))}
           </tbody>
         </Table>        
     </Card> 
@@ -623,7 +639,7 @@ useEffect(() => {
           <option></option>
           {weapon.weapon.map((el) => (  
           <option value={[el.weaponName, el.attackBonus, el.damage, el.critical]}>{el.weaponName}</option>
-          ))};
+          ))}
         </Form.Select>
       </Form.Group>
         <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
@@ -648,24 +664,14 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>{form.armor[0]}</td>
-              <td>{form.armor[1]}</td>
-              <td>{form.armor[2]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
+          {form.armor.map((el) => (  
+            <tr>           
+              <td>{el[0]}</td>
+              <td>{el[1]}</td>
+              <td>{el[2]}</td>
+              <td><Button className="fa-solid fa-trash" variant="danger" ></Button></td>
             </tr>
-            <tr>
-              <td>{form.armor[3]}</td>
-              <td>{form.armor[4]}</td>
-              <td>{form.armor[5]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
-            </tr>
-            <tr>
-              <td>{form.armor[6]}</td>
-              <td>{form.armor[7]}</td>
-              <td>{form.armor[8]}</td>
-              <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {/* {props.deleteRecord(props.record._id);} */}}></Button></td>
-            </tr>
+            ))};       
           </tbody>
         </Table>        
     </Card> 
@@ -680,7 +686,7 @@ useEffect(() => {
           <option></option>
           {armor.armor.map((el) => (  
           <option value={[el.armorName, el.armorBonus, el.maxDex]}>{el.armorName}</option>
-          ))};
+          ))}
         </Form.Select>
       </Form.Group>
         <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
