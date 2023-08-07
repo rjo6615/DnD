@@ -789,10 +789,63 @@ async function addDeleteArmorToDb(){
           </Form>
         </Col>
       </Row>
-      {/* -----------------------------------------Notes------------------------------------- */}
-        </Accordion.Body>
+      {/* -----------------------------------------Items----------------------------------------------- */}
+      </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="6">
+        <Accordion.Header>Items</Accordion.Header>
+        <Accordion.Body>
+        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card.Title>Items</Card.Title>
+        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Notes</th>
+              <th>Stats</th>
+              <th>Skills</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+          {/* {form.item.map((el) => (   */}
+            <tr>           
+              <td>Crystal Buttplug</td>
+              <td>this mythical item grants the user control over their sphincter and gives off a powerful aura</td>
+              <td>int+2, wis+4</td>
+              <td>Gatherinfo+4</td>
+              <td>
+              <Button style={{ display: ''}} className="fa-solid fa-trash" variant="danger"></Button>
+              </td>
+            </tr>
+            {/* ))}      */}
+          </tbody>
+        </Table>        
+    </Card> 
+    <Row>
+        <Col>
+          <Form
+          //  onSubmit={addItemToDb}
+           >
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-dark">Select Item</Form.Label>
+        <Form.Select 
+        // onChange={(e) => updateItem({ item: e.target.value })}
+         type="text">
+          <option></option>
+          {/* {item.item.map((el) => (  
+          <option value={[el.itemName, el.itemNotes, el.itemStats, el.itemSkills]}>{el.itemName}</option>
+          ))} */}
+        </Form.Select>
+      </Form.Group>
+        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+          </Form>
+        </Col>
+      </Row>
+      {/* -----------------------------------------Notes------------------------------------------------ */}
+        </Accordion.Body>
+      </Accordion.Item>
+      <Accordion.Item eventKey="7">
         <Accordion.Header>Notes</Accordion.Header>
         <Accordion.Body>
         <center>
