@@ -7,6 +7,7 @@ import { Button, Col, Form, Row } from "react-bootstrap";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
+import '../../App.css';
 
 export default function ZombiesCharacterSheet() {
   const navigate = useNavigate();
@@ -133,6 +134,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   let fortSave;
   let reflexSave;
   let willSave;
+  let atkBonusSave;
   if (form.occupation.Fort === "0") {
     fortSave = Math.floor(form.level / 3);
   } if (form.occupation.Fort === "1") {
@@ -148,6 +150,15 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   } else if (form.occupation.Will === "1") {
     willSave = Math.floor((form.level / 2) + 2);
   }
+
+  if (form.occupation.atkBonus === "0") {
+    atkBonusSave = Math.floor(form.level / 2);
+  } else if (form.occupation.atkBonus === "1") {
+    atkBonusSave = Math.floor((form.level * .75));
+  } else if (form.occupation.atkBonus === "2") {
+    atkBonusSave = form.level;
+  }
+
   // Health
   let currHealth = form.tempHealth
 
@@ -298,14 +309,14 @@ useEffect(() => {
   return result;
 };
  let newWeapon;
- if (JSON.stringify(form.weapon) === JSON.stringify([["","","",""]])) {
+ if (JSON.stringify(form.weapon) === JSON.stringify([["","","","",""]])) {
   let newWeaponArr = addWeapon.weapon.split(',');
-  const weaponArrSize = 4;
+  const weaponArrSize = 5;
   const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
   newWeapon = weaponArrChunks;
  } else {
   let newWeaponArr = (form.weapon + "," + addWeapon.weapon).split(',');
-  const weaponArrSize = 4;
+  const weaponArrSize = 5;
   const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
   newWeapon = weaponArrChunks;
  }
@@ -334,13 +345,15 @@ useEffect(() => {
   addDeleteWeaponToDb();
  }
  let showDeleteBtn = "";
- if (JSON.stringify(form.weapon) === JSON.stringify([["","","",""]])){
+ let showAtkBonusSave= "";
+ if (JSON.stringify(form.weapon) === JSON.stringify([["","","","",""]])){
   showDeleteBtn = "none";
+  showAtkBonusSave = "none";
  }
 async function addDeleteWeaponToDb(){
   let newWeaponForm = form.weapon;
   if (JSON.stringify(form.weapon) === JSON.stringify([])){
-    newWeaponForm = [["","","",""]];
+    newWeaponForm = [["","","","",""]];
     await fetch(`/update-weapon/${params.id}`, {
       method: "PUT",
       headers: {
@@ -516,10 +529,10 @@ async function addDeleteArmorToDb(){
     </Card> 
         </Accordion.Body>
       </Accordion.Item>
-      <Accordion.Item eventKey="1" style={{ backgroundImage: 'url(../images/paper.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+      <Accordion.Item eventKey="1">
         <Accordion.Header>Health/Defense</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-1" style={{ width: '19rem', backgroundImage: 'url(../images/paper.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat" }}>      
+        <Card className="mx-2 mb-1" style={{ width: '19rem'}}>      
         <Card.Title>Health</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -543,7 +556,7 @@ async function addDeleteArmorToDb(){
         </Table>
         </Card> 
         <Button onClick={() => tempHealthUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
-        <Card className="mx-2 mb-4 mt-2" style={{ width: '12rem',  backgroundImage: 'url(../images/paper.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat" }}>      
+        <Card className="mx-2 mb-4 mt-2" style={{ width: '12rem' }}>      
         <Card.Title>Saving Throws</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -553,6 +566,10 @@ async function addDeleteArmorToDb(){
             </tr>
           </thead>
           <tbody>
+            <tr>
+              <td>Attack Bonus</td>
+              <td>{atkBonusSave}</td>
+            </tr>
             <tr>
               <td>AC</td>
               <td>{Number(10) + Number(dexMod)}</td>
@@ -714,8 +731,17 @@ async function addDeleteArmorToDb(){
           <tbody>
             {form.weapon.map((el) => (  
             <tr>
-              <td>{el[0]}</td>
-              <td>{el[1]}</td>
+              <td>{el[0]}</td>             
+              <td style={{display: showAtkBonusSave}}>
+               {(() => {
+              if (el[4] === "0") {
+                return(Number(atkBonusSave) + Number(strMod) + Number(el[1]));
+              } else if (el[4] === "1") {
+                return(Number(atkBonusSave) + Number((strMod * 1.5)) + Number(el[1]));
+              } else if (el[4] === "2") {
+                return(Number(atkBonusSave) + Number(dexMod) + Number(el[1]));
+              }
+              })()}</td>
               <td>{el[2]}</td>
               <td>{el[3]}</td>
               <td><Button style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
@@ -734,7 +760,7 @@ async function addDeleteArmorToDb(){
          type="text">
           <option></option>
           {weapon.weapon.map((el) => (  
-          <option value={[el.weaponName, el.attackBonus, el.damage, el.critical]}>{el.weaponName}</option>
+          <option value={[el.weaponName, el.attackBonus, el.damage, el.critical, el.weaponStyle]}>{el.weaponName}</option>
           ))}
         </Form.Select>
       </Form.Group>
