@@ -12,7 +12,7 @@ export default function ZombiesHome() {
   campaign: "",
   level: "",
   occupation: "", 
-  weapon: [["","","","",""]],
+  weapon: [["","","","","","",""]],
   armor: [["","",""]],
   age: "",
   sex: "",
@@ -190,7 +190,7 @@ useEffect(() => {
     campaign: "", 
     level: "",
     occupation: "",
-    weapon: [["","","","",""]],
+    weapon: [["","","","","","",""]],
     armor: [["","",""]],
     age: "",
     sex: "",
@@ -298,6 +298,8 @@ const [form2, setForm2] = useState({
   attackBonus: "",
   damage: "",
   critical: "",
+  weaponStyle: "",
+  range: "",
 });
 
 const [show2, setShow2] = useState(false);
@@ -334,6 +336,8 @@ async function sendToDb2(){
     attackBonus: "",
     damage: "",
     critical: "",
+    weaponStyle: "",
+    range: "",
   });
    navigate(`/`);
  }
@@ -495,7 +499,18 @@ async function sendToDb3(){
         type="text" placeholder="Enter Damage" />  
        <Form.Label className="text-dark">Critical</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm2({ critical: e.target.value })}
-        type="text" placeholder="Enter Critical" />          
+        type="text" placeholder="Enter Weapon Type" />
+       <Form.Label className="text-dark">Weapon Type</Form.Label>
+       <Form.Select className="mb-2" onChange={(e) => updateForm2({ weaponStyle: e.target.value })}
+        type="text">
+        <option></option>
+        <option value= "0">One Handed</option> 
+        <option value= "1">Two Handed</option> 
+        <option value= "2">Ranged</option> 
+        </Form.Select>
+        <Form.Label className="text-dark">Range</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm2({ range: e.target.value })}
+        type="text" placeholder="Enter Range" />             
      </Form.Group>
      <center>
      <Button variant="primary" onClick={handleClose2} type="submit">

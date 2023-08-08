@@ -222,7 +222,9 @@ routes.route("/weapon/add").post(function (req, response) {
   weaponName: req.body.weaponName,
   attackBonus: req.body.attackBonus,
   damage: req.body.damage,
-  critical: req.body.critical
+  critical: req.body.critical,
+  weaponStyle: req.body.weaponStyle,
+  range: req.body.range
   };
   db_connect.collection("Weapons").insertOne(myobj, function (err, res) {
     if (err) throw err;
