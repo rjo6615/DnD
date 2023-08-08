@@ -16,7 +16,7 @@ export default function ZombiesCharacterSheet() {
     characterName: "",
     level: "", 
     occupation: "", 
-    weapon: [["","","",""]],
+    weapon: [["","","","","",""]],
     armor: [["","",""]],
     age: "",
     sex: "",
@@ -309,14 +309,14 @@ useEffect(() => {
   return result;
 };
  let newWeapon;
- if (JSON.stringify(form.weapon) === JSON.stringify([["","","","",""]])) {
+ if (JSON.stringify(form.weapon) === JSON.stringify([["","","","","",""]])) {
   let newWeaponArr = addWeapon.weapon.split(',');
-  const weaponArrSize = 5;
+  const weaponArrSize = 6;
   const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
   newWeapon = weaponArrChunks;
  } else {
   let newWeaponArr = (form.weapon + "," + addWeapon.weapon).split(',');
-  const weaponArrSize = 5;
+  const weaponArrSize = 6;
   const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
   newWeapon = weaponArrChunks;
  }
@@ -346,14 +346,14 @@ useEffect(() => {
  }
  let showDeleteBtn = "";
  let showAtkBonusSave= "";
- if (JSON.stringify(form.weapon) === JSON.stringify([["","","","",""]])){
+ if (JSON.stringify(form.weapon) === JSON.stringify([["","","","","",""]])){
   showDeleteBtn = "none";
   showAtkBonusSave = "none";
  }
 async function addDeleteWeaponToDb(){
   let newWeaponForm = form.weapon;
   if (JSON.stringify(form.weapon) === JSON.stringify([])){
-    newWeaponForm = [["","","","",""]];
+    newWeaponForm = [["","","","","",""]];
     await fetch(`/update-weapon/${params.id}`, {
       method: "PUT",
       headers: {
@@ -725,6 +725,7 @@ async function addDeleteArmorToDb(){
               <th>Attack Bonus</th>
               <th>Damage</th>
               <th>Critical</th>
+              <th>Range</th>
               <th>Delete</th>
             </tr>
           </thead>
@@ -744,6 +745,7 @@ async function addDeleteArmorToDb(){
               })()}</td>
               <td>{el[2]}</td>
               <td>{el[3]}</td>
+              <td>{el[5]}</td>
               <td><Button style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
             </tr>
              ))}
@@ -760,7 +762,7 @@ async function addDeleteArmorToDb(){
          type="text">
           <option></option>
           {weapon.weapon.map((el) => (  
-          <option value={[el.weaponName, el.attackBonus, el.damage, el.critical, el.weaponStyle]}>{el.weaponName}</option>
+          <option value={[el.weaponName, el.attackBonus, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
           ))}
         </Form.Select>
       </Form.Group>
