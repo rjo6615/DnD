@@ -502,7 +502,7 @@ async function addDeleteArmorToDb(){
       <Accordion className="mx-2">
       <Accordion.Item eventKey="0">
         <Accordion.Header>Character Info</Accordion.Header>
-        <Accordion.Body>
+        <Accordion.Body> 
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Character Info</Card.Title>
       <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
@@ -516,10 +516,10 @@ async function addDeleteArmorToDb(){
     </Card> 
         </Accordion.Body>
       </Accordion.Item>
-      <Accordion.Item eventKey="1">
+      <Accordion.Item eventKey="1" style={{ backgroundImage: 'url(../images/paper.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
         <Accordion.Header>Health/Defense</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-1" style={{ width: '19rem' }}>      
+        <Card className="mx-2 mb-1" style={{ width: '19rem', backgroundImage: 'url(../images/paper.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat" }}>      
         <Card.Title>Health</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -543,7 +543,7 @@ async function addDeleteArmorToDb(){
         </Table>
         </Card> 
         <Button onClick={() => tempHealthUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
-        <Card className="mx-2 mb-4 mt-2" style={{ width: '12rem' }}>      
+        <Card className="mx-2 mb-4 mt-2" style={{ width: '12rem',  backgroundImage: 'url(../images/paper.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat" }}>      
         <Card.Title>Saving Throws</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
