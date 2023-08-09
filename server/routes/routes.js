@@ -251,7 +251,8 @@ routes.route("/armor/add").post(function (req, response) {
   let myobj = {
   armorName: req.body.armorName,
   armorBonus: req.body.armorBonus,
-  maxDex: req.body.maxDex
+  maxDex: req.body.maxDex,
+  armorCheckPenalty: req.body.armorCheckPenalty
   };
   db_connect.collection("Armor").insertOne(myobj, function (err, res) {
     if (err) throw err;

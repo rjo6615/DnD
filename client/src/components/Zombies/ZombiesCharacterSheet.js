@@ -17,7 +17,7 @@ export default function ZombiesCharacterSheet() {
     level: "", 
     occupation: "", 
     weapon: [["","","","","",""]],
-    armor: [["","",""]],
+    armor: [["","","",""]],
     age: "",
     sex: "",
     height: "",
@@ -220,10 +220,17 @@ const skillForm = {
    });
    navigate(0);
  }
-let totalClimb = form.climb + strMod;
+ //Armor Check Penalty
+let checkPenalty= [];
+ form.armor.map((el) => (  
+  checkPenalty.push(el[3]) 
+))
+let totalCheckPenalty = checkPenalty.reduce((partialSum, a) => Number(partialSum) + Number(a), 0);
+
+let totalClimb = form.climb + strMod + totalCheckPenalty;
 let totalGatherInfo = form.gatherInfo + chaMod;
 let totalHeal = form.heal + wisMod;
-let totalJump = form.jump + strMod;
+let totalJump = form.jump + strMod + totalCheckPenalty;
 
 const skillTotalForm = {
   climb: totalClimb,
@@ -399,6 +406,26 @@ function updateArmor(value) {
     return { ...prev, ...value };
   });
 }
+ //Armor AC/MaxDex
+ let armorAcBonus= [];
+ let armorMaxDexBonus= [];
+ form.armor.map((el) => (  
+   armorAcBonus.push(el[1]) 
+ ))
+ let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+ form.armor.map((el) => (
+  armorMaxDexBonus.push(el[2]) 
+ ))
+ let filteredMaxDexArray = armorMaxDexBonus.filter(e => e !== '0')
+ let armorMaxDexMin = Math.min(...filteredMaxDexArray);
+
+ let armorMaxDex;
+ if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
+    armorMaxDex = armorMaxDexMin;
+ } else {
+  armorMaxDex = dexMod;
+ }
+
 // Fetch Armors
 useEffect(() => {
   async function fetchArmor() {
@@ -432,14 +459,14 @@ useEffect(() => {
   return result;
 };
  let newArmor;
- if (JSON.stringify(form.armor) === JSON.stringify([["","",""]])) {
+ if (JSON.stringify(form.armor) === JSON.stringify([["","","",""]])) {
   let newArmorArr = addArmor.armor.split(',');
-  const armorArrSize = 3;
+  const armorArrSize = 4;
   const armorArrChunks = splitArmorArr(newArmorArr, armorArrSize);
   newArmor = armorArrChunks;
  } else {
   let newArmorArr = (form.armor + "," + addArmor.armor).split(',');
-  const armorArrSize = 3;
+  const armorArrSize = 4;
   const armorArrChunks = splitArmorArr(newArmorArr, armorArrSize);
   newArmor = armorArrChunks;
  }
@@ -468,13 +495,13 @@ useEffect(() => {
   addDeleteArmorToDb();
  }
  let showDeleteArmorBtn = "";
- if (JSON.stringify(form.armor) === JSON.stringify([["","",""]])){
+ if (JSON.stringify(form.armor) === JSON.stringify([["","","",""]])){
   showDeleteArmorBtn = "none";
  }
 async function addDeleteArmorToDb(){
   let newArmorForm = form.armor;
   if (JSON.stringify(form.armor) === JSON.stringify([])){
-    newArmorForm = [["","",""]];
+    newArmorForm = [["","","",""]];
     await fetch(`/update-armor/${params.id}`, {
       method: "PUT",
       headers: {
@@ -572,7 +599,7 @@ async function addDeleteArmorToDb(){
             </tr>
             <tr>
               <td>AC</td>
-              <td>{Number(10) + Number(dexMod)}</td>
+              <td>{Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</td>
             </tr>
             <tr>
               <td>Fort</td>
@@ -794,6 +821,7 @@ async function addDeleteArmorToDb(){
               <th>Armor Name</th>
               <th>Ac Bns</th>
               <th>Max Dex Bns</th>
+              <th>Check Penalty</th>
               <th>Delete</th>
             </tr>
           </thead>
@@ -803,6 +831,7 @@ async function addDeleteArmorToDb(){
               <td>{el[0]}</td>
               <td>{el[1]}</td>
               <td>{el[2]}</td>
+              <td>{el[3]}</td>
               <td><Button style={{ display: showDeleteArmorBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteArmors(el);}}></Button></td>
             </tr>
             ))}     
@@ -819,7 +848,7 @@ async function addDeleteArmorToDb(){
          type="text">
           <option></option>
           {armor.armor.map((el) => (  
-          <option value={[el.armorName, el.armorBonus, el.maxDex]}>{el.armorName}</option>
+          <option value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
           ))}
         </Form.Select>
       </Form.Group>

@@ -13,7 +13,7 @@ export default function ZombiesHome() {
   level: "",
   occupation: "", 
   weapon: [["","","","","",""]],
-  armor: [["","",""]],
+  armor: [["","","",""]],
   age: "",
   sex: "",
   height: "",
@@ -191,7 +191,7 @@ useEffect(() => {
     level: "",
     occupation: "",
     weapon: [["","","","","",""]],
-    armor: [["","",""]],
+    armor: [["","","",""]],
     age: "",
     sex: "",
     height: "",
@@ -351,6 +351,7 @@ const handleShow3 = () => setShow3(true);
   armorName: "", 
   armorBonus: "",
   maxDex: "",
+  armorCheckPenalty: "",
 });
 
 function updateForm3(value) {
@@ -382,6 +383,7 @@ async function sendToDb3(){
   armorName: "", 
   armorBonus: "",
   maxDex: "",
+  armorCheckPenalty: "",
 });
  navigate(`/`);
 }
@@ -548,7 +550,10 @@ type="text" placeholder="Enter Armor name" />
 type="text" placeholder="Enter Armor Bonus" />
 <Form.Label className="text-dark">Max Dex Bonus</Form.Label>
 <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })}
-type="text" placeholder="Enter Max Dex Bonus" />        
+type="text" placeholder="Enter Max Dex Bonus" />     
+<Form.Label className="text-dark">Armor Check Penalty</Form.Label>
+<Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })}
+type="text" placeholder="Enter Armor Check Penalty" />     
 </Form.Group>
 <center>
 <Button variant="primary" onClick={handleClose3} type="submit">
