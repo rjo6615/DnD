@@ -220,7 +220,7 @@ routes.route("/weapon/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
   weaponName: req.body.weaponName,
-  attackBonus: req.body.attackBonus,
+  enhancement: req.body.enhancement,
   damage: req.body.damage,
   critical: req.body.critical,
   weaponStyle: req.body.weaponStyle,

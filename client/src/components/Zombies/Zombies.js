@@ -295,11 +295,11 @@ async function onSubmit1(e) {
 
 const [form2, setForm2] = useState({ 
   weaponName: "", 
-  attackBonus: "",
+  enhancement: "",
   damage: "",
   critical: "",
   weaponStyle: "",
-  range: "",
+  range: ""
 });
 
 const [show2, setShow2] = useState(false);
@@ -333,11 +333,11 @@ async function sendToDb2(){
  
    setForm2({
     weaponName: "", 
-    attackBonus: "",
+    enhancement: "",
     damage: "",
     critical: "",
     weaponStyle: "",
-    range: "",
+    range: ""
   });
    navigate(`/`);
  }
@@ -427,7 +427,7 @@ async function sendToDb3(){
         <Modal.Body>   
         <center>
       <Form onSubmit={onSubmit} className="px-5">
-      <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+      <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-dark">Character Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
         type="text" placeholder="Enter character name" />       
@@ -462,7 +462,7 @@ async function sendToDb3(){
         <Modal.Body>   
         <center>
       <Form onSubmit={onSubmit1} className="px-5">
-      <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+      <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-dark">Campaign Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm1({ campaignName: e.target.value })}
         type="text" placeholder="Enter campaign name" />         
@@ -487,19 +487,24 @@ async function sendToDb3(){
         <Modal.Body>   
         <center>
       <Form onSubmit={onSubmit2} className="px-5">
-      <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+      <Form.Group className="mb-3 pt-3" >
+
        <Form.Label className="text-dark">Weapon Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm2({ weaponName: e.target.value })}
-        type="text" placeholder="Enter Weapon name" />   
-       <Form.Label className="text-dark">Attack Bonus</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm2({ attackBonus: e.target.value })}
-        type="text" placeholder="Enter Attack Bonus" />
+        type="text" placeholder="Enter Weapon name" /> 
+
+       <Form.Label className="text-dark">Enhancement Bonus</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm2({ enhancement: e.target.value })}
+        type="text" placeholder="Enter Enhancement Bonus" />
+
        <Form.Label className="text-dark">Damage</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
         type="text" placeholder="Enter Damage" />  
+
        <Form.Label className="text-dark">Critical</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm2({ critical: e.target.value })}
-        type="text" placeholder="Enter Weapon Type" />
+        type="text" placeholder="Enter Weapon Critical" />
+
        <Form.Label className="text-dark">Weapon Type</Form.Label>
        <Form.Select className="mb-2" onChange={(e) => updateForm2({ weaponStyle: e.target.value })}
         type="text">
@@ -508,9 +513,11 @@ async function sendToDb3(){
         <option value= "1">Two Handed</option> 
         <option value= "2">Ranged</option> 
         </Form.Select>
-        <Form.Label className="text-dark">Range</Form.Label>
+
+       <Form.Label className="text-dark">Range</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm2({ range: e.target.value })}
-        type="text" placeholder="Enter Range" />             
+        type="text" placeholder="Enter Range" />   
+
      </Form.Group>
      <center>
      <Button variant="primary" onClick={handleClose2} type="submit">
@@ -532,7 +539,7 @@ async function sendToDb3(){
 <Modal.Body>   
 <center>
 <Form onSubmit={onSubmit3} className="px-5">
-<Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+<Form.Group className="mb-3 pt-3"  >
 <Form.Label className="text-dark">Armor Name</Form.Label>
 <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorName: e.target.value })}
 type="text" placeholder="Enter Armor name" />   

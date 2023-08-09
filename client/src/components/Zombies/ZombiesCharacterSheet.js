@@ -134,7 +134,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   let fortSave;
   let reflexSave;
   let willSave;
-  let atkBonusSave;
+  let atkBonus;
   if (form.occupation.Fort === "0") {
     fortSave = Math.floor(form.level / 3);
   } if (form.occupation.Fort === "1") {
@@ -152,11 +152,11 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   }
 
   if (form.occupation.atkBonus === "0") {
-    atkBonusSave = Math.floor(form.level / 2);
+    atkBonus = Math.floor(form.level / 2);
   } else if (form.occupation.atkBonus === "1") {
-    atkBonusSave = Math.floor((form.level * .75));
+    atkBonus = Math.floor((form.level * .75));
   } else if (form.occupation.atkBonus === "2") {
-    atkBonusSave = form.level;
+    atkBonus = form.level;
   }
 
   // Health
@@ -264,7 +264,7 @@ function removeSkill(skill, totalSkill) {
   document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
   }
 };
-//--------------------------------------------Weapons-----------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------Weapons Section-----------------------------------------------------------------------------------------------------------------------------------------------
 const [weapon, setWeapon] = useState({ 
   weapon: [], 
 });
@@ -568,7 +568,7 @@ async function addDeleteArmorToDb(){
           <tbody>
             <tr>
               <td>Attack Bonus</td>
-              <td>{atkBonusSave}</td>
+              <td>{atkBonus}</td>
             </tr>
             <tr>
               <td>AC</td>
@@ -713,7 +713,7 @@ async function addDeleteArmorToDb(){
         </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="4">
-      {/* -----------------------------------------Weapons section---------------------------------------------------------------------------------------------------------------------------------- */}
+      {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
@@ -736,14 +736,24 @@ async function addDeleteArmorToDb(){
               <td style={{display: showAtkBonusSave}}>
                {(() => {
               if (el[4] === "0") {
-                return(Number(atkBonusSave) + Number(strMod) + Number(el[1]));
+                return(Number(atkBonus) + Number(strMod) + Number(el[1]));
               } else if (el[4] === "1") {
-                return(Number(atkBonusSave) + Number((strMod * 1.5)) + Number(el[1]));
+                return(Number(atkBonus) + Number(strMod) + Number(el[1]));
               } else if (el[4] === "2") {
-                return(Number(atkBonusSave) + Number(dexMod) + Number(el[1]));
+                return(Number(atkBonus) + Number(dexMod) + Number(el[1]));
               }
               })()}</td>
-              <td>{el[2]}</td>
+              <td style={{display: showAtkBonusSave}}>{el[2]}
+              {(() => {
+              if (el[4] === "0") {
+                console.log (Number(el[1]));
+                return("+" + (Number(el[1]) + Number(strMod)));
+              } else if (el[4] === "1") {
+                return("+" + (Number(el[1]) + Math.floor( Number((strMod * 1.5)))));
+              } else if (el[4] === "2") {
+                return("+" + (Number(el[1]) + Number(0)));
+              }
+              })()}</td>
               <td>{el[3]}</td>
               <td>{el[5]}</td>
               <td><Button style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
@@ -762,7 +772,7 @@ async function addDeleteArmorToDb(){
          type="text">
           <option></option>
           {weapon.weapon.map((el) => (  
-          <option value={[el.weaponName, el.attackBonus, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
+          <option value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
           ))}
         </Form.Select>
       </Form.Group>
