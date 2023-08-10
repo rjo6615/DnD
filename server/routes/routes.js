@@ -274,5 +274,28 @@ routes.route('/update-armor/:id').put((req, res, next) => {
     res.send('user updated sucessfully');
   });
 });
+// ------------------------------------------------------Item Section-----------------------------------------------------------
 
+// This section will create a new armor.
+routes.route("/item/add").post(function (req, response) {
+  let db_connect = dbo.getDb();
+  let myobj = {
+    itemName: req.body.itemName, 
+    notes: req.body.notes,
+    str: req.body.str,
+    dex: req.body.dex,
+    con: req.body.con,
+    int: req.body.int,
+    wis: req.body.wis,
+    cha: req.body.cha,
+    climb: req.body.climb,
+    gatherInfo: req.body.gatherInfo,
+    heal: req.body.heal,
+    jump: req.body.jump
+  };
+  db_connect.collection("Items").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
+  });
+ });
    module.exports = routes;

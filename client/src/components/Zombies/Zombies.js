@@ -388,6 +388,68 @@ async function sendToDb3(){
  navigate(`/`);
 }
 
+//------------------------------------Items-------------------------------------------------------------------------------
+const [show4, setShow4] = useState(false);
+const handleClose4 = () => setShow4(false);
+const handleShow4 = () => setShow4(true);
+
+ const [form4, setForm4] = useState({ 
+  itemName: "", 
+  notes: "",
+  str: "",
+  dex: "",
+  con: "",
+  int: "",
+  wis: "",
+  cha: "",
+  climb: "",
+  gatherInfo: "",
+  heal: "",
+  jump: "",
+});
+
+function updateForm4(value) {
+  return setForm4((prev) => {
+    return { ...prev, ...value };
+  });
+}
+
+async function onSubmit4(e) {
+  e.preventDefault();   
+   sendToDb4();
+}
+
+async function sendToDb4(){
+  const newItem = { ...form4 };
+  await fetch("/item/add", {
+   method: "POST",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify(newItem),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+
+ setForm4({
+  itemName: "", 
+  notes: "",
+  str: "",
+  dex: "",
+  con: "",
+  int: "",
+  wis: "",
+  cha: "",
+  climb: "",
+  gatherInfo: "",
+  heal: "",
+  jump: "",
+});
+ navigate(0);
+}
+
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
 <center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
@@ -419,7 +481,7 @@ async function sendToDb3(){
     <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
     <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
     <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
-    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
+    <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
     </Col>   
     {/* ---------------------------Modals------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>
@@ -567,6 +629,77 @@ type="text" placeholder="Enter Armor Check Penalty" />
 </center>
 </Modal.Body>        
 </Modal>
+{/* -----------------------------------------Item Modal--------------------------------------------- */}
+<Modal show={show4} onHide={handleClose4}>
+        <Modal.Header closeButton>
+          <Modal.Title>Create Item</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>   
+        <center>
+      <Form onSubmit={onSubmit4} className="px-5">
+      <Form.Group className="mb-3 pt-3" >
+
+       <Form.Label className="text-dark">Item Name</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ itemName: e.target.value })}
+        type="text" placeholder="Enter Item name" /> 
+
+       <Form.Label className="text-dark">Notes</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ notes: e.target.value })}
+        type="text" placeholder="Enter Notes" />
+
+       <Form.Label className="text-dark">Strength</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ str: e.target.value })}
+        type="text" placeholder="Enter Strength" />  
+
+       <Form.Label className="text-dark">Dexterity</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ dex: e.target.value })}
+        type="text" placeholder="Enter Dexterity" />
+
+       <Form.Label className="text-dark">Constitution</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ con: e.target.value })}
+        type="text" placeholder="Enter Constitution" />   
+
+       <Form.Label className="text-dark">Intellect</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ int: e.target.value })}
+        type="text" placeholder="Enter Intellect" />  
+
+       <Form.Label className="text-dark">Wisdom</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ wis: e.target.value })}
+        type="text" placeholder="Enter Wisdom" />  
+
+       <Form.Label className="text-dark">Charisma</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ cha: e.target.value })}
+        type="text" placeholder="Enter Charisma" /> 
+
+       <Form.Label className="text-dark">Climb</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ climb: e.target.value })}
+        type="text" placeholder="Enter Climb" /> 
+
+       <Form.Label className="text-dark">Gather Info</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ gatherInfo: e.target.value })}
+        type="text" placeholder="Enter Gather Info" />  
+
+       <Form.Label className="text-dark">Heal</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ heal: e.target.value })}
+        type="text" placeholder="Enter Heal" />  
+
+       <Form.Label className="text-dark">Jump</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm4({ jump: e.target.value })}
+        type="text" placeholder="Enter Jump" />    
+
+     </Form.Group>
+     <center>
+     <Button variant="primary" onClick={handleClose4} type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={handleClose4}>
+            Close
+          </Button>
+          </center>
+     </Form>
+     </center>
+     </Modal.Body>        
+      </Modal>
     </center>
  )
 }
