@@ -14,6 +14,7 @@ export default function ZombiesHome() {
   occupation: "", 
   weapon: [["","","","","",""]],
   armor: [["","","",""]],
+  item: [["","","","","","","","","","","",""]],
   age: "",
   sex: "",
   height: "",
@@ -192,6 +193,7 @@ useEffect(() => {
     occupation: "",
     weapon: [["","","","","",""]],
     armor: [["","","",""]],
+    item: [["","","","","","","","","","","",""]],
     age: "",
     sex: "",
     height: "",
@@ -289,7 +291,7 @@ async function onSubmit1(e) {
       campaignName: "", 
       gameMode: "zombies",
     });
-     navigate(`/`);
+     navigate(0);
    }
 //---------------------------------------Weapons----------------------------------------------
 
@@ -339,7 +341,7 @@ async function sendToDb2(){
     weaponStyle: "",
     range: ""
   });
-   navigate(`/`);
+   navigate(0);
  }
  //  ------------------------------------Armor-----------------------------------
 
@@ -385,7 +387,7 @@ async function sendToDb3(){
   maxDex: "",
   armorCheckPenalty: "",
 });
- navigate(`/`);
+ navigate(0);
 }
 
 //------------------------------------Items-------------------------------------------------------------------------------

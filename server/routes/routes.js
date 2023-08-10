@@ -39,6 +39,7 @@ routes.route("/character/add").post(function (req, response) {
   occupation: req.body.occupation,
   weapon: req.body.weapon,
   armor: req.body.armor,
+  item: req.body.item,
   age: req.body.age,
   sex: req.body.sex,
   height: req.body.height,
@@ -276,7 +277,19 @@ routes.route('/update-armor/:id').put((req, res, next) => {
 });
 // ------------------------------------------------------Item Section-----------------------------------------------------------
 
-// This section will create a new armor.
+// This section will get a list of all the items.
+routes.route("/items").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Items")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+// This section will create a new item.
 routes.route("/item/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
@@ -298,4 +311,19 @@ routes.route("/item/add").post(function (req, response) {
     response.json(res);
   });
  });
+
+ // This section will update items.
+routes.route('/update-item/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'item': req.body.item
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character item updated");
+    res.send('user updated sucessfully');
+  });
+});
    module.exports = routes;

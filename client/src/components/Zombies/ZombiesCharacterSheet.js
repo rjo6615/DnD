@@ -18,6 +18,7 @@ export default function ZombiesCharacterSheet() {
     occupation: "", 
     weapon: [["","","","","",""]],
     armor: [["","","",""]],
+    item: [["","","","","","","","","","","",""]],
     age: "",
     sex: "",
     height: "",
@@ -535,6 +536,166 @@ async function addDeleteArmorToDb(){
  navigate(0);
 }
 }
+
+//--------------------------------------------Items-----------------------------------------------------------------------------------------------------------------------------------------------
+const [item, setItem] = useState({ 
+  item: [], 
+});
+const [addItem, setAddItem] = useState({ 
+  item: "",
+});
+function updateItem(value) {
+  return setAddItem((prev) => {
+    return { ...prev, ...value };
+  });
+}
+ //Item Stats
+ let itemStr= [];
+ form.armor.map((el) => (  
+   itemStr.push(el[2]) 
+ ))
+//  let totalItemStr = itemStr.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+ let itemDex= [];
+ form.armor.map((el) => (  
+   itemDex.push(el[3]) 
+ ))
+//  let totalItemDex = itemDex.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+ let itemCon= [];
+ form.armor.map((el) => (  
+   itemCon.push(el[4]) 
+ ))
+//  let totalItemCon = itemCon.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+ let itemInt= [];
+ form.armor.map((el) => (  
+   itemInt.push(el[5]) 
+ ))
+//  let totalItemInt = itemInt.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+ let itemWis= [];
+ form.armor.map((el) => (  
+   itemWis.push(el[6]) 
+ ))
+//  let totalItemWis = itemWis.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+ let itemCha= [];
+ form.armor.map((el) => (  
+   itemCha.push(el[7]) 
+ ))
+//  let totalItemCha = itemCha.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+
+// Fetch Items
+useEffect(() => {
+  async function fetchItems() {
+    const response = await fetch(`/items`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setItem({item: record});
+  }
+  fetchItems();   
+  return;
+  
+}, [navigate]);
+ // Sends item data to database for update
+ const splitItemArr = (array, size) => {
+  let result = [];
+  for (let i = 0; i < array.length; i += size) {
+    let chunk = array.slice(i, i + size);
+    result.push(chunk);
+  }
+  return result;
+};
+ let newItem;
+ if (JSON.stringify(form.item) === JSON.stringify([["","","","","","","","","","","",""]])) {
+  let newItemArr = addItem.item.split(',');
+  const itemArrSize = 12;
+  const itemArrChunks = splitItemArr(newItemArr, itemArrSize);
+  newItem = itemArrChunks;
+ } else {
+  let newItemArr = (form.item + "," + addItem.item).split(',');
+  const itemArrSize = 12;
+  const itemArrChunks = splitItemArr(newItemArr, itemArrSize);
+  newItem = itemArrChunks;
+ }
+ async function addItemToDb(e){
+  e.preventDefault();
+  await fetch(`/update-item/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    item: newItem,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ navigate(0);
+}
+ // This method will delete an item
+ function deleteItems(el) {
+  const index = form.item.indexOf(el);
+  form.item.splice(index, 1);
+  updateItem(form.item);
+  addDeleteItemToDb();
+ }
+ let showDeleteItemBtn = "";
+ if (JSON.stringify(form.item) === JSON.stringify([["","","","","","","","","","","",""]])){
+  showDeleteItemBtn = "none";
+ }
+async function addDeleteItemToDb(){
+  let newItemForm = form.item;
+  if (JSON.stringify(form.item) === JSON.stringify([])){
+    newItemForm = [["","","","","","","","","","","",""]];
+    await fetch(`/update-item/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+       item: newItemForm,
+      }),
+    })
+    .catch(error => {
+      window.alert(error);
+      return;
+    });
+    console.log("Item Deleted")
+    navigate(0);
+  } else {
+  await fetch(`/update-item/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    item: newItemForm,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ console.log("Item Deleted")
+ navigate(0);
+}
+}
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
@@ -875,34 +1036,32 @@ async function addDeleteArmorToDb(){
             </tr>
           </thead>
           <tbody>
-          {/* {form.item.map((el) => (   */}
+          {form.item.map((el) => (  
             <tr>           
-              <td>Crystal Buttplug</td>
-              <td>this mythical item grants the user control over their sphincter and gives off a powerful aura</td>
-              <td>int+2, wis+4</td>
-              <td>Gatherinfo+4</td>
-              <td>
-              <Button style={{ display: ''}} className="fa-solid fa-trash" variant="danger"></Button>
-              </td>
+              <td>{el[0]}</td>
+              <td>{el[1]}</td>
+              <td>{"STR:" + el[2] + " DEX:" + el[3] + " CON:" + el[4] + " INT:" 
+              + el[5] + " WIS:" + el[6] + " CHA:" + el[7]}</td>
+              <td>{"Climb:" + el[8] + " GatherInfo:" + el[9] + " Heal:" + el[10] + " Jump:" + el[11]}</td>
+              <td><Button style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
             </tr>
-            {/* ))}      */}
+            ))}   
           </tbody>
         </Table>        
     </Card> 
     <Row>
         <Col>
-          <Form
-          //  onSubmit={addItemToDb}
-           >
+          <Form onSubmit={addItemToDb}>
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Item</Form.Label>
         <Form.Select 
-        // onChange={(e) => updateItem({ item: e.target.value })}
+        onChange={(e) => updateItem({ item: e.target.value })}
          type="text">
           <option></option>
-          {/* {item.item.map((el) => (  
-          <option value={[el.itemName, el.itemNotes, el.itemStats, el.itemSkills]}>{el.itemName}</option>
-          ))} */}
+          {item.item.map((el) => (  
+          <option value={[el.itemName, el.notes, el.str, el.dex, el.con, el.int, el.wis, el.cha,
+          el.climb, el.gatherInfo, el.heal, el.jump]}>{el.itemName}</option>
+          ))}
         </Form.Select>
       </Form.Group>
         <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
