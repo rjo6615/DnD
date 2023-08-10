@@ -62,14 +62,68 @@ export default function ZombiesCharacterSheet() {
   
 }, [params.id, navigate]);
 //------------------------------Stats--------------------------------------------------------------------------------------------------------------------------------------------
-let currStr = form.str; 
-let currDex = form.dex;
-let currCon = form.con;
-let currInt = form.int;
-let currWis = form.wis;
-let currCha = form.cha;
+
+//Item Stats
+let itemStr= [];
+form.item.map((el) => (  
+  itemStr.push(el[2]) 
+))
+ let totalItemStr = itemStr.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemDex= [];
+form.item.map((el) => (  
+  itemDex.push(el[3]) 
+))
+ let totalItemDex = itemDex.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemCon= [];
+form.item.map((el) => (  
+  itemCon.push(el[4]) 
+))
+ let totalItemCon = itemCon.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemInt= [];
+form.item.map((el) => (  
+  itemInt.push(el[5]) 
+))
+let totalItemInt = itemInt.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemWis= [];
+ form.item.map((el) => (  
+   itemWis.push(el[6]) 
+ ))
+ let totalItemWis = itemWis.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+ let itemCha= [];
+ form.item.map((el) => (  
+   itemCha.push(el[7]) 
+ ))
+ let totalItemCha = itemCha.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let formStr = form.str; 
+let formDex = form.dex;
+let formCon = form.con;
+let formInt = form.int;
+let formWis = form.wis;
+let formCha = form.cha;
 
 const statForm = {
+  str: formStr,
+  dex: formDex,
+  con: formCon,
+  int: formInt,
+  wis: formWis,
+  cha: formCha,
+}
+
+let currStr = statForm.str + totalItemStr; 
+let currDex = statForm.dex + totalItemDex;
+let currCon = statForm.con + totalItemCon;
+let currInt = statForm.int + totalItemInt;
+let currWis = statForm.wis + totalItemWis;
+let currCha = statForm.cha + totalItemCha;
+
+const statItemForm = {
   str: currStr,
   dex: currDex,
   con: currCon,
@@ -95,12 +149,12 @@ const statForm = {
    navigate(0);
  }
 //Stat Mods
- let strMod = Math.floor((form.str - 10) / 2); 
- let dexMod = Math.floor((form.dex - 10) / 2); 
- let conMod = Math.floor((form.con - 10) / 2); 
- let intMod = Math.floor((form.int - 10) / 2);
- let wisMod = Math.floor((form.wis - 10) / 2);  
- let chaMod = Math.floor((form.cha - 10) / 2);
+ let strMod = Math.floor((statItemForm.str - 10) / 2); 
+ let dexMod = Math.floor((statItemForm.dex - 10) / 2); 
+ let conMod = Math.floor((statItemForm.con - 10) / 2); 
+ let intMod = Math.floor((statItemForm.int - 10) / 2);
+ let wisMod = Math.floor((statItemForm.wis - 10) / 2);  
+ let chaMod = Math.floor((statItemForm.cha - 10) / 2);
 
 let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
 let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTotal));
@@ -114,20 +168,22 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     if (statPointsLeft === 0){
     } else {
     statForm[stat]++;
+    statItemForm[stat]++;
     statPointsLeft--;
-    document.getElementById(stat).innerHTML = statForm[stat];
+    document.getElementById(stat).innerHTML = statItemForm[stat];
     document.getElementById("statPointLeft").innerHTML = statPointsLeft;
-    document.getElementById(statMod).innerHTML = Math.floor((statForm[stat] - 10) / 2);
+    document.getElementById(statMod).innerHTML = Math.floor((statItemForm[stat] - 10) / 2);
     }
   };
   function removeStat(stat, statMod) {
     if (statForm[stat] === form[stat]){
     } else {
     statForm[stat]--;
+    statItemForm[stat]--;
     statPointsLeft++;
-    document.getElementById(stat).innerHTML = statForm[stat];
+    document.getElementById(stat).innerHTML = statItemForm[stat];
     document.getElementById("statPointLeft").innerHTML = statPointsLeft;
-    document.getElementById(statMod).innerHTML = Math.floor((statForm[stat] - 10) / 2);
+    document.getElementById(statMod).innerHTML = Math.floor((statItemForm[stat] - 10) / 2);
     }
   };
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
@@ -228,10 +284,35 @@ let checkPenalty= [];
 ))
 let totalCheckPenalty = checkPenalty.reduce((partialSum, a) => Number(partialSum) + Number(a), 0);
 
-let totalClimb = form.climb + strMod + totalCheckPenalty;
-let totalGatherInfo = form.gatherInfo + chaMod;
-let totalHeal = form.heal + wisMod;
-let totalJump = form.jump + strMod + totalCheckPenalty;
+//Item Skills
+let itemClimb= [];
+form.item.map((el) => (  
+  itemClimb.push(el[8]) 
+))
+ let totalItemClimb = itemClimb.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemGatherInfo= [];
+form.item.map((el) => (  
+  itemGatherInfo.push(el[9]) 
+))
+ let totalItemGatherInfo = itemGatherInfo.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemHeal= [];
+form.item.map((el) => (  
+  itemHeal.push(el[10]) 
+))
+ let totalItemHeal = itemHeal.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let itemJump= [];
+form.item.map((el) => (  
+  itemJump.push(el[11]) 
+))
+let totalItemJump = itemJump.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let totalClimb = form.climb + strMod + totalCheckPenalty + totalItemClimb;
+let totalGatherInfo = form.gatherInfo + chaMod + totalItemGatherInfo;
+let totalHeal = form.heal + wisMod + totalItemHeal;
+let totalJump = form.jump + strMod + totalCheckPenalty + totalItemJump;
 
 const skillTotalForm = {
   climb: totalClimb,
@@ -549,43 +630,6 @@ function updateItem(value) {
     return { ...prev, ...value };
   });
 }
- //Item Stats
- let itemStr= [];
- form.armor.map((el) => (  
-   itemStr.push(el[2]) 
- ))
-//  let totalItemStr = itemStr.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
- let itemDex= [];
- form.armor.map((el) => (  
-   itemDex.push(el[3]) 
- ))
-//  let totalItemDex = itemDex.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
- let itemCon= [];
- form.armor.map((el) => (  
-   itemCon.push(el[4]) 
- ))
-//  let totalItemCon = itemCon.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
- let itemInt= [];
- form.armor.map((el) => (  
-   itemInt.push(el[5]) 
- ))
-//  let totalItemInt = itemInt.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
- let itemWis= [];
- form.armor.map((el) => (  
-   itemWis.push(el[6]) 
- ))
-//  let totalItemWis = itemWis.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
- let itemCha= [];
- form.armor.map((el) => (  
-   itemCha.push(el[7]) 
- ))
-//  let totalItemCha = itemCha.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
 
 // Fetch Items
 useEffect(() => {
@@ -934,7 +978,6 @@ async function addDeleteItemToDb(){
               <td style={{display: showAtkBonusSave}}>{el[2]}
               {(() => {
               if (el[4] === "0") {
-                console.log (Number(el[1]));
                 return("+" + (Number(el[1]) + Number(strMod)));
               } else if (el[4] === "1") {
                 return("+" + (Number(el[1]) + Math.floor( Number((strMod * 1.5)))));
@@ -1040,9 +1083,9 @@ async function addDeleteItemToDb(){
             <tr>           
               <td>{el[0]}</td>
               <td>{el[1]}</td>
-              <td>{"STR:" + el[2] + " DEX:" + el[3] + " CON:" + el[4] + " INT:" 
+              <td style={{ display: showDeleteItemBtn}}>{"STR:" + el[2] + " DEX:" + el[3] + " CON:" + el[4] + " INT:" 
               + el[5] + " WIS:" + el[6] + " CHA:" + el[7]}</td>
-              <td>{"Climb:" + el[8] + " GatherInfo:" + el[9] + " Heal:" + el[10] + " Jump:" + el[11]}</td>
+              <td style={{ display: showDeleteItemBtn}}>{"Climb:" + el[8] + " GatherInfo:" + el[9] + " Heal:" + el[10] + " Jump:" + el[11]}</td>
               <td><Button style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
             </tr>
             ))}   
