@@ -1083,8 +1083,23 @@ async function addDeleteItemToDb(){
             <tr>           
               <td>{el[0]}</td>
               <td>{el[1]}</td>
-              <td style={{ display: showDeleteItemBtn}}>{"STR:" + el[2] + " DEX:" + el[3] + " CON:" + el[4] + " INT:" 
-              + el[5] + " WIS:" + el[6] + " CHA:" + el[7]}</td>
+              <td style={{ display: showDeleteItemBtn}}>
+              {(() => {
+              if (el[2] !== "0") {
+                return("STR:" + el[2] + " ");
+              } else if (el[3] !== "0") {
+                return("DEX:" + el[3] + " ");
+              } if (el[4] !== "0") {
+                return("CON:" + el[4] + " ");
+              } if (el[5] !== "0") {
+                return("INT:" + el[5] + " ");
+              } if (el[6] !== "0") {
+                return("WIS:" + el[6] + " ");
+              } if (el[7] !== "0") {
+                return("CHA:" + el[7] + " ");
+              }
+              })()}
+            </td>
               <td style={{ display: showDeleteItemBtn}}>{"Climb:" + el[8] + " GatherInfo:" + el[9] + " Heal:" + el[10] + " Jump:" + el[11]}</td>
               <td><Button style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
             </tr>
