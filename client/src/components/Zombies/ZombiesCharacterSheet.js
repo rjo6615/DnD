@@ -1085,22 +1085,32 @@ async function addDeleteItemToDb(){
               <td>{el[1]}</td>
               <td style={{ display: showDeleteItemBtn}}>
               {(() => {
-              if (el[2] !== "0") {
-                return("STR:" + el[2] + " ");
-              } else if (el[3] !== "0") {
-                return("DEX:" + el[3] + " ");
-              } if (el[4] !== "0") {
-                return("CON:" + el[4] + " ");
-              } if (el[5] !== "0") {
-                return("INT:" + el[5] + " ");
-              } if (el[6] !== "0") {
-                return("WIS:" + el[6] + " ");
-              } if (el[7] !== "0") {
-                return("CHA:" + el[7] + " ");
-              }
+               const attributeValues = [];
+
+               if (el[2] !== "0") attributeValues.push("STR:" + el[2] + " ");
+               if (el[3] !== "0") attributeValues.push("DEX:" + el[3] + " ");
+               if (el[4] !== "0") attributeValues.push("CON:" + el[4] + " ");
+               if (el[5] !== "0") attributeValues.push("INT:" + el[5] + " ");
+               if (el[6] !== "0") attributeValues.push("WIS:" + el[6] + " ");
+               if (el[7] !== "0") attributeValues.push("CHA:" + el[7] + " ");
+
+               return(attributeValues);
               })()}
-            </td>
-              <td style={{ display: showDeleteItemBtn}}>{"Climb:" + el[8] + " GatherInfo:" + el[9] + " Heal:" + el[10] + " Jump:" + el[11]}</td>
+              
+              </td>
+              <td style={{ display: showDeleteItemBtn}}>
+              {(() => {
+               const skillValues = [];
+
+               if (el[8] !== "0") skillValues.push("Climb:" + el[8] + " ");
+               if (el[9] !== "0") skillValues.push("GatherInfo:" + el[9] + " ");
+               if (el[10] !== "0") skillValues.push("Heal:" + el[10] + " ");
+               if (el[11] !== "0") skillValues.push("Jump:" + el[11] + " ");
+
+               return(skillValues);
+              })()}
+                
+              </td>
               <td><Button style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
             </tr>
             ))}   
