@@ -2,6 +2,7 @@ import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Accordion from 'react-bootstrap/Accordion';
 import Table from 'react-bootstrap/Table';
+import Modal from 'react-bootstrap/Modal';
 import { Button, Col, Form, Row } from "react-bootstrap";
 // import { Link } from "react-router-dom";
 import React, { useEffect, useState } from "react";
@@ -625,6 +626,13 @@ const [item, setItem] = useState({
 const [addItem, setAddItem] = useState({ 
   item: "",
 });
+const [modalItemData, setModalItemData] = useState({
+  item: "",
+})
+const [showNotes, setShowNotes] = useState(false);
+const handleCloseNotes = () => setShowNotes(false);
+const handleShowNotes = () => setShowNotes(true);
+
 function updateItem(value) {
   return setAddItem((prev) => {
     return { ...prev, ...value };
@@ -1086,7 +1094,7 @@ async function addDeleteItemToDb(){
           {form.item.map((el) => (  
             <tr>           
               <td>{el[0]}</td>
-              <td>{el[1]}</td>
+              <td><Button className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
               <td style={{ display: showDeleteItemBtn}}>
               {(() => {
                const attributeValues = [];
@@ -1140,6 +1148,17 @@ async function addDeleteItemToDb(){
           </Form>
         </Col>
       </Row>
+      <Modal show={showNotes} onHide={handleCloseNotes}>
+        <Modal.Header closeButton>
+          <Modal.Title>{modalItemData[0]}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>{modalItemData[1]}</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseNotes}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
       {/* -----------------------------------------Notes------------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
