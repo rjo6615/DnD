@@ -337,7 +337,7 @@ const skillForm = {
      body: JSON.stringify(updatedSkills),
    })
    .catch(error => {
-     window.alert(error);
+    //  window.alert(error);
      return;
    });
    navigate(0);
