@@ -32,6 +32,7 @@ export default function ZombiesHome() {
   gatherInfo: 0,
   heal: 0,
   jump: 0,
+  newSkill: [["",0]],
 });
 
 const [occupation, setOccupation] = useState({ 
@@ -211,6 +212,7 @@ useEffect(() => {
     gatherInfo: 0,
     heal: 0,
     jump: 0,
+    newSkill: [["",0]],
   });
    navigate(`/zombies-character-select/${form.campaign}`);
  }

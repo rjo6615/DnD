@@ -36,6 +36,7 @@ export default function ZombiesCharacterSheet() {
     gatherInfo: "",
     heal: "",
     jump: "",
+    newSkill: [["","",0]],
   });
 
    //Fetches character data
@@ -251,6 +252,69 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     }
   };
 //-----------------------Skills--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+const [showAddSkill, setShowAddSkill] = useState(false);
+const handleCloseAddSkill = () => setShowAddSkill(false);
+const handleShowAddSkill = () => setShowAddSkill(true);
+
+const [addSkillForm, setAddSkillForm] = useState({ 
+  newSkill: "",
+});
+function updateAddSkill(value) {
+  return setAddSkillForm((prev) => {
+    return { ...prev, ...value };
+  });
+}
+const [newSkill, setNewSkill] = useState({ 
+  skill: "",
+});
+function updateNewSkill(value) {
+  return setNewSkill((prev) => {
+    return { ...prev, ...value };
+  });
+}
+const splitSkillArr = (array, size) => {
+  let result = [];
+  for (let i = 0; i < array.length; i += size) {
+    let chunk = array.slice(i, i + size);
+    result.push(chunk);
+  }
+  return result;
+};
+let addNewSkill;
+ if (JSON.stringify(form.newSkill) === JSON.stringify([["",0]])) {
+  let addNewSkillArr = addSkillForm.newSkill.split(',');
+  const skillArrSize = 2;
+  const skillArrChunks = splitSkillArr(addNewSkillArr, skillArrSize);
+  addNewSkill = skillArrChunks;
+ } else {
+  let addNewSkillArr = (form.newSkill + "," + addSkillForm.newSkill).split(',');
+  const skillArrSize = 2;
+  const skillArrChunks = splitSkillArr(addNewSkillArr, skillArrSize);
+  addNewSkill = skillArrChunks;
+ }
+
+ let showSkills = "";
+ if (JSON.stringify(form.newSkill) === JSON.stringify([["",0]])){
+  showSkills = "none";
+ }
+async function addSkillToDb(e){
+  e.preventDefault();
+  await fetch(`/update-add-skill/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    newSkill: addNewSkill,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ navigate(0);
+}
+
 let currClimb = form.climb; 
 let currGatherInfo = form.gatherInfo;
 let currHeal = form.heal;
@@ -322,9 +386,14 @@ const skillTotalForm = {
   jump: totalJump,
 }
 
-let skillTotal = form.climb + form.gatherInfo + form.heal + form.jump;
-let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal);
+let addedSkillsRanks= [];
+form.newSkill.map((el) => (  
+  addedSkillsRanks.push(el[1]) 
+))
+let totalAddedSkills = addedSkillsRanks.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
 
+let skillTotal = form.climb + form.gatherInfo + form.heal + form.jump;
+let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal - totalAddedSkills);
 let showSkillBtn = "";
 if (skillPointsLeft === 0) {
   showSkillBtn = "none";
@@ -351,6 +420,51 @@ function removeSkill(skill, totalSkill) {
   skillPointsLeft++;
   document.getElementById(skill).innerHTML = skillForm[skill];
   document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
+  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  }
+};
+// New Added Skills Button Control
+const newSkillForm = {};
+
+form.newSkill.forEach((el) => {
+  newSkillForm[el[0]] = el[1];
+});
+
+async function addUpdatedSkillToDb(){
+  const addUpdatedSkill = Object.entries({...newSkillForm});
+  await fetch(`/updated-add-skills/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    newSkill: addUpdatedSkill,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ navigate(0);
+}
+function addSkillNew(skill) {  
+  if (skillPointsLeft === 0){
+  } else if (newSkillForm[skill] === Math.floor(Number(form.level) + 3)){
+  } else {
+  newSkillForm[skill]++;
+  skillPointsLeft--;
+  document.getElementById(skill).innerHTML = newSkillForm[skill];
+  document.getElementById(skill + "total").innerHTML = newSkillForm[skill] + intMod;
+  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  }
+};
+function removeSkillNew(skill, rank) {
+  if (Number(newSkillForm[skill]) === Number(rank)){
+  } else {
+  newSkillForm[skill]--;
+  skillPointsLeft++;
+  document.getElementById(skill).innerHTML = newSkillForm[skill];
+  document.getElementById(skill + "total").innerHTML = newSkillForm[skill] + intMod;
   document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
   }
 };
@@ -903,7 +1017,7 @@ async function addDeleteItemToDb(){
       <Accordion.Item eventKey="3">
       <Accordion.Header>Skills <span style={{ display: showSkillBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '19rem' }}>
+        <Card className="mx-2 mb-4" style={{ width: '21rem' }}>
         <Card.Title>Skills</Card.Title>
         <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
@@ -950,13 +1064,65 @@ async function addDeleteItemToDb(){
             <td><span id="strMod">{strMod} </span></td>
             <td><Button style={{ display: showSkillBtn}} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></td>
           </tr>
+        {/* --------------------------------Working on---------------------------------------------------- */}
+          {form.newSkill.map((el) => (  
+            <tr style={{display: showSkills}}>           
+              <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
+              <td>{el[0]}</td>
+              <td><span id={el[0] + "total"}>{Number(el[1]) + intMod}</span></td>
+              <td><span id={el[0]}>{Number(el[1])}</span></td>
+              <td><span id="">{intMod}</span></td>
+              <td><Button style={{ display: showSkillBtn}} onClick={() => addSkillNew(el[0])} className="fa-solid fa-plus"></Button></td>
+            </tr>
+            ))}  
+        {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^Working on^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
         </tbody>
       </Table>
     </Card> 
-    <Button style={{ display: showSkillBtn}} onClick={() => skillsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
-        </Accordion.Body>
+    <Button style={{ display: showSkillBtn}} onClick={() => {skillsUpdate(); addUpdatedSkillToDb();}} className="mx-2 bg-warning fa-solid fa-floppy-disk"></Button>
+    <Button
+     onClick={() => handleShowAddSkill()}
+      className="bg-success fa-solid fa-plus"></Button>   
+     </Accordion.Body>
       </Accordion.Item>
       <Accordion.Item eventKey="4">
+      <Modal show={showAddSkill} onHide={handleCloseAddSkill}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Skill</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+        <center>
+      <Form 
+      onSubmit={addSkillToDb} 
+      className="px-5">
+      <Form.Group className="mb-3 pt-3" >
+      <Form.Label className="text-dark">Skill</Form.Label>
+       <Form.Control className="mb-2" 
+       onChange={(e) => updateNewSkill({ skill: e.target.value })}
+        type="text" placeholder="Enter Skill" />
+      <Form.Label className="text-dark">Skill Type</Form.Label>
+       <Form.Select className="mb-2" 
+       onChange={(e) => updateAddSkill({ newSkill: e.target.value })}
+        type="text">
+        <option></option>
+        <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option> 
+        <option value={["Craft " + newSkill.skill, 0]}>Craft</option> 
+        </Form.Select>
+         </Form.Group>
+     <center>
+     <Button variant="primary" onClick={handleCloseAddSkill} type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={handleCloseAddSkill}>
+            Close
+          </Button>
+          </center>
+     </Form>
+     </center>
+        </Modal.Body>
+        <Modal.Footer>
+        </Modal.Footer>
+      </Modal>
       {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>

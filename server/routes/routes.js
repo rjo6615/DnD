@@ -57,6 +57,7 @@ routes.route("/character/add").post(function (req, response) {
   gatherInfo: req.body.gatherInfo,
   heal: req.body.heal,
   jump: req.body.jump,
+  newSkill: req.body.newSkill
   };
   db_connect.collection("Characters").insertOne(myobj, function (err, res) {
     if (err) throw err;
@@ -166,6 +167,36 @@ routes.route('/update-skills/:id').put((req, res, next) => {
       throw err;
     }
     console.log("character skills updated");
+    res.send('user updated sucessfully');
+  });
+});
+
+// This section will update added skills.
+routes.route('/update-add-skill/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'newSkill': req.body.newSkill
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character knowledge updated");
+    res.send('user updated sucessfully');
+  });
+});
+
+// This section will update ranks of skills.
+routes.route('/updated-add-skills/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'newSkill': req.body.newSkill
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character add skills updated");
     res.send('user updated sucessfully');
   });
 });
