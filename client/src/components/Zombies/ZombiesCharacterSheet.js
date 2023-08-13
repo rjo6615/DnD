@@ -818,6 +818,10 @@ async function addDeleteItemToDb(){
               <td>Will</td>
               <td>{willSave}</td>
             </tr>
+            <tr>
+              <td>Initiative</td>
+              <td>{dexMod}</td>
+            </tr>
           </tbody>
           </Table>
           </Card>
