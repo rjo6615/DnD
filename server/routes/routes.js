@@ -37,6 +37,7 @@ routes.route("/character/add").post(function (req, response) {
   campaign: req.body.campaign,
   level: req.body.level, 
   occupation: req.body.occupation,
+  feat: req.body.feat,
   weapon: req.body.weapon,
   armor: req.body.armor,
   item: req.body.item,
@@ -354,6 +355,52 @@ routes.route('/update-item/:id').put((req, res, next) => {
       throw err;
     }
     console.log("character item updated");
+    res.send('user updated sucessfully');
+  });
+});
+
+// ------------------------------------------------------Feat Section-----------------------------------------------------------
+
+// This section will get a list of all the feats.
+routes.route("/feats").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Feats")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+// This section will create a new feat.
+routes.route("/feat/add").post(function (req, response) {
+  let db_connect = dbo.getDb();
+  let myobj = {
+    featName: req.body.featName, 
+    notes: req.body.notes,
+    climb: req.body.climb,
+    gatherInfo: req.body.gatherInfo,
+    heal: req.body.heal,
+    jump: req.body.jump
+  };
+  db_connect.collection("Feats").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
+  });
+ });
+
+ // This section will update feats.
+routes.route('/update-feat/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'feat': req.body.feat
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character feat updated");
     res.send('user updated sucessfully');
   });
 });

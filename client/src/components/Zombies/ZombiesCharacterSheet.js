@@ -4,7 +4,6 @@ import Accordion from 'react-bootstrap/Accordion';
 import Table from 'react-bootstrap/Table';
 import Modal from 'react-bootstrap/Modal';
 import { Button, Col, Form, Row } from "react-bootstrap";
-// import { Link } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
@@ -17,6 +16,7 @@ export default function ZombiesCharacterSheet() {
     characterName: "",
     level: "", 
     occupation: "", 
+    feat: [["","","","","",""]],
     weapon: [["","","","","",""]],
     armor: [["","","",""]],
     item: [["","","","","","","","","","","",""]],
@@ -165,9 +165,9 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   if (statPointsLeft === 0) {
     showBtn = "none";
   }
-
+ 
   function addStat(stat, statMod) {
-    if (statPointsLeft === 0){
+    if (statPointsLeft === 0){   
     } else {
     statForm[stat]++;
     statItemForm[stat]++;
@@ -374,10 +374,35 @@ form.item.map((el) => (
 ))
 let totalItemJump = itemJump.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
 
-let totalClimb = form.climb + strMod + totalCheckPenalty + totalItemClimb;
-let totalGatherInfo = form.gatherInfo + chaMod + totalItemGatherInfo;
-let totalHeal = form.heal + wisMod + totalItemHeal;
-let totalJump = form.jump + strMod + totalCheckPenalty + totalItemJump;
+//Feat Skills
+let featClimb= [];
+form.feat.map((el) => (  
+  featClimb.push(el[2]) 
+))
+ let totalFeatClimb = featClimb.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let featGatherInfo= [];
+form.feat.map((el) => (  
+  featGatherInfo.push(el[3]) 
+))
+ let totalFeatGatherInfo = featGatherInfo.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let featHeal= [];
+form.feat.map((el) => (  
+  featHeal.push(el[4]) 
+))
+ let totalFeatHeal = featHeal.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let featJump= [];
+form.feat.map((el) => (  
+  featJump.push(el[5]) 
+))
+let totalFeatJump = featJump.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
+
+let totalClimb = form.climb + strMod + totalCheckPenalty + totalItemClimb + totalFeatClimb;
+let totalGatherInfo = form.gatherInfo + chaMod + totalItemGatherInfo + totalFeatGatherInfo;
+let totalHeal = form.heal + wisMod + totalItemHeal + totalFeatHeal;
+let totalJump = form.jump + strMod + totalCheckPenalty + totalItemJump + totalFeatJump;
 
 const skillTotalForm = {
   climb: totalClimb,
@@ -862,6 +887,135 @@ async function addDeleteItemToDb(){
  navigate(0);
 }
 }
+//----------------------------------------------Feats Section------------------------------------------------------------------------------------------------------------------------------------
+const [feat, setFeat] = useState({ 
+  feat: [], 
+});
+const [addFeat, setAddFeat] = useState({ 
+  feat: "",
+});
+const [modalFeatData, setModalFeatData] = useState({
+  feat: "",
+})
+const [showFeatNotes, setShowFeatNotes] = useState(false);
+const handleCloseFeatNotes = () => setShowFeatNotes(false);
+const handleShowFeatNotes = () => setShowFeatNotes(true);
+
+function updateFeat(value) {
+  return setAddFeat((prev) => {
+    return { ...prev, ...value };
+  });
+}
+
+// Fetch Feats
+useEffect(() => {
+  async function fetchFeats() {
+    const response = await fetch(`/feats`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setFeat({feat: record});
+  }
+  fetchFeats();   
+  return;
+  
+}, [navigate]);
+ // Sends feat data to database for update
+ const splitFeatArr = (array, size) => {
+  let result = [];
+  for (let i = 0; i < array.length; i += size) {
+    let chunk = array.slice(i, i + size);
+    result.push(chunk);
+  }
+  return result;
+};
+ let newFeat;
+ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","",""]])) {
+  let newFeatArr = addFeat.feat.split(',');
+  const featArrSize = 6;
+  const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
+  newFeat = featArrChunks;
+ } else {
+  let newFeatArr = (form.feat + "," + addFeat.feat).split(',');
+  const featArrSize = 6;
+  const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
+  newFeat = featArrChunks;
+ }
+ async function addFeatToDb(e){
+  e.preventDefault();
+  await fetch(`/update-feat/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    feat: newFeat,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ navigate(0);
+}
+ // This method will delete an feat
+ function deleteFeats(el) {
+  const index = form.feat.indexOf(el);
+  form.feat.splice(index, 1);
+  updateFeat(form.feat);
+  addDeleteFeatToDb();
+ }
+ let showDeleteFeatBtn = "";
+ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","",""]])){
+  showDeleteFeatBtn = "none";
+ }
+async function addDeleteFeatToDb(){
+  let newFeatForm = form.feat;
+  if (JSON.stringify(form.feat) === JSON.stringify([])){
+    newFeatForm = [["","","","","",""]];
+    await fetch(`/update-feat/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+       feat: newFeatForm,
+      }),
+    })
+    .catch(error => {
+      window.alert(error);
+      return;
+    });
+    console.log("Feat Deleted")
+    navigate(0);
+  } else {
+  await fetch(`/update-feat/${params.id}`, {
+   method: "PUT",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify({
+    feat: newFeatForm,
+   }),
+ })
+ .catch(error => {
+   window.alert(error);
+   return;
+ });
+ console.log("Feat Deleted")
+ navigate(0);
+}
+}
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
@@ -1064,7 +1218,6 @@ async function addDeleteItemToDb(){
             <td><span id="strMod">{strMod} </span></td>
             <td><Button style={{ display: showSkillBtn}} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></td>
           </tr>
-        {/* --------------------------------Working on---------------------------------------------------- */}
           {form.newSkill.map((el) => (  
             <tr style={{display: showSkills}}>           
               <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
@@ -1075,7 +1228,6 @@ async function addDeleteItemToDb(){
               <td><Button style={{ display: showSkillBtn}} onClick={() => addSkillNew(el[0])} className="fa-solid fa-plus"></Button></td>
             </tr>
             ))}  
-        {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^Working on^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
         </tbody>
       </Table>
     </Card> 
@@ -1123,6 +1275,76 @@ async function addDeleteItemToDb(){
         <Modal.Footer>
         </Modal.Footer>
       </Modal>
+      {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
+      <Accordion.Item eventKey="7">
+        <Accordion.Header>Feats</Accordion.Header>
+        <Accordion.Body>
+        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card.Title>Feats</Card.Title>
+        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Notes</th>
+              <th>Skills</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+          {form.feat.map((el) => (  
+            <tr>           
+              <td>{el[0]}</td>
+              <td style={{ display: showDeleteFeatBtn}}><Button className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowFeatNotes(); setModalFeatData(el);}}></Button></td>
+              <td style={{ display: showDeleteFeatBtn}}>
+              {(() => {
+               const skillValues = [];
+
+               if (el[2] !== "0") skillValues.push("Climb:" + el[2] + " ");
+               if (el[3] !== "0") skillValues.push("GatherInfo:" + el[3] + " ");
+               if (el[4] !== "0") skillValues.push("Heal:" + el[4] + " ");
+               if (el[5] !== "0") skillValues.push("Jump:" + el[5] + " ");
+
+               return(skillValues);
+              })()}
+                
+              </td>
+              <td><Button style={{ display: showDeleteFeatBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteFeats(el);}}></Button></td>
+            </tr>
+            ))}   
+          </tbody>
+        </Table>        
+    </Card> 
+    <Row>
+        <Col>
+          <Form onSubmit={addFeatToDb}>
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-dark">Select Feat</Form.Label>
+        <Form.Select 
+        onChange={(e) => updateFeat({ feat: e.target.value })}
+         type="text">
+          <option></option>
+          {feat.feat.map((el) => (  
+          <option value={[el.featName, el.notes, el.climb, el.gatherInfo, el.heal, el.jump]}>{el.featName}</option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+          </Form>
+        </Col>
+      </Row>
+      <Modal show={showFeatNotes} onHide={handleCloseFeatNotes}>
+        <Modal.Header closeButton>
+          <Modal.Title>{modalFeatData[0]}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>{modalFeatData[1]}</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseFeatNotes}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      </Accordion.Body>
+      </Accordion.Item>
       {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>
@@ -1260,7 +1482,7 @@ async function addDeleteItemToDb(){
           {form.item.map((el) => (  
             <tr>           
               <td>{el[0]}</td>
-              <td><Button className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
+              <td style={{ display: showDeleteItemBtn}}><Button className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
               <td style={{ display: showDeleteItemBtn}}>
               {(() => {
                const attributeValues = [];
