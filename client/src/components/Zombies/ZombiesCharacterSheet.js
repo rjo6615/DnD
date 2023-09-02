@@ -1464,11 +1464,28 @@ async function addDeleteFeatToDb(){
  navigate(0);
 }
 }
+//--------------------------------------------Actions Buttons-------------------------------------------------------------------------------------------------------------------------------------
+const [moveActive, setMoveActive] = useState(false);
+const handleMove = () => {
+  setMoveActive(!moveActive);
+};
+const [bonusActive, setBonusActive] = useState(false);
+const handleBonus = () => {
+  setBonusActive(!bonusActive);
+};
+const [actionActive, setActionActive] = useState(false);
+const handleAction = () => {
+  setActionActive(!actionActive);
+};
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
-<center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
+<center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "110vh"}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
-      <Accordion className="mx-2">
+      <Button onClick={handleMove} className="mx-1 fa-solid fa-shoe-prints" style={{ marginTop: "-60px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
+      <Button onClick={handleBonus} className="mx-1 fa-solid fa-circle" style={{ marginTop: "-60px", color: bonusActive ? "black" : "#7bf94d" }} variant="secondary"></Button>
+      <Button onClick={handleAction} className="mx-1 fa-solid fa-square" style={{ marginTop: "-60px", color: actionActive ? "black" : "#ffb30f" }} variant="secondary"></Button>
+      <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fa-solid fa-arrows-rotate" style={{ marginTop: "-60px", color: "#f71818" }} variant="secondary"></Button>
+      <Accordion className="mx-2" style={{ marginTop: "-20px" }}>
       <Accordion.Item eventKey="0">
         <Accordion.Header>Character Info</Accordion.Header>
         <Accordion.Body> 
@@ -1932,7 +1949,7 @@ async function addDeleteFeatToDb(){
         </Modal.Footer>
       </Modal>
       {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
-      <Accordion.Item eventKey="7">
+      <Accordion.Item eventKey="5">
         <Accordion.Header>Feats</Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
@@ -2100,7 +2117,7 @@ async function addDeleteFeatToDb(){
             {/* ------------------------------------------------Armor---------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
-      <Accordion.Item eventKey="5">
+      <Accordion.Item eventKey="6">
         <Accordion.Header>Armor</Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
@@ -2149,7 +2166,7 @@ async function addDeleteFeatToDb(){
       {/* -----------------------------------------Items------------------------------------------------------------------------------------------------------------------------------- */}
       </Accordion.Body>
       </Accordion.Item>
-      <Accordion.Item eventKey="6">
+      <Accordion.Item eventKey="7">
         <Accordion.Header>Items</Accordion.Header>
         <Accordion.Body>
         <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
@@ -2265,7 +2282,7 @@ async function addDeleteFeatToDb(){
       {/* -----------------------------------------Notes------------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
-      <Accordion.Item eventKey="7">
+      <Accordion.Item eventKey="8">
         <Accordion.Header>Notes</Accordion.Header>
         <Accordion.Body>
         <center>
