@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Modal } from "react-bootstrap";
 
-const PlayerTurnActions = ({ actions, bonusActions, onSelectAction, onSelectBonusAction }) => {
+const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSelectBonusAction }) => {
   // State to track the selected action
   const [selectedAction, setSelectedAction] = useState(null);
 
@@ -100,9 +100,13 @@ const PlayerTurnActions = ({ actions, bonusActions, onSelectAction, onSelectBonu
       </div>
 
       {/* Modal to display name and description */}
-      <Modal show={selectedAction !== null || selectedBonusAction !== null} onHide={handleCloseModal}>
+      <Modal {...props}
+      size="lg"
+      aria-labelledby="contained-modal-title-vcenter"
+      centered 
+      show={selectedAction !== null || selectedBonusAction !== null} onHide={handleCloseModal}>
         <Modal.Header closeButton>
-          <Modal.Title>Action Details</Modal.Title>
+          <Modal.Title id="contained-modal-title-vcenter">Action Details</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedAction && (
