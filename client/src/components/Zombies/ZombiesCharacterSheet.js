@@ -1483,23 +1483,23 @@ const handleBonusActionSelect = (bonusAction) => {
 
 
 const availableActions = [
-  { id: 1, name: 'Attack', description: 'Perform a basic melee or ranged attack.' },
-  { id: 2, name: 'Help', description: 'Help up a downed player or remove a status effect from them like entangle, burning or sleep.' },
-  { id: 4, name: 'Hide', description: 'Attempt to hide from enemies.' },
-  { id: 5, name: 'Disengage', description: 'Disengage from combat without provoking attacks of opportunity.' },
-  { id: 7, name: 'Grapple', description: 'Attempt to grapple a target creature.' },
-  { id: 9, name: 'Search', description: 'Thoroughly search an area for hidden items or secrets.' },
-  { id: 10, name: 'Interact', description: 'Perform a minor interaction with an object or the environment.' },
-  { id: 11, name: 'Throw', description: 'Throw an object that is close to you or from your inventory.' },
-  { id: 12, name: 'Dash', description: 'Use the Dash action to move double your speed.' },
+  { id: 1, name: 'Attack', description: 'Perform a basic melee or ranged attack.', background: 'url(../images/icons8-sword-64.png)' },
+  { id: 2, name: 'Help', description: 'Help up a downed player or remove a status effect from them like entangle, burning or sleep.', background: 'url(../images/icons8-helping-hand-64.png)' },
+  { id: 4, name: 'Hide', description: 'Attempt to hide from enemies.', background: 'url(../images/icons8-closed-eye-64.png)' },
+  { id: 5, name: 'Disengage', description: 'Disengage from combat without provoking attacks of opportunity.', background: 'url(../images/icons8-highway-arrows-64.png)' },
+  { id: 7, name: 'Grapple', description: 'Attempt to grapple a target creature.', background: 'url(../images/icons8-grab-100.png)' },
+  { id: 9, name: 'Search', description: 'Thoroughly search an area for hidden items or secrets.', background: 'url(../images/icons8-search-100.png)' },
+  { id: 10, name: 'Interact', description: 'Perform a minor interaction with an object or the environment.', background: 'url(../images/icons8-interactive-66.png)' },
+  { id: 11, name: 'Throw', description: 'Throw an object that is close to you or from your inventory.', background: 'url(../images/icons8-hummer-throw-skin-type-1-96.png)' },
+  { id: 12, name: 'Dash', description: 'Use the Dash action to move double your speed.', background: 'url(../images/icons8-runner-on-the-start-100.png)' },
   // ... add more actions
 ];
 
 const availableBonusActions = [
-  { id: 1, name: 'Dodge', description: 'Take the Dodge action to gain advantage on Dexterity saving throws.' },
-  { id: 3, name: 'Use Item', description: 'Use an item in your inventory.' },
-  { id: 4, name: 'Jump', description: 'Jump a distance 5ft + your strength modifier and jump skill.' },
-  { id: 8, name: 'Shove', description: 'Shove a creature to push them or knock them prone.' },
+  // { id: 1, name: 'Dodge', description: 'Take the Dodge action to gain advantage on Dexterity saving throws.' },
+  { id: 3, name: 'Use Item', description: 'Use an item in your inventory.', background: 'url(../images/icons8-drinking-90.png)' },
+  { id: 4, name: 'Jump', description: 'Jump a distance 5ft + your strength modifier and jump skill.', background: 'url(../images/icons8-long-jump-100.png)' },
+  { id: 8, name: 'Shove', description: 'Shove a creature to push them or knock them prone.', background: 'url(../images/icons8-push-100.png)' },
   // ... add more bonus actions
 ];
 
