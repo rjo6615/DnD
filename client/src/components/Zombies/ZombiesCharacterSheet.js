@@ -10,7 +10,7 @@ import { useNavigate } from "react-router";
 import '../../App.css';
 import PlayerTurnActions from './PlayerTurnActions';
 
-export default function ZombiesCharacterSheet() {
+export default function ZombiesCharacterSheet(props) {
   const navigate = useNavigate();
   const params = useParams();
   const [form, setForm] = useState({ 
@@ -820,7 +820,6 @@ let totalSwim = form.swim + strMod + (totalCheckPenalty * 2) + totalItemSwim + t
 let totalTumble = form.tumble + dexMod + totalItemTumble + totalFeatTumble;
 let totalUseTech = form.useTech + intMod + totalItemUseTech + totalFeatUseTech;
 let totalUseRope = form.useRope + dexMod + totalItemUseRope + totalFeatUseRope;
-console.log (totalUseRope)
 
 const skillTotalForm = {
   appraise: totalAppraise,
@@ -1527,6 +1526,33 @@ const handleBonus = () => {
   // Reset the selected bonus action
   setSelectedAction(null);
 };
+//--------------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------------------------------
+const [showLvlModal, setShowLvlModal] = useState(false);
+
+const handleCloseLvlModal = () => setShowLvlModal(false);
+const handleShowLvlModal = () => setShowLvlModal(true);
+
+const levelForm = {
+  level: Number(form.level) + 1,
+  health: Math.floor(Math.random() * Number(form.occupation.Health)) + 1 + Number(form.health),  
+}
+
+ // Sends level update to database
+ async function levelUpdate(){
+  const updatedLevel = { ...levelForm };
+    await fetch(`/update-level/${params.id}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify(updatedLevel),
+   })
+   .catch(error => {
+    //  window.alert(error);
+     return;
+   });
+   navigate();
+ }
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "110vh"}}>
@@ -1557,8 +1583,8 @@ const handleBonus = () => {
         <Accordion.Body> 
         <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
         <Card.Title>Character Info</Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '.75rem' }}>
-        <ListGroup.Item>Level: {form.level}</ListGroup.Item>
+      <ListGroup className="list-group-flush" style={{ fontSize: '1rem' }}>
+        <ListGroup.Item> Level: {form.level} </ListGroup.Item>
         <ListGroup.Item>Occupation: {form.occupation.Occupation}</ListGroup.Item>        
         <ListGroup.Item>Age: {form.age}</ListGroup.Item>
         <ListGroup.Item>Sex: {form.sex}</ListGroup.Item>
@@ -2368,6 +2394,42 @@ const handleBonus = () => {
       </Accordion.Item>
     </Accordion>
     <br></br>
+    {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
+          <Button onClick={handleShowLvlModal} className="mx-1" variant="primary">Level Up</Button>
+          <Modal  {...props}
+                  size="lg"
+                  aria-labelledby="contained-modal-title-vcenter"
+                  centered
+          className="text-center" show={showLvlModal} onHide={handleCloseLvlModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Level Up</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
+        <br></br>
+        <Form onSubmit={addFeatToDb}>
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-dark">Select Occupation</Form.Label>
+        <Form.Select 
+        // onChange={(e) => updateFeat({ feat: e.target.value })}
+         type="text">
+          <option></option>
+          {/* {form.occupation.map((el) => (   */}
+          {/* <option>{el.Occupation}</option> */}
+          {/* ))} */}
+        </Form.Select>
+      </Form.Group>
+        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseLvlModal}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
+            Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </center>
  );
 }
