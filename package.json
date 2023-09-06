@@ -4,8 +4,6 @@
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "predeploy" : "npm run build",
-    "deploy" : "gh-pages -d client/build",
     "develop": "concurrently \"cd server && npm run watch\" \"cd client && npm start\"",
     "install": "cd server && npm i && cd ../client && npm i",
     "seed": "cd server && npm run seed",
@@ -15,8 +13,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^7.6.0",
-    "gh-pages": "^6.0.0"
+    "concurrently": "^7.6.0"
   },
   "dependencies": {
     "bootstrap-icons": "^1.10.5"
