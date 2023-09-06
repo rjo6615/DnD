@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router,  Route,  Routes,  Navigate} from "react-router-dom";
 import Home from "./components/Home/Home";
 import Navbar from "./components/Navbar/Navbar";
-import Footer from "./components/Footer/Footer";
+// import Footer from "./components/Footer/Footer";
 import Zombies from "./components/Zombies/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
 import ZombiesCharacterSelect from "./components/Zombies/ZombiesCharacterSelect";
@@ -22,7 +22,7 @@ function App() {
           <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
           <Route path="*" element={<Navigate to="/"/>} />
         </Routes>
-        <Footer />
+        {/* <Footer /> */}
     </Router>
     </div>
   );

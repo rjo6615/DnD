@@ -9,8 +9,8 @@ const Record = (props) => (
    <td>{props.record.characterName}</td>
    <td>{props.record.level}</td>
    <td>{props.record.occupation.Occupation}</td>
-   <td><Button className="fa-solid fa-trash" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
-     <Link className="btn btn-link" to={`/zombies-character-sheet/${props.record._id}`}><Button className="fa-regular fa-eye" variant="primary"></Button></Link>     
+   <td><Button size="sm" style={{ width: 'auto' }} className="fa-solid fa-trash" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
+     <Link className="btn btn-link" to={`/zombies-character-sheet/${props.record._id}`}><Button size="sm" style={{ width: 'auto' }} className="fa-regular fa-eye" variant="primary"></Button></Link>     
    </td>
  </tr>
 );
@@ -64,10 +64,10 @@ export default function RecordList() {
  
  // This following section will display the table with the records of individuals.
  return (
-  <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "80vh"}}>
-   <div className="px-3 w-100">
+  <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "auto"}}>
+   <div className="w-100">
      <h2 className="text-light">{params.campaign.toString()}</h2>
-     <Table striped bordered condensed hover className="bg-light">
+     <Table striped bordered condensed hover className="bg-light" style={{ width: 'auto', fontSize: '.73rem' }}>
        <thead>
          <tr>
            <th>Character</th>
