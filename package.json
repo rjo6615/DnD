@@ -2,11 +2,11 @@
   "name": "dnd",
   "version": "0.1.0",
   "main": "server/server.js",
-  "homepage": "http://{github-rjo6615}.github.io/{DnD}",
+  "homepage": "http://{rjo6615}.github.io/{DnD}",
   "scripts": {
     "start": "node server/server.js",
     "predeploy" : "npm run build",
-    "deploy" : "gh-pages -d /client/build",
+    "deploy" : "gh-pages -d client/build",
     "develop": "concurrently \"cd server && npm run watch\" \"cd client && npm start\"",
     "install": "cd server && npm i && cd ../client && npm i",
     "seed": "cd server && npm run seed",
