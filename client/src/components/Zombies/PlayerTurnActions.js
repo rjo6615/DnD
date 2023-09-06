@@ -85,7 +85,7 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
             className="bg-secondary mx-1 mt-1"
             key={bonusAction.id}
             onMouseDown={() => handleBonusActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
-            ontouchstart={() => handleActionMouseDown(action)} // Open the modal with a 2-second delay
+            ontouchstart={() => handleActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
             onClick={() => handleBonusActionClick(bonusAction)} // Select the bonus action
             style={{
               borderColor: "gray",
