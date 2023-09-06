@@ -2,8 +2,11 @@
   "name": "dnd",
   "version": "0.1.0",
   "main": "server/server.js",
+  "homepage": "http://{github-rjo6615}.github.io/{DnD}",
   "scripts": {
     "start": "node server/server.js",
+    "predeploy" : "npm run build",
+    "deploy" : "gh-pages -d build",
     "develop": "concurrently \"cd server && npm run watch\" \"cd client && npm start\"",
     "install": "cd server && npm i && cd ../client && npm i",
     "seed": "cd server && npm run seed",
@@ -13,7 +16,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^7.6.0"
+    "concurrently": "^7.6.0",
+    "gh-pages": "^6.0.0"
   },
   "dependencies": {
     "bootstrap-icons": "^1.10.5"
