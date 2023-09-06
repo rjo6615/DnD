@@ -2,7 +2,6 @@
   "name": "dnd",
   "version": "0.1.0",
   "main": "server/server.js",
-  "homepage": "http://rjo6615.github.io/DnD",
   "scripts": {
     "start": "node server/server.js",
     "predeploy" : "npm run build",
