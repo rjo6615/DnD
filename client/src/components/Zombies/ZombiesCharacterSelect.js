@@ -68,7 +68,7 @@ export default function RecordList() {
   <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
    <div>
      <h2 className="text-light">{params.campaign.toString()}</h2>
-     <Table striped bordered condensed hover className="zombieCharacterSelectTable bg-light">
+     <Table style={{ width: "90%" }} striped bordered condensed hover className="zombieCharacterSelectTable bg-light">
        <thead>
          <tr>
            <th>Character</th>

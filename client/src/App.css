@@ -77,20 +77,23 @@ label {
   color: white;
 }
 
-/* Media query for screens smaller than 768px */
-@media (max-width: 414px) {
+/* Media query for screens smaller than 2160px */
+@media (max-width: 2160px) {
   .zombieCharacterSelectTable {
-    width: calc(100% - 80px);
-    font-size: 12px;
-    margin-right: 40px;
-    margin-left: 40px;
+    font-size: 18px;
   }
 }
 
-/* Media query for screens larger than 1200px */
-@media (min-width: 1200px) {
-  .some-element {
-    font-size: 18px;
-    color: green;
+/* Media query for screens smaller than 375px */
+@media (max-width: 375px) {
+  .zombieCharacterSelectTable {
+    font-size: 13px;
+  }
+}
+
+/* Media query for screens smaller than 320px */
+@media (max-width: 320px) {
+  .zombieCharacterSelectTable {
+    font-size: 9px;
   }
 }
