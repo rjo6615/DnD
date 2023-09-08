@@ -63,6 +63,7 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
             key={action.id}
             onMouseDown={() => handleActionMouseDown(action)} // Open the modal with a 2-second delay
             onTouchStart={() => handleActionMouseDown(action)} // Open the modal with a 2-second delay
+            onTouchEnd={() => clearTimer()} // Cancels timer
             onClick={() => handleActionClick(action)} // Select the action
             style={{
               borderColor: "gray",
@@ -86,6 +87,7 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
             key={bonusAction.id}
             onMouseDown={() => handleBonusActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
             onTouchStart={() => handleActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
+            onTouchEnd={() => clearTimer()} // Cancels timer
             onClick={() => handleBonusActionClick(bonusAction)} // Select the bonus action
             style={{
               borderColor: "gray",
