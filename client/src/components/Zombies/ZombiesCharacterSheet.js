@@ -1575,6 +1575,13 @@ const levelForm = {
       onSelectBonusAction={handleBonusActionSelect}
     />
   </div>
+  <div>
+  <br></br>
+    If you are on a phone press a button to use that action or hold down on it to see what it does!
+    <br></br>
+    <br></br>
+    If you are on pc click the button or hover over it to see what it does!
+  </div>
     </Card> 
         </Accordion.Body>
       </Accordion.Item>
