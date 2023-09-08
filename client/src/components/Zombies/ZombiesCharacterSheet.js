@@ -1561,7 +1561,7 @@ const levelForm = {
       <Accordion.Item eventKey="9">
         <Accordion.Header>Actions</Accordion.Header>
         <Accordion.Body> 
-        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card className="zombiesActionItem mx-2 mb-4">      
         <Card.Title>Actions Left</Card.Title>
         <div>
           <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "0px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
@@ -1597,7 +1597,7 @@ const levelForm = {
       <Accordion.Item eventKey="1">
         <Accordion.Header>Health/Defense</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-1" style={{ width: '19rem'}}>      
+        <Card className="zombieHealth mx-2 mb-1">      
         <Card.Title>Health</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -1728,7 +1728,7 @@ const levelForm = {
       <Accordion.Item eventKey="3">
       <Accordion.Header>Skills <span style={{ display: showSkillBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '21rem' }}>
+        <Card className="zombieSkills mx-2 mb-4">
         <Card.Title>Skills</Card.Title>
         <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
@@ -1744,253 +1744,253 @@ const levelForm = {
         </thead>
         <tbody>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('appraise', "totalAppraise")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('appraise', "totalAppraise")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Appraise</td>
             <td><span id="totalAppraise">{totalAppraise} </span></td>
             <td><span id="appraise">{currAppraise} </span></td>
             <td><span id="intMod">{intMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('appraise', "totalAppraise")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('appraise', "totalAppraise")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('balance', "totalBalance")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('balance', "totalBalance")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Balance</td>
             <td><span id="totalBalance">{totalBalance} </span></td>
             <td><span id="balance">{currBalance} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('balance', "totalBalance")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('balance', "totalBalance")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('bluff', "totalBluff")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('bluff', "totalBluff")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Bluff</td>
             <td><span id="totalBluff">{totalBluff} </span></td>
             <td><span id="bluff">{currBluff} </span></td>
             <td><span id="chaMod">{chaMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('bluff', "totalBluff")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('bluff', "totalBluff")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('climb', "totalClimb")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('climb', "totalClimb")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Climb</td>
             <td><span id="totalClimb">{totalClimb} </span></td>
             <td><span id="climb">{currClimb} </span></td>
             <td><span id="strMod">{strMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('climb', "totalClimb")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('climb', "totalClimb")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('concentration', "totalConcentration")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('concentration', "totalConcentration")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Concentration</td>
             <td><span id="totalConcentration">{totalConcentration} </span></td>
             <td><span id="concentration">{currConcentration} </span></td>
             <td><span id="conMod">{conMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('concentration', "totalConcentration")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('concentration', "totalConcentration")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('decipherScript', "totalDecipherScript")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('decipherScript', "totalDecipherScript")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Decipher Script</td>
             <td><span id="totalDecipherScript">{totalDecipherScript} </span></td>
             <td><span id="decipherScript">{currDecipherScript} </span></td>
             <td><span id="intMod">{intMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('decipherScript', "totalDecipherScript")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('decipherScript', "totalDecipherScript")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('diplomacy', "totalDiplomacy")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('diplomacy', "totalDiplomacy")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Diplomacy</td>
             <td><span id="totalDiplomacy">{totalDiplomacy} </span></td>
             <td><span id="diplomacy">{currDiplomacy} </span></td>
             <td><span id="chaMod">{chaMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('diplomacy', "totalDiplomacy")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('diplomacy', "totalDiplomacy")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('disableDevice', "totalDisableDevice")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('disableDevice', "totalDisableDevice")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Disable Device</td>
             <td><span id="totalDisableDevice">{totalDisableDevice} </span></td>
             <td><span id="disableDevice">{currDisableDevice} </span></td>
             <td><span id="intMod">{intMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('disableDevice', "totalDisableDevice")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('disableDevice', "totalDisableDevice")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('disguise', "totalDisguise")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('disguise', "totalDisguise")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Disguise</td>
             <td><span id="totalDisguise">{totalDisguise} </span></td>
             <td><span id="disguise">{currDisguise} </span></td>
             <td><span id="chaMod">{chaMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('disguise', "totalDisguise")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('disguise', "totalDisguise")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('escapeArtist', "totalEscapeArtist")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('escapeArtist', "totalEscapeArtist")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Escape Artist</td>
             <td><span id="totalEscapeArtist">{totalEscapeArtist} </span></td>
             <td><span id="escapeArtist">{currEscapeArtist} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('escapeArtist', "totalEscapeArtist")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('escapeArtist', "totalEscapeArtist")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('forgery', "totalForgery")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('forgery', "totalForgery")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Forgery</td>
             <td><span id="totalForgery">{totalForgery} </span></td>
             <td><span id="forgery">{currForgery} </span></td>
             <td><span id="intMod">{intMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('forgery', "totalForgery")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('forgery', "totalForgery")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('gatherInfo', "totalGatherInfo")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('gatherInfo', "totalGatherInfo")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Gather Info</td>
             <td><span id="totalGatherInfo">{totalGatherInfo} </span></td>
             <td><span id="gatherInfo">{currGatherInfo} </span></td>
             <td><span id="chaMod">{chaMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('gatherInfo', "totalGatherInfo")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('gatherInfo', "totalGatherInfo")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('handleAnimal', "totalHandleAnimal")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('handleAnimal', "totalHandleAnimal")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Handle Animal</td>
             <td><span id="totalHandleAnimal">{totalHandleAnimal} </span></td>
             <td><span id="handleAnimal">{currHandleAnimal} </span></td>
             <td><span id="chaMod">{chaMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('handleAnimal', "totalHandleAnimal")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('handleAnimal', "totalHandleAnimal")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('heal', "totalHeal")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('heal', "totalHeal")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Heal</td>
             <td><span id="totalHeal">{totalHeal} </span></td>
             <td><span id="heal">{currHeal} </span></td>
             <td><span id="wisMod">{wisMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('heal', "totalHeal")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('heal', "totalHeal")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('hide', "totalHide")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('hide', "totalHide")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Hide</td>
             <td><span id="totalHide">{totalHide} </span></td>
             <td><span id="hide">{currHide} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('hide', "totalHide")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('hide', "totalHide")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('intimidate', "totalIntimidate")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('intimidate', "totalIntimidate")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Intimidate</td>
             <td><span id="totalIntimidate">{totalIntimidate} </span></td>
             <td><span id="intimidate">{currIntimidate} </span></td>
             <td><span id="chaMod">{chaMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('intimidate', "totalIntimidate")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('intimidate', "totalIntimidate")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('jump', "totalJump")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('jump', "totalJump")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Jump</td>
             <td><span id="totalJump">{totalJump} </span></td>
             <td><span id="jump">{currJump} </span></td>
             <td><span id="strMod">{strMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('jump', "totalJump")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('listen', "totalListen")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('listen', "totalListen")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Listen</td>
             <td><span id="totalListen">{totalListen} </span></td>
             <td><span id="listen">{currListen} </span></td>
             <td><span id="wisMod">{wisMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('listen', "totalListen")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('listen', "totalListen")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('moveSilently', "totalMoveSilently")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('moveSilently', "totalMoveSilently")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Move Silently</td>
             <td><span id="totalMoveSilently">{totalMoveSilently} </span></td>
             <td><span id="moveSilently">{currMoveSilently} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('moveSilently', "totalMoveSilently")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('moveSilently', "totalMoveSilently")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('openLock', "totalOpenLock")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('openLock', "totalOpenLock")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Open Lock</td>
             <td><span id="totalOpenLock">{totalOpenLock} </span></td>
             <td><span id="openLock">{currOpenLock} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('openLock', "totalOpenLock")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('openLock', "totalOpenLock")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('ride', "totalRide")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('ride', "totalRide")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Ride</td>
             <td><span id="totalRide">{totalRide} </span></td>
             <td><span id="ride">{currRide} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('ride', "totalRide")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('ride', "totalRide")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('search', "totalSearch")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('search', "totalSearch")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Search</td>
             <td><span id="totalSearch">{totalSearch} </span></td>
             <td><span id="search">{currSearch} </span></td>
             <td><span id="intMod">{intMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('search', "totalSearch")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('search', "totalSearch")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('senseMotive', "totalSenseMotive")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('senseMotive', "totalSenseMotive")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Sense Motive</td>
             <td><span id="totalSenseMotive">{totalSenseMotive} </span></td>
             <td><span id="senseMotive">{currSenseMotive} </span></td>
             <td><span id="wisMod">{wisMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('senseMotive', "totalSenseMotive")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('senseMotive', "totalSenseMotive")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('sleightOfHand', "totalSleightOfHand")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('sleightOfHand', "totalSleightOfHand")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Sleight of Hand</td>
             <td><span id="totalSleightOfHand">{totalSleightOfHand} </span></td>
             <td><span id="sleightOfHand">{currSleightOfHand} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('sleightOfHand', "totalSleightOfHand")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('sleightOfHand', "totalSleightOfHand")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('spot', "totalSpot")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('spot', "totalSpot")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Spot</td>
             <td><span id="totalSpot">{totalSpot} </span></td>
             <td><span id="spot">{currSpot} </span></td>
             <td><span id="wisMod">{wisMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('spot', "totalSpot")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('spot', "totalSpot")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('survival', "totalSurvival")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('survival', "totalSurvival")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Survival</td>
             <td><span id="totalSurvival">{totalSurvival} </span></td>
             <td><span id="survival">{currSurvival} </span></td>
             <td><span id="wisMod">{wisMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('survival', "totalSurvival")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('survival', "totalSurvival")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('swim', "totalSwim")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('swim', "totalSwim")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Swim</td>
             <td><span id="totalSwim">{totalSwim} </span></td>
             <td><span id="swim">{currSwim} </span></td>
             <td><span id="strMod">{strMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('swim', "totalSwim")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('swim', "totalSwim")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('tumble', "totalTumble")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('tumble', "totalTumble")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Tumble</td>
             <td><span id="totalTumble">{totalTumble} </span></td>
             <td><span id="tumble">{currTumble} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('tumble', "totalTumble")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('tumble', "totalTumble")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('useTech', "totalUseTech")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('useTech', "totalUseTech")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Use Tech</td>
             <td><span id="totalUseTech">{totalUseTech} </span></td>
             <td><span id="useTech">{currUseTech} </span></td>
             <td><span id="intMod">{intMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('useTech', "totalUseTech")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('useTech', "totalUseTech")} className="fa-solid fa-plus"></Button></td>
           </tr>
           <tr>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => removeSkill('useRope', "totalUseRope")} className="bg-danger fa-solid fa-minus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill('useRope', "totalUseRope")} className="bg-danger fa-solid fa-minus"></Button></td>
             <td>Use Rope</td>
             <td><span id="totalUseRope">{totalUseRope} </span></td>
             <td><span id="useRope">{currUseRope} </span></td>
             <td><span id="dexMod">{dexMod} </span></td>
-            <td><Button style={{ display: showSkillBtn }} onClick={() => addSkill('useRope', "totalUseRope")} className="fa-solid fa-plus"></Button></td>
+            <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('useRope', "totalUseRope")} className="fa-solid fa-plus"></Button></td>
           </tr>
           {form.newSkill.map((el) => (  
             <tr style={{display: showSkills}}>           
-              <td><Button style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
+              <td><Button size="sm" style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
               <td>{el[0]}</td>
               <td><span id={el[0] + "total"}>{Number(el[1]) + intMod}</span></td>
               <td><span id={el[0]}>{Number(el[1])}</span></td>
               <td><span id="">{intMod}</span></td>
-              <td><Button style={{ display: showSkillBtn}} onClick={() => addSkillNew(el[0])} className="fa-solid fa-plus"></Button></td>
+              <td><Button size="sm" style={{ display: showSkillBtn}} onClick={() => addSkillNew(el[0])} className="fa-solid fa-plus"></Button></td>
             </tr>
             ))}  
         </tbody>
@@ -2044,9 +2044,9 @@ const levelForm = {
       <Accordion.Item eventKey="5">
         <Accordion.Header>Feats</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card className="zombiesFeats mx-2 mb-4">      
         <Card.Title>Feats</Card.Title>
-        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+        <Table striped bordered hover size="sm">
           <thead>
             <tr>
               <th>Name</th>
@@ -2059,7 +2059,7 @@ const levelForm = {
           {form.feat.map((el) => (  
             <tr>           
               <td>{el[0]}</td>
-              <td style={{ display: showDeleteFeatBtn}}><Button className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowFeatNotes(); setModalFeatData(el);}}></Button></td>
+              <td style={{ display: showDeleteFeatBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowFeatNotes(); setModalFeatData(el);}}></Button></td>
               <td style={{ display: showDeleteFeatBtn}}>
               {(() => {
                const skillValues = [];
@@ -2075,7 +2075,7 @@ const levelForm = {
                 if (el[10] !== "0") skillValues.push("Disguise: " + el[10] + " ");
                 if (el[11] !== "0") skillValues.push("Escape Artist: " + el[11] + " ");
                 if (el[12] !== "0") skillValues.push("Forgery: " + el[12] + " ");
-                if (el[13] !== "0") skillValues.push("Gather Information: " + el[13] + " ");
+                if (el[13] !== "0") skillValues.push("Gather Info: " + el[13] + " ");
                 if (el[14] !== "0") skillValues.push("Handle Animal: " + el[14] + " ");
                 if (el[15] !== "0") skillValues.push("Heal: " + el[15] + " ");
                 if (el[16] !== "0") skillValues.push("Hide: " + el[16] + " ");
@@ -2095,11 +2095,15 @@ const levelForm = {
                 if (el[30] !== "0") skillValues.push("Use Tech: " + el[30] + " ");
                 if (el[31] !== "0") skillValues.push("Use Rope: " + el[31] + " ");
 
-               return(skillValues);
+               return(    <div>
+                {skillValues.map((skill, index) => (
+                  <div key={index}>{skill}</div>
+                ))}
+              </div>);
               })()}
                 
               </td>
-              <td><Button style={{ display: showDeleteFeatBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteFeats(el);}}></Button></td>
+              <td><Button size="sm" style={{ display: showDeleteFeatBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteFeats(el);}}></Button></td>
             </tr>
             ))}   
           </tbody>
@@ -2143,9 +2147,9 @@ const levelForm = {
       {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card className="zombiesWeapons mx-2 mb-4">      
         <Card.Title>Weapons</Card.Title>
-        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+        <Table striped bordered hover size="sm">
           <thead>
             <tr>
               <th>Weapon Name</th>
@@ -2182,7 +2186,7 @@ const levelForm = {
               })()}</td>
               <td>{el[3]}</td>
               <td>{el[5]}</td>
-              <td><Button style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
+              <td><Button size="sm" style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
             </tr>
              ))}
           </tbody>
@@ -2212,9 +2216,9 @@ const levelForm = {
       <Accordion.Item eventKey="6">
         <Accordion.Header>Armor</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card className="zombiesArmor mx-2 mb-4">      
         <Card.Title>Armor</Card.Title>
-        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+        <Table striped bordered hover size="sm">
           <thead>
             <tr>
               <th>Armor Name</th>
@@ -2231,7 +2235,7 @@ const levelForm = {
               <td>{el[1]}</td>
               <td>{el[2]}</td>
               <td>{el[3]}</td>
-              <td><Button style={{ display: showDeleteArmorBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteArmors(el);}}></Button></td>
+              <td><Button size="sm" style={{ display: showDeleteArmorBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteArmors(el);}}></Button></td>
             </tr>
             ))}     
           </tbody>
@@ -2261,9 +2265,9 @@ const levelForm = {
       <Accordion.Item eventKey="7">
         <Accordion.Header>Items</Accordion.Header>
         <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '20rem' }}>      
+        <Card className="zombiesItems mx-2 mb-4">      
         <Card.Title>Items</Card.Title>
-        <Table style={{ fontSize: '.75rem' }} striped bordered hover size="sm">
+        <Table striped bordered hover size="sm">
           <thead>
             <tr>
               <th>Name</th>
@@ -2277,7 +2281,7 @@ const levelForm = {
           {form.item.map((el) => (  
             <tr>           
               <td>{el[0]}</td>
-              <td style={{ display: showDeleteItemBtn}}><Button className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
+              <td style={{ display: showDeleteItemBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
               <td style={{ display: showDeleteItemBtn}}>
               {(() => {
                const attributeValues = [];
@@ -2289,7 +2293,11 @@ const levelForm = {
                if (el[6] !== "0") attributeValues.push("WIS:" + el[6] + " ");
                if (el[7] !== "0") attributeValues.push("CHA:" + el[7] + " ");
 
-               return(attributeValues);
+               return(    <div>
+                {attributeValues.map((attribute, index) => (
+                  <div key={index}>{attribute}</div>
+                ))}
+              </div>);
               })()}
               
               </td>
@@ -2308,7 +2316,7 @@ const levelForm = {
                 if (el[16] !== "0") skillValues.push("Disguise: " + el[16] + " ");
                 if (el[17] !== "0") skillValues.push("Escape Artist: " + el[17] + " ");
                 if (el[18] !== "0") skillValues.push("Forgery: " + el[18] + " ");
-                if (el[19] !== "0") skillValues.push("Gather Information: " + el[19] + " ");
+                if (el[19] !== "0") skillValues.push("Gather Info: " + el[19] + " ");
                 if (el[20] !== "0") skillValues.push("Handle Animal: " + el[20] + " ");
                 if (el[21] !== "0") skillValues.push("Heal: " + el[21] + " ");
                 if (el[22] !== "0") skillValues.push("Hide: " + el[22] + " ");
@@ -2328,11 +2336,15 @@ const levelForm = {
                 if (el[36] !== "0") skillValues.push("Use Tech: " + el[36] + " ");
                 if (el[37] !== "0") skillValues.push("Use Rope: " + el[37] + " ");
 
-               return(skillValues);
+               return(   <div>
+                {skillValues.map((skill, index) => (
+                  <div key={index}>{skill}</div>
+                ))}
+              </div>);
               })()}
                 
               </td>
-              <td><Button style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
+              <td><Button size="sm" style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
             </tr>
             ))}   
           </tbody>

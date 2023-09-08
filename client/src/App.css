@@ -77,10 +77,37 @@ label {
   color: white;
 }
 
+/* -------------------------------------------------Media Query---------------------------------------- */
 /* Media query for screens smaller than 2160px */
 @media (max-width: 2160px) {
   .zombieCharacterSelectTable {
     font-size: 18px;
+  }
+  .zombiesActionItem {
+    width: 20rem;
+  }
+  .zombieHealth {
+    width: 19rem;
+  }
+  .zombieSkills {
+    width: 19rem;
+    font-size: 14px;
+  }
+  .zombiesFeats {
+    width: 19rem;
+    font-size: 14px;
+  }
+  .zombiesWeapons {
+    width: 19rem;
+    font-size: 12px;
+  }
+  .zombiesArmor {
+    width: 20rem;
+    font-size: 14px;
+  }
+  .zombiesItems {
+    width: 20rem;
+    font-size: 15px;
   }
 }
 
@@ -89,11 +116,64 @@ label {
   .zombieCharacterSelectTable {
     font-size: 13px;
   }
+  .zombiesActionItem {
+    width: 16rem;
+  }
+  .zombieHealth {
+    width: 17rem;
+  }
+  .zombieSkills {
+    width: 18rem;
+    font-size: 12px;
+  }
+  .zombiesFeats {
+    width: 17rem;
+    font-size: 12px;
+  }
+  .zombiesWeapons {
+    width: 18rem;
+    font-size: 11px;
+  }
+  .zombiesArmor {
+    width: 18rem;
+    font-size: 13px;
+  }
+  .zombiesItems {
+    width: 18rem;
+    font-size: 14px;
+  }
 }
 
 /* Media query for screens smaller than 320px */
 @media (max-width: 320px) {
   .zombieCharacterSelectTable {
     font-size: 9px;
+  }
+  .zombiesActionItem {
+    width: 14rem;
+  }
+  .zombieHealth {
+    width: 14rem;
+    font-size: 12px;
+  }
+  .zombieSkills {
+    width: 15rem;
+    font-size: 9px;
+  }
+  .zombiesFeats {
+    width: 15rem;
+    font-size: 11px;
+  }
+  .zombiesWeapons {
+    width: 15rem;
+    font-size: 9px;
+  }
+  .zombiesArmor {
+    width: 15rem;
+    font-size: 14px;
+  }
+  .zombiesItems {
+    width: 15rem;
+    font-size: 11px;
   }
 }
