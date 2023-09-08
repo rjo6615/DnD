@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
 import { useParams } from "react-router";
+import '../../App.css';
  
 const Record = (props) => (
  <tr>
@@ -64,10 +65,10 @@ export default function RecordList() {
  
  // This following section will display the table with the records of individuals.
  return (
-  <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "auto"}}>
-   <div className="w-100">
+  <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
+   <div>
      <h2 className="text-light">{params.campaign.toString()}</h2>
-     <Table striped bordered condensed hover className="bg-light" style={{ width: 'auto', fontSize: '.73rem' }}>
+     <Table striped bordered condensed hover className="zombieCharacterSelectTable bg-light">
        <thead>
          <tr>
            <th>Character</th>

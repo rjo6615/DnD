@@ -27,6 +27,21 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
     setTimerId(id);
   };
 
+    // Function to open the modal and set the selected action with a timer delay
+    const handleActionMouseOver = (action) => {
+      const id = setTimeout(() => {
+        setSelectedAction(action);
+      }, 700); // quarter-second delay
+      setTimerId(id);
+    };
+  
+    // Function to open the modal and set the selected bonus action with a timer delay
+    const handleBonusActionMouseOver = (bonusAction) => {
+      const id = setTimeout(() => {
+        setSelectedBonusAction(bonusAction);
+      }, 700); // quarter-second delay
+      setTimerId(id);
+    };
   // Function to clear the timer
   const clearTimer = () => {
     if (timerId) {
@@ -61,7 +76,8 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
           <Button
             className="bg-secondary mx-1 mt-1"
             key={action.id}
-            onMouseDown={() => handleActionMouseDown(action)} // Open the modal with a 2-second delay
+            onMouseOver={() => handleActionMouseOver(action)}
+            onMouseOut={() => clearTimer()} // Cancels timer
             onTouchStart={() => handleActionMouseDown(action)} // Open the modal with a 2-second delay
             onTouchEnd={() => clearTimer()} // Cancels timer
             onClick={() => handleActionClick(action)} // Select the action
@@ -85,8 +101,9 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
           <Button
             className="bg-secondary mx-1 mt-1"
             key={bonusAction.id}
-            onMouseDown={() => handleBonusActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
-            onTouchStart={() => handleActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
+            onMouseOver={() => handleBonusActionMouseOver(bonusAction)}
+            onMouseOut={() => clearTimer()} // Cancels timer
+            onTouchStart={() => handleBonusActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
             onTouchEnd={() => clearTimer()} // Cancels timer
             onClick={() => handleBonusActionClick(bonusAction)} // Select the bonus action
             style={{
