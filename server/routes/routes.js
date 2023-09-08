@@ -508,4 +508,21 @@ routes.route('/update-feat/:id').put((req, res, next) => {
     res.send('user updated sucessfully');
   });
 });
+
+// --------------------------------------------------------Level Up Section--------------------------------------------------------------------
+ // This section will update feats.
+ routes.route('/update-level/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'level': req.body.level,
+  'helth': req.body.health
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("character level updated");
+    res.send('user updated sucessfully');
+  });
+});
    module.exports = routes;

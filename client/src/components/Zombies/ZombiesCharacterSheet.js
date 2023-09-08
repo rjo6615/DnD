@@ -1551,7 +1551,7 @@ const levelForm = {
     //  window.alert(error);
      return;
    });
-   navigate();
+   navigate(0);
  }
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
@@ -2425,20 +2425,20 @@ const levelForm = {
         </Modal.Header>
         <Modal.Body>Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
         <br></br>
-        <Form onSubmit={addFeatToDb}>
+        {/* <Form onSubmit={addFeatToDb}>
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Occupation</Form.Label>
         <Form.Select 
-        // onChange={(e) => updateFeat({ feat: e.target.value })}
+        onChange={(e) => updateFeat({ feat: e.target.value })}
          type="text">
           <option></option>
-          {/* {form.occupation.map((el) => (   */}
-          {/* <option>{el.Occupation}</option> */}
-          {/* ))} */}
+          {form.occupation.map((el) => (  
+          <option>{el.Occupation}</option>
+          ))}
         </Form.Select>
       </Form.Group>
         <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-          </Form>
+          </Form> */}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseLvlModal}>
