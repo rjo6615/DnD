@@ -1553,6 +1553,11 @@ const levelForm = {
    });
    navigate(0);
  }
+//-------------------------------------------Help Module--------------------------------------------------------------------
+const [showHelpModal, setShowHelpModal] = useState(false);
+
+const handleCloseHelpModal = () => setShowHelpModal(false);
+const handleShowHelpModal = () => setShowHelpModal(true);
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
  return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "110vh"}}>
@@ -1562,7 +1567,7 @@ const levelForm = {
         <Accordion.Header>Actions</Accordion.Header>
         <Accordion.Body> 
         <Card className="zombiesActionItem mx-2 mb-4">      
-        <Card.Title>Actions Left</Card.Title>
+        <Card.Title style={{ fontSize: 25}}>Actions Left</Card.Title>
         <div>
           <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "0px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
           <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "0px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
@@ -1575,13 +1580,40 @@ const levelForm = {
       onSelectBonusAction={handleBonusActionSelect}
     />
   </div>
+  {/* ----------------------------------Help Button-------------------------------------------------- */}
   <div>
   <br></br>
-    If you are on a phone press a button to use that action or hold down on it to see what it does!
-    <br></br>
-    <br></br>
-    If you are on pc click the button or hover over it to see what it does!
+  <Button onClick={handleShowHelpModal} className="mx-1 fa-solid fa-info" style={{borderRadius: "50px"}} variant="primary"></Button>
+          <Modal  {...props}
+                  size="lg"
+                  aria-labelledby="contained-modal-title-vcenter"
+                  centered
+          className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Help</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+        Actions Left (from left to right)
+          <br></br>
+          Move, Action, Bonus Action, Reset
+          <br></br>
+          Reset will allow you to refresh your Actions Left
+          <br></br>
+          <br></br>
+          If you are on a phone press a button to use that action or hold down on it to see what it does!
+          <br></br>
+          <br></br>
+          If you are on pc click the button or hover over it to see what it does!
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseHelpModal}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
   </div>
+  <br></br>
+ {/* ------------------------------------Character Info------------------------------------------------------------------------------------ */}
     </Card> 
         </Accordion.Body>
       </Accordion.Item>

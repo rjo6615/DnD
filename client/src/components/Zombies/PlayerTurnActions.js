@@ -71,7 +71,7 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
 
   return (
     <div>
-      <h2>Actions</h2>
+      <h2 className='mt-3'>Actions</h2>
       <div>
         {actions.map((action) => (
           <Button
@@ -96,7 +96,7 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
         ))}
       </div>
 
-      <h2>Bonus Actions</h2>
+      <h2 className='mt-3'>Bonus Actions</h2>
       <div>
         {bonusActions.map((bonusAction) => (
           <Button
