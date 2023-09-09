@@ -2473,6 +2473,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
         </Modal.Header>
         <Modal.Body>Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
         <br></br>
+        HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
         {/* <Form onSubmit={addFeatToDb}>
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Occupation</Form.Label>
