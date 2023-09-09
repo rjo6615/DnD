@@ -516,7 +516,7 @@ routes.route('/update-feat/:id').put((req, res, next) => {
   let db_connect = dbo.getDb();
   db_connect.collection("Characters").updateOne(id, {$set:{
   'level': req.body.level,
-  'helth': req.body.health
+  'health': req.body.health
 }}, (err, result) => {
     if(err) {
       throw err;
