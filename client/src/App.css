@@ -87,7 +87,8 @@ label {
     width: 20rem;
   }
   .zombieHealth {
-    width: 19rem;
+    width: 12rem;
+    text-align: center;
   }
   .zombieSkills {
     width: 19rem;
@@ -120,7 +121,8 @@ label {
     width: 16rem;
   }
   .zombieHealth {
-    width: 17rem;
+    width: 12rem;
+    text-align: center;
   }
   .zombieSkills {
     width: 18rem;
@@ -153,8 +155,8 @@ label {
     width: 14rem;
   }
   .zombieHealth {
-    width: 14rem;
-    font-size: 12px;
+    width: 12rem;
+    text-align: center;
   }
   .zombieSkills {
     width: 15rem;

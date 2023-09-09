@@ -1610,7 +1610,6 @@ const levelForm = {
           <thead>
             <tr>
               <th></th>
-              <th>Health</th>
               <th>Temp</th>
               <th>Max</th>
               <th></th>
@@ -1619,7 +1618,6 @@ const levelForm = {
           <tbody>
             <tr>
               <td><Button onClick={() => removeHealth('health')} className="bg-danger fa-solid fa-minus"></Button></td>
-              <td>Health</td>
               <td><span id="health">{form.tempHealth} </span></td>
               <td><span>{form.health + Number(conMod * form.level)} </span></td>
               <td><Button onClick={() => addHealth()} className="fa-solid fa-plus"></Button></td>
