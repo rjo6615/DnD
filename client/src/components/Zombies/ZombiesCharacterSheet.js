@@ -1354,8 +1354,21 @@ function updateFeat(value) {
     return { ...prev, ...value };
   });
 }
+// ---------------------------------------Feats left-----------------------------------------------------
+  let featLength;
+if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) { 
+  featLength = 0; 
+} else {
+   featLength = form.feat.length 
+  }
+let featPointsLeft = Math.floor((form.level / 3) - (featLength)) + 1;
 
-// Fetch Feats
+  let showFeatBtn = "";
+  if (featPointsLeft === 0) {
+    showFeatBtn = "none";
+  }
+
+// ----------------------------------------Fetch Feats-----------------------------------
 useEffect(() => {
   async function fetchFeats() {
     const response = await fetch(`/feats`);    
@@ -1563,6 +1576,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "110vh"}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
       <Accordion className="mx-2" style={{ marginTop: "-20px" }}>
+  {/* ---------------------------------------Actions Render--------------------------------------------------------------------- */}
       <Accordion.Item eventKey="9">
         <Accordion.Header>Actions</Accordion.Header>
         <Accordion.Body> 
@@ -1613,10 +1627,10 @@ const handleShowHelpModal = () => setShowHelpModal(true);
       </Modal>
   </div>
   <br></br>
- {/* ------------------------------------Character Info------------------------------------------------------------------------------------ */}
     </Card> 
         </Accordion.Body>
       </Accordion.Item>
+       {/* ------------------------------------Character Render------------------------------------------------------------------------------------ */}
       <Accordion.Item eventKey="0">
         <Accordion.Header>Character Info</Accordion.Header>
         <Accordion.Body> 
@@ -1633,6 +1647,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
     </Card> 
         </Accordion.Body>
       </Accordion.Item>
+      {/* --------------------------------------Health and Defense Render----------------------------------------------------------- */}
       <Accordion.Item eventKey="1">
         <Accordion.Header>Health/Defense</Accordion.Header>
         <Accordion.Body>
@@ -1697,6 +1712,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Card>
         </Accordion.Body>
       </Accordion.Item>
+      {/* -----------------------------------------------------Stat Render------------------------------------------------------ */}
       <Accordion.Item eventKey="2">
         <Accordion.Header>Stats <span style={{ display: showBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
@@ -1762,6 +1778,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
     <Button style={{ display: showBtn}} onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
         </Accordion.Body>
       </Accordion.Item>
+      {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
       <Accordion.Item eventKey="3">
       <Accordion.Header>Skills <span style={{ display: showSkillBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
@@ -2037,9 +2054,6 @@ const handleShowHelpModal = () => setShowHelpModal(true);
     <Button
      onClick={() => handleShowAddSkill()}
       className="bg-success fa-solid fa-plus"></Button>   
-     </Accordion.Body>
-      </Accordion.Item>
-      <Accordion.Item eventKey="4">
       <Modal show={showAddSkill} onHide={handleCloseAddSkill}>
         <Modal.Header closeButton>
           <Modal.Title>Add Skill</Modal.Title>
@@ -2077,12 +2091,15 @@ const handleShowHelpModal = () => setShowHelpModal(true);
         <Modal.Footer>
         </Modal.Footer>
       </Modal>
+      </Accordion.Body>
+      </Accordion.Item>
       {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
       <Accordion.Item eventKey="5">
-        <Accordion.Header>Feats</Accordion.Header>
+        <Accordion.Header>Feats <span style={{ display: showFeatBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
         <Accordion.Body>
         <Card className="zombiesFeats mx-2 mb-4">      
         <Card.Title>Feats</Card.Title>
+        <Card.Title style={{ display: showFeatBtn}}>Points Left:<span className="mx-1" id="featPointLeft">{featPointsLeft}</span></Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
             <tr>
@@ -2147,7 +2164,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
         </Table>        
     </Card> 
     <Row>
-        <Col>
+        <Col style={{display: showFeatBtn}}>
           <Form onSubmit={addFeatToDb}>
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Feat</Form.Label>
@@ -2182,6 +2199,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
       </Accordion.Body>
       </Accordion.Item>
       {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
+        <Accordion.Item eventKey="4">
         <Accordion.Header>Weapons</Accordion.Header>
         <Accordion.Body>
         <Card className="zombiesWeapons mx-2 mb-4">      
@@ -2247,9 +2265,9 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Form>
         </Col>
       </Row>
-            {/* ------------------------------------------------Armor---------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
+  {/* ------------------------------------------------Armor Render---------------------------------------------------------------------------------------------------------------- */}
       <Accordion.Item eventKey="6">
         <Accordion.Header>Armor</Accordion.Header>
         <Accordion.Body>
@@ -2296,9 +2314,9 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Form>
         </Col>
       </Row>
-      {/* -----------------------------------------Items------------------------------------------------------------------------------------------------------------------------------- */}
       </Accordion.Body>
       </Accordion.Item>
+  {/* -----------------------------------------Items Render------------------------------------------------------------------------------------------------------------------------------- */}
       <Accordion.Item eventKey="7">
         <Accordion.Header>Items</Accordion.Header>
         <Accordion.Body>
@@ -2420,9 +2438,9 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Button>
         </Modal.Footer>
       </Modal>
-      {/* -----------------------------------------Notes------------------------------------------------------------------------------------------------------------------- */}
         </Accordion.Body>
       </Accordion.Item>
+  {/* -----------------------------------------Notes Render------------------------------------------------------------------------------------------------------------------- */}
       <Accordion.Item eventKey="8">
         <Accordion.Header>Notes</Accordion.Header>
         <Accordion.Body>
@@ -2443,7 +2461,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
       </Accordion.Item>
     </Accordion>
     <br></br>
-    {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
+  {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
           <Button onClick={handleShowLvlModal} className="mx-1" variant="primary">Level Up</Button>
           <Modal  {...props}
                   size="lg"
