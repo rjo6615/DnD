@@ -1908,9 +1908,20 @@ return (
           </tr>
         </tbody>        
        </Table>
+       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 0px' }}>
+        <Button
+          style={{ display: showBtn, width: '100%' }}
+          onClick={() => statsUpdate()}
+          className="bg-warning fa-solid fa-floppy-disk"
+        ></Button>
+        <Button
+          style={{ width: '100%' }}
+          onClick={() => handleCloseStats()}
+          className="bg-secondary fa-solid fa-xmark"
+        ></Button>
+      </div>
     </Card> 
-    </center>
-    <Button style={{ display: showBtn}} onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
+    </center>  
     </Modal>
      {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
      <Modal show={showSkill} onHide={handleCloseSkill}
@@ -1918,7 +1929,7 @@ return (
       centered
        >   
        <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+        <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Skills</Card.Title>
         <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
@@ -2185,11 +2196,24 @@ return (
             ))}  
         </tbody>
       </Table>
-    </Card> 
-    <Button style={{ display: showSkillBtn}} onClick={() => {skillsUpdate(); addUpdatedSkillToDb();}} className="mx-2 bg-warning fa-solid fa-floppy-disk"></Button>
-    <Button
-     onClick={() => handleShowAddSkill()}
-      className="bg-success fa-solid fa-plus"></Button>   
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 0px' }}>
+        <Button
+          style={{ display: showSkillBtn, width: '100%'}} 
+          onClick={() => {skillsUpdate(); addUpdatedSkillToDb();}}
+          className="bg-warning fa-solid fa-floppy-disk"
+        ></Button>
+        <Button
+          style={{ width: '100%' }}
+          onClick={() => handleShowAddSkill()} 
+          className="bg-success fa-solid fa-plus"
+        ></Button>
+           <Button
+          style={{ width: '100%' }}
+          onClick={() => handleCloseSkill()} 
+          className="bg-secondary fa-solid fa-xmark"
+        ></Button>
+      </div>
+    </Card>   
       <Modal show={showAddSkill} onHide={handleCloseAddSkill}>
         <Modal.Header closeButton>
           <Modal.Title>Add Skill</Modal.Title>
@@ -2235,7 +2259,7 @@ return (
       centered
        >   
        <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
+        <Card className="zombiesFeats" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
         <Card.Title>Feats</Card.Title>
         <Card.Title style={{ display: showFeatBtn}}>Points Left:<span className="mx-1" id="featPointLeft">{featPointsLeft}</span></Card.Title>
         <Table striped bordered hover size="sm">
@@ -2342,7 +2366,7 @@ return (
       centered
        >   
        <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
         <Card.Title>Weapons</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2413,7 +2437,7 @@ return (
       centered
        >   
        <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+        <Card className="zombiesArmor" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Armor</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2464,7 +2488,7 @@ return (
       centered
        >   
        <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
+        <Card className="zombiesItems" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
         <Card.Title>Items</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
