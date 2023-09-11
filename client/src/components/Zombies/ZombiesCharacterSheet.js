@@ -198,8 +198,10 @@ let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
 let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTotal));
 
   let showBtn = "";
+  let statGold = "gold";
   if (statPointsLeft === 0) {
     showBtn = "none";
+    statGold = "#6C757D";
   }
  
   function addStat(stat, statMod) {
@@ -225,10 +227,6 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     }
   };
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
-const [showDefense, setShowDefense] = useState(false);
-
-const handleCloseDefense = () => setShowDefense(false);
-const handleShowDefense = () => setShowDefense(true);
   // Saves Maffs
   let fortSave;
   let reflexSave;
@@ -963,8 +961,10 @@ form.senseMotive + form.sleightOfHand + form.spot + form.survival + form.swim + 
 form.useTech + form.useRope;
 let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal - totalAddedSkills);
 let showSkillBtn = "";
+let skillGold = "gold";
 if (skillPointsLeft === 0) {
   showSkillBtn = "none";
+  skillGold = "#6C757D";
 }
 
 function addSkill(skill, totalSkill) {
@@ -1471,8 +1471,10 @@ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","",""
 let featPointsLeft = Math.floor((form.level / 3) - (featLength)) + 1;
 
   let showFeatBtn = "";
+  let featGold = "gold";
   if (featPointsLeft === 0) {
     showFeatBtn = "none";
+    featGold = "#6C757D";
   }
 
 // ----------------------------------------Fetch Feats-----------------------------------
@@ -1684,13 +1686,22 @@ return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
       <div style={{marginTop: "-40px", marginBottom: "40px"}}>
-      <h6><strong>AC: {Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</strong></h6>
+      <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
+      <strong className="mx-2">AC: {Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</strong>
+      <strong className="mx-2">Attack Bonus: {atkBonus}</strong>
+      <strong className="mx-2">Initiative: {dexMod}</strong>
+      </h6>
 {/*------------------------------------------------------------ Health Bar -----------------------------------------------------------------------------*/}
       <div className="health-bar" style={healthBar}>
         <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * form.level)}</div>
       </div>
       <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-start bg-transparent fa-solid fa-minus" onClick={decreaseHealth}></Button>
-      <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-end bg-transparent fa-solid fa-plus" onClick={increaseHealth}></Button>      
+      <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-end bg-transparent fa-solid fa-plus" onClick={increaseHealth}></Button>  
+      <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
+      <strong className="mx-2">Fort: {fortSave}</strong>
+      <strong className="mx-2">Reflex: {reflexSave}</strong>
+      <strong className="mx-2">Will: {willSave}</strong>
+      </h6>    
       </div>
 {/* -------------------------------------------------------------Actions--------------------------------------------------------------------------------- */}
       <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}} className="zombiesActionItem mx-2 mb-4">      
@@ -1714,12 +1725,11 @@ return (
           <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
             <div>
             <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
-            <Button onClick={handleShowDefense} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>     
-            <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
-            <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
-            <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
+            <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
+            <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
+            <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
             <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
-            <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shirt" variant="secondary"></Button>  
+            <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
             <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
  {/* ----------------------------------Help Button-------------------------------------------------- */}
             <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
@@ -1803,47 +1813,6 @@ return (
     </Card> 
     </center>
   </Modal>
-{/* --------------------------------------Health and Defense Render----------------------------------------------------------- */}
-<Modal show={showDefense} onHide={handleCloseDefense}
-       size="sm"
-      centered
-       >   
-       <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>         
-        <Card.Title>Saving Throws</Card.Title>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th>Saves</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Attack Bonus</td>
-              <td>{atkBonus}</td>
-            </tr>
-            <tr>
-              <td>Fort</td>
-              <td>{fortSave}</td>
-            </tr>
-            <tr>
-              <td>Reflex</td>
-              <td>{reflexSave}</td>
-            </tr>
-            <tr>
-              <td>Will</td>
-              <td>{willSave}</td>
-            </tr>
-            <tr>
-              <td>Initiative</td>
-              <td>{dexMod}</td>
-            </tr>
-          </tbody>
-          </Table>
-          </Card>
-          </center>
-        </Modal>
          {/* -----------------------------------------------------Stat Render------------------------------------------------------ */}
          <Modal show={showStats} onHide={handleCloseStats}
        size="sm"
