@@ -258,6 +258,35 @@ const handleShowDefense = () => setShowDefense(true);
     atkBonus = form.level;
   }
 
+    // Saves Maffs Next
+    let fortSaveNext;
+    let reflexSaveNext;
+    let willSaveNext;
+    let atkBonusNext;
+    if (form.occupation.Fort === "0") {
+      fortSaveNext = Math.floor((form.level +1) / 3);
+    } if (form.occupation.Fort === "1") {
+      fortSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    }
+    if (form.occupation.Reflex === "0") {
+      reflexSaveNext = Math.floor((form.level +1) / 3);
+    } else if (form.occupation.Reflex === "1") {
+      reflexSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    }
+    if (form.occupation.Will === "0") {
+      willSaveNext = Math.floor((form.level +1) / 3);
+    } else if (form.occupation.Will === "1") {
+      willSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    }
+  
+    if (form.occupation.atkBonus === "0") {
+      atkBonusNext = Math.floor((form.level +1) / 2);
+    } else if (form.occupation.atkBonus === "1") {
+      atkBonusNext = Math.floor(((form.level +1) * .75));
+    } else if (form.occupation.atkBonus === "2") {
+      atkBonusNext = (form.level +1);
+    }
+
   // Health
   const [health, setHealth] = useState(); // Initial health value
  // Sends tempHealth data to database for update
@@ -2568,6 +2597,14 @@ return (
         Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
   <br></br>
   HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
+  <br></br>
+  Attack Bonus: {atkBonus} {'\u2192'} {atkBonusNext}
+  <br></br>
+  Fortitude Save: {fortSave} {'\u2192'} {fortSaveNext}
+  <br></br>
+  Will Save: {willSave} {'\u2192'} {willSaveNext}
+  <br></br>
+  Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
         </Card.Body>
   {/* <Form onSubmit={addFeatToDb}>
     <Form.Group className="mb-3 mx-5">
