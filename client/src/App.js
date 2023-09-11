@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router,  Route,  Routes,  Navigate} from "react-router-dom";
 import Home from "./components/Home/Home";
-import Navbar from "./components/Navbar/Navbar";
+// import Navbar from "./components/Navbar/Navbar";
 // import Footer from "./components/Footer/Footer";
 import Zombies from "./components/Zombies/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
@@ -14,7 +14,7 @@ function App() {
   return (
     <div   className="bg-image">
     <Router>
-        <Navbar />
+        {/* <Navbar /> */}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/zombies" element={<Zombies />} />

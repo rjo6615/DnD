@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Modal } from "react-bootstrap";
+import { Button, Modal, Card, Table } from "react-bootstrap";
 
 const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSelectBonusAction }) => {
   // State to track the selected action
@@ -71,9 +71,15 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
 
   return (
     <div>
-      <h2 className='mt-3'>Actions</h2>
-      <div>
-        {actions.map((action) => (
+      <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}}>
+      <Table>   
+        <thead>
+          <tr>
+          <th></th>
+          <th></th>
+          </tr>
+          <tr>
+          <td>{actions.map((action) => (
           <Button
             className="bg-secondary mx-1 mt-1"
             key={action.id}
@@ -94,11 +100,8 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
             {/* {action.name} */}
           </Button>
         ))}
-      </div>
-
-      <h2 className='mt-3'>Bonus Actions</h2>
-      <div>
-        {bonusActions.map((bonusAction) => (
+        </td>
+          <td style={{paddingLeft: "40px"}}>{bonusActions.map((bonusAction) => (
           <Button
             className="bg-secondary mx-1 mt-1"
             key={bonusAction.id}
@@ -116,15 +119,15 @@ const PlayerTurnActions = ({ props, actions, bonusActions, onSelectAction, onSel
               width: "40px"
             }}
           >
-            {/* {bonusAction.name} */}
+            {/* {action.name} */}
           </Button>
-        ))}
-      </div>
-
+        ))}</td>
+          </tr>
+        </thead> 
+        </Table>
+        </Card> 
       {/* Modal to display name and description */}
       <Modal {...props}
-      size="lg"
-      aria-labelledby="contained-modal-title-vcenter"
       centered 
       show={selectedAction !== null || selectedBonusAction !== null} onHide={handleCloseModal}>
         <Modal.Header closeButton>
