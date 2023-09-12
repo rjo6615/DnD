@@ -1,86 +1,75 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router-dom";
 import '../../App.css';
- 
-const Record = (props) => (
- <tr>
-   <td>{props.record.characterName}</td>
-   <td>{props.record.level}</td>
-   <td>{props.record.occupation.Occupation}</td>
-   <td><Button size="sm" style={{ width: 'auto' }} className="fa-solid fa-trash" variant="danger" onClick={() => {props.deleteRecord(props.record._id);}}></Button>
-     <Link className="btn btn-link" to={`/zombies-character-sheet/${props.record._id}`}><Button size="sm" style={{ width: 'auto' }} className="fa-regular fa-eye" variant="primary"></Button></Link>     
-   </td>
- </tr>
-);
- 
+
 export default function RecordList() {
- const params = useParams();
- const [records, setRecords] = useState([]);
- 
- // This method fetches the records from the database.
- useEffect(() => {
-   async function getRecords() {
-     const response = await fetch(`/campaign/${params.campaign}`);
- 
-     if (!response.ok) {
-       const message = `An error occurred: ${response.statusText}`;
-       window.alert(message);
-       return;
-     }
- 
-     const records = await response.json();
-     setRecords(records);
-   }
- 
-   getRecords();
- 
-   return;
- }, [records.length, params.campaign]);
- 
- // This method will delete a record
- async function deleteRecord(id) {
-   await fetch(`/delete-character/${id}`, {
-     method: "DELETE"
-   });
- 
-   const newRecords = records.filter((el) => el._id !== id);
-   setRecords(newRecords);
- }
- 
- // This method will map out the records on the table
- function recordList() {
-   return records.map((Characters) => {
-     return (
-       <Record
-         record={Characters}
-         deleteRecord={() => deleteRecord(Characters._id)}
-         key={Characters._id}
-       />
-     );
-   });
- }
- 
- // This following section will display the table with the records of individuals.
- return (
-  <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}>
-   <div>
-     <h2 className="text-light">{params.campaign.toString()}</h2>
-     <Table style={{ width: "90%" }} striped bordered condensed hover className="zombieCharacterSelectTable bg-light">
-       <thead>
-         <tr>
-           <th>Character</th>
-           <th>Level</th>
-           <th>Occupation</th>
-           <th>Delete/View</th>
-         </tr>
-       </thead>
-       <tbody>{recordList()}</tbody>
-     </Table>
-     <br></br>
-   </div>
-   </center>
- );
+  const params = useParams();
+  const [records, setRecords] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function getRecords() {
+      const response = await fetch(`/campaign/${params.campaign}`);
+
+      if (!response.ok) {
+        const message = `An error occurred: ${response.statusText}`;
+        window.alert(message);
+        return;
+      }
+
+      const records = await response.json();
+      setRecords(records);
+    }
+
+    getRecords();
+
+    return;
+  }, [params.campaign]);
+
+  const navigateToCharacter = (id) => {
+    navigate(`/zombies-character-sheet/${id}`);
+  }
+
+  return (
+    <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+      <div>
+      <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{params.campaign.toString()}</h1> 
+        <Table style={{ marginTop: "-30px", width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} striped bordered condensed className="zombieCharacterSelectTable bg-light">
+          <thead>
+            <tr>
+              <th>Character</th>
+              <th>Level</th>
+              <th>Occupation</th>
+              <th>View</th> {/* Header for View button */}
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((Characters) => (
+              <tr key={Characters._id}>
+                <td>
+                  {Characters.characterName}
+                </td>
+                <td>{Characters.level}</td>
+                <td>{Characters.occupation.Occupation}</td>
+                <td>
+                  <Button
+                    className="fantasy-view-button"
+                    size="sm"
+                    style={{ width: 'auto' }}
+                    variant="primary" // Use a primary button style for the View button
+                    onClick={() => navigateToCharacter(Characters._id)}
+                  >
+                    View
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <br />
+      </div>
+    </center>
+  );
 }

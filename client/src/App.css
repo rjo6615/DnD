@@ -77,6 +77,27 @@ label {
   color: white;
 }
 
+.fantasy-view-button {
+  background-color: #8b0000; /* Dark red background color */
+  border: none;
+  color: #ffffff; /* White text color */
+  padding: 10px 20px; /* Padding around the button text */
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 5px; /* Rounded corners */
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+  background-image: linear-gradient(to bottom, #8b0000 0%, #6b0000 100%); /* Gradient background */
+  border: 1px solid #5a0000; /* Dark red border */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); /* Text shadow */
+  transition: background-color 0.3s ease; /* Smooth transition effect for hover */
+}
+
+.fantasy-view-button:hover {
+  background-color: #a00000; /* Darker red color on hover */
+}
 /* -------------------------------------------------Media Query---------------------------------------- */
 /* Media query for screens smaller than 2160px */
 @media (max-width: 2160px) {

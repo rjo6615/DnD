@@ -91,14 +91,23 @@ export default function ZombiesCharacterSheet(props) {
   return;
   
 }, [params.id, navigate]);
+
+ // This method will delete a record
+ async function deleteRecord() {
+  await fetch(`/delete-character/${params.id}`, {
+    method: "DELETE"
+  });
+  navigate(`/zombies-character-select/${form.campaign}`);
+}
+const [showDeleteCharacter, setShowDeleteCharacter] = useState(false);
+const handleCloseDeleteCharacter = () => setShowDeleteCharacter(false);
+const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
 //-------------------------------------------Character Info----------------------------------------------------------------------------------------------------------------------
 const [showCharacterInfo, setShowCharacterInfo] = useState(false);
-
 const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
 const handleShowCharacterInfo = () => setShowCharacterInfo(true);
 //------------------------------Stats--------------------------------------------------------------------------------------------------------------------------------------------
 const [showStats, setShowStats] = useState(false);
-
 const handleCloseStats = () => setShowStats(false);
 const handleShowStats = () => setShowStats(true);
 //Item Stats
@@ -1624,7 +1633,7 @@ const availableBonusActions = [
   // ... add more bonus actions
 ];
 
-const isActionSelected = selectedAction !== null;
+let isActionSelected = selectedAction !== null;
 const isBonusActionSelected = selectedBonusAction !== null;
 
 const [moveActive, setMoveActive] = useState(false);
@@ -1755,13 +1764,33 @@ return (
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
           </Modal.Body>
-          <Modal.Footer>
+          <Modal.Footer className="justify-content-between">
+          <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>
+          </Button>
           <Button variant="secondary" onClick={handleCloseHelpModal}>
             Close
           </Button>
           </Modal.Footer>
+          </Modal>
+          <Modal  {...props}
+                  size="lg"
+                  aria-labelledby="contained-modal-title-vcenter"
+                  centered
+                  className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
+                    <Modal.Header closeButton>
+          <Modal.Title>Are you sure you want to delete your character?
+          </Modal.Title>
+          </Modal.Header>
+          <Modal.Footer className="justify-content-between">
+          <Button variant="danger" onClick={() => { deleteRecord(); }}>
+            Im Sure
+          </Button>
+          <Button variant="secondary" onClick={handleCloseDeleteCharacter}>
+            Close
+          </Button>
+          </Modal.Footer>
         </Modal>
-          </Nav>
+        </Nav>
         </Container>
         </Navbar>
 {/* ------------------------------------Character Render------------------------------------------------------------------------------------ */}
