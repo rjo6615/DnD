@@ -8,7 +8,7 @@ import { Button, Col, Form, Row } from "react-bootstrap";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
-import '../../App.css';
+import '../../App.scss';
 import PlayerTurnActions from './PlayerTurnActions';
 
 export default function ZombiesCharacterSheet(props) {
@@ -1689,7 +1689,49 @@ const [showHelpModal, setShowHelpModal] = useState(false);
 
 const handleCloseHelpModal = () => setShowHelpModal(false);
 const handleShowHelpModal = () => setShowHelpModal(true);
+//-------------------------------------------Dice Roller--------------------------------------------------------------------------
+const [sides] = useState(20);
+const [initialSide] = useState(1);
+const [timeoutId, setTimeoutId] = useState(null);
+const [animationDuration] = useState('3000ms');
+const [activeFace, setActiveFace] = useState(null);
+const [rolling, setRolling] = useState(false);
 
+const randomFace = () => {
+  const face = Math.floor(Math.random() * sides) + initialSide;
+  return face === activeFace ? randomFace() : face;
+};
+
+const rollTo = (face) => {
+  clearTimeout(timeoutId);
+  setActiveFace(face);
+  setRolling(false);
+};
+
+const handleRandomizeClick = (e) => {
+  e.preventDefault(); // Prevent page refresh
+  setRolling(true);
+  clearTimeout(timeoutId);
+
+  const newTimeoutId = setTimeout(() => {
+    setRolling(false);
+    rollTo(randomFace());
+  }, parseInt(animationDuration, 10));
+
+  setTimeoutId(newTimeoutId);
+};
+
+useEffect(() => {
+  // Cleanup effect
+  return () => clearTimeout(timeoutId);
+}, [timeoutId]);
+
+const faceElements = [];
+for (let i = 1; i <= 20; i++) {
+  faceElements.push(
+    <figure className={`face face-${i}`} key={i}></figure>
+  );
+}
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1839,6 +1881,55 @@ return (
           </tr>
         </thead>
           </Table>
+{/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
+  <center>
+  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1" variant="secondary"></Button>
+  </center>
+    <Modal size="sm"
+          centered
+    className="text-center" show={showLvlModal} onHide={handleCloseLvlModal}>
+  {/* <Modal.Header closeButton> */}
+  <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card.Title>Level Up</Card.Title>
+        <Card.Body> 
+        Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
+  <br></br>
+  HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
+  <br></br>
+  Attack Bonus: {atkBonus} {'\u2192'} {atkBonusNext}
+  <br></br>
+  Fortitude Save: {fortSave} {'\u2192'} {fortSaveNext}
+  <br></br>
+  Will Save: {willSave} {'\u2192'} {willSaveNext}
+  <br></br>
+  Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
+        </Card.Body>
+  {/* <Form onSubmit={addFeatToDb}>
+    <Form.Group className="mb-3 mx-5">
+  <Form.Label className="text-dark">Select Occupation</Form.Label>
+  <Form.Select 
+  onChange={(e) => updateFeat({ feat: e.target.value })}
+   type="text">
+    <option></option>
+    {form.occupation.map((el) => (  
+    <option>{el.Occupation}</option>
+    ))}
+  </Form.Select>
+</Form.Group>
+  <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+    </Form> */}
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseLvlModal}>
+      Close
+    </Button>
+    <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
+      Confirm
+    </Button>
+  </Modal.Footer>
+  </Card>
+  </center>
+</Modal>
     </Card> 
     </center>
   </Modal>
@@ -2606,53 +2697,12 @@ return (
       </Modal>
 </center>
 </Modal>
-  {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
-  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1" variant="secondary"></Button>
-    <Modal size="sm"
-          centered
-    className="text-center" show={showLvlModal} onHide={handleCloseLvlModal}>
-  {/* <Modal.Header closeButton> */}
-  <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
-        <Card.Title>Level Up</Card.Title>
-        <Card.Body> 
-        Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
-  <br></br>
-  HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
-  <br></br>
-  Attack Bonus: {atkBonus} {'\u2192'} {atkBonusNext}
-  <br></br>
-  Fortitude Save: {fortSave} {'\u2192'} {fortSaveNext}
-  <br></br>
-  Will Save: {willSave} {'\u2192'} {willSaveNext}
-  <br></br>
-  Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
-        </Card.Body>
-  {/* <Form onSubmit={addFeatToDb}>
-    <Form.Group className="mb-3 mx-5">
-  <Form.Label className="text-dark">Select Occupation</Form.Label>
-  <Form.Select 
-  onChange={(e) => updateFeat({ feat: e.target.value })}
-   type="text">
-    <option></option>
-    {form.occupation.map((el) => (  
-    <option>{el.Occupation}</option>
-    ))}
-  </Form.Select>
-</Form.Group>
-  <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-    </Form> */}
-  <Modal.Footer>
-    <Button variant="secondary" onClick={handleCloseLvlModal}>
-      Close
-    </Button>
-    <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
-      Confirm
-    </Button>
-  </Modal.Footer>
-  </Card>
-  </center>
-</Modal>
-  </center>
+{/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
+<div className="content">
+      <div onClick={handleRandomizeClick} className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
+        {faceElements}
+      </div>      
+    </div>
+  </center>  
  );
 }

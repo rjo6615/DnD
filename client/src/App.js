@@ -8,7 +8,7 @@ import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
 import ZombiesCharacterSelect from "./components/Zombies/ZombiesCharacterSelect";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import "./App.css";
+import "./App.scss";
 
 function App() {
   return (

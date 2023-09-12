@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
 import { useParams, useNavigate } from "react-router-dom";
-import '../../App.css';
+import '../../App.scss';
 
 export default function RecordList() {
   const params = useParams();
