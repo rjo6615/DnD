@@ -90,7 +90,6 @@ const [isGold, setIsGold] = useState(false);
 const handleToggle = () => {
   setIsGold(prevState => !prevState);
 };
-console.log(isGold);
 // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
 let critMatch;
 let critValue;
@@ -98,8 +97,7 @@ const handleWeaponsButtonCrit = (el) => {
 if (el[3].match(/\d{2}-\d{2}x\d+/)) {
   critMatch = el[3].match(/(\d{2})-(\d{2})x(\d+)/);    
   if (critMatch) {
-    const [, critTimes] = critMatch;
-  
+    const [, , , critTimes] = critMatch;  
     const critTimesValue = parseInt(critTimes, 10);      
     critValue = critTimesValue;
   } else {
@@ -134,7 +132,6 @@ const handleWeaponsButtonClick = (el) => {
     const numberOfDiceValue = parseInt(numberOfDice, 10);
     const sidesOfDiceValue = parseInt(sidesOfDice, 10);
     const constantValueValue = parseInt(constantValue, 10);
-    console.log(numberOfDiceValue, sidesOfDiceValue, constantValueValue);
     const diceRolls = rollDice(numberOfDiceValue, sidesOfDiceValue);
     const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);  
     if (isGold) {
