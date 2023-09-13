@@ -1689,49 +1689,6 @@ const [showHelpModal, setShowHelpModal] = useState(false);
 
 const handleCloseHelpModal = () => setShowHelpModal(false);
 const handleShowHelpModal = () => setShowHelpModal(true);
-//-------------------------------------------Dice Roller--------------------------------------------------------------------------
-const [sides] = useState(20);
-const [initialSide] = useState(1);
-const [timeoutId, setTimeoutId] = useState(null);
-const [animationDuration] = useState('3000ms');
-const [activeFace, setActiveFace] = useState(null);
-const [rolling, setRolling] = useState(false);
-
-const randomFace = () => {
-  const face = Math.floor(Math.random() * sides) + initialSide;
-  return face === activeFace ? randomFace() : face;
-};
-
-const rollTo = (face) => {
-  clearTimeout(timeoutId);
-  setActiveFace(face);
-  setRolling(false);
-};
-
-const handleRandomizeClick = (e) => {
-  e.preventDefault(); // Prevent page refresh
-  setRolling(true);
-  clearTimeout(timeoutId);
-
-  const newTimeoutId = setTimeout(() => {
-    setRolling(false);
-    rollTo(randomFace());
-  }, parseInt(animationDuration, 10));
-
-  setTimeoutId(newTimeoutId);
-};
-
-useEffect(() => {
-  // Cleanup effect
-  return () => clearTimeout(timeoutId);
-}, [timeoutId]);
-
-const faceElements = [];
-for (let i = 1; i <= 20; i++) {
-  faceElements.push(
-    <figure className={`face face-${i}`} key={i}></figure>
-  );
-}
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1755,18 +1712,22 @@ return (
       </h6>    
       </div>
 {/* -------------------------------------------------------------Actions--------------------------------------------------------------------------------- */}
-      <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}} className="zombiesActionItem mx-2 mb-4">      
+      <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}} className="zombiesActionItem mx-2">      
         {/* <Card.Title style={{ fontSize: 25}}>Actions Left</Card.Title> */}
         <div>
-          <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "0px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
-          <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "0px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
-          <Button onClick={handleBonus} className="mx-1 fas fa-square" style={{ marginTop: "0px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
-          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "0px", color: "#f71818" }} variant="secondary"></Button>
+          <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "-80px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
+          <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "-80px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
+          <Button onClick={handleBonus} className="mx-1 fas fa-square" style={{ marginTop: "-80px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
+          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "-80px", color: "#f71818" }} variant="secondary"></Button>
     <PlayerTurnActions
       actions={availableActions}
       bonusActions={availableBonusActions}
       onSelectAction={handleActionSelect}
       onSelectBonusAction={handleBonusActionSelect}
+      weapons={form.weapon}
+      atkBonus={atkBonus}
+      strMod={strMod}
+      dexMod={dexMod}
     />
   </div>
     </Card> 
@@ -2697,12 +2658,6 @@ return (
       </Modal>
 </center>
 </Modal>
-{/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
-<div className="content">
-      <div onClick={handleRandomizeClick} className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-        {faceElements}
-      </div>      
-    </div>
   </center>  
  );
 }
