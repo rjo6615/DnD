@@ -188,9 +188,9 @@ const [timeoutId, setTimeoutId] = useState(null);
 const [animationDuration] = useState('3000ms');
 const [activeFace, setActiveFace] = useState(null);
 const [rolling, setRolling] = useState(false);
+const face = Math.floor(Math.random() * sides) + initialSide;
 
 const randomFace = () => {
-  const face = Math.floor(Math.random() * sides) + initialSide;
   return face === activeFace ? randomFace() : face;
 };
 
@@ -198,6 +198,13 @@ const rollTo = (face) => {
   clearTimeout(timeoutId);
   setActiveFace(face);
   setRolling(false);
+
+  if (face === 20 || face === 1) {
+    showSparklesEffect({ x: 100 / 2, y: 100 / 2 });
+    setTimeout(() => {
+      showSparklesEffect();
+    }, 5000);
+  }
 };
 
 const handleRandomizeClick = (e) => {
@@ -224,6 +231,24 @@ for (let i = 1; i <= 20; i++) {
     <figure className={`face face-${i}`} key={i}></figure>
   );
 }
+const [showSparkles, setShowSparkles] = useState(false);
+const [showSparkles1, setShowSparkles1] = useState(false);
+
+// Create a function to display sparkles
+const showSparklesEffect = () => {
+  if (face === 20) {
+    setShowSparkles(true);
+    setTimeout(() => {
+      setShowSparkles(false);
+    }, 2000);
+  } else if (face === 1) {
+    setShowSparkles1(true);
+    setTimeout(() => {
+      setShowSparkles1(false);
+    }, 2000);
+  }
+};
+
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div style={{ marginTop: "-40px"}}>
@@ -364,11 +389,19 @@ for (let i = 1; i <= 20; i++) {
 </center>
       </Modal>
       {/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
-<div className="content">
-      <div onClick={handleRandomizeClick} className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-        {faceElements}
-      </div>      
+      <div className="content">
+    {showSparkles && (
+      <div className="sparkle"></div>
+    )}
+    {showSparkles1 && (
+      <div className="sparkle1"></div>
+    )}
+
+    <div onClick={handleRandomizeClick} className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
+      {faceElements}
     </div>
+</div>
+
     </div>    
   );
 };

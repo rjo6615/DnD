@@ -409,3 +409,43 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
     font-size: 11px;
   }
 }
+
+//------------------------------------Madness----------------------------------
+
+@keyframes sparkles {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-360deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+.sparkle {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, #38e703, transparent);
+  animation: sparkles 1s linear infinite;
+}
+
+@keyframes sparkles1 {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-360deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+.sparkle1 {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, #df081a, transparent);
+  animation: sparkles 1s linear infinite;
+}
