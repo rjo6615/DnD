@@ -1,13 +1,14 @@
 import Card from 'react-bootstrap/Card';
-import ListGroup from 'react-bootstrap/ListGroup';
-import Accordion from 'react-bootstrap/Accordion';
 import Table from 'react-bootstrap/Table';
 import Modal from 'react-bootstrap/Modal';
+import Container from 'react-bootstrap/Container';
+import Nav from 'react-bootstrap/Nav';
+import Navbar from 'react-bootstrap/Navbar';
 import { Button, Col, Form, Row } from "react-bootstrap";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
-import '../../App.css';
+import '../../App.scss';
 import PlayerTurnActions from './PlayerTurnActions';
 
 export default function ZombiesCharacterSheet(props) {
@@ -90,8 +91,25 @@ export default function ZombiesCharacterSheet(props) {
   return;
   
 }, [params.id, navigate]);
-//------------------------------Stats--------------------------------------------------------------------------------------------------------------------------------------------
 
+ // This method will delete a record
+ async function deleteRecord() {
+  await fetch(`/delete-character/${params.id}`, {
+    method: "DELETE"
+  });
+  navigate(`/zombies-character-select/${form.campaign}`);
+}
+const [showDeleteCharacter, setShowDeleteCharacter] = useState(false);
+const handleCloseDeleteCharacter = () => setShowDeleteCharacter(false);
+const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
+//-------------------------------------------Character Info----------------------------------------------------------------------------------------------------------------------
+const [showCharacterInfo, setShowCharacterInfo] = useState(false);
+const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
+const handleShowCharacterInfo = () => setShowCharacterInfo(true);
+//------------------------------Stats--------------------------------------------------------------------------------------------------------------------------------------------
+const [showStats, setShowStats] = useState(false);
+const handleCloseStats = () => setShowStats(false);
+const handleShowStats = () => setShowStats(true);
 //Item Stats
 let itemStr= [];
 form.item.map((el) => (  
@@ -189,8 +207,10 @@ let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
 let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTotal));
 
   let showBtn = "";
+  let statGold = "gold";
   if (statPointsLeft === 0) {
     showBtn = "none";
+    statGold = "#6C757D";
   }
  
   function addStat(stat, statMod) {
@@ -245,18 +265,46 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     atkBonus = form.level;
   }
 
-  // Health
-  let currHealth = form.tempHealth
+    // Saves Maffs Next
+    let fortSaveNext;
+    let reflexSaveNext;
+    let willSaveNext;
+    let atkBonusNext;
+    if (form.occupation.Fort === "0") {
+      fortSaveNext = Math.floor((form.level +1) / 3);
+    } if (form.occupation.Fort === "1") {
+      fortSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    }
+    if (form.occupation.Reflex === "0") {
+      reflexSaveNext = Math.floor((form.level +1) / 3);
+    } else if (form.occupation.Reflex === "1") {
+      reflexSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    }
+    if (form.occupation.Will === "0") {
+      willSaveNext = Math.floor((form.level +1) / 3);
+    } else if (form.occupation.Will === "1") {
+      willSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    }
+  
+    if (form.occupation.atkBonus === "0") {
+      atkBonusNext = Math.floor((form.level +1) / 2);
+    } else if (form.occupation.atkBonus === "1") {
+      atkBonusNext = Math.floor(((form.level +1) * .75));
+    } else if (form.occupation.atkBonus === "2") {
+      atkBonusNext = (form.level +1);
+    }
 
+  // Health
+  const [health, setHealth] = useState(); // Initial health value
  // Sends tempHealth data to database for update
- async function tempHealthUpdate(){
+ async function tempHealthUpdate(offset){
     await fetch(`/update-temphealth/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
      },
      body: JSON.stringify({
-      tempHealth: currHealth,
+      tempHealth: health + offset,
      }),
    })
    .catch(error => {
@@ -264,24 +312,78 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
      return;
    });
  }
-  function addHealth() {
-    if (currHealth === form.health + Number(conMod * form.level)){
+
+  useEffect(() => {
+    const parsedValue = parseFloat(form.tempHealth);
+    if (!isNaN(parsedValue)) {
+      setHealth(parsedValue);
     } else {
-    currHealth++;
-    document.getElementById("health").innerHTML = currHealth;
+      console.error('Input is not a valid number.');
+      // Handle the case where the input is not a valid number.
+      // You might want to show an error message or take some other action.
+    }
+  }, [form.tempHealth]);
+
+  const maxPossibleHealth = form.health + Number(conMod * form.level);  
+  
+  function getColorForHealth(currentHealth, maxHealth) {
+    const healthPercentage = (currentHealth / maxHealth) * 100;
+    if (healthPercentage >= 70) {
+      return 'green';
+    } else if (healthPercentage >= 30) {
+      return 'yellow';
+    } else {
+      return 'red';
+    }
+  }
+
+  const healthColor = getColorForHealth(health, maxPossibleHealth);
+  const healthWidth = (health / maxPossibleHealth) * 100;
+  const healthStyle = {
+    width: `${healthWidth}%`,
+    backgroundColor: healthColor,
+    color: "black",
+    height: "100%",
+    borderRadius: "5px",
+    transition: "width 0.3s",
+    textAlign: "center",
+    fontWeight: "bold",
+    lineHeight: "20px",
+  };
+
+  const healthBar = {
+    width: "100%",
+    height: "20px",
+    backgroundColor: "#debb9d",
+    borderRadius: "5px",
+    marginBottom: "10px",
+  };
+
+  let offset;
+  const increaseHealth = () => {
+    if (health === form.health + Number(conMod * form.level)){
+    } else {
+    setHealth((prevHealth) => prevHealth + 1);
+    offset = +1;
+    tempHealthUpdate(offset);
     }
   };
-  function removeHealth() {
-    if (currHealth === -10){
+
+  const decreaseHealth = () => {
+    if (health === -10){
     } else {
-    currHealth--;
-    document.getElementById("health").innerHTML = currHealth;
+    setHealth((prevHealth) => prevHealth - 1);
+    offset = -1;
+    tempHealthUpdate(offset);
     }
   };
 //-----------------------Skills--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const [showAddSkill, setShowAddSkill] = useState(false);
 const handleCloseAddSkill = () => setShowAddSkill(false);
 const handleShowAddSkill = () => setShowAddSkill(true);
+const [showSkill, setShowSkill] = useState(false);
+const handleCloseSkill = () => setShowSkill(false);
+const handleShowSkill = () => setShowSkill(true);
 
 const [addSkillForm, setAddSkillForm] = useState({ 
   newSkill: "",
@@ -868,8 +970,10 @@ form.senseMotive + form.sleightOfHand + form.spot + form.survival + form.swim + 
 form.useTech + form.useRope;
 let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal - totalAddedSkills);
 let showSkillBtn = "";
+let skillGold = "gold";
 if (skillPointsLeft === 0) {
   showSkillBtn = "none";
+  skillGold = "#6C757D";
 }
 
 function addSkill(skill, totalSkill) {
@@ -948,6 +1052,9 @@ const [weapon, setWeapon] = useState({
 const [addWeapon, setAddWeapon] = useState({ 
   weapon: "",
 });
+const [showWeapons, setShowWeapons] = useState(false);
+const handleCloseWeapons = () => setShowWeapons(false);
+const handleShowWeapons = () => setShowWeapons(true);
 function updateWeapon(value) {
   return setAddWeapon((prev) => {
     return { ...prev, ...value };
@@ -1071,6 +1178,9 @@ const [armor, setArmor] = useState({
 const [addArmor, setAddArmor] = useState({ 
   armor: "",
 });
+const [showArmor, setShowArmor] = useState(false);
+const handleCloseArmor = () => setShowArmor(false);
+const handleShowArmor = () => setShowArmor(true);
 function updateArmor(value) {
   return setAddArmor((prev) => {
     return { ...prev, ...value };
@@ -1219,6 +1329,9 @@ const [modalItemData, setModalItemData] = useState({
 const [showNotes, setShowNotes] = useState(false);
 const handleCloseNotes = () => setShowNotes(false);
 const handleShowNotes = () => setShowNotes(true);
+const [showItems, setShowItems] = useState(false);
+const handleCloseItems = () => setShowItems(false);
+const handleShowItems = () => setShowItems(true);
 
 function updateItem(value) {
   return setAddItem((prev) => {
@@ -1348,6 +1461,9 @@ const [modalFeatData, setModalFeatData] = useState({
 const [showFeatNotes, setShowFeatNotes] = useState(false);
 const handleCloseFeatNotes = () => setShowFeatNotes(false);
 const handleShowFeatNotes = () => setShowFeatNotes(true);
+const [showFeats, setShowFeats] = useState(false);
+const handleCloseFeats = () => setShowFeats(false);
+const handleShowFeats = () => setShowFeats(true);
 
 function updateFeat(value) {
   return setAddFeat((prev) => {
@@ -1364,8 +1480,10 @@ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","",""
 let featPointsLeft = Math.floor((form.level / 3) - (featLength)) + 1;
 
   let showFeatBtn = "";
+  let featGold = "gold";
   if (featPointsLeft === 0) {
     showFeatBtn = "none";
+    featGold = "#6C757D";
   }
 
 // ----------------------------------------Fetch Feats-----------------------------------
@@ -1515,7 +1633,7 @@ const availableBonusActions = [
   // ... add more bonus actions
 ];
 
-const isActionSelected = selectedAction !== null;
+let isActionSelected = selectedAction !== null;
 const isBonusActionSelected = selectedBonusAction !== null;
 
 const [moveActive, setMoveActive] = useState(false);
@@ -1572,42 +1690,72 @@ const [showHelpModal, setShowHelpModal] = useState(false);
 const handleCloseHelpModal = () => setShowHelpModal(false);
 const handleShowHelpModal = () => setShowHelpModal(true);
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
- return (
-<center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "110vh"}}>
+return (
+<center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
-      <Accordion className="mx-2" style={{ marginTop: "-20px" }}>
-  {/* ---------------------------------------Actions Render--------------------------------------------------------------------- */}
-      <Accordion.Item eventKey="9">
-        <Accordion.Header>Actions</Accordion.Header>
-        <Accordion.Body> 
-        <Card className="zombiesActionItem mx-2 mb-4">      
-        <Card.Title style={{ fontSize: 25}}>Actions Left</Card.Title>
+      <div style={{marginTop: "-40px", marginBottom: "40px"}}>
+      <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
+      <strong className="mx-2">AC: {Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</strong>
+      <strong className="mx-2">Attack Bonus: {atkBonus}</strong>
+      <strong className="mx-2">Initiative: {dexMod}</strong>
+      </h6>
+{/*------------------------------------------------------------ Health Bar -----------------------------------------------------------------------------*/}
+      <div className="health-bar" style={healthBar}>
+        <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * form.level)}</div>
+      </div>
+      <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-start bg-transparent fa-solid fa-minus" onClick={decreaseHealth}></Button>
+      <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-end bg-transparent fa-solid fa-plus" onClick={increaseHealth}></Button>  
+      <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
+      <strong className="mx-2">Fort: {fortSave}</strong>
+      <strong className="mx-2">Reflex: {reflexSave}</strong>
+      <strong className="mx-2">Will: {willSave}</strong>
+      </h6>    
+      </div>
+{/* -------------------------------------------------------------Actions--------------------------------------------------------------------------------- */}
+      <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}} className="zombiesActionItem mx-2">      
+        {/* <Card.Title style={{ fontSize: 25}}>Actions Left</Card.Title> */}
         <div>
-          <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "0px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
-          <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "0px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
-          <Button onClick={handleBonus} className="mx-1 fas fa-square" style={{ marginTop: "0px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
-          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "0px", color: "#f71818" }} variant="secondary"></Button>
+          <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "-80px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
+          <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "-80px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
+          <Button onClick={handleBonus} className="mx-1 fas fa-square" style={{ marginTop: "-80px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
+          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "-80px", color: "#f71818" }} variant="secondary"></Button>
     <PlayerTurnActions
       actions={availableActions}
       bonusActions={availableBonusActions}
       onSelectAction={handleActionSelect}
       onSelectBonusAction={handleBonusActionSelect}
+      weapons={form.weapon}
+      atkBonus={atkBonus}
+      strMod={strMod}
+      dexMod={dexMod}
     />
   </div>
-  {/* ----------------------------------Help Button-------------------------------------------------- */}
-  <div>
-  <br></br>
-  <Button onClick={handleShowHelpModal} className="mx-1 fa-solid fa-info" style={{borderRadius: "50px"}} variant="primary"></Button>
-          <Modal  {...props}
+    </Card> 
+{/* -----------------------------------------------------------Footer Bar----------------------------------------------------------------------------------- */}
+    <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">
+        <Container>
+          <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
+            <div>
+            <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
+            <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
+            <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
+            <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
+            <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
+            <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
+            <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
+ {/* ----------------------------------Help Button-------------------------------------------------- */}
+            <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
+            </div>
+            <Modal  {...props}
                   size="lg"
                   aria-labelledby="contained-modal-title-vcenter"
                   centered
-          className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
-        <Modal.Header closeButton>
+                  className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
+                    <Modal.Header closeButton>
           <Modal.Title>Help</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-        Actions Left (from left to right)
+          </Modal.Header>
+          <Modal.Body>
+          Actions Left (from left to right)
           <br></br>
           Move, Action, Bonus Action, Reset
           <br></br>
@@ -1618,105 +1766,141 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           <br></br>
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
-        </Modal.Body>
-        <Modal.Footer>
+          </Modal.Body>
+          <Modal.Footer className="justify-content-between">
+          <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>
+          </Button>
           <Button variant="secondary" onClick={handleCloseHelpModal}>
             Close
           </Button>
-        </Modal.Footer>
-      </Modal>
-  </div>
-  <br></br>
-    </Card> 
-        </Accordion.Body>
-      </Accordion.Item>
-       {/* ------------------------------------Character Render------------------------------------------------------------------------------------ */}
-      <Accordion.Item eventKey="0">
-        <Accordion.Header>Character Info</Accordion.Header>
-        <Accordion.Body> 
-        <Card className="mx-2 mb-4" style={{ width: '10rem' }}>      
+          </Modal.Footer>
+          </Modal>
+          <Modal  {...props}
+                  size="lg"
+                  aria-labelledby="contained-modal-title-vcenter"
+                  centered
+                  className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
+                    <Modal.Header closeButton>
+          <Modal.Title>Are you sure you want to delete your character?
+          </Modal.Title>
+          </Modal.Header>
+          <Modal.Footer className="justify-content-between">
+          <Button variant="danger" onClick={() => { deleteRecord(); }}>
+            Im Sure
+          </Button>
+          <Button variant="secondary" onClick={handleCloseDeleteCharacter}>
+            Close
+          </Button>
+          </Modal.Footer>
+        </Modal>
+        </Nav>
+        </Container>
+        </Navbar>
+{/* ------------------------------------Character Render------------------------------------------------------------------------------------ */}
+<Modal show={showCharacterInfo} onHide={handleCloseCharacterInfo}
+       size="sm"
+      centered
+       >          
+        <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
         <Card.Title>Character Info</Card.Title>
-      <ListGroup className="list-group-flush" style={{ fontSize: '1rem' }}>
-        <ListGroup.Item> Level: {form.level} </ListGroup.Item>
-        <ListGroup.Item>Occupation: {form.occupation.Occupation}</ListGroup.Item>        
-        <ListGroup.Item>Age: {form.age}</ListGroup.Item>
-        <ListGroup.Item>Sex: {form.sex}</ListGroup.Item>
-        <ListGroup.Item>Height: {form.height}</ListGroup.Item>
-        <ListGroup.Item>Weight: {form.weight}lbs</ListGroup.Item>
-      </ListGroup>
-    </Card> 
-        </Accordion.Body>
-      </Accordion.Item>
-      {/* --------------------------------------Health and Defense Render----------------------------------------------------------- */}
-      <Accordion.Item eventKey="1">
-        <Accordion.Header>Health/Defense</Accordion.Header>
-        <Accordion.Body>
-        <Card className="zombieHealth mx-2 mb-1">      
-        <Card.Title>Health</Card.Title>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Temp</th>
-              <th>Max</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><Button onClick={() => removeHealth('health')} className="bg-danger fa-solid fa-minus"></Button></td>
-              <td><span id="health">{form.tempHealth} </span></td>
-              <td><span>{form.health + Number(conMod * form.level)} </span></td>
-              <td><Button onClick={() => addHealth()} className="fa-solid fa-plus"></Button></td>
-            </tr>
-          </tbody>
-        </Table>
-        </Card> 
-        <Button onClick={() => tempHealthUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
-        <Card className="mx-2 mb-4 mt-2" style={{ width: '12rem' }}>      
-        <Card.Title>Saving Throws</Card.Title>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th>Saves</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Attack Bonus</td>
-              <td>{atkBonus}</td>
-            </tr>
-            <tr>
-              <td>AC</td>
-              <td>{Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</td>
-            </tr>
-            <tr>
-              <td>Fort</td>
-              <td>{fortSave}</td>
-            </tr>
-            <tr>
-              <td>Reflex</td>
-              <td>{reflexSave}</td>
-            </tr>
-            <tr>
-              <td>Will</td>
-              <td>{willSave}</td>
-            </tr>
-            <tr>
-              <td>Initiative</td>
-              <td>{dexMod}</td>
-            </tr>
-          </tbody>
+        <Table striped bordered hover size="sm">        
+        <thead>
+          <tr>
+          <th>Level</th>
+          <td>{form.level}</td>
+          </tr>
+        </thead>
+        <thead>
+          <tr>
+          <th>Occupation</th>
+          <td>{form.occupation.Occupation}</td>
+          </tr>
+        </thead>
+        <thead>
+          <tr>
+          <th>Age</th>
+          <td>{form.age}</td>
+          </tr>
+        </thead>
+        <thead>
+          <tr>
+          <th>Sex</th>
+          <td>{form.sex}</td>
+          </tr>
+        </thead>
+        <thead>
+          <tr>
+          <th>Height</th>
+          <td>{form.height}</td>
+          </tr>
+        </thead>
+        <thead>
+          <tr>
+          <th>Weight</th>
+          <td>{form.weight}lbs</td>
+          </tr>
+        </thead>
           </Table>
-          </Card>
-        </Accordion.Body>
-      </Accordion.Item>
-      {/* -----------------------------------------------------Stat Render------------------------------------------------------ */}
-      <Accordion.Item eventKey="2">
-        <Accordion.Header>Stats <span style={{ display: showBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
-        <Accordion.Body>
-        <Card className="mx-2 mb-4" style={{ width: '15rem' }}>      
+{/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
+  <center>
+  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1" variant="secondary"></Button>
+  </center>
+    <Modal size="sm"
+          centered
+    className="text-center" show={showLvlModal} onHide={handleCloseLvlModal}>
+  {/* <Modal.Header closeButton> */}
+  <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card.Title>Level Up</Card.Title>
+        <Card.Body> 
+        Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
+  <br></br>
+  HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
+  <br></br>
+  Attack Bonus: {atkBonus} {'\u2192'} {atkBonusNext}
+  <br></br>
+  Fortitude Save: {fortSave} {'\u2192'} {fortSaveNext}
+  <br></br>
+  Will Save: {willSave} {'\u2192'} {willSaveNext}
+  <br></br>
+  Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
+        </Card.Body>
+  {/* <Form onSubmit={addFeatToDb}>
+    <Form.Group className="mb-3 mx-5">
+  <Form.Label className="text-dark">Select Occupation</Form.Label>
+  <Form.Select 
+  onChange={(e) => updateFeat({ feat: e.target.value })}
+   type="text">
+    <option></option>
+    {form.occupation.map((el) => (  
+    <option>{el.Occupation}</option>
+    ))}
+  </Form.Select>
+</Form.Group>
+  <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+    </Form> */}
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseLvlModal}>
+      Close
+    </Button>
+    <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
+      Confirm
+    </Button>
+  </Modal.Footer>
+  </Card>
+  </center>
+</Modal>
+    </Card> 
+    </center>
+  </Modal>
+         {/* -----------------------------------------------------Stat Render------------------------------------------------------ */}
+         <Modal show={showStats} onHide={handleCloseStats}
+       size="sm"
+      centered
+       >   
+       <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Stats</Card.Title>
        <Card.Title style={{ display: showBtn}}>Points Left:<span className="mx-1" id="statPointLeft">{statPointsLeft}</span></Card.Title>
        <Table striped bordered hover size="sm">        
@@ -1774,15 +1958,28 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </tr>
         </tbody>        
        </Table>
+       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 0px' }}>
+        <Button
+          style={{ display: showBtn, width: '100%' }}
+          onClick={() => statsUpdate()}
+          className="bg-warning fa-solid fa-floppy-disk"
+        ></Button>
+        <Button
+          style={{ width: '100%' }}
+          onClick={() => handleCloseStats()}
+          className="bg-secondary fa-solid fa-xmark"
+        ></Button>
+      </div>
     </Card> 
-    <Button style={{ display: showBtn}} onClick={() => statsUpdate()} className="bg-warning fa-solid fa-floppy-disk"></Button>
-        </Accordion.Body>
-      </Accordion.Item>
-      {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
-      <Accordion.Item eventKey="3">
-      <Accordion.Header>Skills <span style={{ display: showSkillBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
-        <Accordion.Body>
-        <Card className="zombieSkills mx-2 mb-4">
+    </center>  
+    </Modal>
+     {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
+     <Modal show={showSkill} onHide={handleCloseSkill}
+       size="sm"
+      centered
+       >   
+       <center>
+        <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Skills</Card.Title>
         <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
@@ -2049,11 +2246,24 @@ const handleShowHelpModal = () => setShowHelpModal(true);
             ))}  
         </tbody>
       </Table>
-    </Card> 
-    <Button style={{ display: showSkillBtn}} onClick={() => {skillsUpdate(); addUpdatedSkillToDb();}} className="mx-2 bg-warning fa-solid fa-floppy-disk"></Button>
-    <Button
-     onClick={() => handleShowAddSkill()}
-      className="bg-success fa-solid fa-plus"></Button>   
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 0px' }}>
+        <Button
+          style={{ display: showSkillBtn, width: '100%'}} 
+          onClick={() => {skillsUpdate(); addUpdatedSkillToDb();}}
+          className="bg-warning fa-solid fa-floppy-disk"
+        ></Button>
+        <Button
+          style={{ width: '100%' }}
+          onClick={() => handleShowAddSkill()} 
+          className="bg-success fa-solid fa-plus"
+        ></Button>
+           <Button
+          style={{ width: '100%' }}
+          onClick={() => handleCloseSkill()} 
+          className="bg-secondary fa-solid fa-xmark"
+        ></Button>
+      </div>
+    </Card>   
       <Modal show={showAddSkill} onHide={handleCloseAddSkill}>
         <Modal.Header closeButton>
           <Modal.Title>Add Skill</Modal.Title>
@@ -2091,13 +2301,15 @@ const handleShowHelpModal = () => setShowHelpModal(true);
         <Modal.Footer>
         </Modal.Footer>
       </Modal>
-      </Accordion.Body>
-      </Accordion.Item>
-      {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
-      <Accordion.Item eventKey="5">
-        <Accordion.Header>Feats <span style={{ display: showFeatBtn, color: "gold"}} className="mx-2 fa-solid fa-star"></span></Accordion.Header>
-        <Accordion.Body>
-        <Card className="zombiesFeats mx-2 mb-4">      
+      </center>
+</Modal>
+ {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
+ <Modal show={showFeats} onHide={handleCloseFeats}
+       size="sm"
+      centered
+       >   
+       <center>
+        <Card className="zombiesFeats" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
         <Card.Title>Feats</Card.Title>
         <Card.Title style={{ display: showFeatBtn}}>Points Left:<span className="mx-1" id="featPointLeft">{featPointsLeft}</span></Card.Title>
         <Table striped bordered hover size="sm">
@@ -2161,8 +2373,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
             </tr>
             ))}   
           </tbody>
-        </Table>        
-    </Card> 
+        </Table>       
     <Row>
         <Col style={{display: showFeatBtn}}>
           <Form onSubmit={addFeatToDb}>
@@ -2185,6 +2396,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Form>
         </Col>
       </Row>
+      </Card> 
       <Modal show={showFeatNotes} onHide={handleCloseFeatNotes}>
         <Modal.Header closeButton>
           <Modal.Title>{modalFeatData[0]}</Modal.Title>
@@ -2196,13 +2408,15 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Button>
         </Modal.Footer>
       </Modal>
-      </Accordion.Body>
-      </Accordion.Item>
-      {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
-        <Accordion.Item eventKey="4">
-        <Accordion.Header>Weapons</Accordion.Header>
-        <Accordion.Body>
-        <Card className="zombiesWeapons mx-2 mb-4">      
+</center>
+</Modal>
+{/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
+<Modal show={showWeapons} onHide={handleCloseWeapons}
+       size="sm"
+      centered
+       >   
+       <center>
+        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
         <Card.Title>Weapons</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2245,8 +2459,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
             </tr>
              ))}
           </tbody>
-        </Table>        
-    </Card> 
+        </Table>      
     <Row>
         <Col>
           <Form onSubmit={addWeaponToDb}>
@@ -2265,13 +2478,16 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Form>
         </Col>
       </Row>
-        </Accordion.Body>
-      </Accordion.Item>
-  {/* ------------------------------------------------Armor Render---------------------------------------------------------------------------------------------------------------- */}
-      <Accordion.Item eventKey="6">
-        <Accordion.Header>Armor</Accordion.Header>
-        <Accordion.Body>
-        <Card className="zombiesArmor mx-2 mb-4">      
+      </Card> 
+</center>
+</Modal>
+{/* ------------------------------------------------Armor Render---------------------------------------------------------------------------------------------------------------- */}
+<Modal show={showArmor} onHide={handleCloseArmor}
+       size="sm"
+      centered
+       >   
+       <center>
+        <Card className="zombiesArmor" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Armor</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2294,8 +2510,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
             </tr>
             ))}     
           </tbody>
-        </Table>        
-    </Card> 
+        </Table>    
     <Row>
         <Col>
           <Form onSubmit={addArmorToDb}>
@@ -2314,13 +2529,16 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Form>
         </Col>
       </Row>
-      </Accordion.Body>
-      </Accordion.Item>
-  {/* -----------------------------------------Items Render------------------------------------------------------------------------------------------------------------------------------- */}
-      <Accordion.Item eventKey="7">
-        <Accordion.Header>Items</Accordion.Header>
-        <Accordion.Body>
-        <Card className="zombiesItems mx-2 mb-4">      
+      </Card> 
+    </center>
+    </Modal>
+     {/* -----------------------------------------Items Render------------------------------------------------------------------------------------------------------------------------------- */}
+     <Modal show={showItems} onHide={handleCloseItems}
+       size="sm"
+      centered
+       >   
+       <center>
+        <Card className="zombiesItems" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
         <Card.Title>Items</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2404,7 +2622,6 @@ const handleShowHelpModal = () => setShowHelpModal(true);
             ))}   
           </tbody>
         </Table>        
-    </Card> 
     <Row>
         <Col>
           <Form onSubmit={addItemToDb}>
@@ -2427,6 +2644,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Form>
         </Col>
       </Row>
+      </Card> 
       <Modal show={showNotes} onHide={handleCloseNotes}>
         <Modal.Header closeButton>
           <Modal.Title>{modalItemData[0]}</Modal.Title>
@@ -2438,66 +2656,8 @@ const handleShowHelpModal = () => setShowHelpModal(true);
           </Button>
         </Modal.Footer>
       </Modal>
-        </Accordion.Body>
-      </Accordion.Item>
-  {/* -----------------------------------------Notes Render------------------------------------------------------------------------------------------------------------------- */}
-      <Accordion.Item eventKey="8">
-        <Accordion.Header>Notes</Accordion.Header>
-        <Accordion.Body>
-        <center>
-  <div className="">
-    <h5 className="text-dark">Notes</h5>
-    <table className="table text-dark" style={{ marginTop: 20 }}>
-      <thead>
-        <tr>        
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <Button><i className="fa-solid fa-plus"></i></Button>
-  </div>
-  </center>
-        </Accordion.Body>
-      </Accordion.Item>
-    </Accordion>
-    <br></br>
-  {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
-          <Button onClick={handleShowLvlModal} className="mx-1" variant="primary">Level Up</Button>
-          <Modal  {...props}
-                  size="lg"
-                  aria-labelledby="contained-modal-title-vcenter"
-                  centered
-          className="text-center" show={showLvlModal} onHide={handleCloseLvlModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Level Up</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
-        <br></br>
-        HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
-        {/* <Form onSubmit={addFeatToDb}>
-          <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-dark">Select Occupation</Form.Label>
-        <Form.Select 
-        onChange={(e) => updateFeat({ feat: e.target.value })}
-         type="text">
-          <option></option>
-          {form.occupation.map((el) => (  
-          <option>{el.Occupation}</option>
-          ))}
-        </Form.Select>
-      </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-          </Form> */}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseLvlModal}>
-            Close
-          </Button>
-          <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
-            Confirm
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </center>
+</center>
+</Modal>
+  </center>  
  );
 }

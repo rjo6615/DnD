@@ -1,0 +1,451 @@
+@import url('https://fonts.googleapis.com/css?family=Josefin+Sans');
+@import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.App {
+  background-color: white;
+}
+
+.Auth-form-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.Auth-form {
+  width: 420px;
+  box-shadow: rgb(0 0 0 / 16%) 1px 1px 10px;
+  padding-top: 30px;
+  padding-bottom: 20px;
+  border-radius: 8px;
+  color: white;
+}
+
+.Auth-form-content {
+  padding-left: 12%;
+  padding-right: 12%;
+}
+
+.Auth-form-title {
+  text-align: center;
+  margin-bottom: 1em;
+  font-size: 24px;
+  color: white;
+  font-weight: 800;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.fantasy-view-button {
+  background-color: #8b0000; /* Dark red background color */
+  border: none;
+  color: #ffffff; /* White text color */
+  padding: 10px 20px; /* Padding around the button text */
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 5px; /* Rounded corners */
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+  background-image: linear-gradient(to bottom, #8b0000 0%, #6b0000 100%); /* Gradient background */
+  border: 1px solid #5a0000; /* Dark red border */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); /* Text shadow */
+  transition: background-color 0.3s ease; /* Smooth transition effect for hover */
+}
+
+.fantasy-view-button:hover {
+  background-color: #a00000; /* Darker red color on hover */
+}
+
+// Dice Roller----------------------------------------------------------------------------------------------
+$containerWidth: 120px;
+$containerHeight: $containerWidth;
+
+$faceWidth:  $containerWidth*0.5;
+$faceHeight: $faceWidth*0.86;
+
+$transitionDuration: 0.5s;
+$animationDuration:  3s;
+
+$angle: 53deg;
+$ringAngle: -11deg;
+$sideAngle: calc(360deg / 5);
+$opacity: 0.75;
+$color: rgba(3, 3, 252, $opacity);
+
+$rotateX: -$angle;
+$translateZ: $faceWidth*0.335;
+$translateY: -$faceHeight*0.15;
+$translateRingZ: $faceWidth*0.75;
+$translateRingY: $faceHeight*0.78 + $translateY;
+$translateLowerZ: $translateZ;
+$translateLowerY: $faceHeight*0.78 + $translateRingY;
+
+@keyframes roll {
+  10% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) }
+  30% { transform: rotateX(120deg) rotateY(240deg) rotateZ(0deg) translateX(40px) translateY(40px) }
+  50% { transform: rotateX(240deg) rotateY(480deg) rotateZ(0deg) translateX(-40px) translateY(-40px) }
+  70% { transform: rotateX(360deg) rotateY(720deg) rotateZ(0deg) }
+  90% { transform: rotateX(480deg) rotateY(960deg) rotateZ(0deg) }
+}
+
+.content {
+  margin: auto auto;
+  position: relative;
+  width: $containerWidth;
+  height: $containerHeight;
+  perspective: 1500px;
+}
+
+.die {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform $transitionDuration ease-out;
+  cursor: pointer;
+  
+  transform: rotateX($rotateX);
+  
+  &.rolling {
+    animation: roll $animationDuration linear;
+  }
+  
+  @for $i from 1 through 5 {
+    &[data-face="#{$i}"] {
+      $angleMultiplier: $i - 1;
+      transform: rotateX(-$angle) rotateY($sideAngle * $angleMultiplier);
+    }
+  }
+  
+  @for $i from 16 through 20 {
+    &[data-face="#{$i}"] {
+      $angleMultiplier: $i - 15;
+      transform: rotateX(-$angle + 180deg) rotateY(-$sideAngle * $angleMultiplier);
+    }
+  }
+  
+  @for $i from 6 through 10 {
+    &[data-face="#{$i}"] {
+      $angleMultiplier: $i - 6;
+      transform: rotateX(-$ringAngle) rotateZ(180deg) rotateY($sideAngle * $angleMultiplier);
+    }
+  }
+  
+  @for $i from 11 through 15 {
+    &[data-face="#{$i}"] {
+      $angleMultiplier: $i - 8;
+      transform: rotateX(-$ringAngle) rotateY(-$sideAngle * $angleMultiplier - calc($sideAngle / 2));
+    }
+  }
+  
+  .face {
+    $horizontalMargin: -$faceWidth*0.5;
+    
+    position: absolute;
+    left: 50%;
+    top: 0;
+    margin: 0 $horizontalMargin;
+    border-left: $faceWidth*0.5 solid transparent;
+    border-right: $faceWidth*0.5 solid transparent;
+    border-bottom: $faceHeight solid $color;
+    width: 0px;
+    height: 0px;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    
+    counter-increment: steps 1;
+  
+    &:before {
+      content: counter(steps);
+      position: absolute;
+      top: $faceHeight*0.25;
+      left: -$faceWidth;
+      color: #fff;
+      text-shadow: 1px 1px 3px #000;
+      font-size: $faceHeight*0.5;
+      text-align: center;
+      line-height: $faceHeight*0.9;
+      width: $faceWidth*2;
+      height: $faceHeight;
+    }
+    
+    @for $i from 1 through 5 {
+      &:nth-child(#{$i}) {
+        $angleMultiplier: $i - 1;
+        transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateZ) translateY($translateY) rotateX($angle);
+      }
+    }
+      
+    @for $i from 16 through 20 {
+      &:nth-child(#{$i}) {
+        $angleMultiplier: $i - 18;
+        transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateLowerZ) translateY($translateLowerY) rotateZ(180deg) rotateX($angle);
+      }
+    }
+      
+    @for $i from 6 through 10 {
+      &:nth-child(#{$i}) {
+        $angleMultiplier: $i - 11;
+        transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateRingZ) translateY($translateRingY) rotateZ(180deg) rotateX($ringAngle);
+      }
+    }
+      
+    @for $i from 11 through 15 {
+      &:nth-child(#{$i}) {
+        $angleMultiplier: $i - 8;
+        transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateRingZ) translateY($translateRingY) rotateX($ringAngle);
+      }
+    }
+  }
+}
+// Damage display-------------------------------------------------------
+#damageAmount {
+  width: 70px;
+  height: 70px;
+  border: 2px solid #8b0000; /* Dark red border */
+  border-radius: 50%;
+  color: #8b0000; /* Dark red text color */
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 80px; /* Center content vertically */
+  font-family: 'Courier New', monospace; /* Zombie-themed font */
+  position: relative; /* Required for pseudo-element */
+  overflow: hidden; /* Hide overflow to enable animation */
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  background-size: 70px;
+}
+
+#damageValue {
+  padding-top: 5px;
+  display: inline-block; /* Make the text an inline block */
+  animation: rollAnimation 0.5s ease-in-out; /* Apply animation */
+}
+
+/* Prevent the animation on initial load */
+#damageAmount:not(:hover) #damageValue {
+  animation: none;
+}
+
+#damageAmount.loading .spinner {
+  display: block;
+}
+
+/* Spinner styles */
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #8b0000; /* Dark red top border */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite; /* Rotate animation */
+}
+
+.spinner {
+  display: none;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hidden class to hide elements */
+.hidden {
+  display: none !important;
+}
+
+
+
+
+/* -------------------------------------------------Media Query---------------------------------------- */
+/* Media query for screens smaller than 2160px */
+@media (max-width: 2160px) {
+  .zombieCharacterSelectTable {
+    font-size: 18px;
+  }
+  .zombiesActionItem {
+    width: 20rem;
+  }
+  .zombieHealth {
+    width: 12rem;
+    text-align: center;
+  }
+  .zombieSkills {
+    width: 19rem;
+    font-size: 14px;
+  }
+  .zombiesFeats {
+    width: 19rem;
+    font-size: 14px;
+  }
+  .zombiesWeapons {
+    width: 20rem;
+    font-size: 12px;
+  }
+  .zombiesArmor {
+    width: 20rem;
+    font-size: 14px;
+  }
+  .zombiesItems {
+    width: 20rem;
+    font-size: 15px;
+  }
+}
+
+/* Media query for screens smaller than 375px */
+@media (max-width: 375px) {
+  .zombieCharacterSelectTable {
+    font-size: 13px;
+  }
+  .zombiesActionItem {
+    width: 16rem;
+  }
+  .zombieHealth {
+    width: 12rem;
+    text-align: center;
+  }
+  .zombieSkills {
+    width: 18rem;
+    font-size: 12px;
+  }
+  .zombiesFeats {
+    width: 17rem;
+    font-size: 12px;
+  }
+  .zombiesWeapons {
+    width: 18rem;
+    font-size: 11px;
+  }
+  .zombiesArmor {
+    width: 18rem;
+    font-size: 13px;
+  }
+  .zombiesItems {
+    width: 18rem;
+    font-size: 14px;
+  }
+}
+
+/* Media query for screens smaller than 320px */
+@media (max-width: 320px) {
+  .zombieCharacterSelectTable {
+    font-size: 9px;
+  }
+  .zombiesActionItem {
+    width: 14rem;
+  }
+  .zombieHealth {
+    width: 12rem;
+    text-align: center;
+  }
+  .zombieSkills {
+    width: 15rem;
+    font-size: 9px;
+  }
+  .zombiesFeats {
+    width: 15rem;
+    font-size: 11px;
+  }
+  .zombiesWeapons {
+    width: 15rem;
+    font-size: 9px;
+  }
+  .zombiesArmor {
+    width: 15rem;
+    font-size: 14px;
+  }
+  .zombiesItems {
+    width: 15rem;
+    font-size: 11px;
+  }
+}
+
+//------------------------------------Madness----------------------------------
+
+@keyframes sparkles {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-360deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+.sparkle {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, #38e703, transparent);
+  animation: sparkles 1s linear infinite;
+}
+
+@keyframes sparkles1 {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-360deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+.sparkle1 {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, #df081a, transparent);
+  animation: sparkles 1s linear infinite;
+}
