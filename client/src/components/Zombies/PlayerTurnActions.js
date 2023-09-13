@@ -90,6 +90,10 @@ const [isGold, setIsGold] = useState(false);
 const handleToggle = () => {
   setIsGold(prevState => !prevState);
 };
+
+const handleToggleAfterDamage = () => {
+  setIsGold(false);
+};
 // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
 let critMatch;
 let critValue;
@@ -169,6 +173,7 @@ useEffect(() => {
   if (loading) {
     const timer = setTimeout(() => {
       setLoading(false);
+      handleToggleAfterDamage();
     }, 1000); // 1 second delay
     return () => clearTimeout(timer);
   }
