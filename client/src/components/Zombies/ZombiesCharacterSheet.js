@@ -1866,20 +1866,20 @@ return (
   <br></br>
   Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
         </Card.Body>
-  {/* <Form onSubmit={addFeatToDb}>
+  <Form onSubmit={addFeatToDb}>
     <Form.Group className="mb-3 mx-5">
   <Form.Label className="text-dark">Select Occupation</Form.Label>
   <Form.Select 
   onChange={(e) => updateFeat({ feat: e.target.value })}
    type="text">
     <option></option>
-    {form.occupation.map((el) => (  
-    <option>{el.Occupation}</option>
-    ))}
+    {/* {form.occupations.map((occupation, i) => (
+    <option key={i}>{occupation.Occupation}</option>
+    ))} */}
   </Form.Select>
 </Form.Group>
   <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-    </Form> */}
+    </Form>
   <Modal.Footer>
     <Button variant="secondary" onClick={handleCloseLvlModal}>
       Close

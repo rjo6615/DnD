@@ -46,19 +46,21 @@ export default function RecordList() {
             </tr>
           </thead>
           <tbody>
-            {records.map((Characters) => (
+          {records.map((Characters) => (
               <tr key={Characters._id}>
-                <td>
-                  {Characters.characterName}
-                </td>
+                <td>{Characters.characterName}</td>
                 <td>{Characters.level}</td>
-                <td>{Characters.occupation.Occupation}</td>
+                <td>
+                  {Characters.occupation.map((el, i) => (
+                    <span key={i}>{el.Occupation}</span>
+                  ))}
+                </td>
                 <td>
                   <Button
                     className="fantasy-view-button"
                     size="sm"
                     style={{ width: 'auto' }}
-                    variant="primary" // Use a primary button style for the View button
+                    variant="primary"
                     onClick={() => navigateToCharacter(Characters._id)}
                   >
                     View

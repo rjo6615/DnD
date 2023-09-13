@@ -35,7 +35,6 @@ routes.route("/character/add").post(function (req, response) {
   let myobj = {
   characterName: req.body.characterName,
   campaign: req.body.campaign,
-  level: req.body.level, 
   occupation: req.body.occupation,
   feat: req.body.feat,
   weapon: req.body.weapon,
