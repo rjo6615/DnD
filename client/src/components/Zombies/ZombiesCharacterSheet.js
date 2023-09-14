@@ -16,8 +16,7 @@ export default function ZombiesCharacterSheet(props) {
   const params = useParams();
   const [form, setForm] = useState({ 
     characterName: "",
-    level: "", 
-    occupation: "", 
+    occupation: [""], 
     feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
     weapon: [["","","","","",""]],
     armor: [["","","",""]],
@@ -66,7 +65,7 @@ export default function ZombiesCharacterSheet(props) {
     useRope: "",
     newSkill: [["","",0]],
   });
-
+  const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
    //Fetches character data
  useEffect(() => {
   async function fetchData() {
@@ -204,7 +203,7 @@ const statItemForm = {
  let chaMod = Math.floor((statItemForm.cha - 10) / 2);
 
 let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
-let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTotal));
+let statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
 
   let showBtn = "";
   let statGold = "gold";
@@ -241,28 +240,57 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   let reflexSave;
   let willSave;
   let atkBonus;
-  if (form.occupation.Fort === "0") {
-    fortSave = Math.floor(form.level / 3);
-  } if (form.occupation.Fort === "1") {
-    fortSave = Math.floor((form.level / 2) + 2);
+  const occupations = form.occupation;
+  let highestFort = -1; 
+  for (const occupation of occupations) {
+  const fortValue = parseInt(occupation.Fort, 10);  
+  if (!isNaN(fortValue) && fortValue > highestFort) {
+    highestFort = fortValue;
   }
-  if (form.occupation.Reflex === "0") {
-    reflexSave = Math.floor(form.level / 3);
-  } else if (form.occupation.Reflex === "1") {
-    reflexSave = Math.floor((form.level / 2) + 2);
+}
+  let highestReflex = -1; 
+  for (const occupation of occupations) {
+  const reflexValue = parseInt(occupation.Reflex, 10);  
+  if (!isNaN(reflexValue) && reflexValue > highestReflex) {
+    highestReflex = reflexValue;
   }
-  if (form.occupation.Will === "0") {
-    willSave = Math.floor(form.level / 3);
-  } else if (form.occupation.Will === "1") {
-    willSave = Math.floor((form.level / 2) + 2);
+}
+  let highestWill = -1; 
+  for (const occupation of occupations) {
+  const willValue = parseInt(occupation.Will, 10);  
+  if (!isNaN(willValue) && willValue > highestWill) {
+    highestWill = willValue;
+  }
+  }
+  let highestAttackBonus = -1; 
+  for (const occupation of occupations) {
+  const attackBonusValue = parseInt(occupation.atkBonus, 10);  
+  if (!isNaN(attackBonusValue) && attackBonusValue > highestAttackBonus) {
+    highestAttackBonus = attackBonusValue;
+  }
+  }
+  if (highestFort === 0) {
+    fortSave = Math.floor(totalLevel / 3);
+  } if (highestFort === 1) {
+    fortSave = Math.floor((totalLevel / 2) + 2);
+  }
+  if (highestReflex === 0) {
+    reflexSave = Math.floor(totalLevel / 3);
+  } else if (highestReflex === 1) {
+    reflexSave = Math.floor((totalLevel / 2) + 2);
+  }
+  if (highestWill === 0) {
+    willSave = Math.floor(totalLevel / 3);
+  } else if (highestWill === 1) {
+    willSave = Math.floor((totalLevel / 2) + 2);
   }
 
-  if (form.occupation.atkBonus === "0") {
-    atkBonus = Math.floor(form.level / 2);
-  } else if (form.occupation.atkBonus === "1") {
-    atkBonus = Math.floor((form.level * .75));
-  } else if (form.occupation.atkBonus === "2") {
-    atkBonus = form.level;
+  if (highestAttackBonus === 0) {
+    atkBonus = Math.floor(totalLevel / 2);
+  } else if (highestAttackBonus === 1) {
+    atkBonus = Math.floor((totalLevel * .75));
+  } else if (highestAttackBonus === 2) {
+    atkBonus = totalLevel;
   }
 
     // Saves Maffs Next
@@ -270,28 +298,28 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     let reflexSaveNext;
     let willSaveNext;
     let atkBonusNext;
-    if (form.occupation.Fort === "0") {
-      fortSaveNext = Math.floor((form.level +1) / 3);
-    } if (form.occupation.Fort === "1") {
-      fortSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    if (highestFort === 0) {
+      fortSaveNext = Math.floor((totalLevel +1) / 3);
+    } if (highestFort === 1) {
+      fortSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
-    if (form.occupation.Reflex === "0") {
-      reflexSaveNext = Math.floor((form.level +1) / 3);
-    } else if (form.occupation.Reflex === "1") {
-      reflexSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    if (highestReflex === 0) {
+      reflexSaveNext = Math.floor((totalLevel +1) / 3);
+    } else if (highestReflex === 1) {
+      reflexSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
-    if (form.occupation.Will === "0") {
-      willSaveNext = Math.floor((form.level +1) / 3);
-    } else if (form.occupation.Will === "1") {
-      willSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    if (highestWill === 0) {
+      willSaveNext = Math.floor((totalLevel +1) / 3);
+    } else if (highestWill === 1) {
+      willSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
   
-    if (form.occupation.atkBonus === "0") {
-      atkBonusNext = Math.floor((form.level +1) / 2);
-    } else if (form.occupation.atkBonus === "1") {
-      atkBonusNext = Math.floor(((form.level +1) * .75));
-    } else if (form.occupation.atkBonus === "2") {
-      atkBonusNext = (form.level +1);
+    if (highestAttackBonus === 0) {
+      atkBonusNext = Math.floor((totalLevel +1) / 2);
+    } else if (highestAttackBonus === 1) {
+      atkBonusNext = Math.floor(((totalLevel +1) * .75));
+    } else if (highestAttackBonus === 2) {
+      atkBonusNext = (totalLevel +1);
     }
 
   // Health
@@ -324,7 +352,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     }
   }, [form.tempHealth]);
 
-  const maxPossibleHealth = form.health + Number(conMod * form.level);  
+  const maxPossibleHealth = form.health + Number(conMod * totalLevel);  
   
   function getColorForHealth(currentHealth, maxHealth) {
     const healthPercentage = (currentHealth / maxHealth) * 100;
@@ -361,7 +389,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
 
   let offset;
   const increaseHealth = () => {
-    if (health === form.health + Number(conMod * form.level)){
+    if (health === form.health + Number(conMod * totalLevel)){
     } else {
     setHealth((prevHealth) => prevHealth + 1);
     offset = +1;
@@ -968,7 +996,7 @@ form.forgery + form.gatherInfo + form.handleAnimal + form.heal + form.hide + for
 form.jump + form.listen + form.moveSilently + form.openLock + form.ride + form.search + 
 form.senseMotive + form.sleightOfHand + form.spot + form.survival + form.swim + form.tumble + 
 form.useTech + form.useRope;
-let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal - totalAddedSkills);
+let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (totalLevel - 1) - skillTotal - totalAddedSkills);
 let showSkillBtn = "";
 let skillGold = "gold";
 if (skillPointsLeft === 0) {
@@ -978,8 +1006,8 @@ if (skillPointsLeft === 0) {
 
 function addSkill(skill, totalSkill) {
   if (skillPointsLeft === 0){
-  } else if (form.occupation[skill] === "0" && skillForm[skill] === Math.floor((Number(form.level) + 3) / 2)) {  
-  } else if (form.occupation[skill] === "1" && skillForm[skill] === Math.floor(Number(form.level) + 3)){
+  } else if (form.occupation[skill] === "0" && skillForm[skill] === Math.floor((Number(totalLevel) + 3) / 2)) {  
+  } else if (form.occupation[skill] === "1" && skillForm[skill] === Math.floor(Number(totalLevel) + 3)){
   } else {
   skillForm[skill]++;
   skillTotalForm[skill]++;
@@ -1026,7 +1054,7 @@ async function addUpdatedSkillToDb(){
 }
 function addSkillNew(skill) {  
   if (skillPointsLeft === 0){
-  } else if (newSkillForm[skill] === Math.floor(Number(form.level) + 3)){
+  } else if (newSkillForm[skill] === Math.floor(Number(totalLevel) + 3)){
   } else {
   newSkillForm[skill]++;
   skillPointsLeft--;
@@ -1477,7 +1505,7 @@ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","",""
 } else {
    featLength = form.feat.length 
   }
-let featPointsLeft = Math.floor((form.level / 3) - (featLength)) + 1;
+let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
 
   let showFeatBtn = "";
   let featGold = "gold";
@@ -1664,7 +1692,7 @@ const handleCloseLvlModal = () => setShowLvlModal(false);
 const handleShowLvlModal = () => setShowLvlModal(true);
 
 const levelForm = {
-  level: Number(form.level) + 1,
+  level: Number(totalLevel) + 1,
   health: Math.floor(Math.random() * Number(form.occupation.Health)) + 1 + Number(form.health),  
 }
 
@@ -1701,7 +1729,7 @@ return (
       </h6>
 {/*------------------------------------------------------------ Health Bar -----------------------------------------------------------------------------*/}
       <div className="health-bar" style={healthBar}>
-        <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * form.level)}</div>
+        <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * totalLevel)}</div>
       </div>
       <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-start bg-transparent fa-solid fa-minus" onClick={decreaseHealth}></Button>
       <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-end bg-transparent fa-solid fa-plus" onClick={increaseHealth}></Button>  
@@ -1808,13 +1836,16 @@ return (
         <thead>
           <tr>
           <th>Level</th>
-          <td>{form.level}</td>
+          <td>{totalLevel}</td>
           </tr>
         </thead>
         <thead>
           <tr>
           <th>Occupation</th>
-          <td>{form.occupation.Occupation}</td>
+          <td>{form.occupation.map((el, i) => (
+            <span key={i}>{el.Level + " " + el.Occupation}</span>
+            ))}
+          </td>
           </tr>
         </thead>
         <thead>
@@ -1854,9 +1885,9 @@ return (
         <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
         <Card.Title>Level Up</Card.Title>
         <Card.Body> 
-        Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
+        Level: {totalLevel} {'\u2192'} Level: {Number(totalLevel) + 1}
   <br></br>
-  HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
+  HP: {form.health + Number(conMod * totalLevel)} {'\u2192'} HP: {levelForm.health + Number(conMod * (totalLevel + 1))}
   <br></br>
   Attack Bonus: {atkBonus} {'\u2192'} {atkBonusNext}
   <br></br>

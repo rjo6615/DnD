@@ -31,7 +31,6 @@ export default function RecordList() {
   const navigateToCharacter = (id) => {
     navigate(`/zombies-character-sheet/${id}`);
   }
-
   return (
     <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div>
@@ -49,10 +48,10 @@ export default function RecordList() {
           {records.map((Characters) => (
               <tr key={Characters._id}>
                 <td>{Characters.characterName}</td>
-                <td>{Characters.level}</td>
+                <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
                 <td>
                   {Characters.occupation.map((el, i) => (
-                    <span key={i}>{el.Occupation}</span>
+                    <span key={i}>{el.Level + " " + el.Occupation}</span>
                   ))}
                 </td>
                 <td>
