@@ -236,89 +236,75 @@ let statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTo
   };
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
   // Saves Maffs
-  let fortSave;
-  let reflexSave;
-  let willSave;
-  let atkBonus;
+  let fortSave = 0;
+  let reflexSave = 0;
+  let willSave = 0;
+  let atkBonus = 0;
   const occupations = form.occupation;
-  let highestFort = -1; 
+  
   for (const occupation of occupations) {
-  const fortValue = parseInt(occupation.Fort, 10);  
-  if (!isNaN(fortValue) && fortValue > highestFort) {
-    highestFort = fortValue;
+    const level = parseInt(occupation.Level, 10);
+    const fortValue = parseInt(occupation.Fort, 10);
+    const reflexValue = parseInt(occupation.Reflex, 10);
+    const willValue = parseInt(occupation.Will, 10);
+    const attackBonusValue = parseInt(occupation.atkBonus, 10);
+  
+    if (!isNaN(level)) {
+      if (fortValue === 0) {
+        fortSave += Math.floor(level / 3);
+      } else if (fortValue === 1) {
+        fortSave += Math.floor((level / 2) + 2);
+      }
+  
+      if (reflexValue === 0) {
+        reflexSave += Math.floor(level / 3);
+      } else if (reflexValue === 1) {
+        reflexSave += Math.floor((level / 2) + 2);
+      }
+  
+      if (willValue === 0) {
+        willSave += Math.floor(level / 3);
+      } else if (willValue === 1) {
+        willSave += Math.floor((level / 2) + 2);
+      }
+  
+      if (attackBonusValue === 0) {
+        atkBonus += Math.floor(level / 2);
+      } else if (attackBonusValue === 1) {
+        atkBonus += Math.floor(level * 0.75);
+      } else if (attackBonusValue === 2) {
+        atkBonus += level;
+      }
+    }
   }
-}
-  let highestReflex = -1; 
-  for (const occupation of occupations) {
-  const reflexValue = parseInt(occupation.Reflex, 10);  
-  if (!isNaN(reflexValue) && reflexValue > highestReflex) {
-    highestReflex = reflexValue;
-  }
-}
-  let highestWill = -1; 
-  for (const occupation of occupations) {
-  const willValue = parseInt(occupation.Will, 10);  
-  if (!isNaN(willValue) && willValue > highestWill) {
-    highestWill = willValue;
-  }
-  }
-  let highestAttackBonus = -1; 
-  for (const occupation of occupations) {
-  const attackBonusValue = parseInt(occupation.atkBonus, 10);  
-  if (!isNaN(attackBonusValue) && attackBonusValue > highestAttackBonus) {
-    highestAttackBonus = attackBonusValue;
-  }
-  }
-  if (highestFort === 0) {
-    fortSave = Math.floor(totalLevel / 3);
-  } if (highestFort === 1) {
-    fortSave = Math.floor((totalLevel / 2) + 2);
-  }
-  if (highestReflex === 0) {
-    reflexSave = Math.floor(totalLevel / 3);
-  } else if (highestReflex === 1) {
-    reflexSave = Math.floor((totalLevel / 2) + 2);
-  }
-  if (highestWill === 0) {
-    willSave = Math.floor(totalLevel / 3);
-  } else if (highestWill === 1) {
-    willSave = Math.floor((totalLevel / 2) + 2);
-  }
-
-  if (highestAttackBonus === 0) {
-    atkBonus = Math.floor(totalLevel / 2);
-  } else if (highestAttackBonus === 1) {
-    atkBonus = Math.floor((totalLevel * .75));
-  } else if (highestAttackBonus === 2) {
-    atkBonus = totalLevel;
-  }
+  
 
     // Saves Maffs Next
     let fortSaveNext;
     let reflexSaveNext;
     let willSaveNext;
     let atkBonusNext;
-    if (highestFort === 0) {
+    if (fortSave === 0) {
       fortSaveNext = Math.floor((totalLevel +1) / 3);
-    } if (highestFort === 1) {
+    } if (fortSave === 1) {
       fortSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
-    if (highestReflex === 0) {
+    if (reflexSave === 0) {
       reflexSaveNext = Math.floor((totalLevel +1) / 3);
-    } else if (highestReflex === 1) {
+    } else if (reflexSave === 1) {
       reflexSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
-    if (highestWill === 0) {
+    if (willSave === 0) {
       willSaveNext = Math.floor((totalLevel +1) / 3);
-    } else if (highestWill === 1) {
+    } else if (willSave === 1) {
       willSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
   
-    if (highestAttackBonus === 0) {
+    if (atkBonus === 0) {
       atkBonusNext = Math.floor((totalLevel +1) / 2);
-    } else if (highestAttackBonus === 1) {
+    } else if (atkBonus === 1) {
       atkBonusNext = Math.floor(((totalLevel +1) * .75));
-    } else if (highestAttackBonus === 2) {
+    } else if (atkBonus === 2) {
       atkBonusNext = (totalLevel +1);
     }
 
@@ -993,25 +979,86 @@ form.forgery + form.gatherInfo + form.handleAnimal + form.heal + form.hide + for
 form.jump + form.listen + form.moveSilently + form.openLock + form.ride + form.search + 
 form.senseMotive + form.sleightOfHand + form.spot + form.survival + form.swim + form.tumble + 
 form.useTech + form.useRope;
-let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (totalLevel - 1) - skillTotal - totalAddedSkills);
+
+let firstLevelSkill = Math.floor((Number(form.occupation[0].skillMod) + intMod) * 4);
+let allSkillPointsLeft = 0;
+let skillPointsLeft;
+for (const occupation of occupations) {
+    if (occupation.Occupation === form.occupation[0].Occupation) {
+      let occupationLevel = occupation.Level - 1;
+      const skillMod = Number(occupation.skillMod);
+      skillPointsLeft = Math.floor((skillMod + intMod) * (occupationLevel));
+      allSkillPointsLeft += skillPointsLeft;
+    } else {
+      let occupationLevel = occupation.Level;
+      const skillMod = Number(occupation.skillMod);
+      skillPointsLeft = Math.floor((skillMod + intMod) * (occupationLevel));
+      allSkillPointsLeft += skillPointsLeft;
+    }
+}
+let totalSkillPointsLeft = allSkillPointsLeft + firstLevelSkill  - skillTotal - totalAddedSkills;
 let showSkillBtn = "";
 let skillGold = "gold";
-if (skillPointsLeft === 0) {
+if (totalSkillPointsLeft === 0) {
   showSkillBtn = "none";
   skillGold = "#6C757D";
 }
 
+const skillKnown = {
+  appraise: "",
+  balance: "",
+  bluff: "",
+  climb: "",
+  concentration: "",
+  decipherScript: "",
+  diplomacy: "",
+  disableDevice: "",
+  disguise: "",
+  escapeArtist: "",
+  forgery: "",
+  gatherInfo: "",
+  handleAnimal: "",
+  heal: "",
+  hide: "",
+  intimidate: "",
+  jump: "",
+  listen: "",
+  moveSilently: "",
+  openLock: "",
+  ride: "",
+  search: "",
+  senseMotive: "",
+  sleightOfHand: "",
+  spot: "",
+  survival: "",
+  swim: "",
+  tumble: "",
+  useTech: "",
+  useRope: "",
+}
+for (const skill in skillKnown) {
+  let highestValue = -1;
+
+  for (const occupation of occupations) {
+    const skillValue = parseInt(occupation[skill], 10);
+    if (!isNaN(skillValue) && skillValue > highestValue) {
+      highestValue = skillValue;
+    }
+  }
+  skillKnown[skill] = highestValue.toString();
+}
+
 function addSkill(skill, totalSkill) {
-  if (skillPointsLeft === 0){
-  } else if (form.occupation[skill] === "0" && skillForm[skill] === Math.floor((Number(totalLevel) + 3) / 2)) {  
-  } else if (form.occupation[skill] === "1" && skillForm[skill] === Math.floor(Number(totalLevel) + 3)){
+  if (totalSkillPointsLeft === 0){
+  } else if (skillKnown[skill] === "0" && skillForm[skill] === Math.floor((Number(totalLevel) + 3) / 2)) {  
+  } else if (skillKnown[skill]  === "1" && skillForm[skill] === Math.floor(Number(totalLevel) + 3)){
   } else {
   skillForm[skill]++;
   skillTotalForm[skill]++;
-  skillPointsLeft--;
+  totalSkillPointsLeft--;
   document.getElementById(skill).innerHTML = skillForm[skill];
   document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 function removeSkill(skill, totalSkill) {
@@ -1019,10 +1066,10 @@ function removeSkill(skill, totalSkill) {
   } else {
   skillForm[skill]--;
   skillTotalForm[skill]--;
-  skillPointsLeft++;
+  totalSkillPointsLeft++;
   document.getElementById(skill).innerHTML = skillForm[skill];
   document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 // New Added Skills Button Control
@@ -1050,24 +1097,24 @@ async function addUpdatedSkillToDb(){
  navigate(0);
 }
 function addSkillNew(skill) {  
-  if (skillPointsLeft === 0){
+  if (totalSkillPointsLeft === 0){
   } else if (newSkillForm[skill] === Math.floor(Number(totalLevel) + 3)){
   } else {
   newSkillForm[skill]++;
-  skillPointsLeft--;
+  totalSkillPointsLeft--;
   document.getElementById(skill).innerHTML = newSkillForm[skill];
   document.getElementById(skill + "total").innerHTML = newSkillForm[skill] + intMod;
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 function removeSkillNew(skill, rank) {
   if (Number(newSkillForm[skill]) === Number(rank)){
   } else {
   newSkillForm[skill]--;
-  skillPointsLeft++;
+  totalSkillPointsLeft++;
   document.getElementById(skill).innerHTML = newSkillForm[skill];
   document.getElementById(skill + "total").innerHTML = newSkillForm[skill] + intMod;
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 //--------------------------------------------Weapons Section-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -1840,7 +1887,7 @@ return (
           <tr>
           <th>Occupation</th>
           <td>{form.occupation.map((el, i) => (
-            <span key={i}>{el.Level + " " + el.Occupation}</span>
+            <span key={i}>{el.Level + " " + el.Occupation}<br></br></span>
             ))}
           </td>
           </tr>
@@ -2009,7 +2056,7 @@ return (
        <center>
         <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Skills</Card.Title>
-        <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
+        <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
         <thead>
           <tr>
