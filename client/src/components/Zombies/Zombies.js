@@ -571,7 +571,7 @@ async function sendToDb4(){
         <Form.Select onChange={(e) => updateCampaignSearch({ campaign: e.target.value })} type="text">
           <option></option>
           {campaign.campaign.map((el) => (  
-          <option>{el.campaignName}</option>
+          <option key={el.campaignName}>{el.campaignName}</option>
           ))};
         </Form.Select>
       </Form.Group>
@@ -607,7 +607,7 @@ async function sendToDb4(){
         <Form.Select onChange={(e) => updateForm({ campaign: e.target.value })} type="text">
           <option></option>
           {campaign.campaign.map((el) => (  
-          <option>{el.campaignName}</option>
+          <option key={el.campaignName}>{el.campaignName}</option>
           ))};
         </Form.Select>       
      </Form.Group>

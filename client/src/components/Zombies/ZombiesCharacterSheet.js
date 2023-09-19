@@ -346,9 +346,6 @@ let statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTo
     if (!isNaN(parsedValue)) {
       setHealth(parsedValue);
     } else {
-      console.error('Input is not a valid number.');
-      // Handle the case where the input is not a valid number.
-      // You might want to show an error message or take some other action.
     }
   }, [form.tempHealth]);
 
@@ -2266,7 +2263,7 @@ return (
             <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('useRope', "totalUseRope")} className="fa-solid fa-plus"></Button></td>
           </tr>
           {form.newSkill.map((el) => (  
-            <tr style={{display: showSkills}}>           
+            <tr key={el[0]} style={{display: showSkills}}>           
               <td><Button size="sm" style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
               <td>{el[0]}</td>
               <td><span id={el[0] + "total"}>{Number(el[1]) + intMod}</span></td>
@@ -2354,7 +2351,7 @@ return (
           </thead>
           <tbody>
           {form.feat.map((el) => (  
-            <tr>           
+            <tr key={el[0]}>           
               <td>{el[0]}</td>
               <td style={{ display: showDeleteFeatBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowFeatNotes(); setModalFeatData(el);}}></Button></td>
               <td style={{ display: showDeleteFeatBtn}}>
@@ -2415,7 +2412,7 @@ return (
          type="text">
           <option></option>
           {feat.feat.map((el) => (  
-          <option value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
+          <option key={el.featName} value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
           el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, el.disguise, el.escapeArtist, 
           el.forgery, el.gatherInfo, el.handleAnimal, el.heal, el.hide, el.intimidate, el.jump, el.listen, 
           el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, 
@@ -2462,7 +2459,7 @@ return (
           </thead>
           <tbody>
             {form.weapon.map((el) => (  
-            <tr>
+            <tr key={el[0]}>
               <td>{el[0]}</td>             
               <td style={{display: showAtkBonusSave}}>
                {(() => {
@@ -2501,7 +2498,7 @@ return (
          type="text">
           <option></option>
           {weapon.weapon.map((el) => (  
-          <option value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
+          <option key={el.weaponName} value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
           ))}
         </Form.Select>
       </Form.Group>
@@ -2532,7 +2529,7 @@ return (
           </thead>
           <tbody>
           {form.armor.map((el) => (  
-            <tr>           
+            <tr key={el[0]}>           
               <td>{el[0]}</td>
               <td>{el[1]}</td>
               <td>{el[2]}</td>
@@ -2552,7 +2549,7 @@ return (
          type="text">
           <option></option>
           {armor.armor.map((el) => (  
-          <option value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
+          <option key={el.armorName} value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
           ))}
         </Form.Select>
       </Form.Group>
@@ -2583,7 +2580,7 @@ return (
           </thead>
           <tbody>
           {form.item.map((el) => (  
-            <tr>           
+            <tr key={el[0]}>           
               <td>{el[0]}</td>
               <td style={{ display: showDeleteItemBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
               <td style={{ display: showDeleteItemBtn}}>
@@ -2663,7 +2660,7 @@ return (
          type="text">
           <option></option>
           {item.item.map((el) => (  
-          <option value={[el.itemName, el.notes, el.str, el.dex, el.con, el.int, el.wis, el.cha,
+          <option key={el.itemName} value={[el.itemName, el.notes, el.str, el.dex, el.con, el.int, el.wis, el.cha,
           el.appraise, el.balance, el.bluff, el.climb, el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, 
           el.disguise, el.escapeArtist, el.forgery, el.gatherInfo, el.handleAnimal, el.heal, el.hide, el.intimidate, el.jump, 
           el.listen, el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, el.survival, 

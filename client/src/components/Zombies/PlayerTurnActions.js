@@ -358,7 +358,7 @@ const showSparklesEffect = () => {
           </thead>
           <tbody>
             {weapons.map((el) => (  
-            <tr>
+            <tr key={el[0]}>
               <td>{el[0]}</td>             
               <td>
                {(() => {
