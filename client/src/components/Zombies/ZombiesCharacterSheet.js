@@ -5,7 +5,7 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { Button, Col, Form, Row } from "react-bootstrap";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
 import '../../App.scss';
@@ -1714,6 +1714,27 @@ const [showHelpModal, setShowHelpModal] = useState(false);
 
 const handleCloseHelpModal = () => setShowHelpModal(false);
 const handleShowHelpModal = () => setShowHelpModal(true);
+// Color Picker
+const colorPickerRef = useRef(null);
+const [newColor, setNewColor] = useState('#000000');
+
+useEffect(() => {
+  const colorPicker = colorPickerRef.current;
+
+  if (colorPicker) {
+    colorPicker.addEventListener('input', (e) => {
+      const selectedColor = e.target.value;
+      setNewColor(selectedColor); // Update the state with the new color
+      document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+    });
+  }
+}, []); // Empty dependency array ensures this runs after component mounts
+
+const handleColorChange = (e) => {
+  const selectedColor = e.target.value;
+  setNewColor(selectedColor); // Update the state with the new color
+  document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+};
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1791,6 +1812,16 @@ return (
           <br></br>
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
+          <Form>
+            <input
+              type="color"
+              id="colorPicker"
+              ref={colorPickerRef}
+              value={newColor}
+              onChange={handleColorChange} // Add an onChange handler
+            />
+            <Button type="submit" className="bg-warning fa-solid fa-floppy-disk"></Button>
+          </Form>
           </Modal.Body>
           <Modal.Footer className="justify-content-between">
           <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>
