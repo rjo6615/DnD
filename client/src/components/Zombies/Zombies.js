@@ -59,6 +59,7 @@ export default function ZombiesHome() {
   useTech: 0,
   useRope: 0,
   newSkill: [["",0]],
+  diceColor: "#000000",
 });
 
 const [occupation, setOccupation] = useState({ 
@@ -265,6 +266,7 @@ useEffect(() => {
     useTech: 0,
     useRope: 0,
     newSkill: [["",0]],
+    diceColor: "#000000",
   });
    navigate(`/zombies-character-select/${form.campaign}`);
  }

@@ -64,6 +64,7 @@ export default function ZombiesCharacterSheet(props) {
     useTech: "",
     useRope: "",
     newSkill: [["","",0]],
+    diceColor: "#000000",
   });
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
    //Fetches character data
@@ -1715,8 +1716,11 @@ const [showHelpModal, setShowHelpModal] = useState(false);
 const handleCloseHelpModal = () => setShowHelpModal(false);
 const handleShowHelpModal = () => setShowHelpModal(true);
 // Color Picker
+
+document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
 const colorPickerRef = useRef(null);
 const [newColor, setNewColor] = useState('#000000');
+console.log(newColor)
 
 useEffect(() => {
   const colorPicker = colorPickerRef.current;
@@ -1735,6 +1739,22 @@ const handleColorChange = (e) => {
   setNewColor(selectedColor); // Update the state with the new color
   document.documentElement.style.setProperty('--dice-face-color', selectedColor);
 };
+
+ // Sends dice color update to database
+ async function diceColorUpdate(){
+    await fetch(`/update-dice-color/${params.id}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify({diceColor: newColor}),
+   })
+   .catch(error => {
+    //  window.alert(error);
+     return;
+   });
+   navigate(0);
+ }
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1812,7 +1832,7 @@ return (
           <br></br>
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
-          <Form>
+          <Form onSubmit={diceColorUpdate}>
             <input
               type="color"
               id="colorPicker"
