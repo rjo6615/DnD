@@ -292,6 +292,28 @@ routes.route('/update-temphealth/:id').put((req, res, next) => {
   });
 });
 
+// This section will update health.
+routes.route('/update-health/:id').put((req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = dbo.getDb();
+
+  try {
+
+    db_connect.collection("Characters").updateOne(id, {
+      $set: { 'health': req.body.health }
+    }, (err, result) => {
+      if (err) {
+        throw err;
+      }
+      console.log("Character health updated");
+      res.send('User updated successfully');
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
+});
+
 // ----------------------------------------------------Weapon Section----------------------------------------------------
 
  // This section will get a list of all the weapons.

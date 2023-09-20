@@ -1803,9 +1803,33 @@ const handleOccupationChange = (event) => {
 const handleConfirmClick = () => {
   if (selectedOccupation) {
     console.log('Selected Occupation:', selectedOccupation);
+    const selectedAddOccupation = selectedAddOccupationRef.current.value;
+    const selectedAddOccupationObject = getOccupation.find(
+      (occupation) => occupation.Occupation === selectedAddOccupation
+    );
+
+    const addOccupationHealth = Math.floor(Math.random() * Number(selectedAddOccupationObject.Health)) + 1 + Number(form.health);
+
+    console.log(addOccupationHealth);
     
     // Push the selected occupation into form.occupation
     form.occupation.push(selectedOccupation);
+    
+    // Perform the database update here
+    fetch(`/update-health/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify({ health: addOccupationHealth }), // Send as a JSON object
+    })
+      .then(() => {
+        console.log("Database update complete");
+      })
+      .catch((error) => {
+        // Handle errors here
+        console.error(error);
+      });
     
     // Perform the database update with the entire form.occupation array
     fetch(`/update-occupations/${params.id}`, {
