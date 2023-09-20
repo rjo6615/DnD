@@ -1736,28 +1736,54 @@ const [showLvlModal, setShowLvlModal] = useState(false);
 
 const handleCloseLvlModal = () => setShowLvlModal(false);
 const handleShowLvlModal = () => setShowLvlModal(true);
+const selectedOccupationRef = useRef(); // Create a ref to hold the selected occupation
 
-const levelForm = {
-  level: Number(totalLevel) + 1,
-  health: Math.floor(Math.random() * Number(form.occupation.Health)) + 1 + Number(form.health),  
+const [levelForm, setLevelForm] = useState({
+  selectedOccupation: "",
+  level: "",
+  health: "",
+});
+
+// Sends level update to database
+async function levelUpdate() {
+  const selectedOccupation = selectedOccupationRef.current.value;
+  const selectedOccupationObject = form.occupation.find(
+    (occupation) => occupation.Occupation === selectedOccupation
+  );
+
+  // Calculate level and health based on the selected occupation
+  const newLevel = Number(selectedOccupationObject.Level) + 1;
+  const newHealth = Math.floor(Math.random() * Number(selectedOccupationObject.Health)) + 1 + Number(form.health);
+
+  // Update the levelForm state, and perform the database update inside the callback
+  setLevelForm((prevState) => {
+    const updatedLevelForm = {
+      ...prevState,
+      selectedOccupation: selectedOccupation,
+      level: newLevel,
+      health: newHealth,
+    };
+
+    // Perform the database update here
+    fetch(`/update-level/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedLevelForm),
+    })
+      .then(() => {
+        console.log("Database update complete");
+        navigate(0);
+      })
+      .catch((error) => {
+        // Handle errors here
+        console.error(error);
+      });
+
+    return updatedLevelForm; // Return the updated state
+  });
 }
-
- // Sends level update to database
- async function levelUpdate(){
-  const updatedLevel = { ...levelForm };
-    await fetch(`/update-level/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify(updatedLevel),
-   })
-   .catch(error => {
-    //  window.alert(error);
-     return;
-   });
-   navigate(0);
- }
 //-------------------------------------------Help Module--------------------------------------------------------------------
 const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -1990,7 +2016,7 @@ return (
           </Table>
 {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
   <center>
-  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1" variant="secondary"></Button>
+  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1 mb-3" variant="secondary"></Button>
   </center>
     <Modal size="sm"
           centered
@@ -2012,28 +2038,33 @@ return (
   <br></br>
   Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
         </Card.Body>
-  <Form onSubmit={addFeatToDb}>
-    <Form.Group className="mb-3 mx-5">
-  <Form.Label className="text-dark">Select Occupation</Form.Label>
-  <Form.Select 
-  onChange={(e) => updateFeat({ feat: e.target.value })}
-   type="text">
-    <option></option>
-    {/* {form.occupations.map((occupation, i) => (
-    <option key={i}>{occupation.Occupation}</option>
-    ))} */}
-  </Form.Select>
-</Form.Group>
-  <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+  <Form onSubmit={() => {handleCloseLvlModal();
+     levelUpdate();
+     }}>
+    <Button className="rounded-pill bg-warning" variant="outline-dark" type="submit">
+        Add Occupation
+      </Button>
+      <br />
+      <span>or</span>
+      <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-dark">Select Occupation</Form.Label>
+        <Form.Select ref={selectedOccupationRef} type="text">
+          <option></option>
+          {form.occupation.map((occupation, i) => (
+            <option key={i}>{occupation.Occupation}</option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleCloseLvlModal}>
+          Close
+        </Button>
+        <Button variant="primary" type="submit">
+          Level Up
+        </Button>
+      </Modal.Footer>
     </Form>
-  <Modal.Footer>
-    <Button variant="secondary" onClick={handleCloseLvlModal}>
-      Close
-    </Button>
-    <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
-      Confirm
-    </Button>
-  </Modal.Footer>
   </Card>
   </center>
 </Modal>

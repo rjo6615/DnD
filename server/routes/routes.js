@@ -512,20 +512,39 @@ routes.route('/update-feat/:id').put((req, res, next) => {
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
  // This section will update level.
  routes.route('/update-level/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
-  db_connect.collection("Characters").updateOne(id, {$set:{
-  'level': req.body.level,
-  'health': req.body.health
-}}, (err, result) => {
-    if(err) {
+  const db_connect = dbo.getDb();
+  const selectedOccupation = req.body.selectedOccupation;
+
+const updateOperation = {
+  $set: {
+    'occupation.$.Level': req.body.level,
+    'health': req.body.health
+  },
+};
+
+db_connect.collection("Characters").updateOne(
+  {
+    _id: ObjectId(req.params.id),
+    'occupation': {
+      $elemMatch: {
+        'Occupation': 'Fireman',
+      }
+    }
+  },
+  updateOperation,
+  (err, result) => {
+    if (err) {
       throw err;
     }
-    console.log("character level updated");
-    res.send('user updated sucessfully');
-  });
-});
-
+    if (result.modifiedCount === 0) {
+    } else {
+      console.log(`Character updated for Occupation: ${selectedOccupation}`);
+      res.send('Update complete');
+    }
+  }
+);
+ }
+ )
 //-------------------------------------------------------------Dice Color Section------------------------------------------------------------------
  // This section will update dice color.
  routes.route('/update-dice-color/:id').put((req, res, next) => {
