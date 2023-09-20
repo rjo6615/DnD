@@ -112,8 +112,7 @@ $animationDuration:  3s;
 $angle: 53deg;
 $ringAngle: -11deg;
 $sideAngle: calc(360deg / 5);
-$opacity: 0.75;
-$color: rgba(3, 3, 252, $opacity);
+$color: var(--dice-face-color);
 
 $rotateX: -$angle;
 $translateZ: $faceWidth*0.335;
@@ -410,7 +409,7 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
   }
 }
 
-//------------------------------------Madness----------------------------------
+//------------------------------------Critical Rolls----------------------------------
 
 @keyframes sparkles {
   0%, 100% {
@@ -448,4 +447,19 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
   height: 120px;
   background: radial-gradient(circle, #df081a, transparent);
   animation: sparkles 1s linear infinite;
+}
+
+.center-td {
+  text-align: center; /* Center horizontally */
+  vertical-align: middle; /* Center vertically */
+}
+
+.custom-table {
+max-width: 300px;
+}
+
+.table-container {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
 }

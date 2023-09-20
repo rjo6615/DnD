@@ -51,7 +51,7 @@ export default function RecordList() {
                 <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
                 <td>
                   {Characters.occupation.map((el, i) => (
-                    <span key={i}>{el.Level + " " + el.Occupation}</span>
+                    <span key={i}>{el.Level + " " + el.Occupation}<br></br></span>
                   ))}
                 </td>
                 <td>

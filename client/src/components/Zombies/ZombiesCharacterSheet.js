@@ -5,7 +5,7 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { Button, Col, Form, Row } from "react-bootstrap";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
 import '../../App.scss';
@@ -64,6 +64,7 @@ export default function ZombiesCharacterSheet(props) {
     useTech: "",
     useRope: "",
     newSkill: [["","",0]],
+    diceColor: "",
   });
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
    //Fetches character data
@@ -85,6 +86,7 @@ export default function ZombiesCharacterSheet(props) {
     }
 
     setForm(record);
+    setNewColor(record.diceColor);
   }
   fetchData();   
   return;
@@ -1761,6 +1763,52 @@ const [showHelpModal, setShowHelpModal] = useState(false);
 
 const handleCloseHelpModal = () => setShowHelpModal(false);
 const handleShowHelpModal = () => setShowHelpModal(true);
+// Color Picker
+
+document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
+const colorPickerRef = useRef(null);
+const [newColor, setNewColor] = useState(form.diceColor);
+
+useEffect(() => {
+  const colorPicker = colorPickerRef.current;
+
+  if (colorPicker) {
+    colorPicker.addEventListener('input', (e) => {
+      const selectedColor = e.target.value;
+      setNewColor(selectedColor); // Update the state with the new color
+      document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+    });
+  }
+}, []); // Empty dependency array ensures this runs after component mounts
+
+const handleColorChange = (e) => {
+  const selectedColor = e.target.value;
+  setNewColor(selectedColor); // Update the state with the new color
+  document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+};
+
+const opacity = 0.85;
+// Calculate RGBA color with opacity
+const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
+
+// Apply the calculated RGBA color to the element
+document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
+
+ // Sends dice color update to database
+ async function diceColorUpdate(){
+    await fetch(`/update-dice-color/${params.id}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify({diceColor: newColor}),
+   })
+   .catch(error => {
+    //  window.alert(error);
+     return;
+   });
+   navigate(0);
+ }
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1838,6 +1886,29 @@ return (
           <br></br>
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
+          <div className="table-container">
+          <Table striped bordered hover size="sm" className="custom-table">
+            <thead>
+              <tr>
+                <td className="center-td">
+                  <strong>Change Dice Color:</strong>
+                </td>
+                <td className="center-td">
+                  <input
+                    type="color"
+                    id="colorPicker"
+                    ref={colorPickerRef}
+                    value={newColor}
+                    onChange={handleColorChange}
+                  />
+                </td>
+                <td className="center-td">
+                  <Button onClick={diceColorUpdate} className="bg-warning fa-solid fa-floppy-disk"></Button>
+                </td>
+              </tr>
+            </thead>
+          </Table>  
+          </div>      
           </Modal.Body>
           <Modal.Footer className="justify-content-between">
           <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>

@@ -83,7 +83,8 @@ routes.route("/character/add").post(function (req, response) {
   tumble: req.body.tumble,
   useTech: req.body.useTech,
   useRope: req.body.useRope,
-  newSkill: req.body.newSkill
+  newSkill: req.body.newSkill,
+  diceColor: req.body.diceColor,
   };
   db_connect.collection("Characters").insertOne(myobj, function (err, res) {
     if (err) throw err;
@@ -509,7 +510,7 @@ routes.route('/update-feat/:id').put((req, res, next) => {
 });
 
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
- // This section will update feats.
+ // This section will update level.
  routes.route('/update-level/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = dbo.getDb();
@@ -521,6 +522,22 @@ routes.route('/update-feat/:id').put((req, res, next) => {
       throw err;
     }
     console.log("character level updated");
+    res.send('user updated sucessfully');
+  });
+});
+
+//-------------------------------------------------------------Dice Color Section------------------------------------------------------------------
+ // This section will update dice color.
+ routes.route('/update-dice-color/:id').put((req, res, next) => {
+  let id = { _id: ObjectId(req.params.id) };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Characters").updateOne(id, {$set:{
+  'diceColor': req.body.diceColor,
+}}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("Dice Color updated");
     res.send('user updated sucessfully');
   });
 });
