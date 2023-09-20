@@ -64,7 +64,7 @@ export default function ZombiesCharacterSheet(props) {
     useTech: "",
     useRope: "",
     newSkill: [["","",0]],
-    diceColor: "#000000",
+    diceColor: "",
   });
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
    //Fetches character data
@@ -86,6 +86,7 @@ export default function ZombiesCharacterSheet(props) {
     }
 
     setForm(record);
+    setNewColor(record.diceColor);
   }
   fetchData();   
   return;
@@ -1719,8 +1720,7 @@ const handleShowHelpModal = () => setShowHelpModal(true);
 
 document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
 const colorPickerRef = useRef(null);
-const [newColor, setNewColor] = useState('#000000');
-console.log(newColor)
+const [newColor, setNewColor] = useState(form.diceColor);
 
 useEffect(() => {
   const colorPicker = colorPickerRef.current;
@@ -1832,16 +1832,29 @@ return (
           <br></br>
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
-          <Form onSubmit={diceColorUpdate}>
-            <input
-              type="color"
-              id="colorPicker"
-              ref={colorPickerRef}
-              value={newColor}
-              onChange={handleColorChange} // Add an onChange handler
-            />
-            <Button type="submit" className="bg-warning fa-solid fa-floppy-disk"></Button>
-          </Form>
+          <div className="table-container">
+          <Table striped bordered hover size="sm" className="custom-table">
+            <thead>
+              <tr>
+                <td className="center-td">
+                  <strong>Change Dice Color:</strong>
+                </td>
+                <td className="center-td">
+                  <input
+                    type="color"
+                    id="colorPicker"
+                    ref={colorPickerRef}
+                    value={newColor}
+                    onChange={handleColorChange}
+                  />
+                </td>
+                <td className="center-td">
+                  <Button onClick={diceColorUpdate} className="bg-warning fa-solid fa-floppy-disk"></Button>
+                </td>
+              </tr>
+            </thead>
+          </Table>  
+          </div>      
           </Modal.Body>
           <Modal.Footer className="justify-content-between">
           <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>

@@ -449,3 +449,18 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
   background: radial-gradient(circle, #df081a, transparent);
   animation: sparkles 1s linear infinite;
 }
+
+.center-td {
+  text-align: center; /* Center horizontally */
+  vertical-align: middle; /* Center vertically */
+}
+
+.custom-table {
+max-width: 300px;
+}
+
+.table-container {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+}
