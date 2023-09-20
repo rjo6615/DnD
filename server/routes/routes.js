@@ -292,7 +292,7 @@ routes.route('/update-temphealth/:id').put((req, res, next) => {
   });
 });
 
-// This section will update health.
+// This section will update health and stats.
 routes.route('/update-health/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = dbo.getDb();
@@ -300,12 +300,19 @@ routes.route('/update-health/:id').put((req, res, next) => {
   try {
 
     db_connect.collection("Characters").updateOne(id, {
-      $set: { 'health': req.body.health }
+      $set: { 'health': req.body.health,
+      'str': req.body.str,
+      'dex': req.body.dex,
+      'con': req.body.con,
+      'int': req.body.int,
+      'wis': req.body.wis,
+      'cha': req.body.cha,
+      'startStatTotal': req.body.startStatTotal }
     }, (err, result) => {
       if (err) {
         throw err;
       }
-      console.log("Character health updated");
+      console.log("Character health and stats updated");
       res.send('User updated successfully');
     });
   } catch (error) {

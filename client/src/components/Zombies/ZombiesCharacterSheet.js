@@ -1802,16 +1802,31 @@ const handleOccupationChange = (event) => {
 
 const handleConfirmClick = () => {
   if (selectedOccupation) {
-    console.log('Selected Occupation:', selectedOccupation);
     const selectedAddOccupation = selectedAddOccupationRef.current.value;
     const selectedAddOccupationObject = getOccupation.find(
       (occupation) => occupation.Occupation === selectedAddOccupation
     );
 
     const addOccupationHealth = Math.floor(Math.random() * Number(selectedAddOccupationObject.Health)) + 1 + Number(form.health);
-
-    console.log(addOccupationHealth);
+    const addOccupationStrTotal = Number(selectedAddOccupationObject.str) + Number(form.str);
+    const addOccupationDexTotal  = Number(selectedAddOccupationObject.dex) + Number(form.dex);
+    const addOccupationConTotal  = Number(selectedAddOccupationObject.con) + Number(form.con);
+    const addOccupationIntTotal  = Number(selectedAddOccupationObject.int) + Number(form.int);
+    const addOccupationWisTotal  = Number(selectedAddOccupationObject.wis) + Number(form.wis);
+    const addOccupationChaTotal  = Number(selectedAddOccupationObject.cha) + Number(form.cha);
     
+    const addOccupationStr = Number(selectedAddOccupationObject.str);
+    const addOccupationDex  = Number(selectedAddOccupationObject.dex);
+    const addOccupationCon  = Number(selectedAddOccupationObject.con);
+    const addOccupationInt  = Number(selectedAddOccupationObject.int);
+    const addOccupationWis  = Number(selectedAddOccupationObject.wis);
+    const addOccupationCha  = Number(selectedAddOccupationObject.cha);
+
+    const totalNewStats = addOccupationStr + addOccupationDex + addOccupationCon + addOccupationInt
+    + addOccupationWis + addOccupationCha;
+
+    const newStartStatTotal = Number(totalNewStats) + Number(form.startStatTotal);
+  
     // Push the selected occupation into form.occupation
     form.occupation.push(selectedOccupation);
     
@@ -1821,7 +1836,16 @@ const handleConfirmClick = () => {
       headers: {
         "Content-Type": "application/json", // Set content type to JSON
       },
-      body: JSON.stringify({ health: addOccupationHealth }), // Send as a JSON object
+      body: JSON.stringify({ 
+        health: addOccupationHealth,
+        str: addOccupationStrTotal,
+        dex: addOccupationDexTotal,
+        con: addOccupationConTotal,
+        int: addOccupationIntTotal,
+        wis: addOccupationWisTotal,
+        cha: addOccupationChaTotal,
+        startStatTotal: newStartStatTotal
+       }), // Send as a JSON object
     })
       .then(() => {
         console.log("Database update complete");
