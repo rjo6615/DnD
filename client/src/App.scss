@@ -112,8 +112,7 @@ $animationDuration:  3s;
 $angle: 53deg;
 $ringAngle: -11deg;
 $sideAngle: calc(360deg / 5);
-$opacity: 0.75;
-$color: var(--dice-face-color, rgba(3, 3, 252, $opacity));
+$color: var(--dice-face-color);
 
 $rotateX: -$angle;
 $translateZ: $faceWidth*0.335;

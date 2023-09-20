@@ -1740,6 +1740,13 @@ const handleColorChange = (e) => {
   document.documentElement.style.setProperty('--dice-face-color', selectedColor);
 };
 
+const opacity = 0.85;
+// Calculate RGBA color with opacity
+const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
+
+// Apply the calculated RGBA color to the element
+document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
+
  // Sends dice color update to database
  async function diceColorUpdate(){
     await fetch(`/update-dice-color/${params.id}`, {
