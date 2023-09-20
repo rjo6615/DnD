@@ -353,7 +353,7 @@ const showSparklesEffect = () => {
               <th>Damage</th>
               <th>Critical</th>
               <th>Range</th>
-              <th>Delete</th>
+              <th>Attack</th>
             </tr>
           </thead>
           <tbody>
