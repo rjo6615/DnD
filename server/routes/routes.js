@@ -156,6 +156,27 @@ routes.route("/occupations").get(function (req, res) {
     });
  });
 
+// This section will update occupations.
+routes.route('/update-occupations/:id').put((req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = dbo.getDb();
+
+  try {
+    db_connect.collection("Characters").updateOne(id, {
+      $set: { 'occupation': req.body}
+    }, (err, result) => {
+      if (err) {
+        throw err;
+      }
+      console.log("Character occupations updated");
+      res.send('User updated successfully');
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
+});
+
 // ---------------------------------------------Stats Section----------------------------------------------------------
 
   // This section will update stats.
@@ -527,7 +548,7 @@ db_connect.collection("Characters").updateOne(
     _id: ObjectId(req.params.id),
     'occupation': {
       $elemMatch: {
-        'Occupation': 'Fireman',
+        'Occupation': selectedOccupation,
       }
     }
   },

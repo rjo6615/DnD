@@ -1784,6 +1784,77 @@ async function levelUpdate() {
     return updatedLevelForm; // Return the updated state
   });
 }
+// ------------------------------Add occupation------------------------------
+const [showAddClassModal, setShowAddClassModal] = useState(false);
+const [selectedOccupation, setSelectedOccupation] = useState(null);
+const selectedAddOccupationRef = useRef();
+
+const [getOccupation, setGetOccupation] = useState([]);
+
+const handleAddOccupationClick = () => {
+  setShowAddClassModal(true);
+};
+
+const handleOccupationChange = (event) => {
+  const selectedIndex = event.target.selectedIndex;
+  setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
+};
+
+const handleConfirmClick = () => {
+  if (selectedOccupation) {
+    console.log('Selected Occupation:', selectedOccupation);
+    
+    // Push the selected occupation into form.occupation
+    form.occupation.push(selectedOccupation);
+    
+    // Perform the database update with the entire form.occupation array
+    fetch(`/update-occupations/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(form.occupation), // Send the array directly
+    })
+      .then(() => {
+        console.log("Database update complete");
+        navigate(0);
+      })
+      .catch((error) => {
+        // Handle errors here
+        console.error(error);
+      });
+    
+    setShowAddClassModal(false);
+  } else {
+    alert('Please select an occupation.');
+  }
+};
+
+  // Fetch Occupations
+  useEffect(() => {
+    async function fetchData() {
+      const response = await fetch(`/occupations`);    
+  
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        window.alert(message);
+        return;
+      }
+  
+      const record = await response.json();
+      if (!record) {
+        window.alert(`Record not found`);
+        navigate("/");
+        return;
+      }
+  
+      setGetOccupation(record);
+    }
+    fetchData();   
+    return;
+    
+  }, [navigate]);
+
 //-------------------------------------------Help Module--------------------------------------------------------------------
 const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -2038,12 +2109,47 @@ return (
   <br></br>
   Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
         </Card.Body>
+        {/* -------------------Choose new occupation--------------------------- */}
+        <Form>
+        <Button
+        className="rounded-pill bg-warning"
+        variant="outline-dark"
+        onClick={handleAddOccupationClick}
+      >
+        Add Occupation
+      </Button>
+      <Modal centered show={showAddClassModal} onHide={() => setShowAddClassModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Select an Occupation</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3 mx-5">
+            <Form.Label className="text-dark">Select Occupation</Form.Label>
+            <Form.Select
+              ref={selectedAddOccupationRef}
+              onChange={handleOccupationChange}
+            >
+              <option></option>
+              {getOccupation.map((occupation, i) => (
+                <option key={i}>{occupation.Occupation}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAddClassModal(false)}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleConfirmClick}>
+            Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      </Form>
+      {/*-------------------------Level up known occupation-------------------------  */}
   <Form onSubmit={() => {handleCloseLvlModal();
      levelUpdate();
      }}>
-    <Button className="rounded-pill bg-warning" variant="outline-dark" type="submit">
-        Add Occupation
-      </Button>
       <br />
       <span>or</span>
       <Form.Group className="mb-3 mx-5">
