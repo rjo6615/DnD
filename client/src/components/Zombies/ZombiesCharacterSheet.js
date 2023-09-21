@@ -1683,7 +1683,43 @@ const handleBonusActionSelect = (bonusAction) => {
   // Perform the logic associated with the selected bonus action
 };
 
+const [selectedHoldDown, setSelectedHoldDown] = useState(null);
+ const [timerId, setTimerId] = useState(null);
 
+ // Function to open the modal and set the selected action with a timer delay
+ const handleActionMouseDown = (action) => {
+   const id = setTimeout(() => {
+     setSelectedHoldDown(action);
+   }, 250); // quarter-second delay
+   setTimerId(id);
+ };
+
+ // Function to clear the timer
+ const clearTimer = () => {
+   if (timerId) {
+     clearTimeout(timerId);
+     setTimerId(null);
+   }
+ };
+
+ // Function to close the modal
+ const handleCloseModal = () => {
+   setSelectedHoldDown(null);
+ };
+
+const holdDownHealth = {name: 'Health Bar', description: "This will display your current health and help you track it during combat."};
+const holdDownMove = {name: 'Move', description: "Click this when you use your move action for the turn to keep track."};
+const holdDownAction = {name: 'Action', description: "When you perform an action, it disables this for the turn. You can also click it if the action wasn't listed."};
+const holdDownBonusAction = {name: 'Bonus Action', description: "When you perform an bonus action, it disables this for the turn. You can also click it if the action wasn't listed."};
+const holdDownReset = {name: 'Reset', description: "This will reset your actions for your next turn."};
+const holdDownCharInfo = {name: 'Character Info', description: 'Here, you can find information about your character, such as their level, occupation, and physical attributes. There is also an option to level up.'};
+const holdDownStat = {name: 'Stats', description: 'This page displays your ability scores for strength, dexterity, constitution, intelligence, wisdom, and charisma.'};
+const holdDownSkill = {name: 'Skills', description: 'This page contains all your skills. When rolling for a skill, add the associated bonus to your dice roll to determine the total result. You will receive additional skill points to allocate with each level.'};
+const holdDownFeat = {name: 'Feats', description: 'This page contains your feats. You gain an additional feat at level one and every three levels thereafter to allocate.'};
+const holdDownWeapon = {name: 'Weapons', description: 'This page contains information about your weapons and their associated stats. You can also add new weapons to your character on this page.'};
+const holdDownArmor = {name: 'Armors', description: 'This page contains information about your armors and their stats. You can also add new armor to your character on this page.'};
+const holdDownItem = {name: 'Items', description: "This page contains your character's extra items and their stats. The bonuses from these items will automatically be added to your character's stats or skills, if applicable."};
+const holdDownInfo = {name: 'Info', description: "This tab provides app usage instructions."};
 
 
 const availableActions = [
@@ -1953,7 +1989,7 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
      return;
    });
    navigate(0);
- }
+ } 
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1965,7 +2001,7 @@ return (
       <strong className="mx-2">Initiative: {dexMod}</strong>
       </h6>
 {/*------------------------------------------------------------ Health Bar -----------------------------------------------------------------------------*/}
-      <div className="health-bar" style={healthBar}>
+      <div onTouchStart={() => handleActionMouseDown(holdDownHealth)} onTouchEnd={() => clearTimer()}  className="health-bar" style={healthBar}>
         <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * totalLevel)}</div>
       </div>
       <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-start bg-transparent fa-solid fa-minus" onClick={decreaseHealth}></Button>
@@ -1980,10 +2016,26 @@ return (
       <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}} className="zombiesActionItem mx-2">      
         {/* <Card.Title style={{ fontSize: 25}}>Actions Left</Card.Title> */}
         <div>
-          <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "-80px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
-          <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "-80px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
-          <Button onClick={handleBonus} className="mx-1 fas fa-square" style={{ marginTop: "-80px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
-          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "-80px", color: "#f71818" }} variant="secondary"></Button>
+          <Button onClick={handleMove} onTouchStart={() => handleActionMouseDown(holdDownMove)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "-80px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
+          <Button onClick={handleAction} onTouchStart={() => handleActionMouseDown(holdDownAction)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-circle" style={{ marginTop: "-80px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
+          <Button onClick={handleBonus} onTouchStart={() => handleActionMouseDown(holdDownBonusAction)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-square" style={{ marginTop: "-80px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
+          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} onTouchStart={() => handleActionMouseDown(holdDownReset)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "-80px", color: "#f71818" }} variant="secondary"></Button>
+    {/* Modal to display name and description */}
+    <Modal {...props}
+      centered 
+      show={selectedHoldDown !== null} onHide={handleCloseModal}>
+        <Modal.Header closeButton>
+          <Modal.Title id="contained-modal-title-vcenter">Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedHoldDown && (
+            <div>
+              <h3>{selectedHoldDown.name}</h3>
+              <p>{selectedHoldDown.description}</p>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     <PlayerTurnActions
       actions={availableActions}
       bonusActions={availableBonusActions}
@@ -2001,15 +2053,15 @@ return (
         <Container>
           <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
             <div>
-            <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
-            <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
-            <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
-            <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
-            <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
-            <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
-            <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
+            <Button onTouchStart={() => handleActionMouseDown(holdDownCharInfo)} onTouchEnd={() => clearTimer()} onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
+            <Button onTouchStart={() => handleActionMouseDown(holdDownStat)} onTouchEnd={() => clearTimer()}onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
+            <Button onTouchStart={() => handleActionMouseDown(holdDownSkill)} onTouchEnd={() => clearTimer()} onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownFeat)} onTouchEnd={() => clearTimer()} onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownWeapon)} onTouchEnd={() => clearTimer()} onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
+            <Button onTouchStart={() => handleActionMouseDown(holdDownArmor)} onTouchEnd={() => clearTimer()} onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownItem)} onTouchEnd={() => clearTimer()} onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
  {/* ----------------------------------Help Button-------------------------------------------------- */}
-            <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
+            <Button onTouchStart={() => handleActionMouseDown(holdDownInfo)} onTouchEnd={() => clearTimer()} onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
             </div>
             <Modal  {...props}
                   size="lg"

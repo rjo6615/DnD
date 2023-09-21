@@ -250,18 +250,27 @@ const showSparklesEffect = () => {
     }, 2000);
   }
 };
-
+const holdDownDamage = {name: 'Damage', description: "This will be rolled when you select the attack action, and it will determine the damage for the weapon you choose. If you click the toggle below for critical, it will roll the weapon's damage, but multiplied by its critical value."};
+const holdDownCrit = {name: 'Critical', description: 'Toggles critical weapon damage'};
+const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for all your saves or attack rolls, and then add any associated bonuses.'};
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div style={{ marginTop: "-40px"}}>
- <div style={{backgroundImage: 'url(/images/damage.jpg)'}} className={`mt-3 ${loading ? 'loading' : ''}`} id="damageAmount">
+ <div 
+  onTouchStart={() => handleActionMouseDown(holdDownDamage)} // Open the modal with a 2-second delay
+  onTouchEnd={() => clearTimer()} // Cancels timer
+  style={{backgroundImage: 'url(/images/damage.jpg)'}} className={`mt-3 ${loading ? 'loading' : ''}`} id="damageAmount">
   <span id="damageValue" className={loading ? 'hidden' : ''}>
     {damageValue}
   </span>
   <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
 </div>
 <div>
-  <Button onClick={handleToggle} style={{color: isGold ? "gold" : "gray", fontSize: "25px", borderColor: "transparent"}} className="fa-solid fa-star bg-transparent"></Button>
+  <Button onClick={handleToggle} 
+    onTouchStart={() => handleActionMouseDown(holdDownCrit)} // Open the modal with a 2-second delay
+    onTouchEnd={() => clearTimer()} // Cancels timer
+  style={{color: isGold ? "gold" : "gray", fontSize: "25px", borderColor: "transparent"}} 
+  className="fa-solid fa-star bg-transparent"></Button>
 </div>
       <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}}>
       <Table>  
@@ -323,7 +332,7 @@ const showSparklesEffect = () => {
       centered 
       show={selectedAction !== null || selectedBonusAction !== null} onHide={handleCloseModal}>
         <Modal.Header closeButton>
-          <Modal.Title id="contained-modal-title-vcenter">Action Details</Modal.Title>
+          <Modal.Title id="contained-modal-title-vcenter">Details</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedAction && (
@@ -399,7 +408,10 @@ const showSparklesEffect = () => {
       <div className="sparkle1"></div>
     )}
 
-    <div onClick={handleRandomizeClick} className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
+    <div onClick={handleRandomizeClick} 
+         onTouchStart={() => handleActionMouseDown(holdDownDice)} // Open the modal with a 2-second delay
+         onTouchEnd={() => clearTimer()} // Cancels timer
+    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
       {faceElements}
     </div>
 </div>
