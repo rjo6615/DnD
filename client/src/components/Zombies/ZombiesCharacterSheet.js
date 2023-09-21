@@ -392,11 +392,16 @@ let statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTo
   };
 //-----------------------Skills--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const [showAddSkill, setShowAddSkill] = useState(false);
-const handleCloseAddSkill = () => setShowAddSkill(false);
 const handleShowAddSkill = () => setShowAddSkill(true);
 const [showSkill, setShowSkill] = useState(false);
 const handleCloseSkill = () => setShowSkill(false);
 const handleShowSkill = () => setShowSkill(true);
+const handleCloseAddSkill = () => {setShowAddSkill(false); setChosenSkill('');};
+const [chosenSkill, setChosenSkill] = useState('');
+
+const handleChosenSkillChange = (e) => {
+    setChosenSkill(e.target.value);
+}
 
 const [addSkillForm, setAddSkillForm] = useState({ 
   newSkill: "",
@@ -1129,6 +1134,10 @@ const [addWeapon, setAddWeapon] = useState({
 const [showWeapons, setShowWeapons] = useState(false);
 const handleCloseWeapons = () => setShowWeapons(false);
 const handleShowWeapons = () => setShowWeapons(true);
+const [chosenWeapon, setChosenWeapon] = useState('');
+const handleChosenWeaponChange = (e) => {
+    setChosenWeapon(e.target.value);
+}; 
 function updateWeapon(value) {
   return setAddWeapon((prev) => {
     return { ...prev, ...value };
@@ -1255,6 +1264,10 @@ const [addArmor, setAddArmor] = useState({
 const [showArmor, setShowArmor] = useState(false);
 const handleCloseArmor = () => setShowArmor(false);
 const handleShowArmor = () => setShowArmor(true);
+const [chosenArmor, setChosenArmor] = useState('');
+const handleChosenArmorChange = (e) => {
+    setChosenArmor(e.target.value);
+}; 
 function updateArmor(value) {
   return setAddArmor((prev) => {
     return { ...prev, ...value };
@@ -1406,6 +1419,10 @@ const handleShowNotes = () => setShowNotes(true);
 const [showItems, setShowItems] = useState(false);
 const handleCloseItems = () => setShowItems(false);
 const handleShowItems = () => setShowItems(true);
+const [chosenItem, setChosenItem] = useState('');
+const handleChosenItemChange = (e) => {
+    setChosenItem(e.target.value);
+}; 
 
 function updateItem(value) {
   return setAddItem((prev) => {
@@ -1538,6 +1555,10 @@ const handleShowFeatNotes = () => setShowFeatNotes(true);
 const [showFeats, setShowFeats] = useState(false);
 const handleCloseFeats = () => setShowFeats(false);
 const handleShowFeats = () => setShowFeats(true);
+const [chosenFeat, setChosenFeat] = useState('');
+const handleChosenFeatChange = (e) => {
+    setChosenFeat(e.target.value);
+};
 
 function updateFeat(value) {
   return setAddFeat((prev) => {
@@ -1770,7 +1791,15 @@ const handleBonus = () => {
 //--------------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------------------------------
 const [showLvlModal, setShowLvlModal] = useState(false);
 
-const handleCloseLvlModal = () => setShowLvlModal(false);
+  // State variable to track the selected occupation
+  const [chosenOccupation, setChosenOccupation] = useState('');
+
+  // Function to handle changes in the occupation selection
+  const handleChosenOccupationChange = (e) => {
+    setChosenOccupation(e.target.value);
+  };
+
+const handleCloseLvlModal = () => {setChosenOccupation(''); setShowLvlModal(false);};
 const handleShowLvlModal = () => setShowLvlModal(true);
 const selectedOccupationRef = useRef(); // Create a ref to hold the selected occupation
 
@@ -1826,14 +1855,17 @@ const [selectedOccupation, setSelectedOccupation] = useState(null);
 const selectedAddOccupationRef = useRef();
 
 const [getOccupation, setGetOccupation] = useState([]);
+const [chosenAddOccupation, setChosenAddOccupation] = useState('');
 
 const handleAddOccupationClick = () => {
   setShowAddClassModal(true);
+  setChosenAddOccupation('');
 };
 
 const handleOccupationChange = (event) => {
   const selectedIndex = event.target.selectedIndex;
   setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
+  setChosenAddOccupation(event.target.value);
 };
 
 const handleConfirmClick = () => {
@@ -2054,12 +2086,12 @@ return (
           <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
             <div>
             <Button onTouchStart={() => handleActionMouseDown(holdDownCharInfo)} onTouchEnd={() => clearTimer()} onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
-            <Button onTouchStart={() => handleActionMouseDown(holdDownStat)} onTouchEnd={() => clearTimer()}onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
+            <Button onTouchStart={() => handleActionMouseDown(holdDownStat)} onTouchEnd={() => clearTimer()} onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
             <Button onTouchStart={() => handleActionMouseDown(holdDownSkill)} onTouchEnd={() => clearTimer()} onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
-            <Button onTouchStart={() => handleActionMouseDown(holdDownFeat)} onTouchEnd={() => clearTimer()} onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
-            <Button onTouchStart={() => handleActionMouseDown(holdDownWeapon)} onTouchEnd={() => clearTimer()} onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
-            <Button onTouchStart={() => handleActionMouseDown(holdDownArmor)} onTouchEnd={() => clearTimer()} onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
-            <Button onTouchStart={() => handleActionMouseDown(holdDownItem)} onTouchEnd={() => clearTimer()} onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
+            <Button onTouchStart={() => handleActionMouseDown(holdDownFeat)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowFeats(); setChosenFeat('');}} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownWeapon)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowWeapons(); setChosenWeapon('');}} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
+            <Button onTouchStart={() => handleActionMouseDown(holdDownArmor)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowArmor(); setChosenArmor('');}} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownItem)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowItems(); setChosenItem('');}} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
  {/* ----------------------------------Help Button-------------------------------------------------- */}
             <Button onTouchStart={() => handleActionMouseDown(holdDownInfo)} onTouchEnd={() => clearTimer()} onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
             </div>
@@ -2068,10 +2100,9 @@ return (
                   aria-labelledby="contained-modal-title-vcenter"
                   centered
                   className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
-                    <Modal.Header closeButton>
-          <Modal.Title>Help</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
+          <center>
+          <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+          <Card.Body>
           Actions Left (from left to right)
           <br></br>
           Move, Action, Bonus Action, Reset
@@ -2106,7 +2137,7 @@ return (
             </thead>
           </Table>  
           </div>      
-          </Modal.Body>
+          </Card.Body>
           <Modal.Footer className="justify-content-between">
           <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>
           </Button>
@@ -2114,16 +2145,17 @@ return (
             Close
           </Button>
           </Modal.Footer>
+          </Card>
+          </center>
           </Modal>
           <Modal  {...props}
                   size="lg"
                   aria-labelledby="contained-modal-title-vcenter"
                   centered
                   className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
-                    <Modal.Header closeButton>
-          <Modal.Title>Are you sure you want to delete your character?
-          </Modal.Title>
-          </Modal.Header>
+        <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+          <Card.Title>Are you sure you want to delete your character?</Card.Title>
           <Modal.Footer className="justify-content-between">
           <Button variant="danger" onClick={() => { deleteRecord(); }}>
             Im Sure
@@ -2132,6 +2164,8 @@ return (
             Close
           </Button>
           </Modal.Footer>
+          </Card>
+          </center>
         </Modal>
         </Nav>
         </Container>
@@ -2219,31 +2253,33 @@ return (
         Add Occupation
       </Button>
       <Modal centered show={showAddClassModal} onHide={() => setShowAddClassModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Select an Occupation</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+      <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card.Body>
           <Form.Group className="mb-3 mx-5">
             <Form.Label className="text-dark">Select Occupation</Form.Label>
             <Form.Select
               ref={selectedAddOccupationRef}
               onChange={handleOccupationChange}
+              defaultValue=""
             >
-              <option></option>
+              <option value="" disabled>Select your occupation</option>
               {getOccupation.map((occupation, i) => (
                 <option key={i}>{occupation.Occupation}</option>
               ))}
             </Form.Select>
           </Form.Group>
-        </Modal.Body>
+        </Card.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddClassModal(false)}>
+          <Button variant="secondary" onClick={() => {setShowAddClassModal(false); setChosenAddOccupation('');}}>
             Close
           </Button>
-          <Button variant="primary" onClick={handleConfirmClick}>
+          <Button variant="primary" onClick={handleConfirmClick}  disabled={!chosenAddOccupation}>
             Confirm
           </Button>
         </Modal.Footer>
+        </Card>
+        </center>
       </Modal>
       </Form>
       {/*-------------------------Level up known occupation-------------------------  */}
@@ -2254,8 +2290,12 @@ return (
       <span>or</span>
       <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Occupation</Form.Label>
-        <Form.Select ref={selectedOccupationRef} type="text">
-          <option></option>
+        <Form.Select
+          ref={selectedOccupationRef}
+          defaultValue=""
+          onChange={handleChosenOccupationChange} // Add onChange event handler
+        >
+          <option value="" disabled>Select your occupation</option>
           {form.occupation.map((occupation, i) => (
             <option key={i}>{occupation.Occupation}</option>
           ))}
@@ -2266,7 +2306,11 @@ return (
         <Button variant="secondary" onClick={handleCloseLvlModal}>
           Close
         </Button>
-        <Button variant="primary" type="submit">
+        <Button
+          variant="primary"
+          type="submit"
+          disabled={!chosenOccupation} // Disable the button if no occupation is selected
+        >
           Level Up
         </Button>
       </Modal.Footer>
@@ -2647,44 +2691,56 @@ return (
         ></Button>
       </div>
     </Card>   
-      <Modal show={showAddSkill} onHide={handleCloseAddSkill}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Skill</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-        <center>
-      <Form 
-      onSubmit={addSkillToDb} 
-      className="px-5">
-      <Form.Group className="mb-3 pt-3" >
-      <Form.Label className="text-dark">Skill</Form.Label>
-       <Form.Control className="mb-2" 
-       onChange={(e) => updateNewSkill({ skill: e.target.value })}
-        type="text" placeholder="Enter Skill" />
-      <Form.Label className="text-dark">Skill Type</Form.Label>
-       <Form.Select className="mb-2" 
-       onChange={(e) => updateAddSkill({ newSkill: e.target.value })}
-        type="text">
-        <option></option>
-        <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option> 
-        <option value={["Craft " + newSkill.skill, 0]}>Craft</option> 
-        </Form.Select>
-         </Form.Group>
-     <center>
-     <Button variant="primary" onClick={handleCloseAddSkill} type="submit">
-            Create
-          </Button>
-          <Button className="ms-4" variant="secondary" onClick={handleCloseAddSkill}>
-            Close
-          </Button>
-          </center>
-     </Form>
-     </center>
-        </Modal.Body>
+    </center>
+      <Modal show={showAddSkill} onHide={handleCloseAddSkill} centered>
+      <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card.Body>
+        <Form onSubmit={addSkillToDb} className="px-5">
+  <Form.Group className="mb-3 pt-3">
+    <Form.Label className="text-dark">Skill</Form.Label>
+    <Form.Control
+      className="mb-2"
+      onChange={(e) => updateNewSkill({ skill: e.target.value })}
+      type="text"
+      placeholder="Enter Skill"
+    />
+    <Form.Label className="text-dark">Skill Type</Form.Label>
+    <Form.Select
+      className="mb-2"
+      onChange={(e) => {
+        const newSkill = e.target.value;
+        updateAddSkill({ newSkill });
+        handleChosenSkillChange(e);
+      }}
+      defaultValue=""
+      type="text"
+    >
+      <option value="" disabled>
+        Select skill type
+      </option>
+      <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option>
+      <option value={["Craft " + newSkill.skill, 0]}>Craft</option>
+    </Form.Select>
+  </Form.Group>
+  <Button variant="secondary" onClick={handleCloseAddSkill}>
+    Close
+  </Button>
+  <Button
+    disabled={!chosenSkill || !newSkill.skill} // Disable when either field is empty
+    className="ms-4"
+    variant="primary"
+    type="submit"
+  >
+    Create
+  </Button>
+</Form>
+     </Card.Body>
         <Modal.Footer>
         </Modal.Footer>
+        </Card>
+        </center>
       </Modal>
-      </center>
 </Modal>
  {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
  <Modal show={showFeats} onHide={handleCloseFeats}
@@ -2763,9 +2819,10 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Feat</Form.Label>
         <Form.Select 
-        onChange={(e) => updateFeat({ feat: e.target.value })}
+        onChange={(e) => {updateFeat({ feat: e.target.value }); handleChosenFeatChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your feat</option>
           {feat.feat.map((el) => (  
           <option key={el.featName} value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
           el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, el.disguise, el.escapeArtist, 
@@ -2775,21 +2832,23 @@ return (
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenFeat} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
       </Card> 
-      <Modal show={showFeatNotes} onHide={handleCloseFeatNotes}>
-        <Modal.Header closeButton>
-          <Modal.Title>{modalFeatData[0]}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{modalFeatData[1]}</Modal.Body>
+      <Modal show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
+        <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+          <Card.Title>{modalFeatData[0]}</Card.Title>
+        <Card.Body>{modalFeatData[1]}</Card.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseFeatNotes}>
             Close
           </Button>
         </Modal.Footer>
+        </Card>
+        </center>
       </Modal>
 </center>
 </Modal>
@@ -2849,15 +2908,16 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Weapon</Form.Label>
         <Form.Select 
-        onChange={(e) => updateWeapon({ weapon: e.target.value })}
+        onChange={(e) => {updateWeapon({ weapon: e.target.value }); handleChosenWeaponChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your weapon</option>
           {weapon.weapon.map((el) => (  
           <option key={el.weaponName} value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenWeapon} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
@@ -2900,15 +2960,16 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Armor</Form.Label>
         <Form.Select 
-        onChange={(e) => updateArmor({ armor: e.target.value })}
+        onChange={(e) => {updateArmor({ armor: e.target.value }); handleChosenArmorChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your armor</option>
           {armor.armor.map((el) => (  
           <option key={el.armorName} value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenArmor} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
@@ -3011,9 +3072,10 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Item</Form.Label>
         <Form.Select 
-        onChange={(e) => updateItem({ item: e.target.value })}
+        onChange={(e) => {updateItem({ item: e.target.value }); handleChosenItemChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your item</option>
           {item.item.map((el) => (  
           <option key={el.itemName} value={[el.itemName, el.notes, el.str, el.dex, el.con, el.int, el.wis, el.cha,
           el.appraise, el.balance, el.bluff, el.climb, el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, 
@@ -3023,7 +3085,7 @@ return (
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenItem} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
