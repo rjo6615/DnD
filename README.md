@@ -24,13 +24,12 @@ Example gif is listed below:
 ![Example](./client/public/images/Gif-for-Dnd.gif)
 
 
-## Credits
-
-Robert Obernier
-https://github.com/rjo6615
-
-John Ifert-Miller
-https://github.com/johnboy514
+## Support
+For help with this webpage please contact
+|Name | Email |
+|-----------|---------------------------|
+|Robert Obernier| robertjobernier@gmail.com |
+|John Ifert| john.ifert.miller@gmail.com |
 
 ## License
 
