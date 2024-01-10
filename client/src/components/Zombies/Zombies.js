@@ -10,8 +10,7 @@ export default function ZombiesHome() {
  const [form, setForm] = useState({ 
   characterName: "", 
   campaign: "",
-  level: "",
-  occupation: "", 
+  occupation: [""], 
   feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
   weapon: [["","","","","",""]],
   armor: [["","","",""]],
@@ -60,6 +59,7 @@ export default function ZombiesHome() {
   useTech: 0,
   useRope: 0,
   newSkill: [["",0]],
+  diceColor: "#000000",
 });
 
 const [occupation, setOccupation] = useState({ 
@@ -130,7 +130,7 @@ function bigMaff() {
 let occupationLength = occupation.length;
 let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
 let newOccupation = occupation[randomOccupation];
-updateForm({ occupation: newOccupation }); 
+updateForm({ occupation: [newOccupation] }); 
 
 // Age Randomizer
 let newAge = Math.round(Math.random() * (50 - 19)) + 19;
@@ -176,16 +176,16 @@ updateForm({ startStatTotal: startStatTotal });
 // Health Randomizer
 let conMod = Math.floor((form.con - 10) / 2); 
 const [healthArray, setHealthArray] = useState([]);
-let newHealth =  healthArray[0] + Number(form.occupation.Health);
-let tempHealth = newHealth + Number(conMod) * Number(form.level);
+let newHealth =  healthArray[0] + Number(form.occupation[0].Health);
+let tempHealth = newHealth + Number(conMod) * Number(form.occupation[0].Level);
 useEffect(() => {    
   updateForm({ health: newHealth});
   updateForm({ tempHealth: tempHealth});
 }, [ newHealth, tempHealth]);
 
   useEffect(() => {  
-  const lvl = (form.level - 1);
-  const diceValue = form.occupation.Health;
+  const lvl = (form.occupation[0].Level - 1);
+  const diceValue = form.occupation[0].Health;
   const rollHealthDice = () => {
     const newHealthArray = [];
     for (let i = 0; i < 1; i++) { //array amount
@@ -197,7 +197,7 @@ useEffect(() => {
   };
   rollHealthDice();
   return;
-}, [ form.occupation.Health, form.level ]);
+}, [ form.occupation ]);
 
  // Sends form data to database
  async function sendToDb(){
@@ -217,8 +217,7 @@ useEffect(() => {
    setForm({
     characterName: "",
     campaign: "", 
-    level: "",
-    occupation: "",
+    occupation: [""],
     feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
     weapon: [["","","","","",""]],
     armor: [["","","",""]],
@@ -267,6 +266,7 @@ useEffect(() => {
     useTech: 0,
     useRope: 0,
     newSkill: [["",0]],
+    diceColor: "#000000",
   });
    navigate(`/zombies-character-select/${form.campaign}`);
  }
@@ -573,7 +573,7 @@ async function sendToDb4(){
         <Form.Select onChange={(e) => updateCampaignSearch({ campaign: e.target.value })} type="text">
           <option></option>
           {campaign.campaign.map((el) => (  
-          <option>{el.campaignName}</option>
+          <option key={el.campaignName}>{el.campaignName}</option>
           ))};
         </Form.Select>
       </Form.Group>
@@ -604,15 +604,12 @@ async function sendToDb4(){
       <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-dark">Character Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
-        type="text" placeholder="Enter character name" />       
-       <Form.Label className="text-dark">Starting Level</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ level: e.target.value })}
-        type="text" placeholder="Enter starting level" />   
+        type="text" placeholder="Enter character name" />        
         <Form.Label className="text-dark">Select Campaign</Form.Label>
         <Form.Select onChange={(e) => updateForm({ campaign: e.target.value })} type="text">
           <option></option>
           {campaign.campaign.map((el) => (  
-          <option>{el.campaignName}</option>
+          <option key={el.campaignName}>{el.campaignName}</option>
           ))};
         </Form.Select>       
      </Form.Group>

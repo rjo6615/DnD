@@ -35,7 +35,6 @@ routes.route("/character/add").post(function (req, response) {
   let myobj = {
   characterName: req.body.characterName,
   campaign: req.body.campaign,
-  level: req.body.level, 
   occupation: req.body.occupation,
   feat: req.body.feat,
   weapon: req.body.weapon,
@@ -84,7 +83,8 @@ routes.route("/character/add").post(function (req, response) {
   tumble: req.body.tumble,
   useTech: req.body.useTech,
   useRope: req.body.useRope,
-  newSkill: req.body.newSkill
+  newSkill: req.body.newSkill,
+  diceColor: req.body.diceColor,
   };
   db_connect.collection("Characters").insertOne(myobj, function (err, res) {
     if (err) throw err;
@@ -155,6 +155,27 @@ routes.route("/occupations").get(function (req, res) {
       res.json(result);
     });
  });
+
+// This section will update occupations.
+routes.route('/update-occupations/:id').put((req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = dbo.getDb();
+
+  try {
+    db_connect.collection("Characters").updateOne(id, {
+      $set: { 'occupation': req.body}
+    }, (err, result) => {
+      if (err) {
+        throw err;
+      }
+      console.log("Character occupations updated");
+      res.send('User updated successfully');
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
+});
 
 // ---------------------------------------------Stats Section----------------------------------------------------------
 
@@ -269,6 +290,35 @@ routes.route('/update-temphealth/:id').put((req, res, next) => {
     console.log("character tempHealth updated");
     res.send('user updated sucessfully');
   });
+});
+
+// This section will update health and stats.
+routes.route('/update-health/:id').put((req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = dbo.getDb();
+
+  try {
+
+    db_connect.collection("Characters").updateOne(id, {
+      $set: { 'health': req.body.health,
+      'str': req.body.str,
+      'dex': req.body.dex,
+      'con': req.body.con,
+      'int': req.body.int,
+      'wis': req.body.wis,
+      'cha': req.body.cha,
+      'startStatTotal': req.body.startStatTotal }
+    }, (err, result) => {
+      if (err) {
+        throw err;
+      }
+      console.log("Character health and stats updated");
+      res.send('User updated successfully');
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
 });
 
 // ----------------------------------------------------Weapon Section----------------------------------------------------
@@ -510,18 +560,53 @@ routes.route('/update-feat/:id').put((req, res, next) => {
 });
 
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
- // This section will update feats.
+ // This section will update level.
  routes.route('/update-level/:id').put((req, res, next) => {
+  const db_connect = dbo.getDb();
+  const selectedOccupation = req.body.selectedOccupation;
+
+const updateOperation = {
+  $set: {
+    'occupation.$.Level': req.body.level,
+    'health': req.body.health
+  },
+};
+
+db_connect.collection("Characters").updateOne(
+  {
+    _id: ObjectId(req.params.id),
+    'occupation': {
+      $elemMatch: {
+        'Occupation': selectedOccupation,
+      }
+    }
+  },
+  updateOperation,
+  (err, result) => {
+    if (err) {
+      throw err;
+    }
+    if (result.modifiedCount === 0) {
+    } else {
+      console.log(`Character updated for Occupation: ${selectedOccupation}`);
+      res.send('Update complete');
+    }
+  }
+);
+ }
+ )
+//-------------------------------------------------------------Dice Color Section------------------------------------------------------------------
+ // This section will update dice color.
+ routes.route('/update-dice-color/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = dbo.getDb();
   db_connect.collection("Characters").updateOne(id, {$set:{
-  'level': req.body.level,
-  'health': req.body.health
+  'diceColor': req.body.diceColor,
 }}, (err, result) => {
     if(err) {
       throw err;
     }
-    console.log("character level updated");
+    console.log("Dice Color updated");
     res.send('user updated sucessfully');
   });
 });

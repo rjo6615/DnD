@@ -5,7 +5,7 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { Button, Col, Form, Row } from "react-bootstrap";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
 import '../../App.scss';
@@ -16,8 +16,7 @@ export default function ZombiesCharacterSheet(props) {
   const params = useParams();
   const [form, setForm] = useState({ 
     characterName: "",
-    level: "", 
-    occupation: "", 
+    occupation: [""], 
     feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
     weapon: [["","","","","",""]],
     armor: [["","","",""]],
@@ -65,8 +64,9 @@ export default function ZombiesCharacterSheet(props) {
     useTech: "",
     useRope: "",
     newSkill: [["","",0]],
+    diceColor: "",
   });
-
+  const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
    //Fetches character data
  useEffect(() => {
   async function fetchData() {
@@ -86,6 +86,7 @@ export default function ZombiesCharacterSheet(props) {
     }
 
     setForm(record);
+    setNewColor(record.diceColor);
   }
   fetchData();   
   return;
@@ -204,7 +205,7 @@ const statItemForm = {
  let chaMod = Math.floor((statItemForm.cha - 10) / 2);
 
 let statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
-let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTotal));
+let statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
 
   let showBtn = "";
   let statGold = "gold";
@@ -237,61 +238,76 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   };
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
   // Saves Maffs
-  let fortSave;
-  let reflexSave;
-  let willSave;
-  let atkBonus;
-  if (form.occupation.Fort === "0") {
-    fortSave = Math.floor(form.level / 3);
-  } if (form.occupation.Fort === "1") {
-    fortSave = Math.floor((form.level / 2) + 2);
+  let fortSave = 0;
+  let reflexSave = 0;
+  let willSave = 0;
+  let atkBonus = 0;
+  const occupations = form.occupation;
+  
+  for (const occupation of occupations) {
+    const level = parseInt(occupation.Level, 10);
+    const fortValue = parseInt(occupation.Fort, 10);
+    const reflexValue = parseInt(occupation.Reflex, 10);
+    const willValue = parseInt(occupation.Will, 10);
+    const attackBonusValue = parseInt(occupation.atkBonus, 10);
+  
+    if (!isNaN(level)) {
+      if (fortValue === 0) {
+        fortSave += Math.floor(level / 3);
+      } else if (fortValue === 1) {
+        fortSave += Math.floor((level / 2) + 2);
+      }
+  
+      if (reflexValue === 0) {
+        reflexSave += Math.floor(level / 3);
+      } else if (reflexValue === 1) {
+        reflexSave += Math.floor((level / 2) + 2);
+      }
+  
+      if (willValue === 0) {
+        willSave += Math.floor(level / 3);
+      } else if (willValue === 1) {
+        willSave += Math.floor((level / 2) + 2);
+      }
+  
+      if (attackBonusValue === 0) {
+        atkBonus += Math.floor(level / 2);
+      } else if (attackBonusValue === 1) {
+        atkBonus += Math.floor(level * 0.75);
+      } else if (attackBonusValue === 2) {
+        atkBonus += level;
+      }
+    }
   }
-  if (form.occupation.Reflex === "0") {
-    reflexSave = Math.floor(form.level / 3);
-  } else if (form.occupation.Reflex === "1") {
-    reflexSave = Math.floor((form.level / 2) + 2);
-  }
-  if (form.occupation.Will === "0") {
-    willSave = Math.floor(form.level / 3);
-  } else if (form.occupation.Will === "1") {
-    willSave = Math.floor((form.level / 2) + 2);
-  }
-
-  if (form.occupation.atkBonus === "0") {
-    atkBonus = Math.floor(form.level / 2);
-  } else if (form.occupation.atkBonus === "1") {
-    atkBonus = Math.floor((form.level * .75));
-  } else if (form.occupation.atkBonus === "2") {
-    atkBonus = form.level;
-  }
+  
 
     // Saves Maffs Next
     let fortSaveNext;
     let reflexSaveNext;
     let willSaveNext;
     let atkBonusNext;
-    if (form.occupation.Fort === "0") {
-      fortSaveNext = Math.floor((form.level +1) / 3);
-    } if (form.occupation.Fort === "1") {
-      fortSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    if (fortSave === 0) {
+      fortSaveNext = Math.floor((totalLevel +1) / 3);
+    } if (fortSave === 1) {
+      fortSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
-    if (form.occupation.Reflex === "0") {
-      reflexSaveNext = Math.floor((form.level +1) / 3);
-    } else if (form.occupation.Reflex === "1") {
-      reflexSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    if (reflexSave === 0) {
+      reflexSaveNext = Math.floor((totalLevel +1) / 3);
+    } else if (reflexSave === 1) {
+      reflexSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
-    if (form.occupation.Will === "0") {
-      willSaveNext = Math.floor((form.level +1) / 3);
-    } else if (form.occupation.Will === "1") {
-      willSaveNext = Math.floor(((form.level +1) / 2) + 2);
+    if (willSave === 0) {
+      willSaveNext = Math.floor((totalLevel +1) / 3);
+    } else if (willSave === 1) {
+      willSaveNext = Math.floor(((totalLevel +1) / 2) + 2);
     }
   
-    if (form.occupation.atkBonus === "0") {
-      atkBonusNext = Math.floor((form.level +1) / 2);
-    } else if (form.occupation.atkBonus === "1") {
-      atkBonusNext = Math.floor(((form.level +1) * .75));
-    } else if (form.occupation.atkBonus === "2") {
-      atkBonusNext = (form.level +1);
+    if (atkBonus === 0) {
+      atkBonusNext = Math.floor((totalLevel +1) / 2);
+    } else if (atkBonus === 1) {
+      atkBonusNext = Math.floor(((totalLevel +1) * .75));
+    } else if (atkBonus === 2) {
+      atkBonusNext = (totalLevel +1);
     }
 
   // Health
@@ -318,13 +334,10 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
     if (!isNaN(parsedValue)) {
       setHealth(parsedValue);
     } else {
-      console.error('Input is not a valid number.');
-      // Handle the case where the input is not a valid number.
-      // You might want to show an error message or take some other action.
     }
   }, [form.tempHealth]);
 
-  const maxPossibleHealth = form.health + Number(conMod * form.level);  
+  const maxPossibleHealth = form.health + Number(conMod * totalLevel);  
   
   function getColorForHealth(currentHealth, maxHealth) {
     const healthPercentage = (currentHealth / maxHealth) * 100;
@@ -361,7 +374,7 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
 
   let offset;
   const increaseHealth = () => {
-    if (health === form.health + Number(conMod * form.level)){
+    if (health === form.health + Number(conMod * totalLevel)){
     } else {
     setHealth((prevHealth) => prevHealth + 1);
     offset = +1;
@@ -379,11 +392,16 @@ let statPointsLeft = Math.floor((form.level / 4) - (statTotal - form.startStatTo
   };
 //-----------------------Skills--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const [showAddSkill, setShowAddSkill] = useState(false);
-const handleCloseAddSkill = () => setShowAddSkill(false);
 const handleShowAddSkill = () => setShowAddSkill(true);
 const [showSkill, setShowSkill] = useState(false);
 const handleCloseSkill = () => setShowSkill(false);
 const handleShowSkill = () => setShowSkill(true);
+const handleCloseAddSkill = () => {setShowAddSkill(false); setChosenSkill('');};
+const [chosenSkill, setChosenSkill] = useState('');
+
+const handleChosenSkillChange = (e) => {
+    setChosenSkill(e.target.value);
+}
 
 const [addSkillForm, setAddSkillForm] = useState({ 
   newSkill: "",
@@ -968,25 +986,86 @@ form.forgery + form.gatherInfo + form.handleAnimal + form.heal + form.hide + for
 form.jump + form.listen + form.moveSilently + form.openLock + form.ride + form.search + 
 form.senseMotive + form.sleightOfHand + form.spot + form.survival + form.swim + form.tumble + 
 form.useTech + form.useRope;
-let skillPointsLeft = Math.floor((Number(form.occupation.skillMod) + intMod) * 4 + (Number(form.occupation.skillMod) + intMod) * (form.level - 1) - skillTotal - totalAddedSkills);
+
+let firstLevelSkill = Math.floor((Number(form.occupation[0].skillMod) + intMod) * 4);
+let allSkillPointsLeft = 0;
+let skillPointsLeft;
+for (const occupation of occupations) {
+    if (occupation.Occupation === form.occupation[0].Occupation) {
+      let occupationLevel = occupation.Level - 1;
+      const skillMod = Number(occupation.skillMod);
+      skillPointsLeft = Math.floor((skillMod + intMod) * (occupationLevel));
+      allSkillPointsLeft += skillPointsLeft;
+    } else {
+      let occupationLevel = occupation.Level;
+      const skillMod = Number(occupation.skillMod);
+      skillPointsLeft = Math.floor((skillMod + intMod) * (occupationLevel));
+      allSkillPointsLeft += skillPointsLeft;
+    }
+}
+let totalSkillPointsLeft = allSkillPointsLeft + firstLevelSkill  - skillTotal - totalAddedSkills;
 let showSkillBtn = "";
 let skillGold = "gold";
-if (skillPointsLeft === 0) {
+if (totalSkillPointsLeft === 0) {
   showSkillBtn = "none";
   skillGold = "#6C757D";
 }
 
+const skillKnown = {
+  appraise: "",
+  balance: "",
+  bluff: "",
+  climb: "",
+  concentration: "",
+  decipherScript: "",
+  diplomacy: "",
+  disableDevice: "",
+  disguise: "",
+  escapeArtist: "",
+  forgery: "",
+  gatherInfo: "",
+  handleAnimal: "",
+  heal: "",
+  hide: "",
+  intimidate: "",
+  jump: "",
+  listen: "",
+  moveSilently: "",
+  openLock: "",
+  ride: "",
+  search: "",
+  senseMotive: "",
+  sleightOfHand: "",
+  spot: "",
+  survival: "",
+  swim: "",
+  tumble: "",
+  useTech: "",
+  useRope: "",
+}
+for (const skill in skillKnown) {
+  let highestValue = -1;
+
+  for (const occupation of occupations) {
+    const skillValue = parseInt(occupation[skill], 10);
+    if (!isNaN(skillValue) && skillValue > highestValue) {
+      highestValue = skillValue;
+    }
+  }
+  skillKnown[skill] = highestValue.toString();
+}
+
 function addSkill(skill, totalSkill) {
-  if (skillPointsLeft === 0){
-  } else if (form.occupation[skill] === "0" && skillForm[skill] === Math.floor((Number(form.level) + 3) / 2)) {  
-  } else if (form.occupation[skill] === "1" && skillForm[skill] === Math.floor(Number(form.level) + 3)){
+  if (totalSkillPointsLeft === 0){
+  } else if (skillKnown[skill] === "0" && skillForm[skill] === Math.floor((Number(totalLevel) + 3) / 2)) {  
+  } else if (skillKnown[skill]  === "1" && skillForm[skill] === Math.floor(Number(totalLevel) + 3)){
   } else {
   skillForm[skill]++;
   skillTotalForm[skill]++;
-  skillPointsLeft--;
+  totalSkillPointsLeft--;
   document.getElementById(skill).innerHTML = skillForm[skill];
   document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 function removeSkill(skill, totalSkill) {
@@ -994,10 +1073,10 @@ function removeSkill(skill, totalSkill) {
   } else {
   skillForm[skill]--;
   skillTotalForm[skill]--;
-  skillPointsLeft++;
+  totalSkillPointsLeft++;
   document.getElementById(skill).innerHTML = skillForm[skill];
   document.getElementById(totalSkill).innerHTML = skillTotalForm[skill];
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 // New Added Skills Button Control
@@ -1025,24 +1104,24 @@ async function addUpdatedSkillToDb(){
  navigate(0);
 }
 function addSkillNew(skill) {  
-  if (skillPointsLeft === 0){
-  } else if (newSkillForm[skill] === Math.floor(Number(form.level) + 3)){
+  if (totalSkillPointsLeft === 0){
+  } else if (newSkillForm[skill] === Math.floor(Number(totalLevel) + 3)){
   } else {
   newSkillForm[skill]++;
-  skillPointsLeft--;
+  totalSkillPointsLeft--;
   document.getElementById(skill).innerHTML = newSkillForm[skill];
   document.getElementById(skill + "total").innerHTML = newSkillForm[skill] + intMod;
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 function removeSkillNew(skill, rank) {
   if (Number(newSkillForm[skill]) === Number(rank)){
   } else {
   newSkillForm[skill]--;
-  skillPointsLeft++;
+  totalSkillPointsLeft++;
   document.getElementById(skill).innerHTML = newSkillForm[skill];
   document.getElementById(skill + "total").innerHTML = newSkillForm[skill] + intMod;
-  document.getElementById("skillPointLeft").innerHTML = skillPointsLeft;
+  document.getElementById("skillPointLeft").innerHTML = totalSkillPointsLeft;
   }
 };
 //--------------------------------------------Weapons Section-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -1055,6 +1134,10 @@ const [addWeapon, setAddWeapon] = useState({
 const [showWeapons, setShowWeapons] = useState(false);
 const handleCloseWeapons = () => setShowWeapons(false);
 const handleShowWeapons = () => setShowWeapons(true);
+const [chosenWeapon, setChosenWeapon] = useState('');
+const handleChosenWeaponChange = (e) => {
+    setChosenWeapon(e.target.value);
+}; 
 function updateWeapon(value) {
   return setAddWeapon((prev) => {
     return { ...prev, ...value };
@@ -1181,6 +1264,10 @@ const [addArmor, setAddArmor] = useState({
 const [showArmor, setShowArmor] = useState(false);
 const handleCloseArmor = () => setShowArmor(false);
 const handleShowArmor = () => setShowArmor(true);
+const [chosenArmor, setChosenArmor] = useState('');
+const handleChosenArmorChange = (e) => {
+    setChosenArmor(e.target.value);
+}; 
 function updateArmor(value) {
   return setAddArmor((prev) => {
     return { ...prev, ...value };
@@ -1332,6 +1419,10 @@ const handleShowNotes = () => setShowNotes(true);
 const [showItems, setShowItems] = useState(false);
 const handleCloseItems = () => setShowItems(false);
 const handleShowItems = () => setShowItems(true);
+const [chosenItem, setChosenItem] = useState('');
+const handleChosenItemChange = (e) => {
+    setChosenItem(e.target.value);
+}; 
 
 function updateItem(value) {
   return setAddItem((prev) => {
@@ -1464,6 +1555,10 @@ const handleShowFeatNotes = () => setShowFeatNotes(true);
 const [showFeats, setShowFeats] = useState(false);
 const handleCloseFeats = () => setShowFeats(false);
 const handleShowFeats = () => setShowFeats(true);
+const [chosenFeat, setChosenFeat] = useState('');
+const handleChosenFeatChange = (e) => {
+    setChosenFeat(e.target.value);
+};
 
 function updateFeat(value) {
   return setAddFeat((prev) => {
@@ -1477,7 +1572,7 @@ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","",""
 } else {
    featLength = form.feat.length 
   }
-let featPointsLeft = Math.floor((form.level / 3) - (featLength)) + 1;
+let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
 
   let showFeatBtn = "";
   let featGold = "gold";
@@ -1609,7 +1704,43 @@ const handleBonusActionSelect = (bonusAction) => {
   // Perform the logic associated with the selected bonus action
 };
 
+const [selectedHoldDown, setSelectedHoldDown] = useState(null);
+ const [timerId, setTimerId] = useState(null);
 
+ // Function to open the modal and set the selected action with a timer delay
+ const handleActionMouseDown = (action) => {
+   const id = setTimeout(() => {
+     setSelectedHoldDown(action);
+   }, 250); // quarter-second delay
+   setTimerId(id);
+ };
+
+ // Function to clear the timer
+ const clearTimer = () => {
+   if (timerId) {
+     clearTimeout(timerId);
+     setTimerId(null);
+   }
+ };
+
+ // Function to close the modal
+ const handleCloseModal = () => {
+   setSelectedHoldDown(null);
+ };
+
+const holdDownHealth = {name: 'Health Bar', description: "This will display your current health and help you track it during combat."};
+const holdDownMove = {name: 'Move', description: "Click this when you use your move action for the turn to keep track."};
+const holdDownAction = {name: 'Action', description: "When you perform an action, it disables this for the turn. You can also click it if the action wasn't listed."};
+const holdDownBonusAction = {name: 'Bonus Action', description: "When you perform an bonus action, it disables this for the turn. You can also click it if the action wasn't listed."};
+const holdDownReset = {name: 'Reset', description: "This will reset your actions for your next turn."};
+const holdDownCharInfo = {name: 'Character Info', description: 'Here, you can find information about your character, such as their level, occupation, and physical attributes. There is also an option to level up.'};
+const holdDownStat = {name: 'Stats', description: 'This page displays your ability scores for strength, dexterity, constitution, intelligence, wisdom, and charisma.You also receive an additional ability score point to allocate every 4 levels.'};
+const holdDownSkill = {name: 'Skills', description: 'This page contains all your skills. When rolling for a skill, add the associated bonus to your dice roll to determine the total result. You will receive additional skill points to allocate with each level.'};
+const holdDownFeat = {name: 'Feats', description: 'This page contains your feats. You gain an additional feat at level one and every three levels thereafter to allocate.'};
+const holdDownWeapon = {name: 'Weapons', description: 'This page contains information about your weapons and their associated stats. You can also add new weapons to your character on this page.'};
+const holdDownArmor = {name: 'Armors', description: 'This page contains information about your armors and their stats. You can also add new armor to your character on this page.'};
+const holdDownItem = {name: 'Items', description: "This page contains your character's extra items and their stats. The bonuses from these items will automatically be added to your character's stats or skills, if applicable."};
+const holdDownInfo = {name: 'Info', description: "This tab provides app usage instructions."};
 
 
 const availableActions = [
@@ -1660,35 +1791,237 @@ const handleBonus = () => {
 //--------------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------------------------------
 const [showLvlModal, setShowLvlModal] = useState(false);
 
-const handleCloseLvlModal = () => setShowLvlModal(false);
+  // State variable to track the selected occupation
+  const [chosenOccupation, setChosenOccupation] = useState('');
+
+  // Function to handle changes in the occupation selection
+  const handleChosenOccupationChange = (e) => {
+    setChosenOccupation(e.target.value);
+  };
+
+const handleCloseLvlModal = () => {setChosenOccupation(''); setShowLvlModal(false);};
 const handleShowLvlModal = () => setShowLvlModal(true);
+const selectedOccupationRef = useRef(); // Create a ref to hold the selected occupation
 
-const levelForm = {
-  level: Number(form.level) + 1,
-  health: Math.floor(Math.random() * Number(form.occupation.Health)) + 1 + Number(form.health),  
+const [levelForm, setLevelForm] = useState({
+  selectedOccupation: "",
+  level: "",
+  health: "",
+});
+
+// Sends level update to database
+async function levelUpdate() {
+  const selectedOccupation = selectedOccupationRef.current.value;
+  const selectedOccupationObject = form.occupation.find(
+    (occupation) => occupation.Occupation === selectedOccupation
+  );
+
+  // Calculate level and health based on the selected occupation
+  const newLevel = Number(selectedOccupationObject.Level) + 1;
+  const newHealth = Math.floor(Math.random() * Number(selectedOccupationObject.Health)) + 1 + Number(form.health);
+
+  // Update the levelForm state, and perform the database update inside the callback
+  setLevelForm((prevState) => {
+    const updatedLevelForm = {
+      ...prevState,
+      selectedOccupation: selectedOccupation,
+      level: newLevel,
+      health: newHealth,
+    };
+
+    // Perform the database update here
+    fetch(`/update-level/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedLevelForm),
+    })
+      .then(() => {
+        console.log("Database update complete");
+        navigate(0);
+      })
+      .catch((error) => {
+        // Handle errors here
+        console.error(error);
+      });
+
+    return updatedLevelForm; // Return the updated state
+  });
 }
+// ------------------------------Add occupation------------------------------
+const [showAddClassModal, setShowAddClassModal] = useState(false);
+const [selectedOccupation, setSelectedOccupation] = useState(null);
+const selectedAddOccupationRef = useRef();
 
- // Sends level update to database
- async function levelUpdate(){
-  const updatedLevel = { ...levelForm };
-    await fetch(`/update-level/${params.id}`, {
+const [getOccupation, setGetOccupation] = useState([]);
+const [chosenAddOccupation, setChosenAddOccupation] = useState('');
+
+const handleAddOccupationClick = () => {
+  setShowAddClassModal(true);
+  setChosenAddOccupation('');
+};
+
+const handleOccupationChange = (event) => {
+  const selectedIndex = event.target.selectedIndex;
+  setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
+  setChosenAddOccupation(event.target.value);
+};
+
+const handleConfirmClick = () => {
+  if (selectedOccupation) {
+    const selectedAddOccupation = selectedAddOccupationRef.current.value;
+    const selectedAddOccupationObject = getOccupation.find(
+      (occupation) => occupation.Occupation === selectedAddOccupation
+    );
+
+    const addOccupationHealth = Math.floor(Math.random() * Number(selectedAddOccupationObject.Health)) + 1 + Number(form.health);
+    const addOccupationStrTotal = Number(selectedAddOccupationObject.str) + Number(form.str);
+    const addOccupationDexTotal  = Number(selectedAddOccupationObject.dex) + Number(form.dex);
+    const addOccupationConTotal  = Number(selectedAddOccupationObject.con) + Number(form.con);
+    const addOccupationIntTotal  = Number(selectedAddOccupationObject.int) + Number(form.int);
+    const addOccupationWisTotal  = Number(selectedAddOccupationObject.wis) + Number(form.wis);
+    const addOccupationChaTotal  = Number(selectedAddOccupationObject.cha) + Number(form.cha);
+    
+    const addOccupationStr = Number(selectedAddOccupationObject.str);
+    const addOccupationDex  = Number(selectedAddOccupationObject.dex);
+    const addOccupationCon  = Number(selectedAddOccupationObject.con);
+    const addOccupationInt  = Number(selectedAddOccupationObject.int);
+    const addOccupationWis  = Number(selectedAddOccupationObject.wis);
+    const addOccupationCha  = Number(selectedAddOccupationObject.cha);
+
+    const totalNewStats = addOccupationStr + addOccupationDex + addOccupationCon + addOccupationInt
+    + addOccupationWis + addOccupationCha;
+
+    const newStartStatTotal = Number(totalNewStats) + Number(form.startStatTotal);
+  
+    // Push the selected occupation into form.occupation
+    form.occupation.push(selectedOccupation);
+    
+    // Perform the database update here
+    fetch(`/update-health/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify({ 
+        health: addOccupationHealth,
+        str: addOccupationStrTotal,
+        dex: addOccupationDexTotal,
+        con: addOccupationConTotal,
+        int: addOccupationIntTotal,
+        wis: addOccupationWisTotal,
+        cha: addOccupationChaTotal,
+        startStatTotal: newStartStatTotal
+       }), // Send as a JSON object
+    })
+      .then(() => {
+        console.log("Database update complete");
+      })
+      .catch((error) => {
+        // Handle errors here
+        console.error(error);
+      });
+    
+    // Perform the database update with the entire form.occupation array
+    fetch(`/update-occupations/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(form.occupation), // Send the array directly
+    })
+      .then(() => {
+        console.log("Database update complete");
+        navigate(0);
+      })
+      .catch((error) => {
+        // Handle errors here
+        console.error(error);
+      });
+    
+    setShowAddClassModal(false);
+  } else {
+    alert('Please select an occupation.');
+  }
+};
+
+  // Fetch Occupations
+  useEffect(() => {
+    async function fetchData() {
+      const response = await fetch(`/occupations`);    
+  
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        window.alert(message);
+        return;
+      }
+  
+      const record = await response.json();
+      if (!record) {
+        window.alert(`Record not found`);
+        navigate("/");
+        return;
+      }
+  
+      setGetOccupation(record);
+    }
+    fetchData();   
+    return;
+    
+  }, [navigate]);
+
+//-------------------------------------------Help Module--------------------------------------------------------------------
+const [showHelpModal, setShowHelpModal] = useState(false);
+
+const handleCloseHelpModal = () => setShowHelpModal(false);
+const handleShowHelpModal = () => setShowHelpModal(true);
+// Color Picker
+
+document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
+const colorPickerRef = useRef(null);
+const [newColor, setNewColor] = useState(form.diceColor);
+
+useEffect(() => {
+  const colorPicker = colorPickerRef.current;
+
+  if (colorPicker) {
+    colorPicker.addEventListener('input', (e) => {
+      const selectedColor = e.target.value;
+      setNewColor(selectedColor); // Update the state with the new color
+      document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+    });
+  }
+}, []); // Empty dependency array ensures this runs after component mounts
+
+const handleColorChange = (e) => {
+  const selectedColor = e.target.value;
+  setNewColor(selectedColor); // Update the state with the new color
+  document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+};
+
+const opacity = 0.85;
+// Calculate RGBA color with opacity
+const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
+
+// Apply the calculated RGBA color to the element
+document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
+
+ // Sends dice color update to database
+ async function diceColorUpdate(){
+    await fetch(`/update-dice-color/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
      },
-     body: JSON.stringify(updatedLevel),
+     body: JSON.stringify({diceColor: newColor}),
    })
    .catch(error => {
     //  window.alert(error);
      return;
    });
    navigate(0);
- }
-//-------------------------------------------Help Module--------------------------------------------------------------------
-const [showHelpModal, setShowHelpModal] = useState(false);
-
-const handleCloseHelpModal = () => setShowHelpModal(false);
-const handleShowHelpModal = () => setShowHelpModal(true);
+ } 
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
 <center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
@@ -1700,8 +2033,8 @@ return (
       <strong className="mx-2">Initiative: {dexMod}</strong>
       </h6>
 {/*------------------------------------------------------------ Health Bar -----------------------------------------------------------------------------*/}
-      <div className="health-bar" style={healthBar}>
-        <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * form.level)}</div>
+      <div onTouchStart={() => handleActionMouseDown(holdDownHealth)} onTouchEnd={() => clearTimer()}  className="health-bar" style={healthBar}>
+        <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * totalLevel)}</div>
       </div>
       <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-start bg-transparent fa-solid fa-minus" onClick={decreaseHealth}></Button>
       <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-end bg-transparent fa-solid fa-plus" onClick={increaseHealth}></Button>  
@@ -1715,10 +2048,26 @@ return (
       <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}} className="zombiesActionItem mx-2">      
         {/* <Card.Title style={{ fontSize: 25}}>Actions Left</Card.Title> */}
         <div>
-          <Button onClick={handleMove} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "-80px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
-          <Button onClick={handleAction} className="mx-1 fas fa-circle" style={{ marginTop: "-80px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
-          <Button onClick={handleBonus} className="mx-1 fas fa-square" style={{ marginTop: "-80px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
-          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "-80px", color: "#f71818" }} variant="secondary"></Button>
+          <Button onClick={handleMove} onTouchStart={() => handleActionMouseDown(holdDownMove)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-shoe-prints" style={{ marginTop: "-80px", color: moveActive ? "black" : "#3de6d2" }} variant="secondary"></Button>
+          <Button onClick={handleAction} onTouchStart={() => handleActionMouseDown(holdDownAction)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-circle" style={{ marginTop: "-80px", color: actionActive || isActionSelected ? "black" : "#7bf94d" }} variant="secondary" disabled={isActionSelected}></Button>
+          <Button onClick={handleBonus} onTouchStart={() => handleActionMouseDown(holdDownBonusAction)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-square" style={{ marginTop: "-80px", color: bonusActive || isBonusActionSelected ? "black" : "#ffb30f" }} variant="secondary" disabled={isBonusActionSelected}></Button>
+          <Button onClick={() => {handleAction(); handleBonus(); handleMove();}} onTouchStart={() => handleActionMouseDown(holdDownReset)} onTouchEnd={() => clearTimer()} className="mx-1 fas fa-arrows-rotate" style={{ marginTop: "-80px", color: "#f71818" }} variant="secondary"></Button>
+    {/* Modal to display name and description */}
+    <Modal {...props}
+      centered 
+      show={selectedHoldDown !== null} onHide={handleCloseModal}>
+        <Modal.Header closeButton>
+          <Modal.Title id="contained-modal-title-vcenter">Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedHoldDown && (
+            <div>
+              <h3>{selectedHoldDown.name}</h3>
+              <p>{selectedHoldDown.description}</p>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     <PlayerTurnActions
       actions={availableActions}
       bonusActions={availableBonusActions}
@@ -1736,25 +2085,24 @@ return (
         <Container>
           <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
             <div>
-            <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
-            <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
-            <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
-            <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
-            <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
-            <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
-            <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
+            <Button onTouchStart={() => handleActionMouseDown(holdDownCharInfo)} onTouchEnd={() => clearTimer()} onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>     
+            <Button onTouchStart={() => handleActionMouseDown(holdDownStat)} onTouchEnd={() => clearTimer()} onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statGold}} className="mx-1 fas fa-scroll" variant="secondary"></Button> 
+            <Button onTouchStart={() => handleActionMouseDown(holdDownSkill)} onTouchEnd={() => clearTimer()} onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownFeat)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowFeats(); setChosenFeat('');}} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownWeapon)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowWeapons(); setChosenWeapon('');}} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
+            <Button onTouchStart={() => handleActionMouseDown(holdDownArmor)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowArmor(); setChosenArmor('');}} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-shield" variant="secondary"></Button>  
+            <Button onTouchStart={() => handleActionMouseDown(holdDownItem)} onTouchEnd={() => clearTimer()} onClick={() => {handleShowItems(); setChosenItem('');}} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>             
  {/* ----------------------------------Help Button-------------------------------------------------- */}
-            <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
+            <Button onTouchStart={() => handleActionMouseDown(holdDownInfo)} onTouchEnd={() => clearTimer()} onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fa-solid fa-info" variant="primary"></Button>
             </div>
             <Modal  {...props}
                   size="lg"
                   aria-labelledby="contained-modal-title-vcenter"
                   centered
                   className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
-                    <Modal.Header closeButton>
-          <Modal.Title>Help</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
+          <center>
+          <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+          <Card.Body>
           Actions Left (from left to right)
           <br></br>
           Move, Action, Bonus Action, Reset
@@ -1766,7 +2114,30 @@ return (
           <br></br>
           <br></br>
           If you are on pc click the button or hover over it to see what it does!
-          </Modal.Body>
+          <div className="table-container">
+          <Table striped bordered hover size="sm" className="custom-table">
+            <thead>
+              <tr>
+                <td className="center-td">
+                  <strong>Change Dice Color:</strong>
+                </td>
+                <td className="center-td">
+                  <input
+                    type="color"
+                    id="colorPicker"
+                    ref={colorPickerRef}
+                    value={newColor}
+                    onChange={handleColorChange}
+                  />
+                </td>
+                <td className="center-td">
+                  <Button onClick={diceColorUpdate} className="bg-warning fa-solid fa-floppy-disk"></Button>
+                </td>
+              </tr>
+            </thead>
+          </Table>  
+          </div>      
+          </Card.Body>
           <Modal.Footer className="justify-content-between">
           <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>
           </Button>
@@ -1774,16 +2145,17 @@ return (
             Close
           </Button>
           </Modal.Footer>
+          </Card>
+          </center>
           </Modal>
           <Modal  {...props}
                   size="lg"
                   aria-labelledby="contained-modal-title-vcenter"
                   centered
                   className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
-                    <Modal.Header closeButton>
-          <Modal.Title>Are you sure you want to delete your character?
-          </Modal.Title>
-          </Modal.Header>
+        <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+          <Card.Title>Are you sure you want to delete your character?</Card.Title>
           <Modal.Footer className="justify-content-between">
           <Button variant="danger" onClick={() => { deleteRecord(); }}>
             Im Sure
@@ -1792,6 +2164,8 @@ return (
             Close
           </Button>
           </Modal.Footer>
+          </Card>
+          </center>
         </Modal>
         </Nav>
         </Container>
@@ -1808,13 +2182,16 @@ return (
         <thead>
           <tr>
           <th>Level</th>
-          <td>{form.level}</td>
+          <td>{totalLevel}</td>
           </tr>
         </thead>
         <thead>
           <tr>
           <th>Occupation</th>
-          <td>{form.occupation.Occupation}</td>
+          <td>{form.occupation.map((el, i) => (
+            <span key={i}>{el.Level + " " + el.Occupation}<br></br></span>
+            ))}
+          </td>
           </tr>
         </thead>
         <thead>
@@ -1844,7 +2221,7 @@ return (
           </Table>
 {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
   <center>
-  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1" variant="secondary"></Button>
+  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1 mb-3" variant="secondary"></Button>
   </center>
     <Modal size="sm"
           centered
@@ -1854,9 +2231,9 @@ return (
         <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
         <Card.Title>Level Up</Card.Title>
         <Card.Body> 
-        Level: {form.level} {'\u2192'} Level: {Number(form.level) + 1}
+        Level: {totalLevel} {'\u2192'} Level: {Number(totalLevel) + 1}
   <br></br>
-  HP: {form.health + Number(conMod * form.level)} {'\u2192'} HP: {levelForm.health + Number(conMod * (form.level + 1))}
+  HP: {form.health + Number(conMod * totalLevel)} {'\u2192'} HP: {levelForm.health + Number(conMod * (totalLevel + 1))}
   <br></br>
   Attack Bonus: {atkBonus} {'\u2192'} {atkBonusNext}
   <br></br>
@@ -1866,28 +2243,78 @@ return (
   <br></br>
   Reflex Save: {reflexSave} {'\u2192'} {reflexSaveNext}
         </Card.Body>
-  {/* <Form onSubmit={addFeatToDb}>
-    <Form.Group className="mb-3 mx-5">
-  <Form.Label className="text-dark">Select Occupation</Form.Label>
-  <Form.Select 
-  onChange={(e) => updateFeat({ feat: e.target.value })}
-   type="text">
-    <option></option>
-    {form.occupation.map((el) => (  
-    <option>{el.Occupation}</option>
-    ))}
-  </Form.Select>
-</Form.Group>
-  <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-    </Form> */}
-  <Modal.Footer>
-    <Button variant="secondary" onClick={handleCloseLvlModal}>
-      Close
-    </Button>
-    <Button variant="primary" onClick={() => {handleCloseLvlModal(); levelUpdate();}}>
-      Confirm
-    </Button>
-  </Modal.Footer>
+        {/* -------------------Choose new occupation--------------------------- */}
+        <Form>
+        <Button
+        className="rounded-pill bg-warning"
+        variant="outline-dark"
+        onClick={handleAddOccupationClick}
+      >
+        Add Occupation
+      </Button>
+      <Modal centered show={showAddClassModal} onHide={() => setShowAddClassModal(false)}>
+      <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card.Body>
+          <Form.Group className="mb-3 mx-5">
+            <Form.Label className="text-dark">Select Occupation</Form.Label>
+            <Form.Select
+              ref={selectedAddOccupationRef}
+              onChange={handleOccupationChange}
+              defaultValue=""
+            >
+              <option value="" disabled>Select your occupation</option>
+              {getOccupation.map((occupation, i) => (
+                <option key={i}>{occupation.Occupation}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Card.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {setShowAddClassModal(false); setChosenAddOccupation('');}}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleConfirmClick}  disabled={!chosenAddOccupation}>
+            Confirm
+          </Button>
+        </Modal.Footer>
+        </Card>
+        </center>
+      </Modal>
+      </Form>
+      {/*-------------------------Level up known occupation-------------------------  */}
+  <Form onSubmit={() => {handleCloseLvlModal();
+     levelUpdate();
+     }}>
+      <br />
+      <span>or</span>
+      <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-dark">Select Occupation</Form.Label>
+        <Form.Select
+          ref={selectedOccupationRef}
+          defaultValue=""
+          onChange={handleChosenOccupationChange} // Add onChange event handler
+        >
+          <option value="" disabled>Select your occupation</option>
+          {form.occupation.map((occupation, i) => (
+            <option key={i}>{occupation.Occupation}</option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleCloseLvlModal}>
+          Close
+        </Button>
+        <Button
+          variant="primary"
+          type="submit"
+          disabled={!chosenOccupation} // Disable the button if no occupation is selected
+        >
+          Level Up
+        </Button>
+      </Modal.Footer>
+    </Form>
   </Card>
   </center>
 </Modal>
@@ -1981,7 +2408,7 @@ return (
        <center>
         <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
         <Card.Title>Skills</Card.Title>
-        <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{skillPointsLeft}</span></Card.Title>
+        <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
         <thead>
           <tr>
@@ -2235,7 +2662,7 @@ return (
             <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill('useRope', "totalUseRope")} className="fa-solid fa-plus"></Button></td>
           </tr>
           {form.newSkill.map((el) => (  
-            <tr style={{display: showSkills}}>           
+            <tr key={el[0]} style={{display: showSkills}}>           
               <td><Button size="sm" style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
               <td>{el[0]}</td>
               <td><span id={el[0] + "total"}>{Number(el[1]) + intMod}</span></td>
@@ -2264,44 +2691,56 @@ return (
         ></Button>
       </div>
     </Card>   
-      <Modal show={showAddSkill} onHide={handleCloseAddSkill}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Skill</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-        <center>
-      <Form 
-      onSubmit={addSkillToDb} 
-      className="px-5">
-      <Form.Group className="mb-3 pt-3" >
-      <Form.Label className="text-dark">Skill</Form.Label>
-       <Form.Control className="mb-2" 
-       onChange={(e) => updateNewSkill({ skill: e.target.value })}
-        type="text" placeholder="Enter Skill" />
-      <Form.Label className="text-dark">Skill Type</Form.Label>
-       <Form.Select className="mb-2" 
-       onChange={(e) => updateAddSkill({ newSkill: e.target.value })}
-        type="text">
-        <option></option>
-        <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option> 
-        <option value={["Craft " + newSkill.skill, 0]}>Craft</option> 
-        </Form.Select>
-         </Form.Group>
-     <center>
-     <Button variant="primary" onClick={handleCloseAddSkill} type="submit">
-            Create
-          </Button>
-          <Button className="ms-4" variant="secondary" onClick={handleCloseAddSkill}>
-            Close
-          </Button>
-          </center>
-     </Form>
-     </center>
-        </Modal.Body>
+    </center>
+      <Modal show={showAddSkill} onHide={handleCloseAddSkill} centered>
+      <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card.Body>
+        <Form onSubmit={addSkillToDb} className="px-5">
+  <Form.Group className="mb-3 pt-3">
+    <Form.Label className="text-dark">Skill</Form.Label>
+    <Form.Control
+      className="mb-2"
+      onChange={(e) => updateNewSkill({ skill: e.target.value })}
+      type="text"
+      placeholder="Enter Skill"
+    />
+    <Form.Label className="text-dark">Skill Type</Form.Label>
+    <Form.Select
+      className="mb-2"
+      onChange={(e) => {
+        const newSkill = e.target.value;
+        updateAddSkill({ newSkill });
+        handleChosenSkillChange(e);
+      }}
+      defaultValue=""
+      type="text"
+    >
+      <option value="" disabled>
+        Select skill type
+      </option>
+      <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option>
+      <option value={["Craft " + newSkill.skill, 0]}>Craft</option>
+    </Form.Select>
+  </Form.Group>
+  <Button variant="secondary" onClick={handleCloseAddSkill}>
+    Close
+  </Button>
+  <Button
+    disabled={!chosenSkill || !newSkill.skill} // Disable when either field is empty
+    className="ms-4"
+    variant="primary"
+    type="submit"
+  >
+    Create
+  </Button>
+</Form>
+     </Card.Body>
         <Modal.Footer>
         </Modal.Footer>
+        </Card>
+        </center>
       </Modal>
-      </center>
 </Modal>
  {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
  <Modal show={showFeats} onHide={handleCloseFeats}
@@ -2323,7 +2762,7 @@ return (
           </thead>
           <tbody>
           {form.feat.map((el) => (  
-            <tr>           
+            <tr key={el[0]}>           
               <td>{el[0]}</td>
               <td style={{ display: showDeleteFeatBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowFeatNotes(); setModalFeatData(el);}}></Button></td>
               <td style={{ display: showDeleteFeatBtn}}>
@@ -2380,11 +2819,12 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Feat</Form.Label>
         <Form.Select 
-        onChange={(e) => updateFeat({ feat: e.target.value })}
+        onChange={(e) => {updateFeat({ feat: e.target.value }); handleChosenFeatChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your feat</option>
           {feat.feat.map((el) => (  
-          <option value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
+          <option key={el.featName} value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
           el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, el.disguise, el.escapeArtist, 
           el.forgery, el.gatherInfo, el.handleAnimal, el.heal, el.hide, el.intimidate, el.jump, el.listen, 
           el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, 
@@ -2392,21 +2832,23 @@ return (
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenFeat} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
       </Card> 
-      <Modal show={showFeatNotes} onHide={handleCloseFeatNotes}>
-        <Modal.Header closeButton>
-          <Modal.Title>{modalFeatData[0]}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{modalFeatData[1]}</Modal.Body>
+      <Modal show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
+        <center>
+        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+          <Card.Title>{modalFeatData[0]}</Card.Title>
+        <Card.Body>{modalFeatData[1]}</Card.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseFeatNotes}>
             Close
           </Button>
         </Modal.Footer>
+        </Card>
+        </center>
       </Modal>
 </center>
 </Modal>
@@ -2431,7 +2873,7 @@ return (
           </thead>
           <tbody>
             {form.weapon.map((el) => (  
-            <tr>
+            <tr key={el[0]}>
               <td>{el[0]}</td>             
               <td style={{display: showAtkBonusSave}}>
                {(() => {
@@ -2466,15 +2908,16 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Weapon</Form.Label>
         <Form.Select 
-        onChange={(e) => updateWeapon({ weapon: e.target.value })}
+        onChange={(e) => {updateWeapon({ weapon: e.target.value }); handleChosenWeaponChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your weapon</option>
           {weapon.weapon.map((el) => (  
-          <option value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
+          <option key={el.weaponName} value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenWeapon} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
@@ -2501,7 +2944,7 @@ return (
           </thead>
           <tbody>
           {form.armor.map((el) => (  
-            <tr>           
+            <tr key={el[0]}>           
               <td>{el[0]}</td>
               <td>{el[1]}</td>
               <td>{el[2]}</td>
@@ -2517,15 +2960,16 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Armor</Form.Label>
         <Form.Select 
-        onChange={(e) => updateArmor({ armor: e.target.value })}
+        onChange={(e) => {updateArmor({ armor: e.target.value }); handleChosenArmorChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your armor</option>
           {armor.armor.map((el) => (  
-          <option value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
+          <option key={el.armorName} value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenArmor} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
@@ -2552,7 +2996,7 @@ return (
           </thead>
           <tbody>
           {form.item.map((el) => (  
-            <tr>           
+            <tr key={el[0]}>           
               <td>{el[0]}</td>
               <td style={{ display: showDeleteItemBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
               <td style={{ display: showDeleteItemBtn}}>
@@ -2628,11 +3072,12 @@ return (
           <Form.Group className="mb-3 mx-5">
         <Form.Label className="text-dark">Select Item</Form.Label>
         <Form.Select 
-        onChange={(e) => updateItem({ item: e.target.value })}
+        onChange={(e) => {updateItem({ item: e.target.value }); handleChosenItemChange(e);}}
+        defaultValue=""
          type="text">
-          <option></option>
+          <option value="" disabled>Select your item</option>
           {item.item.map((el) => (  
-          <option value={[el.itemName, el.notes, el.str, el.dex, el.con, el.int, el.wis, el.cha,
+          <option key={el.itemName} value={[el.itemName, el.notes, el.str, el.dex, el.con, el.int, el.wis, el.cha,
           el.appraise, el.balance, el.bluff, el.climb, el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, 
           el.disguise, el.escapeArtist, el.forgery, el.gatherInfo, el.handleAnimal, el.heal, el.hide, el.intimidate, el.jump, 
           el.listen, el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, el.survival, 
@@ -2640,7 +3085,7 @@ return (
           ))}
         </Form.Select>
       </Form.Group>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenItem} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>

@@ -1,0 +1,9 @@
+{
+  "appId": "com.example.app",
+  "appName": "dnd",
+  "webDir": "client/build",
+  "server": {
+    "androidScheme": "https",
+    "url": "https://dndhelperapp-1b8e93a876a7.herokuapp.com/"
+  }
+}
