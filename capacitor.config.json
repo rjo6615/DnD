@@ -1,6 +1,6 @@
 {
   "appId": "com.example.app",
-  "appName": "dnd",
+  "appName": "DnD",
   "webDir": "client/build",
   "server": {
     "androidScheme": "https",
