@@ -23,7 +23,7 @@ function Home() {
       </center>
       <center>
         <h2 className="mt-5">Mobile Download</h2>
-        <Button href="../android-download/app-debug.apk" download className="mx-2">Android</Button>
+        <Button href="../android-download/DnD.apk" download className="mx-2">Android</Button>
         <Button href="/" className="mx-2" target="_blank" rel="noopener noreferrer">iOS</Button>
       </center>
     </div>
