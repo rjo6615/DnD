@@ -1963,7 +1963,6 @@ const handleConfirmClick = () => {
         navigate("/");
         return;
       }
-  
       setGetOccupation(record);
     }
     fetchData();   
@@ -2264,9 +2263,17 @@ return (
               defaultValue=""
             >
               <option value="" disabled>Select your occupation</option>
-              {getOccupation.map((occupation, i) => (
-                <option key={i}>{occupation.Occupation}</option>
-              ))}
+              {getOccupation.map((occupation, i) => {
+                const isOccupationSelected = form.occupation.some(
+                  (item) => item.Occupation === occupation.Occupation
+                );
+
+                return (
+                  <option key={i} disabled={isOccupationSelected}>
+                    {occupation.Occupation}
+                  </option>
+                );
+              })}
             </Form.Select>
           </Form.Group>
         </Card.Body>
