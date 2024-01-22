@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
@@ -89,22 +89,35 @@ useEffect(() => {
     }
 
     setOccupation(record);
+    setGetOccupation(record);
   }
   fetchData();   
   return;
   
 }, [navigate]);
 
-//  Update the state properties.
-  function updateForm(value) {
-    return setForm((prev) => {
-      return { ...prev, ...value };
+// Update the state properties.
+function updateForm(value) {
+  return setForm((prev) => {
+    const updatedForm = { ...prev };
+
+    // Convert numeric values to numbers
+    Object.keys(value).forEach((key) => {
+      if (!isNaN(value[key])) {
+        updatedForm[key] = parseFloat(value[key]);
+      } else {
+        updatedForm[key] = value[key];
+      }
     });
-  }
+
+    return updatedForm;
+  });
+}
 
  // Function to handle submission.
  async function onSubmit(e) {
-  e.preventDefault();   
+  e.preventDefault(); 
+  setIsSubmitting(false);   
    sendToDb();
 }
 
@@ -200,20 +213,21 @@ useEffect(() => {
 }, [ form.occupation ]);
 
  // Sends form data to database
- async function sendToDb(){
-  const newCharacter = { ...form };
-    await fetch("/character/add", {
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify(newCharacter),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
- 
+   const sendToDb = useCallback(async () => {
+    const newCharacter = { ...form };
+    try {
+      await fetch("/character/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newCharacter),
+      });
+    } catch (error) {
+      window.alert(error);
+      return;
+    };
+   setIsSubmitting(false);
    setForm({
     characterName: "",
     campaign: "", 
@@ -268,8 +282,108 @@ useEffect(() => {
     newSkill: [["",0]],
     diceColor: "#000000",
   });
-   navigate(`/zombies-character-select/${form.campaign}`);
- }
+  navigate(`/zombies-character-select/${form.campaign}`);
+}, [form, setForm, navigate]); 
+
+//--------------------------------------------Create Character (Manual)---------------------
+const [show5, setShow5] = useState(false);
+const handleClose5 = () => setShow5(false);
+const handleShow5 = () => setShow5(true);
+
+const [selectedOccupation, setSelectedOccupation] = useState(null);
+const selectedAddOccupationRef = useRef();
+
+const [getOccupation, setGetOccupation] = useState([]);
+
+const handleOccupationChange = (event) => {
+  const selectedIndex = event.target.selectedIndex;
+  setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
+};
+
+const [isSubmitting, setIsSubmitting] = useState(false);
+const [isOccupationConfirmed, setIsOccupationConfirmed] = useState(false);
+
+const handleConfirmOccupation = () => {
+  if (selectedOccupation  && !isOccupationConfirmed) {
+    const selectedAddOccupation = selectedAddOccupationRef.current.value;
+    const occupationExists = form.occupation.some(
+      (occupation) => occupation.Occupation === selectedOccupation.Occupation
+    );
+    const selectedAddOccupationObject = getOccupation.find(
+      (occupation) => occupation.Occupation === selectedAddOccupation
+    );
+
+    if (!occupationExists) {
+
+    const addOccupationStr = Number(selectedAddOccupationObject.str) + Number(form.str);
+    const addOccupationDex = Number(selectedAddOccupationObject.dex) + Number(form.dex);
+    const addOccupationCon = Number(selectedAddOccupationObject.con) + Number(form.con);
+    const addOccupationInt = Number(selectedAddOccupationObject.int) + Number(form.int);
+    const addOccupationWis = Number(selectedAddOccupationObject.wis) + Number(form.wis);
+    const addOccupationCha = Number(selectedAddOccupationObject.cha) + Number(form.cha);
+
+    const totalNewStats =
+      addOccupationStr +
+      addOccupationDex +
+      addOccupationCon +
+      addOccupationInt +
+      addOccupationWis +
+      addOccupationCha;
+
+    // Push the selected occupation into form.occupation
+    form.occupation.push(selectedOccupation);
+    form.occupation.shift();
+
+    // Update the form state
+    updateForm({ startStatTotal: totalNewStats });
+    updateForm({ str: addOccupationStr });
+    updateForm({ dex: addOccupationDex });
+    updateForm({ con: addOccupationCon });
+    updateForm({ int: addOccupationInt });
+    updateForm({ wis: addOccupationWis });
+    updateForm({ cha: addOccupationCha });
+
+    // Set a flag to indicate that the occupation has been confirmed
+    setIsOccupationConfirmed(true);
+  }
+}
+};
+
+const sendManualToDb = useCallback(async() => {
+  const newCharacter = { ...form };
+  try {
+    // Call the API endpoint for manual character creation
+    // Adjust the endpoint URL as needed
+    await fetch("/character/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newCharacter),
+    });
+  } catch (error) {
+    window.alert(error);
+    return;
+  }
+  setIsSubmitting(false);
+  // Reset the form or perform any other necessary actions
+  navigate(`/zombies-character-select/${form.campaign}`);
+}, [form, setIsSubmitting, navigate]);
+
+// Function to handle submission for manual character creation.
+const onSubmitManual = (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  handleConfirmOccupation(); // Call handleConfirmOccupation when submitting the manual form
+};
+
+useEffect(() => {
+  if (isSubmitting) {
+    // Add any additional conditions here if needed
+    setIsSubmitting(false);
+    sendManualToDb();
+  }
+}, [isSubmitting, sendManualToDb]);
 
 //--------------------------------------------Campaign Section------------------------------
 
@@ -588,12 +702,12 @@ async function sendToDb4(){
     <Col xs={10} md={10} lg={10} xl={10}>
     <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
     <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
-    <Button className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
+    <Button onClick={() => { handleShow5();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
     <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
     <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
     <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
     </Col>   
-    {/* ---------------------------Modals------------------------------------------------------- */}
+    {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Create Random</Modal.Title>
@@ -625,7 +739,85 @@ async function sendToDb4(){
      </center>
      </Modal.Body>        
       </Modal>
-      {/* Create Campaign */}
+       {/* ---------------------------Create Character (Manual)------------------------------------------------------- */}
+    <Modal show={show5} onHide={handleClose5}>
+        <Modal.Header closeButton>
+          <Modal.Title>Create Manual</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>   
+        <center>
+      <Form 
+      onSubmit={onSubmitManual} 
+      className="px-5">
+      <Form.Group className="mb-3 pt-3">
+       <Form.Label className="text-dark">Character Name</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
+        type="text" placeholder="Enter character name" />        
+        <Form.Label className="text-dark">Select Campaign</Form.Label>
+        <Form.Select onChange={(e) => updateForm({ campaign: e.target.value })} type="text">
+          <option></option>
+          {campaign.campaign.map((el) => (  
+          <option key={el.campaignName}>{el.campaignName}</option>
+          ))};
+        </Form.Select>   
+        <Form.Label className="text-dark">Occupation</Form.Label>
+        <Form.Select
+              ref={selectedAddOccupationRef}
+              onChange={handleOccupationChange}
+              defaultValue=""
+            >
+              <option value="" disabled>Select your occupation</option>
+              {getOccupation.map((occupation, i) => (
+                <option key={i}>{occupation.Occupation}</option>
+              ))}
+            </Form.Select>  
+         <Form.Label className="text-dark">Age</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ age: e.target.value })}
+        type="number" placeholder="Enter age" />
+         <Form.Label className="text-dark">Sex</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ sex: e.target.value })}
+        type="text" placeholder="Enter sex" />
+        <Form.Label className="text-dark">Height</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ height: e.target.value })}
+        type="text" placeholder="Enter height" />
+        <Form.Label className="text-dark">Weight</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ weight: e.target.value })}
+        type="number" placeholder="Enter weight" />
+        <Form.Label className="text-dark">Strength</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ str: e.target.value })}
+        type="number" placeholder="Enter strength" />
+        <Form.Label className="text-dark">Dexterity</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ dex: e.target.value })}
+        type="number" placeholder="Enter dexterity" />
+        <Form.Label className="text-dark">Constitution</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ con: e.target.value })}
+        type="number" placeholder="Enter constitution" />
+        <Form.Label className="text-dark">Intellect</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ int: e.target.value })}
+        type="number" placeholder="Enter intellect" />
+        <Form.Label className="text-dark">Wisdom</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ wis: e.target.value })}
+        type="number" placeholder="Enter wisdom" />
+        <Form.Label className="text-dark">Charisma</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ cha: e.target.value })}
+        type="number" placeholder="Enter charisma" />
+        <Form.Label className="text-dark">Health</Form.Label>
+       <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
+        type="number" placeholder="Enter health" />
+     </Form.Group>
+     <center>
+     <Button variant="primary" onClick={handleClose5} type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={handleClose5}>
+            Close
+          </Button>
+          </center>
+     </Form>
+     </center>
+     </Modal.Body>        
+      </Modal>
+      {/* -----------------------------------Create Campaign--------------------------------------------- */}
       <Modal show={show1} onHide={handleClose1}>
         <Modal.Header closeButton>
           <Modal.Title>Create Campaign</Modal.Title>
