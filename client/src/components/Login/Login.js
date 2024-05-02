@@ -134,18 +134,18 @@ useEffect(() => {
 console.log(user);
 console.log(usernameCheck);
   return(
+    <div style={{backgroundImage: 'URL("./images/Dndbg.png")', backgroundSize: "cover", height: '100vh', backgroundPosition: 'center'}}>
     <center>
-       <MDBContainer className="my-5">
+<MDBContainer>
 <MDBRow>
   <MDBCol col='6' className="mb-5">
-    <div className="d-flex flex-column ms-5">
+    <div className="d-flex flex-column">
       <div className="text-center">
-        <img src="./images/Dndbg.png"
-          style={{width: '800px'}} alt="logo" />
-        <h4 className="mt-1 mb-5 pb-1" style={{fontFamily: "Shadows Into Light, cursive"}}><strong>DnD Helper App</strong></h4>
+        <h2 className="mt-5 mb-5 pb-1 text-light" style={{fontFamily: "Shadows Into Light, cursive"}}><strong>DnD Helper App</strong></h2>
       </div>
-      <p>Please login to your account</p>
-      <Form  className="w-100 mb-3" onSubmit={handleSubmit}>
+      <p className='text-light'>Please login to your account</p>
+      <center>
+      <Form  className="w-100 mb-3" style={{maxWidth: '200px'}} onSubmit={handleSubmit}>
      <Form.Group className="" controlId="formUsername">
        <Form.Label>Username</Form.Label>
        <Form.Control type="text"  onChange={e => setUserName(e.target.value)} placeholder="Enter username" />
@@ -158,11 +158,12 @@ console.log(usernameCheck);
       <Button className="mb-2 w-100" variant="primary" type="submit">
        Login
      </Button>
-        <a className="text-muted" href="#!">Forgot password?</a>
+        <a className="text-light" href="#!">Forgot password?</a>
       </div>
       </Form>
+      </center>
       <div className="d-flex flex-row align-items-center justify-content-center pb-4 mb-4">
-        <p className="mb-0">Don't have an account?</p>
+        <p className="mb-0 text-light">Don't have an account?</p>
         <Button variant="success" className="mx-2" onClick={() => {handleShow();}}>Sign up</Button>
       </div>
     </div>
@@ -201,6 +202,7 @@ console.log(usernameCheck);
      </Modal.Body>        
       </Modal> 
    </center>
+   </div>
       
   )
 }
