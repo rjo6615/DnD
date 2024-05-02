@@ -6,11 +6,20 @@ import Home from "./components/Home/Home";
 import Zombies from "./components/Zombies/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
 import ZombiesCharacterSelect from "./components/Zombies/ZombiesCharacterSelect";
+import Login from "./components/Login/Login";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
+import useToken from './useToken';
 
 function App() {
+  const { token, setToken } = useToken();
+
+  if(!token) {
+    return <Login setToken={setToken} />
+  }
+
+  
   return (
     <div   className="bg-image">
     <Router>

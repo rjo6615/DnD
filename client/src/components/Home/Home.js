@@ -1,5 +1,6 @@
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
+import { removeToken } from '../../useToken.js';
 
 function Home() {
   return (
@@ -25,6 +26,9 @@ function Home() {
         <h2 className="mt-5">Mobile Download</h2>
         <Button href="../android-download/DnD.apk" download className="mx-2">Android</Button>
         <Button href="/" className="mx-2" target="_blank" rel="noopener noreferrer">iOS</Button>
+      </center>
+      <center>
+      <a className="text-light text-decoration-none" href="/logout"><Button className="float-end" variant="secondary" onClick={removeToken}>logout</Button></a>
       </center>
     </div>
   );

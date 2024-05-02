@@ -611,3 +611,36 @@ db_connect.collection("Characters").updateOne(
   });
 });
    module.exports = routes;
+// -----------------------------------------------------------------Login-----------------------------------------------------------------------------
+
+routes.use('/login', (req, res) => {
+  res.send({
+    // token: bcrypt.hashSync(req.body.username, 10)
+    token: req.body.username
+  });
+});
+
+// This section will get a user
+routes.route("/users/:username/:password").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  let myquery = { username: req.params.username, password: req.params.password };
+  db_connect
+    .collection("users")
+    .findOne(myquery, function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+ // This section will create a new user
+ routes.route("/users/add").post(function (req, response) {
+  let db_connect = dbo.getDb();
+  let myobj = {
+    username: req.body.username,
+    password: req.body.password,
+  };
+  db_connect.collection("users").insertOne(myobj, function (err, res) {
+    if (err) throw err;
+    response.json(res);
+  });
+ });
