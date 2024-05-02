@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
-import { MDBFooter, MDBContainer, MDBRow, MDBCol, MDBIcon } from 'mdb-react-ui-kit';
+import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
 
 async function loginUser(credentials) {
  return fetch('/login', {
@@ -44,6 +44,7 @@ export default function Login({ setToken }) {
   e.preventDefault();  
   if (newUser.password === newUser.confirmPassword) {
     sendToDb();
+    alert("Account created!")
   } else {
     alert("Passwords do not match!");
   }
@@ -106,7 +107,8 @@ async function fetchData() {
 fetchData();
 return;
 }, [username, password]); 
-
+ 
+console.log(user);
   return(
     <center>
        <MDBContainer className="my-5">
