@@ -632,6 +632,18 @@ routes.route("/users/:username/:password").get(function (req, res) {
     });
  });
 
+ // This section will check for users
+routes.route("/users/:username").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  let myquery = { username: req.params.username };
+  db_connect
+    .collection("users")
+    .findOne(myquery, function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
  // This section will create a new user
  routes.route("/users/add").post(function (req, response) {
   let db_connect = dbo.getDb();

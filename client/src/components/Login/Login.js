@@ -22,6 +22,7 @@ export default function Login({ setToken }) {
   const handleShow = () => setShow(true);
   const [username, setUserName] = useState();
   const [password, setPassword] = useState();
+  const [usernameCheck, setUsernameCheck] = useState();
   const [user, setUser] = useState({
     username: "", 
     password: "",
@@ -41,8 +42,10 @@ export default function Login({ setToken }) {
 
   // Function to handle submission.
  async function onSubmit(e) {
-  e.preventDefault();  
-  if (newUser.password === newUser.confirmPassword) {
+  e.preventDefault();
+  if (user.username === usernameCheck) {
+    alert("Username already in use!");
+  } else if (newUser.password === newUser.confirmPassword) {
     sendToDb();
     alert("Account created!")
   } else {
@@ -107,8 +110,29 @@ async function fetchData() {
 fetchData();
 return;
 }, [username, password]); 
+
+useEffect(() => {
+  async function fetchDataUser() {
+    const response = await fetch(`/users/${usernameCheck}`);
+  
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      console.log(message);
+      return;
+    }
+  
+    const record = await response.json();
+    if (!record) {
+      return;
+    }
+    setUser(record);
+  }
+  fetchDataUser();
+  return;
+  }, [usernameCheck]); 
  
 console.log(user);
+console.log(usernameCheck);
   return(
     <center>
        <MDBContainer className="my-5">
@@ -152,9 +176,9 @@ console.log(user);
         <Modal.Body>   
       <Form onSubmit={onSubmit} className="px-5">
      
-     <Form.Group className="mb-3 pt-3" controlId="formExerciseName">
+     <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-dark">Username</Form.Label>
-       <Form.Control onChange={(e) => updateForm({ username: e.target.value })}
+       <Form.Control onChange={(e) => { updateForm({ username: e.target.value }); setUsernameCheck( e.target.value)}}
         type="text" placeholder="Enter username" />  
       
        <Form.Label className="text-dark">Password</Form.Label>
