@@ -27,9 +27,9 @@ function Home() {
         <Button href="../android-download/DnD.apk" download className="mx-2">Android</Button>
         <Button href="/" className="mx-2" target="_blank" rel="noopener noreferrer">iOS</Button>
       </center>
-      <center>
-      <a className="text-light text-decoration-none" href="/logout"><Button className="float-end" variant="secondary" onClick={removeToken}>logout</Button></a>
-      </center>
+      <div style={{ padding: 10 }}><center>
+      <a className="text-light text-decoration-none" href="/logout"><Button onClick={removeToken}>Logout</Button></a>
+      </center></div>
     </div>
   );
 }
