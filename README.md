@@ -4,16 +4,15 @@
 
 This project was used to further our understanding and to utilize many of the tools we were taught in class. We used MongoDb, Express, React, Nodejs, and Regex. The goal of the app is to be able to play a game of D&D as a player and have all the needed info presented to you in a concise and easily understood manner. We want for some things to really stream lined like character creation so players spend less time setting up and more time playing. 
 
-## Table of Contents
+## Acess
 
-- [Installation](#installation)
-- [Usage](#usage)
-- [Credits](#credits)
-- [License](#license)
+The landing page can be accessed following this link
 
-## Installation
+https://dndhelperapp-1b8e93a876a7.herokuapp.com/
 
-to view the site the user must go to (Under construction to be user based)
+The Url of the Github repository is here
+
+https://github.com/rjo6615/DnD
 
 ## Usage
 

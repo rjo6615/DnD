@@ -752,7 +752,7 @@ async function sendToDb4(){
       <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-dark">Character Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
-        type="text" placeholder="Enter character name" />        
+        type="text" placeholder="Enter character name max 12 characters" pattern="^([^0-9]{0,12})$"/>        
         <Form.Label className="text-dark">Select Campaign</Form.Label>
         <Form.Select onChange={(e) => updateForm({ campaign: e.target.value })} type="text">
           <option></option>
@@ -773,37 +773,37 @@ async function sendToDb4(){
             </Form.Select>  
          <Form.Label className="text-dark">Age</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ age: e.target.value })}
-        type="number" placeholder="Enter age" />
+        type="number" placeholder="Enter age" pattern="[0-9]*" />
          <Form.Label className="text-dark">Sex</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ sex: e.target.value })}
-        type="text" placeholder="Enter sex" />
+        type="text"  placeholder="Enter sex" pattern="[^0-9]+" />
         <Form.Label className="text-dark">Height</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ height: e.target.value })}
-        type="text" placeholder="Enter height" />
+        type="number" placeholder="Enter height in inches" pattern="[0-9]*" />
         <Form.Label className="text-dark">Weight</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ weight: e.target.value })}
-        type="number" placeholder="Enter weight" />
+        type="number" placeholder="Enter weight" pattern="[0-9]*" />
         <Form.Label className="text-dark">Strength</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ str: e.target.value })}
-        type="number" placeholder="Enter strength" />
+        type="number" placeholder="Enter strength" pattern="[0-9]*" />
         <Form.Label className="text-dark">Dexterity</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ dex: e.target.value })}
-        type="number" placeholder="Enter dexterity" />
+        type="number" placeholder="Enter dexterity" pattern="[0-9]*" />
         <Form.Label className="text-dark">Constitution</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ con: e.target.value })}
-        type="number" placeholder="Enter constitution" />
+        type="number" placeholder="Enter constitution" pattern="[0-9]*" />
         <Form.Label className="text-dark">Intellect</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ int: e.target.value })}
-        type="number" placeholder="Enter intellect" />
+        type="number" placeholder="Enter intellect" pattern="[0-9]*" />
         <Form.Label className="text-dark">Wisdom</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ wis: e.target.value })}
-        type="number" placeholder="Enter wisdom" />
+        type="number" placeholder="Enter wisdom" pattern="[0-9]*" />
         <Form.Label className="text-dark">Charisma</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ cha: e.target.value })}
-        type="number" placeholder="Enter charisma" />
+        type="number" placeholder="Enter charisma" pattern="[0-9]*" />
         <Form.Label className="text-dark">Health</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
-        type="number" placeholder="Enter health" />
+        type="number" placeholder="Enter health" pattern="[0-9]*" />
      </Form.Group>
      <center>
      <Button variant="primary" onClick={handleClose5} type="submit">
