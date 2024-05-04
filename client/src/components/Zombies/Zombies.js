@@ -392,8 +392,9 @@ useEffect(() => {
 const [form1, setForm1] = useState({ 
   campaignName: "", 
   gameMode: "zombies",
+  dm: token.token,
 });
-
+console.log(token.token)
 const [campaignSearch, setCampaignSearch] = useState({ 
   campaign: "", 
 });
@@ -458,7 +459,8 @@ async function onSubmit1(e) {
        window.alert(error);
        return;
      });
-   
+     console.log(newCampaign)
+
      setForm1({
       campaignName: "", 
       gameMode: "zombies",

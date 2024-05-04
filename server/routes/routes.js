@@ -136,6 +136,7 @@ routes.route("/campaign/add").post(function (req, response) {
   let myobj = {
   campaignName: req.body.campaignName,
   gameMode: req.body.gameMode,
+  dm: req.body.dm,
   };
   db_connect.collection("Campaigns").insertOne(myobj, function (err, res) {
     if (err) throw err;
