@@ -6,8 +6,10 @@ import { Link } from "react-router-dom";
 
 export default function ZombiesHome() {
   // --------------------------Random Character Creator Section------------------------------------
- const navigate = useNavigate();
+  const token = JSON.parse(localStorage.getItem('token'));
+  const navigate = useNavigate();
  const [form, setForm] = useState({ 
+  token: token.token,
   characterName: "", 
   campaign: "",
   occupation: [""], 

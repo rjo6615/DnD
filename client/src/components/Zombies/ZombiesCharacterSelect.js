@@ -8,10 +8,11 @@ export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
+  const token = JSON.parse(localStorage.getItem('token'));
 
   useEffect(() => {
     async function getRecords() {
-      const response = await fetch(`/campaign/${params.campaign}`);
+      const response = await fetch(`/campaign/${params.campaign}/${token.token}`);
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -26,7 +27,7 @@ export default function RecordList() {
     getRecords();
 
     return;
-  }, [params.campaign]);
+  }, [params.campaign, token.token]);
 
   const navigateToCharacter = (id) => {
     navigate(`/zombies-character-sheet/${id}`);

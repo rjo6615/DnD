@@ -33,6 +33,7 @@ routes.route("/character/select").get(function (req, res) {
 routes.route("/character/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+  token: req.body.token,
   characterName: req.body.characterName,
   campaign: req.body.campaign,
   occupation: req.body.occupation,
@@ -106,11 +107,11 @@ routes.route("/delete-character/:id").delete((req, response) => {
 // -------------------------------------------------Campaign Section---------------------------------------------------
 
 // This section will find all characters in a specific campaign.
-routes.route("/campaign/:campaign").get(function (req, res) {
+routes.route("/campaign/:campaign/:username").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Characters")
-    .find({ campaign: req.params.campaign })
+    .find({ campaign: req.params.campaign, token: req.params.username })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
