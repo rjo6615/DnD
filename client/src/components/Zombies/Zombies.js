@@ -5,9 +5,9 @@ import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 
 export default function ZombiesHome() {
-  // --------------------------Random Character Creator Section------------------------------------
   const token = JSON.parse(localStorage.getItem('token'));
   const navigate = useNavigate();
+// --------------------------Random Character Creator Section------------------------------------
  const [form, setForm] = useState({ 
   token: token.token,
   characterName: "", 
@@ -399,7 +399,16 @@ const [campaignSearch, setCampaignSearch] = useState({
   campaign: "", 
 });
 
+const [campaignDMSearch, setCampaignDMSearch] = useState({ 
+  campaign: "", 
+});
+
+
 const [campaign, setCampaign] = useState({ 
+  campaign: [], 
+});
+
+const [campaignDM, setCampaignDM] = useState({ 
   campaign: [], 
 });
 
@@ -424,12 +433,39 @@ useEffect(() => {
       navigate("/");
       return;
     }
+    console.log(record)
     setCampaign({campaign: record});
   }
   fetchData1();   
   return;
   
 }, [navigate]);
+
+// Fetch CampaignsDM
+useEffect(() => {
+  async function fetchCampaignsDM() {
+    const response = await fetch(`/campaignsDM/${token.token}`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    console.log(record)
+    setCampaignDM({campaign: record});
+  }
+  fetchCampaignsDM();   
+  return;
+  
+}, [ navigate, token.token ]);
+
 
 function updateForm1(value) {
   return setForm1((prev) => {
@@ -438,6 +474,11 @@ function updateForm1(value) {
 }
 function updateCampaignSearch(value) {
   return setCampaignSearch((prev) => {
+    return { ...prev, ...value };
+  });
+}
+function updateCampaignDMSearch(value) {
+  return setCampaignDMSearch((prev) => {
     return { ...prev, ...value };
   });
 }
@@ -679,6 +720,7 @@ async function sendToDb4(){
 }
 
 // -----------------------------------Display-----------------------------------------------------------------------------
+console.log(campaignDM.campaign)
  return (
 <center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <h1 className="text-light">Zombies</h1>    
@@ -696,6 +738,20 @@ async function sendToDb4(){
         </Form.Select>
       </Form.Group>
       <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}>
+        <Button className="rounded-pill" variant="outline-light" type="submit">Search</Button>
+      </Link>
+          </Form>
+          <Form>
+          <Form.Group className="mb-3 mx-5">
+        <Form.Label className="text-light">Host Campaign</Form.Label>
+        <Form.Select onChange={(e) => updateCampaignDMSearch({ campaign: e.target.value })} type="text">
+          <option></option>
+          {campaignDM.campaign.map((el) => (  
+          <option key={el.campaignName}>{el.campaignName}</option>
+          ))};
+        </Form.Select>
+      </Form.Group>
+      <Link className="btn btn-link" to={`/zombies-dm/${campaignDMSearch.campaign}`}>
         <Button className="rounded-pill" variant="outline-light" type="submit">Search</Button>
       </Link>
           </Form>

@@ -6,11 +6,13 @@ import Home from "./components/Home/Home";
 import Zombies from "./components/Zombies/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
 import ZombiesCharacterSelect from "./components/Zombies/ZombiesCharacterSelect";
+import ZombiesDM from "./components/Zombies/ZombiesDM";
 import Login from "./components/Login/Login";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
 import useToken from './useToken';
+
 
 function App() {
   const { token, setToken } = useToken();
@@ -29,6 +31,7 @@ function App() {
           <Route path="/zombies" element={<Zombies />} />
           <Route path="/zombies-character-select/:campaign" element={<ZombiesCharacterSelect />} />
           <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
+          <Route path="/zombies-dm/:dm" element={<ZombiesDM />} />
           <Route path="*" element={<Navigate to="/"/>} />
         </Routes>
         {/* <Footer /> */}
