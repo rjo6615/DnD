@@ -1,94 +1,44 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Button, Col, Container, Form, Row } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Button, Col, Form } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom";
+import { useParams } from "react-router";
 
-export default function ZombiesHome() {
+export default function ZombiesDM() {
     const token = JSON.parse(localStorage.getItem('token'));
     const navigate = useNavigate();
-
+    const params = useParams();
+console.log(params);
 //--------------------------------------------Campaign Section------------------------------
+const [campaignDM, setCampaignDM] = useState({ 
+  campaign: [], 
+});
+console.log(campaignDM.campaign);
+// Fetch CampaignsDM
+useEffect(() => {
+  async function fetchCampaignsDM() {
+    const response = await fetch(`/campaignsDM/${token.token}/${params.campaign}`);    
 
-const [form1, setForm1] = useState({ 
-    campaignName: "", 
-    gameMode: "zombies",
-    dm: token.token,
-  });
-  console.log(token.token)
-  const [campaignSearch, setCampaignSearch] = useState({ 
-    campaign: "", 
-  });
-  
-  const [campaign, setCampaign] = useState({ 
-    campaign: [], 
-  });
-  
-  const [show1, setShow1] = useState(false);
-  const handleClose1 = () => setShow1(false);
-  const handleShow1 = () => setShow1(true);
-  
-  // Fetch Campaigns
-  useEffect(() => {
-    async function fetchData1() {
-      const response = await fetch(`/campaigns`);    
-  
-      if (!response.ok) {
-        const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
-        return;
-      }
-  
-      const record = await response.json();
-      if (!record) {
-        window.alert(`Record not found`);
-        navigate("/");
-        return;
-      }
-      setCampaign({campaign: record});
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
     }
-    fetchData1();   
-    return;
-    
-  }, [navigate]);
-  
-  function updateForm1(value) {
-    return setForm1((prev) => {
-      return { ...prev, ...value };
-    });
-  }
-  function updateCampaignSearch(value) {
-    return setCampaignSearch((prev) => {
-      return { ...prev, ...value };
-    });
-  }
-  
-  async function onSubmit1(e) {
-    e.preventDefault();   
-     sendToDb1();
-  }
-   async function sendToDb1(){
-      const newCampaign = { ...form1 };
-        await fetch("/campaign/add", {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-         },
-         body: JSON.stringify(newCampaign),
-       })
-       .catch(error => {
-         window.alert(error);
-         return;
-       });
-       console.log(newCampaign)
-  
-       setForm1({
-        campaignName: "", 
-        gameMode: "zombies",
-      });
-       navigate(0);
-     }
 
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setCampaignDM({campaign: record});
+  }
+  fetchCampaignsDM();   
+  return;
+  
+}, [ navigate, token.token, params.campaign ]);
+  
 //---------------------------------------Weapons----------------------------------------------
 
 const [form2, setForm2] = useState({ 
@@ -303,33 +253,13 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-          <h1 className="text-light">Zombies</h1>    
-          <Container className="mt-3">
-          <Row>
-            <Col>
-              <Form>
-              <Form.Group className="mb-3 mx-5">
-            <Form.Label className="text-light">Select Campaign</Form.Label>
-            <Form.Select onChange={(e) => updateCampaignSearch({ campaign: e.target.value })} type="text">
-              <option></option>
-              {campaign.campaign.map((el) => (  
-              <option key={el.campaignName}>{el.campaignName}</option>
-              ))};
-            </Form.Select>
-          </Form.Group>
-          <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}>
-            <Button className="rounded-pill" variant="outline-light" type="submit">Search</Button>
-          </Link>
-              </Form>
-            </Col>
-          </Row>
-        </Container>
+    <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+          <h1 className="text-light">{params.campaign}</h1>    
         <br></br>    
         <Col xs={10} md={10} lg={10} xl={10}>
-        <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
-        <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
-        <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
+        <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
+        <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
+        <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
         </Col>
 
           {/* ----------------------------------Weapon Modal---------------------------------------- */}

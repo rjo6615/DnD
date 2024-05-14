@@ -156,6 +156,17 @@ routes.route("/campaign/add").post(function (req, response) {
       res.json(result);
     });
  });
+
+ routes.route("/campaignsDM/:DM/:campaign").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Campaigns")
+    .find({ dm: req.params.DM, campaignName: req.params.campaign })
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
 // --------------------------------------------Occupations Section----------------------------------------
 
 // This section will get a list of all the occupations.
