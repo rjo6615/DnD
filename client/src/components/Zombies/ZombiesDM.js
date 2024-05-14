@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Col, Form } from "react-bootstrap";
+import { Button, Col, Form, Row, Container } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 // import { Link } from "react-router-dom";
@@ -9,12 +9,10 @@ export default function ZombiesDM() {
     const token = JSON.parse(localStorage.getItem('token'));
     const navigate = useNavigate();
     const params = useParams();
-console.log(params);
 //--------------------------------------------Campaign Section------------------------------
 const [campaignDM, setCampaignDM] = useState({ 
-  campaign: [], 
+  campaign: "", 
 });
-console.log(campaignDM.campaign);
 // Fetch CampaignsDM
 useEffect(() => {
   async function fetchCampaignsDM() {
@@ -38,7 +36,70 @@ useEffect(() => {
   return;
   
 }, [ navigate, token.token, params.campaign ]);
+
+//---------------------------------------Add Player-------------------------------------------
+const [players, setPlayers] = useState({ 
+  players: [], 
+});
+
+const [playersSearch, setPlayersSearch] = useState({ 
+  players: "", 
+});
+
+function updatePlayersSearch(value) {
+  return setPlayersSearch((prev) => {
+    return { ...prev, ...value };
+  });
+}
+
+useEffect(() => {
+  async function fetchUsers() {
+    const response = await fetch(`/users`);    
+
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      window.alert(message);
+      return;
+    }
+
+    const record = await response.json();
+    if (!record) {
+      window.alert(`Record not found`);
+      navigate("/");
+      return;
+    }
+    setPlayers({players: record});
+  }
+  fetchUsers();   
+  return;
   
+}, [navigate]);
+async function newPlayerSubmit(e) {
+  e.preventDefault();   
+   sendNewPlayersToDb();
+}
+
+const currentCampaign = params.campaign.toString();
+async function sendNewPlayersToDb(){
+  const newPlayers = { ...playersSearch };
+    await fetch(`/players/add/${currentCampaign}`, {
+     method: "PUT",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify(newPlayers),
+   })
+   .catch(error => {
+     window.alert(error);
+     return;
+   });
+
+  setPlayersSearch({
+  players: "",
+  });
+  //  navigate(0);
+ }
+
 //---------------------------------------Weapons----------------------------------------------
 
 const [form2, setForm2] = useState({ 
@@ -254,7 +315,27 @@ const [form2, setForm2] = useState({
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
     <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-          <h1 className="text-light">{params.campaign}</h1>    
+          <h1 className="text-light">{params.campaign}</h1>  
+{/*-----------------------------------Add Player-----------------------------------------------------*/}
+<Container className="mt-3">
+<Row>
+  <Col>
+    <Form onSubmit={newPlayerSubmit}>
+    <Form.Group className="mb-3 mx-5">
+  <Form.Label className="text-light">Select New Player</Form.Label>
+  <Form.Select onChange={(e) => updatePlayersSearch({ players: e.target.value })} type="text">
+    <option></option>
+    {players.players.map((el) => (  
+    <option key={el.username}>{el.username}</option>
+    ))};
+  </Form.Select>
+</Form.Group>
+  <Button className="rounded-pill" variant="outline-light" type="submit">Add</Button>
+    </Form>
+    </Col>
+</Row>
+</Container>
+{/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
         <br></br>    
         <Col xs={10} md={10} lg={10} xl={10}>
         <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>

@@ -393,6 +393,7 @@ const [form1, setForm1] = useState({
   campaignName: "", 
   gameMode: "zombies",
   dm: token.token,
+  players: [""],
 });
 const [campaignSearch, setCampaignSearch] = useState({ 
   campaign: "", 

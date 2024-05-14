@@ -137,6 +137,7 @@ routes.route("/campaign/add").post(function (req, response) {
   campaignName: req.body.campaignName,
   gameMode: req.body.gameMode,
   dm: req.body.dm,
+  players: req.body.players,
   };
   db_connect.collection("Campaigns").insertOne(myobj, function (err, res) {
     if (err) throw err;
@@ -645,6 +646,18 @@ routes.use('/login', (req, res) => {
   });
 });
 
+// This section will get a list of all the users.
+routes.route("/users").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("users")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
 // This section will get a user
 routes.route("/users/:username/:password").get(function (req, res) {
   let db_connect = dbo.getDb();
@@ -681,3 +694,17 @@ routes.route("/users/:username").get(function (req, res) {
     response.json(res);
   });
  });
+
+ routes.route('/players/add/:campaign').put((req, res, next) => {
+  let campaign = { campaignName: req.params.campaign };
+  let db_connect = dbo.getDb();
+  db_connect.collection("Campaigns").updateOne(campaign, {$set:{
+    'players': req.body,
+  }}, (err, result) => {
+    if(err) {
+      throw err;
+    }
+    console.log("Player updated");
+    res.send('campaign updated successfully');
+  });
+});
