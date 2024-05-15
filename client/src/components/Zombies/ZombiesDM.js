@@ -42,15 +42,7 @@ const [players, setPlayers] = useState({
   players: [], 
 });
 
-const [playersSearch, setPlayersSearch] = useState({ 
-  players: "", 
-});
-
-function updatePlayersSearch(value) {
-  return setPlayersSearch((prev) => {
-    return { ...prev, ...value };
-  });
-}
+const [playersSearch, setPlayersSearch] = useState("");
 
 useEffect(() => {
   async function fetchUsers() {
@@ -74,31 +66,41 @@ useEffect(() => {
   return;
   
 }, [navigate]);
+
 async function newPlayerSubmit(e) {
   e.preventDefault();   
    sendNewPlayersToDb();
 }
 
 const currentCampaign = params.campaign.toString();
-async function sendNewPlayersToDb(){
-  const newPlayers = { ...playersSearch };
-    await fetch(`/players/add/${currentCampaign}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify(newPlayers),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
+async function sendNewPlayersToDb() {
+  // Convert playersSearch to an array with a single player
+  const newPlayers = [playersSearch]; 
 
-  setPlayersSearch({
-  players: "",
+  await fetch(`/players/add/${currentCampaign}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(newPlayers),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.text(); // change to text() instead of json()
+  })
+  .then(data => {
+    console.log('Success:', data);
+    alert("Player Successfully Added!")
+    setPlayersSearch(""); // Clear input after successful submission
+    navigate(0);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    window.alert(error.message);
   });
-  //  navigate(0);
- }
+}
 
 //---------------------------------------Weapons----------------------------------------------
 
@@ -323,7 +325,7 @@ const [form2, setForm2] = useState({
     <Form onSubmit={newPlayerSubmit}>
     <Form.Group className="mb-3 mx-5">
   <Form.Label className="text-light">Select New Player</Form.Label>
-  <Form.Select onChange={(e) => updatePlayersSearch({ players: e.target.value })} type="text">
+  <Form.Select onChange={(e) => setPlayersSearch( e.target.value )} type="text">
     <option></option>
     {players.players.map((el) => (  
     <option key={el.username}>{el.username}</option>

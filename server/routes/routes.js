@@ -696,15 +696,21 @@ routes.route("/users/:username").get(function (req, res) {
  });
 
  routes.route('/players/add/:campaign').put((req, res, next) => {
-  let campaign = { campaignName: req.params.campaign };
-  let db_connect = dbo.getDb();
-  db_connect.collection("Campaigns").updateOne(campaign, {$set:{
-    'players': req.body,
-  }}, (err, result) => {
-    if(err) {
-      throw err;
+  const campaignName = req.params.campaign;
+  const newPlayers = req.body; // Assuming newPlayers is an array of players
+
+  const db_connect = dbo.getDb();
+  db_connect.collection("Campaigns").updateOne(
+    { campaignName: campaignName },
+    { $push: { 'players': { $each: newPlayers } } }, // Append new players to existing array
+    (err, result) => {
+      if(err) {
+        console.error("Error adding players:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+      console.log("Players added");
+      res.send('Players added successfully');
     }
-    console.log("Player updated");
-    res.send('campaign updated successfully');
-  });
+  );
 });
+
