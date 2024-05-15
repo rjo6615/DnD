@@ -393,7 +393,7 @@ const [form1, setForm1] = useState({
   campaignName: "", 
   gameMode: "zombies",
   dm: token.token,
-  players: [""],
+  players: [],
 });
 const [campaignSearch, setCampaignSearch] = useState({ 
   campaign: "", 
@@ -419,7 +419,7 @@ const handleShow1 = () => setShow1(true);
 // Fetch Campaigns
 useEffect(() => {
   async function fetchData1() {
-    const response = await fetch(`/campaigns`);    
+    const response = await fetch(`/campaigns/${token.token}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -438,7 +438,7 @@ useEffect(() => {
   fetchData1();   
   return;
   
-}, [navigate]);
+}, [navigate, token.token]);
 
 // Fetch CampaignsDM
 useEffect(() => {

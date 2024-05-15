@@ -119,16 +119,16 @@ routes.route("/campaign/:campaign/:username").get(function (req, res) {
  });
 
 // This section will get a list of all the campaigns.
-routes.route("/campaigns").get(function (req, res) {
+routes.route("/campaigns/:player").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Campaigns")
-    .find({})
+    .find({ players: { $in: [req.params.player] } }) // Using $in to search for the player in the players array
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
     });
- });
+});
 
  // This section will create a new campaign.
 routes.route("/campaign/add").post(function (req, response) {
@@ -702,15 +702,20 @@ routes.route("/users/:username").get(function (req, res) {
   const db_connect = dbo.getDb();
   db_connect.collection("Campaigns").updateOne(
     { campaignName: campaignName },
-    { $push: { 'players': { $each: newPlayers } } }, // Append new players to existing array
+    { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
     (err, result) => {
       if(err) {
         console.error("Error adding players:", err);
         return res.status(500).send("Internal Server Error");
       }
       console.log("Players added");
+      if (result.modifiedCount === 0) {
+        // If no modifications were made, it means the players were not added because they already exist
+        return res.status(400).send("Players already exist in the array");
+      }
       res.send('Players added successfully');
     }
   );
 });
+
 

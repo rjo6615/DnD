@@ -13,6 +13,8 @@ export default function ZombiesDM() {
 const [campaignDM, setCampaignDM] = useState({ 
   campaign: "", 
 });
+console.log(campaignDM);
+
 // Fetch CampaignsDM
 useEffect(() => {
   async function fetchCampaignsDM() {
@@ -86,7 +88,7 @@ async function sendNewPlayersToDb() {
   })
   .then(response => {
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Player already exists!`);
     }
     return response.text(); // change to text() instead of json()
   })
