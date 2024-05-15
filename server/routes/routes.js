@@ -350,11 +350,11 @@ routes.route('/update-health/:id').put((req, res, next) => {
 // ----------------------------------------------------Weapon Section----------------------------------------------------
 
  // This section will get a list of all the weapons.
- routes.route("/weapons").get(function (req, res) {
+ routes.route("/weapons/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Weapons")
-    .find({})
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
@@ -380,6 +380,7 @@ routes.route('/update-weapon/:id').put((req, res, next) => {
 routes.route("/weapon/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+  campaign: req.body.campaign,
   weaponName: req.body.weaponName,
   enhancement: req.body.enhancement,
   damage: req.body.damage,
@@ -395,11 +396,11 @@ routes.route("/weapon/add").post(function (req, response) {
 // -----------------------------------------------------Armor Section--------------------------------------------------------
 
 // This section will get a list of all the armor.
-routes.route("/armor").get(function (req, res) {
+routes.route("/armor/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Armor")
-    .find({})
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
@@ -410,6 +411,7 @@ routes.route("/armor").get(function (req, res) {
 routes.route("/armor/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+  campaign: req.body.campaign,
   armorName: req.body.armorName,
   armorBonus: req.body.armorBonus,
   maxDex: req.body.maxDex,
@@ -438,11 +440,11 @@ routes.route('/update-armor/:id').put((req, res, next) => {
 // ------------------------------------------------------Item Section-----------------------------------------------------------
 
 // This section will get a list of all the items.
-routes.route("/items").get(function (req, res) {
+routes.route("/items/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Items")
-    .find({})
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
@@ -453,6 +455,7 @@ routes.route("/items").get(function (req, res) {
 routes.route("/item/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+    campaign: req.body.campaign,
     itemName: req.body.itemName, 
     notes: req.body.notes,
     str: req.body.str,

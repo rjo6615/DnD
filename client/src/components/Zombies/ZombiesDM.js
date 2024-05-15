@@ -107,6 +107,7 @@ async function sendNewPlayersToDb() {
 //---------------------------------------Weapons----------------------------------------------
 
 const [form2, setForm2] = useState({ 
+    campaign: currentCampaign,
     weaponName: "", 
     enhancement: "",
     damage: "",
@@ -161,6 +162,7 @@ const [form2, setForm2] = useState({
   const handleShow3 = () => setShow3(true);
   
    const [form3, setForm3] = useState({ 
+    campaign: currentCampaign,
     armorName: "", 
     armorBonus: "",
     maxDex: "",
@@ -207,6 +209,7 @@ const [form2, setForm2] = useState({
   const handleShow4 = () => setShow4(true);
   
    const [form4, setForm4] = useState({ 
+    campaign: currentCampaign,
     itemName: "", 
     notes: "",
     str: "0",
