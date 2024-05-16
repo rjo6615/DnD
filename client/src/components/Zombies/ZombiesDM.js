@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Col, Form, Row, Container } from "react-bootstrap";
+import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 // import { Link } from "react-router-dom";
@@ -9,10 +9,35 @@ export default function ZombiesDM() {
     const token = JSON.parse(localStorage.getItem('token'));
     const navigate = useNavigate();
     const params = useParams();
+    const [records, setRecords] = useState([]);
+    useEffect(() => {
+      async function getRecords() {
+        const response = await fetch(`/campaign/${params.campaign}`);
+  
+        if (!response.ok) {
+          const message = `An error occurred: ${response.statusText}`;
+          window.alert(message);
+          return;
+        }
+  
+        const records = await response.json();
+        setRecords(records);
+      }
+  
+      getRecords();
+  
+      return;
+    }, [params.campaign]);
+  
+    const navigateToCharacter = (id) => {
+      navigate(`/zombies-character-sheet/${id}`);
+    }
+
+    const [showPlayers, setShowPlayers] = useState(false);
+    const handleClosePlayers = () => setShowPlayers(false);
+    const handleShowPlayers = () => setShowPlayers(true);
 //--------------------------------------------Campaign Section------------------------------
-const [campaignDM, setCampaignDM] = useState({ 
-  campaign: "", 
-});
+const [campaignDM, setCampaignDM] = useState({ players: [] });
 console.log(campaignDM);
 
 // Fetch CampaignsDM
@@ -32,7 +57,7 @@ useEffect(() => {
       navigate("/");
       return;
     }
-    setCampaignDM({campaign: record});
+    setCampaignDM( record );
   }
   fetchCampaignsDM();   
   return;
@@ -342,6 +367,67 @@ const [form2, setForm2] = useState({
     </Col>
 </Row>
 </Container>
+<Button onClick={() => { handleShowPlayers();}} className="p-1 m-2" size="sm" variant="secondary">View Players</Button>
+<Table style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} striped bordered condensed="true" className="zombieDMCharacterSelectTable bg-light">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Character</th>
+              <th>Level</th>
+              <th>Occupation</th>
+              <th>View</th>
+            </tr>
+          </thead>
+          <tbody>
+          {records.map((Characters) => (
+              <tr key={Characters._id}>
+                <td>{Characters.token}</td>
+                <td>{Characters.characterName}</td>
+                <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
+                <td>
+                  {Characters.occupation.map((el, i) => (
+                    <span key={i}>{el.Level + " " + el.Occupation}<br></br></span>
+                  ))}
+                </td>
+                <td>
+                  <Button
+                    className="fantasy-view-button"
+                    size="sm"
+                    style={{ width: 'auto' }}
+                    variant="primary"
+                    onClick={() => navigateToCharacter(Characters._id)}
+                  >
+                    View
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+
+        <Modal show={showPlayers} onHide={handleClosePlayers}>
+          <Card style={{ backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }}>
+          <Modal.Header closeButton>
+            <Modal.Title>Players</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>   
+        <center>
+        <Table striped bordered condensed="true" style={{ backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} className="zombieCharacterSelectTable bg-light mt-4">
+          <tbody>
+          {campaignDM.players.map((el) => (  
+            <tr key={el}>
+            <td>{el}</td>
+            </tr>
+          ))}
+          </tbody>
+        </Table>
+            <Button className="ms-4" variant="secondary" onClick={handleClosePlayers}>
+              Close
+            </Button>
+        </center>
+       </Modal.Body>     
+       </Card>   
+        </Modal>
 {/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
         <br></br>    
         <Col xs={10} md={10} lg={10} xl={10}>
