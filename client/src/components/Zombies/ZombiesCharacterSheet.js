@@ -15,6 +15,7 @@ export default function ZombiesCharacterSheet(props) {
   const navigate = useNavigate();
   const params = useParams();
   const [form, setForm] = useState({ 
+    campaign: "",
     characterName: "",
     occupation: [""], 
     feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
@@ -66,6 +67,7 @@ export default function ZombiesCharacterSheet(props) {
     newSkill: [["","",0]],
     diceColor: "",
   });
+  const currentCampaign = form.campaign.toString();
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
    //Fetches character data
  useEffect(() => {
@@ -1143,10 +1145,11 @@ function updateWeapon(value) {
     return { ...prev, ...value };
   });
 }
+
 // Fetch Weapons
 useEffect(() => {
   async function fetchWeapons() {
-    const response = await fetch(`/weapons`);    
+    const response = await fetch(`/weapons/${currentCampaign}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -1165,7 +1168,7 @@ useEffect(() => {
   fetchWeapons();   
   return;
   
-}, [navigate]);
+}, [navigate, currentCampaign]);
 //  Sends weapon data to database for update
  const splitWeaponArr = (array, size) => {
   let result = [];
@@ -1296,7 +1299,7 @@ function updateArmor(value) {
 // Fetch Armors
 useEffect(() => {
   async function fetchArmor() {
-    const response = await fetch(`/armor`);    
+    const response = await fetch(`/armor/${currentCampaign}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -1315,7 +1318,7 @@ useEffect(() => {
   fetchArmor();   
   return;
   
-}, [navigate]);
+}, [navigate, currentCampaign]);
  // Sends armor data to database for update
  const splitArmorArr = (array, size) => {
   let result = [];
@@ -1433,7 +1436,7 @@ function updateItem(value) {
 // Fetch Items
 useEffect(() => {
   async function fetchItems() {
-    const response = await fetch(`/items`);    
+    const response = await fetch(`/items/${currentCampaign}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -1452,7 +1455,7 @@ useEffect(() => {
   fetchItems();   
   return;
   
-}, [navigate]);
+}, [navigate, currentCampaign]);
  // Sends item data to database for update
  const splitItemArr = (array, size) => {
   let result = [];

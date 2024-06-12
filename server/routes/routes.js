@@ -106,7 +106,7 @@ routes.route("/delete-character/:id").delete((req, response) => {
 
 // -------------------------------------------------Campaign Section---------------------------------------------------
 
-// This section will find all characters in a specific campaign.
+// This section will find all of the users characters in a specific campaign.
 routes.route("/campaign/:campaign/:username").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
@@ -118,17 +118,29 @@ routes.route("/campaign/:campaign/:username").get(function (req, res) {
     });
  });
 
-// This section will get a list of all the campaigns.
-routes.route("/campaigns").get(function (req, res) {
+ // This section will find all characters in a specific campaign.
+routes.route("/campaign/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
-    .collection("Campaigns")
-    .find({})
+    .collection("Characters")
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
     });
  });
+
+// This section will get a list of all the campaigns.
+routes.route("/campaigns/:player").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Campaigns")
+    .find({ players: { $in: [req.params.player] } }) // Using $in to search for the player in the players array
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+});
 
  // This section will create a new campaign.
 routes.route("/campaign/add").post(function (req, response) {
@@ -137,6 +149,7 @@ routes.route("/campaign/add").post(function (req, response) {
   campaignName: req.body.campaignName,
   gameMode: req.body.gameMode,
   dm: req.body.dm,
+  players: req.body.players,
   };
   db_connect.collection("Campaigns").insertOne(myobj, function (err, res) {
     if (err) throw err;
@@ -144,6 +157,28 @@ routes.route("/campaign/add").post(function (req, response) {
   });
  });
 
+
+ // This section will be for the DM 
+ routes.route("/campaignsDM/:DM").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Campaigns")
+    .find({ dm: req.params.DM })
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
+ routes.route("/campaignsDM/:DM/:campaign").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("Campaigns")
+    .findOne({ dm: req.params.DM, campaignName: req.params.campaign }, function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
 // --------------------------------------------Occupations Section----------------------------------------
 
 // This section will get a list of all the occupations.
@@ -326,11 +361,11 @@ routes.route('/update-health/:id').put((req, res, next) => {
 // ----------------------------------------------------Weapon Section----------------------------------------------------
 
  // This section will get a list of all the weapons.
- routes.route("/weapons").get(function (req, res) {
+ routes.route("/weapons/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Weapons")
-    .find({})
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
@@ -356,6 +391,7 @@ routes.route('/update-weapon/:id').put((req, res, next) => {
 routes.route("/weapon/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+  campaign: req.body.campaign,
   weaponName: req.body.weaponName,
   enhancement: req.body.enhancement,
   damage: req.body.damage,
@@ -371,11 +407,11 @@ routes.route("/weapon/add").post(function (req, response) {
 // -----------------------------------------------------Armor Section--------------------------------------------------------
 
 // This section will get a list of all the armor.
-routes.route("/armor").get(function (req, res) {
+routes.route("/armor/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Armor")
-    .find({})
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
@@ -386,6 +422,7 @@ routes.route("/armor").get(function (req, res) {
 routes.route("/armor/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+  campaign: req.body.campaign,
   armorName: req.body.armorName,
   armorBonus: req.body.armorBonus,
   maxDex: req.body.maxDex,
@@ -414,11 +451,11 @@ routes.route('/update-armor/:id').put((req, res, next) => {
 // ------------------------------------------------------Item Section-----------------------------------------------------------
 
 // This section will get a list of all the items.
-routes.route("/items").get(function (req, res) {
+routes.route("/items/:campaign").get(function (req, res) {
   let db_connect = dbo.getDb();
   db_connect
     .collection("Items")
-    .find({})
+    .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
       if (err) throw err;
       res.json(result);
@@ -429,6 +466,7 @@ routes.route("/items").get(function (req, res) {
 routes.route("/item/add").post(function (req, response) {
   let db_connect = dbo.getDb();
   let myobj = {
+    campaign: req.body.campaign,
     itemName: req.body.itemName, 
     notes: req.body.notes,
     str: req.body.str,
@@ -622,6 +660,18 @@ routes.use('/login', (req, res) => {
   });
 });
 
+// This section will get a list of all the users.
+routes.route("/users").get(function (req, res) {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection("users")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
+
 // This section will get a user
 routes.route("/users/:username/:password").get(function (req, res) {
   let db_connect = dbo.getDb();
@@ -658,3 +708,28 @@ routes.route("/users/:username").get(function (req, res) {
     response.json(res);
   });
  });
+
+ routes.route('/players/add/:campaign').put((req, res, next) => {
+  const campaignName = req.params.campaign;
+  const newPlayers = req.body; // Assuming newPlayers is an array of players
+
+  const db_connect = dbo.getDb();
+  db_connect.collection("Campaigns").updateOne(
+    { campaignName: campaignName },
+    { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
+    (err, result) => {
+      if(err) {
+        console.error("Error adding players:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+      console.log("Players added");
+      if (result.modifiedCount === 0) {
+        // If no modifications were made, it means the players were not added because they already exist
+        return res.status(400).send("Players already exist in the array");
+      }
+      res.send('Players added successfully');
+    }
+  );
+});
+
+

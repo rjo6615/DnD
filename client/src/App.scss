@@ -309,6 +309,9 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
 /* -------------------------------------------------Media Query---------------------------------------- */
 /* Media query for screens smaller than 2160px */
 @media (max-width: 2160px) {
+  .zombieDMCharacterSelectTable {
+    font-size: 13px;
+  }
   .zombieCharacterSelectTable {
     font-size: 18px;
   }
@@ -343,6 +346,9 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
 
 /* Media query for screens smaller than 375px */
 @media (max-width: 375px) {
+  .zombieDMCharacterSelectTable {
+    font-size: 13px;
+  }
   .zombieCharacterSelectTable {
     font-size: 13px;
   }
@@ -377,6 +383,9 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
 
 /* Media query for screens smaller than 320px */
 @media (max-width: 320px) {
+  .zombieDMCharacterSelectTable {
+    font-size: 9px;
+  }
   .zombieCharacterSelectTable {
     font-size: 9px;
   }
