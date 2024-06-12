@@ -4,7 +4,7 @@ import { removeToken } from '../../useToken.js';
 
 function Home() {
   return (
-    <div style={{backgroundImage: 'URL("./images/Dndbg.png")', backgroundSize: "cover", height: '100vh', backgroundPosition: 'center'}}>
+    <div style={{backgroundImage: 'URL("../images/Dndbg.png")', backgroundSize: "cover", height: '100vh', backgroundPosition: 'center'}}>
       <center>
         <Col>        
             <h2 className='pt-5 text-light'>Choose Game Type</h2>        

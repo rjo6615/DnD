@@ -134,7 +134,7 @@ useEffect(() => {
 console.log(user);
 console.log(usernameCheck);
   return(
-    <div style={{backgroundImage: 'URL("./images/Dndbg.png")', backgroundSize: "cover", height: '100vh', backgroundPosition: 'center'}}>
+    <div style={{backgroundImage: 'URL("../images/Dndbg.png")', backgroundSize: "cover", height: '100vh', backgroundPosition: 'center'}}>
     <center>
 <MDBContainer>
 <MDBRow>
