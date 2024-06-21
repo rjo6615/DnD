@@ -3,13 +3,30 @@ import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
+import { jwtDecode } from 'jwt-decode';
+
 
 export default function ZombiesHome() {
-  const token = JSON.parse(localStorage.getItem('token'));
   const navigate = useNavigate();
+  const [decodedToken, setDecodedToken] = useState(null);
+
+  useEffect(() => {
+    // Assuming you have the JWT stored in localStorage
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setDecodedToken(decoded);
+      } catch (error) {
+        console.error('Failed to decode token:', error);
+      }
+    }
+  }, []);
+  // console.log(decodedToken.username);
 // --------------------------Random Character Creator Section------------------------------------
  const [form, setForm] = useState({ 
-  token: token.token,
+  token: "",
   characterName: "", 
   campaign: "",
   occupation: [""], 
@@ -63,6 +80,13 @@ export default function ZombiesHome() {
   newSkill: [["",0]],
   diceColor: "#000000",
 });
+
+useEffect(() => {
+  // Update form state once the token is decoded
+  if (decodedToken) {
+    setForm(prevForm => ({ ...prevForm, token: decodedToken.username }));
+  }
+}, [decodedToken]);
 
 const [occupation, setOccupation] = useState({ 
   occupation: [], 
@@ -392,9 +416,17 @@ useEffect(() => {
 const [form1, setForm1] = useState({ 
   campaignName: "", 
   gameMode: "zombies",
-  dm: token.token,
+  dm: "",
   players: [],
 });
+
+useEffect(() => {
+  // Update form1 state once the token is decoded
+  if (decodedToken) {
+    setForm1(prevForm1 => ({ ...prevForm1, dm: decodedToken.username }));
+  }
+}, [decodedToken]);
+
 const [campaignSearch, setCampaignSearch] = useState({ 
   campaign: "", 
 });
@@ -417,9 +449,12 @@ const handleClose1 = () => setShow1(false);
 const handleShow1 = () => setShow1(true);
 
 // Fetch Campaigns
-useEffect(() => {
+  useEffect(() => {
+    if (!decodedToken || !decodedToken.username) {
+      return;
+    }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${token.token}`);    
+    const response = await fetch(`/campaigns/${decodedToken.username}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -438,12 +473,15 @@ useEffect(() => {
   fetchData1();   
   return;
   
-}, [navigate, token.token]);
+}, [navigate, decodedToken]);
 
 // Fetch CampaignsDM
 useEffect(() => {
+    if (!decodedToken || !decodedToken.username) {
+      return;
+    }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${token.token}`);    
+    const response = await fetch(`/campaignsDM/${decodedToken.username}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -462,7 +500,7 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, token.token ]);
+}, [ navigate, decodedToken ]);
 
 
 function updateForm1(value) {

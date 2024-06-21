@@ -4,6 +4,9 @@
   "private": true,
   "proxy": "http://localhost:5000",
   "dependencies": {
+    "@capacitor/android": "^5.6.0",
+    "@capacitor/core": "^5.6.0",
+    "@capacitor/ios": "^5.6.0",
     "@fortawesome/fontawesome": "^1.1.8",
     "@fortawesome/fontawesome-free": "^6.3.0",
     "@testing-library/jest-dom": "^5.16.5",
@@ -12,6 +15,7 @@
     "bootstrap": "^5.2.3",
     "bootstrap-icons": "^1.10.5",
     "cdbreact": "^1.5.15",
+    "jwt-decode": "^4.0.0",
     "mdb-react-ui-kit": "^5.1.0",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.2",
@@ -19,10 +23,7 @@
     "react-router-dom": "^6.8.2",
     "react-scripts": "5.0.1",
     "sass": "^1.66.1",
-    "web-vitals": "^2.1.4",
-    "@capacitor/android": "^5.6.0",
-    "@capacitor/core": "^5.6.0",
-    "@capacitor/ios": "^5.6.0"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",

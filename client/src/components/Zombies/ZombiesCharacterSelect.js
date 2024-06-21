@@ -3,16 +3,34 @@ import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../App.scss';
+import { jwtDecode } from 'jwt-decode';
 
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
-  const token = JSON.parse(localStorage.getItem('token'));
+  const [decodedToken, setDecodedToken] = useState(null);
 
   useEffect(() => {
+    // Assuming you have the JWT stored in localStorage
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setDecodedToken(decoded);
+      } catch (error) {
+        console.error('Failed to decode token:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!decodedToken) {
+      return;
+    }
     async function getRecords() {
-      const response = await fetch(`/campaign/${params.campaign}/${token.token}`);
+      const response = await fetch(`/campaign/${params.campaign}/${decodedToken.username}`);
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -27,7 +45,7 @@ export default function RecordList() {
     getRecords();
 
     return;
-  }, [params.campaign, token.token]);
+  }, [params.campaign, decodedToken]);
 
   const navigateToCharacter = (id) => {
     navigate(`/zombies-character-sheet/${id}`);
