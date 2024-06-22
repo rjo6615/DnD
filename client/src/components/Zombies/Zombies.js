@@ -4,6 +4,8 @@ import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
+import zombiesbg from "../../images/zombiesbg.jpg";
+import zombiesbutton from "../../images/zombiesbutton.jpg";
 
 
 export default function ZombiesHome() {
@@ -546,7 +548,7 @@ async function onSubmit1(e) {
 
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-<center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+<center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <h1 className="text-light">Zombies</h1>    
       <Container className="mt-3">
       <Row>
@@ -584,9 +586,9 @@ async function onSubmit1(e) {
     </Container>
     <br></br>    
     <Col xs={10} md={10} lg={10} xl={10}>
-    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
-    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
-    <Button onClick={() => { handleShow5();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
+    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
+    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
+    <Button onClick={() => { handleShow5();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
     </Col>   
     {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>

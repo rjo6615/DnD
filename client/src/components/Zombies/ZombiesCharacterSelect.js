@@ -4,6 +4,9 @@ import Table from 'react-bootstrap/Table';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../App.scss';
 import { jwtDecode } from 'jwt-decode';
+import zombiesbg from "../../images/zombiesbg.jpg";
+import wornpaper from "../../images/wornpaper.jpg";
+import banner from "../../images/banner.png";
 
 export default function RecordList() {
   const params = useParams();
@@ -51,10 +54,10 @@ export default function RecordList() {
     navigate(`/zombies-character-sheet/${id}`);
   }
   return (
-    <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div>
-      <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{params.campaign.toString()}</h1> 
-        <Table style={{ marginTop: "-30px", width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} striped bordered condensed="true" className="zombieCharacterSelectTable bg-light">
+      <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{params.campaign.toString()}</h1> 
+        <Table style={{ marginTop: "-30px", width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }} striped bordered condensed="true" className="zombieCharacterSelectTable bg-light">
           <thead>
             <tr>
               <th>Character</th>

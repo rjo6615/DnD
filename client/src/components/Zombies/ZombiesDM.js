@@ -4,6 +4,9 @@ import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { jwtDecode } from 'jwt-decode';
 import { useParams } from "react-router";
+import zombiesbg from "../../images/zombiesbg.jpg";
+import wornpaper from "../../images/wornpaper.jpg";
+import zombiesbutton from "../../images/zombiesbutton.jpg";
 
 export default function ZombiesDM() {
   const [decodedToken, setDecodedToken] = useState(null);
@@ -372,7 +375,7 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
           <h1 className="text-light">{params.campaign}</h1>  
 {/*-----------------------------------Add Player-----------------------------------------------------*/}
 <Container className="mt-3">
@@ -398,7 +401,7 @@ const [form2, setForm2] = useState({
 </Row>
 </Container>
 <Button onClick={() => { handleShowPlayers();}} className="p-1 m-2" size="sm" variant="secondary">View Players</Button>
-<Table style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} striped bordered condensed="true" className="zombieDMCharacterSelectTable bg-light">
+<Table style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }} striped bordered condensed="true" className="zombieDMCharacterSelectTable bg-light">
           <thead>
             <tr>
               <th>Player</th>
@@ -436,13 +439,13 @@ const [form2, setForm2] = useState({
         </Table>
 
         <Modal show={showPlayers} onHide={handleClosePlayers}>
-          <Card style={{ backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }}>
+          <Card style={{ backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
           <Modal.Header closeButton>
             <Modal.Title>Players</Modal.Title>
           </Modal.Header>
           <Modal.Body>   
         <center>
-        <Table striped bordered condensed="true" style={{ backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} className="zombieCharacterSelectTable bg-light mt-4">
+        <Table striped bordered condensed="true" style={{ backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }} className="zombieCharacterSelectTable bg-light mt-4">
           <tbody>
           {campaignDM.players.map((el) => (  
             <tr key={el}>
@@ -461,9 +464,9 @@ const [form2, setForm2] = useState({
 {/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
         <br></br>    
         <Col xs={10} md={10} lg={10} xl={10}>
-        <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
-        <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
-        <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
+        <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
+        <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
+        <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
         </Col>
 
           {/* ----------------------------------Weapon Modal---------------------------------------- */}

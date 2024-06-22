@@ -10,6 +10,22 @@ import { useParams } from "react-router";
 import { useNavigate } from "react-router";
 import '../../App.scss';
 import PlayerTurnActions from './PlayerTurnActions';
+import zombiesbg from "../../images/zombiesbg.jpg";
+import wornpaper from "../../images/wornpaper.jpg";
+import banner from "../../images/banner.png";
+import closedeye from "../../images/closedeye.png";
+import drinking from "../../images/drinking.png";
+import grab from "../../images/grab.png";
+import helpinghand from "../../images/helpinghand.png";
+import highwayarrows from "../../images/highwayarrows.png";
+import interactive from "../../images/interactive.png";
+import levelup from "../../images/levelup.png";
+import longjump from "../../images/longjump.png";
+import push from "../../images/push.png";
+import run from "../../images/run.png";
+import search from "../../images/search.png";
+import sword from "../../images/sword.png";
+import throwing from "../../images/throwing.png";
 
 export default function ZombiesCharacterSheet(props) {
   const navigate = useNavigate();
@@ -1747,23 +1763,23 @@ const holdDownInfo = {name: 'Info', description: "This tab provides app usage in
 
 
 const availableActions = [
-  { id: 1, name: 'Attack', description: 'Perform a basic melee or ranged attack.', background: 'url(../images/icons8-sword-64.png)' },
-  { id: 2, name: 'Help', description: 'Help up a downed player or remove a status effect from them like entangle, burning or sleep.', background: 'url(../images/icons8-helping-hand-64.png)' },
-  { id: 4, name: 'Hide', description: 'Attempt to hide from enemies.', background: 'url(../images/icons8-closed-eye-64.png)' },
-  { id: 5, name: 'Disengage', description: 'Disengage from combat without provoking attacks of opportunity.', background: 'url(../images/icons8-highway-arrows-64.png)' },
-  { id: 7, name: 'Grapple', description: 'Attempt to grapple a target creature.', background: 'url(../images/icons8-grab-100.png)' },
-  { id: 9, name: 'Search', description: 'Thoroughly search an area for hidden items or secrets.', background: 'url(../images/icons8-search-100.png)' },
-  { id: 10, name: 'Interact', description: 'Perform a minor interaction with an object or the environment.', background: 'url(../images/icons8-interactive-66.png)' },
-  { id: 11, name: 'Throw', description: 'Throw an object that is close to you or from your inventory.', background: 'url(../images/icons8-hummer-throw-skin-type-1-96.png)' },
-  { id: 12, name: 'Dash', description: 'Use the Dash action to move double your speed.', background: 'url(../images/icons8-runner-on-the-start-100.png)' },
+  { id: 1, name: 'Attack', description: 'Perform a basic melee or ranged attack.', background: `url(${sword})` },
+  { id: 2, name: 'Help', description: 'Help up a downed player or remove a status effect from them like entangle, burning or sleep.', background: `url(${helpinghand})` },
+  { id: 4, name: 'Hide', description: 'Attempt to hide from enemies.', background: `url(${closedeye})` },
+  { id: 5, name: 'Disengage', description: 'Disengage from combat without provoking attacks of opportunity.', background: `url(${highwayarrows})` },
+  { id: 7, name: 'Grapple', description: 'Attempt to grapple a target creature.', background: `url(${grab})` },
+  { id: 9, name: 'Search', description: 'Thoroughly search an area for hidden items or secrets.', background: `url(${search})` },
+  { id: 10, name: 'Interact', description: 'Perform a minor interaction with an object or the environment.', background: `url(${interactive})` },
+  { id: 11, name: 'Throw', description: 'Throw an object that is close to you or from your inventory.', background: `url(${throwing})` },
+  { id: 12, name: 'Dash', description: 'Use the Dash action to move double your speed.', background: `url(${run})` },
   // ... add more actions
 ];
 
 const availableBonusActions = [
   // { id: 1, name: 'Dodge', description: 'Take the Dodge action to gain advantage on Dexterity saving throws.' },
-  { id: 3, name: 'Use Item', description: 'Use an item in your inventory.', background: 'url(../images/icons8-drinking-90.png)' },
-  { id: 4, name: 'Jump', description: 'Jump a distance 5ft + your strength modifier and jump skill.', background: 'url(../images/icons8-long-jump-100.png)' },
-  { id: 8, name: 'Shove', description: 'Shove a creature to push them or knock them prone.', background: 'url(../images/icons8-push-100.png)' },
+  { id: 3, name: 'Use Item', description: 'Use an item in your inventory.', background: `url(${drinking})` },
+  { id: 4, name: 'Jump', description: 'Jump a distance 5ft + your strength modifier and jump skill.', background: `url(${longjump})` },
+  { id: 8, name: 'Shove', description: 'Shove a creature to push them or knock them prone.', background: `url(${push})` },
   // ... add more bonus actions
 ];
 
@@ -2026,8 +2042,8 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
  } 
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
-<center className="pt-3" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-      <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: 'url(../images/banner.png)', backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
+<center className="pt-3" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+      <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
       <div style={{marginTop: "-40px", marginBottom: "40px"}}>
       <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
       <strong className="mx-2">AC: {Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</strong>
@@ -2103,7 +2119,7 @@ return (
                   centered
                   className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
           <center>
-          <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+          <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
           <Card.Body>
           Actions Left (from left to right)
           <br></br>
@@ -2156,7 +2172,7 @@ return (
                   centered
                   className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
         <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
           <Card.Title>Are you sure you want to delete your character?</Card.Title>
           <Modal.Footer className="justify-content-between">
           <Button variant="danger" onClick={() => { deleteRecord(); }}>
@@ -2178,7 +2194,7 @@ return (
       centered
        >          
         <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
         <Card.Title>Character Info</Card.Title>
         <Table striped bordered hover size="sm">        
         <thead>
@@ -2223,14 +2239,14 @@ return (
           </Table>
 {/* ----------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------- */}
   <center>
-  <Button onClick={handleShowLvlModal} style={{ backgroundImage: "url(../images/icons8-level-up-96.png)", backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1 mb-3" variant="secondary"></Button>
+  <Button onClick={handleShowLvlModal} style={{ backgroundImage: `url(${levelup})`, backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1 mb-3" variant="secondary"></Button>
   </center>
     <Modal size="sm"
           centered
     className="text-center" show={showLvlModal} onHide={handleCloseLvlModal}>
   {/* <Modal.Header closeButton> */}
   <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
         <Card.Title>Level Up</Card.Title>
         <Card.Body> 
         Level: {totalLevel} {'\u2192'} Level: {Number(totalLevel) + 1}
@@ -2256,7 +2272,7 @@ return (
       </Button>
       <Modal centered show={showAddClassModal} onHide={() => setShowAddClassModal(false)}>
       <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
         <Card.Body>
           <Form.Group className="mb-3 mx-5">
             <Form.Label className="text-dark">Select Occupation</Form.Label>
@@ -2337,7 +2353,7 @@ return (
       centered
        >   
        <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
         <Card.Title>Stats</Card.Title>
        <Card.Title style={{ display: showBtn}}>Points Left:<span className="mx-1" id="statPointLeft">{statPointsLeft}</span></Card.Title>
        <Table striped bordered hover size="sm">        
@@ -2416,7 +2432,7 @@ return (
       centered
        >   
        <center>
-        <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+        <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
         <Card.Title>Skills</Card.Title>
         <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span></Card.Title>
       <Table striped bordered hover size="sm">
@@ -2704,7 +2720,7 @@ return (
     </center>
       <Modal show={showAddSkill} onHide={handleCloseAddSkill} centered>
       <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
         <Card.Body>
         <Form onSubmit={addSkillToDb} className="px-5">
   <Form.Group className="mb-3 pt-3">
@@ -2758,7 +2774,7 @@ return (
       centered
        >   
        <center>
-        <Card className="zombiesFeats" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
+        <Card className="zombiesFeats" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>     
         <Card.Title>Feats</Card.Title>
         <Card.Title style={{ display: showFeatBtn}}>Points Left:<span className="mx-1" id="featPointLeft">{featPointsLeft}</span></Card.Title>
         <Table striped bordered hover size="sm">
@@ -2849,7 +2865,7 @@ return (
       </Card> 
       <Modal show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
         <center>
-        <Card className="" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>
+        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
           <Card.Title>{modalFeatData[0]}</Card.Title>
         <Card.Body>{modalFeatData[1]}</Card.Body>
         <Modal.Footer>
@@ -2868,7 +2884,7 @@ return (
       centered
        >   
        <center>
-        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
         <Card.Title>Weapons</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2940,7 +2956,7 @@ return (
       centered
        >   
        <center>
-        <Card className="zombiesArmor" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>       
+        <Card className="zombiesArmor" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
         <Card.Title>Armor</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
@@ -2992,7 +3008,7 @@ return (
       centered
        >   
        <center>
-        <Card className="zombiesItems" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>     
+        <Card className="zombiesItems" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>     
         <Card.Title>Items</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>

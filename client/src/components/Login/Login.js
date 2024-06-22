@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
-import loginbg from "../../images/DnDbg.png";
+import loginbg from "../../images/loginbg.jpg";
 
 async function loginUser(credentials) {
   try {

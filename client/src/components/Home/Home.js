@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button, Col } from 'react-bootstrap';
 import useToken from '../../useToken';
-import loginbg from "../../images/DnDbg.png";
+import loginbg from "../../images/loginbg.jpg";
+import zombiesbg from "../../images/zombiesbg.jpg";
 
 export default function Home() {
   const { removeToken } = useToken();
@@ -13,7 +14,7 @@ export default function Home() {
           <h2 className='pt-5 text-light'>Choose Game Type</h2>
         </Col>
         <div>
-          <Button href='/zombies' className='p-4 m-1' size='lg' style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: 'contain', minWidth: 300 }} variant='primary'>
+          <Button href='/zombies' className='p-4 m-1' size='lg' style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: 'cover', minWidth: 300 }} variant='primary'>
             Zombies
           </Button>
         </div>

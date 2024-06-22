@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
+import damage from "../../images/damage.jpg";
+import wornpaper from "../../images/wornpaper.jpg";
 
 export default function PlayerTurnActions ({ props, actions, bonusActions, onSelectAction, onSelectBonusAction, weapons, strMod, atkBonus, dexMod }) { 
   // State to track the selected action
@@ -259,7 +261,7 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
  <div 
   onTouchStart={() => handleActionMouseDown(holdDownDamage)} // Open the modal with a 2-second delay
   onTouchEnd={() => clearTimer()} // Cancels timer
-  style={{backgroundImage: 'url(/images/damage.jpg)'}} className={`mt-3 ${loading ? 'loading' : ''}`} id="damageAmount">
+  style={{backgroundImage: `url(${damage})`}} className={`mt-3 ${loading ? 'loading' : ''}`} id="damageAmount">
   <span id="damageValue" className={loading ? 'hidden' : ''}>
     {damageValue}
   </span>
@@ -352,7 +354,7 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
       {/* Attack Modal */}
       <Modal centered show={showAttack} onHide={handleCloseAttack}>
       <center>
-        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover"}}>      
+        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
         <Card.Title>Weapons</Card.Title>
         <Table striped bordered hover size="sm">
           <thead>
