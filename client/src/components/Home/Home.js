@@ -1,12 +1,13 @@
 import React from 'react';
 import { Button, Col } from 'react-bootstrap';
 import useToken from '../../useToken';
+import loginbg from "../../images/DnDbg.png";
 
 export default function Home() {
   const { removeToken } = useToken();
 
   return (
-    <div style={{ backgroundImage: 'url("./images/Dndbg.png")', backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center' }}>
+    <div style={{ backgroundImage: `url(${loginbg})`, backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center' }}>
       <center>
         <Col>
           <h2 className='pt-5 text-light'>Choose Game Type</h2>

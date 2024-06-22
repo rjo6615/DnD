@@ -4,6 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
+import loginbg from "../../images/DnDbg.png";
 
 async function loginUser(credentials) {
   try {
@@ -88,7 +89,7 @@ export default function Login({ setToken }) {
   };
 
   return (
-    <div style={{ backgroundImage: 'url("./images/Dndbg.png")', backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center' }}>
+    <div style={{ backgroundImage: `url(${loginbg})`, backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center' }}>
       <center>
         <MDBContainer>
           <MDBRow>
