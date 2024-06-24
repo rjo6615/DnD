@@ -6,7 +6,13 @@ import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
 import loginbg from "../../images/loginbg.jpg";
 
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
+
 async function loginUser(credentials) {
+  credentials.username = capitalizeFirstLetter(credentials.username);
+  console.log('Logging in with credentials:', credentials);
   try {
     const response = await fetch('/login', {
       method: 'POST',
@@ -27,22 +33,42 @@ async function loginUser(credentials) {
 }
 
 async function fetchUserByUsername(username) {
-  const response = await fetch(`/users/${username}`);
-  if (response.ok) {
-    return response.json();
+  username = capitalizeFirstLetter(username);
+  console.log('Fetching user by username:', username);
+  try {
+    const response = await fetch(`/users/${username}`);
+    if (response.ok) {
+      const user = await response.json();
+      console.log('User found:', user);
+      return user;
+    }
+    console.log('User not found');
+    return null;
+  } catch (error) {
+    console.error('Fetch user error:', error);
+    return null;
   }
-  return null;
 }
 
 async function createUser(newUser) {
-  const response = await fetch('/users/add', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(newUser),
-  });
-  return response.json();
+  newUser.username = capitalizeFirstLetter(newUser.username);
+  console.log('Creating new user:', newUser);
+  try {
+    const response = await fetch('/users/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newUser),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create user');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Create user error:', error);
+    throw error;
+  }
 }
 
 export default function Login({ setToken }) {
@@ -70,7 +96,9 @@ export default function Login({ setToken }) {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    console.log('Checking if user exists:', newUser.username);
     const existingUser = await fetchUserByUsername(newUser.username);
+    console.log('Existing user:', existingUser);
     if (existingUser) {
       alert('Username already in use!');
     } else if (newUser.password === newUser.confirmPassword) {

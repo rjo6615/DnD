@@ -90,7 +90,7 @@ routes.get('/users/:username/:password', authenticateToken, (req, res) => {
 });
 
 // Get user by username (protected route)
-routes.get('/users/:username', authenticateToken, (req, res) => {
+routes.get('/users/:username', (req, res) => {
   let db_connect = dbo.getDb();
   let myquery = { username: req.params.username };
   db_connect
