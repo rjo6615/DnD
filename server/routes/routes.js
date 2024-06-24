@@ -1,7 +1,157 @@
-const express = require("express"); 
-const routes = express.Router(); 
-const dbo = require("../db/conn"); 
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const express = require('express');
+const routes = express.Router();
+const dbo = require('../db/conn');
+require('dotenv').config();
 const ObjectId = require("mongodb").ObjectId;
+
+const jwtSecretKey = process.env.JWT_SECRET;
+
+// Middleware to verify JWT token
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  jwt.verify(token, jwtSecretKey, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+
+// Login route
+routes.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  let db_connect = dbo.getDb();
+  let myquery = { username: username };
+
+  db_connect
+    .collection('users')
+    .findOne(myquery, function (err, user) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+
+      bcrypt.compare(password, user.password, (err, isMatch) => {
+        if (err) {
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        if (!isMatch) {
+          return res.status(401).json({ message: 'Invalid username or password' });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
+        res.json({ token });
+        const decoded = jwt.verify(token, jwtSecretKey);
+        console.log(decoded);
+      });
+    });
+});
+
+// Get all users (protected route)
+routes.get('/users', authenticateToken, (req, res) => {
+  let db_connect = dbo.getDb();
+  db_connect
+    .collection('users')
+    .find({})
+    .toArray(function (err, result) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      res.json(result);
+    });
+});
+
+// Get user by username and password (protected route)
+routes.get('/users/:username/:password', authenticateToken, (req, res) => {
+  let db_connect = dbo.getDb();
+  let myquery = { username: req.params.username, password: req.params.password };
+  db_connect
+    .collection('users')
+    .findOne(myquery, function (err, result) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      res.json(result);
+    });
+});
+
+// Get user by username (protected route)
+routes.get('/users/:username', authenticateToken, (req, res) => {
+  let db_connect = dbo.getDb();
+  let myquery = { username: req.params.username };
+  db_connect
+    .collection('users')
+    .findOne(myquery, function (err, result) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      res.json(result);
+    });
+});
+
+// Create a new user route
+routes.post('/users/add', (req, res) => {
+  const { username, password } = req.body;
+
+  bcrypt.hash(password, 10, (err, hashedPassword) => {
+    if (err) {
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+
+    let db_connect = dbo.getDb();
+    let myobj = {
+      username: username,
+      password: hashedPassword,
+    };
+
+    db_connect.collection('users').insertOne(myobj, function (err, result) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      res.json(result);
+    });
+  });
+});
+
+
+// Add players to a campaign (protected route)
+routes.route('/players/add/:campaign').put(authenticateToken, (req, res) => {
+  const campaignName = req.params.campaign;
+  const newPlayers = req.body; // Assuming newPlayers is an array of players
+
+  const db_connect = dbo.getDb();
+  db_connect.collection("Campaigns").updateOne(
+    { campaignName: campaignName },
+    { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
+    (err, result) => {
+      if(err) {
+        console.error("Error adding players:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+      console.log("Players added");
+      if (result.modifiedCount === 0) {
+        // If no modifications were made, it means the players were not added because they already exist
+        return res.status(400).send("Players already exist in the array");
+      }
+      res.send('Players added successfully');
+    }
+  );
+});
+
 
 // -------------------------------------------------Character Section-----------------------------------------------
 
@@ -651,85 +801,3 @@ db_connect.collection("Characters").updateOne(
   });
 });
    module.exports = routes;
-// -----------------------------------------------------------------Login-----------------------------------------------------------------------------
-
-routes.use('/login', (req, res) => {
-  res.send({
-    // token: bcrypt.hashSync(req.body.username, 10)
-    token: req.body.username
-  });
-});
-
-// This section will get a list of all the users.
-routes.route("/users").get(function (req, res) {
-  let db_connect = dbo.getDb();
-  db_connect
-    .collection("users")
-    .find({})
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
-// This section will get a user
-routes.route("/users/:username/:password").get(function (req, res) {
-  let db_connect = dbo.getDb();
-  let myquery = { username: req.params.username, password: req.params.password };
-  db_connect
-    .collection("users")
-    .findOne(myquery, function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
- // This section will check for users
-routes.route("/users/:username").get(function (req, res) {
-  let db_connect = dbo.getDb();
-  let myquery = { username: req.params.username };
-  db_connect
-    .collection("users")
-    .findOne(myquery, function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
- // This section will create a new user
- routes.route("/users/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
-  let myobj = {
-    username: req.body.username,
-    password: req.body.password,
-  };
-  db_connect.collection("users").insertOne(myobj, function (err, res) {
-    if (err) throw err;
-    response.json(res);
-  });
- });
-
- routes.route('/players/add/:campaign').put((req, res, next) => {
-  const campaignName = req.params.campaign;
-  const newPlayers = req.body; // Assuming newPlayers is an array of players
-
-  const db_connect = dbo.getDb();
-  db_connect.collection("Campaigns").updateOne(
-    { campaignName: campaignName },
-    { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
-    (err, result) => {
-      if(err) {
-        console.error("Error adding players:", err);
-        return res.status(500).send("Internal Server Error");
-      }
-      console.log("Players added");
-      if (result.modifiedCount === 0) {
-        // If no modifications were made, it means the players were not added because they already exist
-        return res.status(400).send("Players already exist in the array");
-      }
-      res.send('Players added successfully');
-    }
-  );
-});
-
-

@@ -2,11 +2,29 @@ import React, { useState, useEffect } from "react";
 import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
-// import { Link } from "react-router-dom";
+import { jwtDecode } from 'jwt-decode';
 import { useParams } from "react-router";
+import zombiesbg from "../../images/zombiesbg.jpg";
+import wornpaper from "../../images/wornpaper.jpg";
+import zombiesbutton from "../../images/zombiesbutton.jpg";
 
 export default function ZombiesDM() {
-    const token = JSON.parse(localStorage.getItem('token'));
+  const [decodedToken, setDecodedToken] = useState(null);
+
+  useEffect(() => {
+    // Assuming you have the JWT stored in localStorage
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setDecodedToken(decoded);
+      } catch (error) {
+        console.error('Failed to decode token:', error);
+      }
+    }
+  }, []);
+  
     const navigate = useNavigate();
     const params = useParams();
     const [records, setRecords] = useState([]);
@@ -38,12 +56,14 @@ export default function ZombiesDM() {
     const handleShowPlayers = () => setShowPlayers(true);
 //--------------------------------------------Campaign Section------------------------------
 const [campaignDM, setCampaignDM] = useState({ players: [] });
-console.log(campaignDM);
 
 // Fetch CampaignsDM
 useEffect(() => {
+  if (!decodedToken) {
+    return;
+  }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${token.token}/${params.campaign}`);    
+    const response = await fetch(`/campaignsDM/${decodedToken.username}/${params.campaign}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -62,37 +82,45 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, token.token, params.campaign ]);
+}, [ navigate, decodedToken, params.campaign ]);
 
 //---------------------------------------Add Player-------------------------------------------
 const [players, setPlayers] = useState({ 
-  players: [], 
+  players: [] 
 });
 
 const [playersSearch, setPlayersSearch] = useState("");
 
-useEffect(() => {
-  async function fetchUsers() {
-    const response = await fetch(`/users`);    
-
-    if (!response.ok) {
-      const message = `An error has occurred: ${response.statusText}`;
-      window.alert(message);
+ useEffect(() => {
+    if (!decodedToken) {
       return;
     }
 
-    const record = await response.json();
-    if (!record) {
-      window.alert(`Record not found`);
-      navigate("/");
-      return;
+    async function fetchUsers() {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        window.alert(message);
+        return;
+      }
+
+      const record = await response.json();
+      if (!record) {
+        window.alert(`Record not found`);
+        navigate("/");
+        return;
+      }
+      setPlayers({players: record});
     }
-    setPlayers({players: record});
-  }
-  fetchUsers();   
-  return;
-  
-}, [navigate]);
+
+    fetchUsers();
+  }, [navigate, decodedToken]);
 
 async function newPlayerSubmit(e) {
   e.preventDefault();   
@@ -101,25 +129,26 @@ async function newPlayerSubmit(e) {
 
 const currentCampaign = params.campaign.toString();
 async function sendNewPlayersToDb() {
-  // Convert playersSearch to an array with a single player
-  const newPlayers = [playersSearch]; 
+  const newPlayers = [playersSearch];
+  const token = localStorage.getItem('token');
 
   await fetch(`/players/add/${currentCampaign}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`, // Include the token in the request headers
     },
     body: JSON.stringify(newPlayers),
   })
   .then(response => {
     if (!response.ok) {
-      throw new Error(`Player already exists!`);
+      throw new Error(response.status === 400 ? "Player already exists!" : "Failed to add player");
     }
-    return response.text(); // change to text() instead of json()
+    return response.text(); // Change to text() instead of json()
   })
   .then(data => {
     console.log('Success:', data);
-    alert("Player Successfully Added!")
+    alert("Player Successfully Added!");
     setPlayersSearch(""); // Clear input after successful submission
     navigate(0);
   })
@@ -346,7 +375,7 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <center className="pt-2" style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
           <h1 className="text-light">{params.campaign}</h1>  
 {/*-----------------------------------Add Player-----------------------------------------------------*/}
 <Container className="mt-3">
@@ -355,11 +384,15 @@ const [form2, setForm2] = useState({
     <Form onSubmit={newPlayerSubmit}>
     <Form.Group className="mb-3 mx-5">
   <Form.Label className="text-light">Select New Player</Form.Label>
-  <Form.Select onChange={(e) => setPlayersSearch( e.target.value )} type="text">
+  <Form.Select onChange={(e) => setPlayersSearch(e.target.value)} type="text">
     <option></option>
-    {players.players.map((el) => (  
-    <option key={el.username}>{el.username}</option>
-    ))};
+    {players.players && players.players.length > 0 ? (
+      players.players.map((el) => (
+        <option key={el.username}>{el.username}</option>
+      ))
+    ) : (
+      <option>No players available</option>
+    )}
   </Form.Select>
 </Form.Group>
   <Button className="rounded-pill" variant="outline-light" type="submit">Add</Button>
@@ -368,7 +401,7 @@ const [form2, setForm2] = useState({
 </Row>
 </Container>
 <Button onClick={() => { handleShowPlayers();}} className="p-1 m-2" size="sm" variant="secondary">View Players</Button>
-<Table style={{ width: 'auto', backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} striped bordered condensed="true" className="zombieDMCharacterSelectTable bg-light">
+<Table style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }} striped bordered condensed="true" className="zombieDMCharacterSelectTable bg-light">
           <thead>
             <tr>
               <th>Player</th>
@@ -406,13 +439,13 @@ const [form2, setForm2] = useState({
         </Table>
 
         <Modal show={showPlayers} onHide={handleClosePlayers}>
-          <Card style={{ backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }}>
+          <Card style={{ backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
           <Modal.Header closeButton>
             <Modal.Title>Players</Modal.Title>
           </Modal.Header>
           <Modal.Body>   
         <center>
-        <Table striped bordered condensed="true" style={{ backgroundImage: 'url(../images/wornpaper.jpg)', backgroundSize: "cover" }} className="zombieCharacterSelectTable bg-light mt-4">
+        <Table striped bordered condensed="true" style={{ backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }} className="zombieCharacterSelectTable bg-light mt-4">
           <tbody>
           {campaignDM.players.map((el) => (  
             <tr key={el}>
@@ -431,9 +464,9 @@ const [form2, setForm2] = useState({
 {/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
         <br></br>    
         <Col xs={10} md={10} lg={10} xl={10}>
-        <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
-        <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
-        <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(../images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
+        <Button onClick={() => { handleShow2();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Weapon</Button>
+        <Button onClick={() => { handleShow3();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Armor</Button>
+        <Button onClick={() => { handleShow4();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Item</Button>
         </Col>
 
           {/* ----------------------------------Weapon Modal---------------------------------------- */}

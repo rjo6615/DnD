@@ -3,13 +3,32 @@ import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
+import { jwtDecode } from 'jwt-decode';
+import zombiesbg from "../../images/zombiesbg.jpg";
+import zombiesbutton from "../../images/zombiesbutton.jpg";
+
 
 export default function ZombiesHome() {
-  const token = JSON.parse(localStorage.getItem('token'));
   const navigate = useNavigate();
+  const [decodedToken, setDecodedToken] = useState(null);
+
+  useEffect(() => {
+    // Assuming you have the JWT stored in localStorage
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setDecodedToken(decoded);
+      } catch (error) {
+        console.error('Failed to decode token:', error);
+      }
+    }
+  }, []);
+  // console.log(decodedToken.username);
 // --------------------------Random Character Creator Section------------------------------------
  const [form, setForm] = useState({ 
-  token: token.token,
+  token: "",
   characterName: "", 
   campaign: "",
   occupation: [""], 
@@ -63,6 +82,13 @@ export default function ZombiesHome() {
   newSkill: [["",0]],
   diceColor: "#000000",
 });
+
+useEffect(() => {
+  // Update form state once the token is decoded
+  if (decodedToken) {
+    setForm(prevForm => ({ ...prevForm, token: decodedToken.username }));
+  }
+}, [decodedToken]);
 
 const [occupation, setOccupation] = useState({ 
   occupation: [], 
@@ -392,9 +418,17 @@ useEffect(() => {
 const [form1, setForm1] = useState({ 
   campaignName: "", 
   gameMode: "zombies",
-  dm: token.token,
+  dm: "",
   players: [],
 });
+
+useEffect(() => {
+  // Update form1 state once the token is decoded
+  if (decodedToken) {
+    setForm1(prevForm1 => ({ ...prevForm1, dm: decodedToken.username }));
+  }
+}, [decodedToken]);
+
 const [campaignSearch, setCampaignSearch] = useState({ 
   campaign: "", 
 });
@@ -417,9 +451,12 @@ const handleClose1 = () => setShow1(false);
 const handleShow1 = () => setShow1(true);
 
 // Fetch Campaigns
-useEffect(() => {
+  useEffect(() => {
+    if (!decodedToken || !decodedToken.username) {
+      return;
+    }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${token.token}`);    
+    const response = await fetch(`/campaigns/${decodedToken.username}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -438,12 +475,15 @@ useEffect(() => {
   fetchData1();   
   return;
   
-}, [navigate, token.token]);
+}, [navigate, decodedToken]);
 
 // Fetch CampaignsDM
 useEffect(() => {
+    if (!decodedToken || !decodedToken.username) {
+      return;
+    }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${token.token}`);    
+    const response = await fetch(`/campaignsDM/${decodedToken.username}`);    
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -462,7 +502,7 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, token.token ]);
+}, [ navigate, decodedToken ]);
 
 
 function updateForm1(value) {
@@ -508,7 +548,7 @@ async function onSubmit1(e) {
 
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-<center className="pt-2" style={{ backgroundImage: 'url(./images/zombie.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+<center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <h1 className="text-light">Zombies</h1>    
       <Container className="mt-3">
       <Row>
@@ -546,9 +586,9 @@ async function onSubmit1(e) {
     </Container>
     <br></br>    
     <Col xs={10} md={10} lg={10} xl={10}>
-    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
-    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
-    <Button onClick={() => { handleShow5();}} className="p-1 m-1" size="sm"  style={{backgroundImage: 'url(./images/zombie-campaign.jpg)', backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
+    <Button onClick={() => { handleShow1();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Campaign</Button>
+    <Button onClick={() => {bigMaff(); handleShow();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Random)</Button>
+    <Button onClick={() => { handleShow5();}} className="p-1 m-1" size="sm"  style={{backgroundImage: `url(${zombiesbutton})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", color: "silver", maxWidth: 85, minHeight: 85, border: "3px solid silver"}} variant="secondary">Create Character (Manual)</Button>
     </Col>   
     {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal show={show} onHide={handleClose}>
