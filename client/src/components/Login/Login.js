@@ -5,6 +5,7 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
 import loginbg from "../../images/loginbg.jpg";
+import logoLight from "../../images/logo-light.png";
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
@@ -121,10 +122,11 @@ export default function Login({ setToken }) {
       <center>
         <MDBContainer>
           <MDBRow>
-            <MDBCol col='6' className="mb-5">
-              <div className="d-flex flex-column">
+            <MDBCol col='6' className="my-5">
+              <div className="d-flex flex-column" style={{backgroundColor: "rgba(0, 0, 0, 0.7)"}}>
                 <div className="text-center">
-                  <h2 className="mt-5 mb-5 pb-1 text-light" style={{ fontFamily: 'Shadows Into Light, cursive' }}><strong>DnD Helper App</strong></h2>
+                  <img src={logoLight} alt="logo" className="py-3" style={{maxHeight: "200px", maxWidth: "200px"}} />
+                  {/* <h1 className="mt-5 mb-5 pb-1 text-light" style={{ fontFamily: 'Raleway, sans-serif' }}>Realm Tracker</h1> */}
                 </div>
                 <p className='text-light'>Please login to your account</p>
                 <center>
