@@ -3,26 +3,27 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
+import useToken from '../../useToken';
+import logoLight from "../../images/logo-light.png";
 
 function NavbarComponent() {
-    return (
-        <Navbar expand="lg" className="shadow-lg mb-5 bg-image">
-        <Container fluid>
-        <div className="logo-image" style={{width: '46px', height: '46px', borderRadius: '50%', overflow: 'hidden', marginRight: '5px'}}>
-            <img src="../favicon.ico" className="img-fluid" alt="logo"></img>
-        </div>
-          <Navbar.Brand className="text-dark" style={{fontFamily: "Shadows Into Light, cursive"}} href="/">DnD</Navbar.Brand>
-          <Navbar.Toggle aria-controls="navbarScroll" className="text-dark" />
-          <Navbar.Collapse id="navbarScroll">
-            <Nav className="me-auto my-2 my-lg-0" style={{ maxHeight: '100px' }} navbarScroll>
-              <Button href="/zombies" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(../images/zombie.jpg)', backgroundSize: "cover", minWidth: 300}} variant="primary">Zombies</Button>  
-              <Button href="./#" className="p-4 m-1" size="lg"  style={{ backgroundImage: 'url(../images/homebackground.jpg)', backgroundSize: "cover", minWidth: 300}} variant="primary">Fantasy</Button>         
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-
-    );
+  const { removeToken } = useToken();
+  return (
+    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+      <Container fluid>
+        <Navbar.Brand href="/">
+          <img src={logoLight} alt="" width="60px" height="60px" className="d-inline-block align-text-top" />
+        </Navbar.Brand>
+        <Nav className="ml-auto">
+          <Nav.Link href='/logout'>
+            <Button style={{ borderColor: "gray" }} className='bg-secondary' onClick={removeToken}>
+              Logout
+            </Button>
+          </Nav.Link>
+        </Nav>
+      </Container>
+    </Navbar>
+  );
 }
 
 export default NavbarComponent;

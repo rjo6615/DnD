@@ -375,8 +375,8 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-          <h1 className="text-light">{params.campaign}</h1>  
+    <center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+          <h1 className="text-light" style={{paddingTop: '80px'}}>{params.campaign}</h1>  
 {/*-----------------------------------Add Player-----------------------------------------------------*/}
 <Container className="mt-3">
 <Row>
@@ -395,7 +395,7 @@ const [form2, setForm2] = useState({
     )}
   </Form.Select>
 </Form.Group>
-  <Button className="rounded-pill" variant="outline-light" type="submit">Add</Button>
+  <Button className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
     </Form>
     </Col>
 </Row>

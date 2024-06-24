@@ -54,8 +54,8 @@ export default function RecordList() {
     navigate(`/zombies-character-sheet/${id}`);
   }
   return (
-    <center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-      <div>
+    <center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+      <div style={{paddingTop: '80px'}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{params.campaign.toString()}</h1> 
         <Table style={{ marginTop: "-30px", width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }} striped bordered condensed="true" className="zombieCharacterSelectTable bg-light">
           <thead>
