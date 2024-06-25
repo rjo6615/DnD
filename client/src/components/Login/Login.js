@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
-import loginbg from "../../images/loginbg.jpg";
+import loginbg from "../../images/loginbg.png";
 import logoLight from "../../images/logo-light.png";
 
 function capitalizeFirstLetter(string) {
@@ -120,7 +120,7 @@ export default function Login({ setToken }) {
   return (
     <div style={{ backgroundImage: `url(${loginbg})`, backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center' }}>
       <center>
-        <MDBContainer>
+        <MDBContainer style={{ fontFamily: 'Raleway, sans-serif' }}>
           <MDBRow>
             <MDBCol col='6' className="my-5">
               <div className="d-flex flex-column" style={{backgroundColor: "rgba(0, 0, 0, 0.7)"}}>

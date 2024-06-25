@@ -2042,7 +2042,8 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
  } 
 //--------------------------------------------Display---------------------------------------------------------------------------------------------------------------------------------------------
 return (
-<center className="pt-3" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+<center className="pt-3" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+      <div style={{paddingTop: '80px'}}>
       <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}}className="text-dark">{form.characterName}</h1> 
       <div style={{marginTop: "-40px", marginBottom: "40px"}}>
       <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
@@ -3129,6 +3130,7 @@ return (
       </Modal>
 </center>
 </Modal>
+</div>
   </center>  
  );
 }

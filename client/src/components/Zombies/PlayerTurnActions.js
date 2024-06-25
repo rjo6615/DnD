@@ -296,8 +296,8 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat",
               backgroundImage: action.background,
-              height: "40px",
-              width: "40px"
+              height: "30px",
+              width: "30px"
             }}
           >
             {/* {action.name} */}
@@ -318,8 +318,8 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat",
               backgroundImage: bonusAction.background,
-              height: "40px",
-              width: "40px"
+              height: "30px",
+              width: "30px"
             }}
           >
             {/* {action.name} */}

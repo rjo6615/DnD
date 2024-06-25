@@ -548,8 +548,8 @@ async function onSubmit1(e) {
 
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-<center className="pt-2" style={{ backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-      <h1 className="text-light">Zombies</h1>    
+<center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+      <h1 className="text-light" style={{paddingTop: '80px'}}>Zombies</h1>    
       <Container className="mt-3">
       <Row>
         <Col>
@@ -564,7 +564,7 @@ async function onSubmit1(e) {
         </Form.Select>
       </Form.Group>
       <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}>
-        <Button className="rounded-pill" variant="outline-light" type="submit">Search</Button>
+        <Button className="rounded-pill" variant="outline-dark" type="submit">Search</Button>
       </Link>
           </Form>
           <Form>
