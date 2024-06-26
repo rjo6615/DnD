@@ -15,7 +15,7 @@ export default function Home() {
             <h2 className='pt-5 text-light'>Choose Game Type</h2>
           </Col>
           <div>
-            <Button href='/zombies' className='p-4 m-1' size='lg' style={{ backgroundImage: `url(${zombiesbg})`, backgroundPosition: '50% 25%', backgroundSize: 'cover', minWidth: 300 }} variant='primary'>
+            <Button href='/zombies' className='p-4 m-1' size='lg' style={{borderColor: "transparent", backgroundImage: `url(${zombiesbg})`, backgroundPosition: '50% 25%', backgroundSize: 'cover', minWidth: 300 }} variant='primary'>
              <span className="px-2" style={{backgroundColor: "rgba(0, 0, 0, 0.3)"}}>Zombies</span> 
             </Button>
           </div>

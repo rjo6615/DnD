@@ -473,3 +473,75 @@ max-width: 300px;
   justify-content: center; /* Center horizontally */
   align-items: center; /* Center vertically */
 }
+
+.fantasy-button {
+  background: linear-gradient(135deg, #3e8e41, #2e7d32);
+  border: 2px solid #000;
+  border-radius: 50px;
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  padding: 10px 20px;
+  text-shadow: 1px 1px 2px #000;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.fantasy-button:hover {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: #f8e71c;
+  text-shadow: 2px 2px 4px #000;
+  transform: scale(1.05);
+}
+
+.fantasy-button .icon {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.hostCampaign {
+  background-color: #ffc107 !important; /* Yellow color */
+  color: black !important;
+  border: none;
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 1.2em;
+  transition: background-color 0.3s ease;
+}
+
+.hostCampaign .icon {
+  margin-right: 8px;
+}
+
+.hostCampaign:hover {
+  background-color: #e0a800 !important;
+  text-shadow: 2px 2px 4px #fff;
+  transform: scale(1.05);
+}
+
+.dnd-background {
+  background-color: rgba(0, 0, 0, 0.8) !important; /* Semi-transparent black */
+  border: none; /* Remove border */
+  color: #fff !important; /* Text color */
+  font-family: 'Cinzel', serif; /* Font family */
+  text-shadow: 1px 1px 2px #000; /* Text shadow */
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2); /* Shadow effect */
+  border-radius: 10px; /* Rounded corners */
+}
+
+.dnd-background table,
+.dnd-background th,
+.dnd-background td {
+  color: #fff !important; /* Ensure text color is white */
+}
+
+.dnd-modal .modal-content {
+  background-color: transparent !important; /* Make the modal content area transparent */
+  box-shadow: none !important; /* Remove any box shadow */
+  border: none !important; /* Remove any border */
+}

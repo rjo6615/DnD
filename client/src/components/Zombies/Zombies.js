@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Button, Col, Container, Form, Row } from "react-bootstrap";
+import { Button, Col, Container, Form, Row, Table, Card } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../images/zombiesbg.jpg";
 import zombiesbutton from "../../images/zombiesbutton.jpg";
+import { FaDungeon, FaCrown } from 'react-icons/fa';
 
 
 export default function ZombiesHome() {
@@ -429,15 +430,6 @@ useEffect(() => {
   }
 }, [decodedToken]);
 
-const [campaignSearch, setCampaignSearch] = useState({ 
-  campaign: "", 
-});
-
-const [campaignDMSearch, setCampaignDMSearch] = useState({ 
-  campaign: "", 
-});
-
-
 const [campaign, setCampaign] = useState({ 
   campaign: [], 
 });
@@ -449,6 +441,14 @@ const [campaignDM, setCampaignDM] = useState({
 const [show1, setShow1] = useState(false);
 const handleClose1 = () => setShow1(false);
 const handleShow1 = () => setShow1(true);
+
+const [showJoinCampaignModal, setShowJoinCampaignModal] = useState(false);
+const handleCloseJoinCampaign = () => setShowJoinCampaignModal(false);
+const handleShowJoinCampaign = () => setShowJoinCampaignModal(true);
+
+const [showHostCampaignModal, setShowHostCampaignModal] = useState(false);
+const handleCloseHostCampaign = () => setShowHostCampaignModal(false);
+const handleShowHostCampaign = () => setShowHostCampaignModal(true);
 
 // Fetch Campaigns
   useEffect(() => {
@@ -510,16 +510,6 @@ function updateForm1(value) {
     return { ...prev, ...value };
   });
 }
-function updateCampaignSearch(value) {
-  return setCampaignSearch((prev) => {
-    return { ...prev, ...value };
-  });
-}
-function updateCampaignDMSearch(value) {
-  return setCampaignDMSearch((prev) => {
-    return { ...prev, ...value };
-  });
-}
 
 async function onSubmit1(e) {
   e.preventDefault();   
@@ -553,34 +543,84 @@ async function onSubmit1(e) {
       <Container className="mt-3">
       <Row>
         <Col>
-          <Form>
-          <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-light">Select Campaign</Form.Label>
-        <Form.Select onChange={(e) => updateCampaignSearch({ campaign: e.target.value })} type="text">
-          <option></option>
-          {campaign.campaign.map((el) => (  
-          <option key={el.campaignName}>{el.campaignName}</option>
-          ))};
-        </Form.Select>
-      </Form.Group>
-      <Link className="btn btn-link" to={`/zombies-character-select/${campaignSearch.campaign}`}>
-        <Button className="rounded-pill" variant="outline-dark" type="submit">Search</Button>
-      </Link>
-          </Form>
-          <Form>
-          <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-light">Host Campaign</Form.Label>
-        <Form.Select onChange={(e) => updateCampaignDMSearch({ campaign: e.target.value })} type="text">
-          <option></option>
-          {campaignDM.campaign.map((el) => (  
-          <option key={el.campaignName}>{el.campaignName}</option>
-          ))};
-        </Form.Select>
-      </Form.Group>
-      <Link className="btn btn-link" to={`/zombies-dm/${campaignDMSearch.campaign}`}>
-        <Button className="rounded-pill" variant="outline-light" type="submit">Search</Button>
-      </Link>
-          </Form>
+        <Button className="m-2 fantasy-button" style={{borderColor: "transparent"}} onClick={handleShowJoinCampaign}>
+        <FaDungeon className="icon" /> {/* Add an icon */}
+        Join Campaign
+      </Button>
+
+      <Modal className="dnd-modal" centered show={showJoinCampaignModal} onHide={handleCloseJoinCampaign}>
+   <center>
+    <Card className="dnd-background">
+    <Card.Title>Join Campaign</Card.Title>
+
+  <Card.Body>
+    <Table striped bordered hover>
+      <thead>
+        <tr>
+          <th>Campaign Name</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {campaignDM.campaign.map((el) => (
+          <tr key={el.campaignName}>
+            <td>{el.campaignName}</td>
+            <td>
+              <Link className="btn btn-link" to={`/zombies-character-select/${el.campaignName}`}>
+              <Button style={{borderColor: "transparent"}} className="fantasy-button" type="submit">Join</Button>              </Link>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  </Card.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseJoinCampaign}>
+      Close
+    </Button>
+  </Modal.Footer>
+  </Card>
+  </center>
+</Modal>
+      <Button className="m-2 hostCampaign" style={{borderColor: "transparent"}} onClick={handleShowHostCampaign}>
+        <FaCrown className="icon" />
+        Host Campaign
+      </Button>
+
+  <Modal className="dnd-modal" centered show={showHostCampaignModal} onHide={handleCloseHostCampaign}>
+   <center>
+    <Card className="dnd-background">
+    <Card.Title>Host Campaign</Card.Title>
+
+  <Card.Body>
+    <Table striped bordered hover>
+      <thead>
+        <tr>
+          <th>Campaign Name</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {campaignDM.campaign.map((el) => (
+          <tr key={el.campaignName}>
+            <td>{el.campaignName}</td>
+            <td>
+              <Link className="btn btn-link" to={`/zombies-dm/${el.campaignName}`}>
+              <Button style={{borderColor: "transparent"}} className="hostCampaign" type="submit">Host</Button>              </Link>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  </Card.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseHostCampaign}>
+      Close
+    </Button>
+  </Modal.Footer>
+  </Card>
+  </center>
+</Modal>
         </Col>
       </Row>
     </Container>
