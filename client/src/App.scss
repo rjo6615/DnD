@@ -1,6 +1,8 @@
+@use "sass:math";
 @import url('https://fonts.googleapis.com/css?family=Josefin+Sans');
 @import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+
 .App {
   text-align: center;
 }
@@ -544,4 +546,201 @@ max-width: 300px;
   background-color: transparent !important; /* Make the modal content area transparent */
   box-shadow: none !important; /* Remove any box shadow */
   border: none !important; /* Remove any border */
+}
+
+//vars
+$fg: linear-gradient(135deg, #3e8e41, #2e7d32);
+$bg: linear-gradient(135deg, #3e8e41, #2e7d32);
+$pi: 3.14;
+
+//config
+$menu-items: 2;
+$open-distance: 115px;
+$opening-angle: $pi - 0.2;
+
+body {
+  background: $bg;
+  color: white;
+  text-align: center; // Ensure text is centered horizontally
+}
+
+a {
+  color: inherit;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+h1 {
+  font-size: 3em;
+}
+
+%goo {
+  filter: url('#shadowed-goo');
+  // debug 
+  // background:rgba(255,0,0,0.2);
+}
+
+%ball {
+  background: $fg;
+  border-radius: 100%;
+  width: 60px;
+  height: 60px;
+  position: absolute;
+  top: 200px; // Adjust as needed
+  left: 160px; // Adjust as needed
+  right: 20px;
+  color: white;
+  text-align: center;
+  line-height: 80px;
+  transform: translate3d(0, 0, 0);
+  transition: transform ease-out 200ms;
+}
+
+.menu-open {
+  display: none;
+}
+
+.menu-item {
+  @extend %ball;
+}
+
+.hamburger {
+  width: 25px;  // Define width directly here
+  height: 3px;  // Define height directly here
+  background: white;
+  display: block;
+  position: absolute;
+  top: 50%; // Center vertically
+  left: 30%; // Center horizontally
+  transform: translate(-50%, -50%);
+  transition: transform 200ms;
+}
+
+.hamburger-1, .hamburger-3 {
+  position: absolute;
+  width: 25px;  // Define width directly here
+  height: 3px;  // Define height directly here
+  background: white;
+}
+
+.hamburger-1 {
+  transform: rotate(90deg);
+}
+
+.hamburger-2 {
+  transform: rotate(0deg);
+}
+
+.hamburger-3 {
+  transform: rotate(0deg);
+}
+
+.menu-open:checked + .menu-open-button {
+  .hamburger-1 {
+    transform: rotate(45deg);
+  }
+  .hamburger-2 {
+    display: none; // Hide the middle bar when checked
+  }
+  .hamburger-3 {
+    transform: rotate(-45deg);
+  }
+}
+
+.menu {
+  @extend %goo;
+  $width: 380px;
+  $height: 250px;
+  position: absolute;
+  left: 50%; // Center horizontally
+  top: 50%; // Center vertically
+  transform: translate(-50%, -50%); // Centering trick
+  padding-top: 20px;
+  padding-left: math.div($width, 2);
+  width: $width;
+  height: $height;
+  box-sizing: border-box;
+  font-size: 20px;
+  text-align: left;
+}
+
+.menu-item {
+  &:hover {
+    background: white;
+    color: $fg;
+  }
+  @for $i from 1 through $menu-items {
+    &:nth-child(#{$i + 2}) {
+      transition-duration: 10ms + (60ms * ($i));
+    }
+  }
+}
+
+.menu-open-button {
+  @extend %ball;
+  z-index: 2;
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  transition-duration: 400ms;
+  transform: scale(1.1, 1.1) translate3d(0, 0, 0);
+  cursor: pointer;
+}
+
+.menu-open-button:hover {
+  transform: scale(1.2, 1.2) translate3d(0, 0, 0);
+}
+
+.menu-open:checked + .menu-open-button {
+  transition-timing-function: linear;
+  transition-duration: 200ms;
+  transform: scale(0.8, 0.8) translate3d(0, 0, 0);
+}
+
+.menu-open:checked ~ .menu-item {
+  transition-timing-function: cubic-bezier(0.935, 0.000, 0.340, 1.330);
+  @for $i from 1 through $menu-items {
+    $angle: math.div(($pi - $opening-angle), 2) + (math.div($opening-angle, ($menu-items - 1)) * ($i - 1));
+    $x: math.cos($angle) * $open-distance;
+    $y: math.sin($angle) * $open-distance;
+    
+    &:nth-child(#{$i + 2}) {
+      transition-duration: 80ms + (80ms * $i);
+      transform: translate3d($x, $y, 0);
+    }
+  }
+}
+
+.create-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #3e8e41 !important; /* Green background */
+  border: none !important;
+  color: white;
+  border-radius: 50% !important; /* Makes the button circular */
+  width: 65px; /* Ensure width and height are the same */
+  height: 65px; /* Ensure width and height are the same */
+  position: relative;
+  padding: 0; /* Remove padding to maintain the circular shape */
+  overflow: hidden; /* Ensures the circular shape */
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.create-button:hover {
+  background-color: #45a049 !important; /* Darker green on hover */
+  transform: scale(1.1); /* Slightly enlarge the button on hover */
+}
+
+.create-button:active {
+  background-color: #2e7d32 !important; /* Even darker green on click */
+  transform: scale(0.9); /* Slightly shrink the button on click */
+}
+
+.fa-plus {
+  font-size: 24px; /* Adjust as needed */
+  color: white;
 }
