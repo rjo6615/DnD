@@ -13,7 +13,6 @@ function capitalizeFirstLetter(string) {
 
 async function loginUser(credentials) {
   credentials.username = capitalizeFirstLetter(credentials.username);
-  console.log('Logging in with credentials:', credentials);
   try {
     const response = await fetch('/login', {
       method: 'POST',
@@ -35,15 +34,12 @@ async function loginUser(credentials) {
 
 async function fetchUserByUsername(username) {
   username = capitalizeFirstLetter(username);
-  console.log('Fetching user by username:', username);
   try {
     const response = await fetch(`/users/${username}`);
     if (response.ok) {
       const user = await response.json();
-      console.log('User found:', user);
       return user;
     }
-    console.log('User not found');
     return null;
   } catch (error) {
     console.error('Fetch user error:', error);
@@ -53,7 +49,6 @@ async function fetchUserByUsername(username) {
 
 async function createUser(newUser) {
   newUser.username = capitalizeFirstLetter(newUser.username);
-  console.log('Creating new user:', newUser);
   try {
     const response = await fetch('/users/add', {
       method: 'POST',
@@ -97,9 +92,7 @@ export default function Login({ setToken }) {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    console.log('Checking if user exists:', newUser.username);
     const existingUser = await fetchUserByUsername(newUser.username);
-    console.log('Existing user:', existingUser);
     if (existingUser) {
       alert('Username already in use!');
     } else if (newUser.password === newUser.confirmPassword) {

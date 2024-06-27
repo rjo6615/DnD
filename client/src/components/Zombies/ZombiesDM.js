@@ -145,7 +145,6 @@ async function sendNewPlayersToDb() {
     return response.text(); // Change to text() instead of json()
   })
   .then(data => {
-    console.log('Success:', data);
     alert("Player Successfully Added!");
     setPlayersSearch(""); // Clear input after successful submission
     navigate(0);
@@ -486,15 +485,15 @@ const [form2, setForm2] = useState({
 {/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
 
-<nav class="menuDM">
-  <input type="checkbox" href="#" class="menuDM-open" name="menuDM-open" id="menuDM-open"/>
-  <label class="menuDM-open-button" for="menuDM-open">
-    <span class="hamburger hamburger-1"></span>
-    <span class="hamburger hamburger-2"></span>
-    <span class="hamburger hamburger-3"></span>
+<nav className="menuDM">
+  <input type="checkbox" href="#" className="menuDM-open" name="menuDM-open" id="menuDM-open"/>
+  <label className="menuDM-open-button" htmlFor="menuDM-open">
+    <span className="hamburger hamburger-1"></span>
+    <span className="hamburger hamburger-2"></span>
+    <span className="hamburger hamburger-3"></span>
   </label>
   
-  <a onClick={(e) => { e.preventDefault(); handleShow2(); }} href="#/" class="menuDM-item"> 
+  <a onClick={(e) => { e.preventDefault(); handleShow2(); }} href="#/" className="menuDM-item"> 
   <i className="fa-solid fa-wand-sparkles"></i> 
 </a>
   <a onClick={(e) => { e.preventDefault(); handleShow3(); }} href="#/" className="menuDM-item">

@@ -65,7 +65,6 @@ export default function RecordList() {
       }
     }
   }, []);
-  // console.log(decodedToken.username);
 // --------------------------Random Character Creator Section------------------------------------
  const [form, setForm] = useState({ 
   token: "",
@@ -514,7 +513,7 @@ useEffect(() => {
 
 <nav class="menu">
   <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open"/>
-  <label class="menu-open-button" for="menu-open">
+  <label class="menu-open-button" htmlFor="menu-open">
     <span class="hamburger hamburger-1"></span>
     <span class="hamburger hamburger-2"></span>
     <span class="hamburger hamburger-3"></span>
