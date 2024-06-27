@@ -550,11 +550,13 @@ max-width: 300px;
 
 //vars
 $fg: linear-gradient(135deg, #3e8e41, #2e7d32);
+$fgDM: linear-gradient(135deg, #979940b6, #fffb00);
 $bg: linear-gradient(135deg, #3e8e41, #2e7d32);
 $pi: 3.14;
 
 //config
 $menu-items: 2;
+$menuDM-items: 3;
 $open-distance: 115px;
 $opening-angle: $pi - 0.2;
 
@@ -590,7 +592,23 @@ h1 {
   width: 60px;
   height: 60px;
   position: absolute;
-  top: 200px; // Adjust as needed
+  top: 300px; // Adjust as needed
+  left: 160px; // Adjust as needed
+  right: 20px;
+  color: white;
+  text-align: center;
+  line-height: 80px;
+  transform: translate3d(0, 0, 0);
+  transition: transform ease-out 200ms;
+}
+
+%ballDM {
+  background: $fgDM;
+  border-radius: 100%;
+  width: 60px;
+  height: 60px;
+  position: absolute;
+  top: 300px; // Adjust as needed
   left: 160px; // Adjust as needed
   right: 20px;
   color: white;
@@ -604,8 +622,16 @@ h1 {
   display: none;
 }
 
+.menuDM-open {
+  display: none;
+}
+
 .menu-item {
   @extend %ball;
+}
+
+.menuDM-item {
+  @extend %ballDM;
 }
 
 .hamburger {
@@ -651,7 +677,36 @@ h1 {
   }
 }
 
+.menuDM-open:checked + .menuDM-open-button {
+  .hamburger-1 {
+    transform: rotate(45deg);
+  }
+  .hamburger-2 {
+    display: none; // Hide the middle bar when checked
+  }
+  .hamburger-3 {
+    transform: rotate(-45deg);
+  }
+}
+
 .menu {
+  @extend %goo;
+  $width: 380px;
+  $height: 250px;
+  position: absolute;
+  left: 50%; // Center horizontally
+  top: 50%; // Center vertically
+  transform: translate(-50%, -50%); // Centering trick
+  padding-top: 20px;
+  padding-left: math.div($width, 2);
+  width: $width;
+  height: $height;
+  box-sizing: border-box;
+  font-size: 20px;
+  text-align: left;
+}
+
+.menuDM {
   @extend %goo;
   $width: 380px;
   $height: 250px;
@@ -680,8 +735,29 @@ h1 {
   }
 }
 
+.menuDM-item {
+  &:hover {
+    background: white;
+    color: $fgDM;
+  }
+  @for $i from 1 through $menuDM-items {
+    &:nth-child(#{$i + 2}) {
+      transition-duration: 10ms + (60ms * ($i));
+    }
+  }
+}
+
 .menu-open-button {
   @extend %ball;
+  z-index: 2;
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  transition-duration: 400ms;
+  transform: scale(1.1, 1.1) translate3d(0, 0, 0);
+  cursor: pointer;
+}
+
+.menuDM-open-button {
+  @extend %ballDM;
   z-index: 2;
   transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.275);
   transition-duration: 400ms;
@@ -693,7 +769,17 @@ h1 {
   transform: scale(1.2, 1.2) translate3d(0, 0, 0);
 }
 
+.menuDM-open-button:hover {
+  transform: scale(1.2, 1.2) translate3d(0, 0, 0);
+}
+
 .menu-open:checked + .menu-open-button {
+  transition-timing-function: linear;
+  transition-duration: 200ms;
+  transform: scale(0.8, 0.8) translate3d(0, 0, 0);
+}
+
+.menuDM-open:checked + .menuDM-open-button {
   transition-timing-function: linear;
   transition-duration: 200ms;
   transform: scale(0.8, 0.8) translate3d(0, 0, 0);
@@ -703,6 +789,20 @@ h1 {
   transition-timing-function: cubic-bezier(0.935, 0.000, 0.340, 1.330);
   @for $i from 1 through $menu-items {
     $angle: math.div(($pi - $opening-angle), 2) + (math.div($opening-angle, ($menu-items - 1)) * ($i - 1));
+    $x: math.cos($angle) * $open-distance;
+    $y: math.sin($angle) * $open-distance;
+    
+    &:nth-child(#{$i + 2}) {
+      transition-duration: 80ms + (80ms * $i);
+      transform: translate3d($x, $y, 0);
+    }
+  }
+}
+
+.menuDM-open:checked ~ .menuDM-item {
+  transition-timing-function: cubic-bezier(0.935, 0.000, 0.340, 1.330);
+  @for $i from 1 through $menuDM-items {
+    $angle: math.div(($pi - $opening-angle), 2) + (math.div($opening-angle, ($menuDM-items - 1)) * ($i - 1));
     $x: math.cos($angle) * $open-distance;
     $y: math.sin($angle) * $open-distance;
     

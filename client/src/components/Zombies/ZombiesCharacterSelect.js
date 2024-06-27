@@ -473,7 +473,8 @@ useEffect(() => {
 >
   {params.campaign.toString()}
 </h1>
-        <Table style={{ marginTop: "-30px", width: 'auto', position: "relative", zIndex: "4" }} striped bordered condensed="true" className="zombieCharacterSelectTable dnd-background">
+<div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4' }}>
+        <Table style={{ width: 'auto', position: "relative", zIndex: "4" }} striped bordered condensed="true" className="zombieCharacterSelectTable dnd-background">
           <thead>
             <tr>
               <th>Character</th>
@@ -507,6 +508,7 @@ useEffect(() => {
             ))}
           </tbody>
         </Table>
+        </div>
         <br />
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
 

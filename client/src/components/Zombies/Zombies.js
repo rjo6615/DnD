@@ -151,7 +151,20 @@ async function onSubmit1(e) {
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
 <center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-      <h1 className="text-light" style={{paddingTop: '80px'}}>Zombies</h1>    
+      <div style={{paddingTop: "80px"}}></div>
+      <h1 className="text-light"
+      style={{            
+            fontSize: 28, 
+            width: "300px", 
+            height: "95px", 
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            color: "white", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            borderRadius: "10px", // Rounded corners
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" // Light shadow for depth
+          }}>Zombies</h1>    
       <Container className="mt-3">
       <Row>
         <Col>
