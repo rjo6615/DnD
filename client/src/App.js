@@ -3,10 +3,10 @@ import { BrowserRouter as Router,  Route,  Routes,  Navigate} from "react-router
 import Home from "./components/Home/Home";
 import Navbar from "./components/Navbar/Navbar";
 // import Footer from "./components/Footer/Footer";
-import Zombies from "./components/Zombies/Zombies";
-import ZombiesCharacterSheet from "./components/Zombies/ZombiesCharacterSheet";
-import ZombiesCharacterSelect from "./components/Zombies/ZombiesCharacterSelect";
-import ZombiesDM from "./components/Zombies/ZombiesDM";
+import Zombies from "./components/Zombies/pages/Zombies";
+import ZombiesCharacterSheet from "./components/Zombies/pages/ZombiesCharacterSheet";
+import ZombiesCharacterSelect from "./components/Zombies/pages/ZombiesCharacterSelect";
+import ZombiesDM from "./components/Zombies/pages/ZombiesDM";
 import Login from "./components/Login/Login";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';

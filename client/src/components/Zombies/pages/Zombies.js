@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
-import zombiesbg from "../../images/zombiesbg.jpg";
+import zombiesbg from "../../../images/zombiesbg.jpg";
 import { FaDungeon, FaCrown } from 'react-icons/fa';
 
 

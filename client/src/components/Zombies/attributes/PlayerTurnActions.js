@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
-import damage from "../../images/damage.jpg";
-import wornpaper from "../../images/wornpaper.jpg";
+import damage from "../../../images/damage.jpg";
+import wornpaper from "../../../images/wornpaper.jpg";
 
 export default function PlayerTurnActions ({ props, actions, bonusActions, onSelectAction, onSelectBonusAction, weapons, strMod, atkBonus, dexMod }) { 
   // State to track the selected action

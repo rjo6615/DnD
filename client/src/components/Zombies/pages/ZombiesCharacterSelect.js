@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import Button from 'react-bootstrap/Button';
 import { Table, Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
-import '../../App.scss';
+import '../../../App.scss';
 import { jwtDecode } from 'jwt-decode';
-import zombiesbg from "../../images/zombiesbg.jpg";
+import zombiesbg from "../../../images/zombiesbg.jpg";
 
 export default function RecordList() {
   const params = useParams();

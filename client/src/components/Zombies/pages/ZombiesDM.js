@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { jwtDecode } from 'jwt-decode';
 import { useParams } from "react-router";
-import zombiesbg from "../../images/zombiesbg.jpg";
+import zombiesbg from "../../../images/zombiesbg.jpg";
 
 export default function ZombiesDM() {
   const [decodedToken, setDecodedToken] = useState(null);
