@@ -511,16 +511,16 @@ useEffect(() => {
         <br />
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
 
-<nav class="menu">
-  <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open"/>
-  <label class="menu-open-button" htmlFor="menu-open">
-    <span class="hamburger hamburger-1"></span>
-    <span class="hamburger hamburger-2"></span>
-    <span class="hamburger hamburger-3"></span>
+<nav className="menu">
+  <input type="checkbox" href="#" className="menu-open" name="menu-open" id="menu-open"/>
+  <label className="menu-open-button" htmlFor="menu-open">
+    <span className="hamburger hamburger-1"></span>
+    <span className="hamburger hamburger-2"></span>
+    <span className="hamburger hamburger-3"></span>
   </label>
   
-  <a onClick={(e) => { e.preventDefault(); handleShow5();}} href="/" class="menu-item"> 
-    <i class="fa-solid fa-plus"></i> 
+  <a onClick={(e) => { e.preventDefault(); handleShow5();}} href="/" className="menu-item"> 
+    <i className="fa-solid fa-plus"></i> 
 </a>
   <a onClick={(e) => { e.preventDefault(); bigMaff(); handleShow(); }} href="#/" className="menu-item">
   <i className="fa-solid fa-dice"></i>

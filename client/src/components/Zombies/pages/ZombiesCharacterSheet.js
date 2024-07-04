@@ -8,6 +8,7 @@ import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
+import Weapons from "../attributes/Weapons";
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function ZombiesCharacterSheet() {
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
   const [showFeats, setShowFeats] = useState(false);
+  const [showWeapons, setShowWeapons] = useState(false);
 
   useEffect(() => {
     async function fetchCharacterData(id) {
@@ -43,6 +45,8 @@ export default function ZombiesCharacterSheet() {
   const handleCloseSkill = () => setShowSkill(false); // Handler to close skills modal
   const handleShowFeats = () => setShowFeats(true);
   const handleCloseFeats = () => setShowFeats(false); 
+  const handleShowWeapons = () => setShowWeapons(true);
+  const handleCloseWeapons = () => setShowWeapons(false); 
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>Loading...</div>;
@@ -107,6 +111,7 @@ return (
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
               <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
               <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
+              <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>  
             </Nav>
           </Container>
         </Navbar>
@@ -114,6 +119,7 @@ return (
         <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} />
         <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} totalLevel={totalLevel} />
         <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} totalLevel={totalLevel} />
+        <Weapons form={form} showWeapons={showWeapons} handleCloseWeapons={handleCloseWeapons} strMod={statMods.str} dexMod={statMods.dex}/>
       </div>
     </center>  
   );
