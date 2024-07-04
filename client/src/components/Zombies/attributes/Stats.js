@@ -2,7 +2,6 @@ import { React } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg";
-import Skills from "./Skills"; // Import the Skills component
 
 export default function Stats({ form, showStats, handleCloseStats, totalLevel }) {
   const params = useParams();
@@ -65,10 +64,9 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
   const statPointsLeft = Math.floor(totalLevel / 4) - (statTotal - startStatTotal);
 
   let showBtn = "";
-  let statGold = "gold";
+
   if (statPointsLeft === 0) {
     showBtn = "none";
-    statGold = "#6C757D";
   }
 
   function addStat(stat, statMod) {
@@ -170,7 +168,6 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
           </Card>
         </center>
       </Modal>
-      <Skills strMod={strMod} dexMod={dexMod} conMod={conMod} intMod={intMod} chaMod={chaMod} wisMod={wisMod} /> {/* Pass props to Skills */}
     </div>
   );
 }

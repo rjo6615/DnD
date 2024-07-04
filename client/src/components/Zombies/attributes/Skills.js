@@ -6,14 +6,10 @@ import wornpaper from "../../../images/wornpaper.jpg";
 export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, strMod, dexMod, conMod, intMod, chaMod, wisMod}) {
   const params = useParams();
   const navigate = useNavigate();
-  console.log("Props in Skills component:", { form, showSkill, totalLevel, strMod, dexMod, conMod, intMod, chaMod, wisMod });
 
   //-----------------------Skills--------------------------------------------------------------------------------------------------------------------------------------------------------------------
   const [showAddSkill, setShowAddSkill] = useState(false);
   const handleShowAddSkill = () => setShowAddSkill(true);
-  // const [showSkill, setShowSkill] = useState(false);
-  // const handleCloseSkill = () => setShowSkill(false);
-  // const handleShowSkill = () => setShowSkill(true);
   const handleCloseAddSkill = () => {setShowAddSkill(false); setChosenSkill('');};
   const [chosenSkill, setChosenSkill] = useState('');
   const handleChosenSkillChange = (e) => {
@@ -628,10 +624,8 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
   }
   let totalSkillPointsLeft = allSkillPointsLeft + firstLevelSkill  - skillTotal - totalAddedSkills;
   let showSkillBtn = "";
-  let skillGold = "gold";
   if (totalSkillPointsLeft === 0) {
     showSkillBtn = "none";
-    skillGold = "#6C757D";
   }
   
   const skillKnown = {
