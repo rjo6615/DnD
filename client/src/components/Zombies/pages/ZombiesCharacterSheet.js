@@ -6,7 +6,8 @@ import zombiesbg from "../../../images/zombiesbg.jpg";
 import banner from "../../../images/banner.png";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
-import Skills from "../attributes/Skills"; // Import the Skills component
+import Skills from "../attributes/Skills";
+import Feats from "../attributes/Feats";
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -15,6 +16,7 @@ export default function ZombiesCharacterSheet() {
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
+  const [showFeats, setShowFeats] = useState(false);
 
   useEffect(() => {
     async function fetchCharacterData(id) {
@@ -39,6 +41,8 @@ export default function ZombiesCharacterSheet() {
   const handleCloseStats = () => setShowStats(false);
   const handleShowSkill = () => setShowSkill(true); // Handler to show skills modal
   const handleCloseSkill = () => setShowSkill(false); // Handler to close skills modal
+  const handleShowFeats = () => setShowFeats(true);
+  const handleCloseFeats = () => setShowFeats(false); 
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>Loading...</div>;
@@ -82,7 +86,17 @@ export default function ZombiesCharacterSheet() {
   const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
   const statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
 
-  return (
+// ---------------------------------------Feats left-----------------------------------------------------
+let featLength;
+if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) { 
+  featLength = 0; 
+} else {
+   featLength = form.feat.length 
+  }
+let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
+let featsGold = featPointsLeft === 0 ? "#6C757D" : "gold";
+  
+return (
     <center className="pt-3" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: '80px'}}>
         <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}} className="text-dark">{form.characterName}</h1>  
@@ -92,12 +106,14 @@ export default function ZombiesCharacterSheet() {
               <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
               <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
+              <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
             </Nav>
           </Container>
         </Navbar>
         <CharacterInfo form={form} show={showCharacterInfo} handleClose={handleCloseCharacterInfo} />
         <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} />
         <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} totalLevel={totalLevel} />
+        <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} totalLevel={totalLevel} />
       </div>
     </center>  
   );
