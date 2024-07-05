@@ -1,23 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
-import damage from "../../../images/damage.jpg";
 import wornpaper from "../../../images/wornpaper.jpg";
+import sword from "../../../images/sword.png";
 
 export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) { 
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
-
   const handleCloseAttack = () => setShowAttack(false);
-  // const handleShowAttack = () => setShowAttack(true);
-
-//   const _click = (action) => {
-//     if (action.name === 'Attack') {
-//     handleShowAttack();
-//     } else {
-//     handleActionClick(action);
-//     }
-//  }
-
+  const handleShowAttack = () => setShowAttack(true);
 
 //--------------------------------------------Crit button toggle------------------------------------------------
 const [isGold, setIsGold] = useState(false);
@@ -87,7 +77,12 @@ const handleWeaponsButtonClick = (el) => {
 };
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
-document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
+const opacity = 0.85;
+// Calculate RGBA color with opacity
+const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
+
+// Apply the calculated RGBA color to the element
+document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
     return "Both the number of dice and sides must be greater than zero.";
@@ -120,6 +115,16 @@ const updateDamageValueWithAnimation = (newValue) => {
   setLoading(true);
   setDamageValue(newValue);
 };
+
+const [pulse, setPulse] = useState(false);
+
+useEffect(() => {
+  if (!loading) {
+    setPulse(true);
+    const timer = setTimeout(() => setPulse(false), 2000); // Remove the pulse class after the animation
+    return () => clearTimeout(timer); // Cleanup the timer on unmount or when loading changes
+  }
+}, [loading]);
 //-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
 const [sides] = useState(20);
 const [initialSide] = useState(1);
@@ -190,24 +195,23 @@ const showSparklesEffect = () => {
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div style={{ marginTop: "-40px"}}>
- <div 
-  style={{backgroundImage: `url(${damage})`}} className={`mt-3 ${loading ? 'loading' : ''}`} id="damageAmount">
-  <span id="damageValue" className={loading ? 'hidden' : ''}>
-    {damageValue}
-  </span>
-  <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-</div>
+    <div className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''}`} id="damageAmount">
+      <span id="damageValue" className={loading ? 'hidden' : ''}>
+        {damageValue}
+      </span>
+      <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+    </div>
 <div>
   <Button onClick={handleToggle} 
   style={{color: isGold ? "gold" : "gray", fontSize: "25px", borderColor: "transparent"}} 
   className="fa-solid fa-star bg-transparent"></Button>
 </div>
-
-
-
-
-
-      {/* Attack Modal */}
+<div>
+  <Button onClick={handleShowAttack} 
+  style={{backgroundImage: `url(${sword})`, backgroundSize: "cover", padding: "20px", backgroundColor: "rgba(0, 0, 0, 0.7)", border: "none"}}>
+  </Button>
+</div>
+{/* Attack Modal */}
       <Modal centered show={showAttack} onHide={handleCloseAttack}>
       <center>
         <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
@@ -265,13 +269,11 @@ const showSparklesEffect = () => {
     {showSparkles1 && (
       <div className="sparkle1"></div>
     )}
-
     <div onClick={handleRandomizeClick} 
     className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
       {faceElements}
     </div>
 </div>
-
     </div>    
   );
 };

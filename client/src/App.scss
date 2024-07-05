@@ -844,3 +844,36 @@ h1 {
   font-size: 24px; /* Adjust as needed */
   color: white;
 }
+
+@keyframes pulseOnce {
+  0% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.4);
+    transform: scale(1.1);
+  }
+  100% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+}
+
+#damageAmount {
+  transition: background-color 0.5s ease, transform 0.5s ease;
+}
+
+.pulse {
+  animation: pulseOnce 2s 1; /* Run the animation once over 2 seconds */
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
