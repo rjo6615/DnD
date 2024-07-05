@@ -3,86 +3,20 @@ import { Button, Modal, Card, Table } from "react-bootstrap";
 import damage from "../../../images/damage.jpg";
 import wornpaper from "../../../images/wornpaper.jpg";
 
-export default function PlayerTurnActions ({ props, actions, bonusActions, onSelectAction, onSelectBonusAction, weapons, strMod, atkBonus, dexMod }) { 
-  // State to track the selected action
-  const [selectedAction, setSelectedAction] = useState(null);
-
-  // State to track the selected bonus action
-  const [selectedBonusAction, setSelectedBonusAction] = useState(null);
-
-  // State to track the timer ID
-  const [timerId, setTimerId] = useState(null);
-
-  // Function to open the modal and set the selected action with a timer delay
-  const handleActionMouseDown = (action) => {
-    const id = setTimeout(() => {
-      setSelectedAction(action);
-    }, 250); // quarter-second delay
-    setTimerId(id);
-  };
-
-  // Function to open the modal and set the selected bonus action with a timer delay
-  const handleBonusActionMouseDown = (bonusAction) => {
-    const id = setTimeout(() => {
-      setSelectedBonusAction(bonusAction);
-    }, 250); // quarter-second delay
-    setTimerId(id);
-  };
-
-    // // Function to open the modal and set the selected action with a timer delay
-    // const handleActionMouseOver = (action) => {
-    //   const id = setTimeout(() => {
-    //     setSelectedAction(action);
-    //   }, 700); // quarter-second delay
-    //   setTimerId(id);
-    // };
-  
-    // // Function to open the modal and set the selected bonus action with a timer delay
-    // const handleBonusActionMouseOver = (bonusAction) => {
-    //   const id = setTimeout(() => {
-    //     setSelectedBonusAction(bonusAction);
-    //   }, 700); // quarter-second delay
-    //   setTimerId(id);
-    // };
-
-  // Function to clear the timer
-  const clearTimer = () => {
-    if (timerId) {
-      clearTimeout(timerId);
-      setTimerId(null);
-    }
-  };
-
-  // Function to close the modal
-  const handleCloseModal = () => {
-    setSelectedAction(null);
-    setSelectedBonusAction(null);
-  };
-
-  // Function to select the action
-  const handleActionClick = (action) => {
-    clearTimer(); // Clear the timer if an action is selected
-    onSelectAction(action);
-  };
-
-  // Function to select the bonus action
-  const handleBonusActionClick = (bonusAction) => {
-    clearTimer(); // Clear the timer if a bonus action is selected
-    onSelectBonusAction(bonusAction);
-  };
+export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) { 
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
 
   const handleCloseAttack = () => setShowAttack(false);
-  const handleShowAttack = () => setShowAttack(true);
+  // const handleShowAttack = () => setShowAttack(true);
 
-  const _click = (action) => {
-    if (action.name === 'Attack') {
-    handleShowAttack();
-    } else {
-    handleActionClick(action);
-    }
- }
+//   const _click = (action) => {
+//     if (action.name === 'Attack') {
+//     handleShowAttack();
+//     } else {
+//     handleActionClick(action);
+//     }
+//  }
 
 
 //--------------------------------------------Crit button toggle------------------------------------------------
@@ -153,6 +87,7 @@ const handleWeaponsButtonClick = (el) => {
 };
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
+document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
     return "Both the number of dice and sides must be greater than zero.";
@@ -252,15 +187,10 @@ const showSparklesEffect = () => {
     }, 2000);
   }
 };
-const holdDownDamage = {name: 'Damage', description: "This will be rolled when you select the attack action, and it will determine the damage for the weapon you choose. If you click the toggle below for critical, it will roll the weapon's damage, but multiplied by its critical value."};
-const holdDownCrit = {name: 'Critical', description: 'Toggles critical weapon damage'};
-const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for all your saves or attack rolls, and then add any associated bonuses.'};
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div style={{ marginTop: "-40px"}}>
  <div 
-  onTouchStart={() => handleActionMouseDown(holdDownDamage)} // Open the modal with a 2-second delay
-  onTouchEnd={() => clearTimer()} // Cancels timer
   style={{backgroundImage: `url(${damage})`}} className={`mt-3 ${loading ? 'loading' : ''}`} id="damageAmount">
   <span id="damageValue" className={loading ? 'hidden' : ''}>
     {damageValue}
@@ -269,88 +199,14 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
 </div>
 <div>
   <Button onClick={handleToggle} 
-    onTouchStart={() => handleActionMouseDown(holdDownCrit)} // Open the modal with a 2-second delay
-    onTouchEnd={() => clearTimer()} // Cancels timer
   style={{color: isGold ? "gold" : "gray", fontSize: "25px", borderColor: "transparent"}} 
   className="fa-solid fa-star bg-transparent"></Button>
 </div>
-      <Card style={{backgroundColor: "rgba(0, 0, 0, 0)", border: "none"}}>
-      <Table>  
-        <thead>
-          <tr>
-          <th></th>
-          <th></th>
-          </tr>
-          <tr>
-          <td>{actions.map((action) => (
-          <Button
-            className="bg-secondary mx-1 mt-1"
-            key={action.id}
-            // onMouseOver={() => handleActionMouseOver(action)}
-            // onMouseOut={() => clearTimer()} // Cancels timer
-            onTouchStart={() => handleActionMouseDown(action)} // Open the modal with a 2-second delay
-            onTouchEnd={() => clearTimer()} // Cancels timer
-            onClick={() => _click(action)} // Select the action
-            style={{
-              borderColor: "gray",
-              backgroundSize: "cover",
-              backgroundRepeat: "no-repeat",
-              backgroundImage: action.background,
-              height: "30px",
-              width: "30px"
-            }}
-          >
-            {/* {action.name} */}
-          </Button>
-        ))}
-        </td>
-          <td style={{paddingLeft: "40px"}}>{bonusActions.map((bonusAction) => (
-          <Button
-            className="bg-secondary mx-1 mt-1"
-            key={bonusAction.id}
-            // onMouseOver={() => handleBonusActionMouseOver(bonusAction)}
-            // onMouseOut={() => clearTimer()} // Cancels timer
-            onTouchStart={() => handleBonusActionMouseDown(bonusAction)} // Open the modal with a 2-second delay
-            onTouchEnd={() => clearTimer()} // Cancels timer
-            onClick={() => handleBonusActionClick(bonusAction)} // Select the bonus action
-            style={{
-              borderColor: "gray",
-              backgroundSize: "cover",
-              backgroundRepeat: "no-repeat",
-              backgroundImage: bonusAction.background,
-              height: "30px",
-              width: "30px"
-            }}
-          >
-            {/* {action.name} */}
-          </Button>
-        ))}</td>
-          </tr>
-        </thead> 
-        </Table>
-        </Card> 
-      {/* Modal to display name and description */}
-      <Modal {...props}
-      centered 
-      show={selectedAction !== null || selectedBonusAction !== null} onHide={handleCloseModal}>
-        <Modal.Header closeButton>
-          <Modal.Title id="contained-modal-title-vcenter">Details</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedAction && (
-            <div>
-              <h3>{selectedAction.name}</h3>
-              <p>{selectedAction.description}</p>
-            </div>
-          )}
-          {selectedBonusAction && (
-            <div>
-              <h3>{selectedBonusAction.name}</h3>
-              <p>{selectedBonusAction.description}</p>
-            </div>
-          )}
-        </Modal.Body>
-      </Modal>
+
+
+
+
+
       {/* Attack Modal */}
       <Modal centered show={showAttack} onHide={handleCloseAttack}>
       <center>
@@ -368,7 +224,7 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
             </tr>
           </thead>
           <tbody>
-            {weapons.map((el) => (  
+            {form.weapon.map((el) => (  
             <tr key={el[0]}>
               <td>{el[0]}</td>             
               <td>
@@ -393,7 +249,7 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
               })()}</td>
               <td>{el[3]}</td>
               <td>{el[5]}</td>
-              <td><Button onClick={() => {handleWeaponsButtonCrit(el); handleWeaponsButtonClick(el); handleActionClick(); handleCloseAttack();}} size="sm" className="fa-solid fa-plus" variant="primary"></Button></td>
+              <td><Button onClick={() => {handleWeaponsButtonCrit(el); handleWeaponsButtonClick(el); handleCloseAttack();}} size="sm" className="fa-solid fa-plus" variant="primary"></Button></td>
             </tr>
              ))}
           </tbody>
@@ -411,8 +267,6 @@ const holdDownDice = {name: 'D20 Dice', description: 'Use this die to roll for a
     )}
 
     <div onClick={handleRandomizeClick} 
-         onTouchStart={() => handleActionMouseDown(holdDownDice)} // Open the modal with a 2-second delay
-         onTouchEnd={() => clearTimer()} // Cancels timer
     className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
       {faceElements}
     </div>

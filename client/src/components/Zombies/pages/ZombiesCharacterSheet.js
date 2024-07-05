@@ -9,6 +9,7 @@ import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import Weapons from "../attributes/Weapons";
+import PlayerTurnActions from "../attributes/PlayerTurnActions";
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -99,11 +100,29 @@ if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","",""
   }
 let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
 let featsGold = featPointsLeft === 0 ? "#6C757D" : "gold";
-  
+// ------------------------------------------Attack Bonus---------------------------------------------------
+let atkBonus = 0;
+const occupations = form.occupation;
+
+for (const occupation of occupations) {
+  const level = parseInt(occupation.Level, 10);
+  const attackBonusValue = parseInt(occupation.atkBonus, 10);
+
+  if (!isNaN(level)) {
+    if (attackBonusValue === 0) {
+      atkBonus += Math.floor(level / 2);
+    } else if (attackBonusValue === 1) {
+      atkBonus += Math.floor(level * 0.75);
+    } else if (attackBonusValue === 2) {
+      atkBonus += level;
+    }
+  }
+}
 return (
     <center className="pt-3" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: '80px'}}>
         <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}} className="text-dark">{form.characterName}</h1>  
+        <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">
           <Container>
             <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
