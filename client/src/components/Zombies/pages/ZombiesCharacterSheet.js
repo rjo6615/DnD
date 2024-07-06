@@ -10,6 +10,10 @@ import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import Weapons from "../attributes/Weapons";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
+import Armor from "../attributes/Armor";
+import Items from "../attributes/Items";
+import Help from "../attributes/Help";
+import HealthDefense from "../attributes/HealthDefense";
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -20,6 +24,9 @@ export default function ZombiesCharacterSheet() {
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
   const [showFeats, setShowFeats] = useState(false);
   const [showWeapons, setShowWeapons] = useState(false);
+  const [showArmor, setShowArmor] = useState(false);
+  const [showItems, setShowItems] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   useEffect(() => {
     async function fetchCharacterData(id) {
@@ -48,6 +55,12 @@ export default function ZombiesCharacterSheet() {
   const handleCloseFeats = () => setShowFeats(false); 
   const handleShowWeapons = () => setShowWeapons(true);
   const handleCloseWeapons = () => setShowWeapons(false); 
+  const handleShowArmor = () => setShowArmor(true);
+  const handleCloseArmor = () => setShowArmor(false); 
+  const handleShowItems = () => setShowItems(true);
+  const handleCloseItems = () => setShowItems(false); 
+  const handleShowHelpModal = () => setShowHelpModal(true);
+  const handleCloseHelpModal = () => setShowHelpModal(false); 
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>Loading...</div>;
@@ -122,6 +135,7 @@ return (
     <center className="pt-3" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: '80px'}}>
         <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}} className="text-dark">{form.characterName}</h1>  
+        <HealthDefense form={form} totalLevel={totalLevel} dexMod={statMods.dex} conMod={statMods.con}  />
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">
           <Container>
@@ -130,7 +144,10 @@ return (
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
               <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
               <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
-              <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>  
+              <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button> 
+              <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-shield" variant="secondary"></Button>   
+              <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>  
+              <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-info" variant="primary"></Button>    
             </Nav>
           </Container>
         </Navbar>
@@ -139,6 +156,9 @@ return (
         <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} totalLevel={totalLevel} />
         <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} totalLevel={totalLevel} />
         <Weapons form={form} showWeapons={showWeapons} handleCloseWeapons={handleCloseWeapons} strMod={statMods.str} dexMod={statMods.dex}/>
+        <Armor form={form} showArmor={showArmor} handleCloseArmor={handleCloseArmor} dexMod={statMods.dex} />
+        <Items form={form} showItems={showItems} handleCloseItems={handleCloseItems} />
+        <Help form={form} showHelpModal={showHelpModal} handleCloseHelpModal={handleCloseHelpModal} />
       </div>
     </center>  
   );
