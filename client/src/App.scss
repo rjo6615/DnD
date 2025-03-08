@@ -877,3 +877,139 @@ h1 {
     transform: rotate(360deg);
   }
 }
+
+/* Modern Modal */
+.modern-modal .modal-content-wrapper {
+  animation: scaleUp 0.2s ease-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card Styling */
+.modern-card {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+/* Modal Header */
+.modal-header {
+  background: linear-gradient(135deg, #4CAF50, #388E3C);
+  color: white;
+  text-align: center;
+  padding: 10px;
+}
+
+.modal-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* Points Section */
+.points-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.points-label {
+  font-weight: bold;
+  color: #444;
+}
+
+.points-value {
+  margin-left: 8px;
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+/* Table Styling */
+.modern-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modern-table th,
+.modern-table td {
+  text-align: center;
+  padding: 8px;
+  min-width: 60px;
+}
+
+.modern-table th {
+  background: #e0e0e0;
+  font-weight: bold;
+}
+
+/* Buttons */
+.stat-btn {
+  border: none;
+  padding: 5px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all 0.2s ease-in-out;
+  width: 32px; /* Fixed width */
+}
+
+.minus-btn {
+  background: #e57373;
+  color: white;
+  visibility: hidden;
+}
+
+.plus-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.minus-btn.visible {
+  visibility: visible;
+}
+
+.plus-btn.hidden {
+  visibility: hidden;
+}
+
+/* Footer Buttons */
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 1rem;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.save-btn {
+  background: #ffc107;
+  margin-right: 5px;
+}
+
+.close-btn {
+  background: #6c757d;
+}
+
+.save-btn:hover {
+  background: #d39e00;
+}
+
+.close-btn:hover {
+  background: #545b62;
+}

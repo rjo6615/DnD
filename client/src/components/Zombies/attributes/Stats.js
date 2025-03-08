@@ -1,104 +1,94 @@
-import { React } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg";
 
 export default function Stats({ form, showStats, handleCloseStats, totalLevel }) {
   const params = useParams();
   const navigate = useNavigate();
 
-  // Ensure form.startStatTotal is defined and is a number
-  const startStatTotal = form.startStatTotal;
+  const [stats, setStats] = useState({
+    str: form.str || 0,
+    dex: form.dex || 0,
+    con: form.con || 0,
+    int: form.int || 0,
+    wis: form.wis || 0,
+    cha: form.cha || 0,
+  });
 
-  // Item Stats
-  const totalItemStr = form.item.reduce((sum, el) => sum + Number(el[2]), 0);
-  const totalItemDex = form.item.reduce((sum, el) => sum + Number(el[3]), 0);
-  const totalItemCon = form.item.reduce((sum, el) => sum + Number(el[4]), 0);
-  const totalItemInt = form.item.reduce((sum, el) => sum + Number(el[5]), 0);
-  const totalItemWis = form.item.reduce((sum, el) => sum + Number(el[6]), 0);
-  const totalItemCha = form.item.reduce((sum, el) => sum + Number(el[7]), 0);
+  const startStatTotal = form.startStatTotal || 0;
 
-  const statForm = {
-    str: form.str,
-    dex: form.dex,
-    con: form.con,
-    int: form.int,
-    wis: form.wis,
-    cha: form.cha,
-  };
+  const totalItemBonus = (form.item || []).reduce(
+    (acc, el) => ({
+      str: acc.str + Number(el[2] || 0),
+      dex: acc.dex + Number(el[3] || 0),
+      con: acc.con + Number(el[4] || 0),
+      int: acc.int + Number(el[5] || 0),
+      wis: acc.wis + Number(el[6] || 0),
+      cha: acc.cha + Number(el[7] || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
 
-  const statItemForm = {
-    str: statForm.str + totalItemStr,
-    dex: statForm.dex + totalItemDex,
-    con: statForm.con + totalItemCon,
-    int: statForm.int + totalItemInt,
-    wis: statForm.wis + totalItemWis,
-    cha: statForm.cha + totalItemCha,
-  };
+  const computedStats = Object.keys(stats).reduce((acc, key) => {
+    acc[key] = stats[key] + totalItemBonus[key];
+    return acc;
+  }, {});
 
-  // Sends statForm data to the database for update
+  const statMods = Object.fromEntries(
+    Object.entries(computedStats).map(([key, value]) => [key, Math.floor((value - 10) / 2)])
+  );
+
+  const [statPointsLeft, setStatPointsLeft] = useState(0);
+
+  useEffect(() => {
+    const pointsUsed = Object.values(stats).reduce((a, b) => a + b, 0) - startStatTotal;
+    setStatPointsLeft(Math.floor(totalLevel / 4) - pointsUsed);
+  }, [stats, totalLevel, startStatTotal]);
+
   async function statsUpdate() {
-    const updatedStats = { ...statForm };
     await fetch(`/update-stats/${params.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(updatedStats),
-    }).catch((error) => {
-      window.alert(error);
-      return;
-    });
+      body: JSON.stringify(stats),
+    }).catch((error) => window.alert(error));
+
     navigate(0);
   }
 
-  // Stat Mods
-  const strMod = Math.floor((statItemForm.str - 10) / 2);
-  const dexMod = Math.floor((statItemForm.dex - 10) / 2);
-  const conMod = Math.floor((statItemForm.con - 10) / 2);
-  const intMod = Math.floor((statItemForm.int - 10) / 2);
-  const wisMod = Math.floor((statItemForm.wis - 10) / 2);
-  const chaMod = Math.floor((statItemForm.cha - 10) / 2);
-
-  const statTotal = form.str + form.dex + form.con + form.int + form.wis + form.cha;
-  const statPointsLeft = Math.floor(totalLevel / 4) - (statTotal - startStatTotal);
-
-  let showBtn = "";
-
-  if (statPointsLeft === 0) {
-    showBtn = "none";
+  function addStat(stat) {
+    if (statPointsLeft > 0) {
+      setStats((prev) => {
+        const newStats = { ...prev, [stat]: prev[stat] + 1 };
+        return newStats;
+      });
+    }
   }
 
-  function addStat(stat, statMod) {
-    if (statPointsLeft === 0) {
-      return;
+  function removeStat(stat) {
+    if (stats[stat] > form[stat]) {
+      setStats((prev) => {
+        const newStats = { ...prev, [stat]: prev[stat] - 1 };
+        return newStats;
+      });
     }
-    statForm[stat]++;
-    statItemForm[stat]++;
-    document.getElementById(stat).innerHTML = statItemForm[stat];
-    document.getElementById("statPointLeft").innerHTML = statPointsLeft - 1;
-    document.getElementById(statMod).innerHTML = Math.floor((statItemForm[stat] - 10) / 2);
-  }
-
-  function removeStat(stat, statMod) {
-    if (statForm[stat] === form[stat]) {
-      return;
-    }
-    statForm[stat]--;
-    statItemForm[stat]--;
-    document.getElementById(stat).innerHTML = statItemForm[stat];
-    document.getElementById("statPointLeft").innerHTML = statPointsLeft + 1;
-    document.getElementById(statMod).innerHTML = Math.floor((statItemForm[stat] - 10) / 2);
   }
 
   return (
-    <div>
-      <Modal show={showStats} onHide={handleCloseStats} size="sm" centered>
-        <center>
-          <Card style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
-            <Card.Title>Stats</Card.Title>
-            <Card.Title style={{ display: showBtn }}>Points Left:<span className="mx-1" id="statPointLeft">{statPointsLeft}</span></Card.Title>
-            <Table striped bordered hover size="sm">
+    <Modal show={showStats} onHide={handleCloseStats} size="sm" centered className="modern-modal">
+      <center>
+        <Card className="modern-card">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Stats</Card.Title>
+          </Card.Header>
+          <Card.Body>
+            <div className="points-container" style={{ display: statPointsLeft >= 0 ? "flex" : "none" }}>
+              <span className="points-label">Points Left:</span>
+              <span className="points-value">{isNaN(statPointsLeft) ? 0 : statPointsLeft}</span>
+            </div>
+
+            <Table striped bordered hover size="sm" className="modern-table">
               <thead>
                 <tr>
                   <th></th>
@@ -109,65 +99,37 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td><Button style={{ display: showBtn }} onClick={() => removeStat('str', 'strMod')} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>STR</td>
-                  <td><span id="str">{statItemForm.str}</span></td>
-                  <td><span id="strMod">{strMod}</span></td>
-                  <td><Button style={{ display: showBtn }} onClick={() => addStat('str', 'strMod')} className="fa-solid fa-plus"></Button></td>
-                </tr>
-                <tr>
-                  <td><Button style={{ display: showBtn }} onClick={() => removeStat('dex', 'dexMod')} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>DEX</td>
-                  <td><span id="dex">{statItemForm.dex}</span></td>
-                  <td><span id="dexMod">{dexMod}</span></td>
-                  <td><Button style={{ display: showBtn }} onClick={() => addStat('dex', 'dexMod')} className="fa-solid fa-plus"></Button></td>
-                </tr>
-                <tr>
-                  <td><Button style={{ display: showBtn }} onClick={() => removeStat('con', 'conMod')} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>CON</td>
-                  <td><span id="con">{statItemForm.con}</span></td>
-                  <td><span id="conMod">{conMod}</span></td>
-                  <td><Button style={{ display: showBtn }} onClick={() => addStat('con', 'conMod')} className="fa-solid fa-plus"></Button></td>
-                </tr>
-                <tr>
-                  <td><Button style={{ display: showBtn }} onClick={() => removeStat('int', 'intMod')} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>INT</td>
-                  <td><span id="int">{statItemForm.int}</span></td>
-                  <td><span id="intMod">{intMod}</span></td>
-                  <td><Button style={{ display: showBtn }} onClick={() => addStat('int', 'intMod')} className="fa-solid fa-plus"></Button></td>
-                </tr>
-                <tr>
-                  <td><Button style={{ display: showBtn }} onClick={() => removeStat('wis', 'wisMod')} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>WIS</td>
-                  <td><span id="wis">{statItemForm.wis}</span></td>
-                  <td><span id="wisMod">{wisMod}</span></td>
-                  <td><Button style={{ display: showBtn }} onClick={() => addStat('wis', 'wisMod')} className="fa-solid fa-plus"></Button></td>
-                </tr>
-                <tr>
-                  <td><Button style={{ display: showBtn }} onClick={() => removeStat('cha', 'chaMod')} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>CHA</td>
-                  <td><span id="cha">{statItemForm.cha}</span></td>
-                  <td><span id="chaMod">{chaMod}</span></td>
-                  <td><Button style={{ display: showBtn }} onClick={() => addStat('cha', 'chaMod')} className="fa-solid fa-plus"></Button></td>
-                </tr>
+                {["str", "dex", "con", "int", "wis", "cha"].map((stat) => (
+                  <tr key={stat}>
+                    <td>
+                      <Button
+                        className="stat-btn minus-btn"
+                        style={{ visibility: stats[stat] > form[stat] ? "visible" : "hidden" }}
+                        onClick={() => removeStat(stat)}
+                      >-</Button>
+                    </td>
+                    <td>{stat.toUpperCase()}</td>
+                    <td>{computedStats[stat]}</td>
+                    <td>{statMods[stat]}</td>
+                    <td>
+                      <Button
+                        className="stat-btn plus-btn"
+                        style={{ visibility: statPointsLeft > 0 ? "visible" : "hidden" }}
+                        onClick={() => addStat(stat)}
+                      >+</Button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </Table>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 0px' }}>
-              <Button
-                style={{ display: showBtn, width: '100%' }}
-                onClick={() => statsUpdate()}
-                className="bg-warning fa-solid fa-floppy-disk"
-              ></Button>
-              <Button
-                style={{ width: '100%' }}
-                onClick={() => handleCloseStats()}
-                className="bg-secondary fa-solid fa-xmark"
-              ></Button>
-            </div>
-          </Card>
-        </center>
-      </Modal>
-    </div>
+          </Card.Body>
+
+          <Card.Footer className="modal-footer">
+            <Button className="action-btn save-btn" onClick={statsUpdate}>Save</Button>
+            <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
+          </Card.Footer>
+        </Card>
+      </center>
+    </Modal>
   );
 }
