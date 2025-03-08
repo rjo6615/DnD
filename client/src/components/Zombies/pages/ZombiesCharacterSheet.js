@@ -131,10 +131,32 @@ for (const occupation of occupations) {
     }
   }
 }
+if (!form) {
+  return <div style={{ fontFamily: 'Raleway, sans-serif', background: "radial-gradient(circle, #1a1a2e, #16213e, #0f3460)", height: "100vh" }}>Loading...</div>;
+}
+
 return (
-    <center className="pt-3" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+  <center className="pt-3" style={{ fontFamily: 'Raleway, sans-serif', background: "radial-gradient(circle, #1a1a2e, #16213e, #0f3460)", height: "100vh" }}>
       <div style={{paddingTop: '80px'}}>
-        <h1 style={{ fontSize: 28, backgroundPositionY: "450%", width: "300px", height: "95px", backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundRepeat: "no-repeat"}} className="text-dark">{form.characterName}</h1>  
+      <h1 
+  style={{
+    fontSize: "32px",
+    fontWeight: "bold",
+    color: "#e0c28d", // Gold-like color
+    textTransform: "uppercase",
+    background: "linear-gradient(90deg, rgba(50,30,15,0.8), rgba(80,50,25,0.9))",
+    borderRadius: "10px",
+    padding: "10px 20px",
+    width: "fit-content",
+    textAlign: "center",
+    letterSpacing: "1.5px",
+    textShadow: "2px 2px 4px rgba(0, 0, 0, 0.6)",
+    border: "2px solid #b68f40", // Gold border for a royal feel
+    fontFamily: "'Cinzel', serif" // Medieval-style font
+  }} 
+  className="mx-auto">
+  {form.characterName}
+</h1>  
         <HealthDefense form={form} totalLevel={totalLevel} dexMod={statMods.dex} conMod={statMods.con}  />
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">

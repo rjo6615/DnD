@@ -152,24 +152,114 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
 
 return (
 <div>
-<div style={{marginTop: "-40px", marginBottom: "40px"}}>
-      <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
+  <div style={{ marginBottom: "40px", textAlign: "center" }}>
+    {/* Stat Bar */}
+    <h6 
+      style={{
+        background: "rgba(222, 187, 157, 0.9)", 
+        color: "black", 
+        display: "inline-block", 
+        borderRadius: "8px", 
+        padding: "8px 12px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
+      }}>
       <strong className="mx-2">AC: {Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</strong>
       <strong className="mx-2">Attack Bonus: {atkBonus}</strong>
       <strong className="mx-2">Initiative: {dexMod}</strong>
-      </h6>
-{/*------------------------------------------------------------ Health Bar -----------------------------------------------------------------------------*/}
-      <div className="health-bar" style={healthBar}>
-        <div className="health-bar-inner" style={healthStyle}>{health}/{form.health + Number(conMod * totalLevel)}</div>
+    </h6>
+
+    {/* Health Section with Buttons */}
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "10px" }}>
+      {/* Decrease Health Button */}
+      <Button 
+        style={{ 
+          color: "white", 
+          background: "rgba(255, 0, 0, 0.7)", 
+          border: "none", 
+          boxShadow: "0 2px 6px rgba(255, 0, 0, 0.5)", 
+          fontSize: "20px",
+          width: "40px",
+          height: "40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }} 
+        className="fa-solid fa-minus" 
+        onClick={decreaseHealth}>
+      </Button>
+
+      {/* Health Bar */}
+      <div 
+        className="health-bar" 
+        style={{
+          width: "250px",
+          height: "30px",
+          background: "rgba(0, 0, 0, 0.6)", 
+          borderRadius: "10px",
+          boxShadow: "0 4px 10px rgba(0, 0, 0, 0.5)",
+          overflow: "hidden",
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: "bold",
+          color: "white",
+          textShadow: "1px 1px 4px rgba(0, 0, 0, 0.8)"
+        }}>
+        {/* Inner Bar */}
+        <div 
+          className="health-bar-inner" 
+          style={{
+            width: `${(health / (form.health + Number(conMod * totalLevel))) * 100}%`, // Dynamic width
+            height: "100%",
+            background: health > (form.health + Number(conMod * totalLevel)) * 0.5 ? "limegreen" : "crimson", // Color changes at 50%
+            position: "absolute",
+            left: "0",
+            top: "0",
+            transition: "width 0.3s ease-in-out"
+          }}>
+        </div>
+        {/* Centered Health Text */}
+        <span style={{ position: "absolute", zIndex: "1" }}>
+          {health}/{form.health + Number(conMod * totalLevel)}
+        </span>
       </div>
-      <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-start bg-transparent fa-solid fa-minus" onClick={decreaseHealth}></Button>
-      <Button style={{marginTop: "-35px", color: "black", border: "none"}} className="float-end bg-transparent fa-solid fa-plus" onClick={increaseHealth}></Button>  
-      <h6 style={{backgroundColor: "#debb9d", color: "black", display: "inline-block", borderRadius: "5px"}}>
+
+      {/* Increase Health Button */}
+      <Button 
+        style={{ 
+          color: "white", 
+          background: "rgba(0, 200, 0, 0.7)", 
+          border: "none", 
+          boxShadow: "0 2px 6px rgba(0, 200, 0, 0.5)", 
+          fontSize: "20px",
+          width: "40px",
+          height: "40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }} 
+        className="fa-solid fa-plus" 
+        onClick={increaseHealth}>
+      </Button>  
+    </div>
+
+    {/* Saving Throws */}
+    <h6 
+      style={{
+        background: "rgba(222, 187, 157, 0.9)", 
+        color: "black", 
+        display: "inline-block", 
+        borderRadius: "8px", 
+        padding: "8px 12px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
+        marginTop: "15px"
+      }}>
       <strong className="mx-2">Fort: {fortSave}</strong>
       <strong className="mx-2">Reflex: {reflexSave}</strong>
       <strong className="mx-2">Will: {willSave}</strong>
-      </h6>    
-      </div>
+    </h6>    
+  </div>
 </div>
 )
 }
