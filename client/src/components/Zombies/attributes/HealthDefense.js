@@ -151,114 +151,137 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
   };
 
 return (
-<div>
-  <div style={{ marginBottom: "40px", textAlign: "center" }}>
-    {/* Stat Bar */}
-    <h6 
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column", // <-- vertical stacking
+    alignItems: "center",
+    gap: "32px",
+    marginBottom: "40px",
+    padding: "0 16px",
+    maxWidth: "100%",
+  }}
+>
+  {/* Health Section */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "16px",
+      flexWrap: "nowrap",
+      flexShrink: 1,
+      minWidth: "320px",
+    }}
+  >
+    {/* Decrease Button */}
+    <Button
       style={{
-        background: "rgba(222, 187, 157, 0.9)", 
-        color: "black", 
-        display: "inline-block", 
-        borderRadius: "8px", 
-        padding: "8px 12px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
-      }}>
-      <strong className="mx-2">AC: {Number(totalArmorAcBonus) + Number(10) + Number(armorMaxDex)}</strong>
-      <strong className="mx-2">Attack Bonus: {atkBonus}</strong>
-      <strong className="mx-2">Initiative: {dexMod}</strong>
-    </h6>
+        color: "#e74c3c",
+        backgroundColor: "#ffffff",
+        border: "none",
+        fontSize: "20px",
+        width: "44px",
+        height: "44px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "50%",
+        transition: "transform 0.2s ease",
+        flexShrink: 0
+      }}
+      className="fa-solid fa-minus"
+      onClick={decreaseHealth}
+      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
+      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+    />
 
-    {/* Health Section with Buttons */}
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "10px" }}>
-      {/* Decrease Health Button */}
-      <Button 
-        style={{ 
-          color: "white", 
-          background: "rgba(255, 0, 0, 0.7)", 
-          border: "none", 
-          boxShadow: "0 2px 6px rgba(255, 0, 0, 0.5)", 
-          fontSize: "20px",
-          width: "40px",
-          height: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }} 
-        className="fa-solid fa-minus" 
-        onClick={decreaseHealth}>
-      </Button>
-
-      {/* Health Bar */}
-      <div 
-        className="health-bar" 
+    {/* Health Bar */}
+    <div
+      style={{
+        position: "relative",
+        width: "240px",
+        height: "24px",
+        backgroundColor: "#e0e0e0",
+        borderRadius: "12px",
+        overflow: "hidden",
+        boxShadow: "inset 0 1px 3px rgba(0,0,0,0.25)",
+        flexShrink: 0
+      }}
+    >
+      <div
         style={{
-          width: "250px",
-          height: "30px",
-          background: "rgba(0, 0, 0, 0.6)", 
-          borderRadius: "10px",
-          boxShadow: "0 4px 10px rgba(0, 0, 0, 0.5)",
-          overflow: "hidden",
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: "bold",
-          color: "white",
-          textShadow: "1px 1px 4px rgba(0, 0, 0, 0.8)"
-        }}>
-        {/* Inner Bar */}
-        <div 
-          className="health-bar-inner" 
-          style={{
-            width: `${(health / (form.health + Number(conMod * totalLevel))) * 100}%`, // Dynamic width
-            height: "100%",
-            background: health > (form.health + Number(conMod * totalLevel)) * 0.5 ? "limegreen" : "crimson", // Color changes at 50%
-            position: "absolute",
-            left: "0",
-            top: "0",
-            transition: "width 0.3s ease-in-out"
-          }}>
-        </div>
-        {/* Centered Health Text */}
-        <span style={{ position: "absolute", zIndex: "1" }}>
-          {health}/{form.health + Number(conMod * totalLevel)}
-        </span>
-      </div>
+          width: `${(health / (form.health + Number(conMod * totalLevel))) * 100}%`,
+          height: "100%",
+          background: health > (form.health + Number(conMod * totalLevel)) * 0.5 ? "#2ecc71" : "#c0392b",
+          transition: "width 0.3s ease-in-out",
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          width: "100%",
+          top: "0",
+          left: "0",
+          textAlign: "center",
+          fontSize: "14px",
+          fontWeight: 600,
+          color: "#222",
+          lineHeight: "24px",
+        }}
+      >
+        {health}/{form.health + Number(conMod * totalLevel)}
+      </span>
+    </div>
 
-      {/* Increase Health Button */}
-      <Button 
-        style={{ 
-          color: "white", 
-          background: "rgba(0, 200, 0, 0.7)", 
-          border: "none", 
-          boxShadow: "0 2px 6px rgba(0, 200, 0, 0.5)", 
-          fontSize: "20px",
-          width: "40px",
-          height: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }} 
-        className="fa-solid fa-plus" 
-        onClick={increaseHealth}>
-      </Button>  
+    {/* Increase Button */}
+    <Button
+      style={{
+        color: "#27ae60",
+        backgroundColor: "#ffffff",
+        border: "none",
+        fontSize: "20px",
+        width: "44px",
+        height: "44px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "50%",
+        transition: "transform 0.2s ease",
+        flexShrink: 0
+      }}
+      className="fa-solid fa-plus"
+      onClick={increaseHealth}
+      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
+      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+    />
+  </div>
+
+  {/* Stats + Saving Throws Section */}
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: "12px",
+      fontFamily: "'Inter', sans-serif",
+      fontSize: "15px",
+      color: "#000",
+    }}
+  >
+    {/* Core Stats */}
+    <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+      <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+      <div><strong>Attack Bonus:</strong> {atkBonus}</div>
+      <div><strong>Initiative:</strong> {dexMod}</div>
     </div>
 
     {/* Saving Throws */}
-    <h6 
-      style={{
-        background: "rgba(222, 187, 157, 0.9)", 
-        color: "black", 
-        display: "inline-block", 
-        borderRadius: "8px", 
-        padding: "8px 12px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
-        marginTop: "15px"
-      }}>
-      <strong className="mx-2">Fort: {fortSave}</strong>
-      <strong className="mx-2">Reflex: {reflexSave}</strong>
-      <strong className="mx-2">Will: {willSave}</strong>
-    </h6>    
+    <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+      <div><strong>Fort:</strong> {fortSave}</div>
+      <div><strong>Reflex:</strong> {reflexSave}</div>
+      <div><strong>Will:</strong> {willSave}</div>
+    </div>
   </div>
 </div>
 )

@@ -9,7 +9,7 @@ import logoLight from "../../images/logo-light.png";
 function NavbarComponent() {
   const { removeToken } = useToken();
   return (
-    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: "rgba(0, 0, 0, 1)" }}>
       <Container fluid>
         <Navbar.Brand href="/">
           <img src={logoLight} alt="" width="60px" height="60px" className="d-inline-block align-text-top" />
