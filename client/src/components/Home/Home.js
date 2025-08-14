@@ -2,12 +2,9 @@ import React from 'react';
 import { Button } from 'react-bootstrap';
 import loginbg from "../../images/loginbg.png";
 import zombiesbg from "../../images/zombiesbg.jpg";
-import NavbarComponent from '../Navbar/Navbar'; // Adjust the import path as needed
-
 export default function Home() {
   return (
     <div style={{ backgroundImage: `url(${loginbg})`, backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center', fontFamily: 'Raleway, sans-serif' }}>
-      <NavbarComponent />
       <center>
       <div style={{ paddingTop: '90px' }}></div>
         
