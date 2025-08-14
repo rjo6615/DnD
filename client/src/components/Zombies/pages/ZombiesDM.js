@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
-import { useNavigate } from "react-router";
 import Modal from 'react-bootstrap/Modal';
 import { jwtDecode } from 'jwt-decode';
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
 
 export default function ZombiesDM() {

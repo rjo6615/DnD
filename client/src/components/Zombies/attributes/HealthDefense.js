@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
-import { useParams } from "react-router";
+import { useParams } from "react-router-dom";
 
 export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
   const params = useParams();

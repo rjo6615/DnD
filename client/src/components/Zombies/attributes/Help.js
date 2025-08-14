@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'; // Import useState and React
 import { Modal, Card, Table, Button } from 'react-bootstrap'; // Adjust as per your actual UI library
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg"; 
 
 export default function Help({props, form, showHelpModal, handleCloseHelpModal}) {
