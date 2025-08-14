@@ -157,7 +157,7 @@ return (
     flexDirection: "column", // <-- vertical stacking
     alignItems: "center",
     gap: "32px",
-    marginBottom: "40px",
+    marginBottom: "80px",
     padding: "0 16px",
     maxWidth: "100%",
   }}
@@ -177,7 +177,7 @@ return (
     <Button
       style={{
         color: "#e74c3c",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FAFAFA",
         border: "none",
         fontSize: "20px",
         width: "44px",
@@ -237,7 +237,7 @@ return (
     <Button
       style={{
         color: "#27ae60",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FAFAFA",
         border: "none",
         fontSize: "20px",
         width: "44px",

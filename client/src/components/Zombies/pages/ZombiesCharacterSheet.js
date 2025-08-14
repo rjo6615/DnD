@@ -139,7 +139,7 @@ return (
 <center className="pt-3" 
   style={{
     fontFamily: 'Raleway, sans-serif',
-    background: "white", 
+    background: "#FAFAFA", 
     height: "100vh"
   }}
 >
@@ -148,7 +148,7 @@ return (
   style={{
     fontSize: "28px",
     fontWeight: 600,
-    color: "#000000", // Bright for dark UIs — change to #222 for light backgrounds
+    color: "#000000", 
     padding: "8px 0",
     textAlign: "center",
     letterSpacing: "1px",
