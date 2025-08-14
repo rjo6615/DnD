@@ -61,6 +61,36 @@ routes.post('/login', (req, res) => {
     });
 });
 
+// Verify user credentials
+routes.post('/users/verify', (req, res) => {
+  const { username, password } = req.body;
+
+  let db_connect = dbo.getDb();
+  let myquery = { username: username };
+
+  db_connect
+    .collection('users')
+    .findOne(myquery, function (err, user) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+
+      bcrypt.compare(password, user.password, (err, isMatch) => {
+        if (err) {
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        if (!isMatch) {
+          return res.status(401).json({ message: 'Invalid username or password' });
+        }
+
+        res.json({ valid: true });
+      });
+    });
+});
+
 // Get all users (protected route)
 routes.get('/users', authenticateToken, (req, res) => {
   let db_connect = dbo.getDb();
@@ -68,20 +98,6 @@ routes.get('/users', authenticateToken, (req, res) => {
     .collection('users')
     .find({})
     .toArray(function (err, result) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-      res.json(result);
-    });
-});
-
-// Get user by username and password (protected route)
-routes.get('/users/:username/:password', authenticateToken, (req, res) => {
-  let db_connect = dbo.getDb();
-  let myquery = { username: req.params.username, password: req.params.password };
-  db_connect
-    .collection('users')
-    .findOne(myquery, function (err, result) {
       if (err) {
         return res.status(500).json({ message: 'Internal server error' });
       }
