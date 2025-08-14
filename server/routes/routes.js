@@ -90,16 +90,21 @@ routes.get('/users/:username/:password', authenticateToken, (req, res) => {
 });
 
 // Get user by username (protected route)
-routes.get('/users/:username', (req, res) => {
+// Clients must include a valid JWT in the Authorization header: "Bearer <token>"
+routes.get('/users/:username', authenticateToken, (req, res) => {
   let db_connect = dbo.getDb();
   let myquery = { username: req.params.username };
   db_connect
     .collection('users')
-    .findOne(myquery, function (err, result) {
+    .findOne(myquery, function (err, user) {
       if (err) {
         return res.status(500).json({ message: 'Internal server error' });
       }
-      res.json(result);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     });
 });
 
