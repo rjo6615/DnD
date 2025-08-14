@@ -1,6 +1,6 @@
 import React, { useState, useEffect, } from "react";
 import { Button, Col, Container, Form, Row, Table, Card } from "react-bootstrap";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
