@@ -6,7 +6,8 @@
   "proxy": "http://localhost:3000",
   "scripts": {
     "start": "node server.js",
-    "watch": "nodemon server.js"
+    "watch": "nodemon server.js",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -19,5 +20,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^4.4.0",
     "mongoose": "^7.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   }
 }
