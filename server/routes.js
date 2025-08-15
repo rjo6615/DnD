@@ -38,8 +38,9 @@ routes.post('/login', (req, res) => {
         // Generate JWT token
         const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
         res.json({ token });
-        const decoded = jwt.verify(token, jwtSecretKey);
-        console.log(decoded);
+        console.debug('JWT token generated for login request', {
+          timestamp: new Date().toISOString(),
+        });
       });
     });
 });
