@@ -5,26 +5,9 @@ const routes = express.Router();
 const dbo = require('./db/conn');
 require('dotenv').config();
 const ObjectId = require("mongodb").ObjectId;
+const authenticateToken = require('./middleware/auth');
 
 const jwtSecretKey = process.env.JWT_SECRET;
-
-// Middleware to verify JWT token
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  jwt.verify(token, jwtSecretKey, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    req.user = user;
-    next();
-  });
-};
 
 
 // Login route
