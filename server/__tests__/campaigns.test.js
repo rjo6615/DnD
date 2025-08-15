@@ -76,4 +76,25 @@ describe('Campaign routes', () => {
     const res = await request(app).get('/campaignsDM/DM');
     expect(res.status).toBe(500);
   });
+
+  test('get campaign by dm and name success', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        findOne: async () => ({ campaignName: 'Test', dm: 'DM' })
+      })
+    });
+    const res = await request(app).get('/campaignsDM/DM/Test');
+    expect(res.status).toBe(200);
+    expect(res.body.campaignName).toBe('Test');
+  });
+
+  test('get campaign by dm and name failure', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        findOne: async () => { throw new Error('db error'); }
+      })
+    });
+    const res = await request(app).get('/campaignsDM/DM/Test');
+    expect(res.status).toBe(500);
+  });
 });

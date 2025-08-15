@@ -4,6 +4,136 @@ const { ObjectId } = require('mongodb');
 
 const router = express.Router();
 
+// Campaign gear lookups
+router.get('/items/:campaign', async (req, res) => {
+  const { campaign } = req.params;
+  if (!campaign) {
+    return res.status(400).json({ message: 'Invalid campaign' });
+  }
+  try {
+    const db = dbo.getDb();
+    const items = await db
+      .collection('Items')
+      .find({ campaign })
+      .toArray();
+    if (!items.length) {
+      return res.status(404).json({ message: 'Items not found' });
+    }
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/armor/:campaign', async (req, res) => {
+  const { campaign } = req.params;
+  if (!campaign) {
+    return res.status(400).json({ message: 'Invalid campaign' });
+  }
+  try {
+    const db = dbo.getDb();
+    const armor = await db
+      .collection('Armor')
+      .find({ campaign })
+      .toArray();
+    if (!armor.length) {
+      return res.status(404).json({ message: 'Armor not found' });
+    }
+    res.json(armor);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/weapons/:campaign', async (req, res) => {
+  const { campaign } = req.params;
+  if (!campaign) {
+    return res.status(400).json({ message: 'Invalid campaign' });
+  }
+  try {
+    const db = dbo.getDb();
+    const weapons = await db
+      .collection('Weapons')
+      .find({ campaign })
+      .toArray();
+    if (!weapons.length) {
+      return res.status(404).json({ message: 'Weapons not found' });
+    }
+    res.json(weapons);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/feats', async (req, res) => {
+  try {
+    const db = dbo.getDb();
+    const feats = await db.collection('Feats').find({}).toArray();
+    if (!feats.length) {
+      return res.status(404).json({ message: 'Feats not found' });
+    }
+    res.json(feats);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/occupations', async (req, res) => {
+  try {
+    const db = dbo.getDb();
+    const occupations = await db.collection('Occupations').find({}).toArray();
+    if (!occupations.length) {
+      return res.status(404).json({ message: 'Occupations not found' });
+    }
+    res.json(occupations);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Gear insertion routes
+router.post('/weapon/add', async (req, res) => {
+  const { campaign, weaponName } = req.body;
+  if (typeof campaign !== 'string' || typeof weaponName !== 'string') {
+    return res.status(400).json({ message: 'Invalid input' });
+  }
+  try {
+    const db = dbo.getDb();
+    const result = await db.collection('Weapons').insertOne(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/armor/add', async (req, res) => {
+  const { campaign, armorName } = req.body;
+  if (typeof campaign !== 'string' || typeof armorName !== 'string') {
+    return res.status(400).json({ message: 'Invalid input' });
+  }
+  try {
+    const db = dbo.getDb();
+    const result = await db.collection('Armor').insertOne(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/item/add', async (req, res) => {
+  const { campaign, itemName } = req.body;
+  if (typeof campaign !== 'string' || typeof itemName !== 'string') {
+    return res.status(400).json({ message: 'Invalid input' });
+  }
+  try {
+    const db = dbo.getDb();
+    const result = await db.collection('Items').insertOne(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Create a new character
 router.post('/character/add', async (req, res) => {
   try {
@@ -104,6 +234,57 @@ router.put('/update-dice-color/:id', async (req, res) => {
 
 // Update additional skill array
 router.put('/update-add-skill/:id', async (req, res) => {
+  const id = req.params.id;
+  const { newSkill } = req.body;
+  if (!ObjectId.isValid(id) || !Array.isArray(newSkill)) {
+    return res.status(400).json({ message: 'Invalid input' });
+  }
+  try {
+    const db = dbo.getDb();
+    const result = await db.collection('Characters').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { newSkill } },
+      { returnDocument: 'after' }
+    );
+    if (!result.value) {
+      return res.status(404).json({ message: 'Character not found' });
+    }
+    res.json(result.value);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update skill fields
+router.put('/update-skills/:id', async (req, res) => {
+  const id = req.params.id;
+  const updates = req.body;
+  if (
+    !ObjectId.isValid(id) ||
+    typeof updates !== 'object' ||
+    Array.isArray(updates) ||
+    !Object.values(updates).every((v) => typeof v === 'number')
+  ) {
+    return res.status(400).json({ message: 'Invalid input' });
+  }
+  try {
+    const db = dbo.getDb();
+    const result = await db.collection('Characters').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updates },
+      { returnDocument: 'after' }
+    );
+    if (!result.value) {
+      return res.status(404).json({ message: 'Character not found' });
+    }
+    res.json(result.value);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update previously added skills
+router.put('/updated-add-skills/:id', async (req, res) => {
   const id = req.params.id;
   const { newSkill } = req.body;
   if (!ObjectId.isValid(id) || !Array.isArray(newSkill)) {

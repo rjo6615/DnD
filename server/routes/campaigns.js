@@ -64,6 +64,26 @@ router.get('/campaignsDM/:username', async (req, res) => {
   }
 });
 
+// Get single campaign by dm and name
+router.get('/campaignsDM/:username/:campaign', async (req, res) => {
+  const { username, campaign } = req.params;
+  if (!username || !campaign) {
+    return res.status(400).json({ message: 'Invalid parameters' });
+  }
+  try {
+    const db = dbo.getDb();
+    const record = await db
+      .collection('Campaigns')
+      .findOne({ dm: username, campaignName: campaign });
+    if (!record) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Create a new campaign
 router.post('/campaign/add', async (req, res) => {
   try {
