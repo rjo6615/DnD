@@ -222,12 +222,9 @@ let randomSex = Math.round(Math.random() * 1);
 let newSex = sexArr[randomSex];
 updateForm({ sex: newSex }); 
 
-// Height Randomizer
+// Height Randomizer - store height as total inches to satisfy numeric validation
 let randomHeight = Math.round(Math.random() * (76 - 60)) + 60;
-let feet = Math.floor(randomHeight / 12);
-let inches = randomHeight %= 12;
-let newHeight = ( feet + "ft " + inches + 'in');
-updateForm({ height: newHeight }); 
+updateForm({ height: randomHeight });
 
 // Weight Randomizer
 let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
