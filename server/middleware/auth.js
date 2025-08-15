@@ -3,19 +3,7 @@ const jwtSecretKey = process.env.JWT_SECRET;
 
 module.exports = function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  let token;
-
-  if (req.headers.cookie) {
-    const match = req.headers.cookie
-      .split(';')
-      .map((c) => c.trim())
-      .find((c) => c.startsWith('token='));
-    if (match) {
-      token = match.split('=')[1];
-    }
-  }
-
-  token = token || (authHeader && authHeader.split(' ')[1]);
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
