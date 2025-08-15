@@ -7,7 +7,7 @@ const path = require('path');
 
 app.use(cors());
 app.use(express.json());
-app.use(require("./routes"));
+app.use(require("./routes.js"));
 
 // Adjusted to serve static files from the correct build directory
 app.use(express.static(path.join(__dirname, '../client/build')));

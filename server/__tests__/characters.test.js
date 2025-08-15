@@ -3,7 +3,7 @@ const express = require('express');
 
 jest.mock('../db/conn', () => ({ getDb: jest.fn() }));
 const dbo = require('../db/conn');
-const charactersRouter = require('../routes/characters');
+const charactersRouter = require('../routes.js');
 
 const app = express();
 app.use(express.json());
