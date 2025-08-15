@@ -23,7 +23,7 @@ describe('Character routes', () => {
     expect(res.body.acknowledged).toBe(true);
   });
 
-  test('add character failure', async () => {
+  test('add character db failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
         insertOne: (doc, cb) => cb(new Error('db error'))
@@ -31,8 +31,20 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/character/add')
-      .send({ token: 'alice' });
+      .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(500);
+  });
+
+  test('add character validation failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        insertOne: (doc, cb) => cb(null, { acknowledged: true })
+      })
+    });
+    const res = await request(app)
+      .post('/character/add')
+      .send({ token: 'alice' });
+    expect(res.status).toBe(400);
   });
 
   test('get characters for campaign and user success', async () => {
