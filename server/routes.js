@@ -2,10 +2,19 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const express = require('express');
 const routes = express.Router();
-const dbo = require('./db/conn');
+const connectDB = require('./db/conn');
 require('dotenv').config();
 const ObjectId = require("mongodb").ObjectId;
 const authenticateToken = require('./middleware/auth');
+
+routes.use(async (req, res, next) => {
+  try {
+    req.db = await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 const jwtSecretKey = process.env.JWT_SECRET;
 
@@ -14,7 +23,7 @@ const jwtSecretKey = process.env.JWT_SECRET;
 routes.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myquery = { username: username };
 
   db_connect
@@ -49,7 +58,7 @@ routes.post('/login', (req, res) => {
 routes.post('/users/verify', (req, res) => {
   const { username, password } = req.body;
 
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myquery = { username: username };
 
   db_connect
@@ -77,7 +86,7 @@ routes.post('/users/verify', (req, res) => {
 
 // Get all users (protected route)
 routes.get('/users', authenticateToken, (req, res) => {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection('users')
     .find({})
@@ -92,7 +101,7 @@ routes.get('/users', authenticateToken, (req, res) => {
 // Get user by username (protected route)
 // Clients must include a valid JWT in the Authorization header: "Bearer <token>"
 routes.get('/users/:username', authenticateToken, (req, res) => {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myquery = { username: req.params.username };
   db_connect
     .collection('users')
@@ -117,7 +126,7 @@ routes.post('/users/add', (req, res) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
 
-    let db_connect = dbo.getDb();
+    let db_connect = req.db;
     let myobj = {
       username: username,
       password: hashedPassword,
@@ -138,7 +147,7 @@ routes.route('/players/add/:campaign').put(authenticateToken, (req, res) => {
   const campaignName = req.params.campaign;
   const newPlayers = req.body; // Assuming newPlayers is an array of players
 
-  const db_connect = dbo.getDb();
+  const db_connect = req.db;
   db_connect.collection("Campaigns").updateOne(
     { campaignName: campaignName },
     { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
@@ -162,7 +171,7 @@ routes.route('/players/add/:campaign').put(authenticateToken, (req, res) => {
 
 // This section will get a single character by id
 routes.route("/characters/:id").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect
     .collection("Characters")
@@ -174,7 +183,7 @@ routes.route("/characters/:id").get(function (req, res) {
 
 // This section will get a list of all the characters.
 routes.route("/character/select").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Characters")
     .find({})
@@ -186,7 +195,7 @@ routes.route("/character/select").get(function (req, res) {
 
 // This section will create a new character.
 routes.route("/character/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myobj = {
   token: req.body.token,
   characterName: req.body.characterName,
@@ -250,7 +259,7 @@ routes.route("/character/add").post(function (req, response) {
 
 // This section will delete a character
 routes.route("/delete-character/:id").delete((req, response) => {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
     if (err) throw err;
@@ -263,7 +272,7 @@ routes.route("/delete-character/:id").delete((req, response) => {
 
 // This section will find all of the users characters in a specific campaign.
 routes.route("/campaign/:campaign/:username").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Characters")
     .find({ campaign: req.params.campaign, token: req.params.username })
@@ -275,7 +284,7 @@ routes.route("/campaign/:campaign/:username").get(function (req, res) {
 
  // This section will find all characters in a specific campaign.
 routes.route("/campaign/:campaign").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Characters")
     .find({ campaign: req.params.campaign })
@@ -287,7 +296,7 @@ routes.route("/campaign/:campaign").get(function (req, res) {
 
 // This section will get a list of all the campaigns.
 routes.route("/campaigns/:player").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Campaigns")
     .find({ players: { $in: [req.params.player] } }) // Using $in to search for the player in the players array
@@ -299,7 +308,7 @@ routes.route("/campaigns/:player").get(function (req, res) {
 
  // This section will create a new campaign.
 routes.route("/campaign/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myobj = {
   campaignName: req.body.campaignName,
   gameMode: req.body.gameMode,
@@ -315,7 +324,7 @@ routes.route("/campaign/add").post(function (req, response) {
 
  // This section will be for the DM 
  routes.route("/campaignsDM/:DM").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Campaigns")
     .find({ dm: req.params.DM })
@@ -326,7 +335,7 @@ routes.route("/campaign/add").post(function (req, response) {
  });
 
  routes.route("/campaignsDM/:DM/:campaign").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Campaigns")
     .findOne({ dm: req.params.DM, campaignName: req.params.campaign }, function (err, result) {
@@ -338,7 +347,7 @@ routes.route("/campaign/add").post(function (req, response) {
 
 // This section will get a list of all the occupations.
 routes.route("/occupations").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Occupations")
     .find({})
@@ -351,7 +360,7 @@ routes.route("/occupations").get(function (req, res) {
 // This section will update occupations.
 routes.route('/update-occupations/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
-  const db_connect = dbo.getDb();
+  const db_connect = req.db;
 
   try {
     db_connect.collection("Characters").updateOne(id, {
@@ -374,7 +383,7 @@ routes.route('/update-occupations/:id').put((req, res, next) => {
   // This section will update stats.
 routes.route('/update-stats/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'str': req.body.str, 
   'dex': req.body.dex, 
@@ -396,7 +405,7 @@ routes.route('/update-stats/:id').put((req, res, next) => {
 // This section will update skills.
 routes.route('/update-skills/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   "appraise": req.body.appraise,
   "balance": req.body.balance,
@@ -440,7 +449,7 @@ routes.route('/update-skills/:id').put((req, res, next) => {
 // This section will update added skills.
 routes.route('/update-add-skill/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'newSkill': req.body.newSkill
 }}, (err, result) => {
@@ -455,7 +464,7 @@ routes.route('/update-add-skill/:id').put((req, res, next) => {
 // This section will update ranks of skills.
 routes.route('/updated-add-skills/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'newSkill': req.body.newSkill
 }}, (err, result) => {
@@ -472,7 +481,7 @@ routes.route('/updated-add-skills/:id').put((req, res, next) => {
 // This section will update tempHealth.
 routes.route('/update-temphealth/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'tempHealth': req.body.tempHealth
 }}, (err, result) => {
@@ -487,7 +496,7 @@ routes.route('/update-temphealth/:id').put((req, res, next) => {
 // This section will update health and stats.
 routes.route('/update-health/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
-  const db_connect = dbo.getDb();
+  const db_connect = req.db;
 
   try {
 
@@ -517,7 +526,7 @@ routes.route('/update-health/:id').put((req, res, next) => {
 
  // This section will get a list of all the weapons.
  routes.route("/weapons/:campaign").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Weapons")
     .find({ campaign: req.params.campaign })
@@ -530,7 +539,7 @@ routes.route('/update-health/:id').put((req, res, next) => {
 // This section will update weapons.
 routes.route('/update-weapon/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'weapon': req.body.weapon
 }}, (err, result) => {
@@ -544,7 +553,7 @@ routes.route('/update-weapon/:id').put((req, res, next) => {
 
 // This section will create a new weapon.
 routes.route("/weapon/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
   weaponName: req.body.weaponName,
@@ -563,7 +572,7 @@ routes.route("/weapon/add").post(function (req, response) {
 
 // This section will get a list of all the armor.
 routes.route("/armor/:campaign").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Armor")
     .find({ campaign: req.params.campaign })
@@ -575,7 +584,7 @@ routes.route("/armor/:campaign").get(function (req, res) {
 
 // This section will create a new armor.
 routes.route("/armor/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
   armorName: req.body.armorName,
@@ -592,7 +601,7 @@ routes.route("/armor/add").post(function (req, response) {
 // This section will update armors.
 routes.route('/update-armor/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'armor': req.body.armor
 }}, (err, result) => {
@@ -607,7 +616,7 @@ routes.route('/update-armor/:id').put((req, res, next) => {
 
 // This section will get a list of all the items.
 routes.route("/items/:campaign").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Items")
     .find({ campaign: req.params.campaign })
@@ -619,7 +628,7 @@ routes.route("/items/:campaign").get(function (req, res) {
 
 // This section will create a new item.
 routes.route("/item/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myobj = {
     campaign: req.body.campaign,
     itemName: req.body.itemName, 
@@ -670,7 +679,7 @@ routes.route("/item/add").post(function (req, response) {
  // This section will update items.
 routes.route('/update-item/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'item': req.body.item
 }}, (err, result) => {
@@ -686,7 +695,7 @@ routes.route('/update-item/:id').put((req, res, next) => {
 
 // This section will get a list of all the feats.
 routes.route("/feats").get(function (req, res) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect
     .collection("Feats")
     .find({})
@@ -698,7 +707,7 @@ routes.route("/feats").get(function (req, res) {
 
 // This section will create a new feat.
 routes.route("/feat/add").post(function (req, response) {
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   let myobj = {
     featName: req.body.featName, 
     notes: req.body.notes,
@@ -742,7 +751,7 @@ routes.route("/feat/add").post(function (req, response) {
  // This section will update feats.
 routes.route('/update-feat/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'feat': req.body.feat
 }}, (err, result) => {
@@ -757,7 +766,7 @@ routes.route('/update-feat/:id').put((req, res, next) => {
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
  // This section will update level.
  routes.route('/update-level/:id').put((req, res, next) => {
-  const db_connect = dbo.getDb();
+  const db_connect = req.db;
   const selectedOccupation = req.body.selectedOccupation;
 
 const updateOperation = {
@@ -794,7 +803,7 @@ db_connect.collection("Characters").updateOne(
  // This section will update dice color.
  routes.route('/update-dice-color/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
-  let db_connect = dbo.getDb();
+  let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'diceColor': req.body.diceColor,
 }}, (err, result) => {
@@ -805,4 +814,4 @@ db_connect.collection("Characters").updateOne(
     res.send('user updated sucessfully');
   });
 });
-   module.exports = routes;
+module.exports = routes;

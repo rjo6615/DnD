@@ -1,7 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 
-jest.mock('../db/conn', () => ({ getDb: jest.fn() }));
+jest.mock('../db/conn');
 const dbo = require('../db/conn');
 const campaignsRouter = require('../routes.js');
 
@@ -11,9 +11,9 @@ app.use(campaignsRouter);
 
 describe('Campaign routes', () => {
   test('create campaign success', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: async () => ({ acknowledged: true })
+        insertOne: (doc, cb) => cb(null, { acknowledged: true })
       })
     });
     const res = await request(app)
@@ -24,9 +24,9 @@ describe('Campaign routes', () => {
   });
 
   test('create campaign failure', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: async () => { throw new Error('db error'); }
+        insertOne: (doc, cb) => cb(new Error('db error'))
       })
     });
     const res = await request(app)
@@ -36,9 +36,9 @@ describe('Campaign routes', () => {
   });
 
   test('get campaign by name success', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        findOne: async () => ({ campaignName: 'Test', dm: 'DM', players: [] })
+        findOne: (query, cb) => cb(null, { campaignName: 'Test', dm: 'DM', players: [] })
       })
     });
     const res = await request(app).get('/campaign/Test');
@@ -47,9 +47,9 @@ describe('Campaign routes', () => {
   });
 
   test('get campaign by name failure', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        findOne: async () => { throw new Error('db error'); }
+        findOne: (query, cb) => cb(new Error('db error'))
       })
     });
     const res = await request(app).get('/campaign/Test');
@@ -57,9 +57,9 @@ describe('Campaign routes', () => {
   });
 
   test('get campaigns by dm success', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: async () => [{ campaignName: 'Test', dm: 'DM' }] })
+        find: () => ({ toArray: (cb) => cb(null, [{ campaignName: 'Test', dm: 'DM' }]) })
       })
     });
     const res = await request(app).get('/campaignsDM/DM');
@@ -68,9 +68,9 @@ describe('Campaign routes', () => {
   });
 
   test('get campaigns by dm failure', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: async () => { throw new Error('db error'); } })
+        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
     const res = await request(app).get('/campaignsDM/DM');
@@ -78,9 +78,9 @@ describe('Campaign routes', () => {
   });
 
   test('get campaign by dm and name success', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        findOne: async () => ({ campaignName: 'Test', dm: 'DM' })
+        findOne: (query, cb) => cb(null, { campaignName: 'Test', dm: 'DM' })
       })
     });
     const res = await request(app).get('/campaignsDM/DM/Test');
@@ -89,9 +89,9 @@ describe('Campaign routes', () => {
   });
 
   test('get campaign by dm and name failure', async () => {
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        findOne: async () => { throw new Error('db error'); }
+        findOne: (query, cb) => cb(new Error('db error'))
       })
     });
     const res = await request(app).get('/campaignsDM/DM/Test');
