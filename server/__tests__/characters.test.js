@@ -23,6 +23,39 @@ describe('Character routes', () => {
     expect(res.body.acknowledged).toBe(true);
   });
 
+  test('add character with array fields', async () => {
+    let captured;
+    dbo.mockResolvedValue({
+      collection: () => ({
+        insertOne: (doc, cb) => {
+          captured = doc;
+          cb(null, { acknowledged: true });
+        }
+      })
+    });
+    const payload = {
+      token: 'alice',
+      characterName: 'Hero',
+      campaign: 'Camp1',
+      occupation: [{ Level: '1', Name: 'Scout' }],
+      feat: ['Power Attack'],
+      weapon: ['Sword'],
+      armor: ['Plate'],
+      item: ['Potion'],
+      newSkill: ['Stealth']
+    };
+    const res = await request(app)
+      .post('/character/add')
+      .send(payload);
+    expect(res.status).toBe(200);
+    expect(captured).toMatchObject({
+      ...payload,
+      occupation: [{ Level: 1, Name: 'Scout' }]
+    });
+    expect(Array.isArray(captured.feat)).toBe(true);
+    expect(Array.isArray(captured.weapon)).toBe(true);
+  });
+
   test('add character db failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
@@ -90,6 +123,29 @@ describe('Character routes', () => {
     });
     const res = await request(app).get('/campaign/Camp1/characters');
     expect(res.status).toBe(500);
+  });
+
+  test('get character preserves array fields', async () => {
+    const character = {
+      token: 'alice',
+      campaign: 'Camp1',
+      occupation: [{ Level: 1, Name: 'Scout' }],
+      feat: ['Power Attack'],
+      weapon: ['Sword'],
+      armor: ['Plate'],
+      item: ['Potion'],
+      newSkill: ['Stealth']
+    };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: (query, cb) => cb(null, character)
+      })
+    });
+    const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
+    expect(res.status).toBe(200);
+    expect(res.body.occupation).toEqual(character.occupation);
+    expect(Array.isArray(res.body.feat)).toBe(true);
+    expect(Array.isArray(res.body.weapon)).toBe(true);
   });
 
   test('get weapons success', async () => {
