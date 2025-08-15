@@ -35,7 +35,12 @@ async function loginUser(credentials) {
 async function fetchUserByUsername(username) {
   username = capitalizeFirstLetter(username);
   try {
-    const response = await fetch(`/users/${username}`);
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/users/${username}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     if (response.ok) {
       const user = await response.json();
       return user;
