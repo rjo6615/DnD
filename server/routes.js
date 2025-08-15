@@ -1,78 +1,12 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const express = require('express');
+const { body, param, validationResult } = require('express-validator');
 const routes = express.Router();
 const connectDB = require('./db/conn');
 require('dotenv').config();
 const ObjectId = require("mongodb").ObjectId;
 const authenticateToken = require('./middleware/auth');
-
-// Attempt to use express-validator; provide a minimal fallback if unavailable
-let body, param, validationResult;
-try {
-  ({ body, param, validationResult } = require('express-validator'));
-} catch (err) {
-  const makeChain = (source) => (field) => {
-    const rules = [];
-    const chain = function (req, res, next) {
-      chain.run(req).then(() => next());
-    };
-    chain.trim = () => {
-      rules.push((req) => {
-        if (req[source] && req[source][field]) {
-          req[source][field] = String(req[source][field]).trim();
-        }
-        return null;
-      });
-      return chain;
-    };
-    chain.notEmpty = () => {
-      rules.push((req) => {
-        if (!req[source] || req[source][field] === undefined || req[source][field] === '') {
-          return 'Invalid value';
-        }
-        return null;
-      });
-      return chain;
-    };
-    chain.isLength = (opts) => {
-      rules.push((req) => {
-        const val = req[source] && req[source][field];
-        if (!val || val.length < (opts.min || 0)) {
-          return 'Invalid value';
-        }
-        return null;
-      });
-      return chain;
-    };
-    chain.withMessage = (msg) => {
-      const last = rules.pop();
-      rules.push((req) => {
-        const res = last(req);
-        return res ? msg : null;
-      });
-      return chain;
-    };
-    chain.run = (req) => {
-      const errs = [];
-      for (const rule of rules) {
-        const msg = rule(req);
-        if (msg) {
-          errs.push({ msg, param: field });
-        }
-      }
-      req._validationErrors = (req._validationErrors || []).concat(errs);
-      return Promise.resolve();
-    };
-    return chain;
-  };
-  body = makeChain('body');
-  param = makeChain('params');
-  validationResult = (req) => ({
-    isEmpty: () => !(req._validationErrors && req._validationErrors.length),
-    array: () => req._validationErrors || [],
-  });
-}
 
 // Generic middleware to send standardized validation errors
 const handleValidationErrors = (req, res, next) => {
