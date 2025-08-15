@@ -56,6 +56,30 @@ describe('Character routes', () => {
     expect(res.status).toBe(500);
   });
 
+  test('get all characters for campaign success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(null, [
+          { token: 'alice', campaign: 'Camp1' },
+          { token: 'bob', campaign: 'Camp1' }
+        ]) })
+      })
+    });
+    const res = await request(app).get('/campaign/Camp1/characters');
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBe(2);
+  });
+
+  test('get all characters for campaign failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+      })
+    });
+    const res = await request(app).get('/campaign/Camp1/characters');
+    expect(res.status).toBe(500);
+  });
+
   test('get weapons success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
