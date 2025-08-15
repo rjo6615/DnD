@@ -37,6 +37,33 @@ router.get('/campaigns/:player', async (req, res) => {
   }
 });
 
+// Get campaign details by campaign name
+router.get('/campaign/:campaign', async (req, res) => {
+  try {
+    const db = dbo.getDb();
+    const campaign = await db
+      .collection('Campaigns')
+      .findOne({ campaignName: req.params.campaign });
+    res.json(campaign);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get campaigns by dungeon master username
+router.get('/campaignsDM/:username', async (req, res) => {
+  try {
+    const db = dbo.getDb();
+    const campaigns = await db
+      .collection('Campaigns')
+      .find({ dm: req.params.username })
+      .toArray();
+    res.json(campaigns);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Create a new campaign
 router.post('/campaign/add', async (req, res) => {
   try {

@@ -34,4 +34,25 @@ describe('Character routes', () => {
       .send({ token: 'alice' });
     expect(res.status).toBe(500);
   });
+
+  test('get characters for campaign and user success', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        find: () => ({ toArray: async () => [{ token: 'alice', campaign: 'Camp1' }] })
+      })
+    });
+    const res = await request(app).get('/campaign/Camp1/alice');
+    expect(res.status).toBe(200);
+    expect(res.body[0].token).toBe('alice');
+  });
+
+  test('get characters for campaign and user failure', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
+      })
+    });
+    const res = await request(app).get('/campaign/Camp1/alice');
+    expect(res.status).toBe(500);
+  });
 });
