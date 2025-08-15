@@ -3,35 +3,16 @@ import Button from 'react-bootstrap/Button';
 import { Table, Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
-import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../../images/zombiesbg.jpg";
 
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
-  const [decodedToken, setDecodedToken] = useState(null);
 
   useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!decodedToken) {
-      return;
-    }
     async function getRecords() {
-      const response = await fetch(`/campaign/${params.campaign}/${decodedToken.username}`);
+      const response = await fetch(`/campaign/${params.campaign}`);
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -46,29 +27,14 @@ export default function RecordList() {
     getRecords();
 
     return;
-  }, [params.campaign, decodedToken]);
+  }, [params.campaign]);
 
   const navigateToCharacter = (id) => {
     navigate(`/zombies-character-sheet/${id}`);
   }
-
-  useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, []);
 // --------------------------Random Character Creator Section------------------------------------
- const [form, setForm] = useState({ 
-  token: "",
-  characterName: "", 
+ const [form, setForm] = useState({
+  characterName: "",
   campaign: params.campaign.toString(),
   occupation: [""], 
   feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
@@ -121,13 +87,6 @@ export default function RecordList() {
   newSkill: [["",0]],
   diceColor: "#000000",
 });
-
-useEffect(() => {
-  // Update form state once the token is decoded
-  if (decodedToken) {
-    setForm(prevForm => ({ ...prevForm, token: decodedToken.username }));
-  }
-}, [decodedToken]);
 
 const [occupation, setOccupation] = useState({ 
   occupation: [], 

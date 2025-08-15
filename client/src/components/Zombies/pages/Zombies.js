@@ -3,44 +3,20 @@ import { Button, Col, Container, Form, Row, Table, Card } from "react-bootstrap"
 import { useNavigate } from "react-router-dom";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
-import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../../images/zombiesbg.jpg";
 import { FaDungeon, FaCrown } from 'react-icons/fa';
 
 
 export default function ZombiesHome() {
   const navigate = useNavigate();
-  const [decodedToken, setDecodedToken] = useState(null);
-
-  useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, []);
-
 //--------------------------------------------Campaign Section------------------------------
 
 const [form1, setForm1] = useState({ 
-  campaignName: "", 
+  campaignName: "",
   gameMode: "zombies",
   dm: "",
   players: [],
 });
-
-useEffect(() => {
-  // Update form1 state once the token is decoded
-  if (decodedToken) {
-    setForm1(prevForm1 => ({ ...prevForm1, dm: decodedToken.username }));
-  }
-}, [decodedToken]);
 
 const [campaign, setCampaign] = useState({ 
   campaign: [], 
@@ -64,11 +40,8 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
 
 // Fetch Campaigns
   useEffect(() => {
-    if (!decodedToken || !decodedToken.username) {
-      return;
-    }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${decodedToken.username}`);    
+    const response = await fetch(`/campaigns`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -87,15 +60,12 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
   fetchData1();   
   return;
   
-}, [navigate, decodedToken]);
+}, [navigate]);
 
 // Fetch CampaignsDM
 useEffect(() => {
-    if (!decodedToken || !decodedToken.username) {
-      return;
-    }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${decodedToken.username}`);    
+    const response = await fetch(`/campaignsDM`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -114,7 +84,7 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, decodedToken ]);
+}, [ navigate ]);
 
 
 function updateForm1(value) {

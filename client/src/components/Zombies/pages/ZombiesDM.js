@@ -1,27 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate, useParams } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
 
 export default function ZombiesDM() {
-  const [decodedToken, setDecodedToken] = useState(null);
-
-  useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, []);
-  
     const navigate = useNavigate();
     const params = useParams();
     const [records, setRecords] = useState([]);
@@ -56,11 +39,8 @@ const [campaignDM, setCampaignDM] = useState({ players: [] });
 
 // Fetch CampaignsDM
 useEffect(() => {
-  if (!decodedToken) {
-    return;
-  }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${decodedToken.username}/${params.campaign}`);    
+    const response = await fetch(`/campaignsDM/${params.campaign}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -79,7 +59,7 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, decodedToken, params.campaign ]);
+}, [ navigate, params.campaign ]);
 
 //---------------------------------------Add Player-------------------------------------------
 const [players, setPlayers] = useState({ 
@@ -89,17 +69,8 @@ const [players, setPlayers] = useState({
 const [playersSearch, setPlayersSearch] = useState("");
 
  useEffect(() => {
-    if (!decodedToken) {
-      return;
-    }
-
     async function fetchUsers() {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch(`/users`);
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -117,7 +88,7 @@ const [playersSearch, setPlayersSearch] = useState("");
     }
 
     fetchUsers();
-  }, [navigate, decodedToken]);
+  }, [navigate]);
 
 async function newPlayerSubmit(e) {
   e.preventDefault();   
@@ -127,13 +98,11 @@ async function newPlayerSubmit(e) {
 const currentCampaign = params.campaign.toString();
 async function sendNewPlayersToDb() {
   const newPlayers = [playersSearch];
-  const token = localStorage.getItem('token');
 
   await fetch(`/players/add/${currentCampaign}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`, // Include the token in the request headers
     },
     body: JSON.stringify(newPlayers),
   })
