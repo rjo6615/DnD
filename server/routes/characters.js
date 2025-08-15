@@ -1,5 +1,6 @@
 const express = require('express');
 const dbo = require('../db/conn');
+const { ObjectId } = require('mongodb');
 
 const router = express.Router();
 
@@ -23,6 +24,22 @@ router.get('/characters/campaign/:campaign', async (req, res) => {
       .find({ campaign: req.params.campaign })
       .toArray();
     res.json(characters);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get a single character by id
+router.get('/characters/:id', async (req, res) => {
+  try {
+    const db = dbo.getDb();
+    const character = await db
+      .collection('Characters')
+      .findOne({ _id: new ObjectId(req.params.id) });
+    if (!character) {
+      return res.status(404).json({ message: 'Character not found' });
+    }
+    res.json(character);
   } catch (err) {
     res.status(500).json({ message: 'Internal server error' });
   }
