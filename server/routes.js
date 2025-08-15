@@ -266,24 +266,10 @@ const numericCharacterFields = [
   'useRope',
 ];
 
-const allowedCharacterFields = [
-  'characterName',
-  'campaign',
-  'occupation',
-  'feat',
-  'weapon',
-  'armor',
-  'item',
-  'sex',
-  'newSkill',
-  'diceColor',
-  ...numericCharacterFields,
-];
-
 routes.post(
   '/character/add',
-  authenticateToken,
   [
+    body('token').trim().notEmpty().withMessage('token is required'),
     body('characterName').trim().notEmpty().withMessage('characterName is required'),
     body('campaign').trim().notEmpty().withMessage('campaign is required'),
     body('occupation').optional().isArray(),
@@ -300,16 +286,7 @@ routes.post(
   handleValidationErrors,
   (req, res) => {
     const db_connect = req.db;
-    const data = matchedData(req, { locations: ['body'], includeOptionals: true });
-    const myobj = allowedCharacterFields.reduce(
-      (obj, field) => {
-        if (data[field] !== undefined) {
-          obj[field] = data[field];
-        }
-        return obj;
-      },
-      { token: req.user.username }
-    );
+    const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
     db_connect.collection('Characters').insertOne(myobj, function (err, result) {
       if (err) {
         return res.status(500).json({ message: 'Internal server error' });
