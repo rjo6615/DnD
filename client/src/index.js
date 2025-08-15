@@ -4,12 +4,6 @@ import './index.scss';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// Ensure cookies are sent with all fetch requests
-const originalFetch = window.fetch;
-window.fetch = (input, init = {}) => {
-  return originalFetch(input, { credentials: 'include', ...init });
-};
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

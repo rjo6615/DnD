@@ -55,16 +55,6 @@ routes.post(
 
       // Generate JWT token
       const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
-
-      // Set token as HTTP-only cookie
-      res.cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 3600000, // 1 hour
-      });
-
-      // Return token as well for client-side use if needed
       res.json({ token });
       console.debug('JWT token generated for login request', {
         timestamp: new Date().toISOString(),
