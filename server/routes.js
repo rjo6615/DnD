@@ -272,20 +272,21 @@ routes.post(
     body('token').trim().notEmpty().withMessage('token is required'),
     body('characterName').trim().notEmpty().withMessage('characterName is required'),
     body('campaign').trim().notEmpty().withMessage('campaign is required'),
-    body('occupation').optional().trim(),
-    body('feat').optional().trim(),
-    body('weapon').optional().trim(),
-    body('armor').optional().trim(),
-    body('item').optional().trim(),
+    body('occupation').optional().isArray(),
+    body('occupation.*.Level').isInt().toInt(),
+    body('feat').optional().isArray(),
+    body('weapon').optional().isArray(),
+    body('armor').optional().isArray(),
+    body('item').optional().isArray(),
     body('sex').optional().trim(),
-    body('newSkill').optional().trim(),
+    body('newSkill').optional().isArray(),
     body('diceColor').optional().trim(),
     ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
   ],
   handleValidationErrors,
   (req, res) => {
     const db_connect = req.db;
-    const myobj = matchedData(req, { locations: ['body'] });
+    const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
     db_connect.collection('Characters').insertOne(myobj, function (err, result) {
       if (err) {
         return res.status(500).json({ message: 'Internal server error' });
