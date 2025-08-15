@@ -27,20 +27,20 @@ export default function ZombiesDM() {
     const [records, setRecords] = useState([]);
     useEffect(() => {
       async function getRecords() {
-        const response = await fetch(`/campaign/${params.campaign}`);
-  
+        const response = await fetch(`/campaign/${params.campaign}/characters`);
+
         if (!response.ok) {
           const message = `An error occurred: ${response.statusText}`;
           window.alert(message);
           return;
         }
-  
-        const records = await response.json();
-        setRecords(records);
+
+        const data = await response.json();
+        setRecords(data);
       }
-  
+
       getRecords();
-  
+
       return;
     }, [params.campaign]);
   
@@ -400,7 +400,7 @@ const [form2, setForm2] = useState({
           </tr>
         </thead>
         <tbody>
-          {records.map((Characters) => (
+          {Array.isArray(records) && records.map((Characters) => (
             <tr key={Characters._id}>
               <td>{Characters.token}</td>
               <td>{Characters.characterName}</td>
