@@ -19,6 +19,7 @@ async function loginUser(credentials) {
       headers: {
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify(credentials)
     });
     if (!response.ok) {
@@ -35,12 +36,7 @@ async function loginUser(credentials) {
 async function fetchUserByUsername(username) {
   username = capitalizeFirstLetter(username);
   try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`/users/${username}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(`/users/${username}`, { credentials: 'include' });
     if (response.ok) {
       const user = await response.json();
       return user;
@@ -60,6 +56,7 @@ async function createUser(newUser) {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify(newUser),
     });
     if (!response.ok) {
