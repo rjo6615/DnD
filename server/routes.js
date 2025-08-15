@@ -384,18 +384,6 @@ routes.route("/delete-character/:id").delete((req, response) => {
 
 // -------------------------------------------------Campaign Section---------------------------------------------------
 
-// This section will find all of the users characters in a specific campaign.
-routes.route("/campaign/:campaign/:username").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Characters")
-    .find({ campaign: req.params.campaign, token: req.params.username })
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
 // This section will find all characters in a specific campaign.
 routes.route("/campaign/:campaign/characters").get(function (req, res) {
   let db_connect = req.db;
@@ -407,6 +395,18 @@ routes.route("/campaign/:campaign/characters").get(function (req, res) {
       res.json(result);
     });
 });
+
+// This section will find all of the users characters in a specific campaign.
+routes.route("/campaign/:campaign/:username").get(function (req, res) {
+  let db_connect = req.db;
+  db_connect
+    .collection("Characters")
+    .find({ campaign: req.params.campaign, token: req.params.username })
+    .toArray(function (err, result) {
+      if (err) throw err;
+      res.json(result);
+    });
+ });
 
 // This section will find a specific campaign.
 routes.route("/campaign/:campaign").get(function (req, res) {
