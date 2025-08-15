@@ -7,6 +7,82 @@ require('dotenv').config();
 const ObjectId = require("mongodb").ObjectId;
 const authenticateToken = require('./middleware/auth');
 
+// Attempt to use express-validator; provide a minimal fallback if unavailable
+let body, param, validationResult;
+try {
+  ({ body, param, validationResult } = require('express-validator'));
+} catch (err) {
+  const makeChain = (source) => (field) => {
+    const rules = [];
+    const chain = function (req, res, next) {
+      chain.run(req).then(() => next());
+    };
+    chain.trim = () => {
+      rules.push((req) => {
+        if (req[source] && req[source][field]) {
+          req[source][field] = String(req[source][field]).trim();
+        }
+        return null;
+      });
+      return chain;
+    };
+    chain.notEmpty = () => {
+      rules.push((req) => {
+        if (!req[source] || req[source][field] === undefined || req[source][field] === '') {
+          return 'Invalid value';
+        }
+        return null;
+      });
+      return chain;
+    };
+    chain.isLength = (opts) => {
+      rules.push((req) => {
+        const val = req[source] && req[source][field];
+        if (!val || val.length < (opts.min || 0)) {
+          return 'Invalid value';
+        }
+        return null;
+      });
+      return chain;
+    };
+    chain.withMessage = (msg) => {
+      const last = rules.pop();
+      rules.push((req) => {
+        const res = last(req);
+        return res ? msg : null;
+      });
+      return chain;
+    };
+    chain.run = (req) => {
+      const errs = [];
+      for (const rule of rules) {
+        const msg = rule(req);
+        if (msg) {
+          errs.push({ msg, param: field });
+        }
+      }
+      req._validationErrors = (req._validationErrors || []).concat(errs);
+      return Promise.resolve();
+    };
+    return chain;
+  };
+  body = makeChain('body');
+  param = makeChain('params');
+  validationResult = (req) => ({
+    isEmpty: () => !(req._validationErrors && req._validationErrors.length),
+    array: () => req._validationErrors || [],
+  });
+}
+
+// Generic middleware to send standardized validation errors
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
 routes.use(async (req, res, next) => {
   try {
     req.db = await connectDB();
@@ -20,8 +96,15 @@ const jwtSecretKey = process.env.JWT_SECRET;
 
 
 // Login route
-routes.post('/login', (req, res) => {
-  const { username, password } = req.body;
+routes.post(
+  '/login',
+  [
+    body('username').trim().notEmpty().withMessage('username is required'),
+    body('password').notEmpty().withMessage('password is required'),
+  ],
+  handleValidationErrors,
+  (req, res) => {
+    const { username, password } = req.body;
 
   let db_connect = req.db;
   let myquery = { username: username };
@@ -52,11 +135,19 @@ routes.post('/login', (req, res) => {
         });
       });
     });
-});
+  }
+);
 
 // Verify user credentials
-routes.post('/users/verify', (req, res) => {
-  const { username, password } = req.body;
+routes.post(
+  '/users/verify',
+  [
+    body('username').trim().notEmpty().withMessage('username is required'),
+    body('password').notEmpty().withMessage('password is required'),
+  ],
+  handleValidationErrors,
+  (req, res) => {
+    const { username, password } = req.body;
 
   let db_connect = req.db;
   let myquery = { username: username };
@@ -82,7 +173,8 @@ routes.post('/users/verify', (req, res) => {
         res.json({ valid: true });
       });
     });
-});
+  }
+);
 
 // Get all users (protected route)
 routes.get('/users', authenticateToken, (req, res) => {
@@ -118,53 +210,75 @@ routes.get('/users/:username', authenticateToken, (req, res) => {
 });
 
 // Create a new user route
-routes.post('/users/add', (req, res) => {
-  const { username, password } = req.body;
+routes.post(
+  '/users/add',
+  [
+    body('username').trim().notEmpty().withMessage('username is required'),
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('password must be at least 6 characters'),
+  ],
+  handleValidationErrors,
+  (req, res) => {
+    const { username, password } = req.body;
 
-  bcrypt.hash(password, 10, (err, hashedPassword) => {
-    if (err) {
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-
-    let db_connect = req.db;
-    let myobj = {
-      username: username,
-      password: hashedPassword,
-    };
-
-    db_connect.collection('users').insertOne(myobj, function (err, result) {
+    bcrypt.hash(password, 10, (err, hashedPassword) => {
       if (err) {
         return res.status(500).json({ message: 'Internal server error' });
       }
-      res.json(result);
+
+      let db_connect = req.db;
+      let myobj = {
+        username: username,
+        password: hashedPassword,
+      };
+
+      db_connect.collection('users').insertOne(myobj, function (err, result) {
+        if (err) {
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        res.json(result);
+      });
     });
-  });
-});
+  }
+);
 
 
 // Add players to a campaign (protected route)
-routes.route('/players/add/:campaign').put(authenticateToken, (req, res) => {
-  const campaignName = req.params.campaign;
-  const newPlayers = req.body; // Assuming newPlayers is an array of players
-
-  const db_connect = req.db;
-  db_connect.collection("Campaigns").updateOne(
-    { campaignName: campaignName },
-    { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
-    (err, result) => {
-      if(err) {
-        console.error("Error adding players:", err);
-        return res.status(500).send("Internal Server Error");
-      }
-      console.log("Players added");
-      if (result.modifiedCount === 0) {
-        // If no modifications were made, it means the players were not added because they already exist
-        return res.status(400).send("Players already exist in the array");
-      }
-      res.send('Players added successfully');
+routes.route('/players/add/:campaign').put(
+  authenticateToken,
+  [
+    param('campaign').trim().notEmpty().withMessage('campaign is required'),
+  ],
+  handleValidationErrors,
+  (req, res) => {
+    if (!Array.isArray(req.body)) {
+      return res
+        .status(400)
+        .json({ errors: [{ msg: 'body must be an array of players', param: 'body' }] });
     }
-  );
-});
+    const campaignName = req.params.campaign;
+    const newPlayers = req.body; // Assuming newPlayers is an array of players
+
+    const db_connect = req.db;
+    db_connect.collection("Campaigns").updateOne(
+      { campaignName: campaignName },
+      { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
+      (err, result) => {
+        if(err) {
+          console.error("Error adding players:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+        console.log("Players added");
+        if (result.modifiedCount === 0) {
+          // If no modifications were made, it means the players were not added because they already exist
+          return res.status(400).send("Players already exist in the array");
+        }
+        res.send('Players added successfully');
+      }
+    );
+  }
+);
 
 
 // -------------------------------------------------Character Section-----------------------------------------------
@@ -286,13 +400,14 @@ routes.route("/campaign/:campaign/:username").get(function (req, res) {
 routes.route("/campaign/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
-    .collection("Characters")
-    .find({ campaign: req.params.campaign })
-    .toArray(function (err, result) {
-      if (err) throw err;
+    .collection("Campaigns")
+    .findOne({ campaignName: req.params.campaign }, function (err, result) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
       res.json(result);
     });
- });
+});
 
 // This section will get a list of all the campaigns.
 routes.route("/campaigns/:player").get(function (req, res) {
@@ -403,47 +518,52 @@ routes.route('/update-stats/:id').put((req, res, next) => {
 // --------------------------------------------------Skills Section------------------------------------------------
 
 // This section will update skills.
-routes.route('/update-skills/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
-  let db_connect = req.db;
-  db_connect.collection("Characters").updateOne(id, {$set:{
-  "appraise": req.body.appraise,
-  "balance": req.body.balance,
-  "bluff": req.body.bluff,
-  "climb": req.body.climb,
-  "concentration": req.body.concentration,
-  "decipherScript": req.body.decipherScript,
-  "diplomacy": req.body.diplomacy,
-  "disableDevice": req.body.disableDevice,
-  "disguise": req.body.disguise,
-  "escapeArtist": req.body.escapeArtist,
-  "forgery": req.body.forgery,
-  "gatherInfo": req.body.gatherInfo,
-  "handleAnimal": req.body.handleAnimal,
-  "heal": req.body.heal,
-  "hide": req.body.hide,
-  "intimidate": req.body.intimidate,
-  "jump": req.body.jump,
-  "listen": req.body.listen,
-  "moveSilently": req.body.moveSilently,
-  "openLock": req.body.openLock,
-  "ride": req.body.ride,
-  "search": req.body.search,
-  "senseMotive": req.body.senseMotive,
-  "sleightOfHand": req.body.sleightOfHand,
-  "spot": req.body.spot,
-  "survival": req.body.survival,
-  "swim": req.body.swim,
-  "tumble": req.body.tumble,
-  "useTech": req.body.useTech,
-  "useRope": req.body.useRope
-}}, (err, result) => {
-    if(err) {
-      throw err;
-    }
-    console.log("character skills updated");
-    res.send('user updated sucessfully');
-  });
+routes.route('/update-skills/:id').put(async (req, res) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = req.db;
+  try {
+    const result = await db_connect.collection("Characters").findOneAndUpdate(
+      id,
+      {
+        $set: {
+          "appraise": req.body.appraise,
+          "balance": req.body.balance,
+          "bluff": req.body.bluff,
+          "climb": req.body.climb,
+          "concentration": req.body.concentration,
+          "decipherScript": req.body.decipherScript,
+          "diplomacy": req.body.diplomacy,
+          "disableDevice": req.body.disableDevice,
+          "disguise": req.body.disguise,
+          "escapeArtist": req.body.escapeArtist,
+          "forgery": req.body.forgery,
+          "gatherInfo": req.body.gatherInfo,
+          "handleAnimal": req.body.handleAnimal,
+          "heal": req.body.heal,
+          "hide": req.body.hide,
+          "intimidate": req.body.intimidate,
+          "jump": req.body.jump,
+          "listen": req.body.listen,
+          "moveSilently": req.body.moveSilently,
+          "openLock": req.body.openLock,
+          "ride": req.body.ride,
+          "search": req.body.search,
+          "senseMotive": req.body.senseMotive,
+          "sleightOfHand": req.body.sleightOfHand,
+          "spot": req.body.spot,
+          "survival": req.body.survival,
+          "swim": req.body.swim,
+          "tumble": req.body.tumble,
+          "useTech": req.body.useTech,
+          "useRope": req.body.useRope,
+        },
+      },
+      { returnDocument: 'after' }
+    );
+    res.status(200).json(result.value);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
 });
 
 // This section will update added skills.
@@ -462,18 +582,19 @@ routes.route('/update-add-skill/:id').put((req, res, next) => {
 });
 
 // This section will update ranks of skills.
-routes.route('/updated-add-skills/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
-  let db_connect = req.db;
-  db_connect.collection("Characters").updateOne(id, {$set:{
-  'newSkill': req.body.newSkill
-}}, (err, result) => {
-    if(err) {
-      throw err;
-    }
-    console.log("character add skills updated");
-    res.send('user updated sucessfully');
-  });
+routes.route('/updated-add-skills/:id').put(async (req, res) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = req.db;
+  try {
+    const result = await db_connect.collection("Characters").findOneAndUpdate(
+      id,
+      { $set: { 'newSkill': req.body.newSkill } },
+      { returnDocument: 'after' }
+    );
+    res.status(200).json(result.value);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
 });
 
 // --------------------------------------------------Health Section--------------------------------------------------------
