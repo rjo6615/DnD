@@ -28,4 +28,18 @@ router.get('/characters/campaign/:campaign', async (req, res) => {
   }
 });
 
+// Get characters for a campaign filtered by username
+router.get('/campaign/:campaign/:username', async (req, res) => {
+  try {
+    const db = dbo.getDb();
+    const characters = await db
+      .collection('Characters')
+      .find({ campaign: req.params.campaign, token: req.params.username })
+      .toArray();
+    res.json(characters);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router;

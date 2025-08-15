@@ -34,4 +34,46 @@ describe('Campaign routes', () => {
       .send({ campaignName: 'Test', dm: 'DM' });
     expect(res.status).toBe(500);
   });
+
+  test('get campaign by name success', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        findOne: async () => ({ campaignName: 'Test', dm: 'DM', players: [] })
+      })
+    });
+    const res = await request(app).get('/campaign/Test');
+    expect(res.status).toBe(200);
+    expect(res.body.dm).toBe('DM');
+  });
+
+  test('get campaign by name failure', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        findOne: async () => { throw new Error('db error'); }
+      })
+    });
+    const res = await request(app).get('/campaign/Test');
+    expect(res.status).toBe(500);
+  });
+
+  test('get campaigns by dm success', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        find: () => ({ toArray: async () => [{ campaignName: 'Test', dm: 'DM' }] })
+      })
+    });
+    const res = await request(app).get('/campaignsDM/DM');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+  });
+
+  test('get campaigns by dm failure', async () => {
+    dbo.getDb.mockReturnValue({
+      collection: () => ({
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
+      })
+    });
+    const res = await request(app).get('/campaignsDM/DM');
+    expect(res.status).toBe(500);
+  });
 });
