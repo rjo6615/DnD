@@ -7,6 +7,7 @@ const connectDB = require('./db/conn');
 require('dotenv').config();
 const ObjectId = require("mongodb").ObjectId;
 const authenticateToken = require('./middleware/auth');
+const authenticateUser = require('./utils/authenticateUser');
 
 // Generic middleware to send standardized validation errors
 const handleValidationErrors = (req, res, next) => {
@@ -37,38 +38,25 @@ routes.post(
     body('password').notEmpty().withMessage('password is required'),
   ],
   handleValidationErrors,
-  (req, res) => {
+  async (req, res) => {
     const { username, password } = req.body;
 
-  let db_connect = req.db;
-  let myquery = { username: username };
-
-  db_connect
-    .collection('users')
-    .findOne(myquery, function (err, user) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
+    const db_connect = req.db;
+    try {
+      const user = await authenticateUser(db_connect, username, password);
       if (!user) {
         return res.status(401).json({ message: 'Invalid username or password' });
       }
 
-      bcrypt.compare(password, user.password, (err, isMatch) => {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        if (!isMatch) {
-          return res.status(401).json({ message: 'Invalid username or password' });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
-        res.json({ token });
-        console.debug('JWT token generated for login request', {
-          timestamp: new Date().toISOString(),
-        });
+      // Generate JWT token
+      const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
+      res.json({ token });
+      console.debug('JWT token generated for login request', {
+        timestamp: new Date().toISOString(),
       });
-    });
+    } catch (err) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
   }
 );
 
@@ -80,33 +68,19 @@ routes.post(
     body('password').notEmpty().withMessage('password is required'),
   ],
   handleValidationErrors,
-  (req, res) => {
+  async (req, res) => {
     const { username, password } = req.body;
 
-  let db_connect = req.db;
-  let myquery = { username: username };
-
-  db_connect
-    .collection('users')
-    .findOne(myquery, function (err, user) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
+    const db_connect = req.db;
+    try {
+      const user = await authenticateUser(db_connect, username, password);
       if (!user) {
         return res.status(401).json({ message: 'Invalid username or password' });
       }
-
-      bcrypt.compare(password, user.password, (err, isMatch) => {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        if (!isMatch) {
-          return res.status(401).json({ message: 'Invalid username or password' });
-        }
-
-        res.json({ valid: true });
-      });
-    });
+      res.json({ valid: true });
+    } catch (err) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
   }
 );
 
