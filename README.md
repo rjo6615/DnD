@@ -32,4 +32,4 @@ For help with this webpage please contact
 
 ## License
 
-N/A
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
