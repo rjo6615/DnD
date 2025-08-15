@@ -4,8 +4,8 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
-import loginbg from "../../images/loginbg.png";
 import logoLight from "../../images/logo-light.png";
+import './Login.css';
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
@@ -114,24 +114,23 @@ export default function Login({ setToken }) {
       alert('Passwords do not match!');
     }
   };
-
   return (
-    <div style={{ backgroundImage: `url(${loginbg})`, backgroundSize: 'cover', height: '100vh', backgroundPosition: 'center' }}>
+    <div className="login-background">
       <center>
-        <MDBContainer style={{ fontFamily: 'Raleway, sans-serif' }}>
+        <MDBContainer className="raleway-font">
           <MDBRow>
             <MDBCol col='6' className="my-5">
-              <div className="d-flex flex-column" style={{backgroundColor: "rgba(0, 0, 0, 0.7)"}}>
+              <div className="d-flex flex-column login-overlay">
                 <div className="text-center">
-                  <img src={logoLight} alt="logo" className="py-3" style={{maxHeight: "200px", maxWidth: "200px"}} />
+                  <img src={logoLight} alt="logo" className="py-3 logo-image" />
                   {/* <h1 className="mt-5 mb-5 pb-1 text-light" style={{ fontFamily: 'Raleway, sans-serif' }}>Realm Tracker</h1> */}
                 </div>
                 <p className='text-light'>Please login to your account</p>
                 <center>
-                  <Form className="w-100 mb-3" style={{ maxWidth: '200px' }}>
-                    <Form.Group className="" controlId="formUsername">
-                      <Form.Label>Username</Form.Label>
-                      <Form.Control type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" />
+                    <Form className="w-100 mb-3 form-width">
+                      <Form.Group className="" controlId="formUsername">
+                        <Form.Label>Username</Form.Label>
+                        <Form.Control type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" />
                     </Form.Group>
                     <Form.Group className="mb-3" controlId="formPassword">
                       <Form.Label>Password</Form.Label>
