@@ -1,7 +1,12 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const express = require('express');
-const { body, param, validationResult } = require('express-validator');
+const {
+  body,
+  param,
+  validationResult,
+  matchedData,
+} = require('express-validator');
 const routes = express.Router();
 const connectDB = require('./db/conn');
 require('dotenv').config();
@@ -216,68 +221,79 @@ routes.route("/character/select").get(function (req, res) {
  });
 
 // This section will create a new character.
-routes.route("/character/add").post(function (req, response) {
-  let db_connect = req.db;
-  let myobj = {
-  token: req.body.token,
-  characterName: req.body.characterName,
-  campaign: req.body.campaign,
-  occupation: req.body.occupation,
-  feat: req.body.feat,
-  weapon: req.body.weapon,
-  armor: req.body.armor,
-  item: req.body.item,
-  age: req.body.age,
-  sex: req.body.sex,
-  height: req.body.height,
-  weight: req.body.weight,
-  str: req.body.str,
-  dex: req.body.dex,
-  con: req.body.con,
-  int: req.body.int,
-  wis: req.body.wis,
-  cha: req.body.cha,
-  startStatTotal: req.body.startStatTotal,
-  health: req.body.health,
-  tempHealth: req.body.tempHealth,
-  appraise: req.body.appraise,
-  balance: req.body.balance,
-  bluff: req.body.bluff,
-  climb: req.body.climb,
-  concentration: req.body.concentration,
-  decipherScript: req.body.decipherScript,
-  diplomacy: req.body.diplomacy,
-  disableDevice: req.body.disableDevice,
-  disguise: req.body.disguise,
-  escapeArtist: req.body.escapeArtist,
-  forgery: req.body.forgery,
-  gatherInfo: req.body.gatherInfo,
-  handleAnimal: req.body.handleAnimal,
-  heal: req.body.heal,
-  hide: req.body.hide,
-  intimidate: req.body.intimidate,
-  jump: req.body.jump,
-  listen: req.body.listen,
-  moveSilently: req.body.moveSilently,
-  openLock: req.body.openLock,
-  ride: req.body.ride,
-  search: req.body.search,
-  senseMotive: req.body.senseMotive,
-  sleightOfHand: req.body.sleightOfHand,
-  spot: req.body.spot,
-  survival: req.body.survival,
-  swim: req.body.swim,
-  tumble: req.body.tumble,
-  useTech: req.body.useTech,
-  useRope: req.body.useRope,
-  newSkill: req.body.newSkill,
-  diceColor: req.body.diceColor,
-  };
-  db_connect.collection("Characters").insertOne(myobj, function (err, res) {
-    if (err) throw err;
-    response.json(res);
-  });
- });
+const numericCharacterFields = [
+  'age',
+  'height',
+  'weight',
+  'str',
+  'dex',
+  'con',
+  'int',
+  'wis',
+  'cha',
+  'startStatTotal',
+  'health',
+  'tempHealth',
+  'appraise',
+  'balance',
+  'bluff',
+  'climb',
+  'concentration',
+  'decipherScript',
+  'diplomacy',
+  'disableDevice',
+  'disguise',
+  'escapeArtist',
+  'forgery',
+  'gatherInfo',
+  'handleAnimal',
+  'heal',
+  'hide',
+  'intimidate',
+  'jump',
+  'listen',
+  'moveSilently',
+  'openLock',
+  'ride',
+  'search',
+  'senseMotive',
+  'sleightOfHand',
+  'spot',
+  'survival',
+  'swim',
+  'tumble',
+  'useTech',
+  'useRope',
+];
+
+routes.post(
+  '/character/add',
+  [
+    body('token').trim().notEmpty().withMessage('token is required'),
+    body('characterName').trim().notEmpty().withMessage('characterName is required'),
+    body('campaign').trim().notEmpty().withMessage('campaign is required'),
+    body('occupation').optional().trim(),
+    body('feat').optional().trim(),
+    body('weapon').optional().trim(),
+    body('armor').optional().trim(),
+    body('item').optional().trim(),
+    body('sex').optional().trim(),
+    body('newSkill').optional().trim(),
+    body('diceColor').optional().trim(),
+    ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
+  ],
+  handleValidationErrors,
+  (req, res) => {
+    const db_connect = req.db;
+    const myobj = matchedData(req, { locations: ['body'] });
+    db_connect.collection('Characters').insertOne(myobj, function (err, result) {
+      if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+      res.json(result);
+    });
+  }
+);
 
 // This section will delete a character
 routes.route("/delete-character/:id").delete((req, response) => {
