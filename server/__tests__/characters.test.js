@@ -1,13 +1,16 @@
 const request = require('supertest');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
+process.env.JWT_SECRET = 'testsecret';
 const charactersRouter = require('../routes.js');
 
 const app = express();
 app.use(express.json());
 app.use(charactersRouter);
+const authToken = jwt.sign({ username: 'alice' }, process.env.JWT_SECRET);
 
 describe('Character routes', () => {
   test('add character success', async () => {
@@ -18,7 +21,8 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/character/add')
-      .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
   });
@@ -34,7 +38,6 @@ describe('Character routes', () => {
       })
     });
     const payload = {
-      token: 'alice',
       characterName: 'Hero',
       campaign: 'Camp1',
       occupation: [{ Level: '1', Name: 'Scout' }],
@@ -46,10 +49,12 @@ describe('Character routes', () => {
     };
     const res = await request(app)
       .post('/character/add')
+      .set('Authorization', `Bearer ${authToken}`)
       .send(payload);
     expect(res.status).toBe(200);
     expect(captured).toMatchObject({
       ...payload,
+      token: 'alice',
       occupation: [{ Level: 1, Name: 'Scout' }]
     });
     expect(Array.isArray(captured.feat)).toBe(true);
@@ -64,7 +69,8 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/character/add')
-      .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(500);
   });
 
@@ -76,7 +82,8 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/character/add')
-      .send({ token: 'alice' });
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({});
     expect(res.status).toBe(400);
   });
 
