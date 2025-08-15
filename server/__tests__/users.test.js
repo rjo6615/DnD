@@ -2,7 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 
-jest.mock('../db/conn', () => ({ getDb: jest.fn() }));
+jest.mock('../db/conn');
 const dbo = require('../db/conn');
 process.env.JWT_SECRET = 'testsecret';
 const usersRouter = require('../routes.js');
@@ -14,9 +14,9 @@ app.use(usersRouter);
 describe('Users routes', () => {
   test('login success', async () => {
     const hashed = await bcrypt.hash('secret', 10);
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        findOne: async () => ({ username: 'alice', password: hashed })
+        findOne: (query, cb) => cb(null, { username: 'alice', password: hashed })
       })
     });
     const res = await request(app).post('/login').send({ username: 'alice', password: 'secret' });
@@ -26,9 +26,9 @@ describe('Users routes', () => {
 
   test('login failure with invalid password', async () => {
     const hashed = await bcrypt.hash('secret', 10);
-    dbo.getDb.mockReturnValue({
+    dbo.mockResolvedValue({
       collection: () => ({
-        findOne: async () => ({ username: 'alice', password: hashed })
+        findOne: (query, cb) => cb(null, { username: 'alice', password: hashed })
       })
     });
     const res = await request(app).post('/login').send({ username: 'alice', password: 'wrong' });
