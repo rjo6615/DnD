@@ -16,7 +16,7 @@ describe('Users routes', () => {
     const hashed = await bcrypt.hash('secret', 10);
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(null, { username: 'alice', password: hashed })
+        findOne: async () => ({ username: 'alice', password: hashed })
       })
     });
     const res = await request(app).post('/login').send({ username: 'alice', password: 'secret' });
@@ -28,11 +28,35 @@ describe('Users routes', () => {
     const hashed = await bcrypt.hash('secret', 10);
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(null, { username: 'alice', password: hashed })
+        findOne: async () => ({ username: 'alice', password: hashed })
       })
     });
     const res = await request(app).post('/login').send({ username: 'alice', password: 'wrong' });
     expect(res.status).toBe(401);
     expect(res.body.token).toBeUndefined();
+  });
+
+  test('verify success', async () => {
+    const hashed = await bcrypt.hash('secret', 10);
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ username: 'alice', password: hashed })
+      })
+    });
+    const res = await request(app).post('/users/verify').send({ username: 'alice', password: 'secret' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ valid: true });
+  });
+
+  test('verify failure with invalid password', async () => {
+    const hashed = await bcrypt.hash('secret', 10);
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ username: 'alice', password: hashed })
+      })
+    });
+    const res = await request(app).post('/users/verify').send({ username: 'alice', password: 'wrong' });
+    expect(res.status).toBe(401);
+    expect(res.body.valid).toBeUndefined();
   });
 });
