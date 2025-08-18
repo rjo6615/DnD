@@ -13,25 +13,25 @@ module.exports = (router) => {
 // -------------------------------------------------Character Section-----------------------------------------------
 
 // This section will get a single character by id
-characterRouter.route("/characters/:id").get(function (req, res) {
+characterRouter.route("/characters/:id").get(function (req, res, next) {
   let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect
     .collection("Characters")
     .findOne(myquery, function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
 
 // This section will get a list of all the characters.
-characterRouter.route("/character/select").get(function (req, res) {
+characterRouter.route("/character/select").get(function (req, res, next) {
   let db_connect = req.db;
   db_connect
     .collection("Characters")
     .find({})
     .toArray(function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
@@ -100,7 +100,7 @@ characterRouter.post(
     ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
   ],
   handleValidationErrors,
-  (req, res) => {
+   (req, res, next) => {
     const db_connect = req.db;
     const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
     db_connect.collection('Characters').insertOne(myobj, function (err, result) {
@@ -113,11 +113,11 @@ characterRouter.post(
 );
 
 // This section will delete a character
-characterRouter.route("/delete-character/:id").delete((req, response) => {
+characterRouter.route("/delete-character/:id").delete( (req, response, next) => {
   let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
-    if (err) throw err;
+    if (err) return next(err);
     console.log("1 character deleted");
     response.json(obj);
   });
@@ -128,13 +128,13 @@ characterRouter.route("/delete-character/:id").delete((req, response) => {
 // --------------------------------------------Occupations Section----------------------------------------
 
 // This section will get a list of all the occupations.
-characterRouter.route("/occupations").get(function (req, res) {
+characterRouter.route("/occupations").get(function (req, res, next) {
   let db_connect = req.db;
   db_connect
     .collection("Occupations")
     .find({})
     .toArray(function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
@@ -148,9 +148,7 @@ characterRouter.route('/update-occupations/:id').put((req, res, next) => {
     db_connect.collection("Characters").updateOne(id, {
       $set: { 'occupation': req.body}
     }, (err, result) => {
-      if (err) {
-        throw err;
-      }
+      if (err) { return next(err); }
       console.log("Character occupations updated");
       res.send('User updated successfully');
     });
@@ -174,9 +172,7 @@ characterRouter.route('/update-stats/:id').put((req, res, next) => {
   'wis': req.body.wis,
   'cha': req.body.cha
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character stats updated");
     res.send('user updated sucessfully');
   });
@@ -185,7 +181,7 @@ characterRouter.route('/update-stats/:id').put((req, res, next) => {
 // --------------------------------------------------Skills Section------------------------------------------------
 
 // This section will update skills.
-characterRouter.route('/update-skills/:id').put(async (req, res) => {
+characterRouter.route('/update-skills/:id').put(async  (req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
   try {
@@ -240,16 +236,14 @@ characterRouter.route('/update-add-skill/:id').put((req, res, next) => {
   db_connect.collection("Characters").updateOne(id, {$set:{
   'newSkill': req.body.newSkill
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character knowledge updated");
     res.send('user updated sucessfully');
   });
 });
 
 // This section will update ranks of skills.
-characterRouter.route('/updated-add-skills/:id').put(async (req, res) => {
+characterRouter.route('/updated-add-skills/:id').put(async  (req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
   try {
@@ -273,9 +267,7 @@ characterRouter.route('/update-temphealth/:id').put((req, res, next) => {
   db_connect.collection("Characters").updateOne(id, {$set:{
   'tempHealth': req.body.tempHealth
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character tempHealth updated");
     res.send('user updated sucessfully');
   });
@@ -298,9 +290,7 @@ characterRouter.route('/update-health/:id').put((req, res, next) => {
       'cha': req.body.cha,
       'startStatTotal': req.body.startStatTotal }
     }, (err, result) => {
-      if (err) {
-        throw err;
-      }
+      if (err) { return next(err); }
       console.log("Character health and stats updated");
       res.send('User updated successfully');
     });
@@ -313,13 +303,13 @@ characterRouter.route('/update-health/:id').put((req, res, next) => {
 // ----------------------------------------------------Weapon Section----------------------------------------------------
 
  // This section will get a list of all the weapons.
- characterRouter.route("/weapons/:campaign").get(function (req, res) {
+ characterRouter.route("/weapons/:campaign").get(function (req, res, next) {
   let db_connect = req.db;
   db_connect
     .collection("Weapons")
     .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
@@ -331,16 +321,14 @@ characterRouter.route('/update-weapon/:id').put((req, res, next) => {
   db_connect.collection("Characters").updateOne(id, {$set:{
   'weapon': req.body.weapon
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character weapon updated");
     res.send('user updated sucessfully');
   });
 });
 
 // This section will create a new weapon.
-characterRouter.route("/weapon/add").post(function (req, response) {
+characterRouter.route("/weapon/add").post(function  (req, response, next) {
   let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
@@ -352,26 +340,26 @@ characterRouter.route("/weapon/add").post(function (req, response) {
   range: req.body.range
   };
   db_connect.collection("Weapons").insertOne(myobj, function (err, res) {
-    if (err) throw err;
+    if (err) return next(err);
     response.json(res);
   });
  });
 // -----------------------------------------------------Armor Section--------------------------------------------------------
 
 // This section will get a list of all the armor.
-characterRouter.route("/armor/:campaign").get(function (req, res) {
+characterRouter.route("/armor/:campaign").get(function (req, res, next) {
   let db_connect = req.db;
   db_connect
     .collection("Armor")
     .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
 
 // This section will create a new armor.
-characterRouter.route("/armor/add").post(function (req, response) {
+characterRouter.route("/armor/add").post(function  (req, response, next) {
   let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
@@ -381,7 +369,7 @@ characterRouter.route("/armor/add").post(function (req, response) {
   armorCheckPenalty: req.body.armorCheckPenalty
   };
   db_connect.collection("Armor").insertOne(myobj, function (err, res) {
-    if (err) throw err;
+    if (err) return next(err);
     response.json(res);
   });
  });
@@ -393,9 +381,7 @@ characterRouter.route('/update-armor/:id').put((req, res, next) => {
   db_connect.collection("Characters").updateOne(id, {$set:{
   'armor': req.body.armor
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character armor updated");
     res.send('user updated sucessfully');
   });
@@ -403,19 +389,19 @@ characterRouter.route('/update-armor/:id').put((req, res, next) => {
 // ------------------------------------------------------Item Section-----------------------------------------------------------
 
 // This section will get a list of all the items.
-characterRouter.route("/items/:campaign").get(function (req, res) {
+characterRouter.route("/items/:campaign").get(function (req, res, next) {
   let db_connect = req.db;
   db_connect
     .collection("Items")
     .find({ campaign: req.params.campaign })
     .toArray(function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
 
 // This section will create a new item.
-characterRouter.route("/item/add").post(function (req, response) {
+characterRouter.route("/item/add").post(function  (req, response, next) {
   let db_connect = req.db;
   let myobj = {
     campaign: req.body.campaign,
@@ -459,7 +445,7 @@ characterRouter.route("/item/add").post(function (req, response) {
     useRope: req.body.useRope
   };
   db_connect.collection("Items").insertOne(myobj, function (err, res) {
-    if (err) throw err;
+    if (err) return next(err);
     response.json(res);
   });
  });
@@ -471,9 +457,7 @@ characterRouter.route('/update-item/:id').put((req, res, next) => {
   db_connect.collection("Characters").updateOne(id, {$set:{
   'item': req.body.item
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character item updated");
     res.send('user updated sucessfully');
   });
@@ -482,19 +466,19 @@ characterRouter.route('/update-item/:id').put((req, res, next) => {
 // ------------------------------------------------------Feat Section-----------------------------------------------------------
 
 // This section will get a list of all the feats.
-characterRouter.route("/feats").get(function (req, res) {
+characterRouter.route("/feats").get(function (req, res, next) {
   let db_connect = req.db;
   db_connect
     .collection("Feats")
     .find({})
     .toArray(function (err, result) {
-      if (err) throw err;
+      if (err) return next(err);
       res.json(result);
     });
  });
 
 // This section will create a new feat.
-characterRouter.route("/feat/add").post(function (req, response) {
+characterRouter.route("/feat/add").post(function  (req, response, next) {
   let db_connect = req.db;
   let myobj = {
     featName: req.body.featName, 
@@ -531,7 +515,7 @@ characterRouter.route("/feat/add").post(function (req, response) {
     useRope: req.body.useRope
   };
   db_connect.collection("Feats").insertOne(myobj, function (err, res) {
-    if (err) throw err;
+    if (err) return next(err);
     response.json(res);
   });
  });
@@ -543,9 +527,7 @@ characterRouter.route('/update-feat/:id').put((req, res, next) => {
   db_connect.collection("Characters").updateOne(id, {$set:{
   'feat': req.body.feat
 }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("character feat updated");
     res.send('user updated sucessfully');
   });
@@ -575,9 +557,7 @@ db_connect.collection("Characters").updateOne(
   },
   updateOperation,
   (err, result) => {
-    if (err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     if (result.modifiedCount === 0) {
     } else {
       console.log(`Character updated for Occupation: ${selectedOccupation}`);
@@ -595,9 +575,7 @@ db_connect.collection("Characters").updateOne(
   db_connect.collection("Characters").updateOne(id, {$set:{
   'diceColor': req.body.diceColor,
   }}, (err, result) => {
-    if(err) {
-      throw err;
-    }
+    if (err) { return next(err); }
     console.log("Dice Color updated");
     res.send('user updated sucessfully');
   });
