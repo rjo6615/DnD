@@ -1,12 +1,19 @@
 const { body, param, matchedData } = require('express-validator');
 const ObjectId = require('mongodb').ObjectId;
+const express = require('express');
+const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 
 module.exports = (router) => {
+  const characterRouter = express.Router();
+
+  // Apply authentication to all character routes
+  characterRouter.use(authenticateToken);
+
 // -------------------------------------------------Character Section-----------------------------------------------
 
 // This section will get a single character by id
-router.route("/characters/:id").get(function (req, res) {
+characterRouter.route("/characters/:id").get(function (req, res) {
   let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect
@@ -18,7 +25,7 @@ router.route("/characters/:id").get(function (req, res) {
  });
 
 // This section will get a list of all the characters.
-router.route("/character/select").get(function (req, res) {
+characterRouter.route("/character/select").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Characters")
@@ -75,7 +82,7 @@ const numericCharacterFields = [
   'useRope',
 ];
 
-router.post(
+characterRouter.post(
   '/character/add',
   [
     body('token').trim().notEmpty().withMessage('token is required'),
@@ -106,7 +113,7 @@ router.post(
 );
 
 // This section will delete a character
-router.route("/delete-character/:id").delete((req, response) => {
+characterRouter.route("/delete-character/:id").delete((req, response) => {
   let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
@@ -121,7 +128,7 @@ router.route("/delete-character/:id").delete((req, response) => {
 // --------------------------------------------Occupations Section----------------------------------------
 
 // This section will get a list of all the occupations.
-router.route("/occupations").get(function (req, res) {
+characterRouter.route("/occupations").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Occupations")
@@ -133,7 +140,7 @@ router.route("/occupations").get(function (req, res) {
  });
 
 // This section will update occupations.
-router.route('/update-occupations/:id').put((req, res, next) => {
+characterRouter.route('/update-occupations/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
 
@@ -156,7 +163,7 @@ router.route('/update-occupations/:id').put((req, res, next) => {
 // ---------------------------------------------Stats Section----------------------------------------------------------
 
   // This section will update stats.
-router.route('/update-stats/:id').put((req, res, next) => {
+characterRouter.route('/update-stats/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -178,7 +185,7 @@ router.route('/update-stats/:id').put((req, res, next) => {
 // --------------------------------------------------Skills Section------------------------------------------------
 
 // This section will update skills.
-router.route('/update-skills/:id').put(async (req, res) => {
+characterRouter.route('/update-skills/:id').put(async (req, res) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
   try {
@@ -227,7 +234,7 @@ router.route('/update-skills/:id').put(async (req, res) => {
 });
 
 // This section will update added skills.
-router.route('/update-add-skill/:id').put((req, res, next) => {
+characterRouter.route('/update-add-skill/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -242,7 +249,7 @@ router.route('/update-add-skill/:id').put((req, res, next) => {
 });
 
 // This section will update ranks of skills.
-router.route('/updated-add-skills/:id').put(async (req, res) => {
+characterRouter.route('/updated-add-skills/:id').put(async (req, res) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
   try {
@@ -260,7 +267,7 @@ router.route('/updated-add-skills/:id').put(async (req, res) => {
 // --------------------------------------------------Health Section--------------------------------------------------------
 
 // This section will update tempHealth.
-router.route('/update-temphealth/:id').put((req, res, next) => {
+characterRouter.route('/update-temphealth/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -275,7 +282,7 @@ router.route('/update-temphealth/:id').put((req, res, next) => {
 });
 
 // This section will update health and stats.
-router.route('/update-health/:id').put((req, res, next) => {
+characterRouter.route('/update-health/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
 
@@ -306,7 +313,7 @@ router.route('/update-health/:id').put((req, res, next) => {
 // ----------------------------------------------------Weapon Section----------------------------------------------------
 
  // This section will get a list of all the weapons.
- router.route("/weapons/:campaign").get(function (req, res) {
+ characterRouter.route("/weapons/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Weapons")
@@ -318,7 +325,7 @@ router.route('/update-health/:id').put((req, res, next) => {
  });
 
 // This section will update weapons.
-router.route('/update-weapon/:id').put((req, res, next) => {
+characterRouter.route('/update-weapon/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -333,7 +340,7 @@ router.route('/update-weapon/:id').put((req, res, next) => {
 });
 
 // This section will create a new weapon.
-router.route("/weapon/add").post(function (req, response) {
+characterRouter.route("/weapon/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
@@ -352,7 +359,7 @@ router.route("/weapon/add").post(function (req, response) {
 // -----------------------------------------------------Armor Section--------------------------------------------------------
 
 // This section will get a list of all the armor.
-router.route("/armor/:campaign").get(function (req, res) {
+characterRouter.route("/armor/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Armor")
@@ -364,7 +371,7 @@ router.route("/armor/:campaign").get(function (req, res) {
  });
 
 // This section will create a new armor.
-router.route("/armor/add").post(function (req, response) {
+characterRouter.route("/armor/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
@@ -380,7 +387,7 @@ router.route("/armor/add").post(function (req, response) {
  });
 
 // This section will update armors.
-router.route('/update-armor/:id').put((req, res, next) => {
+characterRouter.route('/update-armor/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -396,7 +403,7 @@ router.route('/update-armor/:id').put((req, res, next) => {
 // ------------------------------------------------------Item Section-----------------------------------------------------------
 
 // This section will get a list of all the items.
-router.route("/items/:campaign").get(function (req, res) {
+characterRouter.route("/items/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Items")
@@ -408,7 +415,7 @@ router.route("/items/:campaign").get(function (req, res) {
  });
 
 // This section will create a new item.
-router.route("/item/add").post(function (req, response) {
+characterRouter.route("/item/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
     campaign: req.body.campaign,
@@ -458,7 +465,7 @@ router.route("/item/add").post(function (req, response) {
  });
 
  // This section will update items.
-router.route('/update-item/:id').put((req, res, next) => {
+characterRouter.route('/update-item/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -475,7 +482,7 @@ router.route('/update-item/:id').put((req, res, next) => {
 // ------------------------------------------------------Feat Section-----------------------------------------------------------
 
 // This section will get a list of all the feats.
-router.route("/feats").get(function (req, res) {
+characterRouter.route("/feats").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Feats")
@@ -487,7 +494,7 @@ router.route("/feats").get(function (req, res) {
  });
 
 // This section will create a new feat.
-router.route("/feat/add").post(function (req, response) {
+characterRouter.route("/feat/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
     featName: req.body.featName, 
@@ -530,7 +537,7 @@ router.route("/feat/add").post(function (req, response) {
  });
 
  // This section will update feats.
-router.route('/update-feat/:id').put((req, res, next) => {
+characterRouter.route('/update-feat/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -546,7 +553,7 @@ router.route('/update-feat/:id').put((req, res, next) => {
 
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
  // This section will update level.
- router.route('/update-level/:id').put((req, res, next) => {
+ characterRouter.route('/update-level/:id').put((req, res, next) => {
   const db_connect = req.db;
   const selectedOccupation = req.body.selectedOccupation;
 
@@ -582,17 +589,18 @@ db_connect.collection("Characters").updateOne(
  )
 //-------------------------------------------------------------Dice Color Section------------------------------------------------------------------
  // This section will update dice color.
- router.route('/update-dice-color/:id').put((req, res, next) => {
+ characterRouter.route('/update-dice-color/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
   'diceColor': req.body.diceColor,
-}}, (err, result) => {
+  }}, (err, result) => {
     if(err) {
       throw err;
     }
     console.log("Dice Color updated");
     res.send('user updated sucessfully');
   });
-});
+ });
+  router.use(characterRouter);
 };

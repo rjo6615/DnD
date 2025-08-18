@@ -3,6 +3,7 @@ const express = require('express');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
+jest.mock('../middleware/auth', () => (req, res, next) => next());
 const campaignsRouter = require('../routes');
 
 const app = express();
