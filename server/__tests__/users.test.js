@@ -5,11 +5,15 @@ const bcrypt = require('bcryptjs');
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
 process.env.JWT_SECRET = 'testsecret';
-const usersRouter = require('../routes.js');
+const usersRouter = require('../routes/users');
 
 const app = express();
 app.use(express.json());
-app.use(usersRouter);
+app.use(async (req, res, next) => {
+  req.db = await dbo();
+  next();
+});
+app.use('/users', usersRouter);
 
 describe('Users routes', () => {
   test('login success', async () => {
@@ -19,7 +23,7 @@ describe('Users routes', () => {
         findOne: async () => ({ username: 'alice', password: hashed })
       })
     });
-    const res = await request(app).post('/login').send({ username: 'alice', password: 'secret' });
+    const res = await request(app).post('/users/login').send({ username: 'alice', password: 'secret' });
     expect(res.status).toBe(200);
     expect(res.body.token).toBeDefined();
   });
@@ -31,7 +35,7 @@ describe('Users routes', () => {
         findOne: async () => ({ username: 'alice', password: hashed })
       })
     });
-    const res = await request(app).post('/login').send({ username: 'alice', password: 'wrong' });
+    const res = await request(app).post('/users/login').send({ username: 'alice', password: 'wrong' });
     expect(res.status).toBe(401);
     expect(res.body.token).toBeUndefined();
   });
