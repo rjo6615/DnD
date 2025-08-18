@@ -3,11 +3,15 @@ const express = require('express');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
-const campaignsRouter = require('../routes.js');
+const campaignsRouter = require('../routes/campaigns');
 
 const app = express();
 app.use(express.json());
-app.use(campaignsRouter);
+app.use(async (req, res, next) => {
+  req.db = await dbo();
+  next();
+});
+app.use('/campaigns', campaignsRouter);
 
 describe('Campaign routes', () => {
   test('create campaign success', async () => {
@@ -17,7 +21,7 @@ describe('Campaign routes', () => {
       })
     });
     const res = await request(app)
-      .post('/campaign/add')
+      .post('/campaigns/add')
       .send({ campaignName: 'Test', dm: 'DM' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -30,7 +34,7 @@ describe('Campaign routes', () => {
       })
     });
     const res = await request(app)
-      .post('/campaign/add')
+      .post('/campaigns/add')
       .send({ campaignName: 'Test', dm: 'DM' });
     expect(res.status).toBe(500);
   });
@@ -41,7 +45,7 @@ describe('Campaign routes', () => {
         findOne: (query, cb) => cb(null, { campaignName: 'Test', dm: 'DM', players: [] })
       })
     });
-    const res = await request(app).get('/campaign/Test');
+    const res = await request(app).get('/campaigns/Test');
     expect(res.status).toBe(200);
     expect(res.body.dm).toBe('DM');
   });
@@ -52,7 +56,7 @@ describe('Campaign routes', () => {
         findOne: (query, cb) => cb(new Error('db error'))
       })
     });
-    const res = await request(app).get('/campaign/Test');
+    const res = await request(app).get('/campaigns/Test');
     expect(res.status).toBe(500);
   });
 
@@ -62,7 +66,7 @@ describe('Campaign routes', () => {
         find: () => ({ toArray: (cb) => cb(null, [{ campaignName: 'Test', dm: 'DM' }]) })
       })
     });
-    const res = await request(app).get('/campaignsDM/DM');
+    const res = await request(app).get('/campaigns/dm/DM');
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
   });
@@ -73,7 +77,7 @@ describe('Campaign routes', () => {
         find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
-    const res = await request(app).get('/campaignsDM/DM');
+    const res = await request(app).get('/campaigns/dm/DM');
     expect(res.status).toBe(500);
   });
 
@@ -83,7 +87,7 @@ describe('Campaign routes', () => {
         findOne: (query, cb) => cb(null, { campaignName: 'Test', dm: 'DM' })
       })
     });
-    const res = await request(app).get('/campaignsDM/DM/Test');
+    const res = await request(app).get('/campaigns/dm/DM/Test');
     expect(res.status).toBe(200);
     expect(res.body.campaignName).toBe('Test');
   });
@@ -94,7 +98,7 @@ describe('Campaign routes', () => {
         findOne: (query, cb) => cb(new Error('db error'))
       })
     });
-    const res = await request(app).get('/campaignsDM/DM/Test');
+    const res = await request(app).get('/campaigns/dm/DM/Test');
     expect(res.status).toBe(500);
   });
 });
