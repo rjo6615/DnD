@@ -3,17 +3,11 @@ const express = require('express');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
-const campaignsRouter = require('../routes/campaigns');
-const charactersRouter = require('../routes/characters');
+const charactersRouter = require('../routes.js');
 
 const app = express();
 app.use(express.json());
-app.use(async (req, res, next) => {
-  req.db = await dbo();
-  next();
-});
-app.use('/campaigns', campaignsRouter);
-app.use('/characters', charactersRouter);
+app.use(charactersRouter);
 
 describe('Character routes', () => {
   test('add character success', async () => {
@@ -23,7 +17,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .post('/characters/add')
+      .post('/character/add')
       .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -51,7 +45,7 @@ describe('Character routes', () => {
       newSkill: ['Stealth']
     };
     const res = await request(app)
-      .post('/characters/add')
+      .post('/character/add')
       .send(payload);
     expect(res.status).toBe(200);
     expect(captured).toMatchObject({
@@ -69,7 +63,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .post('/characters/add')
+      .post('/character/add')
       .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(500);
   });
@@ -81,7 +75,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .post('/characters/add')
+      .post('/character/add')
       .send({ token: 'alice' });
     expect(res.status).toBe(400);
   });
@@ -92,7 +86,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(null, [{ token: 'alice', campaign: 'Camp1' }]) })
       })
     });
-    const res = await request(app).get('/campaigns/Camp1/alice');
+    const res = await request(app).get('/campaign/Camp1/alice');
     expect(res.status).toBe(200);
     expect(res.body[0].token).toBe('alice');
   });
@@ -103,7 +97,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
-    const res = await request(app).get('/campaigns/Camp1/alice');
+    const res = await request(app).get('/campaign/Camp1/alice');
     expect(res.status).toBe(500);
   });
 
@@ -116,7 +110,7 @@ describe('Character routes', () => {
         ]) })
       })
     });
-    const res = await request(app).get('/campaigns/Camp1/characters');
+    const res = await request(app).get('/campaign/Camp1/characters');
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(2);
   });
@@ -127,7 +121,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
-    const res = await request(app).get('/campaigns/Camp1/characters');
+    const res = await request(app).get('/campaign/Camp1/characters');
     expect(res.status).toBe(500);
   });
 
@@ -160,7 +154,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(null, [{ weaponName: 'Sword' }]) })
       })
     });
-    const res = await request(app).get('/characters/weapons/Camp1');
+    const res = await request(app).get('/weapons/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].weaponName).toBe('Sword');
   });
@@ -171,7 +165,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
-    const res = await request(app).get('/characters/weapons/Camp1');
+    const res = await request(app).get('/weapons/Camp1');
     expect(res.status).toBe(500);
   });
 
@@ -181,7 +175,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(null, [{ armorName: 'Plate' }]) })
       })
     });
-    const res = await request(app).get('/characters/armor/Camp1');
+    const res = await request(app).get('/armor/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].armorName).toBe('Plate');
   });
@@ -192,7 +186,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
-    const res = await request(app).get('/characters/armor/Camp1');
+    const res = await request(app).get('/armor/Camp1');
     expect(res.status).toBe(500);
   });
 
@@ -202,7 +196,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(null, [{ itemName: 'Potion' }]) })
       })
     });
-    const res = await request(app).get('/characters/items/Camp1');
+    const res = await request(app).get('/items/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].itemName).toBe('Potion');
   });
@@ -213,7 +207,99 @@ describe('Character routes', () => {
         find: () => ({ toArray: (cb) => cb(new Error('db error')) })
       })
     });
-    const res = await request(app).get('/characters/items/Camp1');
+    const res = await request(app).get('/items/Camp1');
+    expect(res.status).toBe(500);
+  });
+
+  test('get feats success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(null, [{ feat: 'Power Attack' }]) })
+      })
+    });
+    const res = await request(app).get('/feats');
+    expect(res.status).toBe(200);
+    expect(res.body[0].feat).toBe('Power Attack');
+  });
+
+  test('get feats failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+      })
+    });
+    const res = await request(app).get('/feats');
+    expect(res.status).toBe(500);
+  });
+
+  test('get occupations success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(null, [{ name: 'Soldier' }]) })
+      })
+    });
+    const res = await request(app).get('/occupations');
+    expect(res.status).toBe(200);
+    expect(res.body[0].name).toBe('Soldier');
+  });
+
+  test('get occupations failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+      })
+    });
+    const res = await request(app).get('/occupations');
+    expect(res.status).toBe(500);
+  });
+
+  test('update skills success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: async () => ({ value: { appraise: 1 } })
+      })
+    });
+    const res = await request(app)
+      .put('/update-skills/507f1f77bcf86cd799439011')
+      .send({ appraise: 1 });
+    expect(res.status).toBe(200);
+    expect(res.body.appraise).toBe(1);
+  });
+
+  test('update skills failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: async () => { throw new Error('db error'); }
+      })
+    });
+    const res = await request(app)
+      .put('/update-skills/507f1f77bcf86cd799439011')
+      .send({ appraise: 1 });
+    expect(res.status).toBe(500);
+  });
+
+  test('update added skills success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: async () => ({ value: { newSkill: [['Skill', 1]] } })
+      })
+    });
+    const res = await request(app)
+      .put('/updated-add-skills/507f1f77bcf86cd799439011')
+      .send({ newSkill: [['Skill', 1]] });
+    expect(res.status).toBe(200);
+    expect(res.body.newSkill).toEqual([['Skill', 1]]);
+  });
+
+  test('update added skills failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: async () => { throw new Error('db error'); }
+      })
+    });
+    const res = await request(app)
+      .put('/updated-add-skills/507f1f77bcf86cd799439011')
+      .send({ newSkill: [['Skill', 1]] });
     expect(res.status).toBe(500);
   });
 
@@ -222,7 +308,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: (doc, cb) => cb(null, { acknowledged: true }) })
     });
     const res = await request(app)
-      .post('/characters/weapon/add')
+      .post('/weapon/add')
       .send({ campaign: 'Camp1', weaponName: 'Sword' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -233,7 +319,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: (doc, cb) => cb(new Error('db error')) })
     });
     const res = await request(app)
-      .post('/characters/weapon/add')
+      .post('/weapon/add')
       .send({ campaign: 'Camp1', weaponName: 'Sword' });
     expect(res.status).toBe(500);
   });
@@ -243,7 +329,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: (doc, cb) => cb(null, { acknowledged: true }) })
     });
     const res = await request(app)
-      .post('/characters/armor/add')
+      .post('/armor/add')
       .send({ campaign: 'Camp1', armorName: 'Plate' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -254,7 +340,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: (doc, cb) => cb(new Error('db error')) })
     });
     const res = await request(app)
-      .post('/characters/armor/add')
+      .post('/armor/add')
       .send({ campaign: 'Camp1', armorName: 'Plate' });
     expect(res.status).toBe(500);
   });
@@ -264,7 +350,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: (doc, cb) => cb(null, { acknowledged: true }) })
     });
     const res = await request(app)
-      .post('/characters/item/add')
+      .post('/item/add')
       .send({ campaign: 'Camp1', itemName: 'Potion' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -275,7 +361,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: (doc, cb) => cb(new Error('db error')) })
     });
     const res = await request(app)
-      .post('/characters/item/add')
+      .post('/item/add')
       .send({ campaign: 'Camp1', itemName: 'Potion' });
     expect(res.status).toBe(500);
   });

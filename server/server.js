@@ -5,16 +5,11 @@ require("dotenv").config({ path: "./config.env" });
 const port = process.env.PORT || 5000;
 const path = require('path');
 const connectToDatabase = require("./db/conn");
-const usersRouter = require('./routes/users');
-const campaignsRouter = require('./routes/campaigns');
-const charactersRouter = require('./routes/characters');
+const routes = require("./routes.js");
 
 app.use(cors());
 app.use(express.json());
-
-app.use('/users', usersRouter);
-app.use('/campaigns', campaignsRouter);
-app.use('/characters', charactersRouter);
+app.use(routes);
 
 // Adjusted to serve static files from the correct build directory
 app.use(express.static(path.join(__dirname, '../client/build')));
