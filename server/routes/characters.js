@@ -1,203 +1,12 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const express = require('express');
-const {
-  body,
-  param,
-  validationResult,
-  matchedData,
-} = require('express-validator');
-const routes = express.Router();
-const connectDB = require('./db/conn');
-require('dotenv').config();
-const ObjectId = require("mongodb").ObjectId;
-const authenticateToken = require('./middleware/auth');
-const authenticateUser = require('./utils/authenticateUser');
+const { body, param, matchedData } = require('express-validator');
+const ObjectId = require('mongodb').ObjectId;
+const handleValidationErrors = require('../middleware/validation');
 
-// Generic middleware to send standardized validation errors
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
-
-routes.use(async (req, res, next) => {
-  try {
-    req.db = await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
-const jwtSecretKey = process.env.JWT_SECRET;
-
-
-// Login route
-routes.post(
-  '/login',
-  [
-    body('username').trim().notEmpty().withMessage('username is required'),
-    body('password').notEmpty().withMessage('password is required'),
-  ],
-  handleValidationErrors,
-  async (req, res) => {
-    const { username, password } = req.body;
-
-    const db_connect = req.db;
-    try {
-      const user = await authenticateUser(db_connect, username, password);
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid username or password' });
-      }
-
-      // Generate JWT token
-      const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
-      res.json({ token });
-      console.debug('JWT token generated for login request', {
-        timestamp: new Date().toISOString(),
-      });
-    } catch (err) {
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-);
-
-// Verify user credentials
-routes.post(
-  '/users/verify',
-  [
-    body('username').trim().notEmpty().withMessage('username is required'),
-    body('password').notEmpty().withMessage('password is required'),
-  ],
-  handleValidationErrors,
-  async (req, res) => {
-    const { username, password } = req.body;
-
-    const db_connect = req.db;
-    try {
-      const user = await authenticateUser(db_connect, username, password);
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid username or password' });
-      }
-      res.json({ valid: true });
-    } catch (err) {
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-);
-
-// Get all users (protected route)
-routes.get('/users', authenticateToken, (req, res) => {
-  let db_connect = req.db;
-  db_connect
-    .collection('users')
-    .find({})
-    .toArray(function (err, result) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-      res.json(result);
-    });
-});
-
-// Get user by username (protected route)
-// Clients must include a valid JWT in the Authorization header: "Bearer <token>"
-routes.get('/users/:username', authenticateToken, (req, res) => {
-  let db_connect = req.db;
-  let myquery = { username: req.params.username };
-  db_connect
-    .collection('users')
-    .findOne(myquery, function (err, user) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    });
-});
-
-// Create a new user route
-routes.post(
-  '/users/add',
-  [
-    body('username').trim().notEmpty().withMessage('username is required'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('password must be at least 6 characters'),
-  ],
-  handleValidationErrors,
-  (req, res) => {
-    const { username, password } = req.body;
-
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-
-      let db_connect = req.db;
-      let myobj = {
-        username: username,
-        password: hashedPassword,
-      };
-
-      db_connect.collection('users').insertOne(myobj, function (err, result) {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        res.json(result);
-      });
-    });
-  }
-);
-
-
-// Add players to a campaign (protected route)
-routes.route('/players/add/:campaign').put(
-  authenticateToken,
-  [
-    param('campaign').trim().notEmpty().withMessage('campaign is required'),
-  ],
-  handleValidationErrors,
-  (req, res) => {
-    if (!Array.isArray(req.body)) {
-      return res
-        .status(400)
-        .json({ errors: [{ msg: 'body must be an array of players', param: 'body' }] });
-    }
-    const campaignName = req.params.campaign;
-    const newPlayers = req.body; // Assuming newPlayers is an array of players
-
-    const db_connect = req.db;
-    db_connect.collection("Campaigns").updateOne(
-      { campaignName: campaignName },
-      { $addToSet: { 'players': { $each: newPlayers } } }, // Add new players to existing array only if they are not already present
-      (err, result) => {
-        if(err) {
-          console.error("Error adding players:", err);
-          return res.status(500).send("Internal Server Error");
-        }
-        console.log("Players added");
-        if (result.modifiedCount === 0) {
-          // If no modifications were made, it means the players were not added because they already exist
-          return res.status(400).send("Players already exist in the array");
-        }
-        res.send('Players added successfully');
-      }
-    );
-  }
-);
-
-
+module.exports = (router) => {
 // -------------------------------------------------Character Section-----------------------------------------------
 
 // This section will get a single character by id
-routes.route("/characters/:id").get(function (req, res) {
+router.route("/characters/:id").get(function (req, res) {
   let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect
@@ -209,7 +18,7 @@ routes.route("/characters/:id").get(function (req, res) {
  });
 
 // This section will get a list of all the characters.
-routes.route("/character/select").get(function (req, res) {
+router.route("/character/select").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Characters")
@@ -266,7 +75,7 @@ const numericCharacterFields = [
   'useRope',
 ];
 
-routes.post(
+router.post(
   '/character/add',
   [
     body('token').trim().notEmpty().withMessage('token is required'),
@@ -297,7 +106,7 @@ routes.post(
 );
 
 // This section will delete a character
-routes.route("/delete-character/:id").delete((req, response) => {
+router.route("/delete-character/:id").delete((req, response) => {
   let db_connect = req.db;
   let myquery = { _id: ObjectId(req.params.id) };
   db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
@@ -309,96 +118,10 @@ routes.route("/delete-character/:id").delete((req, response) => {
 
 // -------------------------------------------------Campaign Section---------------------------------------------------
 
-// This section will find all characters in a specific campaign.
-routes.route("/campaign/:campaign/characters").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Characters")
-    .find({ campaign: req.params.campaign })
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
-});
-
-// This section will find all of the users characters in a specific campaign.
-routes.route("/campaign/:campaign/:username").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Characters")
-    .find({ campaign: req.params.campaign, token: req.params.username })
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
-// This section will find a specific campaign.
-routes.route("/campaign/:campaign").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Campaigns")
-    .findOne({ campaignName: req.params.campaign }, function (err, result) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-      res.json(result);
-    });
-});
-
-// This section will get a list of all the campaigns.
-routes.route("/campaigns/:player").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Campaigns")
-    .find({ players: { $in: [req.params.player] } }) // Using $in to search for the player in the players array
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
-});
-
- // This section will create a new campaign.
-routes.route("/campaign/add").post(function (req, response) {
-  let db_connect = req.db;
-  let myobj = {
-  campaignName: req.body.campaignName,
-  gameMode: req.body.gameMode,
-  dm: req.body.dm,
-  players: req.body.players,
-  };
-  db_connect.collection("Campaigns").insertOne(myobj, function (err, res) {
-    if (err) throw err;
-    response.json(res);
-  });
- });
-
-
- // This section will be for the DM 
- routes.route("/campaignsDM/:DM").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Campaigns")
-    .find({ dm: req.params.DM })
-    .toArray(function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
-
- routes.route("/campaignsDM/:DM/:campaign").get(function (req, res) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Campaigns")
-    .findOne({ dm: req.params.DM, campaignName: req.params.campaign }, function (err, result) {
-      if (err) throw err;
-      res.json(result);
-    });
- });
 // --------------------------------------------Occupations Section----------------------------------------
 
 // This section will get a list of all the occupations.
-routes.route("/occupations").get(function (req, res) {
+router.route("/occupations").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Occupations")
@@ -410,7 +133,7 @@ routes.route("/occupations").get(function (req, res) {
  });
 
 // This section will update occupations.
-routes.route('/update-occupations/:id').put((req, res, next) => {
+router.route('/update-occupations/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
 
@@ -433,7 +156,7 @@ routes.route('/update-occupations/:id').put((req, res, next) => {
 // ---------------------------------------------Stats Section----------------------------------------------------------
 
   // This section will update stats.
-routes.route('/update-stats/:id').put((req, res, next) => {
+router.route('/update-stats/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -455,7 +178,7 @@ routes.route('/update-stats/:id').put((req, res, next) => {
 // --------------------------------------------------Skills Section------------------------------------------------
 
 // This section will update skills.
-routes.route('/update-skills/:id').put(async (req, res) => {
+router.route('/update-skills/:id').put(async (req, res) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
   try {
@@ -504,7 +227,7 @@ routes.route('/update-skills/:id').put(async (req, res) => {
 });
 
 // This section will update added skills.
-routes.route('/update-add-skill/:id').put((req, res, next) => {
+router.route('/update-add-skill/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -519,7 +242,7 @@ routes.route('/update-add-skill/:id').put((req, res, next) => {
 });
 
 // This section will update ranks of skills.
-routes.route('/updated-add-skills/:id').put(async (req, res) => {
+router.route('/updated-add-skills/:id').put(async (req, res) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
   try {
@@ -537,7 +260,7 @@ routes.route('/updated-add-skills/:id').put(async (req, res) => {
 // --------------------------------------------------Health Section--------------------------------------------------------
 
 // This section will update tempHealth.
-routes.route('/update-temphealth/:id').put((req, res, next) => {
+router.route('/update-temphealth/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -552,7 +275,7 @@ routes.route('/update-temphealth/:id').put((req, res, next) => {
 });
 
 // This section will update health and stats.
-routes.route('/update-health/:id').put((req, res, next) => {
+router.route('/update-health/:id').put((req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
 
@@ -583,7 +306,7 @@ routes.route('/update-health/:id').put((req, res, next) => {
 // ----------------------------------------------------Weapon Section----------------------------------------------------
 
  // This section will get a list of all the weapons.
- routes.route("/weapons/:campaign").get(function (req, res) {
+ router.route("/weapons/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Weapons")
@@ -595,7 +318,7 @@ routes.route('/update-health/:id').put((req, res, next) => {
  });
 
 // This section will update weapons.
-routes.route('/update-weapon/:id').put((req, res, next) => {
+router.route('/update-weapon/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -610,7 +333,7 @@ routes.route('/update-weapon/:id').put((req, res, next) => {
 });
 
 // This section will create a new weapon.
-routes.route("/weapon/add").post(function (req, response) {
+router.route("/weapon/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
@@ -629,7 +352,7 @@ routes.route("/weapon/add").post(function (req, response) {
 // -----------------------------------------------------Armor Section--------------------------------------------------------
 
 // This section will get a list of all the armor.
-routes.route("/armor/:campaign").get(function (req, res) {
+router.route("/armor/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Armor")
@@ -641,7 +364,7 @@ routes.route("/armor/:campaign").get(function (req, res) {
  });
 
 // This section will create a new armor.
-routes.route("/armor/add").post(function (req, response) {
+router.route("/armor/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
   campaign: req.body.campaign,
@@ -657,7 +380,7 @@ routes.route("/armor/add").post(function (req, response) {
  });
 
 // This section will update armors.
-routes.route('/update-armor/:id').put((req, res, next) => {
+router.route('/update-armor/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -673,7 +396,7 @@ routes.route('/update-armor/:id').put((req, res, next) => {
 // ------------------------------------------------------Item Section-----------------------------------------------------------
 
 // This section will get a list of all the items.
-routes.route("/items/:campaign").get(function (req, res) {
+router.route("/items/:campaign").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Items")
@@ -685,7 +408,7 @@ routes.route("/items/:campaign").get(function (req, res) {
  });
 
 // This section will create a new item.
-routes.route("/item/add").post(function (req, response) {
+router.route("/item/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
     campaign: req.body.campaign,
@@ -735,7 +458,7 @@ routes.route("/item/add").post(function (req, response) {
  });
 
  // This section will update items.
-routes.route('/update-item/:id').put((req, res, next) => {
+router.route('/update-item/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -752,7 +475,7 @@ routes.route('/update-item/:id').put((req, res, next) => {
 // ------------------------------------------------------Feat Section-----------------------------------------------------------
 
 // This section will get a list of all the feats.
-routes.route("/feats").get(function (req, res) {
+router.route("/feats").get(function (req, res) {
   let db_connect = req.db;
   db_connect
     .collection("Feats")
@@ -764,7 +487,7 @@ routes.route("/feats").get(function (req, res) {
  });
 
 // This section will create a new feat.
-routes.route("/feat/add").post(function (req, response) {
+router.route("/feat/add").post(function (req, response) {
   let db_connect = req.db;
   let myobj = {
     featName: req.body.featName, 
@@ -807,7 +530,7 @@ routes.route("/feat/add").post(function (req, response) {
  });
 
  // This section will update feats.
-routes.route('/update-feat/:id').put((req, res, next) => {
+router.route('/update-feat/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -823,7 +546,7 @@ routes.route('/update-feat/:id').put((req, res, next) => {
 
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
  // This section will update level.
- routes.route('/update-level/:id').put((req, res, next) => {
+ router.route('/update-level/:id').put((req, res, next) => {
   const db_connect = req.db;
   const selectedOccupation = req.body.selectedOccupation;
 
@@ -859,7 +582,7 @@ db_connect.collection("Characters").updateOne(
  )
 //-------------------------------------------------------------Dice Color Section------------------------------------------------------------------
  // This section will update dice color.
- routes.route('/update-dice-color/:id').put((req, res, next) => {
+ router.route('/update-dice-color/:id').put((req, res, next) => {
   let id = { _id: ObjectId(req.params.id) };
   let db_connect = req.db;
   db_connect.collection("Characters").updateOne(id, {$set:{
@@ -872,4 +595,4 @@ db_connect.collection("Characters").updateOne(
     res.send('user updated sucessfully');
   });
 });
-module.exports = routes;
+};
