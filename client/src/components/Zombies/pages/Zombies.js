@@ -6,16 +6,15 @@ import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../../images/zombiesbg.jpg";
 import { FaDungeon, FaCrown } from 'react-icons/fa';
+import useToken from '../../../useToken';
 
 
 export default function ZombiesHome() {
   const navigate = useNavigate();
+  const { token } = useToken();
   const [decodedToken, setDecodedToken] = useState(null);
 
   useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
     if (token) {
       try {
         const decoded = jwtDecode(token);
@@ -24,7 +23,7 @@ export default function ZombiesHome() {
         console.error('Failed to decode token:', error);
       }
     }
-  }, []);
+  }, [token]);
 
 //--------------------------------------------Campaign Section------------------------------
 
@@ -68,7 +67,7 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
       return;
     }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${decodedToken.username}`);    
+    const response = await fetch(`/campaigns/${decodedToken.username}`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -95,7 +94,7 @@ useEffect(() => {
       return;
     }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${decodedToken.username}`);    
+    const response = await fetch(`/campaignsDM/${decodedToken.username}`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -134,6 +133,7 @@ async function onSubmit1(e) {
        headers: {
          "Content-Type": "application/json",
        },
+       credentials: 'include',
        body: JSON.stringify(newCampaign),
      })
      .catch(error => {
