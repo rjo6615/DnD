@@ -74,4 +74,27 @@ describe('Users routes', () => {
     expect(res.status).toBe(500);
     expect(res.body.message).toBe('Internal server error');
   });
+
+  test('register failure with duplicate username', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ username: 'alice' }),
+        insertOne: jest.fn()
+      })
+    });
+    const res = await request(app)
+      .post('/users/add')
+      .send({ username: 'alice', password: 'Strongpass1!' });
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe('Username already exists');
+  });
+
+  test('register failure with weak password', async () => {
+    dbo.mockResolvedValue({ collection: () => ({}) });
+    const res = await request(app)
+      .post('/users/add')
+      .send({ username: 'bob', password: 'weakpass' });
+    expect(res.status).toBe(400);
+    expect(res.body.errors).toBeDefined();
+  });
 });

@@ -39,31 +39,42 @@ module.exports = (router) => {
     [
       body('username').trim().notEmpty().withMessage('username is required'),
       body('password')
-        .isLength({ min: 6 })
-        .withMessage('password must be at least 6 characters'),
+        .isLength({ min: 8 })
+        .withMessage('password must be at least 8 characters')
+        .matches(/[a-z]/)
+        .withMessage('password must contain at least one lowercase letter')
+        .matches(/[A-Z]/)
+        .withMessage('password must contain at least one uppercase letter')
+        .matches(/\d/)
+        .withMessage('password must contain at least one number')
+        .matches(/[^A-Za-z0-9]/)
+        .withMessage('password must contain at least one special character'),
     ],
     handleValidationErrors,
-    (req, res) => {
+    async (req, res) => {
       const { username, password } = req.body;
 
-      bcrypt.hash(password, 10, (err, hashedPassword) => {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error' });
+      try {
+        const db_connect = req.db;
+
+        const existingUser = await db_connect
+          .collection('users')
+          .findOne({ username });
+        if (existingUser) {
+          return res.status(409).json({ message: 'Username already exists' });
         }
 
-        let db_connect = req.db;
-        let myobj = {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const myobj = {
           username: username,
           password: hashedPassword,
         };
 
-        db_connect.collection('users').insertOne(myobj, function (err, result) {
-          if (err) {
-            return res.status(500).json({ message: 'Internal server error' });
-          }
-          res.json(result);
-        });
-      });
+        const result = await db_connect.collection('users').insertOne(myobj);
+        res.json(result);
+      } catch (err) {
+        res.status(500).json({ message: 'Internal server error' });
+      }
     }
   );
 };
