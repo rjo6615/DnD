@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
 process.env.JWT_SECRET = 'testsecret';
-const usersRouter = require('../routes.js');
+const usersRouter = require('../routes');
 
 const app = express();
 app.use(express.json());
