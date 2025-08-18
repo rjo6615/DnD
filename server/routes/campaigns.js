@@ -15,7 +15,7 @@ module.exports = (router) => {
       param('campaign').trim().notEmpty().withMessage('campaign is required'),
     ],
     handleValidationErrors,
-    (req, res) => {
+     (req, res, next) => {
       if (!Array.isArray(req.body)) {
         return res
           .status(400)
@@ -45,31 +45,31 @@ module.exports = (router) => {
   );
 
   // This section will find all characters in a specific campaign.
-  campaignRouter.route("/campaign/:campaign/characters").get(function (req, res) {
+  campaignRouter.route("/campaign/:campaign/characters").get(function (req, res, next) {
     let db_connect = req.db;
     db_connect
       .collection("Characters")
       .find({ campaign: req.params.campaign })
       .toArray(function (err, result) {
-        if (err) throw err;
+        if (err) return next(err);
         res.json(result);
       });
   });
 
   // This section will find all of the users characters in a specific campaign.
-  campaignRouter.route("/campaign/:campaign/:username").get(function (req, res) {
+  campaignRouter.route("/campaign/:campaign/:username").get(function (req, res, next) {
     let db_connect = req.db;
     db_connect
       .collection("Characters")
       .find({ campaign: req.params.campaign, token: req.params.username })
       .toArray(function (err, result) {
-        if (err) throw err;
+        if (err) return next(err);
         res.json(result);
       });
    });
 
   // This section will find a specific campaign.
-  campaignRouter.route("/campaign/:campaign").get(function (req, res) {
+  campaignRouter.route("/campaign/:campaign").get(function (req, res, next) {
     let db_connect = req.db;
     db_connect
       .collection("Campaigns")
@@ -82,19 +82,19 @@ module.exports = (router) => {
   });
 
   // This section will get a list of all the campaigns.
-  campaignRouter.route("/campaigns/:player").get(function (req, res) {
+  campaignRouter.route("/campaigns/:player").get(function (req, res, next) {
     let db_connect = req.db;
     db_connect
       .collection("Campaigns")
       .find({ players: { $in: [req.params.player] } }) // Using $in to search for the player in the players array
       .toArray(function (err, result) {
-        if (err) throw err;
+        if (err) return next(err);
         res.json(result);
       });
   });
 
   // This section will create a new campaign.
-  campaignRouter.route("/campaign/add").post(function (req, response) {
+  campaignRouter.route("/campaign/add").post(function (req, response, next) {
     let db_connect = req.db;
     let myobj = {
       campaignName: req.body.campaignName,
@@ -103,30 +103,30 @@ module.exports = (router) => {
       players: req.body.players,
     };
     db_connect.collection("Campaigns").insertOne(myobj, function (err, res) {
-      if (err) throw err;
+      if (err) return next(err);
       response.json(res);
     });
    });
 
 
   // This section will be for the DM
-  campaignRouter.route("/campaignsDM/:DM").get(function (req, res) {
+  campaignRouter.route("/campaignsDM/:DM").get(function (req, res, next) {
     let db_connect = req.db;
     db_connect
       .collection("Campaigns")
       .find({ dm: req.params.DM })
       .toArray(function (err, result) {
-        if (err) throw err;
+        if (err) return next(err);
         res.json(result);
       });
    });
 
-  campaignRouter.route("/campaignsDM/:DM/:campaign").get(function (req, res) {
+  campaignRouter.route("/campaignsDM/:DM/:campaign").get(function (req, res, next) {
     let db_connect = req.db;
     db_connect
       .collection("Campaigns")
       .findOne({ dm: req.params.DM, campaignName: req.params.campaign }, function (err, result) {
-        if (err) throw err;
+        if (err) return next(err);
         res.json(result);
       });
   });

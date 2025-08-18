@@ -4,12 +4,16 @@ const bcrypt = require('bcryptjs');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
+jest.mock('../middleware/auth', () => (req, res, next) => next());
 process.env.JWT_SECRET = 'testsecret';
 const usersRouter = require('../routes');
 
 const app = express();
 app.use(express.json());
 app.use(usersRouter);
+app.use((err, req, res, next) => {
+  res.status(500).json({ message: err.message });
+});
 
 describe('Users routes', () => {
   test('login success', async () => {
@@ -58,5 +62,16 @@ describe('Users routes', () => {
     const res = await request(app).post('/users/verify').send({ username: 'alice', password: 'wrong' });
     expect(res.status).toBe(401);
     expect(res.body.valid).toBeUndefined();
+  });
+
+  test('get users failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+      })
+    });
+    const res = await request(app).get('/users');
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBe('Internal server error');
   });
 });
