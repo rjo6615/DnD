@@ -10,6 +10,10 @@ jest.mock('../../useToken', () => ({
   })
 }));
 
+beforeEach(() => {
+  global.fetch = jest.fn(() => Promise.resolve({ ok: true }));
+});
+
 test('logout navigates to login route', async () => {
   render(
     <MemoryRouter initialEntries={['/']}>

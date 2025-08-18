@@ -5,17 +5,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../../images/zombiesbg.jpg";
+import useToken from '../../../useToken';
 
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
+  const { token } = useToken();
   const [decodedToken, setDecodedToken] = useState(null);
 
   useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
     if (token) {
       try {
         const decoded = jwtDecode(token);
@@ -24,14 +23,14 @@ export default function RecordList() {
         console.error('Failed to decode token:', error);
       }
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!decodedToken) {
       return;
     }
     async function getRecords() {
-      const response = await fetch(`/campaign/${params.campaign}/${decodedToken.username}`);
+    const response = await fetch(`/campaign/${params.campaign}/${decodedToken.username}`, { credentials: 'include' });
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -52,19 +51,7 @@ export default function RecordList() {
     navigate(`/zombies-character-sheet/${id}`);
   }
 
-  useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, []);
+  // Removed duplicate token decode effect
 // --------------------------Random Character Creator Section------------------------------------
  const [form, setForm] = useState({ 
   token: "",
@@ -140,7 +127,7 @@ const handleShow = () => setShow(true);
 // Fetch Occupations
 useEffect(() => {
   async function fetchData() {
-    const response = await fetch(`/occupations`);    
+    const response = await fetch(`/occupations`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -285,6 +272,7 @@ useEffect(() => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify(newCharacter),
       });
     } catch (error) {
@@ -423,6 +411,7 @@ const sendManualToDb = useCallback(async() => {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: 'include',
       body: JSON.stringify(newCharacter),
     });
   } catch (error) {

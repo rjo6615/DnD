@@ -4,14 +4,13 @@ import Modal from 'react-bootstrap/Modal';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate, useParams } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
+import useToken from '../../../useToken';
 
 export default function ZombiesDM() {
+  const { token } = useToken();
   const [decodedToken, setDecodedToken] = useState(null);
 
   useEffect(() => {
-    // Assuming you have the JWT stored in localStorage
-    const token = localStorage.getItem('token');
-
     if (token) {
       try {
         const decoded = jwtDecode(token);
@@ -20,14 +19,14 @@ export default function ZombiesDM() {
         console.error('Failed to decode token:', error);
       }
     }
-  }, []);
+  }, [token]);
   
     const navigate = useNavigate();
     const params = useParams();
     const [records, setRecords] = useState([]);
     useEffect(() => {
       async function getRecords() {
-        const response = await fetch(`/campaign/${params.campaign}/characters`);
+        const response = await fetch(`/campaign/${params.campaign}/characters`, { credentials: 'include' });
 
         if (!response.ok) {
           const message = `An error occurred: ${response.statusText}`;
@@ -60,7 +59,7 @@ useEffect(() => {
     return;
   }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${decodedToken.username}/${params.campaign}`);    
+    const response = await fetch(`/campaignsDM/${decodedToken.username}/${params.campaign}`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -94,11 +93,8 @@ const [playersSearch, setPlayersSearch] = useState("");
     }
 
     async function fetchUsers() {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -127,14 +123,12 @@ async function newPlayerSubmit(e) {
 const currentCampaign = params.campaign.toString();
 async function sendNewPlayersToDb() {
   const newPlayers = [playersSearch];
-  const token = localStorage.getItem('token');
-
   await fetch(`/players/add/${currentCampaign}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`, // Include the token in the request headers
     },
+    credentials: 'include',
     body: JSON.stringify(newPlayers),
   })
   .then(response => {
@@ -188,6 +182,7 @@ const [form2, setForm2] = useState({
        headers: {
          "Content-Type": "application/json",
        },
+       credentials: 'include',
        body: JSON.stringify(newWeapon),
      })
      .catch(error => {
@@ -233,12 +228,13 @@ const [form2, setForm2] = useState({
   async function sendToDb3(){
     const newArmor = { ...form3 };
     await fetch("/armor/add", {
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify(newArmor),
-   })
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+       },
+       credentials: 'include',
+       body: JSON.stringify(newArmor),
+     })
    .catch(error => {
      window.alert(error);
      return;
@@ -314,12 +310,13 @@ const [form2, setForm2] = useState({
   async function sendToDb4(){
     const newItem = { ...form4 };
     await fetch("/item/add", {
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify(newItem),
-   })
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: 'include',
+      body: JSON.stringify(newItem),
+    })
    .catch(error => {
      window.alert(error);
      return;

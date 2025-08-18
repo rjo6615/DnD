@@ -11,7 +11,8 @@ function NavbarComponent() {
   const { removeToken } = useToken();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/logout', { method: 'POST', credentials: 'include' });
     removeToken();
     navigate('/login');
   };

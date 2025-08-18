@@ -1,17 +1,21 @@
 import { useState } from 'react';
 
 export default function useToken() {
-  const getToken = () => localStorage.getItem('token');
+  const cookieName = 'tokenFront';
+  const getToken = () => {
+    const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+    return match ? match[2] : null;
+  };
 
   const [token, setToken] = useState(getToken());
 
   const saveToken = (userToken) => {
-    localStorage.setItem('token', userToken);
+    document.cookie = `${cookieName}=${userToken}; path=/`;
     setToken(userToken);
   };
 
   const removeToken = () => {
-    localStorage.removeItem('token');
+    document.cookie = `${cookieName}=; Max-Age=0; path=/`;
     setToken(null);
   };
 

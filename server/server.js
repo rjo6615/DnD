@@ -7,8 +7,22 @@ const path = require('path');
 const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+function parseCookies(req, res, next) {
+  req.cookies = {};
+  const raw = req.headers.cookie;
+  if (raw) {
+    raw.split(';').forEach(cookie => {
+      const parts = cookie.split('=');
+      const key = parts.shift().trim();
+      const value = decodeURIComponent(parts.join('='));
+      req.cookies[key] = value;
+    });
+  }
+  next();
+}
+app.use(parseCookies);
 app.use(routes);
 
 // Adjusted to serve static files from the correct build directory

@@ -24,6 +24,11 @@ module.exports = (router) => {
         }
 
         const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+        });
         res.json({ token });
         console.debug('JWT token generated for login request', {
           timestamp: new Date().toISOString(),
@@ -56,4 +61,9 @@ module.exports = (router) => {
       }
     }
   );
+
+  router.post('/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ message: 'Logged out' });
+  });
 };
