@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 const authenticateUser = require('../utils/authenticateUser');
 const handleValidationErrors = require('../middleware/validation');
+const authenticateToken = require('../middleware/auth');
 
 const jwtSecretKey = process.env.JWT_SECRET;
 
@@ -29,7 +30,7 @@ module.exports = (router) => {
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict',
         });
-        res.json({ token });
+        res.json({ message: 'Logged in' });
         console.debug('JWT token generated for login request', {
           timestamp: new Date().toISOString(),
         });
@@ -65,5 +66,9 @@ module.exports = (router) => {
   router.post('/logout', (req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logged out' });
+  });
+
+  router.get('/me', authenticateToken, (req, res) => {
+    res.json({ username: req.user.username });
   });
 };

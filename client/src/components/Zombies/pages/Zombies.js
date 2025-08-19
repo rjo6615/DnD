@@ -5,12 +5,12 @@ import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
 import { FaDungeon, FaCrown } from 'react-icons/fa';
-import useDecodedToken from '../../../hooks/useDecodedToken';
+import useUser from '../../../hooks/useUser';
 
 
 export default function ZombiesHome() {
   const navigate = useNavigate();
-  const decodedToken = useDecodedToken();
+  const user = useUser();
 
 //--------------------------------------------Campaign Section------------------------------
 
@@ -23,10 +23,10 @@ const [form1, setForm1] = useState({
 
 useEffect(() => {
   // Update form1 state once the token is decoded
-  if (decodedToken) {
-    setForm1(prevForm1 => ({ ...prevForm1, dm: decodedToken.username }));
-  }
-}, [decodedToken]);
+    if (user) {
+      setForm1(prevForm1 => ({ ...prevForm1, dm: user.username }));
+    }
+  }, [user]);
 
 const [campaign, setCampaign] = useState({ 
   campaign: [], 
@@ -50,11 +50,11 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
 
 // Fetch Campaigns
   useEffect(() => {
-    if (!decodedToken || !decodedToken.username) {
+    if (!user || !user.username) {
       return;
     }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${decodedToken.username}`, { credentials: 'include' });
+    const response = await fetch(`/campaigns/${user.username}`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -73,15 +73,15 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
   fetchData1();   
   return;
   
-}, [navigate, decodedToken]);
+  }, [navigate, user]);
 
 // Fetch CampaignsDM
 useEffect(() => {
-    if (!decodedToken || !decodedToken.username) {
+    if (!user || !user.username) {
       return;
     }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${decodedToken.username}`, { credentials: 'include' });
+    const response = await fetch(`/campaignsDM/${user.username}`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -100,7 +100,7 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, decodedToken ]);
+  }, [ navigate, user ]);
 
 
 function updateForm1(value) {

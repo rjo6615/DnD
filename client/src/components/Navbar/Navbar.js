@@ -3,18 +3,12 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
-import { useNavigate } from 'react-router-dom';
-import useToken from '../../useToken';
 import logoLight from "../../images/logo-light.png";
 
 function NavbarComponent() {
-  const { removeToken } = useToken();
-  const navigate = useNavigate();
-
   const handleLogout = async () => {
     await fetch('/logout', { method: 'POST', credentials: 'include' });
-    removeToken();
-    navigate('/login');
+    window.location.assign('/');
   };
 
   return (

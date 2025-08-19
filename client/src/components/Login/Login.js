@@ -25,8 +25,6 @@ async function loginUser(credentials) {
     if (!response.ok) {
       throw new Error('Login failed');
     }
-    const data = await response.json();
-    return data.token;
   } catch (error) {
     console.error('Login error:', error);
     throw error;
@@ -71,7 +69,7 @@ async function createUser(newUser) {
   }
 }
 
-export default function Login({ setToken }) {
+export default function Login({ onLogin }) {
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -87,9 +85,16 @@ export default function Login({ setToken }) {
 
   const handleLogin = async () => {
     try {
-      const token = await loginUser({ username, password });
-      setToken(token);
+      await loginUser({ username, password });
+      const res = await fetch('/me', { credentials: 'include' });
+      if (res.ok) {
+        const user = await res.json();
+        onLogin(user);
+      } else {
+        throw new Error('Failed to fetch user');
+      }
     } catch (error) {
+      console.error('Login error:', error);
       alert('Failed to log in. Please check your credentials and try again.');
     }
   };
@@ -187,5 +192,5 @@ export default function Login({ setToken }) {
 }
 
 Login.propTypes = {
-  setToken: PropTypes.func.isRequired,
+  onLogin: PropTypes.func.isRequired,
 };

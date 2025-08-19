@@ -4,20 +4,20 @@ import { Table, Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import zombiesbg from "../../../images/zombiesbg.jpg";
-import useDecodedToken from '../../../hooks/useDecodedToken';
+import useUser from '../../../hooks/useUser';
 
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
-  const decodedToken = useDecodedToken();
+  const user = useUser();
 
   useEffect(() => {
-    if (!decodedToken) {
+    if (!user) {
       return;
     }
     async function getRecords() {
-    const response = await fetch(`/campaign/${params.campaign}/${decodedToken.username}`, { credentials: 'include' });
+    const response = await fetch(`/campaign/${params.campaign}/${user.username}`, { credentials: 'include' });
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -32,7 +32,7 @@ export default function RecordList() {
     getRecords();
 
     return;
-  }, [params.campaign, decodedToken]);
+  }, [params.campaign, user]);
 
   const navigateToCharacter = (id) => {
     navigate(`/zombies-character-sheet/${id}`);
@@ -98,10 +98,10 @@ export default function RecordList() {
 
 useEffect(() => {
   // Update form state once the token is decoded
-  if (decodedToken) {
-    setForm(prevForm => ({ ...prevForm, token: decodedToken.username }));
+  if (user) {
+    setForm(prevForm => ({ ...prevForm, token: user.username }));
   }
-}, [decodedToken]);
+}, [user]);
 
 const [occupation, setOccupation] = useState({ 
   occupation: [], 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import Home from "./components/Home/Home";
 import Navbar from "./components/Navbar/Navbar";
@@ -11,14 +11,25 @@ import Login from "./components/Login/Login";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
-import useToken from './useToken';
 
 
 function App() {
-  const { token, setToken } = useToken();
+  const [user, setUser] = useState(null);
+  const [checked, setChecked] = useState(false);
 
-  if(!token) {
-    return <Login setToken={setToken} />;
+  useEffect(() => {
+    fetch('/me', { credentials: 'include' })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => setUser(data))
+      .finally(() => setChecked(true));
+  }, []);
+
+  if (!checked) {
+    return null;
+  }
+
+  if (!user) {
+    return <Login onLogin={setUser} />;
   }
 
   return (
