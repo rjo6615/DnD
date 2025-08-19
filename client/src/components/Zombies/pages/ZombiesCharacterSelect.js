@@ -3,27 +3,14 @@ import Button from 'react-bootstrap/Button';
 import { Table, Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
-import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../../images/zombiesbg.jpg";
-import useToken from '../../../useToken';
+import useDecodedToken from '../../../hooks/useDecodedToken';
 
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
-  const { token } = useToken();
-  const [decodedToken, setDecodedToken] = useState(null);
-
-  useEffect(() => {
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, [token]);
+  const decodedToken = useDecodedToken();
 
   useEffect(() => {
     if (!decodedToken) {

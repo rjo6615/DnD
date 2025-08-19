@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate, useParams } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
-import useToken from '../../../useToken';
+import useDecodedToken from '../../../hooks/useDecodedToken';
 
 export default function ZombiesDM() {
-  const { token } = useToken();
-  const [decodedToken, setDecodedToken] = useState(null);
-
-  useEffect(() => {
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, [token]);
+  const decodedToken = useDecodedToken();
   
     const navigate = useNavigate();
     const params = useParams();
