@@ -3,27 +3,14 @@ import { Button, Col, Container, Form, Row, Table, Card } from "react-bootstrap"
 import { useNavigate } from "react-router-dom";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
-import { jwtDecode } from 'jwt-decode';
 import zombiesbg from "../../../images/zombiesbg.jpg";
 import { FaDungeon, FaCrown } from 'react-icons/fa';
-import useToken from '../../../useToken';
+import useDecodedToken from '../../../hooks/useDecodedToken';
 
 
 export default function ZombiesHome() {
   const navigate = useNavigate();
-  const { token } = useToken();
-  const [decodedToken, setDecodedToken] = useState(null);
-
-  useEffect(() => {
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
-      }
-    }
-  }, [token]);
+  const decodedToken = useDecodedToken();
 
 //--------------------------------------------Campaign Section------------------------------
 
