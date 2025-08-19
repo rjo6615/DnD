@@ -17,7 +17,7 @@ describe('Campaign routes', () => {
   test('create campaign success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: (doc, cb) => cb(null, { acknowledged: true })
+        insertOne: async () => ({ acknowledged: true })
       })
     });
     const res = await request(app)
@@ -30,7 +30,7 @@ describe('Campaign routes', () => {
   test('create campaign failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: (doc, cb) => cb(new Error('db error'))
+        insertOne: async () => { throw new Error('db error'); }
       })
     });
     const res = await request(app)
@@ -43,7 +43,7 @@ describe('Campaign routes', () => {
   test('get campaign by name success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(null, { campaignName: 'Test', dm: 'DM', players: [] })
+        findOne: async () => ({ campaignName: 'Test', dm: 'DM', players: [] })
       })
     });
     const res = await request(app).get('/campaign/Test');
@@ -54,7 +54,7 @@ describe('Campaign routes', () => {
   test('get campaign by name failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(new Error('db error'))
+        findOne: async () => { throw new Error('db error'); }
       })
     });
     const res = await request(app).get('/campaign/Test');
@@ -64,7 +64,7 @@ describe('Campaign routes', () => {
   test('get campaigns by dm success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ campaignName: 'Test', dm: 'DM' }]) })
+        find: () => ({ toArray: async () => [{ campaignName: 'Test', dm: 'DM' }] })
       })
     });
     const res = await request(app).get('/campaignsDM/DM');
@@ -75,7 +75,7 @@ describe('Campaign routes', () => {
   test('get campaigns by dm failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/campaignsDM/DM');
@@ -85,7 +85,7 @@ describe('Campaign routes', () => {
   test('get campaign by dm and name success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(null, { campaignName: 'Test', dm: 'DM' })
+        findOne: async () => ({ campaignName: 'Test', dm: 'DM' })
       })
     });
     const res = await request(app).get('/campaignsDM/DM/Test');
@@ -96,7 +96,7 @@ describe('Campaign routes', () => {
   test('get campaign by dm and name failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(new Error('db error'))
+        findOne: async () => { throw new Error('db error'); }
       })
     });
     const res = await request(app).get('/campaignsDM/DM/Test');

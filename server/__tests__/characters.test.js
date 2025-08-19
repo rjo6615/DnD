@@ -14,7 +14,7 @@ describe('Character routes', () => {
   test('add character success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: (doc, cb) => cb(null, { acknowledged: true })
+        insertOne: async () => ({ acknowledged: true })
       })
     });
     const res = await request(app)
@@ -28,9 +28,9 @@ describe('Character routes', () => {
     let captured;
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: (doc, cb) => {
+        insertOne: async (doc) => {
           captured = doc;
-          cb(null, { acknowledged: true });
+          return { acknowledged: true };
         }
       })
     });
@@ -60,7 +60,7 @@ describe('Character routes', () => {
   test('add character db failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: (doc, cb) => cb(new Error('db error'))
+        insertOne: async () => { throw new Error('db error'); }
       })
     });
     const res = await request(app)
@@ -72,7 +72,7 @@ describe('Character routes', () => {
   test('add character validation failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: (doc, cb) => cb(null, { acknowledged: true })
+        insertOne: async () => ({ acknowledged: true })
       })
     });
     const res = await request(app)
@@ -84,7 +84,7 @@ describe('Character routes', () => {
   test('get characters for campaign and user success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ token: 'alice', campaign: 'Camp1' }]) })
+        find: () => ({ toArray: async () => [{ token: 'alice', campaign: 'Camp1' }] })
       })
     });
     const res = await request(app).get('/campaign/Camp1/alice');
@@ -95,7 +95,7 @@ describe('Character routes', () => {
   test('get characters for campaign and user failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/campaign/Camp1/alice');
@@ -105,10 +105,10 @@ describe('Character routes', () => {
   test('get all characters for campaign success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [
+        find: () => ({ toArray: async () => [
           { token: 'alice', campaign: 'Camp1' },
           { token: 'bob', campaign: 'Camp1' }
-        ]) })
+        ] })
       })
     });
     const res = await request(app).get('/campaign/Camp1/characters');
@@ -119,7 +119,7 @@ describe('Character routes', () => {
   test('get all characters for campaign failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/campaign/Camp1/characters');
@@ -139,7 +139,7 @@ describe('Character routes', () => {
     };
     dbo.mockResolvedValue({
       collection: () => ({
-        findOne: (query, cb) => cb(null, character)
+        findOne: async () => character
       })
     });
     const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
@@ -152,7 +152,7 @@ describe('Character routes', () => {
   test('get weapons success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ weaponName: 'Sword' }]) })
+        find: () => ({ toArray: async () => [{ weaponName: 'Sword' }] })
       })
     });
     const res = await request(app).get('/weapons/Camp1');
@@ -163,7 +163,7 @@ describe('Character routes', () => {
   test('get weapons failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/weapons/Camp1');
@@ -173,7 +173,7 @@ describe('Character routes', () => {
   test('get armor success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ armorName: 'Plate' }]) })
+        find: () => ({ toArray: async () => [{ armorName: 'Plate' }] })
       })
     });
     const res = await request(app).get('/armor/Camp1');
@@ -184,7 +184,7 @@ describe('Character routes', () => {
   test('get armor failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/armor/Camp1');
@@ -194,7 +194,7 @@ describe('Character routes', () => {
   test('get items success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ itemName: 'Potion' }]) })
+        find: () => ({ toArray: async () => [{ itemName: 'Potion' }] })
       })
     });
     const res = await request(app).get('/items/Camp1');
@@ -205,7 +205,7 @@ describe('Character routes', () => {
   test('get items failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/items/Camp1');
@@ -215,7 +215,7 @@ describe('Character routes', () => {
   test('get feats success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ feat: 'Power Attack' }]) })
+        find: () => ({ toArray: async () => [{ feat: 'Power Attack' }] })
       })
     });
     const res = await request(app).get('/feats');
@@ -226,7 +226,7 @@ describe('Character routes', () => {
   test('get feats failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/feats');
@@ -236,7 +236,7 @@ describe('Character routes', () => {
   test('get occupations success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(null, [{ name: 'Soldier' }]) })
+        find: () => ({ toArray: async () => [{ name: 'Soldier' }] })
       })
     });
     const res = await request(app).get('/occupations');
@@ -247,7 +247,7 @@ describe('Character routes', () => {
   test('get occupations failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/occupations');
@@ -306,7 +306,7 @@ describe('Character routes', () => {
 
   test('add weapon success', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: (doc, cb) => cb(null, { acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
     });
     const res = await request(app)
       .post('/weapon/add')
@@ -317,7 +317,7 @@ describe('Character routes', () => {
 
   test('add weapon failure', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: (doc, cb) => cb(new Error('db error')) })
+      collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
       .post('/weapon/add')
@@ -327,7 +327,7 @@ describe('Character routes', () => {
 
   test('add armor success', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: (doc, cb) => cb(null, { acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
     });
     const res = await request(app)
       .post('/armor/add')
@@ -338,7 +338,7 @@ describe('Character routes', () => {
 
   test('add armor failure', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: (doc, cb) => cb(new Error('db error')) })
+      collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
       .post('/armor/add')
@@ -348,7 +348,7 @@ describe('Character routes', () => {
 
   test('add item success', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: (doc, cb) => cb(null, { acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
     });
     const res = await request(app)
       .post('/item/add')
@@ -359,7 +359,7 @@ describe('Character routes', () => {
 
   test('add item failure', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: (doc, cb) => cb(new Error('db error')) })
+      collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
       .post('/item/add')

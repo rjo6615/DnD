@@ -4,34 +4,29 @@ const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 
 module.exports = (router) => {
-  router.get('/users', authenticateToken, (req, res) => {
-    let db_connect = req.db;
-    db_connect
-      .collection('users')
-      .find({})
-      .toArray(function (err, result) {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        res.json(result);
-      });
+  router.get('/users', authenticateToken, async (req, res) => {
+    try {
+      const db_connect = req.db;
+      const result = await db_connect.collection('users').find({}).toArray();
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
   });
 
-  router.get('/users/:username', authenticateToken, (req, res) => {
-    let db_connect = req.db;
-    let myquery = { username: req.params.username };
-    db_connect
-      .collection('users')
-      .findOne(myquery, function (err, user) {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-        }
-        const { password, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
-      });
+  router.get('/users/:username', authenticateToken, async (req, res) => {
+    try {
+      const db_connect = req.db;
+      const myquery = { username: req.params.username };
+      const user = await db_connect.collection('users').findOne(myquery);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (err) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
   });
 
   router.post(

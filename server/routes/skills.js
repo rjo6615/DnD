@@ -58,16 +58,18 @@ module.exports = (router) => {
   });
 
   // This section will update added skills.
-  skillsRouter.route('/update-add-skill/:id').put((req, res, next) => {
-    let id = { _id: ObjectId(req.params.id) };
-    let db_connect = req.db;
-    db_connect.collection("Characters").updateOne(id, {$set:{
-    'newSkill': req.body.newSkill
-  }}, (err, result) => {
-      if (err) { return next(err); }
+  skillsRouter.route('/update-add-skill/:id').put(async (req, res, next) => {
+    const id = { _id: ObjectId(req.params.id) };
+    const db_connect = req.db;
+    try {
+      await db_connect.collection("Characters").updateOne(id, {
+        $set: { 'newSkill': req.body.newSkill }
+      });
       console.log("character knowledge updated");
       res.send('user updated sucessfully');
-    });
+    } catch (err) {
+      next(err);
+    }
   });
 
   // This section will update ranks of skills.

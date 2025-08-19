@@ -67,7 +67,7 @@ describe('Users routes', () => {
   test('get users failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: (cb) => cb(new Error('db error')) })
+        find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
     const res = await request(app).get('/users');
