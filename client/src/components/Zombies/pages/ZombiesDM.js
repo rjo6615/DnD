@@ -3,10 +3,10 @@ import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap"
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
-import useDecodedToken from '../../../hooks/useDecodedToken';
+import useUser from '../../../hooks/useUser';
 
 export default function ZombiesDM() {
-  const decodedToken = useDecodedToken();
+  const user = useUser();
   
     const navigate = useNavigate();
     const params = useParams();
@@ -42,11 +42,11 @@ const [campaignDM, setCampaignDM] = useState({ players: [] });
 
 // Fetch CampaignsDM
 useEffect(() => {
-  if (!decodedToken) {
+  if (!user) {
     return;
   }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${decodedToken.username}/${params.campaign}`, { credentials: 'include' });
+    const response = await fetch(`/campaignsDM/${user.username}/${params.campaign}`, { credentials: 'include' });
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -65,7 +65,7 @@ useEffect(() => {
   fetchCampaignsDM();   
   return;
   
-}, [ navigate, decodedToken, params.campaign ]);
+}, [ navigate, user, params.campaign ]);
 
 //---------------------------------------Add Player-------------------------------------------
 const [players, setPlayers] = useState({ 
@@ -75,7 +75,7 @@ const [players, setPlayers] = useState({
 const [playersSearch, setPlayersSearch] = useState("");
 
  useEffect(() => {
-    if (!decodedToken) {
+    if (!user) {
       return;
     }
 
@@ -100,7 +100,7 @@ const [playersSearch, setPlayersSearch] = useState("");
     }
 
     fetchUsers();
-  }, [navigate, decodedToken]);
+  }, [navigate, user]);
 
 async function newPlayerSubmit(e) {
   e.preventDefault();   

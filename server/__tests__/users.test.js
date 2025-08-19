@@ -25,7 +25,8 @@ describe('Users routes', () => {
     });
     const res = await request(app).post('/login').send({ username: 'alice', password: 'secret' });
     expect(res.status).toBe(200);
-    expect(res.body.token).toBeDefined();
+    expect(res.headers['set-cookie']).toBeDefined();
+    expect(res.body.token).toBeUndefined();
   });
 
   test('login failure with invalid password', async () => {
@@ -37,6 +38,7 @@ describe('Users routes', () => {
     });
     const res = await request(app).post('/login').send({ username: 'alice', password: 'wrong' });
     expect(res.status).toBe(401);
+    expect(res.headers['set-cookie']).toBeUndefined();
     expect(res.body.token).toBeUndefined();
   });
 
