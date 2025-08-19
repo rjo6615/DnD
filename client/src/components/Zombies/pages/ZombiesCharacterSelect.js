@@ -5,6 +5,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import zombiesbg from "../../../images/zombiesbg.jpg";
 import useUser from '../../../hooks/useUser';
+import { SKILLS } from "../skillSchema";
+import { STATS } from "../statSchema";
 
 export default function RecordList() {
   const params = useParams();
@@ -40,61 +42,35 @@ export default function RecordList() {
 
   // Removed duplicate token decode effect
 // --------------------------Random Character Creator Section------------------------------------
- const [form, setForm] = useState({ 
-  token: "",
-  characterName: "", 
-  campaign: params.campaign.toString(),
-  occupation: [""], 
-  feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
-  weapon: [["","","","","",""]],
-  armor: [["","","",""]],
-  item: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
-  age: "",
-  sex: "",
-  height: "",
-  weight: "",
-  str: "",
-  dex: "",
-  con: "",
-  int: "",
-  wis: "",
-  cha: "",
-  startStatTotal: "",
-  health: "",
-  tempHealth: "",
-  appraise: 0,
-  balance: 0,
-  bluff: 0,
-  climb: 0,
-  concentration: 0,
-  decipherScript: 0,
-  diplomacy: 0,
-  disableDevice: 0,
-  disguise: 0,
-  escapeArtist: 0,
-  forgery: 0,
-  gatherInfo: 0,
-  handleAnimal: 0,
-  heal: 0,
-  hide: 0,
-  intimidate: 0,
-  jump: 0,
-  listen: 0,
-  moveSilently: 0,
-  openLock: 0,
-  ride: 0,
-  search: 0,
-  senseMotive: 0,
-  sleightOfHand: 0,
-  spot: 0,
-  survival: 0,
-  swim: 0,
-  tumble: 0,
-  useTech: 0,
-  useRope: 0,
-  newSkill: [["",0]],
-  diceColor: "#000000",
-});
+  const createEmptyArray = (length) => Array(length).fill("");
+
+  const createDefaultForm = (campaign) => {
+    const skillDefaults = Object.fromEntries(SKILLS.map(({ key }) => [key, 0]));
+    const statDefaults = Object.fromEntries(STATS.map(({ key }) => [key, ""]));
+    return {
+      token: "",
+      characterName: "",
+      campaign: campaign.toString(),
+      occupation: [""],
+      feat: [createEmptyArray(SKILLS.length + 2)],
+      weapon: [createEmptyArray(6)],
+      armor: [createEmptyArray(4)],
+      item: [createEmptyArray(SKILLS.length + 8)],
+      age: "",
+      sex: "",
+      height: "",
+      weight: "",
+      startStatTotal: "",
+      health: "",
+      tempHealth: "",
+      ...statDefaults,
+      ...skillDefaults,
+      newSkill: [["", 0]],
+      diceColor: "#000000",
+    };
+  };
+
+  const [form, setForm] = useState(createDefaultForm(params.campaign));
 
 useEffect(() => {
   // Update form state once the token is decoded
@@ -267,62 +243,9 @@ useEffect(() => {
       return;
     };
    setIsSubmitting(false);
-   setForm({
-    characterName: "",
-    campaign: "", 
-    occupation: [""],
-    feat: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
-    weapon: [["","","","","",""]],
-    armor: [["","","",""]],
-    item: [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],
-    age: "",
-    sex: "",
-    height: "",
-    weight: "",
-    str: "",
-    dex: "",
-    con: "",
-    int: "",
-    wis: "",
-    cha: "",
-    startStatTotal: "",
-    health: "",
-    tempHealth: "",
-    appraise: 0,
-    balance: 0,
-    bluff: 0,
-    climb: 0,
-    concentration: 0,
-    decipherScript: 0,
-    diplomacy: 0,
-    disableDevice: 0,
-    disguise: 0,
-    escapeArtist: 0,
-    forgery: 0,
-    gatherInfo: 0,
-    handleAnimal: 0,
-    heal: 0,
-    hide: 0,
-    intimidate: 0,
-    jump: 0,
-    listen: 0,
-    moveSilently: 0,
-    openLock: 0,
-    ride: 0,
-    search: 0,
-    senseMotive: 0,
-    sleightOfHand: 0,
-    spot: 0,
-    survival: 0,
-    swim: 0,
-    tumble: 0,
-    useTech: 0,
-    useRope: 0,
-    newSkill: [["",0]],
-    diceColor: "#000000",
-  });
+   setForm(createDefaultForm(params.campaign));
   navigate(0);
-}, [form, setForm, navigate]); 
+}, [form, setForm, navigate]);
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
@@ -581,24 +504,18 @@ useEffect(() => {
         <Form.Label className="text-light">Weight</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ weight: e.target.value })}
         type="number" placeholder="Enter weight" pattern="[0-9]*" />
-        <Form.Label className="text-light">Strength</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ str: e.target.value })}
-        type="number" placeholder="Enter strength" pattern="[0-9]*" />
-        <Form.Label className="text-light">Dexterity</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ dex: e.target.value })}
-        type="number" placeholder="Enter dexterity" pattern="[0-9]*" />
-        <Form.Label className="text-light">Constitution</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ con: e.target.value })}
-        type="number" placeholder="Enter constitution" pattern="[0-9]*" />
-        <Form.Label className="text-light">Intellect</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ int: e.target.value })}
-        type="number" placeholder="Enter intellect" pattern="[0-9]*" />
-        <Form.Label className="text-light">Wisdom</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ wis: e.target.value })}
-        type="number" placeholder="Enter wisdom" pattern="[0-9]*" />
-        <Form.Label className="text-light">Charisma</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ cha: e.target.value })}
-        type="number" placeholder="Enter charisma" pattern="[0-9]*" />
+        {STATS.map(({ key, label }) => (
+          <React.Fragment key={key}>
+            <Form.Label className="text-light">{label}</Form.Label>
+            <Form.Control
+              className="mb-2"
+              onChange={(e) => updateForm({ [key]: e.target.value })}
+              type="number"
+              placeholder={`Enter ${label.toLowerCase()}`}
+              pattern="[0-9]*"
+            />
+          </React.Fragment>
+        ))}
         <Form.Label className="text-light">Health</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
         type="number" placeholder="Enter health" pattern="[0-9]*" />
