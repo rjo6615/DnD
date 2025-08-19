@@ -13,6 +13,7 @@ import PlayerTurnActions from "../attributes/PlayerTurnActions";
 import Armor from "../attributes/Armor";
 import Items from "../attributes/Items";
 import Help from "../attributes/Help";
+import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 
 export default function ZombiesCharacterSheet() {
@@ -71,12 +72,7 @@ export default function ZombiesCharacterSheet() {
   form.newSkill.map((el) => addedSkillsRanks.push(el[1]));
   let totalAddedSkills = addedSkillsRanks.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
 
-  let skillTotal = form.appraise + form.balance + form.bluff + form.climb + form.concentration + 
-    form.decipherScript + form.diplomacy + form.disableDevice + form.disguise + form.escapeArtist + 
-    form.forgery + form.gatherInfo + form.handleAnimal + form.heal + form.hide + form.intimidate + 
-    form.jump + form.listen + form.moveSilently + form.openLock + form.ride + form.search + 
-    form.senseMotive + form.sleightOfHand + form.spot + form.survival + form.swim + form.tumble + 
-    form.useTech + form.useRope;
+  let skillTotal = SKILLS.reduce((sum, { key }) => sum + form[key], 0);
 
   const statMods = {
     str: Math.floor((form.str - 10) / 2),
