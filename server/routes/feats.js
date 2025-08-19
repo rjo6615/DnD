@@ -9,21 +9,23 @@ module.exports = (router) => {
   featRouter.use(authenticateToken);
 
   // This section will get a list of all the feats.
-  featRouter.route("/feats").get(function (req, res, next) {
-    let db_connect = req.db;
-    db_connect
-      .collection("Feats")
-      .find({})
-      .toArray(function (err, result) {
-        if (err) return next(err);
-        res.json(result);
-      });
+  featRouter.route("/feats").get(async (req, res, next) => {
+    try {
+      const db_connect = req.db;
+      const result = await db_connect
+        .collection("Feats")
+        .find({})
+        .toArray();
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
   });
 
   // This section will create a new feat.
-  featRouter.route("/feat/add").post(function  (req, response, next) {
-    let db_connect = req.db;
-    let myobj = {
+  featRouter.route("/feat/add").post(async (req, response, next) => {
+    const db_connect = req.db;
+    const myobj = {
       featName: req.body.featName,
       notes: req.body.notes,
       appraise: req.body.appraise,
@@ -57,23 +59,27 @@ module.exports = (router) => {
       useTech: req.body.useTech,
       useRope: req.body.useRope
     };
-    db_connect.collection("Feats").insertOne(myobj, function (err, res) {
-      if (err) return next(err);
-      response.json(res);
-    });
+    try {
+      const result = await db_connect.collection("Feats").insertOne(myobj);
+      response.json(result);
+    } catch (err) {
+      next(err);
+    }
   });
 
   // This section will update feats.
-  featRouter.route('/update-feat/:id').put((req, res, next) => {
-    let id = { _id: ObjectId(req.params.id) };
-    let db_connect = req.db;
-    db_connect.collection("Characters").updateOne(id, {$set:{
-    'feat': req.body.feat
-  }}, (err, result) => {
-      if (err) { return next(err); }
+  featRouter.route('/update-feat/:id').put(async (req, res, next) => {
+    const id = { _id: ObjectId(req.params.id) };
+    const db_connect = req.db;
+    try {
+      await db_connect.collection("Characters").updateOne(id, {
+        $set: { 'feat': req.body.feat }
+      });
       console.log("character feat updated");
       res.send('user updated sucessfully');
-    });
+    } catch (err) {
+      next(err);
+    }
   });
 
   router.use(featRouter);

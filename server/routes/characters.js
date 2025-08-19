@@ -13,27 +13,31 @@ module.exports = (router) => {
 // -------------------------------------------------Character Section-----------------------------------------------
 
 // This section will get a single character by id
-characterRouter.route("/characters/:id").get(function (req, res, next) {
-  let db_connect = req.db;
-  let myquery = { _id: ObjectId(req.params.id) };
-  db_connect
-    .collection("Characters")
-    .findOne(myquery, function (err, result) {
-      if (err) return next(err);
-      res.json(result);
-    });
+characterRouter.route("/characters/:id").get(async (req, res, next) => {
+  try {
+    const db_connect = req.db;
+    const myquery = { _id: ObjectId(req.params.id) };
+    const result = await db_connect
+      .collection("Characters")
+      .findOne(myquery);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
  });
 
 // This section will get a list of all the characters.
-characterRouter.route("/character/select").get(function (req, res, next) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Characters")
-    .find({})
-    .toArray(function (err, result) {
-      if (err) return next(err);
-      res.json(result);
-    });
+characterRouter.route("/character/select").get(async (req, res, next) => {
+  try {
+    const db_connect = req.db;
+    const result = await db_connect
+      .collection("Characters")
+      .find({})
+      .toArray();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
  });
 
 // This section will create a new character.
@@ -100,27 +104,29 @@ characterRouter.post(
     ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
   ],
   handleValidationErrors,
-   (req, res, next) => {
+  async (req, res) => {
     const db_connect = req.db;
     const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
-    db_connect.collection('Characters').insertOne(myobj, function (err, result) {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-      }
+    try {
+      const result = await db_connect.collection('Characters').insertOne(myobj);
       res.json(result);
-    });
+    } catch (err) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
   }
 );
 
 // This section will delete a character
-characterRouter.route("/delete-character/:id").delete( (req, response, next) => {
-  let db_connect = req.db;
-  let myquery = { _id: ObjectId(req.params.id) };
-  db_connect.collection("Characters").deleteOne(myquery, function (err, obj) {
-    if (err) return next(err);
+characterRouter.route("/delete-character/:id").delete( async (req, response, next) => {
+  const db_connect = req.db;
+  const myquery = { _id: ObjectId(req.params.id) };
+  try {
+    const obj = await db_connect.collection("Characters").deleteOne(myquery);
     console.log("1 character deleted");
     response.json(obj);
-  });
+  } catch (err) {
+    next(err);
+  }
  });
 
 // -------------------------------------------------Campaign Section---------------------------------------------------
@@ -128,30 +134,30 @@ characterRouter.route("/delete-character/:id").delete( (req, response, next) => 
 // --------------------------------------------Occupations Section----------------------------------------
 
 // This section will get a list of all the occupations.
-characterRouter.route("/occupations").get(function (req, res, next) {
-  let db_connect = req.db;
-  db_connect
-    .collection("Occupations")
-    .find({})
-    .toArray(function (err, result) {
-      if (err) return next(err);
-      res.json(result);
-    });
+characterRouter.route("/occupations").get(async (req, res, next) => {
+  try {
+    const db_connect = req.db;
+    const result = await db_connect
+      .collection("Occupations")
+      .find({})
+      .toArray();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
  });
 
 // This section will update occupations.
-characterRouter.route('/update-occupations/:id').put((req, res, next) => {
+characterRouter.route('/update-occupations/:id').put(async (req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
 
   try {
-    db_connect.collection("Characters").updateOne(id, {
-      $set: { 'occupation': req.body}
-    }, (err, result) => {
-      if (err) { return next(err); }
-      console.log("Character occupations updated");
-      res.send('User updated successfully');
+    await db_connect.collection("Characters").updateOne(id, {
+      $set: { 'occupation': req.body }
     });
+    console.log("Character occupations updated");
+    res.send('User updated successfully');
   } catch (error) {
     console.error(error);
     res.status(500).send('Server error');
@@ -161,59 +167,64 @@ characterRouter.route('/update-occupations/:id').put((req, res, next) => {
 // ---------------------------------------------Stats Section----------------------------------------------------------
 
   // This section will update stats.
-characterRouter.route('/update-stats/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
-  let db_connect = req.db;
-  db_connect.collection("Characters").updateOne(id, {$set:{
-  'str': req.body.str, 
-  'dex': req.body.dex, 
-  'con': req.body.con,
-  'int': req.body.int,
-  'wis': req.body.wis,
-  'cha': req.body.cha
-}}, (err, result) => {
-    if (err) { return next(err); }
+characterRouter.route('/update-stats/:id').put(async (req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = req.db;
+  try {
+    await db_connect.collection("Characters").updateOne(id, {
+      $set: {
+        'str': req.body.str,
+        'dex': req.body.dex,
+        'con': req.body.con,
+        'int': req.body.int,
+        'wis': req.body.wis,
+        'cha': req.body.cha
+      }
+    });
     console.log("character stats updated");
     res.send('user updated sucessfully');
-  });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // --------------------------------------------------Health Section--------------------------------------------------------
 
 // This section will update tempHealth.
-characterRouter.route('/update-temphealth/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
-  let db_connect = req.db;
-  db_connect.collection("Characters").updateOne(id, {$set:{
-  'tempHealth': req.body.tempHealth
-}}, (err, result) => {
-    if (err) { return next(err); }
+characterRouter.route('/update-temphealth/:id').put(async (req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = req.db;
+  try {
+    await db_connect.collection("Characters").updateOne(id, {
+      $set: { 'tempHealth': req.body.tempHealth }
+    });
     console.log("character tempHealth updated");
     res.send('user updated sucessfully');
-  });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // This section will update health and stats.
-characterRouter.route('/update-health/:id').put((req, res, next) => {
+characterRouter.route('/update-health/:id').put(async (req, res, next) => {
   const id = { _id: ObjectId(req.params.id) };
   const db_connect = req.db;
 
   try {
-
-    db_connect.collection("Characters").updateOne(id, {
-      $set: { 'health': req.body.health,
-      'str': req.body.str,
-      'dex': req.body.dex,
-      'con': req.body.con,
-      'int': req.body.int,
-      'wis': req.body.wis,
-      'cha': req.body.cha,
-      'startStatTotal': req.body.startStatTotal }
-    }, (err, result) => {
-      if (err) { return next(err); }
-      console.log("Character health and stats updated");
-      res.send('User updated successfully');
+    await db_connect.collection("Characters").updateOne(id, {
+      $set: {
+        'health': req.body.health,
+        'str': req.body.str,
+        'dex': req.body.dex,
+        'con': req.body.con,
+        'int': req.body.int,
+        'wis': req.body.wis,
+        'cha': req.body.cha,
+        'startStatTotal': req.body.startStatTotal
+      }
     });
+    console.log("Character health and stats updated");
+    res.send('User updated successfully');
   } catch (error) {
     console.error(error);
     res.status(500).send('Server error');
@@ -222,50 +233,51 @@ characterRouter.route('/update-health/:id').put((req, res, next) => {
 
 // --------------------------------------------------------Level Up Section--------------------------------------------------------------------
  // This section will update level.
- characterRouter.route('/update-level/:id').put((req, res, next) => {
+ characterRouter.route('/update-level/:id').put(async (req, res, next) => {
   const db_connect = req.db;
   const selectedOccupation = req.body.selectedOccupation;
 
-const updateOperation = {
-  $set: {
-    'occupation.$.Level': req.body.level,
-    'health': req.body.health
-  },
-};
+  const updateOperation = {
+    $set: {
+      'occupation.$.Level': req.body.level,
+      'health': req.body.health
+    },
+  };
 
-db_connect.collection("Characters").updateOne(
-  {
-    _id: ObjectId(req.params.id),
-    'occupation': {
-      $elemMatch: {
-        'Occupation': selectedOccupation,
-      }
-    }
-  },
-  updateOperation,
-  (err, result) => {
-    if (err) { return next(err); }
-    if (result.modifiedCount === 0) {
-    } else {
+  try {
+    const result = await db_connect.collection("Characters").updateOne(
+      {
+        _id: ObjectId(req.params.id),
+        'occupation': {
+          $elemMatch: {
+            'Occupation': selectedOccupation,
+          }
+        }
+      },
+      updateOperation
+    );
+    if (result.modifiedCount !== 0) {
       console.log(`Character updated for Occupation: ${selectedOccupation}`);
       res.send('Update complete');
     }
+  } catch (err) {
+    next(err);
   }
-);
- }
- )
+ });
 //-------------------------------------------------------------Dice Color Section------------------------------------------------------------------
  // This section will update dice color.
- characterRouter.route('/update-dice-color/:id').put((req, res, next) => {
-  let id = { _id: ObjectId(req.params.id) };
-  let db_connect = req.db;
-  db_connect.collection("Characters").updateOne(id, {$set:{
-  'diceColor': req.body.diceColor,
-  }}, (err, result) => {
-    if (err) { return next(err); }
+ characterRouter.route('/update-dice-color/:id').put(async (req, res, next) => {
+  const id = { _id: ObjectId(req.params.id) };
+  const db_connect = req.db;
+  try {
+    await db_connect.collection("Characters").updateOne(id, {
+      $set: { 'diceColor': req.body.diceColor }
+    });
     console.log("Dice Color updated");
     res.send('user updated sucessfully');
-  });
+  } catch (err) {
+    next(err);
+  }
  });
   router.use(characterRouter);
 };
