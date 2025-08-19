@@ -12,7 +12,8 @@ export default function Help({props, form, showHelpModal, handleCloseHelpModal})
  // This method will delete a record
  async function deleteRecord() {
   await fetch(`/delete-character/${params.id}`, {
-    method: "DELETE"
+    method: "DELETE",
+    credentials: 'include'
   });
   navigate(`/zombies-character-select/${form.campaign}`);
 }
@@ -54,6 +55,7 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
      headers: {
        "Content-Type": "application/json",
      },
+     credentials: 'include',
      body: JSON.stringify({diceColor: newColor}),
    })
    .catch(error => {

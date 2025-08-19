@@ -57,6 +57,7 @@ export default function LevelUp({ show, handleClose, form }) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify(updatedLevelForm),
       });
       navigate(0);
@@ -119,6 +120,7 @@ export default function LevelUp({ show, handleClose, form }) {
         headers: {
           "Content-Type": "application/json", // Set content type to JSON
         },
+        credentials: 'include',
         body: JSON.stringify({
           health: addOccupationHealth,
           str: addOccupationStrTotal,
@@ -144,6 +146,7 @@ export default function LevelUp({ show, handleClose, form }) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify(form.occupation), // Send the array directly
       })
         .then(() => {
@@ -163,7 +166,9 @@ export default function LevelUp({ show, handleClose, form }) {
 
   useEffect(() => {
     async function fetchData() {
-      const response = await fetch(`/occupations`);
+      const response = await fetch(`/occupations`, {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;

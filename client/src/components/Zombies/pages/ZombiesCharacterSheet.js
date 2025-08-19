@@ -32,7 +32,9 @@ export default function ZombiesCharacterSheet() {
   useEffect(() => {
     async function fetchCharacterData(id) {
       try {
-        const response = await fetch(`/characters/${id}`);
+        const response = await fetch(`/characters/${id}`, {
+          credentials: 'include',
+        });
         if (!response.ok) {
           throw new Error(`Error fetching character data: ${response.statusText}`);
         }
