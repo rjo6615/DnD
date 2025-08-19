@@ -51,6 +51,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: 'include',
       body: JSON.stringify(stats),
     }).catch((error) => window.alert(error));
 
