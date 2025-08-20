@@ -132,7 +132,7 @@ const [feat, setFeat] = useState({
         window.alert(error);
         return;
       });
-      console.log("Feat Deleted")
+      window.alert("Feat Deleted")
       navigate(0);
     } else {
     await fetch(`/update-feat/${params.id}`, {
@@ -148,7 +148,7 @@ const [feat, setFeat] = useState({
      window.alert(error);
      return;
    });
-   console.log("Feat Deleted")
+   window.alert("Feat Deleted")
    navigate(0);
   }
   }

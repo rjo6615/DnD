@@ -3,6 +3,7 @@ const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
+const logger = require('../../utils/logger');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -120,7 +121,7 @@ module.exports = (router) => {
     const myquery = { _id: ObjectId(req.params.id) };
     try {
       const obj = await db_connect.collection('Characters').deleteOne(myquery);
-      console.log('1 character deleted');
+      logger.info('1 character deleted');
       response.json(obj);
     } catch (err) {
       next(err);
@@ -152,7 +153,7 @@ module.exports = (router) => {
         updateOperation
       );
       if (result.modifiedCount !== 0) {
-        console.log(`Character updated for Occupation: ${selectedOccupation}`);
+        logger.info(`Character updated for Occupation: ${selectedOccupation}`);
         res.send('Update complete');
       }
     } catch (err) {
@@ -168,7 +169,7 @@ module.exports = (router) => {
       await db_connect.collection('Characters').updateOne(id, {
         $set: { diceColor: req.body.diceColor },
       });
-      console.log('Dice Color updated');
+      logger.info('Dice Color updated');
       res.send('user updated sucessfully');
     } catch (err) {
       next(err);

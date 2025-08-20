@@ -1,6 +1,7 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 module.exports = (router) => {
   const featRouter = express.Router();
@@ -75,7 +76,7 @@ module.exports = (router) => {
       await db_connect.collection("Characters").updateOne(id, {
         $set: { 'feat': req.body.feat }
       });
-      console.log("character feat updated");
+      logger.info("character feat updated");
       res.send('user updated sucessfully');
     } catch (err) {
       next(err);

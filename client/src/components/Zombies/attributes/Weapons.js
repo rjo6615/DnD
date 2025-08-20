@@ -133,7 +133,7 @@ const [weapon, setWeapon] = useState({
         window.alert(error);
         return;
       });
-      console.log("Weapon Deleted")
+      window.alert("Weapon Deleted")
       navigate(0);
     } else {
     await fetch(`/update-weapon/${params.id}`, {
@@ -149,7 +149,7 @@ const [weapon, setWeapon] = useState({
      window.alert(error);
      return;
    });
-   console.log("Weapon Deleted")
+   window.alert("Weapon Deleted")
    navigate(0);
   }
   }

@@ -120,7 +120,7 @@ export default function Items({form, showItems, handleCloseItems}) {
         window.alert(error);
         return;
       });
-      console.log("Item Deleted")
+      window.alert("Item Deleted")
       navigate(0);
     } else {
     await fetch(`/update-item/${params.id}`, {
@@ -136,7 +136,7 @@ export default function Items({form, showItems, handleCloseItems}) {
      window.alert(error);
      return;
    });
-   console.log("Item Deleted")
+   window.alert("Item Deleted")
    navigate(0);
   }
   }

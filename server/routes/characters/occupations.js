@@ -1,6 +1,7 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../../middleware/auth');
+const logger = require('../../utils/logger');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -31,10 +32,10 @@ module.exports = (router) => {
       await db_connect.collection('Characters').updateOne(id, {
         $set: { occupation: req.body },
       });
-      console.log('Character occupations updated');
+      logger.info('Character occupations updated');
       res.send('User updated successfully');
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       res.status(500).send('Server error');
     }
   });
