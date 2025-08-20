@@ -22,18 +22,6 @@ Example gif is listed below:
 
 ![Example](./client/public/images/Gif-for-Dnd.gif)
 
-## Configuration
-
-The server expects a comma-separated list of allowed origins in
-`server/config.env` via the `ALLOWED_ORIGINS` variable. For example:
-
-```
-ALLOWED_ORIGINS=http://localhost:3000,https://example.com
-```
-
-Requests from origins not included in this list will be rejected by the
-server's CORS configuration.
-
 
 ## Support
 For help with this webpage please contact
