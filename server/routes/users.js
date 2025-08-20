@@ -14,6 +14,18 @@ module.exports = (router) => {
     }
   });
 
+  router.get('/users/exists/:username', async (req, res) => {
+    try {
+      const db_connect = req.db;
+      const user = await db_connect
+        .collection('users')
+        .findOne({ username: req.params.username });
+      res.json({ exists: !!user });
+    } catch (err) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   router.get('/users/:username', authenticateToken, async (req, res) => {
     try {
       const db_connect = req.db;
