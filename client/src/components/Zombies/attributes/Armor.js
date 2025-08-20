@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg"; 
@@ -46,7 +47,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   // Fetch Armors
   useEffect(() => {
     async function fetchArmor() {
-      const response = await fetch(`/armor/${currentCampaign}`);
+      const response = await apiFetch(`/armor/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -89,7 +90,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
    }
    async function addArmorToDb(e){
     e.preventDefault();
-    await fetch(`/update-armor/${params.id}`, {
+    await apiFetch(`/update-armor/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -119,7 +120,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     let newArmorForm = form.armor;
     if (JSON.stringify(form.armor) === JSON.stringify([])){
       newArmorForm = [["","","",""]];
-      await fetch(`/update-armor/${params.id}`, {
+      await apiFetch(`/update-armor/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +136,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
       window.alert("Armor Deleted")
       navigate(0);
     } else {
-    await fetch(`/update-armor/${params.id}`, {
+    await apiFetch(`/update-armor/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg";
@@ -66,7 +67,7 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
    }
   async function addSkillToDb(e){
     e.preventDefault();
-    await fetch(`/update-add-skill/${params.id}`, {
+    await apiFetch(`/update-add-skill/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -85,7 +86,7 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
    // Sends skillForm data to database for update
    async function skillsUpdate(){
     const updatedSkills = { ...skillForm };
-      await fetch(`/update-skills/${params.id}`, {
+      await apiFetch(`/update-skills/${params.id}`, {
        method: "PUT",
        headers: {
          "Content-Type": "application/json",
@@ -193,7 +194,7 @@ let firstLevelSkill =
   
   async function addUpdatedSkillToDb(){
     const addUpdatedSkill = Object.entries({...newSkillForm});
-    await fetch(`/updated-add-skills/${params.id}`, {
+    await apiFetch(`/updated-add-skills/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

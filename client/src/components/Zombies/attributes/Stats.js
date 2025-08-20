@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import apiFetch from '../../../utils/apiFetch';
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -46,7 +47,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
   }, [stats, totalLevel, startStatTotal]);
 
   async function statsUpdate() {
-    await fetch(`/update-stats/${params.id}`, {
+    await apiFetch(`/update-stats/${params.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg"; 
@@ -45,7 +46,7 @@ const [weapon, setWeapon] = useState({
   // Fetch Weapons
   useEffect(() => {
     async function fetchWeapons() {
-      const response = await fetch(`/weapons/${currentCampaign}`);
+      const response = await apiFetch(`/weapons/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -88,7 +89,7 @@ const [weapon, setWeapon] = useState({
    }
    async function addWeaponToDb(e){
     e.preventDefault();
-    await fetch(`/update-weapon/${params.id}`, {
+    await apiFetch(`/update-weapon/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -120,7 +121,7 @@ const [weapon, setWeapon] = useState({
     let newWeaponForm = form.weapon;
     if (JSON.stringify(form.weapon) === JSON.stringify([])){
       newWeaponForm = [["","","","","",""]];
-      await fetch(`/update-weapon/${params.id}`, {
+      await apiFetch(`/update-weapon/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -136,7 +137,7 @@ const [weapon, setWeapon] = useState({
       window.alert("Weapon Deleted")
       navigate(0);
     } else {
-    await fetch(`/update-weapon/${params.id}`, {
+    await apiFetch(`/update-weapon/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

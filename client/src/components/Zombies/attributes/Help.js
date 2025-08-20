@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg"; 
@@ -11,7 +12,7 @@ export default function Help({props, form, showHelpModal, handleCloseHelpModal})
   const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
  // This method will delete a record
  async function deleteRecord() {
- await fetch(`/delete-character/${params.id}`, {
+ await apiFetch(`/delete-character/${params.id}`, {
    method: "DELETE",
   });
   navigate(`/zombies-character-select/${form.campaign}`);
@@ -49,7 +50,7 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 
  // Sends dice color update to database
  async function diceColorUpdate(){
-   await fetch(`/update-dice-color/${params.id}`, {
+   await apiFetch(`/update-dice-color/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

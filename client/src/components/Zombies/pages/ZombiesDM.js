@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
@@ -13,7 +14,7 @@ export default function ZombiesDM() {
     const [records, setRecords] = useState([]);
     useEffect(() => {
       async function getRecords() {
-        const response = await fetch(`/campaign/${params.campaign}/characters`);
+        const response = await apiFetch(`/campaign/${params.campaign}/characters`);
 
         if (!response.ok) {
           const message = `An error occurred: ${response.statusText}`;
@@ -46,7 +47,7 @@ useEffect(() => {
     return;
   }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${user.username}/${params.campaign}`);
+    const response = await apiFetch(`/campaignsDM/${user.username}/${params.campaign}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -80,7 +81,7 @@ const [playersSearch, setPlayersSearch] = useState("");
     }
 
     async function fetchUsers() {
-      const response = await fetch(`/users`);
+      const response = await apiFetch(`/users`);
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -108,7 +109,7 @@ async function newPlayerSubmit(e) {
 const currentCampaign = params.campaign.toString();
 async function sendNewPlayersToDb() {
   const newPlayers = [playersSearch];
-  await fetch(`/players/add/${currentCampaign}`, {
+  await apiFetch(`/players/add/${currentCampaign}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -161,7 +162,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb2(){
     const newWeapon = { ...form2 };
-      await fetch("/weapon/add", {
+      await apiFetch("/weapon/add", {
        method: "POST",
        headers: {
          "Content-Type": "application/json",
@@ -210,7 +211,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb3(){
     const newArmor = { ...form3 };
-    await fetch("/armor/add", {
+    await apiFetch("/armor/add", {
        method: "POST",
        headers: {
          "Content-Type": "application/json",
@@ -291,7 +292,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb4(){
     const newItem = { ...form4 };
-    await fetch("/item/add", {
+    await apiFetch("/item/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
