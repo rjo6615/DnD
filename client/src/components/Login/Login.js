@@ -34,7 +34,7 @@ async function loginUser(credentials) {
 async function fetchUserByUsername(username) {
   username = capitalizeFirstLetter(username);
   try {
-    const response = await fetch(`/users/exists/${username}`);
+    const response = await fetch(`/users/exists/${username}`, { credentials: 'omit' });
     if (response.ok) {
       const { exists } = await response.json();
       return exists;
@@ -54,6 +54,7 @@ async function createUser(newUser) {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'omit',
       body: JSON.stringify(newUser),
     });
     if (!response.ok) {

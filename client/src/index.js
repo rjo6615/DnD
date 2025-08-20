@@ -6,7 +6,7 @@ import reportWebVitals from './reportWebVitals';
 
 const originalFetch = window.fetch;
 window.fetch = (url, options = {}) => {
-  return originalFetch(url, { ...options, credentials: 'include' });
+  return originalFetch(url, { credentials: 'include', ...options });
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
