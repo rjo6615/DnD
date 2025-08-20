@@ -16,11 +16,19 @@ https://github.com/rjo6615/DnD
 
 ## Usage
 
-to use this on your own 
+to use this on your own
 
 Example gif is listed below:
 
 ![Example](./client/public/images/Gif-for-Dnd.gif)
+
+## Environment Variables
+
+The server uses a `config.env` file for configuration. Ensure the following variable is set:
+
+| Variable | Description |
+|----------|-------------|
+| `CLIENT_ORIGIN` | The URL of the client application allowed to make cross-origin requests. |
 
 
 ## Support

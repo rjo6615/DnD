@@ -8,7 +8,17 @@ const path = require('path');
 const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 
-app.use(cors({ origin: true, credentials: true }));
+// Restrict cross-origin requests to a single approved client
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || origin === process.env.CLIENT_ORIGIN) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(routes);
