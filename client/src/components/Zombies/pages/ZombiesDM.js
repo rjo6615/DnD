@@ -349,7 +349,7 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
           <div style={{paddingTop: '80px'}}></div>
           <h1 className="text-light" 
            style={{            
@@ -406,11 +406,11 @@ const [form2, setForm2] = useState({
     </div>
 
         <Modal className="dnd-modal" centered show={showPlayers} onHide={handleClosePlayers}>
-         <center>
+         <div className="text-center">
           <Card className="dnd-background">
             <Card.Title>Players</Card.Title>
           <Card.Body>   
-        <center>
+        <div className="text-center">
         <Container className="mt-3">
         <Row>
           <Col>
@@ -454,10 +454,10 @@ const [form2, setForm2] = useState({
             <Button className="ms-4" variant="secondary" onClick={handleClosePlayers}>
               Close
             </Button>
-        </center>
+        </div>
        </Card.Body>     
        </Card>   
-       </center>
+       </div>
         </Modal>
 {/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
@@ -500,11 +500,11 @@ const [form2, setForm2] = useState({
 </svg>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
           <Modal className="dnd-modal" centered show={show2} onHide={handleClose2}>
-          <center>
+          <div className="text-center">
           <Card className="dnd-background">
             <Card.Title>Create Weapon</Card.Title>         
           <Card.Body>   
-          <center>
+          <div className="text-center">
         <Form onSubmit={onSubmit2} className="px-5">
         <Form.Group className="mb-3 pt-3" >
   
@@ -538,27 +538,27 @@ const [form2, setForm2] = useState({
           type="text" placeholder="Enter Range" />   
   
        </Form.Group>
-       <center>
+       <div className="text-center">
        <Button variant="primary" onClick={handleClose2} type="submit">
               Create
             </Button>
             <Button className="ms-4" variant="secondary" onClick={handleClose2}>
               Close
             </Button>
-            </center>
+            </div>
        </Form>
-       </center>
+       </div>
        </Card.Body>
        </Card>  
-       </center>      
+       </div>      
         </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
   <Modal className="dnd-modal" centered show={show3} onHide={handleClose3}>
-  <center>
+  <div className="text-center">
   <Card className="dnd-background">
     <Card.Title>Create Armor</Card.Title>
   <Card.Body>   
-  <center>
+  <div className="text-center">
   <Form onSubmit={onSubmit3} className="px-5">
   <Form.Group className="mb-3 pt-3"  >
   <Form.Label className="text-light">Armor Name</Form.Label>
@@ -574,27 +574,27 @@ const [form2, setForm2] = useState({
   <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })}
   type="text" placeholder="Enter Armor Check Penalty" />     
   </Form.Group>
-  <center>
+  <div className="text-center">
   <Button variant="primary" onClick={handleClose3} type="submit">
       Create
     </Button>
     <Button className="ms-4" variant="secondary" onClick={handleClose3}>
       Close
     </Button>
-    </center>
+    </div>
   </Form>
-  </center>
+  </div>
   </Card.Body> 
   </Card> 
-  </center>      
+  </div>      
   </Modal>
   {/* -----------------------------------------Item Modal--------------------------------------------- */}
   <Modal className="dnd-modal" centered show={show4} onHide={handleClose4}>
-       <center>
+       <div className="text-center">
         <Card className="dnd-background">
             <Card.Title>Create Item</Card.Title>
           <Card.Body>   
-          <center>
+          <div className="text-center">
         <Form onSubmit={onSubmit4} className="px-5">
         <Form.Group className="mb-3 pt-3" >
   
@@ -751,20 +751,20 @@ const [form2, setForm2] = useState({
           type="text" placeholder="Enter Use Rope" />
   
        </Form.Group>
-       <center>
+       <div className="text-center">
        <Button variant="primary" onClick={handleClose4} type="submit">
               Create
             </Button>
             <Button className="ms-4" variant="secondary" onClick={handleClose4}>
               Close
             </Button>
-            </center>
+            </div>
        </Form>
-       </center>
+       </div>
        </Card.Body> 
        </Card>
-       </center>       
+       </div>       
         </Modal>
-      </center>
+      </div>
     )
 }

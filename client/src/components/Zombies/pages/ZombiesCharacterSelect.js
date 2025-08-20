@@ -347,7 +347,7 @@ useEffect(() => {
 }, [isSubmitting, sendManualToDb]);
 
   return (
-    <center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: '80px'}}>
       <h1 
   style={{ 
@@ -440,38 +440,38 @@ useEffect(() => {
 </svg>
     {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal className="dnd-modal" centered show={show} onHide={handleClose}>
-       <center>
+       <div className="text-center">
         <Card className="dnd-background">
           <Card.Title>Create Random</Card.Title>
         <Card.Body>   
-        <center>
+        <div className="text-center">
       <Form onSubmit={onSubmit} className="px-5">
       <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-light">Character Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
         type="text" placeholder="Enter character name" />        
      </Form.Group>
-     <center>
+     <div className="text-center">
      <Button variant="primary" onClick={handleClose} type="submit">
             Create
           </Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose}>
             Close
           </Button>
-          </center>
+          </div>
      </Form>
-     </center>
+     </div>
      </Card.Body> 
      </Card>  
-     </center>      
+     </div>      
       </Modal>
        {/* ---------------------------Create Character (Manual)------------------------------------------------------- */}
     <Modal className="dnd-modal" centered show={show5} onHide={handleClose5}>
-       <center>
+       <div className="text-center">
         <Card className="dnd-background">
           <Card.Title>Create Manual</Card.Title>
         <Card.Body>   
-        <center>
+        <div className="text-center">
       <Form 
       onSubmit={onSubmitManual} 
       className="px-5">
@@ -518,22 +518,22 @@ useEffect(() => {
        <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
         type="number" placeholder="Enter health" pattern="[0-9]*" />
      </Form.Group>
-     <center>
+     <div className="text-center">
      <Button variant="primary" onClick={handleClose5} type="submit">
             Create
           </Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose5}>
             Close
           </Button>
-          </center>
+          </div>
      </Form>
-     </center>
+     </div>
      </Card.Body> 
      </Card>   
-     </center>    
+     </div>    
       </Modal>
       </div>
-    </center>
+    </div>
     
   );
 }

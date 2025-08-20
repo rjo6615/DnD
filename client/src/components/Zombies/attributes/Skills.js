@@ -236,7 +236,7 @@ let firstLevelSkill =
          size="sm"
         centered
          >   
-         <center>
+         <div className="text-center">
           <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
           <Card.Title>Skills</Card.Title>
           <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span></Card.Title>
@@ -297,9 +297,9 @@ let firstLevelSkill =
           ></Button>
         </div>
       </Card>   
-      </center>
+      </div>
         <Modal show={showAddSkill} onHide={handleCloseAddSkill} centered>
-        <center>
+        <div className="text-center">
           <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
           <Card.Body>
           <Form onSubmit={addSkillToDb} className="px-5">
@@ -345,7 +345,7 @@ let firstLevelSkill =
           <Modal.Footer>
           </Modal.Footer>
           </Card>
-          </center>
+          </div>
         </Modal>
   </Modal>
   </div>

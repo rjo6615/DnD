@@ -147,7 +147,7 @@ return(
        size="sm"
       centered
        >   
-       <center>
+       <div className="text-center">
         <Card className="zombiesItems" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>     
         <Card.Title>Items</Card.Title>
         <Table striped bordered hover size="sm">
@@ -267,7 +267,7 @@ return(
           </Button>
         </Modal.Footer>
       </Modal>
-</center>
+</div>
 </Modal>
 </div>
 )

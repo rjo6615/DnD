@@ -18,7 +18,7 @@ export default function CharacterInfo({ form, show, handleClose }) {
 
   return (
     <Modal show={show} onHide={handleClose} size="sm" centered>
-      <center>
+      <div className="text-center">
         <Card style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
           <Card.Title>Character Info</Card.Title>
           <Table striped bordered hover size="sm">
@@ -61,11 +61,11 @@ export default function CharacterInfo({ form, show, handleClose }) {
               </tr>
             </thead>
           </Table>
-          <center>
+          <div className="text-center">
             <Button style={{ backgroundImage: `url(${levelup})`, backgroundSize: "cover",  backgroundRepeat: "no-repeat", height: "40px", width: "40px"}} className="mx-1 mb-3" variant="secondary" onClick={handleShowLevelUpModal}></Button>
-          </center>
+          </div>
         </Card> 
-      </center>
+      </div>
 
       {/* Render LevelUp modal when showLevelUpModal state is true */}
       <LevelUp show={showLevelUpModal} handleClose={handleCloseLevelUpModal} form={form} />

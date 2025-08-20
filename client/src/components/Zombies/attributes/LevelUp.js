@@ -187,7 +187,7 @@ export default function LevelUp({ show, handleClose, form }) {
   return (
     <div>
       <Modal show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
-        <center>
+        <div className="text-center">
           <Card style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
             <Card.Title>Level Up</Card.Title>
             <Card.Body>
@@ -211,7 +211,7 @@ export default function LevelUp({ show, handleClose, form }) {
                   Add Occupation
                 </Button>
                 <Modal centered show={showAddClassModal} onHide={() => setShowAddClassModal(false)}>
-                  <center>
+                  <div className="text-center">
                     <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
                       <Card.Body>
                         <Form.Group className="mb-3 mx-5">
@@ -245,7 +245,7 @@ export default function LevelUp({ show, handleClose, form }) {
                         </Button>
                       </Modal.Footer>
                     </Card>
-                  </center>
+                  </div>
                 </Modal>
               </Form>
               {/* Level up known occupation */}
@@ -276,7 +276,7 @@ export default function LevelUp({ show, handleClose, form }) {
               </Form>
             </Card.Body>
           </Card>
-        </center>
+        </div>
       </Modal>
     </div>
   );

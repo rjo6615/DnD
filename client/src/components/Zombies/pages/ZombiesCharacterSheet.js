@@ -132,10 +132,10 @@ if (!form) {
 }
 
 return (
-<center className="pt-3" 
+<div className="pt-3 text-center"
   style={{
     fontFamily: 'Raleway, sans-serif',
-    background: "#FAFAFA", 
+    background: "#FAFAFA",
     height: "100vh"
   }}
 >
@@ -184,6 +184,6 @@ return (
         <Items form={form} showItems={showItems} handleCloseItems={handleCloseItems} />
         <Help form={form} showHelpModal={showHelpModal} handleCloseHelpModal={handleCloseHelpModal} />
       </div>
-    </center>  
+    </div>
   );
 }

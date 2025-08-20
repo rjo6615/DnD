@@ -136,7 +136,7 @@ async function onSubmit1(e) {
 
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-<center className="pt-2" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+<div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: "80px"}}></div>
       <h1 className="text-light"
       style={{            
@@ -160,7 +160,7 @@ async function onSubmit1(e) {
       </Button>
 
       <Modal className="dnd-modal" centered show={showJoinCampaignModal} onHide={handleCloseJoinCampaign}>
-   <center>
+   <div className="text-center">
     <Card className="dnd-background">
     <Card.Title>Join Campaign</Card.Title>
 
@@ -191,7 +191,7 @@ async function onSubmit1(e) {
     </Button>
   </Modal.Footer>
   </Card>
-  </center>
+  </div>
 </Modal>
       <Button className="m-2 hostCampaign" style={{borderColor: "transparent"}} onClick={handleShowHostCampaign}>
         <FaCrown className="icon" />
@@ -199,7 +199,7 @@ async function onSubmit1(e) {
       </Button>
 
   <Modal className="dnd-modal" centered show={showHostCampaignModal} onHide={handleCloseHostCampaign}>
-   <center>
+   <div className="text-center">
     <Card className="dnd-background">
     <Card.Title>Host Campaign</Card.Title>
 
@@ -230,7 +230,7 @@ async function onSubmit1(e) {
     </Button>
   </Modal.Footer>
   </Card>
-  </center>
+  </div>
 </Modal>
         </Col>
       </Row>
@@ -241,31 +241,31 @@ async function onSubmit1(e) {
     </Button>
       {/* -----------------------------------Create Campaign--------------------------------------------- */}
       <Modal centered className="dnd-modal" show={show1} onHide={handleClose1}>
-        <center>
+        <div className="text-center">
         <Card className="dnd-background">
           <Card.Title>Create Campaign</Card.Title>
         <Card.Body>   
-        <center>
+        <div className="text-center">
       <Form onSubmit={onSubmit1} className="px-5">
       <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-light">Campaign Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm1({ campaignName: e.target.value })}
         type="text" placeholder="Enter campaign name" />         
      </Form.Group>
-     <center>
+     <div className="text-center">
      <Button variant="primary" onClick={handleClose1} type="submit">
             Create
           </Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose1}>
             Close
           </Button>
-          </center>
+          </div>
      </Form>
-     </center>
+     </div>
      </Card.Body> 
      </Card>   
-     </center>    
+     </div>    
       </Modal>
-    </center>
+    </div>
  )
 }
