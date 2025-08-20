@@ -1,6 +1,8 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
+const { body } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
+const handleValidationErrors = require('../middleware/validation');
 
 module.exports = (router) => {
   const equipmentRouter = express.Router();
@@ -125,56 +127,69 @@ module.exports = (router) => {
   });
 
   // This section will create a new item.
-  equipmentRouter.route("/item/add").post(async (req, response, next) => {
-    const db_connect = req.db;
-    const myobj = {
-      campaign: req.body.campaign,
-      itemName: req.body.itemName,
-      notes: req.body.notes,
-      str: req.body.str,
-      dex: req.body.dex,
-      con: req.body.con,
-      int: req.body.int,
-      wis: req.body.wis,
-      cha: req.body.cha,
-      appraise: req.body.appraise,
-      balance: req.body.balance,
-      bluff: req.body.bluff,
-      climb: req.body.climb,
-      concentration: req.body.concentration,
-      decipherScript: req.body.decipherScript,
-      diplomacy: req.body.diplomacy,
-      disableDevice: req.body.disableDevice,
-      disguise: req.body.disguise,
-      escapeArtist: req.body.escapeArtist,
-      forgery: req.body.forgery,
-      gatherInfo: req.body.gatherInfo,
-      handleAnimal: req.body.handleAnimal,
-      heal: req.body.heal,
-      hide: req.body.hide,
-      intimidate: req.body.intimidate,
-      jump: req.body.jump,
-      listen: req.body.listen,
-      moveSilently: req.body.moveSilently,
-      openLock: req.body.openLock,
-      ride: req.body.ride,
-      search: req.body.search,
-      senseMotive: req.body.senseMotive,
-      sleightOfHand: req.body.sleightOfHand,
-      spot: req.body.spot,
-      survival: req.body.survival,
-      swim: req.body.swim,
-      tumble: req.body.tumble,
-      useTech: req.body.useTech,
-      useRope: req.body.useRope
-    };
-    try {
-      const result = await db_connect.collection("Items").insertOne(myobj);
-      response.json(result);
-    } catch (err) {
-      next(err);
+  equipmentRouter.route("/item/add").post(
+    [
+      body('campaign').trim().notEmpty().withMessage('campaign is required'),
+      body('itemName').trim().notEmpty().withMessage('itemName is required'),
+    ],
+    handleValidationErrors,
+    async (req, response, next) => {
+      const db_connect = req.db;
+      const allowedFields = [
+        'campaign',
+        'itemName',
+        'notes',
+        'str',
+        'dex',
+        'con',
+        'int',
+        'wis',
+        'cha',
+        'appraise',
+        'balance',
+        'bluff',
+        'climb',
+        'concentration',
+        'decipherScript',
+        'diplomacy',
+        'disableDevice',
+        'disguise',
+        'escapeArtist',
+        'forgery',
+        'gatherInfo',
+        'handleAnimal',
+        'heal',
+        'hide',
+        'intimidate',
+        'jump',
+        'listen',
+        'moveSilently',
+        'openLock',
+        'ride',
+        'search',
+        'senseMotive',
+        'sleightOfHand',
+        'spot',
+        'survival',
+        'swim',
+        'tumble',
+        'useTech',
+        'useRope',
+      ];
+      const myobj = {};
+      allowedFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          myobj[field] = req.body[field];
+        }
+      });
+      try {
+        const result = await db_connect.collection('Items').insertOne(myobj);
+        response.json(result);
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   // This section will update items.
   equipmentRouter.route('/update-item/:id').put(async (req, res, next) => {
