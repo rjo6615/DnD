@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const authenticateUser = require('../utils/authenticateUser');
 const handleValidationErrors = require('../middleware/validation');
 const authenticateToken = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const jwtSecretKey = process.env.JWT_SECRET;
 
@@ -31,10 +32,12 @@ module.exports = (router) => {
           sameSite: 'strict',
         });
         res.json({ message: 'Logged in' });
-        console.debug('JWT token generated for login request', {
+        logger.info('JWT token generated for login request', {
           timestamp: new Date().toISOString(),
+          token,
         });
       } catch (err) {
+        logger.error('Error during login request', { error: err.message });
         res.status(500).json({ message: 'Internal server error' });
       }
     }
