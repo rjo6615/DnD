@@ -8,7 +8,7 @@ module.exports = (router) => {
   // Apply authentication to all equipment routes
   equipmentRouter.use(authenticateToken);
 
-  // ----------------------------------------------------Weapon Section----------------------------------------------------
+  // Weapon Section
 
   // This section will get a list of all the weapons.
   equipmentRouter.route("/weapons/:campaign").get(async (req, res, next) => {
@@ -59,7 +59,7 @@ module.exports = (router) => {
     }
   });
 
-  // -----------------------------------------------------Armor Section--------------------------------------------------------
+  // Armor Section
 
   // This section will get a list of all the armor.
   equipmentRouter.route("/armor/:campaign").get(async (req, res, next) => {
@@ -108,7 +108,7 @@ module.exports = (router) => {
     }
   });
 
-  // ------------------------------------------------------Item Section-----------------------------------------------------------
+  // Item Section
 
   // This section will get a list of all the items.
   equipmentRouter.route("/items/:campaign").get(async (req, res, next) => {
