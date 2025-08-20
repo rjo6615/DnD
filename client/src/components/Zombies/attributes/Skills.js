@@ -71,7 +71,6 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       newSkill: addNewSkill,
      }),
@@ -91,7 +90,6 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
        headers: {
          "Content-Type": "application/json",
        },
-       credentials: 'include',
        body: JSON.stringify(updatedSkills),
      })
      .catch(error => {
@@ -200,7 +198,6 @@ let firstLevelSkill =
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       newSkill: addUpdatedSkill,
      }),

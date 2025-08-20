@@ -19,7 +19,6 @@ async function loginUser(credentials) {
       headers: {
         'Content-Type': 'application/json'
       },
-      credentials: 'include',
       body: JSON.stringify(credentials)
     });
     if (!response.ok) {
@@ -84,7 +83,7 @@ export default function Login({ onLogin }) {
   const handleLogin = async () => {
     try {
       await loginUser({ username, password });
-      const res = await fetch('/me', { credentials: 'include' });
+      const res = await fetch('/me');
       if (res.ok) {
         const user = await res.json();
         onLogin(user);

@@ -19,7 +19,7 @@ export default function RecordList() {
       return;
     }
     async function getRecords() {
-    const response = await fetch(`/campaign/${params.campaign}/${user.username}`, { credentials: 'include' });
+    const response = await fetch(`/campaign/${params.campaign}/${user.username}`);
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -90,7 +90,7 @@ const handleShow = () => setShow(true);
 // Fetch Occupations
 useEffect(() => {
   async function fetchData() {
-    const response = await fetch(`/occupations`, { credentials: 'include' });
+    const response = await fetch(`/occupations`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -235,7 +235,6 @@ useEffect(() => {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include',
         body: JSON.stringify(newCharacter),
       });
     } catch (error) {
@@ -321,7 +320,6 @@ const sendManualToDb = useCallback(async() => {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: 'include',
       body: JSON.stringify(newCharacter),
     });
   } catch (error) {

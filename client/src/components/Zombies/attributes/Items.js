@@ -34,9 +34,7 @@ export default function Items({form, showItems, handleCloseItems}) {
   // Fetch Items
   useEffect(() => {
     async function fetchItems() {
-      const response = await fetch(`/items/${currentCampaign}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(`/items/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -84,7 +82,6 @@ export default function Items({form, showItems, handleCloseItems}) {
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       item: newItem,
      }),
@@ -115,7 +112,6 @@ export default function Items({form, showItems, handleCloseItems}) {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include',
         body: JSON.stringify({
          item: newItemForm,
         }),
@@ -132,7 +128,6 @@ export default function Items({form, showItems, handleCloseItems}) {
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       item: newItemForm,
      }),

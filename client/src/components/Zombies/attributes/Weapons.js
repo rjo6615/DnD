@@ -45,9 +45,7 @@ const [weapon, setWeapon] = useState({
   // Fetch Weapons
   useEffect(() => {
     async function fetchWeapons() {
-      const response = await fetch(`/weapons/${currentCampaign}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(`/weapons/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -95,7 +93,6 @@ const [weapon, setWeapon] = useState({
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       weapon: newWeapon,
      }),
@@ -128,7 +125,6 @@ const [weapon, setWeapon] = useState({
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include',
         body: JSON.stringify({
          weapon: newWeaponForm,
         }),
@@ -145,7 +141,6 @@ const [weapon, setWeapon] = useState({
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       weapon: newWeaponForm,
      }),

@@ -46,9 +46,7 @@ const [feat, setFeat] = useState({
   // ----------------------------------------Fetch Feats-----------------------------------
   useEffect(() => {
     async function fetchFeats() {
-      const response = await fetch(`/feats`, {
-        credentials: 'include',
-      });
+      const response = await fetch(`/feats`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -96,7 +94,6 @@ const [feat, setFeat] = useState({
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       feat: newFeat,
      }),
@@ -127,7 +124,6 @@ const [feat, setFeat] = useState({
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include',
         body: JSON.stringify({
          feat: newFeatForm,
         }),
@@ -144,7 +140,6 @@ const [feat, setFeat] = useState({
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       feat: newFeatForm,
      }),

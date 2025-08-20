@@ -18,7 +18,7 @@ function App() {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    fetch('/me', { credentials: 'include' })
+    fetch('/me')
       .then(res => (res.ok ? res.json() : null))
       .then(data => setUser(data))
       .finally(() => setChecked(true));

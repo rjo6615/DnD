@@ -13,7 +13,7 @@ export default function ZombiesDM() {
     const [records, setRecords] = useState([]);
     useEffect(() => {
       async function getRecords() {
-        const response = await fetch(`/campaign/${params.campaign}/characters`, { credentials: 'include' });
+        const response = await fetch(`/campaign/${params.campaign}/characters`);
 
         if (!response.ok) {
           const message = `An error occurred: ${response.statusText}`;
@@ -46,7 +46,7 @@ useEffect(() => {
     return;
   }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${user.username}/${params.campaign}`, { credentials: 'include' });
+    const response = await fetch(`/campaignsDM/${user.username}/${params.campaign}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -80,9 +80,7 @@ const [playersSearch, setPlayersSearch] = useState("");
     }
 
     async function fetchUsers() {
-      const response = await fetch(`/users`, {
-        credentials: 'include',
-      });
+      const response = await fetch(`/users`);
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -115,7 +113,6 @@ async function sendNewPlayersToDb() {
     headers: {
       "Content-Type": "application/json",
     },
-    credentials: 'include',
     body: JSON.stringify(newPlayers),
   })
   .then(response => {
@@ -169,7 +166,6 @@ const [form2, setForm2] = useState({
        headers: {
          "Content-Type": "application/json",
        },
-       credentials: 'include',
        body: JSON.stringify(newWeapon),
      })
      .catch(error => {
@@ -219,7 +215,6 @@ const [form2, setForm2] = useState({
        headers: {
          "Content-Type": "application/json",
        },
-       credentials: 'include',
        body: JSON.stringify(newArmor),
      })
    .catch(error => {
@@ -301,7 +296,6 @@ const [form2, setForm2] = useState({
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: 'include',
       body: JSON.stringify(newItem),
     })
    .catch(error => {

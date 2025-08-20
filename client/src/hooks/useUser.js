@@ -5,7 +5,7 @@ export default function useUser() {
 
   useEffect(() => {
     let isMounted = true;
-    fetch('/me', { credentials: 'include' })
+    fetch('/me')
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (isMounted) {
