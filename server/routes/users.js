@@ -80,6 +80,10 @@ module.exports = (router) => {
         const result = await db_connect.collection('users').insertOne(myobj);
         res.json(result);
       } catch (err) {
+        // Handle duplicate key error thrown by MongoDB unique index
+        if (err.code === 11000) {
+          return res.status(409).json({ message: 'Username already exists' });
+        }
         res.status(500).json({ message: 'Internal server error' });
       }
     }

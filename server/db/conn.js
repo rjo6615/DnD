@@ -14,6 +14,11 @@ async function connectToDatabase() {
 
   db = client.db("dnd");
   logger.info('Successfully connected to MongoDB.');
+
+  // Ensure a unique index on the username field for the users collection
+  await db.collection('users').createIndex({ username: 1 }, { unique: true });
+  logger.info('Ensured unique index on users.username.');
+
   return db;
 }
 
