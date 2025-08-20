@@ -44,24 +44,37 @@ module.exports = (router) => {
   });
 
   // This section will create a new weapon.
-  equipmentRouter.route("/weapon/add").post(async (req, response, next) => {
-    const db_connect = req.db;
-    const myobj = {
-      campaign: req.body.campaign,
-      weaponName: req.body.weaponName,
-      enhancement: req.body.enhancement,
-      damage: req.body.damage,
-      critical: req.body.critical,
-      weaponStyle: req.body.weaponStyle,
-      range: req.body.range
-    };
-    try {
-      const result = await db_connect.collection("Weapons").insertOne(myobj);
-      response.json(result);
-    } catch (err) {
-      next(err);
+  equipmentRouter.route("/weapon/add").post(
+    [
+      body('campaign').trim().notEmpty().withMessage('campaign is required'),
+      body('weaponName').trim().notEmpty().withMessage('weaponName is required'),
+    ],
+    handleValidationErrors,
+    async (req, response, next) => {
+      const db_connect = req.db;
+      const allowedFields = [
+        'campaign',
+        'weaponName',
+        'enhancement',
+        'damage',
+        'critical',
+        'weaponStyle',
+        'range',
+      ];
+      const myobj = {};
+      allowedFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          myobj[field] = req.body[field];
+        }
+      });
+      try {
+        const result = await db_connect.collection("Weapons").insertOne(myobj);
+        response.json(result);
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   // Armor Section
 
@@ -80,22 +93,35 @@ module.exports = (router) => {
   });
 
   // This section will create a new armor.
-  equipmentRouter.route("/armor/add").post(async (req, response, next) => {
-    const db_connect = req.db;
-    const myobj = {
-      campaign: req.body.campaign,
-      armorName: req.body.armorName,
-      armorBonus: req.body.armorBonus,
-      maxDex: req.body.maxDex,
-      armorCheckPenalty: req.body.armorCheckPenalty
-    };
-    try {
-      const result = await db_connect.collection("Armor").insertOne(myobj);
-      response.json(result);
-    } catch (err) {
-      next(err);
+  equipmentRouter.route("/armor/add").post(
+    [
+      body('campaign').trim().notEmpty().withMessage('campaign is required'),
+      body('armorName').trim().notEmpty().withMessage('armorName is required'),
+    ],
+    handleValidationErrors,
+    async (req, response, next) => {
+      const db_connect = req.db;
+      const allowedFields = [
+        'campaign',
+        'armorName',
+        'armorBonus',
+        'maxDex',
+        'armorCheckPenalty',
+      ];
+      const myobj = {};
+      allowedFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          myobj[field] = req.body[field];
+        }
+      });
+      try {
+        const result = await db_connect.collection("Armor").insertOne(myobj);
+        response.json(result);
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   // This section will update armors.
   equipmentRouter.route('/update-armor/:id').put(async (req, res, next) => {
