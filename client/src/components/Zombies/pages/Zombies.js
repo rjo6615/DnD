@@ -54,7 +54,7 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
       return;
     }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${user.username}`, { credentials: 'include' });
+    const response = await fetch(`/campaigns/${user.username}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -81,7 +81,7 @@ useEffect(() => {
       return;
     }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${user.username}`, { credentials: 'include' });
+    const response = await fetch(`/campaignsDM/${user.username}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -120,7 +120,6 @@ async function onSubmit1(e) {
        headers: {
          "Content-Type": "application/json",
        },
-       credentials: 'include',
        body: JSON.stringify(newCampaign),
      })
      .catch(error => {

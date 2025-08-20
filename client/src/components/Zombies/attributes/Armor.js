@@ -46,9 +46,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   // Fetch Armors
   useEffect(() => {
     async function fetchArmor() {
-      const response = await fetch(`/armor/${currentCampaign}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(`/armor/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -96,7 +94,6 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       armor: newArmor,
      }),
@@ -127,7 +124,6 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include',
         body: JSON.stringify({
          armor: newArmorForm,
         }),
@@ -144,7 +140,6 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       armor: newArmorForm,
      }),

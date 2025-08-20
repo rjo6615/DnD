@@ -18,7 +18,7 @@ describe('useUser', () => {
     );
     render(<TestComponent />);
     expect(await screen.findByText('test')).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledWith('/me', expect.objectContaining({ credentials: 'include' }));
+    expect(global.fetch).toHaveBeenCalledWith('/me');
   });
 
   test('handles missing user', async () => {

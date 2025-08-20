@@ -18,7 +18,7 @@ test('logout calls endpoint and redirects', async () => {
 
   const buttons = screen.getAllByRole('button', { name: /logout/i });
   await userEvent.click(buttons[buttons.length - 1]);
-  expect(global.fetch).toHaveBeenCalledWith('/logout', expect.objectContaining({ method: 'POST', credentials: 'include' }));
+  expect(global.fetch).toHaveBeenCalledWith('/logout', expect.objectContaining({ method: 'POST' }));
   expect(window.location.assign).toHaveBeenCalledWith('/');
 });
 

@@ -11,9 +11,8 @@ export default function Help({props, form, showHelpModal, handleCloseHelpModal})
   const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
  // This method will delete a record
  async function deleteRecord() {
-  await fetch(`/delete-character/${params.id}`, {
-    method: "DELETE",
-    credentials: 'include'
+ await fetch(`/delete-character/${params.id}`, {
+   method: "DELETE",
   });
   navigate(`/zombies-character-select/${form.campaign}`);
 }
@@ -50,12 +49,11 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 
  // Sends dice color update to database
  async function diceColorUpdate(){
-    await fetch(`/update-dice-color/${params.id}`, {
+   await fetch(`/update-dice-color/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({diceColor: newColor}),
    })
    .catch(error => {

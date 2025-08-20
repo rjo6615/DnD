@@ -7,7 +7,7 @@ import logoLight from "../../images/logo-light.png";
 
 function NavbarComponent() {
   const handleLogout = async () => {
-    await fetch('/logout', { method: 'POST', credentials: 'include' });
+    await fetch('/logout', { method: 'POST' });
     window.location.assign('/');
   };
 

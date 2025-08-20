@@ -78,7 +78,6 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
      headers: {
        "Content-Type": "application/json",
      },
-     credentials: 'include',
      body: JSON.stringify({
       tempHealth: health + offset,
      }),
