@@ -1,3 +1,7 @@
+process.env.JWT_SECRET = 'testsecret';
+process.env.ATLAS_URI = 'mongodb://localhost/test';
+process.env.CLIENT_ORIGIN = 'http://localhost';
+
 const request = require('supertest');
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -5,7 +9,6 @@ const bcrypt = require('bcryptjs');
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
-process.env.JWT_SECRET = 'testsecret';
 const usersRouter = require('../routes');
 
 const app = express();
