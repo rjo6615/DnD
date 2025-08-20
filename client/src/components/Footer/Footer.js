@@ -10,6 +10,6 @@ export default function Footer() {
           DnD
         </a>
       </div>
-    </MDBFooter>
-  );
+      </MDBFooter>
+    );
 }
