@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import apiFetch from '../../../utils/apiFetch';
 import Button from 'react-bootstrap/Button';
 import { Table, Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
@@ -19,7 +20,7 @@ export default function RecordList() {
       return;
     }
     async function getRecords() {
-    const response = await fetch(`/campaign/${params.campaign}/${user.username}`);
+    const response = await apiFetch(`/campaign/${params.campaign}/${user.username}`);
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
@@ -90,7 +91,7 @@ const handleShow = () => setShow(true);
 // Fetch Occupations
 useEffect(() => {
   async function fetchData() {
-    const response = await fetch(`/occupations`);
+    const response = await apiFetch(`/occupations`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -230,7 +231,7 @@ useEffect(() => {
    const sendToDb = useCallback(async () => {
     const newCharacter = { ...form };
     try {
-      await fetch("/character/add", {
+      await apiFetch("/character/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -315,7 +316,7 @@ const sendManualToDb = useCallback(async() => {
   try {
     // Call the API endpoint for manual character creation
     // Adjust the endpoint URL as needed
-    await fetch("/character/add", {
+    await apiFetch("/character/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, } from "react";
+import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Container, Form, Row, Table, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Modal from 'react-bootstrap/Modal';
@@ -54,7 +55,7 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
       return;
     }
   async function fetchData1() {
-    const response = await fetch(`/campaigns/${user.username}`);
+    const response = await apiFetch(`/campaigns/${user.username}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -81,7 +82,7 @@ useEffect(() => {
       return;
     }
   async function fetchCampaignsDM() {
-    const response = await fetch(`/campaignsDM/${user.username}`);
+    const response = await apiFetch(`/campaignsDM/${user.username}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -115,7 +116,7 @@ async function onSubmit1(e) {
 }
  async function sendToDb1(){
     const newCampaign = { ...form1 };
-      await fetch("/campaign/add", {
+      await apiFetch("/campaign/add", {
        method: "POST",
        headers: {
          "Content-Type": "application/json",

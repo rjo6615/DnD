@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 
@@ -73,7 +74,7 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
   const [health, setHealth] = useState(); // Initial health value
  // Sends tempHealth data to database for update
  async function tempHealthUpdate(offset){
-    await fetch(`/update-temphealth/${params.id}`, {
+    await apiFetch(`/update-temphealth/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

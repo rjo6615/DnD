@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import apiFetch from './utils/apiFetch';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import Home from "./components/Home/Home";
 import Navbar from "./components/Navbar/Navbar";
@@ -18,7 +19,7 @@ function App() {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    fetch('/me')
+    apiFetch('/me')
       .then(res => (res.ok ? res.json() : null))
       .then(data => setUser(data))
       .finally(() => setChecked(true));

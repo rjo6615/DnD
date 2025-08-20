@@ -4,10 +4,11 @@ import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
 import logoLight from "../../images/logo-light.png";
+import apiFetch from "../../utils/apiFetch";
 
 function NavbarComponent() {
   const handleLogout = async () => {
-    await fetch('/logout', { method: 'POST' });
+    await apiFetch('/logout', { method: 'POST' });
     window.location.assign('/');
   };
 

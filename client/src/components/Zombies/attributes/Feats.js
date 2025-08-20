@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg"; 
@@ -46,7 +47,7 @@ const [feat, setFeat] = useState({
   // ----------------------------------------Fetch Feats-----------------------------------
   useEffect(() => {
     async function fetchFeats() {
-      const response = await fetch(`/feats`);
+      const response = await apiFetch(`/feats`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -89,7 +90,7 @@ const [feat, setFeat] = useState({
    }
    async function addFeatToDb(e){
     e.preventDefault();
-    await fetch(`/update-feat/${params.id}`, {
+    await apiFetch(`/update-feat/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -119,7 +120,7 @@ const [feat, setFeat] = useState({
     let newFeatForm = form.feat;
     if (JSON.stringify(form.feat) === JSON.stringify([])){
       newFeatForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
-      await fetch(`/update-feat/${params.id}`, {
+      await apiFetch(`/update-feat/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +136,7 @@ const [feat, setFeat] = useState({
       window.alert("Feat Deleted")
       navigate(0);
     } else {
-    await fetch(`/update-feat/${params.id}`, {
+    await apiFetch(`/update-feat/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

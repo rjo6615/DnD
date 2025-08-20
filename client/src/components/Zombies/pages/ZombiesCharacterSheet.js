@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
@@ -32,7 +33,7 @@ export default function ZombiesCharacterSheet() {
   useEffect(() => {
     async function fetchCharacterData(id) {
       try {
-        const response = await fetch(`/characters/${id}`);
+        const response = await apiFetch(`/characters/${id}`);
         if (!response.ok) {
           throw new Error(`Error fetching character data: ${response.statusText}`);
         }

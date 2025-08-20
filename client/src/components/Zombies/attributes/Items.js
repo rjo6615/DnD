@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
+import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import wornpaper from "../../../images/wornpaper.jpg"; 
@@ -34,7 +35,7 @@ export default function Items({form, showItems, handleCloseItems}) {
   // Fetch Items
   useEffect(() => {
     async function fetchItems() {
-      const response = await fetch(`/items/${currentCampaign}`);
+      const response = await apiFetch(`/items/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -77,7 +78,7 @@ export default function Items({form, showItems, handleCloseItems}) {
    }
    async function addItemToDb(e){
     e.preventDefault();
-    await fetch(`/update-item/${params.id}`, {
+    await apiFetch(`/update-item/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -107,7 +108,7 @@ export default function Items({form, showItems, handleCloseItems}) {
     let newItemForm = form.item;
     if (JSON.stringify(form.item) === JSON.stringify([])){
       newItemForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
-      await fetch(`/update-item/${params.id}`, {
+      await apiFetch(`/update-item/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +124,7 @@ export default function Items({form, showItems, handleCloseItems}) {
       window.alert("Item Deleted")
       navigate(0);
     } else {
-    await fetch(`/update-item/${params.id}`, {
+    await apiFetch(`/update-item/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

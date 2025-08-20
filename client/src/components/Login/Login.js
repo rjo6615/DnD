@@ -5,6 +5,7 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
 import logoLight from "../../images/logo-light.png";
+import apiFetch from "../../utils/apiFetch";
 import './Login.css';
 
 function capitalizeFirstLetter(string) {
@@ -14,7 +15,7 @@ function capitalizeFirstLetter(string) {
 async function loginUser(credentials) {
   credentials.username = capitalizeFirstLetter(credentials.username);
   try {
-    const response = await fetch('/login', {
+    const response = await apiFetch('/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -33,7 +34,7 @@ async function loginUser(credentials) {
 async function fetchUserByUsername(username) {
   username = capitalizeFirstLetter(username);
   try {
-    const response = await fetch(`/users/exists/${username}`, { credentials: 'omit' });
+    const response = await apiFetch(`/users/exists/${username}`, { credentials: 'omit' });
     if (response.ok) {
       const { exists } = await response.json();
       return exists;
@@ -48,7 +49,7 @@ async function fetchUserByUsername(username) {
 async function createUser(newUser) {
   newUser.username = capitalizeFirstLetter(newUser.username);
   try {
-    const response = await fetch('/users/add', {
+    const response = await apiFetch('/users/add', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ export default function Login({ onLogin }) {
   const handleLogin = async () => {
     try {
       await loginUser({ username, password });
-      const res = await fetch('/me');
+      const res = await apiFetch('/me');
       if (res.ok) {
         const user = await res.json();
         onLogin(user);
