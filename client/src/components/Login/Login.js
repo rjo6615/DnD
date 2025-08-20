@@ -117,7 +117,7 @@ export default function Login({ onLogin }) {
   };
   return (
     <div className="login-background">
-      <center>
+      <div className="text-center">
         <MDBContainer className="raleway-font">
           <MDBRow>
             <MDBCol col='6' className="my-5">
@@ -127,7 +127,7 @@ export default function Login({ onLogin }) {
                   {/* <h1 className="mt-5 mb-5 pb-1 text-light" style={{ fontFamily: 'Raleway, sans-serif' }}>Realm Tracker</h1> */}
                 </div>
                 <p className='text-light'>Please login to your account</p>
-                <center>
+                <div className="text-center">
                     <Form className="w-100 mb-3 form-width">
                       <Form.Group className="" controlId="formUsername">
                         <Form.Label>Username</Form.Label>
@@ -144,7 +144,7 @@ export default function Login({ onLogin }) {
                       <a className="text-light" href="#!">Forgot password?</a>
                     </div>
                   </Form>
-                </center>
+                </div>
                 <div className="d-flex flex-row align-items-center justify-content-center pb-4 mb-4">
                   <p className="mb-0 text-light">Don't have an account?</p>
                   <Button variant="success" className="mx-2" onClick={handleShow}>Sign up</Button>
@@ -176,14 +176,14 @@ export default function Login({ onLogin }) {
                   type="password" placeholder="Confirm password"
                 />
               </Form.Group>
-              <center>
+              <div className="text-center">
                 <Button variant="primary" type="submit">Submit</Button>
                 <Button className="ms-4" variant="secondary" onClick={handleClose}>Close</Button>
-              </center>
+              </div>
             </Form>
           </Modal.Body>
         </Modal>
-      </center>
+      </div>
     </div>
   );
 }

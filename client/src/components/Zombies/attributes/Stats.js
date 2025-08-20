@@ -77,7 +77,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
 
   return (
     <Modal show={showStats} onHide={handleCloseStats} size="sm" centered className="modern-modal">
-      <center>
+      <div className="text-center">
         <Card className="modern-card">
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Stats</Card.Title>
@@ -129,7 +129,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
             <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
           </Card.Footer>
         </Card>
-      </center>
+      </div>
     </Modal>
   );
 }

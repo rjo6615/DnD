@@ -265,7 +265,7 @@ const showSparklesEffect = () => {
 </div>
 {/* Attack Modal */}
       <Modal centered show={showAttack} onHide={handleCloseAttack}>
-      <center>
+      <div className="text-center">
         <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
         <Card.Title>Weapons</Card.Title>
         <Table striped bordered hover size="sm">
@@ -311,7 +311,7 @@ const showSparklesEffect = () => {
           </tbody>
         </Table>      
       </Card> 
-</center>
+</div>
       </Modal>
       {/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
       <div className="content">

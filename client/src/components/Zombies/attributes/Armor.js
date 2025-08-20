@@ -160,7 +160,7 @@ return(
        size="sm"
       centered
        >   
-       <center>
+       <div className="text-center">
         <Card className="zombiesArmor" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
         <Card.Title>Armor</Card.Title>
         <Table striped bordered hover size="sm">
@@ -205,7 +205,7 @@ return(
         </Col>
       </Row>
       </Card> 
-    </center>
+    </div>
     </Modal>   
     </div>
 )

@@ -4,7 +4,7 @@ import './Home.css';
 export default function Home() {
   return (
     <div className="home-container">
-      <center>
+      <div className="text-center">
         <div className="home-spacer"></div>
 
         <h2 className="text-light home-title">Choose Game Type</h2>
@@ -18,7 +18,7 @@ export default function Home() {
             <span className="px-2 home-button-text">Zombies</span>
           </Button>
         </div>
-      </center>
+      </div>
     </div>
   );
 }

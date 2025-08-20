@@ -161,7 +161,7 @@ return (
        size="sm"
       centered
        >   
-       <center>
+       <div className="text-center">
         <Card className="zombiesFeats" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>     
         <Card.Title>Feats</Card.Title>
         <Card.Title style={{ display: showFeatBtn}}>Points Left:<span className="mx-1" id="featPointLeft">{featPointsLeft}</span></Card.Title>
@@ -252,7 +252,7 @@ return (
       </Row>
       </Card> 
       <Modal show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
-        <center>
+        <div className="text-center">
         <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
           <Card.Title>{modalFeatData[0]}</Card.Title>
         <Card.Body>{modalFeatData[1]}</Card.Body>
@@ -262,9 +262,9 @@ return (
           </Button>
         </Modal.Footer>
         </Card>
-        </center>
+        </div>
       </Modal>
-</center>
+</div>
 </Modal>
 </div> 
 )

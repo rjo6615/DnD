@@ -69,7 +69,7 @@ return(
         aria-labelledby="contained-modal-title-vcenter"
         centered
         className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
-          <center>
+          <div className="text-center">
           <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
           <Card.Body>
           Actions Left (from left to right)
@@ -115,14 +115,14 @@ return(
           </Button>
           </Modal.Footer>
           </Card>
-          </center>
+          </div>
           </Modal>
           <Modal  {...props}
                   size="lg"
                   aria-labelledby="contained-modal-title-vcenter"
                   centered
                   className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
-        <center>
+        <div className="text-center">
         <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
           <Card.Title>Are you sure you want to delete your character?</Card.Title>
           <Modal.Footer className="justify-content-between">
@@ -134,7 +134,7 @@ return(
           </Button>
           </Modal.Footer>
           </Card>
-          </center>
+          </div>
         </Modal>
     </div>
 )
