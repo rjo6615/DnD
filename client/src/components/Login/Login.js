@@ -34,17 +34,15 @@ async function loginUser(credentials) {
 async function fetchUserByUsername(username) {
   username = capitalizeFirstLetter(username);
   try {
-    const response = await fetch(`/users/${username}`, {
-      credentials: 'include',
-    });
+    const response = await fetch(`/users/exists/${username}`);
     if (response.ok) {
-      const user = await response.json();
-      return user;
+      const { exists } = await response.json();
+      return exists;
     }
-    return null;
+    return false;
   } catch (error) {
     console.error('Fetch user error:', error);
-    return null;
+    return false;
   }
 }
 
@@ -101,8 +99,8 @@ export default function Login({ onLogin }) {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const existingUser = await fetchUserByUsername(newUser.username);
-    if (existingUser) {
+    const userExists = await fetchUserByUsername(newUser.username);
+    if (userExists) {
       alert('Username already in use!');
     } else if (newUser.password === newUser.confirmPassword) {
       try {
