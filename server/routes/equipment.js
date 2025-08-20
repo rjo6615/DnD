@@ -31,11 +31,13 @@ module.exports = (router) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     try {
-      await db_connect.collection("Characters").updateOne(id, {
+      const result = await db_connect.collection("Characters").updateOne(id, {
         $set: { 'weapon': req.body.weapon }
       });
-      console.log("character weapon updated");
-      res.send('user updated sucessfully');
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: 'Weapon not found' });
+      }
+      res.json({ message: 'Weapon updated' });
     } catch (err) {
       next(err);
     }
@@ -100,11 +102,13 @@ module.exports = (router) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     try {
-      await db_connect.collection("Characters").updateOne(id, {
+      const result = await db_connect.collection("Characters").updateOne(id, {
         $set: { 'armor': req.body.armor }
       });
-      console.log("character armor updated");
-      res.send('user updated sucessfully');
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: 'Armor not found' });
+      }
+      res.json({ message: 'Armor updated' });
     } catch (err) {
       next(err);
     }
@@ -196,11 +200,13 @@ module.exports = (router) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     try {
-      await db_connect.collection("Characters").updateOne(id, {
+      const result = await db_connect.collection("Characters").updateOne(id, {
         $set: { 'item': req.body.item }
       });
-      console.log("character item updated");
-      res.send('user updated sucessfully');
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: 'Item not found' });
+      }
+      res.json({ message: 'Item updated' });
     } catch (err) {
       next(err);
     }
