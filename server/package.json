@@ -22,7 +22,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^4.4.0",
     "mongoose": "^7.0.1",
-    "winston": "^3.10.0"
+    "winston": "^3.10.0",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.7.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",

@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config({ path: "./config.env" });
 const port = process.env.PORT || 5000;
 const path = require('path');
@@ -21,6 +23,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(helmet());
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+});
+
+app.use(['/login', '/logout', '/users/verify', '/me'], authLimiter);
 app.use(routes);
 
 // Adjusted to serve static files from the correct build directory
