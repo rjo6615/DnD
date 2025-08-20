@@ -26,4 +26,10 @@ describe('useUser', () => {
     render(<TestComponent />);
     await waitFor(() => expect(screen.getByText('no-user')).toBeInTheDocument());
   });
+
+  test('handles fetch error', async () => {
+    global.fetch = jest.fn(() => Promise.reject(new Error('network error')));
+    render(<TestComponent />);
+    await waitFor(() => expect(screen.getByText('no-user')).toBeInTheDocument());
+  });
 });
