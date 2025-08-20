@@ -132,7 +132,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
         window.alert(error);
         return;
       });
-      console.log("Armor Deleted")
+      window.alert("Armor Deleted")
       navigate(0);
     } else {
     await fetch(`/update-armor/${params.id}`, {
@@ -148,7 +148,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
      window.alert(error);
      return;
    });
-   console.log("Armor Deleted")
+   window.alert("Armor Deleted")
    navigate(0);
   }
   }

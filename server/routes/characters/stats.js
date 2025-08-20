@@ -1,6 +1,7 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../../middleware/auth');
+const logger = require('../../utils/logger');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -23,7 +24,7 @@ module.exports = (router) => {
           cha: req.body.cha,
         },
       });
-      console.log('character stats updated');
+      logger.info('character stats updated');
       res.send('user updated sucessfully');
     } catch (err) {
       next(err);

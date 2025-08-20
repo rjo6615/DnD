@@ -131,7 +131,7 @@ export default function LevelUp({ show, handleClose, form }) {
         }), // Send as a JSON object
       })
         .then(() => {
-          console.log("Database update complete");
+          window.alert("Database update complete");
         })
         .catch((error) => {
           // Handle errors here
@@ -147,7 +147,7 @@ export default function LevelUp({ show, handleClose, form }) {
         body: JSON.stringify(form.occupation), // Send the array directly
       })
         .then(() => {
-          console.log("Database update complete");
+          window.alert("Database update complete");
           navigate(0);
         })
         .catch((error) => {

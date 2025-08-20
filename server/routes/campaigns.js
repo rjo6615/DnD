@@ -2,6 +2,7 @@ const { param } = require('express-validator');
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
+const logger = require('../utils/logger');
 
 module.exports = (router) => {
   const campaignRouter = express.Router();
@@ -30,13 +31,13 @@ module.exports = (router) => {
           { campaignName: campaignName },
           { $addToSet: { players: { $each: newPlayers } } }
         );
-        console.log("Players added");
+        logger.info("Players added");
         if (result.modifiedCount === 0) {
           return res.status(400).send("Players already exist in the array");
         }
         res.send('Players added successfully');
       } catch (err) {
-        console.error("Error adding players:", err);
+        logger.error(`Error adding players: ${err}`);
         res.status(500).send("Internal Server Error");
       }
     }
