@@ -22,6 +22,10 @@ Example gif is listed below:
 
 ![Example](./client/public/images/Gif-for-Dnd.gif)
 
+## Deployment
+
+Run `npm run build` to generate the production build of the client. The `npm start` script runs this build step before launching the server so deployments always serve the latest assets from `client/build`.
+
 ## Environment Variables
 
 The server uses a `config.env` file for configuration. Ensure the following variable is set:
