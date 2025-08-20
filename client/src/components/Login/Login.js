@@ -54,7 +54,6 @@ async function createUser(newUser) {
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include',
       body: JSON.stringify(newUser),
     });
     if (!response.ok) {
