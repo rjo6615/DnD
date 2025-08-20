@@ -4,16 +4,16 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-require("dotenv").config({ path: "./config.env" });
-const port = process.env.PORT || 5000;
 const path = require('path');
+const config = require("./utils/config");
 const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
+const port = process.env.PORT || 5000;
 
 // Restrict cross-origin requests to a single approved client
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || origin === process.env.CLIENT_ORIGIN) {
+    if (!origin || origin === config.clientOrigin) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

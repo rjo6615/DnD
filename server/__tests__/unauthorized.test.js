@@ -1,3 +1,7 @@
+process.env.JWT_SECRET = 'testsecret';
+process.env.ATLAS_URI = 'mongodb://localhost/test';
+process.env.CLIENT_ORIGIN = 'http://localhost';
+
 const request = require('supertest');
 const express = require('express');
 

@@ -4,8 +4,9 @@ const authenticateUser = require('../utils/authenticateUser');
 const handleValidationErrors = require('../middleware/validation');
 const authenticateToken = require('../middleware/auth');
 const logger = require('../utils/logger');
+const config = require('../utils/config');
 
-const jwtSecretKey = process.env.JWT_SECRET;
+const jwtSecretKey = config.jwtSecret;
 
 module.exports = (router) => {
   router.post(
