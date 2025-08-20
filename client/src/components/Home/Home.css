@@ -1,0 +1,37 @@
+.home-container {
+  background-image: url("../../images/loginbg.png");
+  background-size: cover;
+  height: 100vh;
+  background-position: center;
+  font-family: 'Raleway, sans-serif';
+}
+
+.home-spacer {
+  padding-top: 90px;
+}
+
+.home-title {
+  font-size: 28px;
+  width: 300px;
+  height: 95px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.home-button {
+  border-color: transparent;
+  background-image: url("../../images/zombiesbg.jpg");
+  background-position: 50% 25%;
+  background-size: cover;
+  min-width: 300px;
+}
+
+.home-button-text {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
