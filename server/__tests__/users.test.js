@@ -66,26 +66,28 @@ describe('Users routes', () => {
     expect(res.body.valid).toBeUndefined();
   });
 
-  test('user exists endpoint reports existing user', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        findOne: async () => ({ username: 'alice' })
-      })
+  describe('GET /users/exists/:username', () => {
+    test('returns { exists: true } for existing user', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => ({ username: 'alice' })
+        })
+      });
+      const res = await request(app).get('/users/exists/alice');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ exists: true });
     });
-    const res = await request(app).get('/users/exists/alice');
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ exists: true });
-  });
 
-  test('user exists endpoint reports non-existing user', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        findOne: async () => null
-      })
+    test('returns { exists: false } for missing user', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => null
+        })
+      });
+      const res = await request(app).get('/users/exists/bob');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ exists: false });
     });
-    const res = await request(app).get('/users/exists/bob');
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ exists: false });
   });
 
   test('get users failure', async () => {
