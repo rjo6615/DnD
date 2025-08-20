@@ -2,9 +2,9 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-require("dotenv").config({ path: "./config.env" });
-const port = process.env.PORT || 5000;
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, 'config.env') });
+const port = process.env.PORT || 5000;
 const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 
