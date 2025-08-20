@@ -1,4 +1,5 @@
 const { MongoClient } = require("mongodb");
+const logger = require('../utils/logger');
 
 const uri = process.env.ATLAS_URI;
 let db;
@@ -12,7 +13,7 @@ async function connectToDatabase() {
   });
 
   db = client.db("dnd");
-  console.log("Successfully connected to MongoDB.");
+  logger.info('Successfully connected to MongoDB.');
   return db;
 }
 
