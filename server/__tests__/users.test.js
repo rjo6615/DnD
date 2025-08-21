@@ -95,6 +95,31 @@ describe('Users routes', () => {
     });
   });
 
+  test('get users success excludes password', async () => {
+    const findMock = jest.fn((query, options) => ({
+      toArray: async () => {
+        if (options && options.projection && options.projection.password === 0) {
+          return [{ username: 'alice' }, { username: 'bob' }];
+        }
+        return [
+          { username: 'alice', password: 'secret' },
+          { username: 'bob', password: 'secret' },
+        ];
+      },
+    }));
+    dbo.mockResolvedValue({
+      collection: () => ({
+        find: findMock,
+      }),
+    });
+    const res = await request(app).get('/users');
+    expect(findMock).toHaveBeenCalledWith({}, { projection: { password: 0 } });
+    expect(res.status).toBe(200);
+    res.body.forEach((user) => {
+      expect(user.password).toBeUndefined();
+    });
+  });
+
   test('get users failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
