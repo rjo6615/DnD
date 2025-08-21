@@ -47,6 +47,12 @@ All API errors are returned as JSON objects with a single `message` property. Fo
 
 Clients should rely on this structure when handling error responses.
 
+## Character Feats Endpoint
+
+Use `PUT /characters/:id/feats` with a JSON body like `{ "feat": ["Feat1"] }` to
+append new feats to a character. Each request adds feats to the existing list
+rather than replacing the current feats.
+
 ## Support
 For help with this webpage please contact
 |Name | Email |
