@@ -14,7 +14,9 @@ const app = express();
 app.use(express.json());
 app.use(routes);
 app.use((err, req, res, next) => {
-  res.status(500).json({ message: err.message });
+  const status = err.status || 500;
+  const message = status === 500 ? 'Internal Server Error' : err.message;
+  res.status(status).json({ message });
 });
 
 describe('Health routes validation', () => {

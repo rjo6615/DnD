@@ -14,7 +14,9 @@ const app = express();
 app.use(express.json());
 app.use(routes);
 app.use((err, req, res, next) => {
-  res.status(500).json({ message: err.message });
+  const status = err.status || 500;
+  const message = status === 500 ? 'Internal Server Error' : err.message;
+  res.status(status).json({ message });
 });
 
 beforeEach(() => {
@@ -70,7 +72,7 @@ describe('Equipment routes', () => {
         .put('/update-weapon/507f1f77bcf86cd799439011')
         .send({ weapon: ['Sword'] });
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Weapon not found');
+      expect(res.body.message).toBe('Weapon not found');
     });
 
     test('update weapon invalid id', async () => {
@@ -138,7 +140,7 @@ describe('Equipment routes', () => {
         .put('/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Plate'] });
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Armor not found');
+      expect(res.body.message).toBe('Armor not found');
     });
 
     test('update armor invalid id', async () => {
@@ -206,7 +208,7 @@ describe('Equipment routes', () => {
         .put('/update-item/507f1f77bcf86cd799439011')
         .send({ item: ['Potion'] });
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Item not found');
+      expect(res.body.message).toBe('Item not found');
     });
 
     test('update item invalid id', async () => {

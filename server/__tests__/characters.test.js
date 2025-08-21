@@ -13,6 +13,11 @@ const charactersRouter = require('../routes');
 const app = express();
 app.use(express.json());
 app.use(charactersRouter);
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
+  const message = status === 500 ? 'Internal Server Error' : err.message;
+  res.status(status).json({ message });
+});
 
 describe('Character routes', () => {
   test('add character success', async () => {

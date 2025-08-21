@@ -17,7 +17,7 @@ module.exports = (router) => {
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
+        return res.status(400).json({ message: 'Invalid ID' });
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
@@ -27,7 +27,7 @@ module.exports = (router) => {
           $set: { tempHealth },
         });
         logger.info('character tempHealth updated');
-        res.send('user updated sucessfully');
+        res.json({ message: 'User updated successfully' });
       } catch (err) {
         next(err);
       }
@@ -49,7 +49,7 @@ module.exports = (router) => {
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
+        return res.status(400).json({ message: 'Invalid ID' });
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
@@ -60,10 +60,10 @@ module.exports = (router) => {
           $set: fields,
         });
         logger.info('Character health and stats updated');
-        res.send('User updated successfully');
+        res.json({ message: 'User updated successfully' });
       } catch (error) {
         logger.error(error);
-        res.status(500).send('Server error');
+        next(error);
       }
     }
   );

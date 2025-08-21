@@ -14,7 +14,7 @@ module.exports = (router) => {
   // This section will get a single character by id
   characterRouter.route('/characters/:id').get(async (req, res, next) => {
     if (!ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ error: 'Invalid ID' });
+      return res.status(400).json({ message: 'Invalid ID' });
     }
     try {
       const db_connect = req.db;
@@ -106,14 +106,14 @@ module.exports = (router) => {
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
     ],
     handleValidationErrors,
-    async (req, res) => {
+    async (req, res, next) => {
       const db_connect = req.db;
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
         res.json(result);
       } catch (err) {
-        res.status(500).json({ message: 'Internal server error' });
+        next(err);
       }
     }
   );
@@ -121,7 +121,7 @@ module.exports = (router) => {
   // This section will delete a character
   characterRouter.route('/delete-character/:id').delete(async (req, response, next) => {
     if (!ObjectId.isValid(req.params.id)) {
-      return response.status(400).json({ error: 'Invalid ID' });
+      return response.status(400).json({ message: 'Invalid ID' });
     }
     const db_connect = req.db;
     const myquery = { _id: ObjectId(req.params.id) };
@@ -143,7 +143,7 @@ module.exports = (router) => {
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
+        return res.status(400).json({ message: 'Invalid ID' });
       }
       const db_connect = req.db;
       const selectedOccupation = req.body.selectedOccupation;
@@ -170,7 +170,7 @@ module.exports = (router) => {
         );
         if (result.modifiedCount !== 0) {
           logger.info(`Character updated for Occupation: ${selectedOccupation}`);
-          res.send('Update complete');
+          res.json({ message: 'Update complete' });
         }
       } catch (err) {
         next(err);
@@ -184,7 +184,7 @@ module.exports = (router) => {
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
+        return res.status(400).json({ message: 'Invalid ID' });
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
@@ -194,7 +194,7 @@ module.exports = (router) => {
           $set: { diceColor },
         });
         logger.info('Dice Color updated');
-        res.send('user updated sucessfully');
+        res.json({ message: 'User updated successfully' });
       } catch (err) {
         next(err);
       }

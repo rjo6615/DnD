@@ -16,7 +16,7 @@ module.exports = (router) => {
       body('password').notEmpty().withMessage('password is required'),
     ],
     handleValidationErrors,
-    async (req, res) => {
+    async (req, res, next) => {
       const { username, password } = req.body;
 
       const db_connect = req.db;
@@ -39,7 +39,7 @@ module.exports = (router) => {
         });
       } catch (err) {
         logger.error('Error during login request', { error: err.message });
-        res.status(500).json({ message: 'Internal server error' });
+        next(err);
       }
     }
   );
@@ -51,7 +51,7 @@ module.exports = (router) => {
       body('password').notEmpty().withMessage('password is required'),
     ],
     handleValidationErrors,
-    async (req, res) => {
+    async (req, res, next) => {
       const { username, password } = req.body;
 
       const db_connect = req.db;
@@ -62,7 +62,7 @@ module.exports = (router) => {
         }
         res.json({ valid: true });
       } catch (err) {
-        res.status(500).json({ message: 'Internal server error' });
+        next(err);
       }
     }
   );
