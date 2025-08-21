@@ -363,7 +363,8 @@ const [form2, setForm2] = useState({
             alignItems: "center", 
             justifyContent: "center", 
             borderRadius: "10px", // Rounded corners
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" // Light shadow for depth
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
+            margin: "0 auto"
           }}>{params.campaign}</h1>  
 {/*-----------------------------------Add Player-----------------------------------------------------*/}
 <Button style={{ position: "relative", zIndex: "4" }} onClick={() => { handleShowPlayers();}} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>

@@ -9,11 +9,6 @@ export default function LevelUp({ show, handleClose, form }) {
   const [showLvlModal, setShowLvlModal] = useState(show);
   const [chosenOccupation, setChosenOccupation] = useState('');
   const selectedOccupationRef = useRef();
-  const [levelForm] = useState({
-    selectedOccupation: "",
-    level: "",
-    health: "",
-  });
   const params = useParams();
   const navigate = useNavigate();
 
@@ -191,20 +186,6 @@ export default function LevelUp({ show, handleClose, form }) {
           <Card style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
             <Card.Title>Level Up</Card.Title>
             <Card.Body>
-              {/* Display level up information */}
-              <div>
-                Level: {form.totalLevel} {'\u2192'} Level: {Number(form.totalLevel) + 1}
-                <br />
-                HP: {form.health + Number(form.conMod * form.totalLevel)} {'\u2192'} HP: {levelForm.health + Number(form.conMod * (form.totalLevel + 1))}
-                <br />
-                Attack Bonus: {form.atkBonus} {'\u2192'} {form.atkBonusNext}
-                <br />
-                Fortitude Save: {form.fortSave} {'\u2192'} {form.fortSaveNext}
-                <br />
-                Will Save: {form.willSave} {'\u2192'} {form.willSaveNext}
-                <br />
-                Reflex Save: {form.reflexSave} {'\u2192'} {form.reflexSaveNext}
-              </div>
               {/* Add occupation */}
               <Form>
                 <Button className="rounded-pill bg-warning" variant="outline-dark" onClick={handleAddOccupationClick}>
