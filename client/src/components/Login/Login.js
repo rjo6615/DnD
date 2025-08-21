@@ -30,21 +30,6 @@ async function loginUser(credentials) {
   }
 }
 
-async function fetchUserByUsername(username) {
-  username = capitalizeFirstLetter(username);
-  try {
-    const response = await apiFetch(`/users/exists/${username}`, { credentials: 'omit' });
-    if (response.ok) {
-      const { exists } = await response.json();
-      return exists;
-    }
-    return false;
-  } catch (error) {
-    console.error('Fetch user error:', error);
-    return false;
-  }
-}
-
 async function createUser(newUser) {
   newUser.username = capitalizeFirstLetter(newUser.username);
   try {
@@ -55,10 +40,11 @@ async function createUser(newUser) {
       },
       body: JSON.stringify(newUser),
     });
+    const data = await response.json();
     if (!response.ok) {
-      throw new Error('Failed to create user');
+      throw new Error(data.message || 'Failed to create user');
     }
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('Create user error:', error);
     throw error;
@@ -76,6 +62,8 @@ export default function Login({ onLogin }) {
     password: '',
     confirmPassword: '',
   });
+  const [loginError, setLoginError] = useState('');
+  const [signupError, setSignupError] = useState('');
 
   const updateForm = (value) => setNewUser(prev => ({ ...prev, ...value }));
 
@@ -86,32 +74,30 @@ export default function Login({ onLogin }) {
       if (res.ok) {
         const user = await res.json();
         onLogin(user);
+        setLoginError('');
       } else {
         throw new Error('Failed to fetch user');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Failed to log in. Please check your credentials and try again.');
+      setLoginError('Failed to log in. Please check your credentials and try again.');
     }
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const userExists = await fetchUserByUsername(newUser.username);
-    if (userExists) {
-      alert('Username already in use!');
-    } else if (newUser.password === newUser.confirmPassword) {
-      try {
-        await createUser({ username: newUser.username, password: newUser.password });
-        alert('Account created!');
-        handleClose();
-        setNewUser({ username: '', password: '', confirmPassword: '' });
-      } catch (error) {
-        console.error('Signup error:', error);
-        alert('Failed to create account. Please try again later.');
-      }
-    } else {
-      alert('Passwords do not match!');
+    if (newUser.password !== newUser.confirmPassword) {
+      setSignupError('Passwords do not match!');
+      return;
+    }
+    try {
+      await createUser({ username: newUser.username, password: newUser.password });
+      setSignupError('');
+      handleClose();
+      setNewUser({ username: '', password: '', confirmPassword: '' });
+    } catch (error) {
+      console.error('Signup error:', error);
+      setSignupError(error.message);
     }
   };
   return (
@@ -142,6 +128,7 @@ export default function Login({ onLogin }) {
           placeholder="Password"
         />
       </Form.Group>
+      {loginError && <div className="text-danger mb-3">{loginError}</div>}
       <div className="text-center pt-1 mb-5 pb-1">
         <Button className="mb-2 w-100" variant="primary" onClick={handleLogin}>
           Login
@@ -163,19 +150,23 @@ export default function Login({ onLogin }) {
     </Modal.Header>
     <Modal.Body>
       <Form onSubmit={onSubmit} className="px-5">
-        <Form.Group className="mb-3 pt-3">
+        <Form.Group className="mb-3 pt-3" controlId="signupUsername">
           <Form.Label className="text-dark">Username</Form.Label>
           <Form.Control
             onChange={(e) => updateForm({ username: e.target.value })}
             type="text"
             placeholder="Enter username"
           />
+        </Form.Group>
+        <Form.Group className="mb-3" controlId="signupPassword">
           <Form.Label className="text-dark">Password</Form.Label>
           <Form.Control
             onChange={(e) => updateForm({ password: e.target.value })}
             type="password"
             placeholder="Enter password"
           />
+        </Form.Group>
+        <Form.Group className="mb-3" controlId="signupConfirmPassword">
           <Form.Label className="text-dark">Confirm Password</Form.Label>
           <Form.Control
             onChange={(e) => updateForm({ confirmPassword: e.target.value })}
@@ -183,6 +174,7 @@ export default function Login({ onLogin }) {
             placeholder="Confirm password"
           />
         </Form.Group>
+        {signupError && <div className="text-danger mb-3">{signupError}</div>}
         <div className="text-center">
           <Button variant="primary" type="submit">Submit</Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose}>Close</Button>

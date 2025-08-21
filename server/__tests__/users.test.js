@@ -71,30 +71,6 @@ describe('Users routes', () => {
     expect(res.body.valid).toBeUndefined();
   });
 
-  describe('GET /users/exists/:username', () => {
-    test('returns { exists: true } for existing user', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({
-          findOne: async () => ({ username: 'alice' })
-        })
-      });
-      const res = await request(app).get('/users/exists/alice');
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ exists: true });
-    });
-
-    test('returns { exists: false } for missing user', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({
-          findOne: async () => null
-        })
-      });
-      const res = await request(app).get('/users/exists/bob');
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ exists: false });
-    });
-  });
-
   test('get users success excludes password', async () => {
     const findMock = jest.fn((query, options) => ({
       toArray: async () => {
@@ -131,7 +107,7 @@ describe('Users routes', () => {
     expect(res.body.message).toBe('Internal Server Error');
   });
 
-  test('register failure with duplicate username', async () => {
+  test('register failure with duplicate username returns generic message', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({ username: 'alice' }),
@@ -141,8 +117,8 @@ describe('Users routes', () => {
     const res = await request(app)
       .post('/users/add')
       .send({ username: 'alice', password: 'Strongpass1!' });
-    expect(res.status).toBe(409);
-    expect(res.body.message).toBe('Username already exists');
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Unable to create user');
   });
 
   test('register failure with weak password', async () => {

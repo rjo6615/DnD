@@ -17,18 +17,6 @@ module.exports = (router) => {
     }
   });
 
-  router.get('/users/exists/:username', async (req, res, next) => {
-    try {
-      const db_connect = req.db;
-      const user = await db_connect
-        .collection('users')
-        .findOne({ username: req.params.username });
-      res.json({ exists: !!user });
-    } catch (err) {
-      next(err);
-    }
-  });
-
   router.get('/users/:username', authenticateToken, async (req, res, next) => {
     try {
       const db_connect = req.db;
@@ -64,6 +52,8 @@ module.exports = (router) => {
     async (req, res, next) => {
       const { username, password } = req.body;
 
+      const genericMessage = 'Unable to create user';
+
       try {
         const db_connect = req.db;
 
@@ -71,7 +61,7 @@ module.exports = (router) => {
           .collection('users')
           .findOne({ username });
         if (existingUser) {
-          return res.status(409).json({ message: 'Username already exists' });
+          return res.status(400).json({ message: genericMessage });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -83,11 +73,7 @@ module.exports = (router) => {
         const result = await db_connect.collection('users').insertOne(myobj);
         res.json(result);
       } catch (err) {
-        // Handle duplicate key error thrown by MongoDB unique index
-        if (err.code === 11000) {
-          return res.status(409).json({ message: 'Username already exists' });
-        }
-        next(err);
+        return res.status(400).json({ message: genericMessage });
       }
     }
   );
