@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Card, Modal, Button, Form } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
-import levelup from "../../../images/levelup.png";
 import wornpaper from "../../../images/wornpaper.jpg"; // Ensure you have this image
 
 export default function LevelUp({ show, handleClose, form }) {
@@ -10,7 +9,7 @@ export default function LevelUp({ show, handleClose, form }) {
   const [showLvlModal, setShowLvlModal] = useState(show);
   const [chosenOccupation, setChosenOccupation] = useState('');
   const selectedOccupationRef = useRef();
-  const [levelForm, setLevelForm] = useState({
+  const [levelForm] = useState({
     selectedOccupation: "",
     level: "",
     health: "",

@@ -97,41 +97,6 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
     }
   }, [form.tempHealth]);
 
-  const maxPossibleHealth = form.health + Number(conMod * totalLevel);  
-  
-  function getColorForHealth(currentHealth, maxHealth) {
-    const healthPercentage = (currentHealth / maxHealth) * 100;
-    if (healthPercentage >= 70) {
-      return 'green';
-    } else if (healthPercentage >= 30) {
-      return 'yellow';
-    } else {
-      return 'red';
-    }
-  }
-
-  const healthColor = getColorForHealth(health, maxPossibleHealth);
-  const healthWidth = (health / maxPossibleHealth) * 100;
-  const healthStyle = {
-    width: `${healthWidth}%`,
-    backgroundColor: healthColor,
-    color: "black",
-    height: "100%",
-    borderRadius: "5px",
-    transition: "width 0.3s",
-    textAlign: "center",
-    fontWeight: "bold",
-    lineHeight: "20px",
-  };
-
-  const healthBar = {
-    width: "100%",
-    height: "20px",
-    backgroundColor: "#debb9d",
-    borderRadius: "5px",
-    marginBottom: "10px",
-  };
-
   let offset;
   const increaseHealth = () => {
     if (health === form.health + Number(conMod * totalLevel)){

@@ -195,7 +195,7 @@ const showSparklesEffect = () => {
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div style={{ marginTop: "-40px"}}>
-    <div className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''}`} id="damageAmount">
+    <div className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''}`} id="damageAmount" style={{margin: "0 auto"}}>
       <span id="damageValue" className={loading ? 'hidden' : ''}>
         {damageValue}
       </span>

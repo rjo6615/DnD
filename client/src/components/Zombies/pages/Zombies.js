@@ -150,7 +150,8 @@ async function onSubmit1(e) {
             alignItems: "center", 
             justifyContent: "center", 
             borderRadius: "10px", // Rounded corners
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" // Light shadow for depth
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
+            margin: "0 auto"
           }}>Zombies</h1>    
       <Container className="mt-3">
       <Row>

@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import zombiesbg from "../../../images/zombiesbg.jpg";
-import banner from "../../../images/banner.png";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";

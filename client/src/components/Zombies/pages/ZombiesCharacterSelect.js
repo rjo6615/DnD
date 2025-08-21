@@ -41,35 +41,34 @@ export default function RecordList() {
     navigate(`/zombies-character-sheet/${id}`);
   }
 
-  // Removed duplicate token decode effect
 // --------------------------Random Character Creator Section------------------------------------
   const createEmptyArray = (length) => Array(length).fill("");
 
-  const createDefaultForm = (campaign) => {
-    const skillDefaults = Object.fromEntries(SKILLS.map(({ key }) => [key, 0]));
-    const statDefaults = Object.fromEntries(STATS.map(({ key }) => [key, ""]));
-    return {
-      token: "",
-      characterName: "",
-      campaign: campaign.toString(),
-      occupation: [""],
-      feat: [createEmptyArray(SKILLS.length + 2)],
-      weapon: [createEmptyArray(6)],
-      armor: [createEmptyArray(4)],
-      item: [createEmptyArray(SKILLS.length + 8)],
-      age: "",
-      sex: "",
-      height: "",
-      weight: "",
-      startStatTotal: "",
-      health: "",
-      tempHealth: "",
-      ...statDefaults,
-      ...skillDefaults,
-      newSkill: [["", 0]],
-      diceColor: "#000000",
-    };
+const createDefaultForm = useCallback((campaign) => {
+  const skillDefaults = Object.fromEntries(SKILLS.map(({ key }) => [key, 0]));
+  const statDefaults = Object.fromEntries(STATS.map(({ key }) => [key, ""]));
+  return {
+    token: "",
+    characterName: "",
+    campaign: campaign.toString(),
+    occupation: [""],
+    feat: [createEmptyArray(SKILLS.length + 2)],
+    weapon: [createEmptyArray(6)],
+    armor: [createEmptyArray(4)],
+    item: [createEmptyArray(SKILLS.length + 8)],
+    age: "",
+    sex: "",
+    height: "",
+    weight: "",
+    startStatTotal: "",
+    health: "",
+    tempHealth: "",
+    ...statDefaults,
+    ...skillDefaults,
+    newSkill: [["", 0]],
+    diceColor: "#000000",
   };
+}, []);
 
   const [form, setForm] = useState(createDefaultForm(params.campaign));
 
@@ -245,7 +244,7 @@ useEffect(() => {
    setIsSubmitting(false);
    setForm(createDefaultForm(params.campaign));
   navigate(0);
-}, [form, setForm, navigate]);
+}, [form, setForm, navigate, createDefaultForm, params.campaign]);
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
@@ -361,14 +360,15 @@ useEffect(() => {
     alignItems: "center", 
     justifyContent: "center", 
     borderRadius: "10px", // Rounded corners
-    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" // Light shadow for depth
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
+    margin: "0 auto"
   }} 
   className="text-light"
 >
   {params.campaign.toString()}
 </h1>
-<div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4' }}>
-        <Table style={{ width: 'auto', position: "relative", zIndex: "4" }} striped bordered condensed="true" className="zombieCharacterSelectTable dnd-background">
+<div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
+        <Table style={{ width: 'auto', position: "relative", zIndex: "4", margin: "0 auto" }} striped bordered condensed="true" className="zombieCharacterSelectTable dnd-background">
           <thead>
             <tr>
               <th>Character</th>
