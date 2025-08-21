@@ -67,91 +67,46 @@ const [feat, setFeat] = useState({
     return;
     
   }, [navigate]);
-   // Sends feat data to database for update
-   const splitFeatArr = (array, size) => {
-    let result = [];
-    for (let i = 0; i < array.length; i += size) {
-      let chunk = array.slice(i, i + size);
-      result.push(chunk);
-    }
-    return result;
-  };
-   let newFeat;
-   if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) {
-    let newFeatArr = addFeat.feat.split(',');
-    const featArrSize = 32;
-    const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
-    newFeat = featArrChunks;
-   } else {
-    let newFeatArr = (form.feat + "," + addFeat.feat).split(',');
-    const featArrSize = 32;
-    const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
-    newFeat = featArrChunks;
-   }
-   async function addFeatToDb(e){
+  // Sends feat data to database for update
+  async function addFeatToDb(e) {
     e.preventDefault();
-    await apiFetch(`/update-feat/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      feat: newFeat,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
-   navigate(0);
+    const newFeat = addFeat.feat
+      .split(',')
+      .map((f) => f.trim())
+      .filter((f) => f);
+    await apiFetch(`/characters/${params.id}/feats`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        feat: newFeat,
+      }),
+    }).catch((error) => {
+      window.alert(error);
+      return;
+    });
+    navigate(0);
   }
-   // This method will delete an feat
-   function deleteFeats(el) {
-    const index = form.feat.indexOf(el);
-    form.feat.splice(index, 1);
-    updateFeat(form.feat);
-    addDeleteFeatToDb();
-   }
-   let showDeleteFeatBtn = "";
-   if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])){
-    showDeleteFeatBtn = "none";
-   }
-  async function addDeleteFeatToDb(){
-    let newFeatForm = form.feat;
-    if (JSON.stringify(form.feat) === JSON.stringify([])){
-      newFeatForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
-      await apiFetch(`/update-feat/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-         feat: newFeatForm,
-        }),
+  // This method will delete a feat
+  async function deleteFeats(el) {
+    await apiFetch(`/characters/${params.id}/feats/${encodeURIComponent(el[0])}`, {
+      method: 'DELETE',
+    })
+      .then(() => {
+        window.alert('Feat Deleted');
+        navigate(0);
       })
-      .catch(error => {
+      .catch((error) => {
         window.alert(error);
-        return;
       });
-      window.alert("Feat Deleted")
-      navigate(0);
-    } else {
-    await apiFetch(`/update-feat/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      feat: newFeatForm,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
-   window.alert("Feat Deleted")
-   navigate(0);
   }
+  let showDeleteFeatBtn = '';
+  if (
+    JSON.stringify(form.feat) ===
+    JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])
+  ) {
+    showDeleteFeatBtn = 'none';
   }
 
 
