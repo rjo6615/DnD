@@ -213,7 +213,11 @@ module.exports = (router) => {
       try {
         await db_connect.collection('Characters').updateOne(
           { _id: ObjectId(req.params.id) },
-          { $set: { feat: matchedData(req, { locations: ['body'] }).feat } }
+          {
+            $push: {
+              feat: { $each: matchedData(req, { locations: ['body'] }).feat },
+            },
+          }
         );
         logger.info('Feats updated');
         res.json({ message: 'Feats updated' });

@@ -432,9 +432,33 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .put('/characters/507f1f77bcf86cd799439011/feats')
-      .send({ feat: ['Power Attack'] });
+      .send({ feat: ['Power Attack', 'Cleave'] });
     expect(res.status).toBe(200);
-    expect(captured.update.$set.feat).toEqual(['Power Attack']);
+    expect(captured.update.$push.feat.$each).toEqual(['Power Attack', 'Cleave']);
+  });
+
+  test('append feats across requests', async () => {
+    const character = { feat: [] };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        updateOne: async (filter, update) => {
+          character.feat.push(...update.$push.feat.$each);
+          return { modifiedCount: 1 };
+        },
+        findOne: async () => character
+      })
+    });
+
+    await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: ['Power Attack'] });
+
+    await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: ['Cleave'] });
+
+    const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
+    expect(res.body.feat).toEqual(['Power Attack', 'Cleave']);
   });
 
   test('update feats invalid body', async () => {
