@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
@@ -30,9 +30,10 @@ app.use(helmet());
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
+  validate: { trustProxy: false },
 });
 
-app.use(['/login', '/logout', '/users/verify', '/me'], authLimiter);
+app.use(['/login', '/logout', '/users/verify'], authLimiter);
 app.use(routes);
 
 // Adjusted to serve static files from the correct build directory
