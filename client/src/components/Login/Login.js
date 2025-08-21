@@ -53,7 +53,6 @@ async function createUser(newUser) {
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'omit',
       body: JSON.stringify(newUser),
     });
     if (!response.ok) {

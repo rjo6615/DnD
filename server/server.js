@@ -5,6 +5,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const csrf = require("csurf");
 const path = require('path');
 const config = require("./utils/config");
 const connectToDatabase = require("./db/conn");
@@ -27,6 +28,19 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
 
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+  },
+});
+app.use(csrfProtection);
+
+app.get('/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
@@ -47,6 +61,9 @@ app.get('*', (req, res) => {
 // Centralized error-handling middleware
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({ message: 'Invalid CSRF token' });
+  }
   logger.error(err);
   const status = err.status || 500;
   const message = status === 500 ? 'Internal Server Error' : err.message;
