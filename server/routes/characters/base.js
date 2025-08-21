@@ -13,6 +13,9 @@ module.exports = (router) => {
 
   // This section will get a single character by id
   characterRouter.route('/characters/:id').get(async (req, res, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
     try {
       const db_connect = req.db;
       const myquery = { _id: ObjectId(req.params.id) };
@@ -117,6 +120,9 @@ module.exports = (router) => {
 
   // This section will delete a character
   characterRouter.route('/delete-character/:id').delete(async (req, response, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return response.status(400).json({ error: 'Invalid ID' });
+    }
     const db_connect = req.db;
     const myquery = { _id: ObjectId(req.params.id) };
     try {
@@ -129,52 +135,71 @@ module.exports = (router) => {
   });
 
   // This section will update level.
-  characterRouter.route('/update-level/:id').put(async (req, res, next) => {
-    const db_connect = req.db;
-    const selectedOccupation = req.body.selectedOccupation;
+  characterRouter.route('/update-level/:id').put(
+    [
+      body('level').isInt().withMessage('level must be an integer').toInt(),
+      body('health').isInt().withMessage('health must be an integer').toInt(),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
+      }
+      const db_connect = req.db;
+      const selectedOccupation = req.body.selectedOccupation;
+      const { level, health } = matchedData(req, { locations: ['body'] });
 
-    const updateOperation = {
-      $set: {
-        'occupation.$.Level': req.body.level,
-        health: req.body.health,
-      },
-    };
+      const updateOperation = {
+        $set: {
+          'occupation.$.Level': level,
+          health,
+        },
+      };
 
-    try {
-      const result = await db_connect.collection('Characters').updateOne(
-        {
-          _id: ObjectId(req.params.id),
-          occupation: {
-            $elemMatch: {
-              Occupation: selectedOccupation,
+      try {
+        const result = await db_connect.collection('Characters').updateOne(
+          {
+            _id: ObjectId(req.params.id),
+            occupation: {
+              $elemMatch: {
+                Occupation: selectedOccupation,
+              },
             },
           },
-        },
-        updateOperation
-      );
-      if (result.modifiedCount !== 0) {
-        logger.info(`Character updated for Occupation: ${selectedOccupation}`);
-        res.send('Update complete');
+          updateOperation
+        );
+        if (result.modifiedCount !== 0) {
+          logger.info(`Character updated for Occupation: ${selectedOccupation}`);
+          res.send('Update complete');
+        }
+      } catch (err) {
+        next(err);
       }
-    } catch (err) {
-      next(err);
     }
-  });
+  );
 
   // This section will update dice color.
-  characterRouter.route('/update-dice-color/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      await db_connect.collection('Characters').updateOne(id, {
-        $set: { diceColor: req.body.diceColor },
-      });
-      logger.info('Dice Color updated');
-      res.send('user updated sucessfully');
-    } catch (err) {
-      next(err);
+  characterRouter.route('/update-dice-color/:id').put(
+    [body('diceColor').isString().withMessage('diceColor must be a string').trim()],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
+      }
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { diceColor } = matchedData(req, { locations: ['body'] });
+      try {
+        await db_connect.collection('Characters').updateOne(id, {
+          $set: { diceColor },
+        });
+        logger.info('Dice Color updated');
+        res.send('user updated sucessfully');
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   router.use(characterRouter);
 };

@@ -370,4 +370,48 @@ describe('Character routes', () => {
       .send({ campaign: 'Camp1', itemName: 'Potion' });
     expect(res.status).toBe(500);
   });
+
+  test('get character invalid id', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app).get('/characters/123');
+    expect(res.status).toBe(400);
+  });
+
+  test('delete character invalid id', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app).delete('/delete-character/123');
+    expect(res.status).toBe(400);
+  });
+
+  test('update level invalid id', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .put('/update-level/123')
+      .send({ level: 1, health: 1 });
+    expect(res.status).toBe(400);
+  });
+
+  test('update level invalid body', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .put('/update-level/507f1f77bcf86cd799439011')
+      .send({ level: 'one', health: 1 });
+    expect(res.status).toBe(400);
+  });
+
+  test('update dice color invalid id', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .put('/update-dice-color/123')
+      .send({ diceColor: 'blue' });
+    expect(res.status).toBe(400);
+  });
+
+  test('update dice color invalid body', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .put('/update-dice-color/507f1f77bcf86cd799439011')
+      .send({ diceColor: 5 });
+    expect(res.status).toBe(400);
+  });
 });
