@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-app.set('trust proxy', 1); // or `true` if multiple proxies
+app.set('trust proxy', true);
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
