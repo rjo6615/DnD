@@ -468,4 +468,29 @@ describe('Character routes', () => {
       .send({ feat: 'Power Attack' });
     expect(res.status).toBe(400);
   });
+
+  test('delete feat success', async () => {
+    let captured;
+    dbo.mockResolvedValue({
+      collection: () => ({
+        updateOne: async (filter, update) => {
+          captured = { filter, update };
+          return { modifiedCount: 1 };
+        }
+      })
+    });
+    const res = await request(app)
+      .delete('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: 'Power Attack' });
+    expect(res.status).toBe(200);
+    expect(captured.update.$pull.feat.$in).toEqual(['Power Attack']);
+  });
+
+  test('delete feat invalid body', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .delete('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: ['Power Attack'] });
+    expect(res.status).toBe(400);
+  });
 });

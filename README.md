@@ -53,6 +53,10 @@ Use `PUT /characters/:id/feats` with a JSON body like `{ "feat": ["Feat1"] }` to
 append new feats to a character. Each request adds feats to the existing list
 rather than replacing the current feats.
 
+Use `DELETE /characters/:id/feats` with a JSON body like `{ "feat": "Feat1" }`
+to remove a feat. The server responds with success if the feat was removed or
+`404` if the feat was not found.
+
 ## Support
 For help with this webpage please contact
 |Name | Email |
