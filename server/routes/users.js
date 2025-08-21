@@ -7,7 +7,10 @@ module.exports = (router) => {
   router.get('/users', authenticateToken, async (req, res, next) => {
     try {
       const db_connect = req.db;
-      const result = await db_connect.collection('users').find({}).toArray();
+      const result = await db_connect
+        .collection('users')
+        .find({}, { projection: { password: 0 } })
+        .toArray();
       res.json(result);
     } catch (err) {
       next(err);
