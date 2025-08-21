@@ -202,57 +202,30 @@ module.exports = (router) => {
   );
 
   // This section will update feats.
-  characterRouter
-    .route('/characters/:id/feats')
-    .put(
-      [body('feat').isArray().withMessage('feat must be an array')],
-      handleValidationErrors,
-      async (req, res, next) => {
-        if (!ObjectId.isValid(req.params.id)) {
-          return res.status(400).json({ message: 'Invalid ID' });
-        }
-        const db_connect = req.db;
-        try {
-          await db_connect.collection('Characters').updateOne(
-            { _id: ObjectId(req.params.id) },
-            {
-              $push: {
-                feat: { $each: matchedData(req, { locations: ['body'] }).feat },
-              },
-            }
-          );
-          logger.info('Feats updated');
-          res.json({ message: 'Feats updated' });
-        } catch (err) {
-          next(err);
-        }
+  characterRouter.route('/characters/:id/feats').put(
+    [body('feat').isArray().withMessage('feat must be an array')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
       }
-    )
-    .delete(
-      [body('feat').isString().withMessage('feat must be a string')],
-      handleValidationErrors,
-      async (req, res, next) => {
-        if (!ObjectId.isValid(req.params.id)) {
-          return res.status(400).json({ message: 'Invalid ID' });
-        }
-        const db_connect = req.db;
-        const { feat } = matchedData(req, { locations: ['body'] });
-        try {
-          const result = await db_connect.collection('Characters').updateOne(
-            { _id: ObjectId(req.params.id) },
-            { $pull: { feat: { $in: [feat] } } }
-          );
-          if (result.modifiedCount > 0) {
-            logger.info('Feat removed');
-            res.json({ message: 'Feat removed' });
-          } else {
-            res.status(404).json({ message: 'Feat not found' });
+      const db_connect = req.db;
+      try {
+        await db_connect.collection('Characters').updateOne(
+          { _id: ObjectId(req.params.id) },
+          {
+            $push: {
+              feat: { $each: matchedData(req, { locations: ['body'] }).feat },
+            },
           }
-        } catch (err) {
-          next(err);
-        }
+        );
+        logger.info('Feats updated');
+        res.json({ message: 'Feats updated' });
+      } catch (err) {
+        next(err);
       }
-    );
+    }
+  );
 
   router.use(characterRouter);
 };
