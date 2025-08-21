@@ -33,9 +33,9 @@ module.exports = (router) => {
           sameSite: 'strict',
         });
         res.json({ message: 'Logged in' });
-        logger.info('JWT token generated for login request', {
+        logger.info('User logged in', {
           timestamp: new Date().toISOString(),
-          token,
+          username: user.username,
         });
       } catch (err) {
         logger.error('Error during login request', { error: err.message });
