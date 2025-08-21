@@ -201,6 +201,28 @@ module.exports = (router) => {
     }
   );
 
+  // This section will update feats.
+  characterRouter.route('/characters/:id/feats').put(
+    [body('feat').isArray().withMessage('feat must be an array')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const db_connect = req.db;
+      try {
+        await db_connect.collection('Characters').updateOne(
+          { _id: ObjectId(req.params.id) },
+          { $set: { feat: matchedData(req, { locations: ['body'] }).feat } }
+        );
+        logger.info('Feats updated');
+        res.json({ message: 'Feats updated' });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   router.use(characterRouter);
 };
 
