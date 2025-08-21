@@ -419,4 +419,29 @@ describe('Character routes', () => {
       .send({ diceColor: 5 });
     expect(res.status).toBe(400);
   });
+
+  test('update feats success', async () => {
+    let captured;
+    dbo.mockResolvedValue({
+      collection: () => ({
+        updateOne: async (filter, update) => {
+          captured = { filter, update };
+          return { modifiedCount: 1 };
+        }
+      })
+    });
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: ['Power Attack'] });
+    expect(res.status).toBe(200);
+    expect(captured.update.$set.feat).toEqual(['Power Attack']);
+  });
+
+  test('update feats invalid body', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: 'Power Attack' });
+    expect(res.status).toBe(400);
+  });
 });
