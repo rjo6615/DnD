@@ -16,7 +16,7 @@ module.exports = (router) => {
       param('campaign').trim().notEmpty().withMessage('campaign is required'),
     ],
     handleValidationErrors,
-    async (req, res) => {
+    async (req, res, next) => {
       if (!Array.isArray(req.body)) {
         return res
           .status(400)
@@ -33,12 +33,12 @@ module.exports = (router) => {
         );
         logger.info("Players added");
         if (result.modifiedCount === 0) {
-          return res.status(400).send("Players already exist in the array");
+          return res.status(400).json({ message: 'Players already exist in the array' });
         }
-        res.send('Players added successfully');
+        res.json({ message: 'Players added successfully' });
       } catch (err) {
         logger.error(`Error adding players: ${err}`);
-        res.status(500).send("Internal Server Error");
+        next(err);
       }
     }
   );
@@ -72,7 +72,7 @@ module.exports = (router) => {
    });
 
   // This section will find a specific campaign.
-  campaignRouter.route("/campaign/:campaign").get(async (req, res) => {
+  campaignRouter.route("/campaign/:campaign").get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -80,7 +80,7 @@ module.exports = (router) => {
         .findOne({ campaignName: req.params.campaign });
       res.json(result);
     } catch (err) {
-      res.status(500).json({ message: 'Internal server error' });
+      next(err);
     }
   });
 

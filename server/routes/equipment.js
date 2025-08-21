@@ -31,9 +31,9 @@ module.exports = (router) => {
     [body('weapon').isArray().withMessage('weapon must be an array')],
     handleValidationErrors,
     async (req, res, next) => {
-      if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
-      }
+        if (!ObjectId.isValid(req.params.id)) {
+          return res.status(400).json({ message: 'Invalid ID' });
+        }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
       const { weapon } = matchedData(req, { locations: ['body'] });
@@ -41,9 +41,9 @@ module.exports = (router) => {
         const result = await db_connect.collection('Characters').updateOne(id, {
           $set: { weapon },
         });
-        if (result.matchedCount === 0) {
-          return res.status(404).json({ error: 'Weapon not found' });
-        }
+          if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Weapon not found' });
+          }
         res.json({ message: 'Weapon updated' });
       } catch (err) {
         next(err);
@@ -118,9 +118,9 @@ module.exports = (router) => {
     [body('armor').isArray().withMessage('armor must be an array')],
     handleValidationErrors,
     async (req, res, next) => {
-      if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
-      }
+        if (!ObjectId.isValid(req.params.id)) {
+          return res.status(400).json({ message: 'Invalid ID' });
+        }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
       const { armor } = matchedData(req, { locations: ['body'] });
@@ -128,9 +128,9 @@ module.exports = (router) => {
         const result = await db_connect.collection('Characters').updateOne(id, {
           $set: { armor },
         });
-        if (result.matchedCount === 0) {
-          return res.status(404).json({ error: 'Armor not found' });
-        }
+          if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Armor not found' });
+          }
         res.json({ message: 'Armor updated' });
       } catch (err) {
         next(err);
@@ -217,9 +217,9 @@ module.exports = (router) => {
     [body('item').isArray().withMessage('item must be an array')],
     handleValidationErrors,
     async (req, res, next) => {
-      if (!ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
-      }
+        if (!ObjectId.isValid(req.params.id)) {
+          return res.status(400).json({ message: 'Invalid ID' });
+        }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
       const { item } = matchedData(req, { locations: ['body'] });
@@ -227,9 +227,9 @@ module.exports = (router) => {
         const result = await db_connect.collection('Characters').updateOne(id, {
           $set: { item },
         });
-        if (result.matchedCount === 0) {
-          return res.status(404).json({ error: 'Item not found' });
-        }
+          if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Item not found' });
+          }
         res.json({ message: 'Item updated' });
       } catch (err) {
         next(err);

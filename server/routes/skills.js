@@ -54,7 +54,7 @@ module.exports = (router) => {
       );
       res.status(200).json(result.value);
     } catch (err) {
-      res.status(500).send('Server error');
+      next(err);
     }
   });
 
@@ -66,8 +66,8 @@ module.exports = (router) => {
       await db_connect.collection("Characters").updateOne(id, {
         $set: { 'newSkill': req.body.newSkill }
       });
-      logger.info("character knowledge updated");
-      res.send('user updated sucessfully');
+        logger.info("character knowledge updated");
+        res.json({ message: 'User updated successfully' });
     } catch (err) {
       next(err);
     }
@@ -85,7 +85,7 @@ module.exports = (router) => {
       );
       res.status(200).json(result.value);
     } catch (err) {
-      res.status(500).send('Server error');
+      next(err);
     }
   });
 

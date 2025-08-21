@@ -77,7 +77,7 @@ module.exports = (router) => {
         $set: { 'feat': req.body.feat }
       });
       logger.info("character feat updated");
-      res.send('user updated sucessfully');
+      res.json({ message: 'User updated successfully' });
     } catch (err) {
       next(err);
     }

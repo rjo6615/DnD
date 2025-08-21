@@ -4,17 +4,17 @@ const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 
 module.exports = (router) => {
-  router.get('/users', authenticateToken, async (req, res) => {
+  router.get('/users', authenticateToken, async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect.collection('users').find({}).toArray();
       res.json(result);
     } catch (err) {
-      res.status(500).json({ message: 'Internal server error' });
+      next(err);
     }
   });
 
-  router.get('/users/exists/:username', async (req, res) => {
+  router.get('/users/exists/:username', async (req, res, next) => {
     try {
       const db_connect = req.db;
       const user = await db_connect
@@ -22,11 +22,11 @@ module.exports = (router) => {
         .findOne({ username: req.params.username });
       res.json({ exists: !!user });
     } catch (err) {
-      res.status(500).json({ message: 'Internal server error' });
+      next(err);
     }
   });
 
-  router.get('/users/:username', authenticateToken, async (req, res) => {
+  router.get('/users/:username', authenticateToken, async (req, res, next) => {
     try {
       const db_connect = req.db;
       const myquery = { username: req.params.username };
@@ -37,7 +37,7 @@ module.exports = (router) => {
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (err) {
-      res.status(500).json({ message: 'Internal server error' });
+      next(err);
     }
   });
 
@@ -58,7 +58,7 @@ module.exports = (router) => {
         .withMessage('password must contain at least one special character'),
     ],
     handleValidationErrors,
-    async (req, res) => {
+    async (req, res, next) => {
       const { username, password } = req.body;
 
       try {
@@ -84,7 +84,7 @@ module.exports = (router) => {
         if (err.code === 11000) {
           return res.status(409).json({ message: 'Username already exists' });
         }
-        res.status(500).json({ message: 'Internal server error' });
+        next(err);
       }
     }
   );

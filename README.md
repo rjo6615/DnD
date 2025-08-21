@@ -35,6 +35,18 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 | `CLIENT_ORIGIN` | The URL of the client application allowed to make cross-origin requests. |
 
 
+## API Error Format
+
+All API errors are returned as JSON objects with a single `message` property. For example:
+
+```
+{
+  "message": "Description of the error"
+}
+```
+
+Clients should rely on this structure when handling error responses.
+
 ## Support
 For help with this webpage please contact
 |Name | Email |

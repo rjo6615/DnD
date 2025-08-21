@@ -25,7 +25,7 @@ module.exports = (router) => {
         },
       });
       logger.info('character stats updated');
-      res.send('user updated sucessfully');
+      res.json({ message: 'User updated successfully' });
     } catch (err) {
       next(err);
     }

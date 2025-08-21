@@ -14,7 +14,9 @@ const app = express();
 app.use(express.json());
 app.use(campaignsRouter);
 app.use((err, req, res, next) => {
-  res.status(500).json({ message: err.message });
+  const status = err.status || 500;
+  const message = status === 500 ? 'Internal Server Error' : err.message;
+  res.status(status).json({ message });
 });
 
 describe('Campaign routes', () => {
@@ -41,7 +43,7 @@ describe('Campaign routes', () => {
       .post('/campaign/add')
       .send({ campaignName: 'Test', dm: 'DM' });
     expect(res.status).toBe(500);
-    expect(res.body.message).toBe('db error');
+    expect(res.body.message).toBe('Internal Server Error');
   });
 
   test('get campaign by name success', async () => {

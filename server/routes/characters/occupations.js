@@ -33,10 +33,10 @@ module.exports = (router) => {
         $set: { occupation: req.body },
       });
       logger.info('Character occupations updated');
-      res.send('User updated successfully');
+      res.json({ message: 'User updated successfully' });
     } catch (error) {
       logger.error(error);
-      res.status(500).send('Server error');
+      next(error);
     }
   });
 

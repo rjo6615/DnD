@@ -15,7 +15,9 @@ const app = express();
 app.use(express.json());
 app.use(usersRouter);
 app.use((err, req, res, next) => {
-  res.status(500).json({ message: err.message });
+  const status = err.status || 500;
+  const message = status === 500 ? 'Internal Server Error' : err.message;
+  res.status(status).json({ message });
 });
 
 describe('Users routes', () => {
@@ -101,7 +103,7 @@ describe('Users routes', () => {
     });
     const res = await request(app).get('/users');
     expect(res.status).toBe(500);
-    expect(res.body.message).toBe('Internal server error');
+    expect(res.body.message).toBe('Internal Server Error');
   });
 
   test('register failure with duplicate username', async () => {
