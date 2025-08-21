@@ -468,4 +468,39 @@ describe('Character routes', () => {
       .send({ feat: 'Power Attack' });
     expect(res.status).toBe(400);
   });
+
+  test('delete feats success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        updateOne: async () => ({ modifiedCount: 1 })
+      })
+    });
+    const res = await request(app)
+      .delete('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: ['Power Attack'] });
+    expect(res.status).toBe(200);
+    if (res.body.modifiedCount !== undefined) {
+      expect(res.body.modifiedCount).toBe(1);
+    } else {
+      const feats = Array.isArray(res.body) ? res.body : res.body.feat;
+      expect(Array.isArray(feats)).toBe(true);
+      expect(feats).not.toContain('Power Attack');
+    }
+  });
+
+  test('delete feats invalid id', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .delete('/characters/123/feats')
+      .send({ feat: ['Power Attack'] });
+    expect(res.status).toBe(400);
+  });
+
+  test('delete feats invalid body', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .delete('/characters/507f1f77bcf86cd799439011/feats')
+      .send({ feat: 'Power Attack' });
+    expect(res.status).toBe(400);
+  });
 });
