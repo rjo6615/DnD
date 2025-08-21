@@ -1,6 +1,6 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
-const { body } = require('express-validator');
+const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 
@@ -27,48 +27,47 @@ module.exports = (router) => {
   });
 
   // This section will update weapons.
-  equipmentRouter.route('/update-weapon/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      const result = await db_connect.collection("Characters").updateOne(id, {
-        $set: { 'weapon': req.body.weapon }
-      });
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: 'Weapon not found' });
+  equipmentRouter.route('/update-weapon/:id').put(
+    [body('weapon').isArray().withMessage('weapon must be an array')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
       }
-      res.json({ message: 'Weapon updated' });
-    } catch (err) {
-      next(err);
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { weapon } = matchedData(req, { locations: ['body'] });
+      try {
+        const result = await db_connect.collection('Characters').updateOne(id, {
+          $set: { weapon },
+        });
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ error: 'Weapon not found' });
+        }
+        res.json({ message: 'Weapon updated' });
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   // This section will create a new weapon.
-  equipmentRouter.route("/weapon/add").post(
+  equipmentRouter.route('/weapon/add').post(
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('weaponName').trim().notEmpty().withMessage('weaponName is required'),
+      body('enhancement').optional().isInt().toInt(),
+      body('range').optional().isInt().toInt(),
+      body('damage').optional().trim(),
+      body('critical').optional().trim(),
+      body('weaponStyle').optional().trim(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
       const db_connect = req.db;
-      const allowedFields = [
-        'campaign',
-        'weaponName',
-        'enhancement',
-        'damage',
-        'critical',
-        'weaponStyle',
-        'range',
-      ];
-      const myobj = {};
-      allowedFields.forEach((field) => {
-        if (req.body[field] !== undefined) {
-          myobj[field] = req.body[field];
-        }
-      });
+      const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
-        const result = await db_connect.collection("Weapons").insertOne(myobj);
+        const result = await db_connect.collection('Weapons').insertOne(myobj);
         response.json(result);
       } catch (err) {
         next(err);
@@ -93,29 +92,20 @@ module.exports = (router) => {
   });
 
   // This section will create a new armor.
-  equipmentRouter.route("/armor/add").post(
+  equipmentRouter.route('/armor/add').post(
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('armorName').trim().notEmpty().withMessage('armorName is required'),
+      body('armorBonus').optional().isInt().toInt(),
+      body('maxDex').optional().isInt().toInt(),
+      body('armorCheckPenalty').optional().isInt().toInt(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
       const db_connect = req.db;
-      const allowedFields = [
-        'campaign',
-        'armorName',
-        'armorBonus',
-        'maxDex',
-        'armorCheckPenalty',
-      ];
-      const myobj = {};
-      allowedFields.forEach((field) => {
-        if (req.body[field] !== undefined) {
-          myobj[field] = req.body[field];
-        }
-      });
+      const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
-        const result = await db_connect.collection("Armor").insertOne(myobj);
+        const result = await db_connect.collection('Armor').insertOne(myobj);
         response.json(result);
       } catch (err) {
         next(err);
@@ -124,21 +114,29 @@ module.exports = (router) => {
   );
 
   // This section will update armors.
-  equipmentRouter.route('/update-armor/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      const result = await db_connect.collection("Characters").updateOne(id, {
-        $set: { 'armor': req.body.armor }
-      });
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: 'Armor not found' });
+  equipmentRouter.route('/update-armor/:id').put(
+    [body('armor').isArray().withMessage('armor must be an array')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
       }
-      res.json({ message: 'Armor updated' });
-    } catch (err) {
-      next(err);
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { armor } = matchedData(req, { locations: ['body'] });
+      try {
+        const result = await db_connect.collection('Characters').updateOne(id, {
+          $set: { armor },
+        });
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ error: 'Armor not found' });
+        }
+        res.json({ message: 'Armor updated' });
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   // Item Section
 
@@ -157,18 +155,12 @@ module.exports = (router) => {
   });
 
   // This section will create a new item.
-  equipmentRouter.route("/item/add").post(
+  equipmentRouter.route('/item/add').post(
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('itemName').trim().notEmpty().withMessage('itemName is required'),
-    ],
-    handleValidationErrors,
-    async (req, response, next) => {
-      const db_connect = req.db;
-      const allowedFields = [
-        'campaign',
-        'itemName',
-        'notes',
+      body('notes').optional().trim(),
+      ...[
         'str',
         'dex',
         'con',
@@ -205,13 +197,12 @@ module.exports = (router) => {
         'tumble',
         'useTech',
         'useRope',
-      ];
-      const myobj = {};
-      allowedFields.forEach((field) => {
-        if (req.body[field] !== undefined) {
-          myobj[field] = req.body[field];
-        }
-      });
+      ].map((field) => body(field).optional().isInt().toInt()),
+    ],
+    handleValidationErrors,
+    async (req, response, next) => {
+      const db_connect = req.db;
+      const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Items').insertOne(myobj);
         response.json(result);
@@ -222,21 +213,29 @@ module.exports = (router) => {
   );
 
   // This section will update items.
-  equipmentRouter.route('/update-item/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      const result = await db_connect.collection("Characters").updateOne(id, {
-        $set: { 'item': req.body.item }
-      });
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: 'Item not found' });
+  equipmentRouter.route('/update-item/:id').put(
+    [body('item').isArray().withMessage('item must be an array')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
       }
-      res.json({ message: 'Item updated' });
-    } catch (err) {
-      next(err);
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { item } = matchedData(req, { locations: ['body'] });
+      try {
+        const result = await db_connect.collection('Characters').updateOne(id, {
+          $set: { item },
+        });
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ error: 'Item not found' });
+        }
+        res.json({ message: 'Item updated' });
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   router.use(equipmentRouter);
 };

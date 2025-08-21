@@ -40,6 +40,14 @@ describe('Equipment routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
     });
+
+    test('numeric validation failure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .post('/weapon/add')
+        .send({ campaign: 'Camp1', weaponName: 'Sword', enhancement: 'bad' });
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('update-weapon', () => {
@@ -64,6 +72,22 @@ describe('Equipment routes', () => {
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Weapon not found');
     });
+
+    test('update weapon invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/update-weapon/123')
+        .send({ weapon: ['Sword'] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update weapon invalid body', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/update-weapon/507f1f77bcf86cd799439011')
+        .send({ weapon: 'Sword' });
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('/armor/add', () => {
@@ -83,6 +107,14 @@ describe('Equipment routes', () => {
         .send({ campaign: 'Camp1', armorName: 'Plate' });
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
+    });
+
+    test('numeric validation failure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .post('/armor/add')
+        .send({ campaign: 'Camp1', armorName: 'Plate', armorBonus: 'bad' });
+      expect(res.status).toBe(400);
     });
   });
 
@@ -108,6 +140,22 @@ describe('Equipment routes', () => {
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Armor not found');
     });
+
+    test('update armor invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/update-armor/123')
+        .send({ armor: ['Plate'] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update armor invalid body', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: 'Plate' });
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('/item/add', () => {
@@ -127,6 +175,14 @@ describe('Equipment routes', () => {
         .send({ campaign: 'Camp1', itemName: 'Potion' });
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
+    });
+
+    test('numeric validation failure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .post('/item/add')
+        .send({ campaign: 'Camp1', itemName: 'Potion', str: 'bad' });
+      expect(res.status).toBe(400);
     });
   });
 
@@ -151,6 +207,22 @@ describe('Equipment routes', () => {
         .send({ item: ['Potion'] });
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Item not found');
+    });
+
+    test('update item invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/update-item/123')
+        .send({ item: ['Potion'] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update item invalid body', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/update-item/507f1f77bcf86cd799439011')
+        .send({ item: 'Potion' });
+      expect(res.status).toBe(400);
     });
   });
 });
