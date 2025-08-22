@@ -152,13 +152,13 @@ const [weapon, setWeapon] = useState({
 return(
     <div>
         {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
-<Modal className="modern-modal" show={showWeapons} onHide={handleCloseWeapons} size="sm" centered>
+<Modal className="modern-modal" show={showWeapons} onHide={handleCloseWeapons} size="lg" centered>
   <div className="text-center">
     <Card className="modern-card">
       <Card.Header className="modal-header">
         <Card.Title className="modal-title">Weapons</Card.Title>
       </Card.Header>
-      <Card.Body>
+      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
