@@ -133,13 +133,13 @@ return(
     <div>
      {/* ------------------------------------------------Armor Render-----------------------------------------------------------
 ----------------------------------------------------- */}
-<Modal className="modern-modal" show={showArmor} onHide={handleCloseArmor} size="sm" centered>
+<Modal className="modern-modal" show={showArmor} onHide={handleCloseArmor} size="lg" scrollable centered>
   <div className="text-center">
     <Card className="modern-card">
       <Card.Header className="modal-header">
         <Card.Title className="modal-title">Armor</Card.Title>
       </Card.Header>
-      <Card.Body>
+      <Card.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
