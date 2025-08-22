@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Card, Modal, Button, Form } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg"; // Ensure you have this image
 
 export default function LevelUp({ show, handleClose, form }) {
   //--------------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------------------------------
@@ -181,56 +180,74 @@ export default function LevelUp({ show, handleClose, form }) {
 
   return (
     <div>
-      <Modal show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
+      <Modal className="modern-modal" show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
         <div className="text-center">
-          <Card style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
-            <Card.Title>Level Up</Card.Title>
+          <Card className="modern-card">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">Level Up</Card.Title>
+            </Card.Header>
             <Card.Body>
               {/* Add occupation */}
               <Form>
-                <Button className="rounded-pill bg-warning" variant="outline-dark" onClick={handleAddOccupationClick}>
+                <Button className="action-btn" onClick={handleAddOccupationClick}>
                   Add Occupation
                 </Button>
-                <Modal centered show={showAddClassModal} onHide={() => setShowAddClassModal(false)}>
-                  <div className="text-center">
-                    <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover" }}>
-                      <Card.Body>
-                        <Form.Group className="mb-3 mx-5">
-                          <Form.Label className="text-dark">Select Occupation</Form.Label>
-                          <Form.Select
-                            ref={selectedAddOccupationRef}
-                            onChange={handleOccupationChange}
-                            defaultValue=""
-                          >
-                            <option value="" disabled>Select your occupation</option>
-                            {getOccupation.map((occupation, i) => {
-                              const isOccupationSelected = form.occupation.some(
-                                (item) => item.Occupation === occupation.Occupation
-                              );
+                <Modal
+                  className="modern-modal"
+                  centered
+                  show={showAddClassModal}
+                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}
+                >
+                  <Card className="modern-card text-center">
+                    <Card.Header className="modal-header">
+                      <Card.Title className="modal-title">Add Occupation</Card.Title>
+                    </Card.Header>
+                    <Card.Body>
+                      <Form.Group className="mb-3 mx-5">
+                        <Form.Label className="text-dark">Select Occupation</Form.Label>
+                        <Form.Select
+                          ref={selectedAddOccupationRef}
+                          onChange={handleOccupationChange}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Select your occupation</option>
+                          {getOccupation.map((occupation, i) => {
+                            const isOccupationSelected = form.occupation.some(
+                              (item) => item.Occupation === occupation.Occupation
+                            );
 
-                              return (
-                                <option key={i} disabled={isOccupationSelected}>
-                                  {occupation.Occupation}
-                                </option>
-                              );
-                            })}
-                          </Form.Select>
-                        </Form.Group>
-                      </Card.Body>
-                      <Modal.Footer>
-                        <Button variant="secondary" onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}>
-                          Close
-                        </Button>
-                        <Button variant="primary" onClick={handleConfirmClick} disabled={!chosenAddOccupation}>
-                          Confirm
-                        </Button>
-                      </Modal.Footer>
-                    </Card>
-                  </div>
+                            return (
+                              <option key={i} disabled={isOccupationSelected}>
+                                {occupation.Occupation}
+                              </option>
+                            );
+                          })}
+                        </Form.Select>
+                      </Form.Group>
+                    </Card.Body>
+                    <Card.Footer className="modal-footer">
+                      <Button
+                        className="action-btn close-btn"
+                        onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        className="action-btn save-btn"
+                        onClick={handleConfirmClick}
+                        disabled={!chosenAddOccupation}
+                      >
+                        Confirm
+                      </Button>
+                    </Card.Footer>
+                  </Card>
                 </Modal>
               </Form>
               {/* Level up known occupation */}
-              <Form onSubmit={(e) => { e.preventDefault(); handleCloseLvlModal(); levelUpdate(); }}>
+              <Form
+                id="level-up-form"
+                onSubmit={(e) => { e.preventDefault(); handleCloseLvlModal(); levelUpdate(); }}
+              >
                 <br />
                 <span>or</span>
                 <Form.Group className="mb-3 mx-5">
@@ -246,16 +263,21 @@ export default function LevelUp({ show, handleClose, form }) {
                     ))}
                   </Form.Select>
                 </Form.Group>
-                <Modal.Footer>
-                  <Button variant="secondary" onClick={handleCloseLvlModal}>
-                    Close
-                  </Button>
-                  <Button variant="primary" type="submit" disabled={!chosenOccupation}>
-                    Level Up
-                  </Button>
-                </Modal.Footer>
               </Form>
             </Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button className="action-btn close-btn" onClick={handleCloseLvlModal}>
+                Close
+              </Button>
+              <Button
+                className="action-btn save-btn"
+                type="submit"
+                form="level-up-form"
+                disabled={!chosenOccupation}
+              >
+                Level Up
+              </Button>
+            </Card.Footer>
           </Card>
         </div>
       </Modal>
