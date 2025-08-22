@@ -64,7 +64,7 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = () => setShowHelpModal(false); 
 
   if (!form) {
-    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>Loading...</div>;
+    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
   }
 
   // Skills and skill points calculation
@@ -128,7 +128,7 @@ for (const occupation of occupations) {
   }
 }
 if (!form) {
-  return <div style={{ fontFamily: 'Raleway, sans-serif', background: "radial-gradient(circle, #1a1a2e, #16213e, #0f3460)", height: "100vh" }}>Loading...</div>;
+  return <div style={{ fontFamily: 'Raleway, sans-serif', background: "radial-gradient(circle, #1a1a2e, #16213e, #0f3460)", minHeight: "100vh" }}>Loading...</div>;
 }
 
 return (
@@ -136,7 +136,8 @@ return (
   style={{
     fontFamily: 'Raleway, sans-serif',
     background: "#FAFAFA",
-    height: "100vh"
+    minHeight: "100vh",
+    paddingBottom: "70px"
   }}
 >
       <div style={{paddingTop: '80px'}}>
@@ -163,7 +164,7 @@ return (
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">
           <Container>
-            <Nav className="me-auto mx-auto" style={{marginTop: "-10px"}}>
+            <Nav className="me-auto mx-auto">
               <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
               <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
