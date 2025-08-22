@@ -77,7 +77,14 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
   }
 
   return (
-    <Modal show={showStats} onHide={handleCloseStats} size="sm" centered className="modern-modal">
+    <Modal
+      show={showStats}
+      onHide={handleCloseStats}
+      size="lg"
+      scrollable
+      centered
+      className="modern-modal"
+    >
       <div className="text-center">
         <Card className="modern-card">
           <Card.Header className="modal-header">
@@ -89,7 +96,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
               <span className="points-value">{isNaN(statPointsLeft) ? 0 : statPointsLeft}</span>
             </div>
 
-            <Table striped bordered hover size="sm" className="modern-table">
+            <Table striped bordered hover size="sm" responsive className="modern-table">
               <thead>
                 <tr>
                   <th></th>
