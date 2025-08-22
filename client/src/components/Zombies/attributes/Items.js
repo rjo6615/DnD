@@ -143,13 +143,13 @@ export default function Items({form, showItems, handleCloseItems}) {
 return(
 <div>
          {/* -----------------------------------------Items Render------------------------------------------------------------------------------------------------------------------------------- */}
-          <Modal className="modern-modal" show={showItems} onHide={handleCloseItems} size="sm" centered>
+          <Modal className="modern-modal" show={showItems} onHide={handleCloseItems} size="lg" centered>
         <div className="text-center">
          <Card className="modern-card">
          <Card.Header className="modal-header">
            <Card.Title className="modal-title">Items</Card.Title>
          </Card.Header>
-         <Card.Body>
+         <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
          <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
@@ -278,12 +278,12 @@ return(
            <Button className="action-btn close-btn" onClick={handleCloseItems}>Close</Button>
          </Card.Footer>
         </Card>
-        <Modal className="modern-modal" show={showNotes} onHide={handleCloseNotes} centered>
+        <Modal className="modern-modal" show={showNotes} onHide={handleCloseNotes} size="lg" centered>
           <Card className="modern-card text-center">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">{modalItemData[0]}</Card.Title>
             </Card.Header>
-            <Card.Body>{modalItemData[1]}</Card.Body>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>{modalItemData[1]}</Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="action-btn close-btn" onClick={handleCloseNotes}>Close</Button>
             </Card.Footer>
