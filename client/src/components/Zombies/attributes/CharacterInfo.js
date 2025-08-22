@@ -16,12 +16,19 @@ export default function CharacterInfo({ form, show, handleClose }) {
   };
 
   return (
-    <Modal className="modern-modal" show={show} onHide={handleClose} size="sm" centered>
+    <Modal
+      className="modern-modal"
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      scrollable
+    >
       <Card className="modern-card text-center">
         <Card.Header className="modal-header">
           <Card.Title className="modal-title">Character Info</Card.Title>
         </Card.Header>
-        <Card.Body>
+        <Card.Body style={{ overflowY: "auto", maxHeight: "60vh" }}>
           <Table striped bordered hover size="sm" className="modern-table">
             <tbody>
               <tr>
