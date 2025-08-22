@@ -2,7 +2,6 @@ import React, { useState } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg";
 
 import { SKILLS } from "../skillSchema";
 export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, strMod, dexMod, conMod, intMod, chaMod, wisMod}) {
@@ -233,122 +232,170 @@ let firstLevelSkill =
       return (   
       <div>  
        {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
-       <Modal show={showSkill} onHide={handleCloseSkill}
-         size="sm"
-        centered
-         >   
-         <div className="text-center">
-          <Card className="zombieSkills" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
-          <Card.Title>Skills</Card.Title>
-          <Card.Title style={{ display: showSkillBtn}}>Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span></Card.Title>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Skill</th>
-              <th>Total</th>
-              <th>Rank</th>
-              <th>Mod</th>
-              <th></th>
-            </tr>
-          </thead>
-          
-<tbody>
-            {SKILLS.map(({ key, label, mod }) => {
-              const totalId = `total${key.charAt(0).toUpperCase() + key.slice(1)}`;
-              return (
-                <tr key={key}>
-                  <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => removeSkill(key, totalId)} className="bg-danger fa-solid fa-minus"></Button></td>
-                  <td>{label}</td>
-                  <td><span id={totalId}>{skillTotalForm[key]} </span></td>
-                  <td><span id={key}>{skillForm[key]} </span></td>
-                  <td><span id={`${mod}Mod`}>{modMap[mod]} </span></td>
-                  <td><Button size="sm" style={{ display: showSkillBtn }} onClick={() => addSkill(key, totalId)} className="fa-solid fa-plus"></Button></td>
-                </tr>
-              );
-            })}
-
-            {form.newSkill.map((el) => (  
-              <tr key={el[0]} style={{display: showSkills}}>           
-                <td><Button size="sm" style={{ display: showSkillBtn}} onClick={() => removeSkillNew(el[0], el[1])} className="bg-danger fa-solid fa-minus"></Button></td>
-                <td>{el[0]}</td>
-                <td><span id={el[0] + "total"}>{Number(el[1]) + intMod}</span></td>
-                <td><span id={el[0]}>{Number(el[1])}</span></td>
-                <td><span id="">{intMod}</span></td>
-                <td><Button size="sm" style={{ display: showSkillBtn}} onClick={() => addSkillNew(el[0])} className="fa-solid fa-plus"></Button></td>
-              </tr>
-              ))}  
-          </tbody>
-        </Table>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 0px' }}>
-          <Button
-            style={{ display: showSkillBtn, width: '100%'}} 
-            onClick={() => {skillsUpdate(); addUpdatedSkillToDb();}}
-            className="bg-warning fa-solid fa-floppy-disk"
-          ></Button>
-          <Button
-            style={{ width: '100%' }}
-            onClick={() => handleShowAddSkill()} 
-            className="bg-success fa-solid fa-plus"
-          ></Button>
-             <Button
-            style={{ width: '100%' }}
-            onClick={() => handleCloseSkill()} 
-            className="bg-secondary fa-solid fa-xmark"
-          ></Button>
-        </div>
-      </Card>   
-      </div>
-        <Modal show={showAddSkill} onHide={handleCloseAddSkill} centered>
-        <div className="text-center">
-          <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
+       <Modal className="modern-modal" show={showSkill} onHide={handleCloseSkill} size="sm" centered>
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Skills</Card.Title>
+          </Card.Header>
           <Card.Body>
-          <Form onSubmit={addSkillToDb} className="px-5">
-    <Form.Group className="mb-3 pt-3">
-      <Form.Label className="text-dark">Skill</Form.Label>
-      <Form.Control
-        className="mb-2"
-        onChange={(e) => updateNewSkill({ skill: e.target.value })}
-        type="text"
-        placeholder="Enter Skill"
-      />
-      <Form.Label className="text-dark">Skill Type</Form.Label>
-      <Form.Select
-        className="mb-2"
-        onChange={(e) => {
-          const newSkill = e.target.value;
-          updateAddSkill({ newSkill });
-          handleChosenSkillChange(e);
-        }}
-        defaultValue=""
-        type="text"
-      >
-        <option value="" disabled>
-          Select skill type
-        </option>
-        <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option>
-        <option value={["Craft " + newSkill.skill, 0]}>Craft</option>
-      </Form.Select>
-    </Form.Group>
-    <Button variant="secondary" onClick={handleCloseAddSkill}>
-      Close
-    </Button>
-    <Button
-      disabled={!chosenSkill || !newSkill.skill} // Disable when either field is empty
-      className="ms-4"
-      variant="primary"
-      type="submit"
-    >
-      Create
-    </Button>
-  </Form>
-       </Card.Body>
-          <Modal.Footer>
-          </Modal.Footer>
+            <div style={{ display: showSkillBtn }}>
+              Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span>
+            </div>
+            <Table striped bordered hover size="sm" className="modern-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Skill</th>
+                  <th>Total</th>
+                  <th>Rank</th>
+                  <th>Mod</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {SKILLS.map(({ key, label, mod }) => {
+                  const totalId = `total${key.charAt(0).toUpperCase() + key.slice(1)}`;
+                  return (
+                    <tr key={key}>
+                      <td>
+                        <Button
+                          size="sm"
+                          style={{ display: showSkillBtn }}
+                          onClick={() => removeSkill(key, totalId)}
+                          className="action-btn bg-danger fa-solid fa-minus"
+                        ></Button>
+                      </td>
+                      <td>{label}</td>
+                      <td>
+                        <span id={totalId}>{skillTotalForm[key]} </span>
+                      </td>
+                      <td>
+                        <span id={key}>{skillForm[key]} </span>
+                      </td>
+                      <td>
+                        <span id={`${mod}Mod`}>{modMap[mod]} </span>
+                      </td>
+                      <td>
+                        <Button
+                          size="sm"
+                          style={{ display: showSkillBtn }}
+                          onClick={() => addSkill(key, totalId)}
+                          className="action-btn fa-solid fa-plus"
+                        ></Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {form.newSkill.map((el) => (
+                  <tr key={el[0]} style={{ display: showSkills }}>
+                    <td>
+                      <Button
+                        size="sm"
+                        style={{ display: showSkillBtn }}
+                        onClick={() => removeSkillNew(el[0], el[1])}
+                        className="action-btn bg-danger fa-solid fa-minus"
+                      ></Button>
+                    </td>
+                    <td>{el[0]}</td>
+                    <td>
+                      <span id={el[0] + "total"}>{Number(el[1]) + intMod}</span>
+                    </td>
+                    <td>
+                      <span id={el[0]}>{Number(el[1])}</span>
+                    </td>
+                    <td>
+                      <span>{intMod}</span>
+                    </td>
+                    <td>
+                      <Button
+                        size="sm"
+                        style={{ display: showSkillBtn }}
+                        onClick={() => addSkillNew(el[0])}
+                        className="action-btn fa-solid fa-plus"
+                      ></Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+          <Card.Footer className="modal-footer d-flex">
+            <Button
+              style={{ display: showSkillBtn }}
+              onClick={() => {
+                skillsUpdate();
+                addUpdatedSkillToDb();
+              }}
+              className="action-btn save-btn fa-solid fa-floppy-disk flex-fill"
+            ></Button>
+            <Button
+              onClick={() => handleShowAddSkill()}
+              className="action-btn fa-solid fa-plus flex-fill"
+            ></Button>
+            <Button
+              onClick={() => handleCloseSkill()}
+              className="action-btn close-btn fa-solid fa-xmark flex-fill"
+            ></Button>
+          </Card.Footer>
+        </Card>
+
+        <Modal className="modern-modal" show={showAddSkill} onHide={handleCloseAddSkill} centered>
+          <Card className="modern-card text-center">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">Add Skill</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <Form id="addSkillForm" onSubmit={addSkillToDb} className="px-5">
+                <Form.Group className="mb-3 pt-3">
+                  <Form.Label className="text-dark">Skill</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    onChange={(e) => updateNewSkill({ skill: e.target.value })}
+                    type="text"
+                    placeholder="Enter Skill"
+                  />
+                  <Form.Label className="text-dark">Skill Type</Form.Label>
+                  <Form.Select
+                    className="mb-2"
+                    onChange={(e) => {
+                      const newSkill = e.target.value;
+                      updateAddSkill({ newSkill });
+                      handleChosenSkillChange(e);
+                    }}
+                    defaultValue=""
+                    type="text"
+                  >
+                    <option value="" disabled>
+                      Select skill type
+                    </option>
+                    <option value={["Knowledge " + newSkill.skill, 0]}>Knowledge</option>
+                    <option value={["Craft " + newSkill.skill, 0]}>Craft</option>
+                  </Form.Select>
+                </Form.Group>
+              </Form>
+            </Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button
+                className="action-btn close-btn"
+                variant="secondary"
+                onClick={handleCloseAddSkill}
+              >
+                Close
+              </Button>
+              <Button
+                disabled={!chosenSkill || !newSkill.skill}
+                className="action-btn save-btn ms-4"
+                variant="primary"
+                type="submit"
+                form="addSkillForm"
+              >
+                Create
+              </Button>
+            </Card.Footer>
           </Card>
-          </div>
         </Modal>
-  </Modal>
-  </div>
+      </Modal>
+      </div>
    );
   }
