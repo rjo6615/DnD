@@ -157,13 +157,13 @@ const [feat, setFeat] = useState({
 return (
     <div>
  {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
-  <Modal className="modern-modal" show={showFeats} onHide={handleCloseFeats} size="sm" centered>
+  <Modal className="modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
         <div className="text-center">
          <Card className="modern-card">
            <Card.Header className="modal-header">
              <Card.Title className="modal-title">Feats</Card.Title>
            </Card.Header>
-           <Card.Body>
+           <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
              <div className="points-container" style={{ display: showFeatBtn }}>
                <span className="points-label">Points Left:</span>
                <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
@@ -276,12 +276,12 @@ return (
              <Button className="action-btn close-btn" onClick={handleCloseFeats}>Close</Button>
            </Card.Footer>
           </Card>
-        <Modal className="modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
+        <Modal className="modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} size="lg" centered>
           <Card className="modern-card text-center">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">{modalFeatData[0]}</Card.Title>
             </Card.Header>
-            <Card.Body>{modalFeatData[1]}</Card.Body>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>{modalFeatData[1]}</Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="action-btn close-btn" onClick={handleCloseFeatNotes}>Close</Button>
             </Card.Footer>
