@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg"; 
 
 export default function Items({form, showItems, handleCloseItems}) {
   const params = useParams();
@@ -144,14 +143,14 @@ export default function Items({form, showItems, handleCloseItems}) {
 return(
 <div>
          {/* -----------------------------------------Items Render------------------------------------------------------------------------------------------------------------------------------- */}
-         <Modal show={showItems} onHide={handleCloseItems}
-       size="sm"
-      centered
-       >   
-       <div className="text-center">
-        <Card className="zombiesItems" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>     
-        <Card.Title>Items</Card.Title>
-        <Table striped bordered hover size="sm">
+          <Modal className="modern-modal" show={showItems} onHide={handleCloseItems} size="sm" centered>
+        <div className="text-center">
+         <Card className="modern-card">
+         <Card.Header className="modal-header">
+           <Card.Title className="modal-title">Items</Card.Title>
+         </Card.Header>
+         <Card.Body>
+         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -165,7 +164,16 @@ return(
           {form.item.map((el) => (  
             <tr key={el[0]}>           
               <td>{el[0]}</td>
-              <td style={{ display: showDeleteItemBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowNotes(); setModalItemData(el);}}></Button></td>
+              <td style={{ display: showDeleteItemBtn}}>
+                <Button
+                  size="sm"
+                  className="action-btn fa-regular fa-eye"
+                  onClick={() => {
+                    handleShowNotes();
+                    setModalItemData(el);
+                  }}
+                ></Button>
+              </td>
               <td style={{ display: showDeleteItemBtn}}>
               {(() => {
                const attributeValues = [];
@@ -228,7 +236,16 @@ return(
               })()}
                 
               </td>
-              <td><Button size="sm" style={{ display: showDeleteItemBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteItems(el);}}></Button></td>
+              <td>
+                <Button
+                  size="sm"
+                  style={{ display: showDeleteItemBtn }}
+                  className="action-btn fa-solid fa-trash"
+                  onClick={() => {
+                    deleteItems(el);
+                  }}
+                ></Button>
+              </td>
             </tr>
             ))}   
           </tbody>
@@ -250,24 +267,28 @@ return(
           el.listen, el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, el.survival, 
           el.swim, el.tumble, el.useTech, el.useRope]}>{el.itemName}</option>
           ))}
-        </Form.Select>
+          </Form.Select>
       </Form.Group>
-        <Button disabled={!chosenItem} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
+        <Button disabled={!chosenItem} className="action-btn" type="submit">Add</Button>
           </Form>
         </Col>
       </Row>
-      </Card> 
-      <Modal show={showNotes} onHide={handleCloseNotes}>
-        <Modal.Header closeButton>
-          <Modal.Title>{modalItemData[0]}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{modalItemData[1]}</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseNotes}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+         </Card.Body>
+         <Card.Footer className="modal-footer">
+           <Button className="action-btn close-btn" onClick={handleCloseItems}>Close</Button>
+         </Card.Footer>
+        </Card>
+        <Modal className="modern-modal" show={showNotes} onHide={handleCloseNotes} centered>
+          <Card className="modern-card text-center">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">{modalItemData[0]}</Card.Title>
+            </Card.Header>
+            <Card.Body>{modalItemData[1]}</Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button className="action-btn close-btn" onClick={handleCloseNotes}>Close</Button>
+            </Card.Footer>
+          </Card>
+        </Modal>
 </div>
 </Modal>
 </div>
