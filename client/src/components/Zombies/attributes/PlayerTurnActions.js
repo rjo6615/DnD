@@ -263,13 +263,13 @@ const showSparklesEffect = () => {
   </div>
 </div>
 {/* Attack Modal */}
-      <Modal className="modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
-        <Card className="modern-card text-center">
+      <Modal size="lg" className="modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
+        <Card className="modern-card">
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Weapons</Card.Title>
           </Card.Header>
           <Card.Body>
-            <Table striped bordered hover size="sm" className="modern-table">
+            <Table className="modern-table" striped bordered hover responsive>
               <thead>
                 <tr>
                   <th>Weapon Name</th>
@@ -324,12 +324,12 @@ const showSparklesEffect = () => {
                 ))}
               </tbody>
             </Table>
-          </Card.Body>
-          <Card.Footer className="modal-footer">
-            <Button className="action-btn close-btn" onClick={handleCloseAttack}>
-              Close
-            </Button>
-          </Card.Footer>
+            </Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>
+                Close
+              </Button>
+            </Card.Footer>
         </Card>
       </Modal>
       {/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
