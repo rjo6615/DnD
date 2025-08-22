@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg"; 
  
  export default function Feats({form, showFeats, handleCloseFeats, totalLevel}) {
   const params = useParams();
@@ -158,15 +157,18 @@ const [feat, setFeat] = useState({
 return (
     <div>
  {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
- <Modal show={showFeats} onHide={handleCloseFeats}
-       size="sm"
-      centered
-       >   
-       <div className="text-center">
-        <Card className="zombiesFeats" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>     
-        <Card.Title>Feats</Card.Title>
-        <Card.Title style={{ display: showFeatBtn}}>Points Left:<span className="mx-1" id="featPointLeft">{featPointsLeft}</span></Card.Title>
-        <Table striped bordered hover size="sm">
+  <Modal className="modern-modal" show={showFeats} onHide={handleCloseFeats} size="sm" centered>
+        <div className="text-center">
+         <Card className="modern-card">
+           <Card.Header className="modal-header">
+             <Card.Title className="modal-title">Feats</Card.Title>
+           </Card.Header>
+           <Card.Body>
+             <div className="points-container" style={{ display: showFeatBtn }}>
+               <span className="points-label">Points Left:</span>
+               <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
+             </div>
+         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -179,7 +181,16 @@ return (
           {form.feat.map((el) => (  
             <tr key={el[0]}>           
               <td>{el[0]}</td>
-              <td style={{ display: showDeleteFeatBtn}}><Button size="sm" className="fa-regular fa-eye" variant="primary" onClick={() => {handleShowFeatNotes(); setModalFeatData(el);}}></Button></td>
+                <td style={{ display: showDeleteFeatBtn}}>
+                  <Button
+                    size="sm"
+                    className="action-btn fa-regular fa-eye"
+                    onClick={() => {
+                      handleShowFeatNotes();
+                      setModalFeatData(el);
+                    }}
+                  ></Button>
+                </td>
               <td style={{ display: showDeleteFeatBtn}}>
               {(() => {
                const skillValues = [];
@@ -223,7 +234,16 @@ return (
               })()}
                 
               </td>
-              <td><Button size="sm" style={{ display: showDeleteFeatBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteFeats(el);}}></Button></td>
+                <td>
+                  <Button
+                    size="sm"
+                    style={{ display: showDeleteFeatBtn }}
+                    className="action-btn fa-solid fa-trash"
+                    onClick={() => {
+                      deleteFeats(el);
+                    }}
+                  ></Button>
+                </td>
             </tr>
             ))}   
           </tbody>
@@ -245,26 +265,28 @@ return (
           el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, 
           el.survival, el.swim, el.tumble, el.useTech, el.useRope]}>{el.featName}</option>
           ))}
-        </Form.Select>
-      </Form.Group>
-        <Button disabled={!chosenFeat} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-          </Form>
-        </Col>
-      </Row>
-      </Card> 
-      <Modal show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
-        <div className="text-center">
-        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
-          <Card.Title>{modalFeatData[0]}</Card.Title>
-        <Card.Body>{modalFeatData[1]}</Card.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseFeatNotes}>
-            Close
-          </Button>
-        </Modal.Footer>
-        </Card>
-        </div>
-      </Modal>
+          </Form.Select>
+        </Form.Group>
+          <Button disabled={!chosenFeat} className="action-btn" type="submit">Add</Button>
+            </Form>
+          </Col>
+        </Row>
+           </Card.Body>
+           <Card.Footer className="modal-footer">
+             <Button className="action-btn close-btn" onClick={handleCloseFeats}>Close</Button>
+           </Card.Footer>
+          </Card>
+        <Modal className="modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} centered>
+          <Card className="modern-card text-center">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">{modalFeatData[0]}</Card.Title>
+            </Card.Header>
+            <Card.Body>{modalFeatData[1]}</Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button className="action-btn close-btn" onClick={handleCloseFeatNotes}>Close</Button>
+            </Card.Footer>
+          </Card>
+        </Modal>
 </div>
 </Modal>
 </div> 
