@@ -119,15 +119,15 @@ $rotateX: -$angle;
 
 @mixin dice-size($containerWidth) {
   $containerHeight: $containerWidth;
-  $faceWidth:  $containerWidth*0.5;
-  $faceHeight: $faceWidth*0.86;
+  $faceWidth:  calc(#{$containerWidth} * 0.5);
+  $faceHeight: calc(#{$faceWidth} * 0.86);
 
-  $translateZ: $faceWidth*0.335;
-  $translateY: -$faceHeight*0.15;
-  $translateRingZ: $faceWidth*0.75;
-  $translateRingY: $faceHeight*0.78 + $translateY;
+  $translateZ: calc(#{$faceWidth} * 0.335);
+  $translateY: calc(#{$faceHeight} * -0.15);
+  $translateRingZ: calc(#{$faceWidth} * 0.75);
+  $translateRingY: calc(#{$faceHeight} * 0.78 + #{$translateY});
   $translateLowerZ: $translateZ;
-  $translateLowerY: $faceHeight*0.78 + $translateRingY;
+  $translateLowerY: calc(#{$faceHeight} * 0.78 + #{$translateRingY});
 
   .content {
     margin: auto auto;
@@ -180,14 +180,14 @@ $rotateX: -$angle;
     }
 
     .face {
-      $horizontalMargin: -$faceWidth*0.5;
+      $horizontalMargin: calc(#{$faceWidth} * -0.5);
 
       position: absolute;
       left: 50%;
       top: 0;
       margin: 0 $horizontalMargin;
-      border-left: $faceWidth*0.5 solid transparent;
-      border-right: $faceWidth*0.5 solid transparent;
+      border-left: calc(#{$faceWidth} * 0.5) solid transparent;
+      border-right: calc(#{$faceWidth} * 0.5) solid transparent;
       border-bottom: $faceHeight solid $color;
       width: 0px;
       height: 0px;
@@ -199,14 +199,14 @@ $rotateX: -$angle;
       &:before {
         content: counter(steps);
         position: absolute;
-        top: $faceHeight*0.25;
-        left: -$faceWidth;
+        top: calc(#{$faceHeight} * 0.25);
+        left: calc(#{$faceWidth} * -1);
         color: #fff;
         text-shadow: 1px 1px 3px #000;
-        font-size: $faceHeight*0.5;
+        font-size: calc(#{$faceHeight} * 0.5);
         text-align: center;
-        line-height: $faceHeight*0.9;
-        width: $faceWidth*2;
+        line-height: calc(#{$faceHeight} * 0.9);
+        width: calc(#{$faceWidth} * 2);
         height: $faceHeight;
       }
 
