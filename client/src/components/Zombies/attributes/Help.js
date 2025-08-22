@@ -69,12 +69,13 @@ return(
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
         centered
+        scrollable
         show={showHelpModal} onHide={handleCloseHelpModal}>
           <Card className="modern-card text-center">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">Help</Card.Title>
             </Card.Header>
-            <Card.Body>
+            <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
               Actions Left (from left to right)
               <br></br>
               Move, Action, Bonus Action, Reset
@@ -123,11 +124,15 @@ return(
           size="lg"
           aria-labelledby="contained-modal-title-vcenter"
           centered
+          scrollable
           show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
           <Card className="modern-card text-center">
             <Card.Header className="modal-header">
-              <Card.Title className="modal-title">Are you sure you want to delete your character?</Card.Title>
+              <Card.Title className="modal-title">Delete Character</Card.Title>
             </Card.Header>
+            <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              Are you sure you want to delete your character?
+            </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="action-btn save-btn" onClick={deleteRecord}>Im Sure</Button>
               <Button className="action-btn close-btn" onClick={handleCloseDeleteCharacter}>Close</Button>
