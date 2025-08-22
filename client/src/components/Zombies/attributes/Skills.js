@@ -232,12 +232,12 @@ let firstLevelSkill =
       return (   
       <div>  
        {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
-       <Modal className="modern-modal" show={showSkill} onHide={handleCloseSkill} size="sm" centered>
+       <Modal className="modern-modal" show={showSkill} onHide={handleCloseSkill} size="lg" scrollable centered>
         <Card className="modern-card text-center">
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Skills</Card.Title>
           </Card.Header>
-          <Card.Body>
+          <Card.Body style={{ overflowY: 'auto' }}>
             <div style={{ display: showSkillBtn }}>
               Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span>
             </div>
