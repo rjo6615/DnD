@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
-import wornpaper from "../../../images/wornpaper.jpg";
 import sword from "../../../images/sword.png";
 
 export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) { 
@@ -264,54 +263,74 @@ const showSparklesEffect = () => {
   </div>
 </div>
 {/* Attack Modal */}
-      <Modal centered show={showAttack} onHide={handleCloseAttack}>
-      <div className="text-center">
-        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
-        <Card.Title>Weapons</Card.Title>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th>Weapon Name</th>
-              <th>Attack Bonus</th>
-              <th>Damage</th>
-              <th>Critical</th>
-              <th>Range</th>
-              <th>Attack</th>
-            </tr>
-          </thead>
-          <tbody>
-            {form.weapon.map((el) => (  
-            <tr key={el[0]}>
-              <td>{el[0]}</td>             
-              <td>
-               {(() => {
-              if (el[4] === "0") {
-                return(Number(atkBonus) + Number(strMod) + Number(el[1]));
-              } else if (el[4] === "1") {
-                return(Number(atkBonus) + Number(strMod) + Number(el[1]));
-              } else if (el[4] === "2") {
-                return(Number(atkBonus) + Number(dexMod) + Number(el[1]));
-              }
-              })()}</td>
-              <td>{el[2]}
-              {(() => {
-              if (el[4] === "0") {
-                return("+" + (Number(el[1]) + Number(strMod)));
-              } else if (el[4] === "1") {
-                return("+" + (Number(el[1]) + Math.floor( Number((strMod * 1.5)))));
-              } else if (el[4] === "2") {
-                return("+" + (Number(el[1]) + Number(0)));
-              }
-              })()}</td>
-              <td>{el[3]}</td>
-              <td>{el[5]}</td>
-              <td><Button onClick={() => {handleWeaponsButtonCrit(el); handleWeaponsButtonClick(el); handleCloseAttack();}} size="sm" className="fa-solid fa-plus" variant="primary"></Button></td>
-            </tr>
-             ))}
-          </tbody>
-        </Table>      
-      </Card> 
-</div>
+      <Modal className="modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Weapons</Card.Title>
+          </Card.Header>
+          <Card.Body>
+            <Table striped bordered hover size="sm" className="modern-table">
+              <thead>
+                <tr>
+                  <th>Weapon Name</th>
+                  <th>Attack Bonus</th>
+                  <th>Damage</th>
+                  <th>Critical</th>
+                  <th>Range</th>
+                  <th>Attack</th>
+                </tr>
+              </thead>
+              <tbody>
+                {form.weapon.map((el) => (
+                  <tr key={el[0]}>
+                    <td>{el[0]}</td>
+                    <td>
+                      {(() => {
+                        if (el[4] === "0") {
+                          return Number(atkBonus) + Number(strMod) + Number(el[1]);
+                        } else if (el[4] === "1") {
+                          return Number(atkBonus) + Number(strMod) + Number(el[1]);
+                        } else if (el[4] === "2") {
+                          return Number(atkBonus) + Number(dexMod) + Number(el[1]);
+                        }
+                      })()}
+                    </td>
+                    <td>
+                      {el[2]}
+                      {(() => {
+                        if (el[4] === "0") {
+                          return "+" + (Number(el[1]) + Number(strMod));
+                        } else if (el[4] === "1") {
+                          return "+" + (Number(el[1]) + Math.floor(Number(strMod * 1.5)));
+                        } else if (el[4] === "2") {
+                          return "+" + (Number(el[1]) + Number(0));
+                        }
+                      })()}
+                    </td>
+                    <td>{el[3]}</td>
+                    <td>{el[5]}</td>
+                    <td>
+                      <Button
+                        onClick={() => {
+                          handleWeaponsButtonCrit(el);
+                          handleWeaponsButtonClick(el);
+                          handleCloseAttack();
+                        }}
+                        size="sm"
+                        className="action-btn fa-solid fa-plus"
+                      ></Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+          <Card.Footer className="modal-footer">
+            <Button className="action-btn close-btn" onClick={handleCloseAttack}>
+              Close
+            </Button>
+          </Card.Footer>
+        </Card>
       </Modal>
       {/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
       <div className="content">

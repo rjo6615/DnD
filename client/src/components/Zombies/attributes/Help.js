@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'; // Import useState a
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg"; 
 
 export default function Help({props, form, showHelpModal, handleCloseHelpModal}) {
   const params = useParams();
@@ -65,77 +64,75 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
  } 
 return(
     <div>
-        <Modal  {...props}
+        <Modal
+        className="modern-modal text-center"
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
         centered
-        className="text-center" show={showHelpModal} onHide={handleCloseHelpModal}>
-          <div className="text-center">
-          <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>
-          <Card.Body>
-          Actions Left (from left to right)
-          <br></br>
-          Move, Action, Bonus Action, Reset
-          <br></br>
-          Reset will allow you to refresh your Actions Left
-          <br></br>
-          <br></br>
-          If you are on a phone press a button to use that action or hold down on it to see what it does!
-          <br></br>
-          <br></br>
-          If you are on pc click the button or hover over it to see what it does!
-          <div className="table-container">
-          <Table striped bordered hover size="sm" className="custom-table">
-            <thead>
-              <tr>
-                <td className="center-td">
-                  <strong>Change Dice Color:</strong>
-                </td>
-                <td className="center-td">
-                  <input
-                    type="color"
-                    id="colorPicker"
-                    ref={colorPickerRef}
-                    value={newColor}
-                    onChange={handleColorChange}
-                  />
-                </td>
-                <td className="center-td">
-                  <Button onClick={diceColorUpdate} className="bg-warning fa-solid fa-floppy-disk"></Button>
-                </td>
-              </tr>
-            </thead>
-          </Table>  
-          </div>      
-          </Card.Body>
-          <Modal.Footer className="justify-content-between">
-          <Button size="lg" className="fa-solid fa-trash delete-button" variant="danger" onClick={() => { handleShowDeleteCharacter(); }}>
-          </Button>
-          <Button variant="secondary" onClick={handleCloseHelpModal}>
-            Close
-          </Button>
-          </Modal.Footer>
+        show={showHelpModal} onHide={handleCloseHelpModal}>
+          <Card className="modern-card text-center">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">Help</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              Actions Left (from left to right)
+              <br></br>
+              Move, Action, Bonus Action, Reset
+              <br></br>
+              Reset will allow you to refresh your Actions Left
+              <br></br>
+              <br></br>
+              If you are on a phone press a button to use that action or hold down on it to see what it does!
+              <br></br>
+              <br></br>
+              If you are on pc click the button or hover over it to see what it does!
+              <div className="table-container">
+                <Table striped bordered hover size="sm" className="custom-table">
+                  <thead>
+                    <tr>
+                      <td className="center-td">
+                        <strong>Change Dice Color:</strong>
+                      </td>
+                      <td className="center-td">
+                        <input
+                          type="color"
+                          id="colorPicker"
+                          ref={colorPickerRef}
+                          value={newColor}
+                          onChange={handleColorChange}
+                        />
+                      </td>
+                      <td className="center-td">
+                        <Button onClick={diceColorUpdate} className="action-btn save-btn fa-solid fa-floppy-disk"></Button>
+                      </td>
+                    </tr>
+                  </thead>
+                </Table>
+              </div>
+            </Card.Body>
+            <Card.Footer className="modal-footer justify-content-between">
+              <Button size="lg" className="action-btn fa-solid fa-trash delete-button" onClick={handleShowDeleteCharacter}></Button>
+              <Button className="action-btn close-btn" onClick={handleCloseHelpModal}>
+                Close
+              </Button>
+            </Card.Footer>
           </Card>
-          </div>
-          </Modal>
-          <Modal  {...props}
-                  size="lg"
-                  aria-labelledby="contained-modal-title-vcenter"
-                  centered
-                  className="text-center" show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
-        <div className="text-center">
-        <Card className="" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>       
-          <Card.Title>Are you sure you want to delete your character?</Card.Title>
-          <Modal.Footer className="justify-content-between">
-          <Button variant="danger" onClick={() => { deleteRecord(); }}>
-            Im Sure
-          </Button>
-          <Button variant="secondary" onClick={handleCloseDeleteCharacter}>
-            Close
-          </Button>
-          </Modal.Footer>
+        </Modal>
+        <Modal
+          className="modern-modal text-center"
+          size="lg"
+          aria-labelledby="contained-modal-title-vcenter"
+          centered
+          show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
+          <Card className="modern-card text-center">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">Are you sure you want to delete your character?</Card.Title>
+            </Card.Header>
+            <Card.Footer className="modal-footer">
+              <Button className="action-btn save-btn" onClick={deleteRecord}>Im Sure</Button>
+              <Button className="action-btn close-btn" onClick={handleCloseDeleteCharacter}>Close</Button>
+            </Card.Footer>
           </Card>
-          </div>
         </Modal>
     </div>
 )

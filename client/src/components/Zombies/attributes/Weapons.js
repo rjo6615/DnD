@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
-import wornpaper from "../../../images/wornpaper.jpg"; 
 
 export default function Weapons({form, showWeapons, handleCloseWeapons, strMod, dexMod}) {
   const params = useParams();
@@ -111,12 +110,8 @@ const [weapon, setWeapon] = useState({
     updateWeapon(form.weapon);
     addDeleteWeaponToDb();
    }
-   let showDeleteBtn = "";
-   let showAtkBonusSave= "";
-   if (JSON.stringify(form.weapon) === JSON.stringify([["","","","","",""]])){
-    showDeleteBtn = "none";
-    showAtkBonusSave = "none";
-   }
+   const showDeleteBtn = JSON.stringify(form.weapon) !== JSON.stringify([["","","","","",""]]);
+   const showAtkBonusSave = showDeleteBtn;
   async function addDeleteWeaponToDb(){
     let newWeaponForm = form.weapon;
     if (JSON.stringify(form.weapon) === JSON.stringify([])){
@@ -157,14 +152,14 @@ const [weapon, setWeapon] = useState({
 return(
     <div>
         {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
-<Modal show={showWeapons} onHide={handleCloseWeapons}
-       size="sm"
-      centered
-       >   
-       <div className="text-center">
-        <Card className="zombiesWeapons" style={{ width: 'auto', backgroundImage: `url(${wornpaper})`, backgroundSize: "cover"}}>      
-        <Card.Title>Weapons</Card.Title>
-        <Table striped bordered hover size="sm">
+<Modal className="modern-modal" show={showWeapons} onHide={handleCloseWeapons} size="sm" centered>
+  <div className="text-center">
+    <Card className="modern-card">
+      <Card.Header className="modal-header">
+        <Card.Title className="modal-title">Weapons</Card.Title>
+      </Card.Header>
+      <Card.Body>
+        <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
               <th>Weapon Name</th>
@@ -176,57 +171,95 @@ return(
             </tr>
           </thead>
           <tbody>
-            {form.weapon.map((el) => (  
-            <tr key={el[0]}>
-              <td>{el[0]}</td>             
-              <td style={{display: showAtkBonusSave}}>
-               {(() => {
-              if (el[4] === "0") {
-                return(Number(atkBonus) + Number(strMod) + Number(el[1]));
-              } else if (el[4] === "1") {
-                return(Number(atkBonus) + Number(strMod) + Number(el[1]));
-              } else if (el[4] === "2") {
-                return(Number(atkBonus) + Number(dexMod) + Number(el[1]));
-              }
-              })()}</td>
-              <td style={{display: showAtkBonusSave}}>{el[2]}
-              {(() => {
-              if (el[4] === "0") {
-                return("+" + (Number(el[1]) + Number(strMod)));
-              } else if (el[4] === "1") {
-                return("+" + (Number(el[1]) + Math.floor( Number((strMod * 1.5)))));
-              } else if (el[4] === "2") {
-                return("+" + (Number(el[1]) + Number(0)));
-              }
-              })()}</td>
-              <td>{el[3]}</td>
-              <td>{el[5]}</td>
-              <td><Button size="sm" style={{ display: showDeleteBtn}} className="fa-solid fa-trash" variant="danger" onClick={() => {deleteWeapons(el);}}></Button></td>
-            </tr>
-             ))}
+            {form.weapon.map((el) => (
+              <tr key={el[0]}>
+                <td>{el[0]}</td>
+                <td hidden={!showAtkBonusSave}>
+                  {(() => {
+                    if (el[4] === "0") {
+                      return Number(atkBonus) + Number(strMod) + Number(el[1]);
+                    } else if (el[4] === "1") {
+                      return Number(atkBonus) + Number(strMod) + Number(el[1]);
+                    } else if (el[4] === "2") {
+                      return Number(atkBonus) + Number(dexMod) + Number(el[1]);
+                    }
+                  })()}
+                </td>
+                <td hidden={!showAtkBonusSave}>
+                  {el[2]}
+                  {(() => {
+                    if (el[4] === "0") {
+                      return "+" + (Number(el[1]) + Number(strMod));
+                    } else if (el[4] === "1") {
+                      return "+" + (Number(el[1]) + Math.floor(Number(strMod * 1.5)));
+                    } else if (el[4] === "2") {
+                      return "+" + (Number(el[1]) + Number(0));
+                    }
+                  })()}
+                </td>
+                <td>{el[3]}</td>
+                <td>{el[5]}</td>
+                <td>
+                  <Button
+                    size="sm"
+                    className="action-btn fa-solid fa-trash"
+                    hidden={!showDeleteBtn}
+                    onClick={() => {
+                      deleteWeapons(el);
+                    }}
+                  ></Button>
+                </td>
+              </tr>
+            ))}
           </tbody>
-        </Table>      
-    <Row>
-        <Col>
-          <Form onSubmit={addWeaponToDb}>
-          <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-dark">Select Weapon</Form.Label>
-        <Form.Select 
-        onChange={(e) => {updateWeapon({ weapon: e.target.value }); handleChosenWeaponChange(e);}}
-        defaultValue=""
-         type="text">
-          <option value="" disabled>Select your weapon</option>
-          {weapon.weapon.map((el) => (  
-          <option key={el.weaponName} value={[el.weaponName, el.enhancement, el.damage, el.critical, el.weaponStyle, el.range]}>{el.weaponName}</option>
-          ))}
-        </Form.Select>
-      </Form.Group>
-        <Button disabled={!chosenWeapon} className="rounded-pill" variant="outline-dark" type="submit">Add</Button>
-          </Form>
-        </Col>
-      </Row>
-      </Card> 
-</div>
+        </Table>
+        <Row>
+          <Col>
+            <Form onSubmit={addWeaponToDb}>
+              <Form.Group className="mb-3 mx-5">
+                <Form.Label className="text-dark">Select Weapon</Form.Label>
+                <Form.Select
+                  onChange={(e) => {
+                    updateWeapon({ weapon: e.target.value });
+                    handleChosenWeaponChange(e);
+                  }}
+                  defaultValue=""
+                  type="text"
+                >
+                  <option value="" disabled>
+                    Select your weapon
+                  </option>
+                  {weapon.weapon.map((el) => (
+                    <option
+                      key={el.weaponName}
+                      value={[
+                        el.weaponName,
+                        el.enhancement,
+                        el.damage,
+                        el.critical,
+                        el.weaponStyle,
+                        el.range,
+                      ]}
+                    >
+                      {el.weaponName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <Button disabled={!chosenWeapon} className="action-btn" type="submit">
+                Add
+              </Button>
+            </Form>
+          </Col>
+        </Row>
+      </Card.Body>
+      <Card.Footer className="modal-footer">
+        <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
+          Close
+        </Button>
+      </Card.Footer>
+    </Card>
+  </div>
 </Modal>
     </div>
 )
