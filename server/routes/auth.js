@@ -31,6 +31,7 @@ module.exports = (router) => {
           httpOnly: true,
           secure: true,
           sameSite: 'none',
+          domain: '.realmtracker.org',
         });
         res.json({ message: 'Logged in' });
         logger.info('User logged in', {
@@ -73,6 +74,7 @@ module.exports = (router) => {
       secure: true,
       sameSite: 'none',
       path: '/',
+      domain: '.realmtracker.org',
     });
     res.json({ message: 'Logged out' });
   });
