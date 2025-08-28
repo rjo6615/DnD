@@ -34,7 +34,6 @@ const csrfProtection = csrf({
     httpOnly: true,
     sameSite: 'none',
     secure: true,
-    domain: '.realmtracker.org',
   },
 });
 app.use(csrfProtection);
