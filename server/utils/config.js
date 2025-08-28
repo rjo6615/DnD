@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 // Load environment variables from config.env located one directory up
 dotenv.config({ path: path.resolve(__dirname, '../config.env') });
 
-const requiredEnv = ['JWT_SECRET', 'ATLAS_URI', 'CLIENT_ORIGIN'];
+const requiredEnv = ['JWT_SECRET', 'ATLAS_URI', 'CLIENT_ORIGINS'];
 
 const missing = requiredEnv.filter((name) => !process.env[name]);
 
@@ -15,5 +15,5 @@ if (missing.length > 0) {
 module.exports = {
   jwtSecret: process.env.JWT_SECRET,
   atlasUri: process.env.ATLAS_URI,
-  clientOrigin: process.env.CLIENT_ORIGIN,
+  clientOrigins: process.env.CLIENT_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
 };
