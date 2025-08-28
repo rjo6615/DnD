@@ -3,12 +3,20 @@ const express = require('express');
 const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
+const { numericFields, skillFields } = require('./fieldConstants');
 
 module.exports = (router) => {
   const equipmentRouter = express.Router();
 
   // Apply authentication to all equipment routes
   equipmentRouter.use(authenticateToken);
+
+  const itemFields = [
+    ...numericFields.filter((field) =>
+      !['age', 'height', 'weight', 'startStatTotal', 'health', 'tempHealth'].includes(field)
+    ),
+    ...skillFields,
+  ];
 
   // Weapon Section
 
@@ -160,44 +168,7 @@ module.exports = (router) => {
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('itemName').trim().notEmpty().withMessage('itemName is required'),
       body('notes').optional().trim(),
-      ...[
-        'str',
-        'dex',
-        'con',
-        'int',
-        'wis',
-        'cha',
-        'appraise',
-        'balance',
-        'bluff',
-        'climb',
-        'concentration',
-        'decipherScript',
-        'diplomacy',
-        'disableDevice',
-        'disguise',
-        'escapeArtist',
-        'forgery',
-        'gatherInfo',
-        'handleAnimal',
-        'heal',
-        'hide',
-        'intimidate',
-        'jump',
-        'listen',
-        'moveSilently',
-        'openLock',
-        'ride',
-        'search',
-        'senseMotive',
-        'sleightOfHand',
-        'spot',
-        'survival',
-        'swim',
-        'tumble',
-        'useTech',
-        'useRope',
-      ].map((field) => body(field).optional().isInt().toInt()),
+      ...itemFields.map((field) => body(field).optional().isInt().toInt()),
     ],
     handleValidationErrors,
     async (req, response, next) => {
