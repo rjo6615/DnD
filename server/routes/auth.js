@@ -29,8 +29,8 @@ module.exports = (router) => {
         const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
         res.cookie('token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          secure: true,
+          sameSite: 'none',
         });
         res.json({ message: 'Logged in' });
         logger.info('User logged in', {
@@ -70,8 +70,8 @@ module.exports = (router) => {
   router.post('/logout', (req, res) => {
     res.clearCookie('token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       path: '/',
     });
     res.json({ message: 'Logged out' });
