@@ -32,8 +32,8 @@ app.use(helmet());
 const csrfProtection = csrf({
   cookie: {
     httpOnly: true,
-    sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+    secure: true,
   },
 });
 app.use(csrfProtection);
