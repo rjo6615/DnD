@@ -12,6 +12,7 @@ const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 const logger = require("./utils/logger");
 const port = process.env.PORT || 5000;
+const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = config.clientOrigins;
 
 // Restrict cross-origin requests to approved clients
@@ -32,14 +33,21 @@ app.use(helmet());
 const csrfProtection = csrf({
   cookie: {
     httpOnly: true,
-    sameSite: 'none',
-    secure: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    domain: isProd ? '.realmtracker.org' : undefined,
   },
 });
 app.use(csrfProtection);
 
 app.get('/csrf-token', (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+  const token = req.csrfToken();
+  res.cookie('XSRF-TOKEN', token, {
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+    domain: isProd ? '.realmtracker.org' : undefined,
+  });
+  res.json({ csrfToken: token });
 });
 
 const authLimiter = rateLimit({
