@@ -32,7 +32,7 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 
 | Variable | Description |
 |----------|-------------|
-| `CLIENT_ORIGIN` | The URL of the client application allowed to make cross-origin requests. |
+| `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
 
 
 ## API Error Format

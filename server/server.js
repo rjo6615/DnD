@@ -12,11 +12,12 @@ const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 const logger = require("./utils/logger");
 const port = process.env.PORT || 5000;
+const allowedOrigins = config.clientOrigins;
 
-// Restrict cross-origin requests to a single approved client
+// Restrict cross-origin requests to approved clients
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || origin === config.clientOrigin) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
