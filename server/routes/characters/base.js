@@ -4,6 +4,7 @@ const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
+const { numericFields, skillFields } = require('../fieldConstants');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -43,50 +44,7 @@ module.exports = (router) => {
   });
 
   // This section will create a new character.
-  const numericCharacterFields = [
-    'age',
-    'height',
-    'weight',
-    'str',
-    'dex',
-    'con',
-    'int',
-    'wis',
-    'cha',
-    'startStatTotal',
-    'health',
-    'tempHealth',
-    'appraise',
-    'balance',
-    'bluff',
-    'climb',
-    'concentration',
-    'decipherScript',
-    'diplomacy',
-    'disableDevice',
-    'disguise',
-    'escapeArtist',
-    'forgery',
-    'gatherInfo',
-    'handleAnimal',
-    'heal',
-    'hide',
-    'intimidate',
-    'jump',
-    'listen',
-    'moveSilently',
-    'openLock',
-    'ride',
-    'search',
-    'senseMotive',
-    'sleightOfHand',
-    'spot',
-    'survival',
-    'swim',
-    'tumble',
-    'useTech',
-    'useRope',
-  ];
+  const numericCharacterFields = [...numericFields, ...skillFields];
 
   characterRouter.post(
     '/character/add',
