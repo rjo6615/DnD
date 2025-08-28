@@ -30,7 +30,7 @@ module.exports = (router) => {
         res.cookie('token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
+          sameSite: 'lax',
         });
         res.json({ message: 'Logged in' });
         logger.info('User logged in', {
@@ -71,7 +71,7 @@ module.exports = (router) => {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
     });
     res.json({ message: 'Logged out' });
