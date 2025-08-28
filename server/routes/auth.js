@@ -7,6 +7,7 @@ const logger = require('../utils/logger');
 const config = require('../utils/config');
 
 const jwtSecretKey = config.jwtSecret;
+const isProd = process.env.NODE_ENV === 'production';
 
 module.exports = (router) => {
   router.post(
@@ -29,8 +30,9 @@ module.exports = (router) => {
         const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
         res.cookie('token', token, {
           httpOnly: true,
-          secure: true,
-          sameSite: 'none',
+          secure: isProd,
+          sameSite: isProd ? 'none' : 'lax',
+          domain: isProd ? '.realmtracker.org' : undefined,
         });
         res.json({ message: 'Logged in' });
         logger.info('User logged in', {
@@ -70,9 +72,10 @@ module.exports = (router) => {
   router.post('/logout', (req, res) => {
     res.clearCookie('token', {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
+      domain: isProd ? '.realmtracker.org' : undefined,
     });
     res.json({ message: 'Logged out' });
   });
