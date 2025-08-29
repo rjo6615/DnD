@@ -208,5 +208,5 @@ module.exports = (router) => {
     }
   );
 
-  router.use(equipmentRouter);
+  router.use('/equipment', equipmentRouter);
 };

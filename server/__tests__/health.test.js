@@ -23,7 +23,7 @@ describe('Health routes validation', () => {
   test('update temphealth invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-temphealth/123')
+      .put('/characters/update-temphealth/123')
       .send({ tempHealth: 5 });
     expect(res.status).toBe(400);
   });
@@ -31,7 +31,7 @@ describe('Health routes validation', () => {
   test('update temphealth invalid body', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-temphealth/507f1f77bcf86cd799439011')
+      .put('/characters/update-temphealth/507f1f77bcf86cd799439011')
       .send({ tempHealth: 'bad' });
     expect(res.status).toBe(400);
   });
@@ -39,7 +39,7 @@ describe('Health routes validation', () => {
   test('update health invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-health/123')
+      .put('/characters/update-health/123')
       .send({ health: 1, str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1, startStatTotal: 1 });
     expect(res.status).toBe(400);
   });
@@ -47,7 +47,7 @@ describe('Health routes validation', () => {
   test('update health invalid body', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-health/507f1f77bcf86cd799439011')
+      .put('/characters/update-health/507f1f77bcf86cd799439011')
       .send({ health: 'bad', str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1, startStatTotal: 1 });
     expect(res.status).toBe(400);
   });

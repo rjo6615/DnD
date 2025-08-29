@@ -27,7 +27,7 @@ describe('Equipment routes', () => {
   describe('/weapon/add', () => {
     test('validation failure', async () => {
       dbo.mockResolvedValue({});
-      const res = await request(app).post('/weapon/add').send({});
+      const res = await request(app).post('/equipment/weapon/add').send({});
       expect(res.status).toBe(400);
       expect(res.body.errors).toBeDefined();
     });
@@ -37,7 +37,7 @@ describe('Equipment routes', () => {
         collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
       });
       const res = await request(app)
-        .post('/weapon/add')
+        .post('/equipment/weapon/add')
         .send({ campaign: 'Camp1', weaponName: 'Sword' });
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
@@ -46,7 +46,7 @@ describe('Equipment routes', () => {
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .post('/weapon/add')
+        .post('/equipment/weapon/add')
         .send({ campaign: 'Camp1', weaponName: 'Sword', enhancement: 'bad' });
       expect(res.status).toBe(400);
     });
@@ -58,7 +58,7 @@ describe('Equipment routes', () => {
         collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
       });
       const res = await request(app)
-        .put('/update-weapon/507f1f77bcf86cd799439011')
+        .put('/equipment/update-weapon/507f1f77bcf86cd799439011')
         .send({ weapon: ['Sword'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Weapon updated');
@@ -69,7 +69,7 @@ describe('Equipment routes', () => {
         collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
       });
       const res = await request(app)
-        .put('/update-weapon/507f1f77bcf86cd799439011')
+        .put('/equipment/update-weapon/507f1f77bcf86cd799439011')
         .send({ weapon: ['Sword'] });
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Weapon not found');
@@ -78,7 +78,7 @@ describe('Equipment routes', () => {
     test('update weapon invalid id', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .put('/update-weapon/123')
+        .put('/equipment/update-weapon/123')
         .send({ weapon: ['Sword'] });
       expect(res.status).toBe(400);
     });
@@ -86,7 +86,7 @@ describe('Equipment routes', () => {
     test('update weapon invalid body', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .put('/update-weapon/507f1f77bcf86cd799439011')
+        .put('/equipment/update-weapon/507f1f77bcf86cd799439011')
         .send({ weapon: 'Sword' });
       expect(res.status).toBe(400);
     });
@@ -95,7 +95,7 @@ describe('Equipment routes', () => {
   describe('/armor/add', () => {
     test('validation failure', async () => {
       dbo.mockResolvedValue({});
-      const res = await request(app).post('/armor/add').send({});
+      const res = await request(app).post('/equipment/armor/add').send({});
       expect(res.status).toBe(400);
       expect(res.body.errors).toBeDefined();
     });
@@ -105,7 +105,7 @@ describe('Equipment routes', () => {
         collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
       });
       const res = await request(app)
-        .post('/armor/add')
+        .post('/equipment/armor/add')
         .send({ campaign: 'Camp1', armorName: 'Plate' });
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
@@ -114,7 +114,7 @@ describe('Equipment routes', () => {
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .post('/armor/add')
+        .post('/equipment/armor/add')
         .send({ campaign: 'Camp1', armorName: 'Plate', armorBonus: 'bad' });
       expect(res.status).toBe(400);
     });
@@ -126,7 +126,7 @@ describe('Equipment routes', () => {
         collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
       });
       const res = await request(app)
-        .put('/update-armor/507f1f77bcf86cd799439011')
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Plate'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Armor updated');
@@ -137,7 +137,7 @@ describe('Equipment routes', () => {
         collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
       });
       const res = await request(app)
-        .put('/update-armor/507f1f77bcf86cd799439011')
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Plate'] });
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Armor not found');
@@ -146,7 +146,7 @@ describe('Equipment routes', () => {
     test('update armor invalid id', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .put('/update-armor/123')
+        .put('/equipment/update-armor/123')
         .send({ armor: ['Plate'] });
       expect(res.status).toBe(400);
     });
@@ -154,7 +154,7 @@ describe('Equipment routes', () => {
     test('update armor invalid body', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .put('/update-armor/507f1f77bcf86cd799439011')
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: 'Plate' });
       expect(res.status).toBe(400);
     });
@@ -163,7 +163,7 @@ describe('Equipment routes', () => {
   describe('/item/add', () => {
     test('validation failure', async () => {
       dbo.mockResolvedValue({});
-      const res = await request(app).post('/item/add').send({});
+      const res = await request(app).post('/equipment/item/add').send({});
       expect(res.status).toBe(400);
       expect(res.body.errors).toBeDefined();
     });
@@ -173,7 +173,7 @@ describe('Equipment routes', () => {
         collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
       });
       const res = await request(app)
-        .post('/item/add')
+        .post('/equipment/item/add')
         .send({ campaign: 'Camp1', itemName: 'Potion' });
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
@@ -182,7 +182,7 @@ describe('Equipment routes', () => {
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .post('/item/add')
+        .post('/equipment/item/add')
         .send({ campaign: 'Camp1', itemName: 'Potion', str: 'bad' });
       expect(res.status).toBe(400);
     });
@@ -194,7 +194,7 @@ describe('Equipment routes', () => {
         collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
       });
       const res = await request(app)
-        .put('/update-item/507f1f77bcf86cd799439011')
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: ['Potion'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Item updated');
@@ -205,7 +205,7 @@ describe('Equipment routes', () => {
         collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
       });
       const res = await request(app)
-        .put('/update-item/507f1f77bcf86cd799439011')
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: ['Potion'] });
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Item not found');
@@ -214,7 +214,7 @@ describe('Equipment routes', () => {
     test('update item invalid id', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .put('/update-item/123')
+        .put('/equipment/update-item/123')
         .send({ item: ['Potion'] });
       expect(res.status).toBe(400);
     });
@@ -222,7 +222,7 @@ describe('Equipment routes', () => {
     test('update item invalid body', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .put('/update-item/507f1f77bcf86cd799439011')
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: 'Potion' });
       expect(res.status).toBe(400);
     });

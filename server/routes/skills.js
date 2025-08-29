@@ -89,5 +89,5 @@ module.exports = (router) => {
     }
   });
 
-  router.use(skillsRouter);
+  router.use('/skills', skillsRouter);
 };

@@ -10,7 +10,7 @@ module.exports = (router) => {
   featRouter.use(authenticateToken);
 
   // This section will get a list of all the feats.
-  featRouter.route("/feats").get(async (req, res, next) => {
+  featRouter.route('/').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -24,7 +24,7 @@ module.exports = (router) => {
   });
 
   // This section will create a new feat.
-  featRouter.route("/feat/add").post(async (req, response, next) => {
+  featRouter.route('/add').post(async (req, response, next) => {
     const db_connect = req.db;
     const myobj = {
       featName: req.body.featName,
@@ -69,7 +69,7 @@ module.exports = (router) => {
   });
 
   // This section will update feats.
-  featRouter.route('/update-feat/:id').put(async (req, res, next) => {
+  featRouter.route('/update/:id').put(async (req, res, next) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     try {
@@ -83,5 +83,5 @@ module.exports = (router) => {
     }
   });
 
-  router.use(featRouter);
+  router.use('/feats', featRouter);
 };

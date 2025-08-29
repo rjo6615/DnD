@@ -27,7 +27,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .post('/character/add')
+      .post('/characters/add')
       .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -55,7 +55,7 @@ describe('Character routes', () => {
       newSkill: ['Stealth']
     };
     const res = await request(app)
-      .post('/character/add')
+      .post('/characters/add')
       .send(payload);
     expect(res.status).toBe(200);
     expect(captured).toMatchObject({
@@ -73,7 +73,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .post('/character/add')
+      .post('/characters/add')
       .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(500);
   });
@@ -85,7 +85,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .post('/character/add')
+      .post('/characters/add')
       .send({ token: 'alice' });
     expect(res.status).toBe(400);
   });
@@ -96,7 +96,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => [{ token: 'alice', campaign: 'Camp1' }] })
       })
     });
-    const res = await request(app).get('/campaign/Camp1/alice');
+    const res = await request(app).get('/campaigns/Camp1/alice');
     expect(res.status).toBe(200);
     expect(res.body[0].token).toBe('alice');
   });
@@ -107,7 +107,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
-    const res = await request(app).get('/campaign/Camp1/alice');
+    const res = await request(app).get('/campaigns/Camp1/alice');
     expect(res.status).toBe(500);
   });
 
@@ -120,7 +120,7 @@ describe('Character routes', () => {
         ] })
       })
     });
-    const res = await request(app).get('/campaign/Camp1/characters');
+    const res = await request(app).get('/campaigns/Camp1/characters');
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(2);
   });
@@ -131,7 +131,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
-    const res = await request(app).get('/campaign/Camp1/characters');
+    const res = await request(app).get('/campaigns/Camp1/characters');
     expect(res.status).toBe(500);
   });
 
@@ -164,7 +164,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => [{ weaponName: 'Sword' }] })
       })
     });
-    const res = await request(app).get('/weapons/Camp1');
+    const res = await request(app).get('/equipment/weapons/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].weaponName).toBe('Sword');
   });
@@ -175,7 +175,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
-    const res = await request(app).get('/weapons/Camp1');
+    const res = await request(app).get('/equipment/weapons/Camp1');
     expect(res.status).toBe(500);
   });
 
@@ -185,7 +185,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => [{ armorName: 'Plate' }] })
       })
     });
-    const res = await request(app).get('/armor/Camp1');
+    const res = await request(app).get('/equipment/armor/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].armorName).toBe('Plate');
   });
@@ -196,7 +196,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
-    const res = await request(app).get('/armor/Camp1');
+    const res = await request(app).get('/equipment/armor/Camp1');
     expect(res.status).toBe(500);
   });
 
@@ -206,7 +206,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => [{ itemName: 'Potion' }] })
       })
     });
-    const res = await request(app).get('/items/Camp1');
+    const res = await request(app).get('/equipment/items/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].itemName).toBe('Potion');
   });
@@ -217,7 +217,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
-    const res = await request(app).get('/items/Camp1');
+    const res = await request(app).get('/equipment/items/Camp1');
     expect(res.status).toBe(500);
   });
 
@@ -248,7 +248,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => [{ name: 'Soldier' }] })
       })
     });
-    const res = await request(app).get('/occupations');
+    const res = await request(app).get('/characters/occupations');
     expect(res.status).toBe(200);
     expect(res.body[0].name).toBe('Soldier');
   });
@@ -259,7 +259,7 @@ describe('Character routes', () => {
         find: () => ({ toArray: async () => { throw new Error('db error'); } })
       })
     });
-    const res = await request(app).get('/occupations');
+    const res = await request(app).get('/characters/occupations');
     expect(res.status).toBe(500);
   });
 
@@ -270,7 +270,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .put('/update-skills/507f1f77bcf86cd799439011')
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
       .send({ appraise: 1 });
     expect(res.status).toBe(200);
     expect(res.body.appraise).toBe(1);
@@ -283,7 +283,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .put('/update-skills/507f1f77bcf86cd799439011')
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
       .send({ appraise: 1 });
     expect(res.status).toBe(500);
   });
@@ -295,7 +295,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .put('/updated-add-skills/507f1f77bcf86cd799439011')
+      .put('/skills/updated-add-skills/507f1f77bcf86cd799439011')
       .send({ newSkill: [['Skill', 1]] });
     expect(res.status).toBe(200);
     expect(res.body.newSkill).toEqual([['Skill', 1]]);
@@ -308,7 +308,7 @@ describe('Character routes', () => {
       })
     });
     const res = await request(app)
-      .put('/updated-add-skills/507f1f77bcf86cd799439011')
+      .put('/skills/updated-add-skills/507f1f77bcf86cd799439011')
       .send({ newSkill: [['Skill', 1]] });
     expect(res.status).toBe(500);
   });
@@ -318,7 +318,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
     });
     const res = await request(app)
-      .post('/weapon/add')
+      .post('/equipment/weapon/add')
       .send({ campaign: 'Camp1', weaponName: 'Sword' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -329,7 +329,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
-      .post('/weapon/add')
+      .post('/equipment/weapon/add')
       .send({ campaign: 'Camp1', weaponName: 'Sword' });
     expect(res.status).toBe(500);
   });
@@ -339,7 +339,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
     });
     const res = await request(app)
-      .post('/armor/add')
+      .post('/equipment/armor/add')
       .send({ campaign: 'Camp1', armorName: 'Plate' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -350,7 +350,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
-      .post('/armor/add')
+      .post('/equipment/armor/add')
       .send({ campaign: 'Camp1', armorName: 'Plate' });
     expect(res.status).toBe(500);
   });
@@ -360,7 +360,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
     });
     const res = await request(app)
-      .post('/item/add')
+      .post('/equipment/item/add')
       .send({ campaign: 'Camp1', itemName: 'Potion' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
@@ -371,7 +371,7 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
-      .post('/item/add')
+      .post('/equipment/item/add')
       .send({ campaign: 'Camp1', itemName: 'Potion' });
     expect(res.status).toBe(500);
   });
@@ -384,14 +384,14 @@ describe('Character routes', () => {
 
   test('delete character invalid id', async () => {
     dbo.mockResolvedValue({});
-    const res = await request(app).delete('/delete-character/123');
+    const res = await request(app).delete('/characters/delete-character/123');
     expect(res.status).toBe(400);
   });
 
   test('update level invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-level/123')
+      .put('/characters/update-level/123')
       .send({ level: 1, health: 1 });
     expect(res.status).toBe(400);
   });
@@ -399,7 +399,7 @@ describe('Character routes', () => {
   test('update level invalid body', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-level/507f1f77bcf86cd799439011')
+      .put('/characters/update-level/507f1f77bcf86cd799439011')
       .send({ level: 'one', health: 1 });
     expect(res.status).toBe(400);
   });
@@ -407,7 +407,7 @@ describe('Character routes', () => {
   test('update dice color invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-dice-color/123')
+      .put('/characters/update-dice-color/123')
       .send({ diceColor: 'blue' });
     expect(res.status).toBe(400);
   });
@@ -415,7 +415,7 @@ describe('Character routes', () => {
   test('update dice color invalid body', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
-      .put('/update-dice-color/507f1f77bcf86cd799439011')
+      .put('/characters/update-dice-color/507f1f77bcf86cd799439011')
       .send({ diceColor: 5 });
     expect(res.status).toBe(400);
   });
