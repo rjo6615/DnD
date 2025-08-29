@@ -43,6 +43,34 @@ module.exports = (router) => {
     }
   );
 
+    // This section will get a list of all the campaigns.
+  campaignRouter.route('/player/:player').get(async (req, res, next) => {
+    try {
+      const db_connect = req.db;
+      const result = await db_connect
+        .collection("Campaigns")
+        .find({ players: { $in: [req.params.player] } })
+        .toArray();
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+    // This section will be for the DM
+  campaignRouter.route('/dm/:DM').get(async (req, res, next) => {
+    try {
+      const db_connect = req.db;
+      const result = await db_connect
+        .collection("Campaigns")
+        .find({ dm: req.params.DM })
+        .toArray();
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+   });
+
   // This section will find all characters in a specific campaign.
   campaignRouter.route('/:campaign/characters').get(async (req, res, next) => {
     try {
@@ -84,19 +112,6 @@ module.exports = (router) => {
     }
   });
 
-  // This section will get a list of all the campaigns.
-  campaignRouter.route('/player/:player').get(async (req, res, next) => {
-    try {
-      const db_connect = req.db;
-      const result = await db_connect
-        .collection("Campaigns")
-        .find({ players: { $in: [req.params.player] } })
-        .toArray();
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  });
 
   // This section will create a new campaign.
   campaignRouter.route('/add').post(async (req, response, next) => {
@@ -116,19 +131,6 @@ module.exports = (router) => {
    });
 
 
-  // This section will be for the DM
-  campaignRouter.route('/dm/:DM').get(async (req, res, next) => {
-    try {
-      const db_connect = req.db;
-      const result = await db_connect
-        .collection("Campaigns")
-        .find({ dm: req.params.DM })
-        .toArray();
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-   });
 
   campaignRouter.route('/dm/:DM/:campaign').get(async (req, res, next) => {
     try {
