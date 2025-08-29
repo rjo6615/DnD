@@ -55,7 +55,7 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
       return;
     }
   async function fetchData1() {
-    const response = await apiFetch(`/campaigns/${user.username}`);
+    const response = await apiFetch(`/campaigns/player/${user.username}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -82,7 +82,7 @@ useEffect(() => {
       return;
     }
   async function fetchCampaignsDM() {
-    const response = await apiFetch(`/campaignsDM/${user.username}`);
+    const response = await apiFetch(`/campaigns/dm/${user.username}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
