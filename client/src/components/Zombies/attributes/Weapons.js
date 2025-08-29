@@ -45,7 +45,7 @@ const [weapon, setWeapon] = useState({
   // Fetch Weapons
   useEffect(() => {
     async function fetchWeapons() {
-      const response = await apiFetch(`/weapons/${currentCampaign}`);
+      const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -88,7 +88,7 @@ const [weapon, setWeapon] = useState({
    }
    async function addWeaponToDb(e){
     e.preventDefault();
-    await apiFetch(`/update-weapon/${params.id}`, {
+    await apiFetch(`/equipment/update-weapon/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -116,7 +116,7 @@ const [weapon, setWeapon] = useState({
     let newWeaponForm = form.weapon;
     if (JSON.stringify(form.weapon) === JSON.stringify([])){
       newWeaponForm = [["","","","","",""]];
-      await apiFetch(`/update-weapon/${params.id}`, {
+      await apiFetch(`/equipment/update-weapon/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +132,7 @@ const [weapon, setWeapon] = useState({
       window.alert("Weapon Deleted")
       navigate(0);
     } else {
-    await apiFetch(`/update-weapon/${params.id}`, {
+    await apiFetch(`/equipment/update-weapon/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",

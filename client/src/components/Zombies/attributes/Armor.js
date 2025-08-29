@@ -27,7 +27,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   // Fetch Armors
   useEffect(() => {
     async function fetchArmor() {
-      const response = await apiFetch(`/armor/${currentCampaign}`);
+      const response = await apiFetch(`/equipment/armor/${currentCampaign}`);
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -68,7 +68,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   }
   async function addArmorToDb(e){
     e.preventDefault();
-    await apiFetch(`/update-armor/${params.id}`, {
+    await apiFetch(`/equipment/update-armor/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -95,7 +95,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     let newArmorForm = form.armor;
     if (JSON.stringify(form.armor) === JSON.stringify([])){
       newArmorForm = [["","","",""]];
-      await apiFetch(`/update-armor/${params.id}`, {
+      await apiFetch(`/equipment/update-armor/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -111,7 +111,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
       window.alert("Armor Deleted")
       navigate(0);
     } else {
-    await apiFetch(`/update-armor/${params.id}`, {
+    await apiFetch(`/equipment/update-armor/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
