@@ -14,7 +14,7 @@ export default function ZombiesDM() {
     const [records, setRecords] = useState([]);
     useEffect(() => {
       async function getRecords() {
-        const response = await apiFetch(`/campaign/${params.campaign}/characters`);
+        const response = await apiFetch(`/campaigns/${params.campaign}/characters`);
 
         if (!response.ok) {
           const message = `An error occurred: ${response.statusText}`;
