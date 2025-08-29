@@ -34,7 +34,7 @@ export default function Items({form, showItems, handleCloseItems}) {
   // Fetch Items
   useEffect(() => {
     async function fetchItems() {
-      const response = await apiFetch(`/items/${currentCampaign}`);
+      const response = await apiFetch(`/equipment/items/${currentCampaign}`);
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -77,7 +77,7 @@ export default function Items({form, showItems, handleCloseItems}) {
    }
    async function addItemToDb(e){
     e.preventDefault();
-    await apiFetch(`/update-item/${params.id}`, {
+    await apiFetch(`/equipment/update-item/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -107,7 +107,7 @@ export default function Items({form, showItems, handleCloseItems}) {
     let newItemForm = form.item;
     if (JSON.stringify(form.item) === JSON.stringify([])){
       newItemForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
-      await apiFetch(`/update-item/${params.id}`, {
+      await apiFetch(`/equipment/update-item/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +123,7 @@ export default function Items({form, showItems, handleCloseItems}) {
       window.alert("Item Deleted")
       navigate(0);
     } else {
-    await apiFetch(`/update-item/${params.id}`, {
+    await apiFetch(`/equipment/update-item/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
