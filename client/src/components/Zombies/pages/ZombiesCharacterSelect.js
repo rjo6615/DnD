@@ -90,7 +90,7 @@ const handleShow = () => setShow(true);
 // Fetch Occupations
 useEffect(() => {
   async function fetchData() {
-    const response = await apiFetch(`/occupations`);
+    const response = await apiFetch(`/characters/occupations`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
