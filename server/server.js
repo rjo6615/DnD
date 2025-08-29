@@ -38,7 +38,17 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
+const apiHost = process.env.API_ORIGIN || 'https://realmtracker.org';
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: ["'self'", apiHost],
+      },
+    },
+  })
+);
 
 const csrfProtection = csrf({
   cookie: {
