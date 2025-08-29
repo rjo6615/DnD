@@ -109,7 +109,7 @@ async function newPlayerSubmit(e) {
 const currentCampaign = params.campaign.toString();
 async function sendNewPlayersToDb() {
   const newPlayers = [playersSearch];
-  await apiFetch(`/players/add/${currentCampaign}`, {
+  await apiFetch(`/campaigns/players/add/${currentCampaign}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -162,7 +162,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb2(){
     const newWeapon = { ...form2 };
-      await apiFetch("/weapon/add", {
+      await apiFetch("/equipment/weapon/add", {
        method: "POST",
        headers: {
          "Content-Type": "application/json",
@@ -211,7 +211,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb3(){
     const newArmor = { ...form3 };
-    await apiFetch("/armor/add", {
+    await apiFetch("/equipment/armor/add", {
        method: "POST",
        headers: {
          "Content-Type": "application/json",
@@ -292,7 +292,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb4(){
     const newItem = { ...form4 };
-    await apiFetch("/item/add", {
+    await apiFetch("/equipment/item/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
