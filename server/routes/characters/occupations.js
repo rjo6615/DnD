@@ -6,9 +6,6 @@ const logger = require('../../utils/logger');
 module.exports = (router) => {
   const characterRouter = express.Router();
 
-  // Apply authentication to all character routes
-  characterRouter.use(authenticateToken);
-
   // This section will get a list of all the occupations.
   characterRouter.route('/occupations').get(async (req, res, next) => {
     try {
@@ -22,6 +19,9 @@ module.exports = (router) => {
       next(err);
     }
   });
+
+  // Apply authentication to all character routes after occupations
+  characterRouter.use(authenticateToken);
 
   // This section will update occupations.
   characterRouter.route('/update-occupations/:id').put(async (req, res, next) => {
