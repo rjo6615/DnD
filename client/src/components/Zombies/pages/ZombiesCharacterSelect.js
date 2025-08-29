@@ -20,7 +20,7 @@ export default function RecordList() {
       return;
     }
     async function getRecords() {
-    const response = await apiFetch(`/campaign/${params.campaign}/${user.username}`);
+    const response = await apiFetch(`/campaigns/${params.campaign}/${user.username}`);
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
