@@ -80,7 +80,18 @@ module.exports = (router) => {
     res.json({ message: 'Logged out' });
   });
 
-  router.get('/me', authenticateToken, (req, res) => {
-    res.json({ username: req.user.username });
+  router.get('/me', authenticateToken, async (req, res, next) => {
+    try {
+      const db_connect = req.db;
+      const user = await db_connect
+        .collection('users')
+        .findOne({ username: req.user.username });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json({ username: user.username, isDM: user.isDM });
+    } catch (err) {
+      next(err);
+    }
   });
 };

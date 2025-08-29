@@ -4,7 +4,7 @@ import useUser from './useUser';
 
 function TestComponent() {
   const user = useUser();
-  return <div>{user ? user.username : 'no-user'}</div>;
+  return <div>{user ? `${user.username}-${user.isDM}` : 'no-user'}</div>;
 }
 
 describe('useUser', () => {
@@ -14,11 +14,14 @@ describe('useUser', () => {
 
   test('returns user data', async () => {
     global.fetch = jest.fn(() =>
-      Promise.resolve({ ok: true, json: () => Promise.resolve({ username: 'test' }) })
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ username: 'test', isDM: true }) })
     );
     render(<TestComponent />);
-    expect(await screen.findByText('test')).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledWith('/me', { credentials: 'include' });
+    expect(await screen.findByText('test-true')).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/me'),
+      { credentials: 'include' }
+    );
   });
 
   test('handles missing user', async () => {
