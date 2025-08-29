@@ -230,7 +230,7 @@ useEffect(() => {
    const sendToDb = useCallback(async () => {
     const newCharacter = { ...form };
     try {
-      await apiFetch("/character/add", {
+      await apiFetch("/characters/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -315,7 +315,7 @@ const sendManualToDb = useCallback(async() => {
   try {
     // Call the API endpoint for manual character creation
     // Adjust the endpoint URL as needed
-    await apiFetch("/character/add", {
+    await apiFetch("/characters/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
