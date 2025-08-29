@@ -46,7 +46,7 @@ export default function LevelUp({ show, handleClose, form }) {
     };
 
     try {
-      await apiFetch(`/update-level/${params.id}`, {
+      await apiFetch(`/characters/update-level/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -108,7 +108,7 @@ export default function LevelUp({ show, handleClose, form }) {
       form.occupation.push(selectedOccupation);
 
       // Perform the database update here
-      apiFetch(`/update-health/${params.id}`, {
+      apiFetch(`/characters/update-health/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json", // Set content type to JSON
@@ -133,7 +133,7 @@ export default function LevelUp({ show, handleClose, form }) {
         });
 
       // Perform the database update with the entire form.occupation array
-      apiFetch(`/update-occupations/${params.id}`, {
+      apiFetch(`/characters/update-occupations/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +157,7 @@ export default function LevelUp({ show, handleClose, form }) {
 
   useEffect(() => {
     async function fetchData() {
-      const response = await apiFetch(`/occupations`);
+      const response = await apiFetch(`/characters/occupations`);
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
