@@ -74,7 +74,7 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
   const [health, setHealth] = useState(); // Initial health value
  // Sends tempHealth data to database for update
  async function tempHealthUpdate(offset){
-    await apiFetch(`/update-temphealth/${params.id}`, {
+    await apiFetch(`/characters/update-temphealth/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
