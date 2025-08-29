@@ -89,7 +89,7 @@ const [feat, setFeat] = useState({
    }
    async function addFeatToDb(e){
     e.preventDefault();
-    await apiFetch(`/update-feat/${params.id}`, {
+    await apiFetch(`/feats/update/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
