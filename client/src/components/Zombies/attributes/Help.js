@@ -49,7 +49,7 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 
  // Sends dice color update to database
  async function diceColorUpdate(){
-   await apiFetch(`/update-dice-color/${params.id}`, {
+   await apiFetch(`/characters/update-dice-color/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
