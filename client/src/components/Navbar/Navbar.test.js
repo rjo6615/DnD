@@ -5,13 +5,16 @@ import Navbar from './Navbar';
 
 beforeEach(() => {
   global.fetch = jest.fn((url) => {
-    if (url === '/csrf-token') {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ csrfToken: 'test-token' }) });
+    if (url.toString().endsWith('/csrf-token')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ csrfToken: 'test-token' }),
+      });
     }
-    return Promise.resolve({ ok: true });
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
   });
   delete window.location;
-  window.location = { assign: jest.fn(), href: 'http://localhost/', origin: 'http://localhost' };
+  window.location = { assign: jest.fn(), href: 'http://localhost/', origin: 'http://localhost:3000' };
 });
 
 test('logout calls endpoint and redirects', async () => {
@@ -25,7 +28,7 @@ test('logout calls endpoint and redirects', async () => {
   await userEvent.click(buttons[buttons.length - 1]);
   await waitFor(() =>
     expect(global.fetch).toHaveBeenCalledWith(
-      '/logout',
+      expect.stringContaining('/logout'),
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',

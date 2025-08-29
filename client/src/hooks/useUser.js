@@ -10,7 +10,7 @@ export default function useUser() {
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (isMounted) {
-          setUser(data);
+          setUser(data ? { username: data.username, isDM: data.isDM } : null);
         }
       })
       .catch(() => {
