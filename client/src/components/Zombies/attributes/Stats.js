@@ -47,7 +47,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
   }, [stats, totalLevel, startStatTotal]);
 
   async function statsUpdate() {
-    await apiFetch(`/update-stats/${params.id}`, {
+    await apiFetch(`/characters/update-stats/${params.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
