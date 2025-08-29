@@ -40,6 +40,6 @@ module.exports = (router) => {
     }
   });
 
-  router.use(characterRouter);
+  router.use('/characters', characterRouter);
 };
 

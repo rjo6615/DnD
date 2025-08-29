@@ -44,7 +44,7 @@ module.exports = (router) => {
   );
 
   // This section will find all characters in a specific campaign.
-  campaignRouter.route("/campaign/:campaign/characters").get(async (req, res, next) => {
+  campaignRouter.route('/:campaign/characters').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -58,7 +58,7 @@ module.exports = (router) => {
   });
 
   // This section will find all of the users characters in a specific campaign.
-  campaignRouter.route("/campaign/:campaign/:username").get(async (req, res, next) => {
+  campaignRouter.route('/:campaign/:username').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -72,7 +72,7 @@ module.exports = (router) => {
    });
 
   // This section will find a specific campaign.
-  campaignRouter.route("/campaign/:campaign").get(async (req, res, next) => {
+  campaignRouter.route('/:campaign').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -85,7 +85,7 @@ module.exports = (router) => {
   });
 
   // This section will get a list of all the campaigns.
-  campaignRouter.route("/campaigns/:player").get(async (req, res, next) => {
+  campaignRouter.route('/player/:player').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -99,7 +99,7 @@ module.exports = (router) => {
   });
 
   // This section will create a new campaign.
-  campaignRouter.route("/campaign/add").post(async (req, response, next) => {
+  campaignRouter.route('/add').post(async (req, response, next) => {
     const db_connect = req.db;
     const myobj = {
       campaignName: req.body.campaignName,
@@ -117,7 +117,7 @@ module.exports = (router) => {
 
 
   // This section will be for the DM
-  campaignRouter.route("/campaignsDM/:DM").get(async (req, res, next) => {
+  campaignRouter.route('/dm/:DM').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -130,7 +130,7 @@ module.exports = (router) => {
     }
    });
 
-  campaignRouter.route("/campaignsDM/:DM/:campaign").get(async (req, res, next) => {
+  campaignRouter.route('/dm/:DM/:campaign').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -142,5 +142,5 @@ module.exports = (router) => {
     }
   });
 
-  router.use(campaignRouter);
+  router.use('/campaigns', campaignRouter);
 };

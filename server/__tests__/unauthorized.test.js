@@ -17,13 +17,13 @@ app.use(routes);
 
 describe('Unauthorized access', () => {
   test('campaign route without token returns 401', async () => {
-    const res = await request(app).get('/campaign/Test');
+    const res = await request(app).get('/campaigns/Test');
     expect(res.status).toBe(401);
   });
 
   test('character route without token returns 401', async () => {
     const res = await request(app)
-      .post('/character/add')
+      .post('/characters/add')
       .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(401);
   });

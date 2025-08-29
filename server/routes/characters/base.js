@@ -13,7 +13,7 @@ module.exports = (router) => {
   characterRouter.use(authenticateToken);
 
   // This section will get a single character by id
-  characterRouter.route('/characters/:id').get(async (req, res, next) => {
+  characterRouter.route('/:id').get(async (req, res, next) => {
     if (!ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -30,7 +30,7 @@ module.exports = (router) => {
   });
 
   // This section will get a list of all the characters.
-  characterRouter.route('/character/select').get(async (req, res, next) => {
+  characterRouter.route('/select').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
@@ -47,7 +47,7 @@ module.exports = (router) => {
   const numericCharacterFields = [...numericFields, ...skillFields];
 
   characterRouter.post(
-    '/character/add',
+    '/add',
     [
       body('token').trim().notEmpty().withMessage('token is required'),
       body('characterName').trim().notEmpty().withMessage('characterName is required'),
@@ -160,7 +160,7 @@ module.exports = (router) => {
   );
 
   // This section will update feats.
-  characterRouter.route('/characters/:id/feats').put(
+  characterRouter.route('/:id/feats').put(
     [body('feat').isArray().withMessage('feat must be an array')],
     handleValidationErrors,
     async (req, res, next) => {
@@ -185,6 +185,6 @@ module.exports = (router) => {
     }
   );
 
-  router.use(characterRouter);
+  router.use('/characters', characterRouter);
 };
 
