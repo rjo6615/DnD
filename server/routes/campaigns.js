@@ -71,6 +71,35 @@ module.exports = (router) => {
     }
    });
 
+  campaignRouter.route('/dm/:DM/:campaign').get(async (req, res, next) => {
+    try {
+      const db_connect = req.db;
+      const result = await db_connect
+        .collection("Campaigns")
+        .findOne({ dm: req.params.DM, campaignName: req.params.campaign });
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // This section will create a new campaign.
+  campaignRouter.route('/add').post(async (req, response, next) => {
+    const db_connect = req.db;
+    const myobj = {
+      campaignName: req.body.campaignName,
+      gameMode: req.body.gameMode,
+      dm: req.body.dm,
+      players: req.body.players,
+    };
+    try {
+      const result = await db_connect.collection("Campaigns").insertOne(myobj);
+      response.json(result);
+    } catch (err) {
+      next(err);
+    }
+   });
+
   // This section will find all characters in a specific campaign.
   campaignRouter.route('/:campaign/characters').get(async (req, res, next) => {
     try {
@@ -106,38 +135,6 @@ module.exports = (router) => {
       const result = await db_connect
         .collection("Campaigns")
         .findOne({ campaignName: req.params.campaign });
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  });
-
-
-  // This section will create a new campaign.
-  campaignRouter.route('/add').post(async (req, response, next) => {
-    const db_connect = req.db;
-    const myobj = {
-      campaignName: req.body.campaignName,
-      gameMode: req.body.gameMode,
-      dm: req.body.dm,
-      players: req.body.players,
-    };
-    try {
-      const result = await db_connect.collection("Campaigns").insertOne(myobj);
-      response.json(result);
-    } catch (err) {
-      next(err);
-    }
-   });
-
-
-
-  campaignRouter.route('/dm/:DM/:campaign').get(async (req, res, next) => {
-    try {
-      const db_connect = req.db;
-      const result = await db_connect
-        .collection("Campaigns")
-        .findOne({ dm: req.params.DM, campaignName: req.params.campaign });
       res.json(result);
     } catch (err) {
       next(err);
