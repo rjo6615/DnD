@@ -66,7 +66,7 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
    }
   async function addSkillToDb(e){
     e.preventDefault();
-    await apiFetch(`/update-add-skill/${params.id}`, {
+    await apiFetch(`/skills/update-add-skill/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -85,7 +85,7 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
    // Sends skillForm data to database for update
    async function skillsUpdate(){
     const updatedSkills = { ...skillForm };
-      await apiFetch(`/update-skills/${params.id}`, {
+      await apiFetch(`/skills/update-skills/${params.id}`, {
        method: "PUT",
        headers: {
          "Content-Type": "application/json",
@@ -193,7 +193,7 @@ let firstLevelSkill =
   
   async function addUpdatedSkillToDb(){
     const addUpdatedSkill = Object.entries({...newSkillForm});
-    await apiFetch(`/updated-add-skills/${params.id}`, {
+    await apiFetch(`/skills/updated-add-skills/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
