@@ -15,6 +15,16 @@ const port = process.env.PORT || 5000;
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = config.clientOrigins;
 
+// Redirect all HTTP traffic to HTTPS in production
+if (isProd) {
+  app.use((req, res, next) => {
+    if (req.secure) {
+      return next();
+    }
+    res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  });
+}
+
 // Restrict cross-origin requests to approved clients
 app.use(cors({
   origin(origin, callback) {
