@@ -47,7 +47,7 @@ useEffect(() => {
     return;
   }
   async function fetchCampaignsDM() {
-    const response = await apiFetch(`/campaigns/dm/${user.username}/${params.campaign}`);
+    const response = await apiFetch(`/campaignsDM/${user.username}/${params.campaign}`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
