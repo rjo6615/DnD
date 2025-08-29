@@ -78,11 +78,16 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
 
 // Fetch CampaignsDM
 useEffect(() => {
-    if (!user || !user.username) {
+    if (!user || !user.username || !user.isDM) {
       return;
     }
   async function fetchCampaignsDM() {
     const response = await apiFetch(`/campaigns/dm/${user.username}`);
+
+    if (response.status === 401) {
+      // Players aren't authorized to fetch DM campaigns; ignore the error
+      return;
+    }
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -98,9 +103,9 @@ useEffect(() => {
     }
     setCampaignDM({campaign: record});
   }
-  fetchCampaignsDM();   
+  fetchCampaignsDM();
   return;
-  
+
   }, [ navigate, user ]);
 
 
