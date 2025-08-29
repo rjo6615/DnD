@@ -89,6 +89,7 @@ const handleShow = () => setShow(true);
 
 // Fetch Occupations
 useEffect(() => {
+  if (!user) return;
   async function fetchData() {
     const response = await apiFetch(`/characters/occupations`);
 
@@ -108,10 +109,10 @@ useEffect(() => {
     setOccupation(record);
     setGetOccupation(record);
   }
-  fetchData();   
+  fetchData();
   return;
-  
-}, [navigate]);
+
+}, [navigate, user]);
 
 // Update the state properties.
 function updateForm(value) {

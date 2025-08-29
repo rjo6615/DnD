@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Card, Modal, Button, Form } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
+import useUser from '../../../hooks/useUser';
 
 export default function LevelUp({ show, handleClose, form }) {
   //--------------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------------------------------
@@ -10,6 +11,7 @@ export default function LevelUp({ show, handleClose, form }) {
   const selectedOccupationRef = useRef();
   const params = useParams();
   const navigate = useNavigate();
+  const user = useUser();
 
   useEffect(() => {
     setShowLvlModal(show);
@@ -156,6 +158,7 @@ export default function LevelUp({ show, handleClose, form }) {
   };
 
   useEffect(() => {
+    if (!user) return;
     async function fetchData() {
       const response = await apiFetch('/characters/occupations');
 
@@ -176,7 +179,7 @@ export default function LevelUp({ show, handleClose, form }) {
     fetchData();
     return;
 
-  }, [navigate]);
+  }, [navigate, user]);
 
   return (
     <div>
