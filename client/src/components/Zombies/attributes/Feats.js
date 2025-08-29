@@ -119,7 +119,7 @@ const [feat, setFeat] = useState({
     let newFeatForm = form.feat;
     if (JSON.stringify(form.feat) === JSON.stringify([])){
       newFeatForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
-      await apiFetch(`/update-feat/${params.id}`, {
+      await apiFetch(`/feats/update/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +135,7 @@ const [feat, setFeat] = useState({
       window.alert("Feat Deleted")
       navigate(0);
     } else {
-    await apiFetch(`/update-feat/${params.id}`, {
+    await apiFetch(`/feats/update/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
