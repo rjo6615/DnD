@@ -9,7 +9,7 @@ import { FaDungeon, FaCrown } from 'react-icons/fa';
 import useUser from '../../../hooks/useUser';
 
 
-export default function ZombiesHome() {
+export default function Zombies() {
   const navigate = useNavigate();
   const user = useUser();
 
