@@ -47,7 +47,33 @@ const handleShowJoinCampaign = () => setShowJoinCampaignModal(true);
 
 const [showHostCampaignModal, setShowHostCampaignModal] = useState(false);
 const handleCloseHostCampaign = () => setShowHostCampaignModal(false);
-const handleShowHostCampaign = () => setShowHostCampaignModal(true);
+
+async function loadDmCampaigns() {
+  if (!user || !user.username) {
+    return;
+  }
+
+  const response = await apiFetch(`/campaigns/dm/${user.username}`);
+
+  if (!response.ok) {
+    const message = `An error has occurred: ${response.statusText}`;
+    window.alert(message);
+    return;
+  }
+
+  const record = await response.json();
+  if (!record) {
+    window.alert(`Record not found`);
+    navigate("/");
+    return;
+  }
+  setCampaignDM({ campaign: record });
+}
+
+const handleShowHostCampaign = async () => {
+  await loadDmCampaigns();
+  setShowHostCampaignModal(true);
+};
 
 // Fetch Campaigns
   useEffect(() => {
@@ -76,31 +102,6 @@ const handleShowHostCampaign = () => setShowHostCampaignModal(true);
   
   }, [navigate, user]);
 
-// Fetch CampaignsDM
-useEffect(() => {
-    if (!user?.isDM) {
-      return;
-    }
-  async function fetchCampaignsDM() {
-    const response = await apiFetch(`/campaigns/dm/${user.username}`);
-
-    if (!response.ok) {
-      const message = `An error has occurred: ${response.statusText}`;
-      window.alert(message);
-      return;
-    }
-
-    const record = await response.json();
-    if (!record) {
-      window.alert(`Record not found`);
-      navigate("/");
-      return;
-    }
-    setCampaignDM({campaign: record});
-  }
-  fetchCampaignsDM();
-
-  }, [ navigate, user ]);
 
 
 function updateForm1(value) {
