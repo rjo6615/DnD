@@ -1,11 +1,10 @@
 import React, { useState, useEffect, } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Button, Col, Container, Form, Row, Table, Card } from "react-bootstrap";
+import { Button, Form, Table, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
 import zombiesbg from "../../../images/zombiesbg.jpg";
-import { FaDungeon, FaCrown } from 'react-icons/fa';
 import useUser from '../../../hooks/useUser';
 
 
@@ -139,27 +138,11 @@ async function onSubmit1(e) {
  return (
 <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: "80px"}}></div>
-      <h1 className="text-light"
-      style={{            
-            fontSize: 28, 
-            width: "300px", 
-            height: "95px", 
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
-            color: "white", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center", 
-            borderRadius: "10px", // Rounded corners
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
-            margin: "0 auto"
-          }}>Zombies</h1>    
-      <Container className="mt-3">
-      <Row>
-        <Col>
-        <Button className="m-2 fantasy-button" style={{borderColor: "transparent"}} onClick={handleShowJoinCampaign}>
-        <FaDungeon className="icon" /> {/* Add an icon */}
-        Join Campaign
-      </Button>
+      <div className="d-flex flex-column justify-content-center align-items-center h-100">
+        <Button className="mb-3 fantasy-button" onClick={handleShowJoinCampaign}>Join Campaign</Button>
+        <Button className="mb-3 hostCampaign" onClick={handleShowHostCampaign}>Host Campaign</Button>
+        <Button className="create-button" onClick={handleShow1}>Create Campaign</Button>
+      </div>
 
       <Modal className="dnd-modal" centered show={showJoinCampaignModal} onHide={handleCloseJoinCampaign}>
    <div className="text-center">
@@ -195,10 +178,6 @@ async function onSubmit1(e) {
   </Card>
   </div>
 </Modal>
-      <Button className="m-2 hostCampaign" style={{borderColor: "transparent"}} onClick={handleShowHostCampaign}>
-        <FaCrown className="icon" />
-        Host Campaign
-      </Button>
 
   <Modal className="dnd-modal" centered show={showHostCampaignModal} onHide={handleCloseHostCampaign}>
    <div className="text-center">
@@ -234,13 +213,7 @@ async function onSubmit1(e) {
   </Card>
   </div>
 </Modal>
-        </Col>
-      </Row>
-    </Container>
-    <br></br>    
-    <Button onClick={() => { handleShow1(); }} className="create-button">
-      <i className="fa fa-plus"></i>
-    </Button>
+
       {/* -----------------------------------Create Campaign--------------------------------------------- */}
       <Modal centered className="dnd-modal" show={show1} onHide={handleClose1}>
         <div className="text-center">

@@ -826,35 +826,29 @@ h1 {
 }
 
 .create-button {
+  background: linear-gradient(135deg, #3e8e41, #2e7d32);
+  border: 2px solid #000;
+  border-radius: 50px;
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  padding: 10px 20px;
+  text-shadow: 1px 1px 2px #000;
+  transition: all 0.3s ease;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #3e8e41 !important; /* Green background */
-  border: none !important;
-  color: white;
-  border-radius: 50% !important; /* Makes the button circular */
-  width: 65px; /* Ensure width and height are the same */
-  height: 65px; /* Ensure width and height are the same */
-  position: relative;
-  padding: 0; /* Remove padding to maintain the circular shape */
-  overflow: hidden; /* Ensures the circular shape */
-  transition: transform 0.2s, background-color 0.2s;
 }
 
 .create-button:hover {
-  background-color: #45a049 !important; /* Darker green on hover */
-  transform: scale(1.1); /* Slightly enlarge the button on hover */
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: #f8e71c;
+  text-shadow: 2px 2px 4px #000;
+  transform: scale(1.05);
 }
 
 .create-button:active {
-  background-color: #2e7d32 !important; /* Even darker green on click */
-  transform: scale(0.9); /* Slightly shrink the button on click */
-}
-
-.fa-plus {
-  font-size: 24px; /* Adjust as needed */
-  color: white;
+  transform: scale(0.95);
 }
 
 @keyframes pulseOnce {
