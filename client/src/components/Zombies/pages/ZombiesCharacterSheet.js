@@ -135,9 +135,11 @@ return (
 <div className="pt-3 text-center"
   style={{
     fontFamily: 'Raleway, sans-serif',
-    background: "#FAFAFA",
+    backgroundImage: `url(${loginbg})`,
     minHeight: "100vh",
-    paddingBottom: "70px"
+    paddingBottom: "70px",
+    backgroundSize: "cover", 
+    backgroundRepeat: "no-repeat"
   }}
 >
       <div style={{paddingTop: '80px'}}>
@@ -145,7 +147,7 @@ return (
   style={{
     fontSize: "28px",
     fontWeight: 600,
-    color: "#000000", 
+    color: "#FFFFFF", 
     padding: "8px 0",
     textAlign: "center",
     letterSpacing: "1px",
@@ -153,7 +155,7 @@ return (
     fontFamily: "'Merriweather', serif",
     textTransform: "capitalize",
     borderBottom: "2px solid #555", // Subtle underline for structure
-    display: "inline-block"
+    display: "inline-block",
   }}
   className="mx-auto"
 >

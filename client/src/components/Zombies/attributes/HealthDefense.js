@@ -143,7 +143,7 @@ return (
     <Button
       style={{
         color: "#e74c3c",
-        backgroundColor: "#FAFAFA",
+        backgroundColor: 'transparent',
         border: "none",
         fontSize: "20px",
         width: "44px",
@@ -203,7 +203,7 @@ return (
     <Button
       style={{
         color: "#27ae60",
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "transparent",
         border: "none",
         fontSize: "20px",
         width: "44px",
@@ -236,14 +236,14 @@ return (
     }}
   >
     {/* Core Stats */}
-    <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
       <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
       <div><strong>Attack Bonus:</strong> {atkBonus}</div>
       <div><strong>Initiative:</strong> {dexMod}</div>
     </div>
 
     {/* Saving Throws */}
-    <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
       <div><strong>Fort:</strong> {fortSave}</div>
       <div><strong>Reflex:</strong> {reflexSave}</div>
       <div><strong>Will:</strong> {willSave}</div>
