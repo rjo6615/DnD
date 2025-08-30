@@ -143,7 +143,7 @@ return (
     <Button
       style={{
         color: "#e74c3c",
-        backgroundColor: '#FFFFFF',
+        backgroundColor: "#FAFAFA",
         border: "none",
         fontSize: "20px",
         width: "44px",
@@ -167,7 +167,7 @@ return (
         position: "relative",
         width: "240px",
         height: "24px",
-        backgroundColor: '#FFFFFF',
+        backgroundColor: "#e0e0e0",
         borderRadius: "12px",
         overflow: "hidden",
         boxShadow: "inset 0 1px 3px rgba(0,0,0,0.25)",
@@ -203,7 +203,7 @@ return (
     <Button
       style={{
         color: "#27ae60",
-        backgroundColor: '#FFFFFF',
+        backgroundColor: "#FAFAFA",
         border: "none",
         fontSize: "20px",
         width: "44px",
