@@ -26,8 +26,10 @@ routes.use(async (req, res, next) => {
 auth(routes);
 users(routes);
 campaigns(routes);
-characterBase(routes);
+// Register occupations routes before generic ID-based routes to ensure
+// "/characters/occupations" is matched correctly.
 characterOccupations(routes);
+characterBase(routes);
 characterStats(routes);
 characterHealth(routes);
 skills(routes);
