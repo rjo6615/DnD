@@ -14,7 +14,6 @@ const logger = require("./utils/logger");
 const port = process.env.PORT || 5000;
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = config.clientOrigins;
-const cookieDomain = process.env.COOKIE_DOMAIN || '.realmtracker.org';
 
 // Redirect all HTTP traffic to HTTPS in production
 if (isProd) {
@@ -54,9 +53,9 @@ app.use(
 const csrfProtection = csrf({
   cookie: {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: cookieDomain,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    domain: isProd ? '.realmtracker.org' : undefined,
   },
 });
 app.use(csrfProtection);
@@ -64,9 +63,9 @@ app.use(csrfProtection);
 app.get('/csrf-token', (req, res) => {
   const token = req.csrfToken();
   res.cookie('XSRF-TOKEN', token, {
-    sameSite: 'none',
-    secure: true,
-    domain: cookieDomain,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+    domain: isProd ? '.realmtracker.org' : undefined,
   });
   res.json({ csrfToken: token });
 });
