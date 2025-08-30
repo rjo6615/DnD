@@ -351,26 +351,32 @@ const [form2, setForm2] = useState({
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
     <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-          <div style={{paddingTop: '80px'}}></div>
-          <h1 className="text-light" 
-           style={{            
-            fontSize: 28, 
-            width: "300px", 
-            height: "95px", 
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
-            color: "white", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center", 
-            borderRadius: "10px", // Rounded corners
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
-            margin: "0 auto"
-          }}>{params.campaign}</h1>  
-{/*-----------------------------------Add Player-----------------------------------------------------*/}
-<Button style={{ position: "relative", zIndex: "4" }} onClick={() => { handleShowPlayers();}} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
-<div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4' }}>
+          <div style={{paddingTop: '150px'}}></div> 
+
+<div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
       <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background">
         <thead>
+            <tr>
+                <th colSpan="5" style={{fontSize: 28}}>{params.campaign}</th>
+            </tr>
+            <tr>
+              <th>
+                {/*-----------------------------------Add Player-----------------------------------------------------*/}
+                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={() => { handleShowPlayers();}} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
+              </th>
+                            <th>
+                {/*-----------------------------------Create Weapon-----------------------------------------------------*/}
+                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow2(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Weapon</Button>
+              </th>
+                            <th>
+                {/*-----------------------------------Create Armor-----------------------------------------------------*/}
+                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
+              </th>
+                            <th>
+                {/*-----------------------------------Create Item-----------------------------------------------------*/}
+                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Item</Button>
+              </th>
+            </tr>
           <tr>
             <th>Player</th>
             <th>Character</th>
@@ -461,45 +467,6 @@ const [form2, setForm2] = useState({
        </Card>   
        </div>
         </Modal>
-{/* -------------------------------------Add Weapon/Armor/Item--------------------------------------- */}
-<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
-
-<nav className="menuDM">
-  <input type="checkbox" href="#" className="menuDM-open" name="menuDM-open" id="menuDM-open"/>
-  <label className="menuDM-open-button" htmlFor="menuDM-open">
-    <span className="hamburger hamburger-1"></span>
-    <span className="hamburger hamburger-2"></span>
-    <span className="hamburger hamburger-3"></span>
-  </label>
-  
-  <a onClick={(e) => { e.preventDefault(); handleShow2(); }} href="#/" className="menuDM-item"> 
-  <i className="fa-solid fa-wand-sparkles"></i> 
-</a>
-  <a onClick={(e) => { e.preventDefault(); handleShow3(); }} href="#/" className="menuDM-item">
-  <i className="fa-solid fa-shield"></i>
-</a>
-<a onClick={(e) => { e.preventDefault(); handleShow4(); }} href="#/" className="menuDM-item">
-  <i className="fa-solid fa-briefcase"></i>
-</a>
-</nav>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
-    <defs>
-      <filter id="shadowed-goo">          
-          <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="10" />
-          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-          <feGaussianBlur in="goo" stdDeviation="3" result="shadow" />
-          <feColorMatrix in="shadow" mode="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 -0.2" result="shadow" />
-          <feOffset in="shadow" dx="1" dy="1" result="shadow" />
-          <feBlend in2="shadow" in="goo" result="goo" />
-          <feBlend in2="goo" in="SourceGraphic" result="mix" />
-      </filter>
-      <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="10" />
-          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-          <feBlend in2="goo" in="SourceGraphic" result="mix" />
-      </filter>
-    </defs>
-</svg>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
           <Modal className="dnd-modal" centered show={show2} onHide={handleClose2}>
           <div className="text-center">

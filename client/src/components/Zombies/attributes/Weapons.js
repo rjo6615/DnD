@@ -202,7 +202,7 @@ return(
                 <td>
                   <Button
                     size="sm"
-                    className="action-btn fa-solid fa-trash"
+                    className="btn-danger action-btn fa-solid fa-trash"
                     hidden={!showDeleteBtn}
                     onClick={() => {
                       deleteWeapons(el);

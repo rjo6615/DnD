@@ -240,7 +240,7 @@ return(
                 <Button
                   size="sm"
                   style={{ display: showDeleteItemBtn }}
-                  className="action-btn fa-solid fa-trash"
+                  className="btn-danger action-btn fa-solid fa-trash"
                   onClick={() => {
                     deleteItems(el);
                   }}

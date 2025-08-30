@@ -344,28 +344,37 @@ const onSubmitManual = async (e) => {
 
   return (
     <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-      <div style={{paddingTop: '80px'}}>
-      <h1 
-  style={{ 
-    fontSize: 28, 
-    width: "300px", 
-    height: "95px", 
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
-    color: "white", 
-    display: "flex", 
-    alignItems: "center", 
-    justifyContent: "center", 
-    borderRadius: "10px", // Rounded corners
-    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
-    margin: "0 auto"
-  }} 
-  className="text-light"
->
-  {params.campaign.toString()}
-</h1>
-<div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
+      <div style={{paddingTop: '150px'}}>
+<div style={{ maxHeight: '500px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
         <Table style={{ width: 'auto', position: "relative", zIndex: "4", margin: "0 auto" }} striped bordered condensed="true" className="zombieCharacterSelectTable dnd-background">
           <thead>
+            <tr>
+                <th colSpan="4" style={{fontSize: 28}}>{params.campaign.toString()}</th>
+            </tr>
+            <tr>
+              <th colSpan="2">
+                  <Button
+                    className="fantasy-button"
+                    size="sm"
+                    style={{ width: 'auto', border: "none" }}
+                    variant="primary"
+                    onClick={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
+                  >
+                    Create Character Random
+                  </Button>
+              </th>
+                <th colSpan="2">
+                  <Button
+                    className="fantasy-button"
+                    size="sm"
+                    style={{ width: 'auto', border: "none" }}
+                    variant="primary"
+                    onClick={(e) => { e.preventDefault(); handleShow5();}}
+                  >
+                    Create Character Manual
+                  </Button>
+              </th>
+            </tr>
             <tr>
               <th>Character</th>
               <th>Level</th>
@@ -399,42 +408,6 @@ const onSubmitManual = async (e) => {
           </tbody>
         </Table>
         </div>
-        <br />
-<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
-
-<nav className="menu">
-  <input type="checkbox" href="#" className="menu-open" name="menu-open" id="menu-open"/>
-  <label className="menu-open-button" htmlFor="menu-open">
-    <span className="hamburger hamburger-1"></span>
-    <span className="hamburger hamburger-2"></span>
-    <span className="hamburger hamburger-3"></span>
-  </label>
-  
-  <a onClick={(e) => { e.preventDefault(); handleShow5();}} href="/" className="menu-item"> 
-    <i className="fa-solid fa-plus"></i> 
-</a>
-  <a onClick={(e) => { e.preventDefault(); bigMaff(); handleShow(); }} href="#/" className="menu-item">
-  <i className="fa-solid fa-dice"></i>
-</a>
-</nav>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
-    <defs>
-      <filter id="shadowed-goo">          
-          <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="10" />
-          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-          <feGaussianBlur in="goo" stdDeviation="3" result="shadow" />
-          <feColorMatrix in="shadow" mode="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 -0.2" result="shadow" />
-          <feOffset in="shadow" dx="1" dy="1" result="shadow" />
-          <feBlend in2="shadow" in="goo" result="goo" />
-          <feBlend in2="goo" in="SourceGraphic" result="mix" />
-      </filter>
-      <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="10" />
-          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-          <feBlend in2="goo" in="SourceGraphic" result="mix" />
-      </filter>
-    </defs>
-</svg>
     {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal className="dnd-modal" centered show={show} onHide={handleClose}>
        <div className="text-center">

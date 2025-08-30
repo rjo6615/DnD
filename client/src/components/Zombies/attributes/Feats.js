@@ -238,7 +238,7 @@ return (
                   <Button
                     size="sm"
                     style={{ display: showDeleteFeatBtn }}
-                    className="action-btn fa-solid fa-trash"
+                    className="btn-danger action-btn fa-solid fa-trash"
                     onClick={() => {
                       deleteFeats(el);
                     }}

@@ -157,7 +157,7 @@ return(
               <td>{el[1]}</td>
               <td>{el[2]}</td>
               <td>{el[3]}</td>
-              <td><Button size="sm" className="action-btn fa-solid fa-trash" hidden={!showDeleteArmorBtn} onClick={() => {deleteArmors(el);}}></Button></td>
+              <td><Button size="sm" className="btn-danger action-btn fa-solid fa-trash" hidden={!showDeleteArmorBtn} onClick={() => {deleteArmors(el);}}></Button></td>
             </tr>
             ))}
           </tbody>

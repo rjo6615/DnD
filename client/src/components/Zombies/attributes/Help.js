@@ -76,17 +76,6 @@ return(
               <Card.Title className="modal-title">Help</Card.Title>
             </Card.Header>
             <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              Actions Left (from left to right)
-              <br></br>
-              Move, Action, Bonus Action, Reset
-              <br></br>
-              Reset will allow you to refresh your Actions Left
-              <br></br>
-              <br></br>
-              If you are on a phone press a button to use that action or hold down on it to see what it does!
-              <br></br>
-              <br></br>
-              If you are on pc click the button or hover over it to see what it does!
               <div className="table-container">
                 <Table striped bordered hover size="sm" className="custom-table">
                   <thead>
@@ -112,7 +101,7 @@ return(
               </div>
             </Card.Body>
             <Card.Footer className="modal-footer justify-content-between">
-              <Button size="lg" className="action-btn fa-solid fa-trash delete-button" onClick={handleShowDeleteCharacter}></Button>
+              <Button className="action-btn btn-danger" onClick={handleShowDeleteCharacter}>Delete Character</Button>
               <Button className="action-btn close-btn" onClick={handleCloseHelpModal}>
                 Close
               </Button>
@@ -134,7 +123,7 @@ return(
               Are you sure you want to delete your character?
             </Card.Body>
             <Card.Footer className="modal-footer">
-              <Button className="action-btn save-btn" onClick={deleteRecord}>Im Sure</Button>
+              <Button className="btn-danger action-btn save-btn" onClick={deleteRecord}>Im Sure</Button>
               <Button className="action-btn close-btn" onClick={handleCloseDeleteCharacter}>Close</Button>
             </Card.Footer>
           </Card>
