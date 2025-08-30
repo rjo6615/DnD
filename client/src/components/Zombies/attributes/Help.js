@@ -8,10 +8,10 @@ export default function Help({props, form, showHelpModal, handleCloseHelpModal})
   const navigate = useNavigate();
   const [showDeleteCharacter, setShowDeleteCharacter] = useState(false);
   const handleCloseDeleteCharacter = () => setShowDeleteCharacter(false);
-  const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
+ const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
  // This method will delete a record
  async function deleteRecord() {
- await apiFetch(`/delete-character/${params.id}`, {
+ await apiFetch(`/characters/delete-character/${params.id}`, {
    method: "DELETE",
   });
   navigate(`/zombies-character-select/${form.campaign}`);
