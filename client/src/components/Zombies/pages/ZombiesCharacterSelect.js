@@ -315,19 +315,25 @@ const sendManualToDb = useCallback(async (characterData) => {
     return;
   }
   try {
-    await apiFetch("/characters/add", {
+    const response = await apiFetch("/characters/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(newCharacter),
     });
+    if (!response.ok) {
+      window.alert(`An error occurred: ${response.statusText}`);
+      return;
+    }
+    const { insertedId } = await response.json();
+    handleClose5();
+    setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
+    setForm(createDefaultForm(params.campaign));
   } catch (error) {
     window.alert(error);
-    return;
   }
-  navigate(`/zombies-character-select/${newCharacter.campaign}`);
-}, [form, navigate]);
+}, [form, params.campaign, handleClose5, setRecords, setForm, createDefaultForm]);
 
 // Function to handle submission for manual character creation.
 const onSubmitManual = async (e) => {
@@ -510,7 +516,7 @@ const onSubmitManual = async (e) => {
         type="number" placeholder="Enter health" pattern="[0-9]*" />
      </Form.Group>
      <div className="text-center">
-     <Button variant="primary" onClick={handleClose5} type="submit">
+     <Button variant="primary" type="submit">
             Create
           </Button>
           <Button className="ms-4" variant="secondary" onClick={handleClose5}>
