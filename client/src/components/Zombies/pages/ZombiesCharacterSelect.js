@@ -134,9 +134,8 @@ function updateForm(value) {
 
  // Function to handle submission.
  async function onSubmit(e) {
-  e.preventDefault(); 
-  setIsSubmitting(false);   
-   sendToDb();
+  e.preventDefault();
+  sendToDb();
 }
 
 // Dice Randomizer
@@ -242,7 +241,6 @@ useEffect(() => {
       window.alert(error);
       return;
     };
-   setIsSubmitting(false);
    setForm(createDefaultForm(params.campaign));
   navigate(0);
 }, [form, setForm, navigate, createDefaultForm, params.campaign]);
@@ -262,11 +260,10 @@ const handleOccupationChange = (event) => {
   setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
 };
 
-const [isSubmitting, setIsSubmitting] = useState(false);
 const [isOccupationConfirmed, setIsOccupationConfirmed] = useState(false);
 
-const handleConfirmOccupation = () => {
-  if (selectedOccupation  && !isOccupationConfirmed) {
+const handleConfirmOccupation = useCallback(() => {
+  if (selectedOccupation && !isOccupationConfirmed) {
     const selectedAddOccupation = selectedAddOccupationRef.current.value;
     const occupationExists = form.occupation.some(
       (occupation) => occupation.Occupation === selectedOccupation.Occupation
@@ -275,47 +272,49 @@ const handleConfirmOccupation = () => {
       (occupation) => occupation.Occupation === selectedAddOccupation
     );
 
-    if (!occupationExists) {
+    if (!occupationExists && selectedAddOccupationObject) {
+      const addOccupationStr = Number(selectedAddOccupationObject.str) + Number(form.str);
+      const addOccupationDex = Number(selectedAddOccupationObject.dex) + Number(form.dex);
+      const addOccupationCon = Number(selectedAddOccupationObject.con) + Number(form.con);
+      const addOccupationInt = Number(selectedAddOccupationObject.int) + Number(form.int);
+      const addOccupationWis = Number(selectedAddOccupationObject.wis) + Number(form.wis);
+      const addOccupationCha = Number(selectedAddOccupationObject.cha) + Number(form.cha);
 
-    const addOccupationStr = Number(selectedAddOccupationObject.str) + Number(form.str);
-    const addOccupationDex = Number(selectedAddOccupationObject.dex) + Number(form.dex);
-    const addOccupationCon = Number(selectedAddOccupationObject.con) + Number(form.con);
-    const addOccupationInt = Number(selectedAddOccupationObject.int) + Number(form.int);
-    const addOccupationWis = Number(selectedAddOccupationObject.wis) + Number(form.wis);
-    const addOccupationCha = Number(selectedAddOccupationObject.cha) + Number(form.cha);
+      const totalNewStats =
+        addOccupationStr +
+        addOccupationDex +
+        addOccupationCon +
+        addOccupationInt +
+        addOccupationWis +
+        addOccupationCha;
 
-    const totalNewStats =
-      addOccupationStr +
-      addOccupationDex +
-      addOccupationCon +
-      addOccupationInt +
-      addOccupationWis +
-      addOccupationCha;
+      const updatedForm = {
+        ...form,
+        occupation: [selectedOccupation],
+        startStatTotal: totalNewStats,
+        str: addOccupationStr,
+        dex: addOccupationDex,
+        con: addOccupationCon,
+        int: addOccupationInt,
+        wis: addOccupationWis,
+        cha: addOccupationCha,
+      };
 
-    // Push the selected occupation into form.occupation
-    form.occupation.push(selectedOccupation);
-    form.occupation.shift();
-
-    // Update the form state
-    updateForm({ startStatTotal: totalNewStats });
-    updateForm({ str: addOccupationStr });
-    updateForm({ dex: addOccupationDex });
-    updateForm({ con: addOccupationCon });
-    updateForm({ int: addOccupationInt });
-    updateForm({ wis: addOccupationWis });
-    updateForm({ cha: addOccupationCha });
-
-    // Set a flag to indicate that the occupation has been confirmed
-    setIsOccupationConfirmed(true);
+      setForm(updatedForm);
+      setIsOccupationConfirmed(true);
+      return updatedForm;
+    }
   }
-}
-};
+  return form;
+}, [selectedOccupation, isOccupationConfirmed, form, getOccupation, selectedAddOccupationRef, setForm]);
 
-const sendManualToDb = useCallback(async() => {
-  const newCharacter = { ...form };
+const sendManualToDb = useCallback(async (characterData) => {
+  const newCharacter = characterData ?? form;
+  if (!newCharacter.occupation?.[0]?.Level) {
+    window.alert("Occupation level is required.");
+    return;
+  }
   try {
-    // Call the API endpoint for manual character creation
-    // Adjust the endpoint URL as needed
     await apiFetch("/characters/add", {
       method: "POST",
       headers: {
@@ -327,25 +326,15 @@ const sendManualToDb = useCallback(async() => {
     window.alert(error);
     return;
   }
-  setIsSubmitting(false);
-  // Reset the form or perform any other necessary actions
-  navigate(`/zombies-character-select/${form.campaign}`);
-}, [form, setIsSubmitting, navigate]);
+  navigate(`/zombies-character-select/${newCharacter.campaign}`);
+}, [form, navigate]);
 
 // Function to handle submission for manual character creation.
-const onSubmitManual = (e) => {
+const onSubmitManual = async (e) => {
   e.preventDefault();
-  setIsSubmitting(true);
-  handleConfirmOccupation(); // Call handleConfirmOccupation when submitting the manual form
+  const updatedForm = await handleConfirmOccupation();
+  await sendManualToDb(updatedForm);
 };
-
-useEffect(() => {
-  if (isSubmitting) {
-    // Add any additional conditions here if needed
-    setIsSubmitting(false);
-    sendManualToDb();
-  }
-}, [isSubmitting, sendManualToDb]);
 
   return (
     <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
