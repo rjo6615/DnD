@@ -3,7 +3,7 @@ import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
-import zombiesbg from "../../../images/zombiesbg.jpg";
+import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 
 export default function ZombiesDM() {
@@ -350,7 +350,7 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
           <div style={{paddingTop: '80px'}}></div>
           <h1 className="text-light" 
            style={{            
