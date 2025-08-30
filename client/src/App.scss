@@ -7,6 +7,10 @@
   text-align: center;
 }
 
+.text-center {
+  text-align: center;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -103,12 +107,6 @@ label {
 }
 
 // Dice Roller----------------------------------------------------------------------------------------------
-$containerWidth: 120px;
-$containerHeight: $containerWidth;
-
-$faceWidth:  $containerWidth*0.5;
-$faceHeight: $faceWidth*0.86;
-
 $transitionDuration: 0.5s;
 $animationDuration:  3s;
 
@@ -118,12 +116,130 @@ $sideAngle: calc(360deg / 5);
 $color: var(--dice-face-color);
 
 $rotateX: -$angle;
-$translateZ: $faceWidth*0.335;
-$translateY: -$faceHeight*0.15;
-$translateRingZ: $faceWidth*0.75;
-$translateRingY: $faceHeight*0.78 + $translateY;
-$translateLowerZ: $translateZ;
-$translateLowerY: $faceHeight*0.78 + $translateRingY;
+
+@mixin dice-size($containerWidth) {
+  $containerHeight: $containerWidth;
+  $faceWidth:  calc(#{$containerWidth} * 0.5);
+  $faceHeight: calc(#{$faceWidth} * 0.86);
+
+  $translateZ: calc(#{$faceWidth} * 0.335);
+  $translateY: calc(#{$faceHeight} * -0.15);
+  $translateRingZ: calc(#{$faceWidth} * 0.75);
+  $translateRingY: calc(#{$faceHeight} * 0.78 + #{$translateY});
+  $translateLowerZ: $translateZ;
+  $translateLowerY: calc(#{$faceHeight} * 0.78 + #{$translateRingY});
+
+  .content {
+    margin: auto auto;
+    position: relative;
+    width: $containerWidth;
+    height: $containerHeight;
+    perspective: 1500px;
+  }
+
+  .die {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform $transitionDuration ease-out;
+    cursor: pointer;
+
+    transform: rotateX($rotateX);
+
+    &.rolling {
+      animation: roll $animationDuration linear;
+    }
+
+    @for $i from 1 through 5 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 1;
+        transform: rotateX(-$angle) rotateY($sideAngle * $angleMultiplier);
+      }
+    }
+
+    @for $i from 16 through 20 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 15;
+        transform: rotateX(-$angle + 180deg) rotateY(-$sideAngle * $angleMultiplier);
+      }
+    }
+
+    @for $i from 6 through 10 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 6;
+        transform: rotateX(-$ringAngle) rotateZ(180deg) rotateY($sideAngle * $angleMultiplier);
+      }
+    }
+
+    @for $i from 11 through 15 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 8;
+        transform: rotateX(-$ringAngle) rotateY(-$sideAngle * $angleMultiplier - calc($sideAngle / 2));
+      }
+    }
+
+    .face {
+      $horizontalMargin: calc(#{$faceWidth} * -0.5);
+
+      position: absolute;
+      left: 50%;
+      top: 0;
+      margin: 0 $horizontalMargin;
+      border-left: calc(#{$faceWidth} * 0.5) solid transparent;
+      border-right: calc(#{$faceWidth} * 0.5) solid transparent;
+      border-bottom: $faceHeight solid $color;
+      width: 0px;
+      height: 0px;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+
+      counter-increment: steps 1;
+
+      &:before {
+        content: counter(steps);
+        position: absolute;
+        top: calc(#{$faceHeight} * 0.25);
+        left: calc(#{$faceWidth} * -1);
+        color: #fff;
+        text-shadow: 1px 1px 3px #000;
+        font-size: calc(#{$faceHeight} * 0.5);
+        text-align: center;
+        line-height: calc(#{$faceHeight} * 0.9);
+        width: calc(#{$faceWidth} * 2);
+        height: $faceHeight;
+      }
+
+      @for $i from 1 through 5 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 1;
+          transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateZ) translateY($translateY) rotateX($angle);
+        }
+      }
+
+      @for $i from 16 through 20 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 18;
+          transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateLowerZ) translateY($translateLowerY) rotateZ(180deg) rotateX($angle);
+        }
+      }
+
+      @for $i from 6 through 10 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 11;
+          transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateRingZ) translateY($translateRingY) rotateZ(180deg) rotateX($ringAngle);
+        }
+      }
+
+      @for $i from 11 through 15 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 8;
+          transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateRingZ) translateY($translateRingY) rotateX($ringAngle);
+        }
+      }
+    }
+  }
+}
 
 @keyframes roll {
   10% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) }
@@ -133,116 +249,12 @@ $translateLowerY: $faceHeight*0.78 + $translateRingY;
   90% { transform: rotateX(480deg) rotateY(960deg) rotateZ(0deg) }
 }
 
-.content {
-  margin: auto auto;
-  position: relative;
-  width: $containerWidth;
-  height: $containerHeight;
-  perspective: 1500px;
+@include dice-size(min(25vw, 120px));
+
+@media (max-height: 600px) {
+  @include dice-size(min(20vw, 100px));
 }
 
-.die {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform $transitionDuration ease-out;
-  cursor: pointer;
-  
-  transform: rotateX($rotateX);
-  
-  &.rolling {
-    animation: roll $animationDuration linear;
-  }
-  
-  @for $i from 1 through 5 {
-    &[data-face="#{$i}"] {
-      $angleMultiplier: $i - 1;
-      transform: rotateX(-$angle) rotateY($sideAngle * $angleMultiplier);
-    }
-  }
-  
-  @for $i from 16 through 20 {
-    &[data-face="#{$i}"] {
-      $angleMultiplier: $i - 15;
-      transform: rotateX(-$angle + 180deg) rotateY(-$sideAngle * $angleMultiplier);
-    }
-  }
-  
-  @for $i from 6 through 10 {
-    &[data-face="#{$i}"] {
-      $angleMultiplier: $i - 6;
-      transform: rotateX(-$ringAngle) rotateZ(180deg) rotateY($sideAngle * $angleMultiplier);
-    }
-  }
-  
-  @for $i from 11 through 15 {
-    &[data-face="#{$i}"] {
-      $angleMultiplier: $i - 8;
-      transform: rotateX(-$ringAngle) rotateY(-$sideAngle * $angleMultiplier - calc($sideAngle / 2));
-    }
-  }
-  
-  .face {
-    $horizontalMargin: -$faceWidth*0.5;
-    
-    position: absolute;
-    left: 50%;
-    top: 0;
-    margin: 0 $horizontalMargin;
-    border-left: $faceWidth*0.5 solid transparent;
-    border-right: $faceWidth*0.5 solid transparent;
-    border-bottom: $faceHeight solid $color;
-    width: 0px;
-    height: 0px;
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    
-    counter-increment: steps 1;
-  
-    &:before {
-      content: counter(steps);
-      position: absolute;
-      top: $faceHeight*0.25;
-      left: -$faceWidth;
-      color: #fff;
-      text-shadow: 1px 1px 3px #000;
-      font-size: $faceHeight*0.5;
-      text-align: center;
-      line-height: $faceHeight*0.9;
-      width: $faceWidth*2;
-      height: $faceHeight;
-    }
-    
-    @for $i from 1 through 5 {
-      &:nth-child(#{$i}) {
-        $angleMultiplier: $i - 1;
-        transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateZ) translateY($translateY) rotateX($angle);
-      }
-    }
-      
-    @for $i from 16 through 20 {
-      &:nth-child(#{$i}) {
-        $angleMultiplier: $i - 18;
-        transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateLowerZ) translateY($translateLowerY) rotateZ(180deg) rotateX($angle);
-      }
-    }
-      
-    @for $i from 6 through 10 {
-      &:nth-child(#{$i}) {
-        $angleMultiplier: $i - 11;
-        transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateRingZ) translateY($translateRingY) rotateZ(180deg) rotateX($ringAngle);
-      }
-    }
-      
-    @for $i from 11 through 15 {
-      &:nth-child(#{$i}) {
-        $angleMultiplier: $i - 8;
-        transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateRingZ) translateY($translateRingY) rotateX($ringAngle);
-      }
-    }
-  }
-}
 // Damage display-------------------------------------------------------
 #damageAmount {
   width: 70px;
@@ -476,9 +488,14 @@ max-width: 300px;
   align-items: center; /* Center vertically */
 }
 
+.campaign-button {
+  width: 220px;
+}
+
 .fantasy-button {
   background: linear-gradient(135deg, #3e8e41, #2e7d32);
-  border: 2px solid #000;
+  border: none;
+  outline: none;
   border-radius: 50px;
   color: #fff;
   font-family: 'Cinzel', serif;
@@ -814,33 +831,197 @@ h1 {
 }
 
 .create-button {
+  background: linear-gradient(135deg, #3e8e41, #2e7d32);
+  border: none;
+  outline: none;
+  border-radius: 50px;
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  padding: 10px 20px;
+  text-shadow: 1px 1px 2px #000;
+  transition: all 0.3s ease;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #3e8e41 !important; /* Green background */
-  border: none !important;
-  color: white;
-  border-radius: 50% !important; /* Makes the button circular */
-  width: 65px; /* Ensure width and height are the same */
-  height: 65px; /* Ensure width and height are the same */
-  position: relative;
-  padding: 0; /* Remove padding to maintain the circular shape */
-  overflow: hidden; /* Ensures the circular shape */
-  transition: transform 0.2s, background-color 0.2s;
 }
 
 .create-button:hover {
-  background-color: #45a049 !important; /* Darker green on hover */
-  transform: scale(1.1); /* Slightly enlarge the button on hover */
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: #f8e71c;
+  text-shadow: 2px 2px 4px #000;
+  transform: scale(1.05);
 }
 
 .create-button:active {
-  background-color: #2e7d32 !important; /* Even darker green on click */
-  transform: scale(0.9); /* Slightly shrink the button on click */
+  transform: scale(0.95);
 }
 
-.fa-plus {
-  font-size: 24px; /* Adjust as needed */
+@keyframes pulseOnce {
+  0% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.4);
+    transform: scale(1.1);
+  }
+  100% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+}
+
+#damageAmount {
+  transition: background-color 0.5s ease, transform 0.5s ease;
+}
+
+.pulse {
+  animation: pulseOnce 2s 1; /* Run the animation once over 2 seconds */
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modern Modal */
+.modern-modal .modal-content-wrapper {
+  animation: scaleUp 0.2s ease-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card Styling */
+.modern-card {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+/* Modal Header */
+.modal-header {
+  background: linear-gradient(135deg, #4CAF50, #388E3C);
   color: white;
+  text-align: center;
+  padding: 10px;
+}
+
+.modal-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* Points Section */
+.points-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.points-label {
+  font-weight: bold;
+  color: #444;
+}
+
+.points-value {
+  margin-left: 8px;
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+/* Table Styling */
+.modern-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modern-table th,
+.modern-table td {
+  text-align: center;
+  padding: 8px;
+  min-width: 60px;
+}
+
+.modern-table th {
+  background: #e0e0e0;
+  font-weight: bold;
+}
+
+/* Buttons */
+.stat-btn {
+  border: none;
+  padding: 5px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all 0.2s ease-in-out;
+  width: 32px; /* Fixed width */
+}
+
+.minus-btn {
+  background: #e57373;
+  color: white;
+  visibility: hidden;
+}
+
+.plus-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.minus-btn.visible {
+  visibility: visible;
+}
+
+.plus-btn.hidden {
+  visibility: hidden;
+}
+
+/* Footer Buttons */
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 1rem;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.save-btn {
+  background: #ffc107;
+  margin-right: 5px;
+}
+
+.close-btn {
+  background: #6c757d;
+}
+
+.save-btn:hover {
+  background: #d39e00;
+}
+
+.close-btn:hover {
+  background: #545b62;
 }

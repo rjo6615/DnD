@@ -1,27 +1,26 @@
 const { MongoClient } = require("mongodb");
-const Db = process.env.ATLAS_URI;
-const client = new MongoClient(Db, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
- 
-var _db;
- 
-module.exports = {
-    
-  connectToServer: function (callback) {
-    client.connect(function (err, db) {
-      // Verify we got a good "db" object
-      if (db)
-      {
-        _db = db.db("dnd");
-        console.log("Successfully connected to MongoDB."); 
-      }
-      return callback(err);
-         });
-  },
- 
-  getDb: function () {
-    return _db;
-  },
-};
+const logger = require('../utils/logger');
+
+const uri = process.env.ATLAS_URI;
+let db;
+
+async function connectToDatabase() {
+  if (db) return db;
+
+  const client = await MongoClient.connect(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  db = client.db("dnd");
+  logger.info('Successfully connected to MongoDB.');
+
+  // Ensure a unique index on the username field for the users collection
+  await db.collection('users').createIndex({ username: 1 }, { unique: true });
+  logger.info('Ensured unique index on users.username.');
+
+  return db;
+}
+
+module.exports = connectToDatabase;
+

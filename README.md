@@ -16,12 +16,47 @@ https://github.com/rjo6615/DnD
 
 ## Usage
 
-to use this on your own 
+to use this on your own
 
 Example gif is listed below:
 
 ![Example](./client/public/images/Gif-for-Dnd.gif)
 
+## Deployment
+
+Run `npm run build` to generate the production build of the client. The `npm start` script runs this build step before launching the server so deployments always serve the latest assets from `client/build`.
+
+## Environment Variables
+
+The server uses a `config.env` file for configuration. Ensure the following variable is set:
+
+| Variable | Description |
+|----------|-------------|
+| `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
+
+
+## API Error Format
+
+All API errors are returned as JSON objects with a single `message` property. For example:
+
+```
+{
+  "message": "Description of the error"
+}
+```
+
+Clients should rely on this structure when handling error responses.
+
+## Character Feats Endpoint
+
+Use `PUT /characters/:id/feats` with a JSON body like `{ "feat": ["Feat1"] }` to
+append new feats to a character. Each request adds feats to the existing list
+rather than replacing the current feats.
+
+Use `DELETE /characters/:id/feats` with a JSON body like `{ "feat": "Cleave" }`
+to remove a feat from a character.
+
+`PUT` appends feats, while `DELETE` removes them.
 
 ## Support
 For help with this webpage please contact
@@ -32,4 +67,4 @@ For help with this webpage please contact
 
 ## License
 
-N/A
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

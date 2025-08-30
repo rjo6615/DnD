@@ -1,0 +1,23 @@
+.login-background {
+  background-image: url('../../images/loginbg.png');
+  background-size: cover;
+  background-position: center;
+  height: 100vh;
+}
+
+.raleway-font {
+  font-family: 'Raleway, sans-serif';
+}
+
+.login-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.logo-image {
+  max-height: 200px;
+  max-width: 200px;
+}
+
+.form-width {
+  max-width: 200px;
+}
