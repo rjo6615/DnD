@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
-import sword from "../../../images/sword.png";
 
 export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) { 
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
@@ -221,7 +220,7 @@ const showSparklesEffect = () => {
         height: "48px",
         borderRadius: "50%",
         border: isGold ? "2px solid #FFD700" : "2px solid #B0B0B0",
-        backgroundColor: "#1e1e1e",
+        backgroundColor: '#FFFFFF',
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -247,9 +246,7 @@ const showSparklesEffect = () => {
       style={{
         width: "64px",
         height: "64px",
-        backgroundImage: `url(${sword})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundColor: '#FFFFFF',
         border: "none",
         borderRadius: "12px",
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
@@ -259,7 +256,9 @@ const showSparklesEffect = () => {
       onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
       onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
       title="Attack"
-    />
+    >
+      Attack
+    </button>
   </div>
 </div>
 {/* Attack Modal */}

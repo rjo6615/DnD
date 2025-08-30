@@ -350,22 +350,22 @@ const [form2, setForm2] = useState({
 
   // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
           <div style={{paddingTop: '80px'}}></div>
-          <h1 className="text-light" 
-           style={{            
-            fontSize: 28, 
-            width: "300px", 
-            height: "95px", 
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
-            color: "white", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center", 
+          <h1
+           style={{
+            fontSize: 28,
+            width: "300px",
+            height: "95px",
+            backgroundColor: '#FFFFFF',
+            color: '#000000',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             borderRadius: "10px", // Rounded corners
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
             margin: "0 auto"
-          }}>{params.campaign}</h1>  
+          }}>{params.campaign}</h1>
 {/*-----------------------------------Add Player-----------------------------------------------------*/}
 <Button style={{ position: "relative", zIndex: "4" }} onClick={() => { handleShowPlayers();}} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
 <div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4' }}>

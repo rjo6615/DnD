@@ -343,15 +343,15 @@ const onSubmitManual = async (e) => {
 };
 
   return (
-    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
       <div style={{paddingTop: '80px'}}>
       <h1 
   style={{ 
     fontSize: 28, 
     width: "300px", 
     height: "95px", 
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
-    color: "white", 
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
     display: "flex", 
     alignItems: "center", 
     justifyContent: "center", 
@@ -359,8 +359,7 @@ const onSubmitManual = async (e) => {
     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Light shadow for depth
     margin: "0 auto"
   }} 
-  className="text-light"
->
+  >
   {params.campaign.toString()}
 </h1>
 <div style={{ maxHeight: '300px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
