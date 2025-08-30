@@ -1,5 +1,7 @@
 .login-background {
-  background-color: #FFFFFF;
+  background-image: url('../../images/loginbg.png');
+  background-size: cover;
+  background-position: center;
   height: 100vh;
 }
 
@@ -8,7 +10,7 @@
 }
 
 .login-overlay {
-  background-color: #FFFFFF;
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 .logo-image {
