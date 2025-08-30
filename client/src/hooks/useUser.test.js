@@ -24,6 +24,18 @@ describe('useUser', () => {
     );
   });
 
+  test("returns user data when role is 'dm'", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ username: 'test', role: 'dm' }) })
+    );
+    render(<TestComponent />);
+    expect(await screen.findByText('test-true')).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/me'),
+      { credentials: 'include' }
+    );
+  });
+
   test('handles missing user', async () => {
     global.fetch = jest.fn(() => Promise.resolve({ ok: false }));
     render(<TestComponent />);

@@ -68,6 +68,7 @@ module.exports = (router) => {
         const myobj = {
           username: username,
           password: hashedPassword,
+          role: 'player',
         };
 
         const result = await db_connect.collection('users').insertOne(myobj);
