@@ -139,9 +139,9 @@ async function onSubmit1(e) {
 <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
       <div style={{paddingTop: "80px"}}></div>
       <div className="d-flex flex-column justify-content-center align-items-center h-100">
-        <Button className="mb-3 fantasy-button" onClick={handleShowJoinCampaign}>Join Campaign</Button>
-        <Button className="mb-3 hostCampaign" onClick={handleShowHostCampaign}>Host Campaign</Button>
-        <Button className="create-button" onClick={handleShow1}>Create Campaign</Button>
+        <Button className="mb-3 fantasy-button campaign-button" onClick={handleShowJoinCampaign}>Join Campaign</Button>
+        <Button className="mb-3 hostCampaign campaign-button" onClick={handleShowHostCampaign}>Host Campaign</Button>
+        <Button className="create-button campaign-button" onClick={handleShow1}>Create Campaign</Button>
       </div>
 
       <Modal className="dnd-modal" centered show={showJoinCampaignModal} onHide={handleCloseJoinCampaign}>

@@ -488,9 +488,14 @@ max-width: 300px;
   align-items: center; /* Center vertically */
 }
 
+.campaign-button {
+  width: 220px;
+}
+
 .fantasy-button {
   background: linear-gradient(135deg, #3e8e41, #2e7d32);
-  border: 2px solid #000;
+  border: none;
+  outline: none;
   border-radius: 50px;
   color: #fff;
   font-family: 'Cinzel', serif;
@@ -827,7 +832,8 @@ h1 {
 
 .create-button {
   background: linear-gradient(135deg, #3e8e41, #2e7d32);
-  border: 2px solid #000;
+  border: none;
+  outline: none;
   border-radius: 50px;
   color: #fff;
   font-family: 'Cinzel', serif;
