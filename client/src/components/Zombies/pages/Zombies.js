@@ -136,7 +136,7 @@ async function onSubmit1(e) {
 
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
-<div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+<div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
       <div style={{paddingTop: "80px"}}></div>
       <div className="d-flex flex-column justify-content-center align-items-center h-100">
         <Button className="mb-3 fantasy-button campaign-button" onClick={handleShowJoinCampaign}>Join Campaign</Button>

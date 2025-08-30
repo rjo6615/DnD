@@ -568,7 +568,6 @@ max-width: 300px;
 //vars
 $fg: linear-gradient(135deg, #3e8e41, #2e7d32);
 $fgDM: linear-gradient(135deg, #979940b6, #fffb00);
-$bg: linear-gradient(135deg, #3e8e41, #2e7d32);
 $pi: 3.14;
 
 //config
@@ -578,8 +577,8 @@ $open-distance: 115px;
 $opening-angle: $pi - 0.2;
 
 body {
-  background: $bg;
-  color: white;
+  background-color: #FFFFFF;
+  color: #000000;
   text-align: center; // Ensure text is centered horizontally
 }
 

@@ -13,7 +13,7 @@ function NavbarComponent() {
   };
 
   return (
-    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: "rgba(0, 0, 0, 1)" }}>
+    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: '#FFFFFF' }}>
       <Container fluid>
         <Navbar.Brand href="/">
           <img src={logoLight} alt="" width="60px" height="60px" className="d-inline-block align-text-top" />
