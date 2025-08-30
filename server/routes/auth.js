@@ -83,32 +83,13 @@ module.exports = (router) => {
   router.get('/me', authenticateToken, async (req, res, next) => {
     try {
       const db_connect = req.db;
-      const users = db_connect.collection('users');
-      let user = await users.findOne({ username: req.user.username });
+      const user = await db_connect
+        .collection('users')
+        .findOne({ username: req.user.username });
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-
-      // Ensure user documents have either an isDM flag or role string
-      if (!('isDM' in user) && !('role' in user) && user._id) {
-        await users.updateOne({ _id: user._id }, { $set: { role: 'player' } });
-        user.role = 'player';
-      } else {
-        const update = {};
-        if (!('role' in user) && user._id) {
-          update.role = user.isDM ? 'dm' : 'player';
-        }
-        if (!('isDM' in user) && user._id) {
-          update.isDM = user.role === 'dm';
-        }
-        if (Object.keys(update).length) {
-          await users.updateOne({ _id: user._id }, { $set: update });
-          user = { ...user, ...update };
-        }
-      }
-
-      const isDM = !!user.isDM || user.role === 'dm';
-      res.json({ username: user.username, isDM });
+      res.json({ username: user.username, isDM: user.isDM });
     } catch (err) {
       next(err);
     }
