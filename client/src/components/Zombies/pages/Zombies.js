@@ -147,6 +147,9 @@ return (
     minHeight: '100vh'
   }}
 >
+</div>
+
+
       <div style={{paddingTop: "80px"}}></div>
       <div className="d-flex flex-column justify-content-center align-items-center h-100">
         <Button className="mb-3 fantasy-button campaign-button" onClick={handleShowJoinCampaign}>Join Campaign</Button>
