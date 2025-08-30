@@ -41,8 +41,11 @@ async function createUser(newUser) {
       body: JSON.stringify(newUser),
     });
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to create user');
+    if (!response.ok || data.errors) {
+      const message = data.errors
+        ? data.errors.map(e => e.msg).join(', ')
+        : data.message || 'Failed to create user';
+      throw new Error(message);
     }
     return data;
   } catch (error) {
