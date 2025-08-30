@@ -490,13 +490,6 @@ max-width: 300px;
 
 .campaign-button {
   width: 220px;
-  border: none;
-}
-
-.campaign-button:focus {
-  outline: none;
-  box-shadow: none;
-  border: none;
 }
 
 .fantasy-button {
@@ -528,12 +521,6 @@ max-width: 300px;
   margin-right: 8px;
 }
 
-.fantasy-button:focus {
-  outline: none;
-  box-shadow: none;
-  border: none;
-}
-
 .hostCampaign {
   background-color: #ffc107 !important; /* Yellow color */
   color: black !important;
@@ -554,12 +541,6 @@ max-width: 300px;
   background-color: #e0a800 !important;
   text-shadow: 2px 2px 4px #fff;
   transform: scale(1.05);
-}
-
-.hostCampaign:focus {
-  outline: none;
-  box-shadow: none;
-  border: none;
 }
 
 .dnd-background {
@@ -874,12 +855,6 @@ h1 {
 
 .create-button:active {
   transform: scale(0.95);
-}
-
-.create-button:focus {
-  outline: none;
-  box-shadow: none;
-  border: none;
 }
 
 @keyframes pulseOnce {
