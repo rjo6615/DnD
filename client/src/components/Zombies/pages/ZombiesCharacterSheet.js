@@ -3,7 +3,7 @@ import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
-import zombiesbg from "../../../images/zombiesbg.jpg";
+import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
@@ -64,7 +64,7 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = () => setShowHelpModal(false); 
 
   if (!form) {
-    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${zombiesbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
+    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
   }
 
   // Skills and skill points calculation
