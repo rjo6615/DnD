@@ -266,14 +266,14 @@ describe('Character routes', () => {
   test('update skills success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOneAndUpdate: async () => ({ value: { appraise: 1 } })
+        findOneAndUpdate: async () => ({ value: { acrobatics: 1 } })
       })
     });
     const res = await request(app)
       .put('/skills/update-skills/507f1f77bcf86cd799439011')
-      .send({ appraise: 1 });
+      .send({ acrobatics: 1 });
     expect(res.status).toBe(200);
-    expect(res.body.appraise).toBe(1);
+    expect(res.body.acrobatics).toBe(1);
   });
 
   test('update skills failure', async () => {
@@ -284,7 +284,7 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .put('/skills/update-skills/507f1f77bcf86cd799439011')
-      .send({ appraise: 1 });
+      .send({ acrobatics: 1 });
     expect(res.status).toBe(500);
   });
 

@@ -5,6 +5,7 @@ import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
+import { SKILLS } from "../skillSchema";
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -237,9 +238,10 @@ const [form2, setForm2] = useState({
   const handleClose4 = () => setShow4(false);
   const handleShow4 = () => setShow4(true);
   
-   const [form4, setForm4] = useState({ 
+   const skillDefaults = Object.fromEntries(SKILLS.map(({ key }) => [key, "0"]));
+   const [form4, setForm4] = useState({
     campaign: currentCampaign,
-    itemName: "", 
+    itemName: "",
     notes: "",
     str: "0",
     dex: "0",
@@ -247,36 +249,7 @@ const [form2, setForm2] = useState({
     int: "0",
     wis: "0",
     cha: "0",
-    appraise: "0",
-    balance: "0",
-    bluff: "0",
-    climb: "0",
-    concentration: "0",
-    decipherScript: "0",
-    diplomacy: "0",
-    disableDevice: "0",
-    disguise: "0",
-    escapeArtist: "0",
-    forgery: "0",
-    gatherInfo: "0",
-    handleAnimal: "0",
-    heal: "0",
-    hide: "0",
-    intimidate: "0",
-    jump: "0",
-    listen: "0",
-    moveSilently: "0",
-    openLock: "0",
-    ride: "0",
-    search: "0",
-    senseMotive: "0",
-    sleightOfHand: "0",
-    spot: "0",
-    survival: "0",
-    swim: "0",
-    tumble: "0",
-    useTech: "0",
-    useRope: "0",
+    ...skillDefaults,
   });
   
   function updateForm4(value) {
@@ -304,8 +277,9 @@ const [form2, setForm2] = useState({
      return;
    });
   
+   const skillReset = Object.fromEntries(SKILLS.map(({ key }) => [key, ""]));
    setForm4({
-    itemName: "", 
+    itemName: "",
     notes: "",
     str: "",
     dex: "",
@@ -313,36 +287,7 @@ const [form2, setForm2] = useState({
     int: "",
     wis: "",
     cha: "",
-    appraise: "",
-    balance: "",
-    bluff: "",
-    climb: "",
-    concentration: "",
-    decipherScript: "",
-    diplomacy: "",
-    disableDevice: "",
-    disguise: "",
-    escapeArtist: "",
-    forgery: "",
-    gatherInfo: "",
-    handleAnimal: "",
-    heal: "",
-    hide: "",
-    intimidate: "",
-    jump: "",
-    listen: "",
-    moveSilently: "",
-    openLock: "",
-    ride: "",
-    search: "",
-    senseMotive: "",
-    sleightOfHand: "",
-    spot: "",
-    survival: "",
-    swim: "",
-    tumble: "",
-    useTech: "",
-    useRope: "",
+    ...skillReset,
   });
    navigate(0);
   }
@@ -597,127 +542,19 @@ const [form2, setForm2] = useState({
   
          <Form.Label className="text-light">Charisma</Form.Label>
          <Form.Control className="mb-2" onChange={(e) => updateForm4({ cha: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Charisma" /> 
-  
-         <Form.Label className="text-light">Appraise</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ appraise: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Appraise" />
-  
-         <Form.Label className="text-light">Balance</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ balance: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Balance" />
-  
-         <Form.Label className="text-light">Bluff</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ bluff: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Bluff" />
-  
-         <Form.Label className="text-light">Climb</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ climb: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Climb" /> 
-  
-         <Form.Label className="text-light">Concentration</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ concentration: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Concentration" />
-  
-         <Form.Label className="text-light">Decipher Script</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ decipherScript: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Decipher Script" />
-  
-         <Form.Label className="text-light">Diplomacy</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ diplomacy: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Diplomacy" />
-  
-         <Form.Label className="text-light">Disable Device</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ disableDevice: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Disable Device" />
-  
-         <Form.Label className="text-light">Disguise</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ disguise: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Disguise" />
-  
-         <Form.Label className="text-light">Escape Artist</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ escapeArtist: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Escape Artist" />
-  
-         <Form.Label className="text-light">Forgery</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ forgery: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Forgery" />
-  
-         <Form.Label className="text-light">Gather Info</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ gatherInfo: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Gather Info" />
-  
-         <Form.Label className="text-light">Handle Animal</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ handleAnimal: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Handle Animal" />
-  
-         <Form.Label className="text-light">Heal</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ heal: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Heal" />
-  
-         <Form.Label className="text-light">Hide</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ hide: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Hide" />
-  
-         <Form.Label className="text-light">Intimidate</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ intimidate: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Intimidate" />
-  
-         <Form.Label className="text-light">Jump</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ jump: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Jump" /> 
-  
-         <Form.Label className="text-light">Listen</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ listen: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Listen" />
-  
-         <Form.Label className="text-light">Move Silently</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ moveSilently: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Move Silently" />
-  
-         <Form.Label className="text-light">Open Lock</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ openLock: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Open Lock" />
-  
-         <Form.Label className="text-light">Ride</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ ride: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Ride" />
-  
-         <Form.Label className="text-light">Search</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ search: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Search" />
-  
-         <Form.Label className="text-light">Sense Motive</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ senseMotive: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Sense Motive" />
-  
-         <Form.Label className="text-light">Sleight of Hand</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ sleightOfHand: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Sleight of Hand" />
-  
-         <Form.Label className="text-light">Spot</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ spot: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Spot" />
-  
-         <Form.Label className="text-light">Survival</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ survival: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Survival" />
-  
-         <Form.Label className="text-light">Swim</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ swim: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Swim" />
-  
-         <Form.Label className="text-light">Tumble</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ tumble: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Tumble" />
-  
-         <Form.Label className="text-light">Use Tech</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ useTech: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Use Tech" />
-  
-         <Form.Label className="text-light">Use Rope</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ useRope: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Use Rope" />
+          type="text" placeholder="Enter Charisma" />
+
+         {SKILLS.map(({ key, label }) => (
+           <React.Fragment key={key}>
+             <Form.Label className="text-light">{label}</Form.Label>
+             <Form.Control
+               className="mb-2"
+               onChange={(e) => updateForm4({ [key]: e.target.value === "" ? 0 : e.target.value })}
+               type="text"
+               placeholder={`Enter ${label}`}
+             />
+           </React.Fragment>
+         ))}
   
        </Form.Group>
        <div className="text-center">
