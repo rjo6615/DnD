@@ -155,8 +155,6 @@ const featBonuses = (form.feat || []).reduce(
     acc.acBonus += Number(feat.acBonus || 0);
     acc.hpMaxBonus += Number(feat.hpMaxBonus || 0);
     acc.hpMaxBonusPerLevel += Number(feat.hpMaxBonusPerLevel || 0);
-    acc.passivePerception += Number(feat.passivePerceptionBonus || 0);
-    acc.passiveInvestigation += Number(feat.passiveInvestigationBonus || 0);
     return acc;
   },
   {
@@ -165,8 +163,6 @@ const featBonuses = (form.feat || []).reduce(
     acBonus: 0,
     hpMaxBonus: 0,
     hpMaxBonusPerLevel: 0,
-    passivePerception: 0,
-    passiveInvestigation: 0,
   }
 );
 
@@ -238,8 +234,6 @@ return (
           acBonus={featBonuses.acBonus}
           hpMaxBonus={featBonuses.hpMaxBonus}
           hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-          passivePerceptionBonus={featBonuses.passivePerception}
-          passiveInvestigationBonus={featBonuses.passiveInvestigation}
         />
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">

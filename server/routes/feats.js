@@ -19,8 +19,6 @@ module.exports = (router) => {
     'initiative',
     'ac',
     'speed',
-    'passivePerception',
-    'passiveInvestigation',
     'hpMaxBonus',
     'hpMaxBonusPerLevel',
   ];
