@@ -44,6 +44,7 @@ module.exports = (router) => {
   });
 
   // This section will create a new character.
+  // Includes numeric stats like initiative, AC, speed, passive scores, and HP bonuses.
   const numericCharacterFields = [...numericFields, ...skillFields];
 
   characterRouter.post(

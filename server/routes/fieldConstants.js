@@ -11,6 +11,13 @@ const numericFields = [
   'startStatTotal',
   'health',
   'tempHealth',
+  'initiative',
+  'ac',
+  'speed',
+  'passivePerception',
+  'passiveInvestigation',
+  'hpMaxBonus',
+  'hpMaxBonusPerLevel',
 ];
 
 const skillFields = [
