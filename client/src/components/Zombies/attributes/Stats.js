@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
+import { SKILLS } from "../skillSchema";
 
 export default function Stats({ form, showStats, handleCloseStats, totalLevel }) {
   const params = useParams();
@@ -30,8 +31,21 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
+  const ABILITY_START_INDEX = SKILLS.length + 2;
+  const totalFeatBonus = (form.feat || []).reduce(
+    (acc, el) => ({
+      str: acc.str + Number(el[ABILITY_START_INDEX] || 0),
+      dex: acc.dex + Number(el[ABILITY_START_INDEX + 1] || 0),
+      con: acc.con + Number(el[ABILITY_START_INDEX + 2] || 0),
+      int: acc.int + Number(el[ABILITY_START_INDEX + 3] || 0),
+      wis: acc.wis + Number(el[ABILITY_START_INDEX + 4] || 0),
+      cha: acc.cha + Number(el[ABILITY_START_INDEX + 5] || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
   const computedStats = Object.keys(stats).reduce((acc, key) => {
-    acc[key] = stats[key] + totalItemBonus[key];
+    acc[key] = stats[key] + totalItemBonus[key] + totalFeatBonus[key];
     return acc;
   }, {});
 
