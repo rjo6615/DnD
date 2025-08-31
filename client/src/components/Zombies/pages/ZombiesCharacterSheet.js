@@ -100,8 +100,30 @@ export default function ZombiesCharacterSheet() {
   const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
   const statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
 
-// ---------------------------------------Feats left-----------------------------------------------------
-const activeFeats = form.feat.filter((feat) => feat.featName && feat.featName !== "").length;
+// ---------------------------------------Feats and bonuses----------------------------------------------
+const featBonuses = (form.feat || []).reduce(
+  (acc, feat) => {
+    acc.initiative += Number(feat.initiativeBonus || 0);
+    acc.speed += Number(feat.speedBonus || 0);
+    acc.acBonus += Number(feat.acBonus || 0);
+    acc.hpMaxBonus += Number(feat.hpMaxBonus || 0);
+    acc.hpMaxBonusPerLevel += Number(feat.hpMaxBonusPerLevel || 0);
+    acc.passivePerception += Number(feat.passivePerceptionBonus || 0);
+    acc.passiveInvestigation += Number(feat.passiveInvestigationBonus || 0);
+    return acc;
+  },
+  {
+    initiative: 0,
+    speed: 0,
+    acBonus: 0,
+    hpMaxBonus: 0,
+    hpMaxBonusPerLevel: 0,
+    passivePerception: 0,
+    passiveInvestigation: 0,
+  }
+);
+
+const activeFeats = form.feat.filter((feat) => feat.featName !== "").length;
 const featPointsLeft = Math.floor(totalLevel / 3) + 1 - activeFeats;
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 // ------------------------------------------Attack Bonus---------------------------------------------------
@@ -157,7 +179,21 @@ return (
   {form.characterName}
 </h1>
 
-        <HealthDefense form={form} totalLevel={totalLevel} dexMod={statMods.dex} conMod={statMods.con}  />
+        <HealthDefense
+          form={form}
+          totalLevel={totalLevel}
+          dexMod={statMods.dex}
+          conMod={statMods.con}
+          wisMod={statMods.wis}
+          intMod={statMods.int}
+          initiativeBonus={featBonuses.initiative}
+          speedBonus={featBonuses.speed}
+          acBonus={featBonuses.acBonus}
+          hpMaxBonus={featBonuses.hpMaxBonus}
+          hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+          passivePerceptionBonus={featBonuses.passivePerception}
+          passiveInvestigationBonus={featBonuses.passiveInvestigation}
+        />
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">
           <Container>

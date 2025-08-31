@@ -30,8 +30,29 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
+  const totalFeatBonus = (form.feat || []).reduce(
+    (acc, feat) => {
+      acc.str += Number(feat.str || 0);
+      acc.dex += Number(feat.dex || 0);
+      acc.con += Number(feat.con || 0);
+      acc.int += Number(feat.int || 0);
+      acc.wis += Number(feat.wis || 0);
+      acc.cha += Number(feat.cha || 0);
+      if (
+        feat.selectedAbility &&
+        ["str", "dex", "con", "int", "wis", "cha"].includes(feat.selectedAbility)
+      ) {
+        acc[feat.selectedAbility] += Number(
+          feat.selectedAbilityValue || feat.selectedAbilityBonus || 0
+        );
+      }
+      return acc;
+    },
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
   const computedStats = Object.keys(stats).reduce((acc, key) => {
-    acc[key] = stats[key] + totalItemBonus[key];
+    acc[key] = stats[key] + totalItemBonus[key] + totalFeatBonus[key];
     return acc;
   }, {});
 
