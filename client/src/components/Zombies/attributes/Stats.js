@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
+import { SKILLS } from "../skillSchema";
 
 export default function Stats({ form, showStats, handleCloseStats, totalLevel }) {
   const params = useParams();
@@ -30,24 +31,16 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
+  const ABILITY_START_INDEX = SKILLS.length + 2;
   const totalFeatBonus = (form.feat || []).reduce(
-    (acc, feat) => {
-      acc.str += Number(feat.str || 0);
-      acc.dex += Number(feat.dex || 0);
-      acc.con += Number(feat.con || 0);
-      acc.int += Number(feat.int || 0);
-      acc.wis += Number(feat.wis || 0);
-      acc.cha += Number(feat.cha || 0);
-      if (
-        feat.selectedAbility &&
-        ["str", "dex", "con", "int", "wis", "cha"].includes(feat.selectedAbility)
-      ) {
-        acc[feat.selectedAbility] += Number(
-          feat.selectedAbilityValue || feat.selectedAbilityBonus || 0
-        );
-      }
-      return acc;
-    },
+    (acc, el) => ({
+      str: acc.str + Number(el[ABILITY_START_INDEX] || 0),
+      dex: acc.dex + Number(el[ABILITY_START_INDEX + 1] || 0),
+      con: acc.con + Number(el[ABILITY_START_INDEX + 2] || 0),
+      int: acc.int + Number(el[ABILITY_START_INDEX + 3] || 0),
+      wis: acc.wis + Number(el[ABILITY_START_INDEX + 4] || 0),
+      cha: acc.cha + Number(el[ABILITY_START_INDEX + 5] || 0),
+    }),
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 

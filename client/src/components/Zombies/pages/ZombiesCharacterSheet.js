@@ -74,13 +74,47 @@ export default function ZombiesCharacterSheet() {
 
   let skillTotal = SKILLS.reduce((sum, { key }) => sum + form[key], 0);
 
+  const itemBonus = (form.item || []).reduce(
+    (acc, el) => ({
+      str: acc.str + Number(el[2] || 0),
+      dex: acc.dex + Number(el[3] || 0),
+      con: acc.con + Number(el[4] || 0),
+      int: acc.int + Number(el[5] || 0),
+      wis: acc.wis + Number(el[6] || 0),
+      cha: acc.cha + Number(el[7] || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
+  const ABILITY_START_INDEX = SKILLS.length + 2;
+  const featBonus = (form.feat || []).reduce(
+    (acc, el) => ({
+      str: acc.str + Number(el[ABILITY_START_INDEX] || 0),
+      dex: acc.dex + Number(el[ABILITY_START_INDEX + 1] || 0),
+      con: acc.con + Number(el[ABILITY_START_INDEX + 2] || 0),
+      int: acc.int + Number(el[ABILITY_START_INDEX + 3] || 0),
+      wis: acc.wis + Number(el[ABILITY_START_INDEX + 4] || 0),
+      cha: acc.cha + Number(el[ABILITY_START_INDEX + 5] || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
+  const computedStats = {
+    str: form.str + itemBonus.str + featBonus.str,
+    dex: form.dex + itemBonus.dex + featBonus.dex,
+    con: form.con + itemBonus.con + featBonus.con,
+    int: form.int + itemBonus.int + featBonus.int,
+    wis: form.wis + itemBonus.wis + featBonus.wis,
+    cha: form.cha + itemBonus.cha + featBonus.cha,
+  };
+
   const statMods = {
-    str: Math.floor((form.str - 10) / 2),
-    dex: Math.floor((form.dex - 10) / 2),
-    con: Math.floor((form.con - 10) / 2),
-    int: Math.floor((form.int - 10) / 2),
-    wis: Math.floor((form.wis - 10) / 2),
-    cha: Math.floor((form.cha - 10) / 2),
+    str: Math.floor((computedStats.str - 10) / 2),
+    dex: Math.floor((computedStats.dex - 10) / 2),
+    con: Math.floor((computedStats.con - 10) / 2),
+    int: Math.floor((computedStats.int - 10) / 2),
+    wis: Math.floor((computedStats.wis - 10) / 2),
+    cha: Math.floor((computedStats.cha - 10) / 2),
   };
 
   let firstLevelSkill = Math.floor((Number(form.occupation[0].skillMod) + statMods.int) * 4);

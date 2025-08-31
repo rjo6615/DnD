@@ -52,7 +52,7 @@ const createDefaultForm = useCallback((campaign) => {
     characterName: "",
     campaign: campaign.toString(),
     occupation: [""],
-    feat: [createEmptyArray(SKILLS.length + 2)],
+    feat: [createEmptyArray(SKILLS.length + 8)],
     weapon: [createEmptyArray(6)],
     armor: [createEmptyArray(4)],
     item: [createEmptyArray(SKILLS.length + 8)],
