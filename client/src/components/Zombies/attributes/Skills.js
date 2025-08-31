@@ -113,8 +113,8 @@ const itemTotals = SKILLS.reduce((acc, {key, itemIndex}) => {
   return acc;
 }, {});
 
-const featTotals = SKILLS.reduce((acc, {key, featIndex}) => {
-  acc[key] = form.feat.reduce((sum, el) => sum + Number(el[featIndex] || 0), 0);
+const featTotals = SKILLS.reduce((acc, {key}) => {
+  acc[key] = form.feat.reduce((sum, el) => sum + Number(el[key] || 0), 0);
   return acc;
 }, {});
 

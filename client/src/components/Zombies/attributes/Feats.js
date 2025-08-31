@@ -67,9 +67,8 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
   };
 
   // ---------------------------------------Feats left-----------------------------------------------------
-  const activeFeats = form.feat.filter((feat) => feat[0] !== "").length;
+  const activeFeats = form.feat.filter(f => f.featName && f.featName !== "").length;
   const featPointsLeft = Math.floor(totalLevel / 3) + 1 - activeFeats;
-
   const showFeatBtn = featPointsLeft > 0 ? "" : "none";
 
   // ----------------------------------------Fetch Feats-----------------------------------
@@ -118,6 +117,8 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
   }
   async function addFeatToDb(e) {
     e.preventDefault();
+    if (!addFeat) return;
+    const newFeatList = [...form.feat, addFeat];
     await apiFetch(`/feats/update/${params.id}`, {
       method: "PUT",
       headers: {
@@ -185,8 +186,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
 
   return (
     <div>
-      {/* -----------------------------------------Feats Render----------------------------------------------------------------------
--------------------------------------------------------------- */}
+      {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
       <Modal className="modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
         <div className="text-center">
           <Card className="modern-card">
@@ -205,6 +205,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                     <th>Notes</th>
                     <th>Skills</th>
                     <th>Abilities</th>
+
                     <th>Delete</th>
                   </tr>
                 </thead>
