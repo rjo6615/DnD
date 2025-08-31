@@ -1,10 +1,29 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
+const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
+const handleValidationErrors = require('../middleware/validation');
+const { skillFields } = require('./fieldConstants');
 const logger = require('../utils/logger');
 
 module.exports = (router) => {
   const featRouter = express.Router();
+
+  const numericFeatFields = [
+    'str',
+    'dex',
+    'con',
+    'int',
+    'wis',
+    'cha',
+    'initiative',
+    'ac',
+    'speed',
+    'passivePerception',
+    'passiveInvestigation',
+    'hpMaxBonus',
+    'hpMaxBonusPerLevel',
+  ];
 
   // Apply authentication to all feat routes
   featRouter.use(authenticateToken);
@@ -24,37 +43,28 @@ module.exports = (router) => {
   });
 
   // This section will create a new feat.
-  featRouter.route('/add').post(async (req, response, next) => {
-    const db_connect = req.db;
-    const myobj = {
-      featName: req.body.featName,
-      notes: req.body.notes,
-      acrobatics: req.body.acrobatics,
-      animalHandling: req.body.animalHandling,
-      arcana: req.body.arcana,
-      athletics: req.body.athletics,
-      deception: req.body.deception,
-      history: req.body.history,
-      insight: req.body.insight,
-      intimidation: req.body.intimidation,
-      investigation: req.body.investigation,
-      medicine: req.body.medicine,
-      nature: req.body.nature,
-      perception: req.body.perception,
-      performance: req.body.performance,
-      persuasion: req.body.persuasion,
-      religion: req.body.religion,
-      sleightOfHand: req.body.sleightOfHand,
-      stealth: req.body.stealth,
-      survival: req.body.survival,
-    };
-    try {
-      const result = await db_connect.collection("Feats").insertOne(myobj);
-      response.json(result);
-    } catch (err) {
-      next(err);
+  featRouter.post(
+    '/add',
+    [
+      body('featName').trim().notEmpty().withMessage('featName is required'),
+      body('notes').optional().trim(),
+      body('abilityIncreaseOptions').optional().isArray(),
+      body('abilityIncreaseOptions.*').optional().isString().trim(),
+      ...skillFields.map((field) => body(field).optional().isInt().toInt()),
+      ...numericFeatFields.map((field) => body(field).optional().isInt().toInt()),
+    ],
+    handleValidationErrors,
+    async (req, response, next) => {
+      const db_connect = req.db;
+      const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+      try {
+        const result = await db_connect.collection('Feats').insertOne(myobj);
+        response.json(result);
+      } catch (err) {
+        next(err);
+      }
     }
-  });
+  );
 
   // This section will update feats.
   featRouter.route('/update/:id').put(async (req, res, next) => {
