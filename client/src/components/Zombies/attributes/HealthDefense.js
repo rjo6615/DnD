@@ -15,8 +15,6 @@ export default function HealthDefense({
   hpMaxBonusPerLevel = 0,
   initiativeBonus = 0,
   speedBonus = 0,
-  passivePerceptionBonus = 0,
-  passiveInvestigationBonus = 0,
 }) {
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
@@ -83,18 +81,6 @@ export default function HealthDefense({
       }
     }
   }
-
-  const passivePerception =
-    10 +
-    Number(form.perception || 0) +
-    Number(wisMod) +
-    Number(passivePerceptionBonus);
-
-  const passiveInvestigation =
-    10 +
-    Number(form.investigation || 0) +
-    Number(intMod) +
-    Number(passiveInvestigationBonus);
 
   // Health
   const maxHealth =
@@ -281,11 +267,6 @@ return (
       <div><strong>Will:</strong> {willSave}</div>
     </div>
 
-    {/* Passive Skills */}
-    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-      <div><strong>Passive Perception:</strong> {passivePerception}</div>
-      <div><strong>Passive Investigation:</strong> {passiveInvestigation}</div>
-    </div>
   </div>
 </div>
 )

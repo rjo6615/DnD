@@ -14,8 +14,6 @@ const numericFields = [
   'initiative',
   'ac',
   'speed',
-  'passivePerception',
-  'passiveInvestigation',
   'hpMaxBonus',
   'hpMaxBonusPerLevel',
 ];
