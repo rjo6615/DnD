@@ -37,7 +37,21 @@ export default function ZombiesCharacterSheet() {
           throw new Error(`Error fetching character data: ${response.statusText}`);
         }
         const data = await response.json();
-        setForm(data);
+        const feats = (data.feat || []).map((feat) => {
+          if (!Array.isArray(feat)) return feat;
+          const [featName = "", notes = "", ...rest] = feat;
+          const skillVals = rest.slice(0, SKILLS.length);
+          const abilityVals = rest.slice(SKILLS.length, SKILLS.length + 6);
+          const featObj = { featName, notes };
+          SKILLS.forEach(({ key }, idx) => {
+            featObj[key] = Number(skillVals[idx] || 0);
+          });
+          ["str", "dex", "con", "int", "wis", "cha"].forEach((stat, idx) => {
+            featObj[stat] = Number(abilityVals[idx] || 0);
+          });
+          return featObj;
+        });
+        setForm({ ...data, feat: feats });
       } catch (error) {
         console.error(error);
       }
@@ -86,15 +100,14 @@ export default function ZombiesCharacterSheet() {
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
-  const ABILITY_START_INDEX = SKILLS.length + 2;
   const featBonus = (form.feat || []).reduce(
     (acc, el) => ({
-      str: acc.str + Number(el[ABILITY_START_INDEX] || 0),
-      dex: acc.dex + Number(el[ABILITY_START_INDEX + 1] || 0),
-      con: acc.con + Number(el[ABILITY_START_INDEX + 2] || 0),
-      int: acc.int + Number(el[ABILITY_START_INDEX + 3] || 0),
-      wis: acc.wis + Number(el[ABILITY_START_INDEX + 4] || 0),
-      cha: acc.cha + Number(el[ABILITY_START_INDEX + 5] || 0),
+      str: acc.str + Number(el.str || 0),
+      dex: acc.dex + Number(el.dex || 0),
+      con: acc.con + Number(el.con || 0),
+      int: acc.int + Number(el.int || 0),
+      wis: acc.wis + Number(el.wis || 0),
+      cha: acc.cha + Number(el.cha || 0),
     }),
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
