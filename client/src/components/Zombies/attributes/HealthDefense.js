@@ -3,7 +3,21 @@ import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 
-export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
+export default function HealthDefense({
+  form,
+  totalLevel,
+  conMod,
+  dexMod,
+  wisMod,
+  intMod,
+  acBonus = 0,
+  hpMaxBonus = 0,
+  hpMaxBonusPerLevel = 0,
+  initiativeBonus = 0,
+  speedBonus = 0,
+  passivePerceptionBonus = 0,
+  passiveInvestigationBonus = 0,
+}) {
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
   // Saves Maffs
@@ -15,12 +29,12 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
   //Armor AC/MaxDex
      let armorAcBonus= [];
      let armorMaxDexBonus= [];
-     form.armor.map((el) => (  
-       armorAcBonus.push(el[1]) 
-     ))
-     let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
      form.armor.map((el) => (
-      armorMaxDexBonus.push(el[2]) 
+       armorAcBonus.push(el[1])
+     ))
+     let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) + Number(acBonus);
+     form.armor.map((el) => (
+      armorMaxDexBonus.push(el[2])
      ))
      let filteredMaxDexArray = armorMaxDexBonus.filter(e => e !== '0')
      let armorMaxDexMin = Math.min(...filteredMaxDexArray);
@@ -69,8 +83,25 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
       }
     }
   }
-  
+
+  const passivePerception =
+    10 +
+    Number(form.perception || 0) +
+    Number(wisMod) +
+    Number(passivePerceptionBonus);
+
+  const passiveInvestigation =
+    10 +
+    Number(form.investigation || 0) +
+    Number(intMod) +
+    Number(passiveInvestigationBonus);
+
   // Health
+  const maxHealth =
+    Number(form.health) +
+    Number(conMod * totalLevel) +
+    Number(hpMaxBonus) +
+    Number(hpMaxBonusPerLevel * totalLevel);
   const [health, setHealth] = useState(); // Initial health value
  // Sends tempHealth data to database for update
  async function tempHealthUpdate(offset){
@@ -99,7 +130,7 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
 
   let offset;
   const increaseHealth = () => {
-    if (health === form.health + Number(conMod * totalLevel)){
+    if (health === maxHealth){
     } else {
     setHealth((prevHealth) => prevHealth + 1);
     offset = +1;
@@ -176,9 +207,9 @@ return (
     >
       <div
         style={{
-          width: `${(health / (form.health + Number(conMod * totalLevel))) * 100}%`,
+          width: `${(health / maxHealth) * 100}%`,
           height: "100%",
-          background: health > (form.health + Number(conMod * totalLevel)) * 0.5 ? "#2ecc71" : "#c0392b",
+          background: health > maxHealth * 0.5 ? "#2ecc71" : "#c0392b",
           transition: "width 0.3s ease-in-out",
         }}
       />
@@ -195,7 +226,7 @@ return (
           lineHeight: "24px",
         }}
       >
-        {health}/{form.health + Number(conMod * totalLevel)}
+        {health}/{maxHealth}
       </span>
     </div>
 
@@ -239,7 +270,8 @@ return (
     <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
       <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
       <div><strong>Attack Bonus:</strong> {atkBonus}</div>
-      <div><strong>Initiative:</strong> {dexMod}</div>
+      <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiativeBonus)}</div>
+      <div><strong>Speed:</strong> {(form.speed || 0) + Number(speedBonus)}</div>
     </div>
 
     {/* Saving Throws */}
@@ -247,6 +279,12 @@ return (
       <div><strong>Fort:</strong> {fortSave}</div>
       <div><strong>Reflex:</strong> {reflexSave}</div>
       <div><strong>Will:</strong> {willSave}</div>
+    </div>
+
+    {/* Passive Skills */}
+    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+      <div><strong>Passive Perception:</strong> {passivePerception}</div>
+      <div><strong>Passive Investigation:</strong> {passiveInvestigation}</div>
     </div>
   </div>
 </div>
