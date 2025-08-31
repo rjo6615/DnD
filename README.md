@@ -47,6 +47,18 @@ All API errors are returned as JSON objects with a single `message` property. Fo
 
 Clients should rely on this structure when handling error responses.
 
+## Feats Endpoint
+
+Use `GET /feats` to retrieve all available feats.
+
+Use `POST /feats/add` with a JSON body to create a new feat. Supported fields include:
+
+- `featName` (string, required)
+- `notes` (string, optional)
+- `abilityIncreaseOptions` (array of strings, optional)
+- Numeric bonuses such as ability scores (`str`, `dex`, `con`, `int`, `wis`, `cha`), `initiative`, `ac`, `speed`, `passivePerception`, `passiveInvestigation`, `hpMaxBonus`, and `hpMaxBonusPerLevel`
+- Skill bonuses (`acrobatics`, `animalHandling`, `arcana`, `athletics`, `deception`, `history`, `insight`, `intimidation`, `investigation`, `medicine`, `nature`, `perception`, `performance`, `persuasion`, `religion`, `sleightOfHand`, `stealth`, `survival`)
+
 ## Character Feats Endpoint
 
 Use `PUT /characters/:id/feats` with a JSON body like `{ "feat": ["Feat1"] }` to
