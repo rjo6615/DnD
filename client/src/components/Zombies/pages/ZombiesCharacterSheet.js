@@ -101,14 +101,9 @@ export default function ZombiesCharacterSheet() {
   const statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
 
 // ---------------------------------------Feats left-----------------------------------------------------
-let featLength;
-if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) { 
-  featLength = 0; 
-} else {
-   featLength = form.feat.length 
-  }
-let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
-let featsGold = featPointsLeft === 0 ? "#6C757D" : "gold";
+const activeFeats = form.feat.filter((feat) => feat[0] !== "").length;
+const featPointsLeft = Math.floor(totalLevel / 3) + 1 - activeFeats;
+const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 // ------------------------------------------Attack Bonus---------------------------------------------------
 let atkBonus = 0;
 const occupations = form.occupation;

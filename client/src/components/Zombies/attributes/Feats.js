@@ -32,18 +32,10 @@ const [feat, setFeat] = useState({
     });
   }
   // ---------------------------------------Feats left-----------------------------------------------------
-    let featLength;
-  if (JSON.stringify(form.feat) === JSON.stringify(emptyFeat)) { 
-    featLength = 0; 
-  } else {
-     featLength = form.feat.length 
-    }
-  let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
-  
-    let showFeatBtn = "";
-    if (featPointsLeft === 0) {
-      showFeatBtn = "none";
-    }
+  const activeFeats = form.feat.filter((feat) => feat[0] !== "").length;
+  const featPointsLeft = Math.floor(totalLevel / 3) + 1 - activeFeats;
+
+  const showFeatBtn = featPointsLeft > 0 ? "" : "none";
   
   // ----------------------------------------Fetch Feats-----------------------------------
   useEffect(() => {
