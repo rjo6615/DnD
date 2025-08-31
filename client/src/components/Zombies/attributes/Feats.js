@@ -7,23 +7,17 @@ import { SKILLS } from "../skillSchema";
 export default function Feats({ form, showFeats, handleCloseFeats, totalLevel }) {
   const params = useParams();
   const navigate = useNavigate();
-  const emptyFeat = [Array(SKILLS.length + 8).fill("")];
-
   //----------------------------------------------Feats Section-----------------------------------------------------------------
   //-------------------------------------------------------------------
   const [feat, setFeat] = useState({ feat: [] });
-  const [addFeat, setAddFeat] = useState({ feat: "" });
-  const [modalFeatData, setModalFeatData] = useState({ feat: "" });
+  const [addFeat, setAddFeat] = useState(null);
+  const [modalFeatData, setModalFeatData] = useState({ featName: "", notes: "" });
   const [showFeatNotes, setShowFeatNotes] = useState(false);
   const handleCloseFeatNotes = () => setShowFeatNotes(false);
   const handleShowFeatNotes = () => setShowFeatNotes(true);
   const [chosenFeat, setChosenFeat] = useState('');
   const [selectedFeatData, setSelectedFeatData] = useState(null);
   const [abilitySelections, setAbilitySelections] = useState({});
-
-  function updateFeat(value) {
-    return setAddFeat((prev) => ({ ...prev, ...value }));
-  }
 
   const handleSelectFeat = (e) => {
     const featName = e.target.value;
@@ -32,15 +26,22 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
     setSelectedFeatData(featObj || null);
     setAbilitySelections({});
     if (featObj) {
-      const baseArray = [
-        featObj.featName,
-        featObj.notes,
-        ...SKILLS.map(({ key }) => featObj[key]),
-        0, 0, 0, 0, 0, 0,
-      ];
-      updateFeat({ feat: baseArray.join(',') });
+      const baseFeat = {
+        featName: featObj.featName,
+        notes: featObj.notes,
+      };
+      SKILLS.forEach(({ key }) => {
+        baseFeat[key] = featObj[key];
+      });
+      baseFeat.str = 0;
+      baseFeat.dex = 0;
+      baseFeat.con = 0;
+      baseFeat.int = 0;
+      baseFeat.wis = 0;
+      baseFeat.cha = 0;
+      setAddFeat(baseFeat);
     } else {
-      updateFeat({ feat: "" });
+      setAddFeat(null);
     }
   };
 
@@ -51,17 +52,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
       Object.values(newSelections).forEach((a) => {
         if (a) abilityBonus[a] += 1;
       });
-      setAddFeat((prevFeat) => {
-        const arr = prevFeat.feat.split(',');
-        const baseIndex = SKILLS.length + 2;
-        arr[baseIndex + 0] = abilityBonus.str;
-        arr[baseIndex + 1] = abilityBonus.dex;
-        arr[baseIndex + 2] = abilityBonus.con;
-        arr[baseIndex + 3] = abilityBonus.int;
-        arr[baseIndex + 4] = abilityBonus.wis;
-        arr[baseIndex + 5] = abilityBonus.cha;
-        return { ...prevFeat, feat: arr.join(',') };
-      });
+      setAddFeat((prevFeat) => ({ ...prevFeat, ...abilityBonus }));
       return newSelections;
     });
   };
@@ -94,38 +85,24 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
     return;
   }, [navigate]);
 
-  // Sends feat data to database for update
-  const splitFeatArr = (array, size) => {
-    let result = [];
-    for (let i = 0; i < array.length; i += size) {
-      let chunk = array.slice(i, i + size);
-      result.push(chunk);
-    }
-    return result;
-  };
-  let newFeat;
-  if (JSON.stringify(form.feat) === JSON.stringify(emptyFeat)) {
-    let newFeatArr = addFeat.feat.split(',');
-    const featArrSize = SKILLS.length + 8;
-    const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
-    newFeat = featArrChunks;
-  } else {
-    let newFeatArr = (form.feat + "," + addFeat.feat).split(',');
-    const featArrSize = SKILLS.length + 8;
-    const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
-    newFeat = featArrChunks;
-  }
   async function addFeatToDb(e) {
     e.preventDefault();
     if (!addFeat) return;
-    const newFeatList = [...form.feat, addFeat];
+    const existingIndex = form.feat.findIndex(f => f.featName === addFeat.featName);
+    let updatedFeats;
+    if (existingIndex >= 0) {
+      updatedFeats = [...form.feat];
+      updatedFeats[existingIndex] = addFeat;
+    } else {
+      updatedFeats = [...form.feat, addFeat];
+    }
     await apiFetch(`/feats/update/${params.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        feat: newFeat,
+        feat: updatedFeats,
       }),
     }).catch((error) => {
       window.alert(error);
@@ -133,53 +110,31 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
     });
     navigate(0);
   }
-  // This method will delete an feat
+  // This method will delete a feat
   function deleteFeats(el) {
-    const index = form.feat.indexOf(el);
-    form.feat.splice(index, 1);
-    updateFeat(form.feat);
-    addDeleteFeatToDb();
+    const updatedFeats = form.feat.filter(f => f.featName !== el.featName);
+    addDeleteFeatToDb(updatedFeats);
   }
   let showDeleteFeatBtn = "";
-  if (JSON.stringify(form.feat) === JSON.stringify(emptyFeat)) {
+  if (form.feat.length === 0) {
     showDeleteFeatBtn = "none";
   }
-  async function addDeleteFeatToDb() {
-    let newFeatForm = form.feat;
-    if (JSON.stringify(form.feat) === JSON.stringify([])) {
-      newFeatForm = [Array(SKILLS.length + 8).fill("")];
-      await apiFetch(`/feats/update/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          feat: newFeatForm,
-        }),
-      })
-        .catch((error) => {
-          window.alert(error);
-          return;
-        });
-      window.alert("Feat Deleted");
-      navigate(0);
-    } else {
-      await apiFetch(`/feats/update/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          feat: newFeatForm,
-        }),
-      })
-        .catch((error) => {
-          window.alert(error);
-          return;
-        });
-      window.alert("Feat Deleted");
-      navigate(0);
-    }
+  async function addDeleteFeatToDb(newFeatForm) {
+    await apiFetch(`/feats/update/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        feat: newFeatForm,
+      }),
+    })
+      .catch((error) => {
+        window.alert(error);
+        return;
+      });
+    window.alert("Feat Deleted");
+    navigate(0);
   }
 
   const abilityLabels = ['STR','DEX','CON','INT','WIS','CHA'];
@@ -211,8 +166,8 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                 </thead>
                 <tbody>
                   {form.feat.map((el) => (
-                    <tr key={el[0]}>
-                      <td>{el[0]}</td>
+                    <tr key={el.featName}>
+                      <td>{el.featName}</td>
                       <td style={{ display: showDeleteFeatBtn }}>
                         <Button
                           size="sm"
@@ -226,9 +181,10 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                       <td style={{ display: showDeleteFeatBtn }}>
                         {(() => {
                           const skillValues = [];
-                          SKILLS.forEach(({ label, featIndex }) => {
-                            if (el[featIndex] !== "0" && el[featIndex] !== "") {
-                              skillValues.push(`${label}: ${el[featIndex]} `);
+                          SKILLS.forEach(({ label, key }) => {
+                            const val = el[key];
+                            if (val && val !== "0" && val !== "") {
+                              skillValues.push(`${label}: ${val} `);
                             }
                           });
                           return (
@@ -243,9 +199,9 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                       <td style={{ display: showDeleteFeatBtn }}>
                         {(() => {
                           const abilityValues = [];
-                          const baseIndex = SKILLS.length + 2;
-                          abilityLabels.forEach((label, idx) => {
-                            const val = el[baseIndex + idx];
+                          abilityLabels.forEach((label) => {
+                            const prop = label.toLowerCase();
+                            const val = el[prop];
                             if (val && val !== "0" && val !== "") {
                               abilityValues.push(`${label}: ${val}`);
                             }
@@ -333,17 +289,17 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
             </Card.Footer>
           </Card>
           <Modal className="modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} size="lg" centered>
-            <Card className="modern-card text-center">
-              <Card.Header className="modal-header">
-                <Card.Title className="modal-title">{modalFeatData[0]}</Card.Title>
-              </Card.Header>
-              <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>{modalFeatData[1]}</Card.Body>
-              <Card.Footer className="modal-footer">
-                <Button className="action-btn close-btn" onClick={handleCloseFeatNotes}>
-                  Close
-                </Button>
-              </Card.Footer>
-            </Card>
+              <Card className="modern-card text-center">
+                <Card.Header className="modal-header">
+                  <Card.Title className="modal-title">{modalFeatData.featName}</Card.Title>
+                </Card.Header>
+                <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>{modalFeatData.notes}</Card.Body>
+                <Card.Footer className="modal-footer">
+                  <Button className="action-btn close-btn" onClick={handleCloseFeatNotes}>
+                    Close
+                  </Button>
+                </Card.Footer>
+              </Card>
           </Modal>
         </div>
       </Modal>
