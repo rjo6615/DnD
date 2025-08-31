@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
+import { SKILLS } from "../skillSchema";
  
  export default function Feats({form, showFeats, handleCloseFeats, totalLevel}) {
   const params = useParams();
   const navigate = useNavigate();
+  const emptyFeat = [Array(SKILLS.length + 2).fill("")];
   //----------------------------------------------Feats Section------------------------------------------------------------------------------------------------------------------------------------
 const [feat, setFeat] = useState({ 
     feat: [], 
@@ -31,7 +33,7 @@ const [feat, setFeat] = useState({
   }
   // ---------------------------------------Feats left-----------------------------------------------------
     let featLength;
-  if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) { 
+  if (JSON.stringify(form.feat) === JSON.stringify(emptyFeat)) { 
     featLength = 0; 
   } else {
      featLength = form.feat.length 
@@ -76,14 +78,14 @@ const [feat, setFeat] = useState({
     return result;
   };
    let newFeat;
-   if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) {
+   if (JSON.stringify(form.feat) === JSON.stringify(emptyFeat)) {
     let newFeatArr = addFeat.feat.split(',');
-    const featArrSize = 32;
+    const featArrSize = SKILLS.length + 2;
     const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
     newFeat = featArrChunks;
    } else {
     let newFeatArr = (form.feat + "," + addFeat.feat).split(',');
-    const featArrSize = 32;
+    const featArrSize = SKILLS.length + 2;
     const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
     newFeat = featArrChunks;
    }
@@ -112,13 +114,13 @@ const [feat, setFeat] = useState({
     addDeleteFeatToDb();
    }
    let showDeleteFeatBtn = "";
-   if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])){
+   if (JSON.stringify(form.feat) === JSON.stringify(emptyFeat)){
     showDeleteFeatBtn = "none";
    }
   async function addDeleteFeatToDb(){
     let newFeatForm = form.feat;
     if (JSON.stringify(form.feat) === JSON.stringify([])){
-      newFeatForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
+      newFeatForm = [Array(SKILLS.length + 2).fill("")];
       await apiFetch(`/feats/update/${params.id}`, {
         method: "PUT",
         headers: {
@@ -194,43 +196,18 @@ return (
               <td style={{ display: showDeleteFeatBtn}}>
               {(() => {
                const skillValues = [];
-
-                if (el[2] !== "0") skillValues.push("Appraise: " + el[2] + " ");
-                if (el[3] !== "0") skillValues.push("Balance: " + el[3] + " ");
-                if (el[4] !== "0") skillValues.push("Bluff: " + el[4] + " ");
-                if (el[5] !== "0") skillValues.push("Climb: " + el[5] + " ");
-                if (el[6] !== "0") skillValues.push("Concentration: " + el[6] + " ");
-                if (el[7] !== "0") skillValues.push("Decipher Script: " + el[7] + " ");
-                if (el[8] !== "0") skillValues.push("Diplomacy: " + el[8] + " ");
-                if (el[9] !== "0") skillValues.push("Disable Device: " + el[9] + " ");
-                if (el[10] !== "0") skillValues.push("Disguise: " + el[10] + " ");
-                if (el[11] !== "0") skillValues.push("Escape Artist: " + el[11] + " ");
-                if (el[12] !== "0") skillValues.push("Forgery: " + el[12] + " ");
-                if (el[13] !== "0") skillValues.push("Gather Info: " + el[13] + " ");
-                if (el[14] !== "0") skillValues.push("Handle Animal: " + el[14] + " ");
-                if (el[15] !== "0") skillValues.push("Heal: " + el[15] + " ");
-                if (el[16] !== "0") skillValues.push("Hide: " + el[16] + " ");
-                if (el[17] !== "0") skillValues.push("Intimidate: " + el[17] + " ");
-                if (el[18] !== "0") skillValues.push("Jump: " + el[18] + " ");
-                if (el[19] !== "0") skillValues.push("Listen: " + el[19] + " ");
-                if (el[20] !== "0") skillValues.push("Move Silently: " + el[20] + " ");
-                if (el[21] !== "0") skillValues.push("Open Lock: " + el[21] + " ");
-                if (el[22] !== "0") skillValues.push("Ride: " + el[22] + " ");
-                if (el[23] !== "0") skillValues.push("Search: " + el[23] + " ");
-                if (el[24] !== "0") skillValues.push("Sense Motive: " + el[24] + " ");
-                if (el[25] !== "0") skillValues.push("Sleight of Hand: " + el[25] + " ");
-                if (el[26] !== "0") skillValues.push("Spot: " + el[26] + " ");
-                if (el[27] !== "0") skillValues.push("Survival: " + el[27] + " ");
-                if (el[28] !== "0") skillValues.push("Swim: " + el[28] + " ");
-                if (el[29] !== "0") skillValues.push("Tumble: " + el[29] + " ");
-                if (el[30] !== "0") skillValues.push("Use Tech: " + el[30] + " ");
-                if (el[31] !== "0") skillValues.push("Use Rope: " + el[31] + " ");
-
-               return(    <div>
-                {skillValues.map((skill, index) => (
-                  <div key={index}>{skill}</div>
-                ))}
-              </div>);
+               SKILLS.forEach(({label, featIndex}) => {
+                 if (el[featIndex] !== "0") {
+                   skillValues.push(`${label}: ${el[featIndex]} `);
+                 }
+               });
+               return(
+                 <div>
+                   {skillValues.map((skill, index) => (
+                     <div key={index}>{skill}</div>
+                   ))}
+                 </div>
+               );
               })()}
                 
               </td>
@@ -258,12 +235,8 @@ return (
         defaultValue=""
          type="text">
           <option value="" disabled>Select your feat</option>
-          {feat.feat.map((el) => (  
-          <option key={el.featName} value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
-          el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, el.disguise, el.escapeArtist, 
-          el.forgery, el.gatherInfo, el.handleAnimal, el.heal, el.hide, el.intimidate, el.jump, el.listen, 
-          el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, 
-          el.survival, el.swim, el.tumble, el.useTech, el.useRope]}>{el.featName}</option>
+          {feat.feat.map((el) => (
+          <option key={el.featName} value={[el.featName, el.notes, ...SKILLS.map(({key}) => el[key])]}>{el.featName}</option>
           ))}
           </Form.Select>
         </Form.Group>
