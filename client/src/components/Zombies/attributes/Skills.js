@@ -67,7 +67,7 @@ export default function Skills({
 
   const profBonus = proficiencyBonus(totalLevel);
 
-  const selectableSkills = new Set(Object.keys(skills || {}));
+  const selectableSkills = new Set(form.allowedSkills || []);
 
   async function updateSkill(skill, updated) {
     try {

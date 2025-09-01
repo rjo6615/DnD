@@ -29,6 +29,9 @@ module.exports = (router) => {
           ? result.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
           : 0;
         result.proficiencyBonus = proficiencyBonus(totalLevel);
+        if (!result.allowedSkills) {
+          result.allowedSkills = Object.keys(result.skills || {});
+        }
       }
       res.json(result);
     } catch (err) {
@@ -48,7 +51,11 @@ module.exports = (router) => {
         const totalLevel = Array.isArray(char.occupation)
           ? char.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
           : 0;
-        return { ...char, proficiencyBonus: proficiencyBonus(totalLevel) };
+        return {
+          ...char,
+          allowedSkills: char.allowedSkills || Object.keys(char.skills || {}),
+          proficiencyBonus: proficiencyBonus(totalLevel),
+        };
       });
       res.json(withBonus);
     } catch (err) {
@@ -88,6 +95,9 @@ module.exports = (router) => {
         skillNames.forEach((skill) => {
           myobj.skills[skill] = { ...skillFields[skill] };
         });
+      }
+      if (!myobj.allowedSkills) {
+         myobj.allowedSkills = Object.keys(myobj.skills);
       }
 
       // derive proficiency bonus from total character level
