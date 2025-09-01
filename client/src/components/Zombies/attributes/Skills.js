@@ -67,6 +67,8 @@ export default function Skills({
 
   const profBonus = proficiencyBonus(totalLevel);
 
+  const selectableSkills = new Set(Object.keys(skills || {}));
+
   async function updateSkill(skill, updated) {
     try {
       const res = await apiFetch(`/skills/update-skills/${params.id}`, {
@@ -88,6 +90,7 @@ export default function Skills({
   }
 
   const toggleProficient = (skill) => {
+    if (!selectableSkills.has(skill)) return;
     const current = skills[skill] || { proficient: false, expertise: false };
     const updated = {
       proficient: !current.proficient,
@@ -133,7 +136,12 @@ export default function Skills({
               </tr>
             </thead>
             <tbody>
-              {SKILLS.map(({ key, label, ability, armorPenalty = 0 }) => {
+              {SKILLS.map(({
+                key,
+                label,
+                ability,
+                armorPenalty = 0,
+              }) => {
                 const { proficient = false, expertise = false } =
                   skills[key] || {};
                 const penalty = armorPenalty
@@ -146,6 +154,7 @@ export default function Skills({
                   penalty +
                   itemTotals[key] +
                   featTotals[key];
+                const isSelectable = selectableSkills.has(key);
                 return (
                   <tr key={key}>
                     <td>{label}</td>
@@ -155,6 +164,7 @@ export default function Skills({
                       <Form.Check
                         type="checkbox"
                         checked={proficient}
+                        disabled={!isSelectable}
                         onChange={() => toggleProficient(key)}
                       />
                     </td>
