@@ -62,22 +62,26 @@ export default function HealthDefense({
     Number(hpMaxBonus) +
     Number(hpMaxBonusPerLevel * totalLevel);
   const [health, setHealth] = useState(); // Initial health value
- // Sends tempHealth data to database for update
- async function tempHealthUpdate(offset){
-    await apiFetch(`/characters/update-temphealth/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      tempHealth: health + offset,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
- }
+  const [error, setError] = useState(null); // Error message state
+
+  // Sends tempHealth data to database for update
+  async function tempHealthUpdate(offset) {
+    try {
+      await apiFetch(`/characters/update-temphealth/${params.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tempHealth: health + offset,
+        }),
+      });
+      setError(null);
+    } catch (error) {
+      console.error(error);
+      setError("Failed to update health.");
+    }
+  }
 
   useEffect(() => {
     const parsedValue = parseFloat(form.tempHealth);
@@ -211,8 +215,13 @@ return (
       onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
     />
   </div>
+  {error && (
+    <div className="text-danger" style={{ marginTop: "8px" }}>
+      {error}
+    </div>
+  )}
 
-    {/* Stats Section */}
+      {/* Stats Section */}
   <div
     style={{
       display: "flex",
