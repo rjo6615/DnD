@@ -137,6 +137,11 @@ export default function ZombiesCharacterSheet() {
   const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
   const statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
 
+  const skillPointsLeft =
+    (form.proficiencyPoints || 0) -
+    Object.values(form.skills || {}).filter((s) => s.proficient).length;
+  const skillsGold = skillPointsLeft > 0 ? 'gold' : '#6C757D';
+
 // ---------------------------------------Feats and bonuses----------------------------------------------
 const featBonuses = (form.feat || []).reduce(
   (acc, feat) => {
@@ -231,7 +236,7 @@ return (
             <Nav className="me-auto mx-auto" style={{ backgroundColor: 'transparent' }}>
               <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
-              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-book-open" variant="secondary"></Button>
+              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillsGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>
               <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>
               <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
               <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-shield" variant="secondary"></Button>   
@@ -241,7 +246,7 @@ return (
           </Container>
         </Navbar>
         <CharacterInfo form={form} show={showCharacterInfo} handleClose={handleCloseCharacterInfo} />
-        <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} />
+        <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} onSkillsChange={(skills) => setForm(prev => ({ ...prev, skills }))} />
         <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} totalLevel={totalLevel} />
         <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} totalLevel={totalLevel} />
         <Weapons form={form} showWeapons={showWeapons} handleCloseWeapons={handleCloseWeapons} strMod={statMods.str} dexMod={statMods.dex}/>

@@ -25,6 +25,7 @@ export default function Skills({
   intMod,
   chaMod,
   wisMod,
+  onSkillsChange,
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
@@ -97,6 +98,7 @@ export default function Skills({
         setProficiencyPointsLeft(
           (form.proficiencyPoints || 0) - proficientCount
         );
+        onSkillsChange?.(newSkills);
         return newSkills;
       });
     } catch (err) {
