@@ -45,7 +45,7 @@ module.exports = (router) => {
 
   // This section will create a new character.
   // Includes numeric stats like initiative, AC, speed, passive scores, and HP bonuses.
-  const numericCharacterFields = [...numericFields, ...skillFields];
+  const numericCharacterFields = [...numericFields];
 
   characterRouter.post(
     '/add',
@@ -60,7 +60,6 @@ module.exports = (router) => {
       body('armor').optional().isArray(),
       body('item').optional().isArray(),
       body('sex').optional().trim(),
-      body('newSkill').optional().isArray(),
       body('diceColor').optional().trim(),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
     ],
@@ -68,6 +67,16 @@ module.exports = (router) => {
     async (req, res, next) => {
       const db_connect = req.db;
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+
+      // initialize skills structure with proficiency/expertise flags if not provided
+      if (!myobj.skills) {
+        const skills = {};
+        skillFields.forEach((skill) => {
+          skills[skill] = { proficient: false, expertise: false };
+        });
+        myobj.skills = skills;
+      }
+
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
         res.json(result);
