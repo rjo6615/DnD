@@ -2,6 +2,7 @@ const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const logger = require('../../utils/logger');
+const { skillNames } = require('../fieldConstants');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -14,7 +15,27 @@ module.exports = (router) => {
         .collection('Occupations')
         .find({})
         .toArray();
-      res.json(result);
+
+      const transformed = result.map((doc) => {
+        const skills = {};
+        skillNames.forEach((skill) => {
+          const rank = doc[skill];
+          let proficient = false;
+          let expertise = false;
+          if (typeof rank === 'number') {
+            proficient = rank > 0;
+            expertise = rank > 1;
+            delete doc[skill];
+          } else if (doc.skills && doc.skills[skill]) {
+            ({ proficient = false, expertise = false } = doc.skills[skill]);
+          }
+          skills[skill] = { proficient, expertise };
+        });
+        delete doc.skillMod;
+        return { ...doc, skills };
+      });
+
+      res.json(transformed);
     } catch (err) {
       next(err);
     }

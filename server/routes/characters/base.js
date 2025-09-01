@@ -5,6 +5,7 @@ const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
 const { numericFields, skillFields, skillNames } = require('../fieldConstants');
+const proficiencyBonus = require('../../utils/proficiency');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -23,6 +24,12 @@ module.exports = (router) => {
       const result = await db_connect
         .collection('Characters')
         .findOne(myquery);
+      if (result) {
+        const totalLevel = Array.isArray(result.occupation)
+          ? result.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+          : 0;
+        result.proficiencyBonus = proficiencyBonus(totalLevel);
+      }
       res.json(result);
     } catch (err) {
       next(err);
@@ -37,7 +44,13 @@ module.exports = (router) => {
         .collection('Characters')
         .find({})
         .toArray();
-      res.json(result);
+      const withBonus = result.map((char) => {
+        const totalLevel = Array.isArray(char.occupation)
+          ? char.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+          : 0;
+        return { ...char, proficiencyBonus: proficiencyBonus(totalLevel) };
+      });
+      res.json(withBonus);
     } catch (err) {
       next(err);
     }
@@ -76,6 +89,12 @@ module.exports = (router) => {
           myobj.skills[skill] = { ...skillFields[skill] };
         });
       }
+
+      // derive proficiency bonus from total character level
+      const totalLevel = Array.isArray(myobj.occupation)
+        ? myobj.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+        : 0;
+      myobj.proficiencyBonus = proficiencyBonus(totalLevel);
 
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
@@ -125,20 +144,32 @@ module.exports = (router) => {
       };
 
       try {
-        const result = await db_connect.collection('Characters').updateOne(
-          {
-            _id: ObjectId(req.params.id),
-            occupation: {
-              $elemMatch: {
-                Occupation: selectedOccupation,
+        const result = await db_connect
+          .collection('Characters')
+          .findOneAndUpdate(
+            {
+              _id: ObjectId(req.params.id),
+              occupation: {
+                $elemMatch: {
+                  Occupation: selectedOccupation,
+                },
               },
             },
-          },
-          updateOperation
-        );
-        if (result.modifiedCount !== 0) {
+            updateOperation,
+            { returnDocument: 'after' }
+          );
+        if (result.value) {
+          const updatedChar = result.value;
+          const totalLevel = Array.isArray(updatedChar.occupation)
+            ? updatedChar.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+            : 0;
+          const profBonus = proficiencyBonus(totalLevel);
+          await db_connect.collection('Characters').updateOne(
+            { _id: ObjectId(req.params.id) },
+            { $set: { proficiencyBonus: profBonus } }
+          );
           logger.info(`Character updated for Occupation: ${selectedOccupation}`);
-          res.json({ message: 'Update complete' });
+          res.json({ message: 'Update complete', proficiencyBonus: profBonus });
         }
       } catch (err) {
         next(err);

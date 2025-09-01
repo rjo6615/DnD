@@ -1,6 +1,7 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
+const proficiencyBonus = require('../utils/proficiency');
 
 // Map each skill to its associated ability score
 const skillAbilityMap = {
@@ -28,13 +29,6 @@ function abilityMod(score = 10) {
   return Math.floor((score - 10) / 2);
 }
 
-function proficiencyBonus(totalLevel = 0) {
-  if (totalLevel >= 17) return 6;
-  if (totalLevel >= 13) return 5;
-  if (totalLevel >= 9) return 4;
-  if (totalLevel >= 5) return 3;
-  return 2;
-}
 
 module.exports = (router) => {
   const skillsRouter = express.Router();
@@ -53,29 +47,40 @@ module.exports = (router) => {
     }
 
     try {
+      // Fetch character to determine proficiency bonus from total level
+      const charDoc = await db_connect
+        .collection('Characters')
+        .findOne(id);
+
+      if (!charDoc) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const totalLevel = Array.isArray(charDoc.occupation)
+        ? charDoc.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+        : 0;
+      const profBonus = proficiencyBonus(totalLevel);
+
       const update = {
-        $set: { [`skills.${skill}`]: { proficient, expertise } },
+        $set: {
+          [`skills.${skill}`]: { proficient, expertise },
+          proficiencyBonus: profBonus,
+        },
       };
+
       const result = await db_connect
         .collection('Characters')
         .findOneAndUpdate(id, update, { returnDocument: 'after' });
 
       const character = result.value;
-      if (!character) {
-        return res.status(404).json({ message: 'Character not found' });
-      }
-
       const abilityScore = character[skillAbilityMap[skill]];
       const base = abilityMod(abilityScore);
-
-      const totalLevel = Array.isArray(character.occupation)
-        ? character.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
-        : 0;
-      const profBonus = proficiencyBonus(totalLevel);
       const multiplier = expertise ? 2 : proficient ? 1 : 0;
       const modifier = base + profBonus * multiplier;
 
-      res.status(200).json({ skill, proficient, expertise, modifier });
+      res
+        .status(200)
+        .json({ skill, proficient, expertise, modifier, proficiencyBonus: profBonus });
     } catch (err) {
       next(err);
     }

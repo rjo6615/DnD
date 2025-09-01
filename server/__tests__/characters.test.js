@@ -264,6 +264,7 @@ describe('Character routes', () => {
   test('update skill proficiency calculates correct modifier', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
+        findOne: async () => ({ occupation: [{ Level: 1 }] }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
@@ -282,12 +283,14 @@ describe('Character routes', () => {
       proficient: true,
       expertise: false,
       modifier: 3,
+      proficiencyBonus: 2,
     });
   });
 
   test('update skill expertise doubles proficiency bonus', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
+        findOne: async () => ({ occupation: [{ Level: 1 }] }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
@@ -306,12 +309,14 @@ describe('Character routes', () => {
       proficient: true,
       expertise: true,
       modifier: 5,
+      proficiencyBonus: 2,
     });
   });
 
   test('update skills failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
+        findOne: async () => ({ occupation: [{ Level: 1 }] }),
         findOneAndUpdate: async () => {
           throw new Error('db error');
         },
