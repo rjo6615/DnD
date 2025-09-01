@@ -52,7 +52,7 @@ const createDefaultForm = useCallback((campaign) => {
     characterName: "",
     campaign: campaign.toString(),
     occupation: [""],
-    feat: [createEmptyArray(SKILLS.length + 8)],
+    feat: [],
     weapon: [createEmptyArray(6)],
     armor: [createEmptyArray(4)],
     item: [createEmptyArray(SKILLS.length + 8)],
@@ -228,7 +228,10 @@ useEffect(() => {
 
  // Sends form data to database
    const sendToDb = useCallback(async () => {
-    const newCharacter = { ...form };
+    const newCharacter = {
+      ...form,
+      feat: (form.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
+    };
     try {
       await apiFetch("/characters/add", {
         method: "POST",
@@ -309,7 +312,11 @@ const handleConfirmOccupation = useCallback(() => {
 }, [selectedOccupation, isOccupationConfirmed, form, getOccupation, selectedAddOccupationRef, setForm]);
 
 const sendManualToDb = useCallback(async (characterData) => {
-  const newCharacter = characterData ?? form;
+  const baseCharacter = characterData ?? form;
+  const newCharacter = {
+    ...baseCharacter,
+    feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
+  };
   if (!newCharacter.occupation?.[0]?.Level) {
     window.alert("Occupation level is required.");
     return;
