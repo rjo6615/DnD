@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap';
+import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap';
 import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
@@ -19,6 +19,14 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
   const [chosenFeat, setChosenFeat] = useState('');
   const [selectedFeatData, setSelectedFeatData] = useState(null);
   const [abilitySelections, setAbilitySelections] = useState({});
+  const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const handleSelectFeat = (e) => {
     const featName = e.target.value;
@@ -78,13 +86,13 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        setNotification({ variant: 'danger', message });
         return;
       }
 
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
+        setNotification({ variant: 'danger', message: 'Record not found' });
         navigate(`/`);
         return;
       }
@@ -120,7 +128,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
         feat: updatedFeats,
       }),
     }).catch((error) => {
-      window.alert(error);
+      setNotification({ variant: 'danger', message: error.toString() });
       return;
     });
     navigate(0);
@@ -145,11 +153,11 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       }),
     })
       .catch((error) => {
-        window.alert(error);
+        setNotification({ variant: 'danger', message: error.toString() });
         return;
       });
-    window.alert("Feat Deleted");
-    navigate(0);
+    setNotification({ variant: 'success', message: 'Feat Deleted' });
+    setTimeout(() => navigate(0), 1000);
   }
 
   const abilityLabels = ['STR','DEX','CON','INT','WIS','CHA'];
@@ -163,6 +171,11 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
 
   return (
     <div>
+      {notification && (
+        <Alert variant={notification.variant} className="m-2">
+          {notification.message}
+        </Alert>
+      )}
       {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
       <Modal className="dnd-modal modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
         <div className="text-center">
