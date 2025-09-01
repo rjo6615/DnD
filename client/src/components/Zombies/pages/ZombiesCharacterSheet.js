@@ -218,19 +218,17 @@ return (
   {form.characterName}
 </h1>
 
-        <HealthDefense
-          form={form}
-          totalLevel={totalLevel}
-          dexMod={statMods.dex}
-          conMod={statMods.con}
-          wisMod={statMods.wis}
-          intMod={statMods.int}
-          initiative={featBonuses.initiative}
-          speed={featBonuses.speed}
-          ac={featBonuses.ac}
-          hpMaxBonus={featBonuses.hpMaxBonus}
-          hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-        />
+          <HealthDefense
+            form={form}
+            totalLevel={totalLevel}
+            dexMod={statMods.dex}
+            conMod={statMods.con}
+            initiative={featBonuses.initiative}
+            speed={featBonuses.speed}
+            ac={featBonuses.ac}
+            hpMaxBonus={featBonuses.hpMaxBonus}
+            hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+          />
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
         <Navbar fixed="bottom" data-bs-theme="dark" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <Container style={{ backgroundColor: 'transparent' }}>
