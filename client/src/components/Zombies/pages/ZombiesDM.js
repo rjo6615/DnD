@@ -176,7 +176,8 @@ const [form2, setForm2] = useState({
      });
    
      setForm2({
-      weaponName: "", 
+      campaign: currentCampaign,
+      weaponName: "",
       enhancement: "",
       damage: "",
       critical: "",
