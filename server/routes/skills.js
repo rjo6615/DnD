@@ -3,6 +3,22 @@ const express = require('express');
 const authenticateToken = require('../middleware/auth');
 const proficiencyBonus = require('../utils/proficiency');
 
+// Helper to determine allowed skills from occupations when not precomputed
+const collectAllowedSkills = (occupation) => {
+  if (!Array.isArray(occupation)) return [];
+  const allowed = new Set();
+  occupation.forEach((occ) => {
+    if (occ && occ.skills && typeof occ.skills === 'object') {
+      Object.keys(occ.skills).forEach((sk) => {
+        if (occ.skills[sk] && occ.skills[sk].proficient) {
+          allowed.add(sk);
+        }
+      });
+    }
+  });
+  return Array.from(allowed);
+};
+
 // Map each skill to its associated ability score
 const skillAbilityMap = {
   acrobatics: 'dex',
@@ -54,6 +70,25 @@ module.exports = (router) => {
 
       if (!charDoc) {
         return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const allowedSkills = charDoc.allowedSkills || collectAllowedSkills(charDoc.occupation);
+      if (!allowedSkills.includes(skill)) {
+        return res.status(400).json({ message: 'Skill not allowed' });
+      }
+
+      const proficientCount = Object.values(charDoc.skills || {}).filter(
+        (s) => s && s.proficient
+      ).length;
+      const alreadyProficient = charDoc.skills?.[skill]?.proficient;
+      if (
+        proficient &&
+        !alreadyProficient &&
+        proficientCount >= (charDoc.proficiencyPoints || 0)
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'No proficiency points remaining' });
       }
 
       const totalLevel = Array.isArray(charDoc.occupation)
