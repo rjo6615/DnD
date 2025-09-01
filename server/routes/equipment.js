@@ -3,7 +3,7 @@ const express = require('express');
 const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
-const { numericFields, skillFields } = require('./fieldConstants');
+const { numericFields, skillNames } = require('./fieldConstants');
 
 module.exports = (router) => {
   const equipmentRouter = express.Router();
@@ -11,12 +11,15 @@ module.exports = (router) => {
   // Apply authentication to all equipment routes
   equipmentRouter.use(authenticateToken);
 
-  const itemFields = [
-    ...numericFields.filter((field) =>
+  const itemNumericFields = numericFields.filter(
+    (field) =>
       !['age', 'height', 'weight', 'startStatTotal', 'health', 'tempHealth'].includes(field)
-    ),
-    ...skillFields,
-  ];
+  );
+
+  const skillBooleanValidators = skillNames.flatMap((skill) => [
+    body(`skills.${skill}.proficient`).optional().isBoolean().toBoolean(),
+    body(`skills.${skill}.expertise`).optional().isBoolean().toBoolean(),
+  ]);
 
   // Weapon Section
 
@@ -168,7 +171,8 @@ module.exports = (router) => {
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('itemName').trim().notEmpty().withMessage('itemName is required'),
       body('notes').optional().trim(),
-      ...itemFields.map((field) => body(field).optional().isInt().toInt()),
+      ...itemNumericFields.map((field) => body(field).optional().isInt().toInt()),
+      ...skillBooleanValidators,
     ],
     handleValidationErrors,
     async (req, response, next) => {

@@ -3,7 +3,7 @@ const express = require('express');
 const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
-const { skillFields } = require('./fieldConstants');
+const { skillNames } = require('./fieldConstants');
 const logger = require('../utils/logger');
 
 module.exports = (router) => {
@@ -50,7 +50,10 @@ module.exports = (router) => {
       body('abilityIncreaseOptions.*.abilities').isArray(),
       body('abilityIncreaseOptions.*.abilities.*').isString().trim(),
       body('abilityIncreaseOptions.*.amount').isInt().toInt(),
-      ...skillFields.map((field) => body(field).optional().isInt().toInt()),
+      ...skillNames.flatMap((skill) => [
+        body(`skills.${skill}.proficient`).optional().isBoolean().toBoolean(),
+        body(`skills.${skill}.expertise`).optional().isBoolean().toBoolean(),
+      ]),
       ...numericFeatFields.map((field) => body(field).optional().isInt().toInt()),
     ],
     handleValidationErrors,

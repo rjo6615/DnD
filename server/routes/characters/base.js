@@ -4,7 +4,7 @@ const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
-const { numericFields, skillFields } = require('../fieldConstants');
+const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -70,11 +70,11 @@ module.exports = (router) => {
 
       // initialize skills structure with proficiency/expertise flags if not provided
       if (!myobj.skills) {
-        const skills = {};
-        skillFields.forEach((skill) => {
-          skills[skill] = { proficient: false, expertise: false };
+        // initialize default proficiency/expertise structure for all skills
+        myobj.skills = {};
+        skillNames.forEach((skill) => {
+          myobj.skills[skill] = { ...skillFields[skill] };
         });
-        myobj.skills = skills;
       }
 
       try {
