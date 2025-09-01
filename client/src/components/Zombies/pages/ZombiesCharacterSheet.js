@@ -245,14 +245,14 @@ return (
           hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
         />
         <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
-        <Navbar fixed="bottom" bg="dark" data-bs-theme="dark">
-          <Container>
-            <Nav className="me-auto mx-auto">
+        <Navbar fixed="bottom" data-bs-theme="dark" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <Container style={{ backgroundColor: 'transparent' }}>
+            <Nav className="me-auto mx-auto" style={{ backgroundColor: 'transparent' }}>
               <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
-              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>  
-              <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>  
-              <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button> 
+              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>
+              <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>
+              <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
               <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-shield" variant="secondary"></Button>   
               <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>  
               <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-info" variant="primary"></Button>    
