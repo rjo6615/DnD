@@ -8,8 +8,6 @@ export default function HealthDefense({
   totalLevel,
   conMod,
   dexMod,
-  wisMod,
-  intMod,
   ac = 0,
   hpMaxBonus = 0,
   hpMaxBonusPerLevel = 0,
@@ -18,10 +16,6 @@ export default function HealthDefense({
 }) {
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
-  // Saves Maffs
-  let fortSave = 0;
-  let reflexSave = 0;
-  let willSave = 0;
   let atkBonus = 0;
     
   //Armor AC/MaxDex
@@ -45,33 +39,12 @@ export default function HealthDefense({
      }
     
   const occupations = form.occupation;
-  
+
   for (const occupation of occupations) {
     const level = parseInt(occupation.Level, 10);
-    const fortValue = parseInt(occupation.Fort, 10);
-    const reflexValue = parseInt(occupation.Reflex, 10);
-    const willValue = parseInt(occupation.Will, 10);
     const attackBonusValue = parseInt(occupation.atkBonus, 10);
-  
+
     if (!isNaN(level)) {
-      if (fortValue === 0) {
-        fortSave += Math.floor(level / 3);
-      } else if (fortValue === 1) {
-        fortSave += Math.floor((level / 2) + 2);
-      }
-  
-      if (reflexValue === 0) {
-        reflexSave += Math.floor(level / 3);
-      } else if (reflexValue === 1) {
-        reflexSave += Math.floor((level / 2) + 2);
-      }
-  
-      if (willValue === 0) {
-        willSave += Math.floor(level / 3);
-      } else if (willValue === 1) {
-        willSave += Math.floor((level / 2) + 2);
-      }
-  
       if (attackBonusValue === 0) {
         atkBonus += Math.floor(level / 2);
       } else if (attackBonusValue === 1) {
@@ -239,7 +212,7 @@ return (
     />
   </div>
 
-  {/* Stats + Saving Throws Section */}
+    {/* Stats Section */}
   <div
     style={{
       display: "flex",
@@ -260,14 +233,7 @@ return (
       <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
     </div>
 
-    {/* Saving Throws */}
-    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-      <div><strong>Fort:</strong> {fortSave}</div>
-      <div><strong>Reflex:</strong> {reflexSave}</div>
-      <div><strong>Will:</strong> {willSave}</div>
     </div>
-
   </div>
-</div>
 )
 }
