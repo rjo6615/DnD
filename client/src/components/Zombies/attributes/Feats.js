@@ -263,21 +263,32 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                   <Form onSubmit={addFeatToDb}>
                     <Form.Group className="mb-3 mx-5">
                       <Form.Label className="text-dark">Select Feat</Form.Label>
-                      <Form.Select
-                        onChange={handleSelectFeat}
-                        defaultValue=""
-                        type="text"
-                        style={{ maxHeight: '200px', overflowY: 'auto' }}
-                      >
-                        <option value="" disabled>
-                          Select your feat
-                        </option>
-                        {feat.feat.map((el) => (
-                          <option key={el.featName} value={el.featName}>
-                            {el.featName}
+                      <div className="d-flex">
+                        <Form.Select
+                          onChange={handleSelectFeat}
+                          defaultValue=""
+                          type="text"
+                          style={{ maxHeight: '200px', overflowY: 'auto' }}
+                        >
+                          <option value="" disabled>
+                            Select your feat
                           </option>
-                        ))}
-                      </Form.Select>
+                          {feat.feat.map((el) => (
+                            <option key={el.featName} value={el.featName}>
+                              {el.featName}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Button
+                          size="sm"
+                          className="action-btn fa-regular fa-eye ms-2"
+                          disabled={!selectedFeatData}
+                          onClick={() => {
+                            setModalFeatData(selectedFeatData);
+                            handleShowFeatNotes();
+                          }}
+                        ></Button>
+                      </div>
                     </Form.Group>
 
                     {selectedFeatData?.abilityIncreaseOptions &&
