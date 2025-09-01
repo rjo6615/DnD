@@ -51,8 +51,7 @@ describe('Character routes', () => {
       feat: ['Power Attack'],
       weapon: ['Sword'],
       armor: ['Plate'],
-      item: ['Potion'],
-      newSkill: ['Stealth']
+      item: ['Potion']
     };
     const res = await request(app)
       .post('/characters/add')
@@ -143,8 +142,7 @@ describe('Character routes', () => {
       feat: ['Power Attack'],
       weapon: ['Sword'],
       armor: ['Plate'],
-      item: ['Potion'],
-      newSkill: ['Stealth']
+      item: ['Potion']
     };
     dbo.mockResolvedValue({
       collection: () => ({
@@ -266,50 +264,38 @@ describe('Character routes', () => {
   test('update skills success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOneAndUpdate: async () => ({ value: { acrobatics: 1 } })
-      })
+        findOneAndUpdate: async () => ({
+          value: {
+            dex: 12,
+            occupation: [{ Level: 1 }],
+            skills: { acrobatics: { proficient: true, expertise: false } },
+          },
+        }),
+      }),
     });
     const res = await request(app)
       .put('/skills/update-skills/507f1f77bcf86cd799439011')
-      .send({ acrobatics: 1 });
+      .send({ skill: 'acrobatics', proficient: true });
     expect(res.status).toBe(200);
-    expect(res.body.acrobatics).toBe(1);
+    expect(res.body).toEqual({
+      skill: 'acrobatics',
+      proficient: true,
+      expertise: false,
+      modifier: 3,
+    });
   });
 
   test('update skills failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        findOneAndUpdate: async () => { throw new Error('db error'); }
-      })
+        findOneAndUpdate: async () => {
+          throw new Error('db error');
+        },
+      }),
     });
     const res = await request(app)
       .put('/skills/update-skills/507f1f77bcf86cd799439011')
-      .send({ acrobatics: 1 });
-    expect(res.status).toBe(500);
-  });
-
-  test('update added skills success', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        findOneAndUpdate: async () => ({ value: { newSkill: [['Skill', 1]] } })
-      })
-    });
-    const res = await request(app)
-      .put('/skills/updated-add-skills/507f1f77bcf86cd799439011')
-      .send({ newSkill: [['Skill', 1]] });
-    expect(res.status).toBe(200);
-    expect(res.body.newSkill).toEqual([['Skill', 1]]);
-  });
-
-  test('update added skills failure', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        findOneAndUpdate: async () => { throw new Error('db error'); }
-      })
-    });
-    const res = await request(app)
-      .put('/skills/updated-add-skills/507f1f77bcf86cd799439011')
-      .send({ newSkill: [['Skill', 1]] });
+      .send({ skill: 'acrobatics', proficient: true });
     expect(res.status).toBe(500);
   });
 

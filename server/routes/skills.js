@@ -1,7 +1,40 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
-const logger = require('../utils/logger');
+
+// Map each skill to its associated ability score
+const skillAbilityMap = {
+  acrobatics: 'dex',
+  animalHandling: 'wis',
+  arcana: 'int',
+  athletics: 'str',
+  deception: 'cha',
+  history: 'int',
+  insight: 'wis',
+  intimidation: 'cha',
+  investigation: 'int',
+  medicine: 'wis',
+  nature: 'int',
+  perception: 'wis',
+  performance: 'cha',
+  persuasion: 'cha',
+  religion: 'int',
+  sleightOfHand: 'dex',
+  stealth: 'dex',
+  survival: 'wis',
+};
+
+function abilityMod(score = 10) {
+  return Math.floor((score - 10) / 2);
+}
+
+function proficiencyBonus(totalLevel = 0) {
+  if (totalLevel >= 17) return 6;
+  if (totalLevel >= 13) return 5;
+  if (totalLevel >= 9) return 4;
+  if (totalLevel >= 5) return 3;
+  return 2;
+}
 
 module.exports = (router) => {
   const skillsRouter = express.Router();
@@ -9,69 +42,40 @@ module.exports = (router) => {
   // Apply authentication to all skills routes
   skillsRouter.use(authenticateToken);
 
-  // This section will update skills.
+  // Update a single skill's proficiency/expertise and return its modifier
   skillsRouter.route('/update-skills/:id').put(async (req, res, next) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
-    try {
-      const result = await db_connect.collection("Characters").findOneAndUpdate(
-        id,
-        {
-          $set: {
-            acrobatics: req.body.acrobatics,
-            animalHandling: req.body.animalHandling,
-            arcana: req.body.arcana,
-            athletics: req.body.athletics,
-            deception: req.body.deception,
-            history: req.body.history,
-            insight: req.body.insight,
-            intimidation: req.body.intimidation,
-            investigation: req.body.investigation,
-            medicine: req.body.medicine,
-            nature: req.body.nature,
-            perception: req.body.perception,
-            performance: req.body.performance,
-            persuasion: req.body.persuasion,
-            religion: req.body.religion,
-            sleightOfHand: req.body.sleightOfHand,
-            stealth: req.body.stealth,
-            survival: req.body.survival,
-          },
-        },
-        { returnDocument: 'after' }
-      );
-      res.status(200).json(result.value);
-    } catch (err) {
-      next(err);
-    }
-  });
+    const { skill, proficient = false, expertise = false } = req.body;
 
-  // This section will update added skills.
-  skillsRouter.route('/update-add-skill/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      await db_connect.collection("Characters").updateOne(id, {
-        $set: { 'newSkill': req.body.newSkill }
-      });
-        logger.info("character knowledge updated");
-        res.json({ message: 'User updated successfully' });
-    } catch (err) {
-      next(err);
+    if (!skill || !skillAbilityMap[skill]) {
+      return res.status(400).json({ message: 'Invalid skill' });
     }
-  });
 
-  // This section will update ranks of skills.
-  skillsRouter.route('/updated-add-skills/:id').put(async  (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
     try {
-      const result = await db_connect.collection("Characters").findOneAndUpdate(
-        id,
-        { $set: { 'newSkill': req.body.newSkill } },
-        { returnDocument: 'after' }
-      );
-      res.status(200).json(result.value);
+      const update = {
+        $set: { [`skills.${skill}`]: { proficient, expertise } },
+      };
+      const result = await db_connect
+        .collection('Characters')
+        .findOneAndUpdate(id, update, { returnDocument: 'after' });
+
+      const character = result.value;
+      if (!character) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const abilityScore = character[skillAbilityMap[skill]];
+      const base = abilityMod(abilityScore);
+
+      const totalLevel = Array.isArray(character.occupation)
+        ? character.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+        : 0;
+      const profBonus = proficiencyBonus(totalLevel);
+      const multiplier = expertise ? 2 : proficient ? 1 : 0;
+      const modifier = base + profBonus * multiplier;
+
+      res.status(200).json({ skill, proficient, expertise, modifier });
     } catch (err) {
       next(err);
     }
