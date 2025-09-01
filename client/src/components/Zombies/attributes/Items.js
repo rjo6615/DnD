@@ -198,9 +198,9 @@ return(
               <td style={{ display: showDeleteItemBtn}}>
               {(() => {
                const skillValues = [];
-               SKILLS.forEach(({label, itemIndex}) => {
-                 if (el[itemIndex] !== "0") {
-                   skillValues.push(`${label}: ${el[itemIndex]} `);
+               SKILLS.forEach(({label, itemBonusIndex}) => {
+                 if (el[itemBonusIndex] !== "0") {
+                   skillValues.push(`${label}: ${el[itemBonusIndex]} `);
                  }
                });
                return(

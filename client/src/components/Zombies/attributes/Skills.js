@@ -108,8 +108,8 @@ let totalCheckPenalty = checkPenalty.reduce((partialSum, a) => Number(partialSum
 
 const modMap = { str: strMod, dex: dexMod, con: conMod, int: intMod, wis: wisMod, cha: chaMod };
 
-const itemTotals = SKILLS.reduce((acc, {key, itemIndex}) => {
-  acc[key] = form.item.reduce((sum, el) => sum + Number(el[itemIndex] || 0), 0);
+const itemTotals = SKILLS.reduce((acc, {key, itemBonusIndex}) => {
+  acc[key] = form.item.reduce((sum, el) => sum + Number(el[itemBonusIndex] || 0), 0);
   return acc;
 }, {});
 
@@ -120,9 +120,9 @@ const featTotals = SKILLS.reduce((acc, {key}) => {
 
 const skillForm = SKILLS.reduce((acc, {key}) => ({ ...acc, [key]: form[key] }), {});
 
-const skillTotalForm = SKILLS.reduce((acc, {key, mod, armorPenalty = 0}) => {
+const skillTotalForm = SKILLS.reduce((acc, {key, ability, armorPenalty = 0}) => {
   const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
-  acc[key] = form[key] + modMap[mod] + penalty + itemTotals[key] + featTotals[key];
+  acc[key] = form[key] + modMap[ability] + penalty + itemTotals[key] + featTotals[key];
   return acc;
 }, {});
 
@@ -254,7 +254,7 @@ let firstLevelSkill =
                 </tr>
               </thead>
               <tbody>
-                {SKILLS.map(({ key, label, mod }) => {
+                {SKILLS.map(({ key, label, ability }) => {
                   const totalId = `total${key.charAt(0).toUpperCase() + key.slice(1)}`;
                   return (
                     <tr key={key}>
@@ -274,7 +274,7 @@ let firstLevelSkill =
                         <span id={key}>{skillForm[key]} </span>
                       </td>
                       <td>
-                        <span id={`${mod}Mod`}>{modMap[mod]} </span>
+                        <span id={`${ability}Mod`}>{modMap[ability]} </span>
                       </td>
                       <td>
                         <Button
