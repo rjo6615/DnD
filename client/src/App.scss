@@ -566,6 +566,16 @@ max-width: 300px;
   border: none !important;
 }
 
+.dnd-modal .modal-body {
+  color: white;
+}
+
+.dnd-modal .modal-body .btn,
+.dnd-modal .modal-body table,
+.dnd-modal .modal-body .dropdown-menu {
+  color: inherit;
+}
+
 //vars
 $fg: linear-gradient(135deg, #3e8e41, #2e7d32);
 $fgDM: linear-gradient(135deg, #979940b6, #fffb00);
