@@ -1,6 +1,6 @@
 import React, { useState, useEffect, } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Button, Form, Table, Card } from "react-bootstrap";
+import { Button, Form, Table, Card, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Modal from 'react-bootstrap/Modal';
 import { Link } from "react-router-dom";
@@ -32,8 +32,8 @@ const [campaign, setCampaign] = useState({
   campaign: [], 
 });
 
-const [campaignDM, setCampaignDM] = useState({ 
-  campaign: [], 
+const [campaignDM, setCampaignDM] = useState({
+  campaign: [],
 });
 
 const [show1, setShow1] = useState(false);
@@ -47,6 +47,8 @@ const handleShowJoinCampaign = () => setShowJoinCampaignModal(true);
 const [showHostCampaignModal, setShowHostCampaignModal] = useState(false);
 const handleCloseHostCampaign = () => setShowHostCampaignModal(false);
 
+const [notification, setNotification] = useState("");
+
 async function loadDmCampaigns() {
   if (!user || !user.username) {
     return;
@@ -56,13 +58,13 @@ async function loadDmCampaigns() {
 
   if (!response.ok) {
     const message = `An error has occurred: ${response.statusText}`;
-    window.alert(message);
+    setNotification(message);
     return;
   }
 
   const record = await response.json();
   if (!record) {
-    window.alert(`Record not found`);
+    setNotification(`Record not found`);
     navigate("/");
     return;
   }
@@ -84,13 +86,13 @@ const handleShowHostCampaign = async () => {
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
-      window.alert(message);
+      setNotification(message);
       return;
     }
 
     const record = await response.json();
     if (!record) {
-      window.alert(`Record not found`);
+      setNotification(`Record not found`);
       navigate("/");
       return;
     }
@@ -123,7 +125,7 @@ async function onSubmit1(e) {
        body: JSON.stringify(newCampaign),
      })
      .catch(error => {
-       window.alert(error);
+       setNotification(error.message || error);
        return;
      });
 
@@ -135,8 +137,14 @@ async function onSubmit1(e) {
    }
 
 // -----------------------------------Display-----------------------------------------------------------------------------
- return (
+return (
 <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
+
+      {notification && (
+        <Alert variant="danger" dismissible onClose={() => setNotification("")}> 
+          {notification}
+        </Alert>
+      )}
 
       <div className="d-flex flex-column justify-content-center align-items-center h-100">
         <Button className="mb-3 fantasy-button campaign-button" style={{borderColor: "transparent"}} onClick={handleShowJoinCampaign}>Join Campaign</Button>
