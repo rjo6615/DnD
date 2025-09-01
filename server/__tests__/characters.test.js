@@ -261,7 +261,7 @@ describe('Character routes', () => {
     expect(res.status).toBe(500);
   });
 
-  test('update skills success', async () => {
+  test('update skill proficiency calculates correct modifier', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOneAndUpdate: async () => ({
@@ -275,13 +275,37 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .put('/skills/update-skills/507f1f77bcf86cd799439011')
-      .send({ skill: 'acrobatics', proficient: true });
+      .send({ skill: 'acrobatics', proficient: true, expertise: false });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       skill: 'acrobatics',
       proficient: true,
       expertise: false,
       modifier: 3,
+    });
+  });
+
+  test('update skill expertise doubles proficiency bonus', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: async () => ({
+          value: {
+            dex: 12,
+            occupation: [{ Level: 1 }],
+            skills: { acrobatics: { proficient: true, expertise: true } },
+          },
+        }),
+      }),
+    });
+    const res = await request(app)
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
+      .send({ skill: 'acrobatics', proficient: true, expertise: true });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      skill: 'acrobatics',
+      proficient: true,
+      expertise: true,
+      modifier: 5,
     });
   });
 
