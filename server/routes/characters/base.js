@@ -50,9 +50,7 @@ module.exports = (router) => {
               0
             )
           : 0;
-        if (!result.allowedSkills) {
-          result.allowedSkills = collectAllowedSkills(result.occupation);
-        }
+        result.allowedSkills = collectAllowedSkills(result.occupation);
       }
       res.json(result);
     } catch (err) {
@@ -74,8 +72,7 @@ module.exports = (router) => {
           : 0;
         return {
           ...char,
-          allowedSkills:
-            char.allowedSkills || collectAllowedSkills(char.occupation),
+          allowedSkills: collectAllowedSkills(char.occupation),
           proficiencyBonus: proficiencyBonus(totalLevel),
           proficiencyPoints: Array.isArray(char.occupation)
             ? char.occupation.reduce(
@@ -124,9 +121,7 @@ module.exports = (router) => {
           myobj.skills[skill] = { ...skillFields[skill] };
         });
       }
-      if (!myobj.allowedSkills) {
-        myobj.allowedSkills = collectAllowedSkills(myobj.occupation);
-      }
+      myobj.allowedSkills = collectAllowedSkills(myobj.occupation);
 
       // derive proficiency bonus from total character level
       const totalLevel = Array.isArray(myobj.occupation)
