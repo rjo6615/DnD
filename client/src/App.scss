@@ -567,13 +567,13 @@ max-width: 300px;
 }
 
 .dnd-modal .modal-body {
-  color: white;
+  color: #fff !important;
 }
 
 .dnd-modal .modal-body .btn,
 .dnd-modal .modal-body table,
 .dnd-modal .modal-body .dropdown-menu {
-  color: inherit;
+  color: initial;
 }
 
 //vars
