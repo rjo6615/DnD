@@ -143,6 +143,13 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
   }
 
   const abilityLabels = ['STR','DEX','CON','INT','WIS','CHA'];
+  const extraAbilityLabels = [
+    { label: 'Initiative', key: 'initiative' },
+    { label: 'AC', key: 'ac' },
+    { label: 'Speed', key: 'speed' },
+    { label: 'HP Max Bonus', key: 'hpMaxBonus' },
+    { label: 'HP Max Bonus/Level', key: 'hpMaxBonusPerLevel' },
+  ];
 
   return (
     <div>
@@ -201,12 +208,25 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                           );
                         })()}
                       </td>
-                      <td style={{ display: showDeleteFeatBtn }}>
+                      <td
+                        style={{
+                          display: showDeleteFeatBtn,
+                          textAlign: "left",
+                          verticalAlign: "top",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
                         {(() => {
                           const abilityValues = [];
                           abilityLabels.forEach((label) => {
                             const prop = label.toLowerCase();
                             const val = el[prop];
+                            if (val && val !== "0" && val !== "") {
+                              abilityValues.push(`${label}: ${val}`);
+                            }
+                          });
+                          extraAbilityLabels.forEach(({ label, key }) => {
+                            const val = el[key];
                             if (val && val !== "0" && val !== "") {
                               abilityValues.push(`${label}: ${val}`);
                             }
