@@ -18,7 +18,8 @@ const numericFields = [
   'hpMaxBonusPerLevel',
 ];
 
-const skillFields = [
+// Define the list of available skills
+const skillNames = [
   'acrobatics',
   'animalHandling',
   'arcana',
@@ -39,7 +40,14 @@ const skillFields = [
   'survival',
 ];
 
+// Map each skill to a proficiency/expertise structure
+const skillFields = skillNames.reduce((acc, skill) => {
+  acc[skill] = { proficient: false, expertise: false };
+  return acc;
+}, {});
+
 module.exports = {
   numericFields,
   skillFields,
+  skillNames,
 };
