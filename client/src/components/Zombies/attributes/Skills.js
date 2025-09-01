@@ -237,7 +237,7 @@ let firstLevelSkill =
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Skills</Card.Title>
           </Card.Header>
-          <Card.Body style={{ overflowY: 'auto' }}>
+          <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
             <div style={{ display: showSkillBtn }}>
               Points Left:<span className="mx-1" id="skillPointLeft">{totalSkillPointsLeft}</span>
             </div>
