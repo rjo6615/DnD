@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
@@ -16,8 +16,16 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     armor: "",
   });
   const [chosenArmor, setChosenArmor] = useState('');
+  const [notification, setNotification] = useState({ show: false, message: '', variant: 'info' });
   const handleChosenArmorChange = (e) => {
       setChosenArmor(e.target.value);
+  };
+  const showNotification = (message, variant = 'info', callback) => {
+    setNotification({ show: true, message, variant });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', variant: 'info' });
+      if (callback) callback();
+    }, 3000);
   };
   function updateArmor(value) {
     return setAddArmor((prev) => {
@@ -31,14 +39,13 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        showNotification(message, 'danger');
         return;
       }
 
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
-        navigate("/");
+        showNotification('Record not found', 'danger', () => navigate("/"));
         return;
       }
       setArmor({armor: record});
@@ -68,7 +75,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   }
   async function addArmorToDb(e){
     e.preventDefault();
-    await apiFetch(`/equipment/update-armor/${params.id}`, {
+   await apiFetch(`/equipment/update-armor/${params.id}`, {
      method: "PUT",
      headers: {
        "Content-Type": "application/json",
@@ -78,7 +85,7 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
      }),
    })
    .catch(error => {
-     window.alert(error);
+     showNotification(error.toString(), 'danger');
      return;
    });
    navigate(0);
@@ -105,11 +112,10 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
         }),
       })
       .catch(error => {
-        window.alert(error);
+        showNotification(error.toString(), 'danger');
         return;
       });
-      window.alert("Armor Deleted")
-      navigate(0);
+      showNotification('Armor Deleted', 'success', () => navigate(0));
     } else {
     await apiFetch(`/equipment/update-armor/${params.id}`, {
      method: "PUT",
@@ -121,16 +127,20 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
      }),
    })
    .catch(error => {
-     window.alert(error);
+     showNotification(error.toString(), 'danger');
      return;
    });
-   window.alert("Armor Deleted")
-   navigate(0);
+   showNotification('Armor Deleted', 'success', () => navigate(0));
   }
   }
 
 return(
     <div>
+     {notification.show && (
+      <Alert className="position-fixed top-0 start-50 translate-middle-x mt-3" variant={notification.variant}>
+        {notification.message}
+      </Alert>
+     )}
      {/* ------------------------------------------------Armor Render-----------------------------------------------------------
 ----------------------------------------------------- */}
 <Modal className="dnd-modal modern-modal" show={showArmor} onHide={handleCloseArmor} size="lg" scrollable centered>
