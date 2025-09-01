@@ -183,7 +183,7 @@ export default function LevelUp({ show, handleClose, form }) {
 
   return (
     <div>
-      <Modal className="modern-modal" show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
+      <Modal className="dnd-modal modern-modal" show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
         <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
@@ -196,7 +196,7 @@ export default function LevelUp({ show, handleClose, form }) {
                   Add Occupation
                 </Button>
                 <Modal
-                  className="modern-modal"
+                  className="dnd-modal modern-modal"
                   centered
                   show={showAddClassModal}
                   onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}

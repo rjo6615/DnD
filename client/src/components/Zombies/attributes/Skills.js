@@ -232,7 +232,7 @@ let firstLevelSkill =
       return (   
       <div>  
        {/* -----------------------------------------------Skill Render--------------------------------------------------------------- */}
-       <Modal className="modern-modal" show={showSkill} onHide={handleCloseSkill} size="lg" scrollable centered>
+       <Modal className="dnd-modal modern-modal" show={showSkill} onHide={handleCloseSkill} size="lg" scrollable centered>
         <Card className="modern-card text-center">
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Skills</Card.Title>
@@ -341,7 +341,7 @@ let firstLevelSkill =
           </Card.Footer>
         </Card>
 
-        <Modal className="modern-modal" show={showAddSkill} onHide={handleCloseAddSkill} centered>
+        <Modal className="dnd-modal modern-modal" show={showAddSkill} onHide={handleCloseAddSkill} centered>
           <Card className="modern-card text-center">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">Add Skill</Card.Title>

@@ -152,7 +152,7 @@ const [weapon, setWeapon] = useState({
 return(
     <div>
         {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
-<Modal className="modern-modal" show={showWeapons} onHide={handleCloseWeapons} size="lg" centered>
+<Modal className="dnd-modal modern-modal" show={showWeapons} onHide={handleCloseWeapons} size="lg" centered>
   <div className="text-center">
     <Card className="modern-card">
       <Card.Header className="modal-header">

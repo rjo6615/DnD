@@ -158,7 +158,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
   return (
     <div>
       {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
-      <Modal className="modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
+      <Modal className="dnd-modal modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
         <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
@@ -338,7 +338,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
               </Button>
             </Card.Footer>
           </Card>
-          <Modal className="modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} size="lg" centered>
+          <Modal className="dnd-modal modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} size="lg" centered>
               <Card className="modern-card text-center">
                 <Card.Header className="modal-header">
                   <Card.Title className="modal-title">{modalFeatData.featName}</Card.Title>

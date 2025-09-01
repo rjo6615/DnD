@@ -145,7 +145,7 @@ export default function Items({form, showItems, handleCloseItems}) {
 return(
 <div>
          {/* -----------------------------------------Items Render------------------------------------------------------------------------------------------------------------------------------- */}
-          <Modal className="modern-modal" show={showItems} onHide={handleCloseItems} size="lg" centered>
+          <Modal className="dnd-modal modern-modal" show={showItems} onHide={handleCloseItems} size="lg" centered>
         <div className="text-center">
          <Card className="modern-card">
          <Card.Header className="modal-header">
@@ -251,7 +251,7 @@ return(
            <Button className="action-btn close-btn" onClick={handleCloseItems}>Close</Button>
          </Card.Footer>
         </Card>
-        <Modal className="modern-modal" show={showNotes} onHide={handleCloseNotes} size="lg" centered>
+        <Modal className="dnd-modal modern-modal" show={showNotes} onHide={handleCloseNotes} size="lg" centered>
           <Card className="modern-card text-center">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">{modalItemData[0]}</Card.Title>

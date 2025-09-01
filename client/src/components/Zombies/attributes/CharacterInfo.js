@@ -17,7 +17,7 @@ export default function CharacterInfo({ form, show, handleClose }) {
 
   return (
     <Modal
-      className="modern-modal"
+      className="dnd-modal modern-modal"
       show={show}
       onHide={handleClose}
       size="lg"
