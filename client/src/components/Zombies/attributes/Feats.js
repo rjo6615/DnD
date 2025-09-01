@@ -97,13 +97,19 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
   async function addFeatToDb(e) {
     e.preventDefault();
     if (!addFeat) return;
-    const existingIndex = form.feat.findIndex(f => f.featName === addFeat.featName);
     let updatedFeats;
-    if (existingIndex >= 0) {
-      updatedFeats = [...form.feat];
-      updatedFeats[existingIndex] = addFeat;
-    } else {
+    if (addFeat.featName === 'Stat Increase') {
       updatedFeats = [...form.feat, addFeat];
+    } else {
+      const existingIndex = form.feat.findIndex(
+        (f) => f.featName === addFeat.featName
+      );
+      if (existingIndex >= 0) {
+        updatedFeats = [...form.feat];
+        updatedFeats[existingIndex] = addFeat;
+      } else {
+        updatedFeats = [...form.feat, addFeat];
+      }
     }
     await apiFetch(`/feats/update/${params.id}`, {
       method: "PUT",
@@ -120,8 +126,8 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
     navigate(0);
   }
   // This method will delete a feat
-  function deleteFeats(el) {
-    const updatedFeats = form.feat.filter(f => f.featName !== el.featName);
+  function deleteFeats(index) {
+    const updatedFeats = form.feat.filter((_, i) => i !== index);
     addDeleteFeatToDb(updatedFeats);
   }
   let showDeleteFeatBtn = "";
@@ -181,8 +187,8 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {form.feat.map((el) => (
-                    <tr key={el.featName}>
+                  {form.feat.map((el, index) => (
+                    <tr key={`${el.featName}-${index}`}>
                       <td>{el.featName}</td>
                       <td style={{ display: showDeleteFeatBtn }}>
                         <Button
@@ -250,7 +256,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                           style={{ display: showDeleteFeatBtn }}
                           className="btn-danger action-btn fa-solid fa-trash"
                           onClick={() => {
-                            deleteFeats(el);
+                            deleteFeats(index);
                           }}
                         ></Button>
                       </td>

@@ -56,6 +56,7 @@ Characters gain feats instead of automatic ability score increases. Feats are ea
 - **Rogue:** Additional feat at level 10
 
 Ability scores do not automatically increase at any level. To improve statistics, choose feats that grant ability bonuses.
+Most feats may only be selected once per character; however, the **Stat Increase** feat can be taken multiple times.
 
 ## Feats Endpoint
 
