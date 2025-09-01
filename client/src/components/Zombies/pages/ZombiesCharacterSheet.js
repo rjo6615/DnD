@@ -90,13 +90,6 @@ export default function ZombiesCharacterSheet() {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
   }
 
-  // Skills and skill points calculation
-  let addedSkillsRanks= [];
-  form.newSkill.map((el) => addedSkillsRanks.push(el[1]));
-  let totalAddedSkills = addedSkillsRanks.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-
-  let skillTotal = SKILLS.reduce((sum, { key }) => sum + form[key], 0);
-
   const itemBonus = (form.item || []).reduce(
     (acc, el) => ({
       str: acc.str + Number(el[2] || 0),
@@ -138,18 +131,6 @@ export default function ZombiesCharacterSheet() {
     wis: Math.floor((computedStats.wis - 10) / 2),
     cha: Math.floor((computedStats.cha - 10) / 2),
   };
-
-  let firstLevelSkill = Math.floor((Number(form.occupation[0].skillMod) + statMods.int) * 4);
-  let allSkillPointsLeft = 0;
-  let skillPointsLeft;
-  for (const occupation of form.occupation) {
-    let occupationLevel = occupation.Occupation === form.occupation[0].Occupation ? occupation.Level - 1 : occupation.Level;
-    const skillMod = Number(occupation.skillMod);
-    skillPointsLeft = Math.floor((skillMod + statMods.int) * occupationLevel);
-    allSkillPointsLeft += skillPointsLeft;
-  }
-  let totalSkillPointsLeft = allSkillPointsLeft + firstLevelSkill - skillTotal - totalAddedSkills;
-  let skillGold = totalSkillPointsLeft === 0 ? "#6C757D" : "gold";
 
   const statNames = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
@@ -250,7 +231,7 @@ return (
             <Nav className="me-auto mx-auto" style={{ backgroundColor: 'transparent' }}>
               <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>
               <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
-              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>
+              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-book-open" variant="secondary"></Button>
               <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>
               <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
               <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-shield" variant="secondary"></Button>   
