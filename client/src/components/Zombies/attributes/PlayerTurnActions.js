@@ -263,7 +263,7 @@ const showSparklesEffect = () => {
   </div>
 </div>
 {/* Attack Modal */}
-      <Modal size="lg" className="modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
+      <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
         <Card className="modern-card">
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Weapons</Card.Title>

@@ -560,9 +560,10 @@ max-width: 300px;
 }
 
 .dnd-modal .modal-content {
-  background-color: transparent !important; /* Make the modal content area transparent */
-  box-shadow: none !important; /* Remove any box shadow */
-  border: none !important; /* Remove any border */
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 //vars
@@ -909,6 +910,7 @@ h1 {
 
 /* Modal Header */
 .modal-header {
+  background: none !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
   color: white;
   text-align: center;

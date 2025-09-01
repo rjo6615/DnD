@@ -95,7 +95,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
       size="lg"
       scrollable
       centered
-      className="modern-modal"
+      className="dnd-modal modern-modal"
     >
       <div className="text-center">
         <Card className="modern-card">

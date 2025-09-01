@@ -133,7 +133,7 @@ return(
     <div>
      {/* ------------------------------------------------Armor Render-----------------------------------------------------------
 ----------------------------------------------------- */}
-<Modal className="modern-modal" show={showArmor} onHide={handleCloseArmor} size="lg" scrollable centered>
+<Modal className="dnd-modal modern-modal" show={showArmor} onHide={handleCloseArmor} size="lg" scrollable centered>
   <div className="text-center">
     <Card className="modern-card">
       <Card.Header className="modal-header">
