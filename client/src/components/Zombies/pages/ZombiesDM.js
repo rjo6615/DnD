@@ -163,6 +163,13 @@ const [form2, setForm2] = useState({
   
   async function sendToDb2(){
     const newWeapon = { ...form2 };
+    Object.keys(newWeapon).forEach((key) => {
+      if (newWeapon[key] === "") {
+        delete newWeapon[key];
+      } else if (!isNaN(newWeapon[key])) {
+        newWeapon[key] = Number(newWeapon[key]);
+      }
+    });
       await apiFetch("/equipment/weapon/add", {
        method: "POST",
        headers: {
