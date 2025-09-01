@@ -54,8 +54,12 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
     setAbilitySelections((prev) => {
       const newSelections = { ...prev, [index]: ability };
       const abilityBonus = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
-      Object.values(newSelections).forEach((a) => {
-        if (a) abilityBonus[a] += 1;
+      Object.entries(newSelections).forEach(([i, a]) => {
+        if (a) {
+          const option = selectedFeatData.abilityIncreaseOptions[i];
+          const amount = Array.isArray(option) ? 1 : option.amount ?? 1;
+          abilityBonus[a] += amount;
+        }
       });
       setAddFeat((prevFeat) => ({ ...prevFeat, ...abilityBonus }));
       return newSelections;
@@ -272,25 +276,30 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                     </Form.Group>
 
                     {selectedFeatData?.abilityIncreaseOptions &&
-                      selectedFeatData.abilityIncreaseOptions.map((options, idx) => (
-                        <Form.Group className="mb-3 mx-5" key={idx}>
-                          <Form.Label className="text-dark">Ability Increase</Form.Label>
-                          <Form.Select
-                            value={abilitySelections[idx] || ""}
-                            onChange={(e) => handleAbilityChoice(idx, e.target.value)}
-                            defaultValue=""
-                          >
-                            <option value="" disabled>
-                              Select ability
-                            </option>
-                            {options.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt.toUpperCase()}
+                      selectedFeatData.abilityIncreaseOptions.map((option, idx) => {
+                        const abilities = Array.isArray(option)
+                          ? option
+                          : option.abilities || [];
+                        return (
+                          <Form.Group className="mb-3 mx-5" key={idx}>
+                            <Form.Label className="text-dark">Ability Increase</Form.Label>
+                            <Form.Select
+                              value={abilitySelections[idx] || ""}
+                              onChange={(e) => handleAbilityChoice(idx, e.target.value)}
+                              defaultValue=""
+                            >
+                              <option value="" disabled>
+                                Select ability
                               </option>
-                            ))}
-                          </Form.Select>
-                        </Form.Group>
-                      ))}
+                              {abilities.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt.toUpperCase()}
+                                </option>
+                              ))}
+                            </Form.Select>
+                          </Form.Group>
+                        );
+                      })}
 
                     <Button
                       disabled={
