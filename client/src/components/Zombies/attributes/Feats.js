@@ -166,7 +166,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
               <div className="points-container" style={{ display: showFeatBtn }}>
-                <span className="points-label">Points Left:</span>
+                <span className="points-label text-light">Points Left:</span>
                 <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
               </div>
               <Table striped bordered hover size="sm" className="modern-table">
@@ -262,7 +262,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                 <Col style={{ display: showFeatBtn }}>
                   <Form onSubmit={addFeatToDb}>
                     <Form.Group className="mb-3 mx-5">
-                      <Form.Label className="text-dark">Select Feat</Form.Label>
+                      <Form.Label className="text-light">Select Feat</Form.Label>
                       <div className="d-flex">
                         <Form.Select
                           onChange={handleSelectFeat}
@@ -298,7 +298,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                           : option.abilities || [];
                         return (
                           <Form.Group className="mb-3 mx-5" key={idx}>
-                            <Form.Label className="text-dark">Ability Increase</Form.Label>
+                            <Form.Label className="text-light">Ability Increase</Form.Label>
                             <Form.Select
                               value={abilitySelections[idx] || ""}
                               onChange={(e) => handleAbilityChoice(idx, e.target.value)}

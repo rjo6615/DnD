@@ -104,7 +104,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
           </Card.Header>
           <Card.Body>
             <div className="points-container" style={{ display: statPointsLeft >= 0 ? "flex" : "none" }}>
-              <span className="points-label">Points Left:</span>
+              <span className="points-label text-light">Points Left:</span>
               <span className="points-value">{isNaN(statPointsLeft) ? 0 : statPointsLeft}</span>
             </div>
 

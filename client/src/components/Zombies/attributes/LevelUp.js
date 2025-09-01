@@ -207,7 +207,7 @@ export default function LevelUp({ show, handleClose, form }) {
                     </Card.Header>
                     <Card.Body>
                       <Form.Group className="mb-3 mx-5">
-                        <Form.Label className="text-dark">Select Occupation</Form.Label>
+                        <Form.Label className="text-light">Select Occupation</Form.Label>
                         <Form.Select
                           ref={selectedAddOccupationRef}
                           onChange={handleOccupationChange}
@@ -254,7 +254,7 @@ export default function LevelUp({ show, handleClose, form }) {
                 <br />
                 <span>or</span>
                 <Form.Group className="mb-3 mx-5">
-                  <Form.Label className="text-dark">Select Occupation</Form.Label>
+                  <Form.Label className="text-light">Select Occupation</Form.Label>
                   <Form.Select
                     ref={selectedOccupationRef}
                     defaultValue=""

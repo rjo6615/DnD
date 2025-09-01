@@ -166,7 +166,7 @@ return(
         <Col>
           <Form onSubmit={addArmorToDb}>
           <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-dark">Select Armor</Form.Label>
+        <Form.Label className="text-light">Select Armor</Form.Label>
         <Form.Select
         onChange={(e) => {updateArmor({ armor: e.target.value }); handleChosenArmorChange(e);}}
         defaultValue=""

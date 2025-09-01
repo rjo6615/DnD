@@ -217,7 +217,7 @@ return(
           <Col>
             <Form onSubmit={addWeaponToDb}>
               <Form.Group className="mb-3 mx-5">
-                <Form.Label className="text-dark">Select Weapon</Form.Label>
+                <Form.Label className="text-light">Select Weapon</Form.Label>
                 <Form.Select
                   onChange={(e) => {
                     updateWeapon({ weapon: e.target.value });

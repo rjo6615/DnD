@@ -231,7 +231,7 @@ return(
         <Col>
           <Form onSubmit={addItemToDb}>
           <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-dark">Select Item</Form.Label>
+        <Form.Label className="text-light">Select Item</Form.Label>
         <Form.Select 
         onChange={(e) => {updateItem({ item: e.target.value }); handleChosenItemChange(e);}}
         defaultValue=""

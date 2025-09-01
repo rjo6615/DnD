@@ -81,7 +81,7 @@ return(
                   <thead>
                     <tr>
                       <td className="center-td">
-                        <strong>Change Dice Color:</strong>
+                        <strong className='text-light'>Change Dice Color:</strong>
                       </td>
                       <td className="center-td">
                         <input
