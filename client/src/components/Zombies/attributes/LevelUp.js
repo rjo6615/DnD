@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Card, Modal, Button, Form } from "react-bootstrap";
+import { Card, Modal, Button, Form, Alert } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import useUser from '../../../hooks/useUser';
 
@@ -24,6 +24,8 @@ export default function LevelUp({ show, handleClose, form }) {
   const handleCloseLvlModal = () => {
     setChosenOccupation('');
     setShowLvlModal(false);
+    setNotification('');
+    setError('');
     handleClose();
   };
 
@@ -67,10 +69,16 @@ export default function LevelUp({ show, handleClose, form }) {
   const selectedAddOccupationRef = useRef();
   const [getOccupation, setGetOccupation] = useState([]);
   const [chosenAddOccupation, setChosenAddOccupation] = useState('');
+  const [notification, setNotification] = useState('');
+  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleAddOccupationClick = () => {
     setShowAddClassModal(true);
     setChosenAddOccupation('');
+    setValidationError('');
+    setError('');
+    setNotification('');
   };
 
   const handleOccupationChange = (event) => {
@@ -79,8 +87,11 @@ export default function LevelUp({ show, handleClose, form }) {
     setChosenAddOccupation(event.target.value);
   };
 
-  const handleConfirmClick = () => {
+  const handleConfirmClick = async () => {
     if (selectedOccupation) {
+      setValidationError('');
+      setError('');
+      setNotification('');
       const selectedAddOccupation = selectedAddOccupationRef.current.value;
       const selectedAddOccupationObject = getOccupation.find(
         (occupation) => occupation.Occupation === selectedAddOccupation
@@ -109,51 +120,42 @@ export default function LevelUp({ show, handleClose, form }) {
       // Push the selected occupation into form.occupation
       form.occupation.push(selectedOccupation);
 
-      // Perform the database update here
-      apiFetch(`/characters/update-health/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json", // Set content type to JSON
-        },
-        body: JSON.stringify({
-          health: addOccupationHealth,
-          str: addOccupationStrTotal,
-          dex: addOccupationDexTotal,
-          con: addOccupationConTotal,
-          int: addOccupationIntTotal,
-          wis: addOccupationWisTotal,
-          cha: addOccupationChaTotal,
-          startStatTotal: newStartStatTotal
-        }), // Send as a JSON object
-      })
-        .then(() => {
-          window.alert("Database update complete");
-        })
-        .catch((error) => {
-          // Handle errors here
-          console.error(error);
+      try {
+        await apiFetch(`/characters/update-health/${params.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json", // Set content type to JSON
+          },
+          body: JSON.stringify({
+            health: addOccupationHealth,
+            str: addOccupationStrTotal,
+            dex: addOccupationDexTotal,
+            con: addOccupationConTotal,
+            int: addOccupationIntTotal,
+            wis: addOccupationWisTotal,
+            cha: addOccupationChaTotal,
+            startStatTotal: newStartStatTotal
+          }), // Send as a JSON object
         });
 
-      // Perform the database update with the entire form.occupation array
-      apiFetch(`/characters/update-occupations/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form.occupation), // Send the array directly
-      })
-        .then(() => {
-          window.alert("Database update complete");
-          navigate(0);
-        })
-        .catch((error) => {
-          // Handle errors here
-          console.error(error);
+        await apiFetch(`/characters/update-occupations/${params.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(form.occupation), // Send the array directly
         });
+
+        setNotification("Database update complete");
+        navigate(0);
+      } catch (err) {
+        console.error(err);
+        setError('Database update failed');
+      }
 
       setShowAddClassModal(false);
     } else {
-      alert('Please select an occupation.');
+      setValidationError('Please select an occupation.');
     }
   };
 
@@ -164,13 +166,13 @@ export default function LevelUp({ show, handleClose, form }) {
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        setError(message);
         return;
       }
 
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
+        setError('Record not found');
         navigate("/");
         return;
       }
@@ -190,6 +192,16 @@ export default function LevelUp({ show, handleClose, form }) {
               <Card.Title className="modal-title">Level Up</Card.Title>
             </Card.Header>
             <Card.Body>
+              {notification && (
+                <Alert variant="success" onClose={() => setNotification('')} dismissible>
+                  {notification}
+                </Alert>
+              )}
+              {error && (
+                <Alert variant="danger" onClose={() => setError('')} dismissible>
+                  {error}
+                </Alert>
+              )}
               {/* Add occupation */}
               <Form>
                 <Button className="action-btn" onClick={handleAddOccupationClick}>
@@ -199,13 +211,23 @@ export default function LevelUp({ show, handleClose, form }) {
                   className="dnd-modal modern-modal"
                   centered
                   show={showAddClassModal}
-                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}
+                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setValidationError(''); setError(''); setNotification(''); }}
                 >
                   <Card className="modern-card text-center">
                     <Card.Header className="modal-header">
                       <Card.Title className="modal-title">Add Occupation</Card.Title>
                     </Card.Header>
                     <Card.Body>
+                      {notification && (
+                        <Alert variant="success" onClose={() => setNotification('')} dismissible>
+                          {notification}
+                        </Alert>
+                      )}
+                      {error && (
+                        <Alert variant="danger" onClose={() => setError('')} dismissible>
+                          {error}
+                        </Alert>
+                      )}
                       <Form.Group className="mb-3 mx-5">
                         <Form.Label className="text-light">Select Occupation</Form.Label>
                         <Form.Select
@@ -227,12 +249,13 @@ export default function LevelUp({ show, handleClose, form }) {
                           })}
                         </Form.Select>
                       </Form.Group>
+                      {validationError && <div className="text-danger">{validationError}</div>}
                     </Card.Body>
                     <Card.Footer className="modal-footer">
-                      <Button
-                        className="action-btn close-btn"
-                        onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}
-                      >
+                        <Button
+                          className="action-btn close-btn"
+                          onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setValidationError(''); setError(''); setNotification(''); }}
+                        >
                         Close
                       </Button>
                       <Button
