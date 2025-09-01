@@ -3,8 +3,9 @@ import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap';
 import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
+import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 
-export default function Feats({ form, showFeats, handleCloseFeats, totalLevel }) {
+export default function Feats({ form, showFeats, handleCloseFeats }) {
   const params = useParams();
   const navigate = useNavigate();
   //----------------------------------------------Feats Section-----------------------------------------------------------------
@@ -67,8 +68,7 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
   };
 
   // ---------------------------------------Feats left-----------------------------------------------------
-  const activeFeats = form.feat.filter(f => f.featName && f.featName !== "").length;
-  const featPointsLeft = Math.floor(totalLevel / 3) + 1 - activeFeats;
+  const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
   const showFeatBtn = featPointsLeft > 0 ? "" : "none";
 
   // ----------------------------------------Fetch Feats-----------------------------------

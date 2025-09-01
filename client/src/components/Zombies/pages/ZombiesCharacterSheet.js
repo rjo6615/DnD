@@ -8,6 +8,7 @@ import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
+import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import Weapons from "../attributes/Weapons";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
 import Armor from "../attributes/Armor";
@@ -161,8 +162,7 @@ const featBonuses = (form.feat || []).reduce(
   }
 );
 
-const activeFeats = form.feat.filter((feat) => feat.featName !== "").length;
-const featPointsLeft = Math.floor(totalLevel / 3) + 1 - activeFeats;
+const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 // ------------------------------------------Attack Bonus---------------------------------------------------
 let atkBonus = 0;
@@ -248,7 +248,7 @@ return (
         <CharacterInfo form={form} show={showCharacterInfo} handleClose={handleCloseCharacterInfo} />
         <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} onSkillsChange={(skills) => setForm(prev => ({ ...prev, skills }))} />
         <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} totalLevel={totalLevel} />
-        <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} totalLevel={totalLevel} />
+        <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
         <Weapons form={form} showWeapons={showWeapons} handleCloseWeapons={handleCloseWeapons} strMod={statMods.str} dexMod={statMods.dex}/>
         <Armor form={form} showArmor={showArmor} handleCloseArmor={handleCloseArmor} dexMod={statMods.dex} />
         <Items form={form} showItems={showItems} handleCloseItems={handleCloseItems} />
