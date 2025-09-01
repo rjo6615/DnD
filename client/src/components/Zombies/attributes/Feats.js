@@ -29,16 +29,21 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
       const baseFeat = {
         featName: featObj.featName,
         notes: featObj.notes,
+        initiative: featObj.initiative ?? 0,
+        ac: featObj.ac ?? 0,
+        speed: featObj.speed ?? 0,
+        hpMaxBonus: featObj.hpMaxBonus ?? 0,
+        hpMaxBonusPerLevel: featObj.hpMaxBonusPerLevel ?? 0,
       };
       SKILLS.forEach(({ key }) => {
         baseFeat[key] = featObj[key];
       });
-      baseFeat.str = 0;
-      baseFeat.dex = 0;
-      baseFeat.con = 0;
-      baseFeat.int = 0;
-      baseFeat.wis = 0;
-      baseFeat.cha = 0;
+      baseFeat.str = featObj.str ?? 0;
+      baseFeat.dex = featObj.dex ?? 0;
+      baseFeat.con = featObj.con ?? 0;
+      baseFeat.int = featObj.int ?? 0;
+      baseFeat.wis = featObj.wis ?? 0;
+      baseFeat.cha = featObj.cha ?? 0;
       setAddFeat(baseFeat);
     } else {
       setAddFeat(null);
