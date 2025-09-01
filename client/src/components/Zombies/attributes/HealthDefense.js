@@ -10,11 +10,11 @@ export default function HealthDefense({
   dexMod,
   wisMod,
   intMod,
-  acBonus = 0,
+  ac = 0,
   hpMaxBonus = 0,
   hpMaxBonusPerLevel = 0,
-  initiativeBonus = 0,
-  speedBonus = 0,
+  initiative = 0,
+  speed = 0,
 }) {
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ export default function HealthDefense({
      form.armor.map((el) => (
        armorAcBonus.push(el[1])
      ))
-     let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) + Number(acBonus);
+    let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) + Number(ac);
      form.armor.map((el) => (
       armorMaxDexBonus.push(el[2])
      ))
@@ -256,8 +256,8 @@ return (
     <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
       <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
       <div><strong>Attack Bonus:</strong> {atkBonus}</div>
-      <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiativeBonus)}</div>
-      <div><strong>Speed:</strong> {(form.speed || 0) + Number(speedBonus)}</div>
+      <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
+      <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
     </div>
 
     {/* Saving Throws */}
