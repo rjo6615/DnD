@@ -47,6 +47,16 @@ All API errors are returned as JSON objects with a single `message` property. Fo
 
 Clients should rely on this structure when handling error responses.
 
+## Character Progression
+
+Characters gain feats instead of automatic ability score increases. Feats are earned at specific levels depending on class:
+
+- **All classes:** Levels 4, 8, 12, 16, and 19
+- **Fighter:** Additional feats at levels 6 and 14
+- **Rogue:** Additional feat at level 10
+
+Ability scores do not automatically increase at any level. To improve statistics, choose feats that grant ability bonuses.
+
 ## Feats Endpoint
 
 Use `GET /feats` to retrieve all available feats.
