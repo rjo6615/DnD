@@ -64,8 +64,8 @@ module.exports = (router) => {
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('weaponName').trim().notEmpty().withMessage('weaponName is required'),
-      body('enhancement').optional().isInt().toInt(),
-      body('range').optional().isInt().toInt(),
+      body('enhancement').optional({ checkFalsy: true }).isInt().toInt(),
+      body('range').optional({ checkFalsy: true }).isInt().toInt(),
       body('damage').optional().trim(),
       body('critical').optional().trim(),
       body('weaponStyle').optional().trim(),
