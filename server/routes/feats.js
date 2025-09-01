@@ -47,14 +47,25 @@ module.exports = (router) => {
       body('featName').trim().notEmpty().withMessage('featName is required'),
       body('notes').optional().trim(),
       body('abilityIncreaseOptions').optional().isArray(),
-      body('abilityIncreaseOptions.*').optional().isString().trim(),
+      body('abilityIncreaseOptions.*.abilities').isArray(),
+      body('abilityIncreaseOptions.*.abilities.*').isString().trim(),
+      body('abilityIncreaseOptions.*.amount').isInt().toInt(),
       ...skillFields.map((field) => body(field).optional().isInt().toInt()),
       ...numericFeatFields.map((field) => body(field).optional().isInt().toInt()),
     ],
     handleValidationErrors,
     async (req, response, next) => {
       const db_connect = req.db;
-      const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+      const rawData = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
+      const myobj = { ...rawData };
+      if (rawData.abilityIncreaseOptions) {
+        myobj.abilityIncreaseOptions = rawData.abilityIncreaseOptions.map(
+          ({ abilities, amount }) => ({ abilities, amount })
+        );
+      }
       try {
         const result = await db_connect.collection('Feats').insertOne(myobj);
         response.json(result);
