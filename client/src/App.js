@@ -8,6 +8,7 @@ import ZombiesCharacterSheet from "./components/Zombies/pages/ZombiesCharacterSh
 import ZombiesCharacterSelect from "./components/Zombies/pages/ZombiesCharacterSelect";
 import ZombiesDM from "./components/Zombies/pages/ZombiesDM";
 import Login from "./components/Login/Login";
+import Notifications from "./components/Notifications";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
@@ -45,6 +46,7 @@ function AppRoutes() {
 
   return (
     <>
+      <Notifications />
       {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
       <Routes>
         <Route path="/" element={<Zombies />} />

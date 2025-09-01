@@ -8,6 +8,7 @@ import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
 import { STATS } from "../statSchema";
+import { notify } from '../../../utils/notification';
 
 export default function RecordList() {
   const params = useParams();
@@ -24,7 +25,7 @@ export default function RecordList() {
 
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
-        window.alert(message);
+        notify(message);
         return;
       }
 
@@ -95,13 +96,13 @@ useEffect(() => {
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
-      window.alert(message);
+      notify(message);
       return;
     }
 
     const record = await response.json();
     if (!record) {
-      window.alert(`Record not found`);
+      notify(`Record not found`, 'warning');
       navigate("/");
       return;
     }
@@ -241,7 +242,7 @@ useEffect(() => {
         body: JSON.stringify(newCharacter),
       });
     } catch (error) {
-      window.alert(error);
+      notify(error.toString());
       return;
     };
    setForm(createDefaultForm(params.campaign));
@@ -318,7 +319,7 @@ const sendManualToDb = useCallback(async (characterData) => {
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
   if (!newCharacter.occupation?.[0]?.Level) {
-    window.alert("Occupation level is required.");
+    notify("Occupation level is required.", 'warning');
     return;
   }
   try {
@@ -330,7 +331,7 @@ const sendManualToDb = useCallback(async (characterData) => {
       body: JSON.stringify(newCharacter),
     });
     if (!response.ok) {
-      window.alert(`An error occurred: ${response.statusText}`);
+      notify(`An error occurred: ${response.statusText}`);
       return;
     }
     const { insertedId } = await response.json();
@@ -338,7 +339,7 @@ const sendManualToDb = useCallback(async (characterData) => {
     setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
     setForm(createDefaultForm(params.campaign));
   } catch (error) {
-    window.alert(error);
+    notify(error.toString());
   }
 }, [form, params.campaign, handleClose5, setRecords, setForm, createDefaultForm]);
 
