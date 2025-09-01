@@ -7,6 +7,21 @@ const logger = require('../../utils/logger');
 const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
 
+const collectAllowedSkills = (occupation) => {
+  if (!Array.isArray(occupation)) return [];
+  const allowed = new Set();
+  occupation.forEach((occ) => {
+    if (occ && occ.skills && typeof occ.skills === 'object') {
+      Object.keys(occ.skills).forEach((skill) => {
+        if (occ.skills[skill] && occ.skills[skill].proficient) {
+          allowed.add(skill);
+        }
+      });
+    }
+  });
+  return Array.from(allowed);
+};
+
 module.exports = (router) => {
   const characterRouter = express.Router();
 
@@ -30,7 +45,7 @@ module.exports = (router) => {
           : 0;
         result.proficiencyBonus = proficiencyBonus(totalLevel);
         if (!result.allowedSkills) {
-          result.allowedSkills = Object.keys(result.skills || {});
+          result.allowedSkills = collectAllowedSkills(result.occupation);
         }
       }
       res.json(result);
@@ -53,7 +68,8 @@ module.exports = (router) => {
           : 0;
         return {
           ...char,
-          allowedSkills: char.allowedSkills || Object.keys(char.skills || {}),
+          allowedSkills:
+            char.allowedSkills || collectAllowedSkills(char.occupation),
           proficiencyBonus: proficiencyBonus(totalLevel),
         };
       });
@@ -97,7 +113,7 @@ module.exports = (router) => {
         });
       }
       if (!myobj.allowedSkills) {
-         myobj.allowedSkills = Object.keys(myobj.skills);
+        myobj.allowedSkills = collectAllowedSkills(myobj.occupation);
       }
 
       // derive proficiency bonus from total character level
