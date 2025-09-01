@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Button, Col, Form, Row, Container, Table, Card } from "react-bootstrap";
+import { Button, Col, Form, Row, Container, Table, Card, Alert } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
@@ -9,17 +9,18 @@ import { SKILLS } from "../skillSchema";
 
 export default function ZombiesDM() {
   const user = useUser();
-  
+
     const navigate = useNavigate();
     const params = useParams();
     const [records, setRecords] = useState([]);
+    const [status, setStatus] = useState(null);
     useEffect(() => {
       async function getRecords() {
         const response = await apiFetch(`/campaigns/${params.campaign}/characters`);
 
         if (!response.ok) {
           const message = `An error occurred: ${response.statusText}`;
-          window.alert(message);
+          setStatus({ type: 'danger', message });
           return;
         }
 
@@ -52,13 +53,13 @@ useEffect(() => {
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
-      window.alert(message);
+      setStatus({ type: 'danger', message });
       return;
     }
 
     const record = await response.json();
     if (!record) {
-      window.alert(`Record not found`);
+      setStatus({ type: 'danger', message: 'Record not found' });
       navigate("/");
       return;
     }
@@ -86,13 +87,13 @@ const [playersSearch, setPlayersSearch] = useState("");
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        setStatus({ type: 'danger', message });
         return;
       }
 
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
+        setStatus({ type: 'danger', message: 'Record not found' });
         navigate("/");
         return;
       }
@@ -124,13 +125,13 @@ async function sendNewPlayersToDb() {
     return response.text(); // Change to text() instead of json()
   })
   .then(data => {
-    alert("Player Successfully Added!");
+    setStatus({ type: 'success', message: 'Player Successfully Added!' });
     setPlayersSearch(""); // Clear input after successful submission
     navigate(0);
   })
   .catch(error => {
     console.error('Error:', error);
-    window.alert(error.message);
+    setStatus({ type: 'danger', message: error.message });
   });
 }
 
@@ -170,7 +171,7 @@ const [form2, setForm2] = useState({
         newWeapon[key] = Number(newWeapon[key]);
       }
     });
-      await apiFetch("/equipment/weapon/add", {
+     await apiFetch("/equipment/weapon/add", {
        method: "POST",
        headers: {
          "Content-Type": "application/json",
@@ -178,7 +179,7 @@ const [form2, setForm2] = useState({
        body: JSON.stringify(newWeapon),
      })
      .catch(error => {
-       window.alert(error);
+       setStatus({ type: 'danger', message: error.toString() });
        return;
      });
    
@@ -228,7 +229,7 @@ const [form2, setForm2] = useState({
        body: JSON.stringify(newArmor),
      })
    .catch(error => {
-     window.alert(error);
+     setStatus({ type: 'danger', message: error.toString() });
      return;
    });
   
@@ -281,7 +282,7 @@ const [form2, setForm2] = useState({
       body: JSON.stringify(newItem),
     })
    .catch(error => {
-     window.alert(error);
+     setStatus({ type: 'danger', message: error.toString() });
      return;
    });
   
@@ -301,10 +302,15 @@ const [form2, setForm2] = useState({
   }
   
 
-  // -----------------------------------Display-----------------------------------------------------------------------------
+// -----------------------------------Display-----------------------------------------------------------------------------
  return (
     <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-          <div style={{paddingTop: '150px'}}></div> 
+          <div style={{paddingTop: '150px'}}></div>
+{status && (
+  <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
+    {status.message}
+  </Alert>
+)}
 
 <div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
       <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background">
