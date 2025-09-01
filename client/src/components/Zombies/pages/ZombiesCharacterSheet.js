@@ -42,12 +42,21 @@ export default function ZombiesCharacterSheet() {
           const [featName = "", notes = "", ...rest] = feat;
           const skillVals = rest.slice(0, SKILLS.length);
           const abilityVals = rest.slice(SKILLS.length, SKILLS.length + 6);
+          const [initiative = 0, ac = 0, speed = 0, hpMaxBonus = 0, hpMaxBonusPerLevel = 0] =
+            rest.slice(SKILLS.length + 6);
           const featObj = { featName, notes };
           SKILLS.forEach(({ key }, idx) => {
             featObj[key] = Number(skillVals[idx] || 0);
           });
           ["str", "dex", "con", "int", "wis", "cha"].forEach((stat, idx) => {
             featObj[stat] = Number(abilityVals[idx] || 0);
+          });
+          Object.assign(featObj, {
+            initiative: Number(initiative || 0),
+            ac: Number(ac || 0),
+            speed: Number(speed || 0),
+            hpMaxBonus: Number(hpMaxBonus || 0),
+            hpMaxBonusPerLevel: Number(hpMaxBonusPerLevel || 0),
           });
           return featObj;
         });
