@@ -136,7 +136,8 @@ export default function ZombiesCharacterSheet() {
   const statNames = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
-  const statPointsLeft = Math.floor((totalLevel / 4) - (statTotal - form.startStatTotal));
+  // Characters no longer receive stat points from leveling
+  const statPointsLeft = form.startStatTotal - statTotal;
 
   const skillPointsLeft =
     (form.proficiencyPoints || 0) -
@@ -247,7 +248,7 @@ return (
         </Navbar>
         <CharacterInfo form={form} show={showCharacterInfo} handleClose={handleCloseCharacterInfo} />
         <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} onSkillsChange={(skills) => setForm(prev => ({ ...prev, skills }))} />
-        <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} totalLevel={totalLevel} />
+        <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
         <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
         <Weapons form={form} showWeapons={showWeapons} handleCloseWeapons={handleCloseWeapons} strMod={statMods.str} dexMod={statMods.dex}/>
         <Armor form={form} showArmor={showArmor} handleCloseArmor={handleCloseArmor} dexMod={statMods.dex} />

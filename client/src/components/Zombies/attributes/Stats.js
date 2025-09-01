@@ -3,7 +3,7 @@ import apiFetch from '../../../utils/apiFetch';
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 
-export default function Stats({ form, showStats, handleCloseStats, totalLevel }) {
+export default function Stats({ form, showStats, handleCloseStats }) {
   const params = useParams();
   const navigate = useNavigate();
 
@@ -54,9 +54,11 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
   const [statPointsLeft, setStatPointsLeft] = useState(0);
 
   useEffect(() => {
-    const pointsUsed = Object.values(stats).reduce((a, b) => a + b, 0) - startStatTotal;
-    setStatPointsLeft(Math.floor(totalLevel / 4) - pointsUsed);
-  }, [stats, totalLevel, startStatTotal]);
+    const pointsUsed =
+      Object.values(stats).reduce((a, b) => a + b, 0) - startStatTotal;
+    // Characters no longer gain stat points from leveling, so only track points spent
+    setStatPointsLeft(-pointsUsed);
+  }, [stats, startStatTotal]);
 
   async function statsUpdate() {
     await apiFetch(`/characters/update-stats/${params.id}`, {
@@ -103,7 +105,7 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
             <Card.Title className="modal-title">Stats</Card.Title>
           </Card.Header>
           <Card.Body>
-            <div className="points-container" style={{ display: statPointsLeft >= 0 ? "flex" : "none" }}>
+            <div className="points-container" style={{ display: statPointsLeft > 0 ? "flex" : "none" }}>
               <span className="points-label text-light">Points Left:</span>
               <span className="points-value">{isNaN(statPointsLeft) ? 0 : statPointsLeft}</span>
             </div>
