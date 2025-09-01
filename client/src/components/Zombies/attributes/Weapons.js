@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Weapons({form, showWeapons, handleCloseWeapons, strMod, dexMod}) {
@@ -29,10 +29,11 @@ for (const occupation of occupations) {
 const [weapon, setWeapon] = useState({ 
     weapon: [], 
   });
-  const [addWeapon, setAddWeapon] = useState({ 
+  const [addWeapon, setAddWeapon] = useState({
     weapon: "",
   });
   const [chosenWeapon, setChosenWeapon] = useState('');
+  const [notification, setNotification] = useState(null);
   const handleChosenWeaponChange = (e) => {
       setChosenWeapon(e.target.value);
   }; 
@@ -45,25 +46,29 @@ const [weapon, setWeapon] = useState({
   // Fetch Weapons
   useEffect(() => {
     async function fetchWeapons() {
-      const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
-  
-      if (!response.ok) {
-        const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
-        return;
+      try {
+        const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
+
+        if (!response.ok) {
+          const message = `An error has occurred: ${response.statusText}`;
+          setNotification({ message, variant: 'danger' });
+          return;
+        }
+
+        const record = await response.json();
+        if (!record) {
+          setNotification({ message: `Record not found`, variant: 'danger' });
+          navigate("/");
+          return;
+        }
+        setWeapon({ weapon: record });
+      } catch (error) {
+        setNotification({ message: error.message || String(error), variant: 'danger' });
       }
-  
-      const record = await response.json();
-      if (!record) {
-        window.alert(`Record not found`);
-        navigate("/");
-        return;
-      }
-      setWeapon({weapon: record});
     }
-    fetchWeapons();   
+    fetchWeapons();
     return;
-    
+
   }, [navigate, currentCampaign]);
   //  Sends weapon data to database for update
    const splitWeaponArr = (array, size) => {
@@ -88,20 +93,20 @@ const [weapon, setWeapon] = useState({
    }
    async function addWeaponToDb(e){
     e.preventDefault();
-    await apiFetch(`/equipment/update-weapon/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      weapon: newWeapon,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
-   navigate(0);
+    try {
+      await apiFetch(`/equipment/update-weapon/${params.id}`, {
+       method: "PUT",
+       headers: {
+         "Content-Type": "application/json",
+       },
+       body: JSON.stringify({
+        weapon: newWeapon,
+       }),
+     });
+     navigate(0);
+    } catch (error) {
+     setNotification({ message: error.message || String(error), variant: 'danger' });
+    }
   }
    // This method will delete a weapon
    function deleteWeapons(el) {
@@ -116,6 +121,8 @@ const [weapon, setWeapon] = useState({
     let newWeaponForm = form.weapon;
     if (JSON.stringify(form.weapon) === JSON.stringify([])){
       newWeaponForm = [["","","","","",""]];
+    }
+    try {
       await apiFetch(`/equipment/update-weapon/${params.id}`, {
         method: "PUT",
         headers: {
@@ -124,30 +131,12 @@ const [weapon, setWeapon] = useState({
         body: JSON.stringify({
          weapon: newWeaponForm,
         }),
-      })
-      .catch(error => {
-        window.alert(error);
-        return;
       });
-      window.alert("Weapon Deleted")
+      setNotification({ message: "Weapon Deleted", variant: 'success' });
       navigate(0);
-    } else {
-    await apiFetch(`/equipment/update-weapon/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      weapon: newWeaponForm,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
-   window.alert("Weapon Deleted")
-   navigate(0);
-  }
+    } catch (error) {
+      setNotification({ message: error.message || String(error), variant: 'danger' });
+    }
   }
 return(
     <div>
@@ -159,6 +148,15 @@ return(
         <Card.Title className="modal-title">Weapons</Card.Title>
       </Card.Header>
       <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+        {notification && (
+          <Alert
+            variant={notification.variant}
+            onClose={() => setNotification(null)}
+            dismissible
+          >
+            {notification.message}
+          </Alert>
+        )}
         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
