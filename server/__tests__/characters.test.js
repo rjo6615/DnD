@@ -21,9 +21,13 @@ app.use((err, req, res, next) => {
 
 describe('Character routes', () => {
   test('add character success', async () => {
+    let captured;
     dbo.mockResolvedValue({
       collection: () => ({
-        insertOne: async () => ({ acknowledged: true })
+        insertOne: async (doc) => {
+          captured = doc;
+          return { acknowledged: true };
+        }
       })
     });
     const res = await request(app)
@@ -31,6 +35,7 @@ describe('Character routes', () => {
       .send({ token: 'alice', characterName: 'Hero', campaign: 'Camp1' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
+    expect(captured.allowedSkills).toEqual([]);
   });
 
   test('add character with array fields', async () => {
@@ -47,7 +52,16 @@ describe('Character routes', () => {
       token: 'alice',
       characterName: 'Hero',
       campaign: 'Camp1',
-      occupation: [{ Level: '1', Name: 'Scout' }],
+      occupation: [
+        {
+          Level: '1',
+          Name: 'Scout',
+          skills: {
+            acrobatics: { proficient: true },
+            stealth: { proficient: false }
+          }
+        }
+      ],
       feat: ['Power Attack'],
       weapon: ['Sword'],
       armor: ['Plate'],
@@ -59,7 +73,17 @@ describe('Character routes', () => {
     expect(res.status).toBe(200);
     expect(captured).toMatchObject({
       ...payload,
-      occupation: [{ Level: 1, Name: 'Scout' }]
+      occupation: [
+        {
+          Level: 1,
+          Name: 'Scout',
+          skills: {
+            acrobatics: { proficient: true },
+            stealth: { proficient: false }
+          }
+        }
+      ],
+      allowedSkills: ['acrobatics']
     });
     expect(Array.isArray(captured.feat)).toBe(true);
     expect(Array.isArray(captured.weapon)).toBe(true);
@@ -134,11 +158,20 @@ describe('Character routes', () => {
     expect(res.status).toBe(500);
   });
 
-  test('get character preserves array fields', async () => {
+  test('get character computes allowedSkills from occupations', async () => {
     const character = {
       token: 'alice',
       campaign: 'Camp1',
-      occupation: [{ Level: 1, Name: 'Scout' }],
+      occupation: [
+        {
+          Level: 1,
+          Name: 'Scout',
+          skills: {
+            acrobatics: { proficient: true },
+            stealth: { proficient: false }
+          }
+        }
+      ],
       feat: ['Power Attack'],
       weapon: ['Sword'],
       armor: ['Plate'],
@@ -151,9 +184,22 @@ describe('Character routes', () => {
     });
     const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
     expect(res.status).toBe(200);
+    expect(res.body.allowedSkills).toEqual(['acrobatics']);
     expect(res.body.occupation).toEqual(character.occupation);
     expect(Array.isArray(res.body.feat)).toBe(true);
     expect(Array.isArray(res.body.weapon)).toBe(true);
+  });
+
+  test('get character defaults allowedSkills to empty array', async () => {
+    const character = { token: 'alice', campaign: 'Camp1' };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => character
+      })
+    });
+    const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
+    expect(res.status).toBe(200);
+    expect(res.body.allowedSkills).toEqual([]);
   });
 
   test('get weapons success', async () => {
