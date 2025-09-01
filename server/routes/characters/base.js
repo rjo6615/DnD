@@ -44,6 +44,12 @@ module.exports = (router) => {
           ? result.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
           : 0;
         result.proficiencyBonus = proficiencyBonus(totalLevel);
+        result.proficiencyPoints = Array.isArray(result.occupation)
+          ? result.occupation.reduce(
+              (sum, o) => sum + (o.proficiencyPoints || 0),
+              0
+            )
+          : 0;
         if (!result.allowedSkills) {
           result.allowedSkills = collectAllowedSkills(result.occupation);
         }
@@ -71,6 +77,12 @@ module.exports = (router) => {
           allowedSkills:
             char.allowedSkills || collectAllowedSkills(char.occupation),
           proficiencyBonus: proficiencyBonus(totalLevel),
+          proficiencyPoints: Array.isArray(char.occupation)
+            ? char.occupation.reduce(
+                (sum, o) => sum + (o.proficiencyPoints || 0),
+                0
+              )
+            : 0,
         };
       });
       res.json(withBonus);
@@ -121,10 +133,16 @@ module.exports = (router) => {
         ? myobj.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
         : 0;
       myobj.proficiencyBonus = proficiencyBonus(totalLevel);
+      myobj.proficiencyPoints = Array.isArray(myobj.occupation)
+        ? myobj.occupation.reduce(
+            (sum, o) => sum + (o.proficiencyPoints || 0),
+            0
+          )
+        : 0;
 
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
-        res.json(result);
+        res.json({ ...result, proficiencyPoints: myobj.proficiencyPoints });
       } catch (err) {
         next(err);
       }
