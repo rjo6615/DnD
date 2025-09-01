@@ -28,6 +28,12 @@ export default function Skills({
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
+  const currentProficiencyCount = Object.values(form.skills || {}).filter(
+    (s) => s.proficient
+  ).length;
+  const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
+    (form.proficiencyPoints || 0) - currentProficiencyCount
+  );
 
   if (!form) {
     return <div>Loading...</div>;
@@ -80,10 +86,19 @@ export default function Skills({
         throw new Error('Network response was not ok');
       }
       const data = await res.json();
-      setSkills((prev) => ({
-        ...prev,
-        [skill]: { proficient: data.proficient, expertise: data.expertise },
-      }));
+      setSkills((prev) => {
+        const newSkills = {
+          ...prev,
+          [skill]: { proficient: data.proficient, expertise: data.expertise },
+        };
+        const proficientCount = Object.values(newSkills).filter(
+          (s) => s.proficient
+        ).length;
+        setProficiencyPointsLeft(
+          (form.proficiencyPoints || 0) - proficientCount
+        );
+        return newSkills;
+      });
     } catch (err) {
       console.error(err);
     }
@@ -92,6 +107,7 @@ export default function Skills({
   const toggleProficient = (skill) => {
     if (!selectableSkills.has(skill)) return;
     const current = skills[skill] || { proficient: false, expertise: false };
+    if (!current.proficient && proficiencyPointsLeft <= 0) return;
     const updated = {
       proficient: !current.proficient,
       expertise: current.proficient ? current.expertise : false,
@@ -99,6 +115,9 @@ export default function Skills({
     if (!updated.proficient) {
       updated.expertise = false;
     }
+    setProficiencyPointsLeft((prev) =>
+      updated.proficient ? prev - 1 : prev + 1
+    );
     updateSkill(skill, updated);
   };
 
@@ -125,6 +144,10 @@ export default function Skills({
           <Card.Title className="modal-title">Skills</Card.Title>
         </Card.Header>
         <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <div className="points-container" style={{ display: 'flex' }}>
+            <span className="points-label text-light">Points Left:</span>
+            <span className="points-value">{proficiencyPointsLeft}</span>
+          </div>
           <Table striped bordered hover size="sm" className="modern-table">
             <thead>
               <tr>
