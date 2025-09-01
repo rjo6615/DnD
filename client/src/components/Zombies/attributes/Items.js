@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
 
@@ -25,7 +25,9 @@ export default function Items({form, showItems, handleCloseItems}) {
   const [chosenItem, setChosenItem] = useState('');
   const handleChosenItemChange = (e) => {
       setChosenItem(e.target.value);
-  }; 
+  };
+  const [notification, setNotification] = useState({ message: '', variant: '' });
+  const handleCloseNotification = () => setNotification({ message: '', variant: '' });
   
   function updateItem(value) {
     return setAddItem((prev) => {
@@ -40,13 +42,13 @@ export default function Items({form, showItems, handleCloseItems}) {
   
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        setNotification({ message, variant: 'danger' });
         return;
       }
   
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
+        setNotification({ message: 'Record not found', variant: 'danger' });
         navigate("/");
         return;
       }
@@ -119,11 +121,11 @@ export default function Items({form, showItems, handleCloseItems}) {
         }),
       })
       .catch(error => {
-        window.alert(error);
+        setNotification({ message: error.message || error, variant: 'danger' });
         return;
       });
-      window.alert("Item Deleted")
-      navigate(0);
+      setNotification({ message: 'Item Deleted', variant: 'success' });
+      setTimeout(() => navigate(0), 2000);
     } else {
     await apiFetch(`/equipment/update-item/${params.id}`, {
      method: "PUT",
@@ -135,11 +137,11 @@ export default function Items({form, showItems, handleCloseItems}) {
      }),
    })
    .catch(error => {
-     window.alert(error);
+     setNotification({ message: error.message || error, variant: 'danger' });
      return;
    });
-   window.alert("Item Deleted")
-   navigate(0);
+   setNotification({ message: 'Item Deleted', variant: 'success' });
+   setTimeout(() => navigate(0), 2000);
   }
   }
 return(
@@ -152,6 +154,11 @@ return(
            <Card.Title className="modal-title">Items</Card.Title>
          </Card.Header>
          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+         {notification.message && (
+           <Alert variant={notification.variant} onClose={handleCloseNotification} dismissible>
+             {notification.message}
+           </Alert>
+         )}
          <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
@@ -265,5 +272,5 @@ return(
 </div>
 </Modal>
 </div>
-)
+  );
 }
