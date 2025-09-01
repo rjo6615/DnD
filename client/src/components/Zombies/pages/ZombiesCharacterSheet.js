@@ -150,9 +150,9 @@ export default function ZombiesCharacterSheet() {
 // ---------------------------------------Feats and bonuses----------------------------------------------
 const featBonuses = (form.feat || []).reduce(
   (acc, feat) => {
-    acc.initiative += Number(feat.initiativeBonus || 0);
-    acc.speed += Number(feat.speedBonus || 0);
-    acc.acBonus += Number(feat.acBonus || 0);
+    acc.initiative += Number(feat.initiative || 0);
+    acc.speed += Number(feat.speed || 0);
+    acc.ac += Number(feat.ac || 0);
     acc.hpMaxBonus += Number(feat.hpMaxBonus || 0);
     acc.hpMaxBonusPerLevel += Number(feat.hpMaxBonusPerLevel || 0);
     return acc;
@@ -160,7 +160,7 @@ const featBonuses = (form.feat || []).reduce(
   {
     initiative: 0,
     speed: 0,
-    acBonus: 0,
+    ac: 0,
     hpMaxBonus: 0,
     hpMaxBonusPerLevel: 0,
   }
@@ -229,9 +229,9 @@ return (
           conMod={statMods.con}
           wisMod={statMods.wis}
           intMod={statMods.int}
-          initiativeBonus={featBonuses.initiative}
-          speedBonus={featBonuses.speed}
-          acBonus={featBonuses.acBonus}
+          initiative={featBonuses.initiative}
+          speed={featBonuses.speed}
+          ac={featBonuses.ac}
           hpMaxBonus={featBonuses.hpMaxBonus}
           hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
         />
