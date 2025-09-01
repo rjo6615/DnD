@@ -263,7 +263,12 @@ export default function Feats({ form, showFeats, handleCloseFeats, totalLevel })
                   <Form onSubmit={addFeatToDb}>
                     <Form.Group className="mb-3 mx-5">
                       <Form.Label className="text-dark">Select Feat</Form.Label>
-                      <Form.Select onChange={handleSelectFeat} defaultValue="" type="text">
+                      <Form.Select
+                        onChange={handleSelectFeat}
+                        defaultValue=""
+                        type="text"
+                        style={{ maxHeight: '200px', overflowY: 'auto' }}
+                      >
                         <option value="" disabled>
                           Select your feat
                         </option>
