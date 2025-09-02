@@ -93,66 +93,27 @@ export default function LevelUp({ show, handleClose, form }) {
       setError('');
       setNotification('');
       const selectedAddOccupation = selectedAddOccupationRef.current.value;
-      const selectedAddOccupationObject = getOccupation.find(
-        (occupation) => occupation.Occupation === selectedAddOccupation
-      );
-
-      const addOccupationHealth = Math.floor(Math.random() * Number(selectedAddOccupationObject.Health)) + 1 + Number(form.health);
-      const addOccupationStrTotal = Number(selectedAddOccupationObject.str) + Number(form.str);
-      const addOccupationDexTotal = Number(selectedAddOccupationObject.dex) + Number(form.dex);
-      const addOccupationConTotal = Number(selectedAddOccupationObject.con) + Number(form.con);
-      const addOccupationIntTotal = Number(selectedAddOccupationObject.int) + Number(form.int);
-      const addOccupationWisTotal = Number(selectedAddOccupationObject.wis) + Number(form.wis);
-      const addOccupationChaTotal = Number(selectedAddOccupationObject.cha) + Number(form.cha);
-
-      const addOccupationStr = Number(selectedAddOccupationObject.str);
-      const addOccupationDex = Number(selectedAddOccupationObject.dex);
-      const addOccupationCon = Number(selectedAddOccupationObject.con);
-      const addOccupationInt = Number(selectedAddOccupationObject.int);
-      const addOccupationWis = Number(selectedAddOccupationObject.wis);
-      const addOccupationCha = Number(selectedAddOccupationObject.cha);
-
-      const totalNewStats = addOccupationStr + addOccupationDex + addOccupationCon + addOccupationInt
-        + addOccupationWis + addOccupationCha;
-
-      const newStartStatTotal = Number(totalNewStats) + Number(form.startStatTotal);
-
-      // Push the selected occupation into form.occupation
-      form.occupation.push(selectedOccupation);
-
       try {
-        await apiFetch(`/characters/update-health/${params.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json", // Set content type to JSON
-          },
-          body: JSON.stringify({
-            health: addOccupationHealth,
-            str: addOccupationStrTotal,
-            dex: addOccupationDexTotal,
-            con: addOccupationConTotal,
-            int: addOccupationIntTotal,
-            wis: addOccupationWisTotal,
-            cha: addOccupationChaTotal,
-            startStatTotal: newStartStatTotal
-          }), // Send as a JSON object
-        });
-
-        await apiFetch(`/characters/update-occupations/${params.id}`, {
-          method: "PUT",
+        const response = await apiFetch(`/characters/multiclass/${params.id}`, {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(form.occupation), // Send the array directly
+          body: JSON.stringify({ newOccupation: selectedAddOccupation }),
         });
-
-        setNotification("Database update complete");
-        navigate(0);
+        const data = await response.json();
+        if (response.ok) {
+          setNotification('Database update complete');
+          navigate(0);
+        } else if (response.status === 400) {
+          setValidationError(data.message || 'Multiclass validation failed');
+        } else {
+          setError(data.message || 'Database update failed');
+        }
       } catch (err) {
         console.error(err);
         setError('Database update failed');
       }
-
       setShowAddClassModal(false);
     } else {
       setValidationError('Please select an occupation.');

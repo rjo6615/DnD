@@ -3,6 +3,7 @@ const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const logger = require('../../utils/logger');
 const { skillNames } = require('../fieldConstants');
+const { applyMulticlass } = require('../../utils/multiclass');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -44,17 +45,22 @@ module.exports = (router) => {
   // Apply authentication to all character routes after occupations
   characterRouter.use(authenticateToken);
 
-  // This section will update occupations.
-  characterRouter.route('/update-occupations/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-
+  // Apply a new occupation to a character (multiclassing)
+  characterRouter.route('/multiclass/:id').post(async (req, res, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const { newOccupation } = req.body || {};
+    if (typeof newOccupation !== 'string' || !newOccupation.trim()) {
+      return res.status(400).json({ message: 'newOccupation is required' });
+    }
     try {
-      await db_connect.collection('Characters').updateOne(id, {
-        $set: { occupation: req.body },
-      });
-      logger.info('Character occupations updated');
-      res.json({ message: 'User updated successfully' });
+      const result = await applyMulticlass(req.params.id, newOccupation);
+      if (!result.allowed) {
+        return res.status(400).json({ message: result.message });
+      }
+      logger.info('Character multiclass applied');
+      res.json(result);
     } catch (error) {
       logger.error(error);
       next(error);
