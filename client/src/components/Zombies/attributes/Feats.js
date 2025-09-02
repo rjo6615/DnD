@@ -19,6 +19,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
   const [chosenFeat, setChosenFeat] = useState('');
   const [selectedFeatData, setSelectedFeatData] = useState(null);
   const [abilitySelections, setAbilitySelections] = useState({});
+  const [skillSelections, setSkillSelections] = useState([]);
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
     const featObj = feat.feat.find((f) => f.featName === featName);
     setSelectedFeatData(featObj || null);
     setAbilitySelections({});
+    const existingFeat = form.feat.find((f) => f.featName === featName);
     if (featObj) {
       const baseFeat = {
         featName: featObj.featName,
@@ -53,8 +55,11 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       baseFeat.int = featObj.int ?? 0;
       baseFeat.wis = featObj.wis ?? 0;
       baseFeat.cha = featObj.cha ?? 0;
+      baseFeat.skills = existingFeat?.skills || {};
+      setSkillSelections(Object.keys(baseFeat.skills));
       setAddFeat(baseFeat);
     } else {
+      setSkillSelections([]);
       setAddFeat(null);
     }
   };
@@ -73,6 +78,20 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       setAddFeat((prevFeat) => ({ ...prevFeat, ...abilityBonus }));
       return newSelections;
     });
+  };
+
+  const handleSkillChoice = (e) => {
+    if (!selectedFeatData?.skillChoiceCount) return;
+    let selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+    if (selected.length > selectedFeatData.skillChoiceCount) {
+      selected = selected.slice(0, selectedFeatData.skillChoiceCount);
+    }
+    const skillsObj = selected.reduce((acc, key) => {
+      acc[key] = { proficient: true };
+      return acc;
+    }, {});
+    setSkillSelections(selected);
+    setAddFeat((prev) => ({ ...prev, skills: skillsObj }));
   };
 
   // ---------------------------------------Feats left-----------------------------------------------------
@@ -216,6 +235,14 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                       <td style={{ display: showDeleteFeatBtn }}>
                         {(() => {
                           const skillValues = [];
+                          if (el.skills) {
+                            Object.keys(el.skills).forEach((key) => {
+                              const skill = SKILLS.find((s) => s.key === key);
+                              if (skill) {
+                                skillValues.push(`${skill.label}: proficient`);
+                              }
+                            });
+                          }
                           SKILLS.forEach(({ label, key }) => {
                             const val = el[key];
                             if (val && val !== "0" && val !== "") {
@@ -336,12 +363,37 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                         );
                       })}
 
+                    {selectedFeatData?.skillChoiceCount && (
+                      <Form.Group className="mb-3 mx-5">
+                        <Form.Label className="text-light">
+                          Skill Proficiencies
+                        </Form.Label>
+                        <Form.Select
+                          multiple
+                          value={skillSelections}
+                          onChange={handleSkillChoice}
+                        >
+                          {SKILLS.map(({ key, label }) => (
+                            <option key={key} value={key}>
+                              {label}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Form.Text className="text-light">
+                          Select up to {selectedFeatData.skillChoiceCount}
+                        </Form.Text>
+                      </Form.Group>
+                    )}
+
                     <Button
                       disabled={
                         !chosenFeat ||
                         (selectedFeatData?.abilityIncreaseOptions &&
                           Object.keys(abilitySelections).length !==
-                            selectedFeatData.abilityIncreaseOptions.length)
+                            selectedFeatData.abilityIncreaseOptions.length) ||
+                        (selectedFeatData?.skillChoiceCount &&
+                          skillSelections.length !==
+                            selectedFeatData.skillChoiceCount)
                       }
                       className="action-btn" type="submit"
                     >
