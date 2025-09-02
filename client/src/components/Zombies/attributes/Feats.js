@@ -111,7 +111,10 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       baseFeat.int = featObj.int ?? 0;
       baseFeat.wis = featObj.wis ?? 0;
       baseFeat.cha = featObj.cha ?? 0;
-      baseFeat.skills = existingFeat?.skills || {};
+      baseFeat.skills = featObj.skills || {};
+      if (existingFeat?.skills) {
+        baseFeat.skills = { ...baseFeat.skills, ...existingFeat.skills };
+      }
       setSkillSelections(Object.keys(baseFeat.skills));
       setAddFeat(baseFeat);
     } else {
@@ -151,7 +154,10 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       return acc;
     }, {});
     setSkillSelections(selected);
-    setAddFeat((prev) => ({ ...prev, skills: skillsObj }));
+    setAddFeat((prev) => ({
+      ...prev,
+      skills: { ...(prev.skills || {}), ...skillsObj },
+    }));
   };
 
   // ---------------------------------------Feats left-----------------------------------------------------
