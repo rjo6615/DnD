@@ -570,6 +570,10 @@ describe('Character routes', () => {
       .send({ newOccupation: 'Fighter' });
     expect(res.status).toBe(200);
     expect(captured.update.$set.health).toBe(11);
+    const occ = captured.update.$set.occupation[0];
+    expect(occ.skills.acrobatics).toEqual({ proficient: true, expertise: false });
+    expect(occ.proficiencyPoints).toBe(0);
+    expect(captured.update.$set.allowedSkills).toEqual(['acrobatics']);
     Math.random.mockRestore();
   });
 
