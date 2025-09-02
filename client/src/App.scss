@@ -275,6 +275,12 @@ $rotateX: -$angle;
   background-size: 70px;
 }
 
+#damageAmount.critical-active {
+  border: 2px solid #FFD700;
+  color: #FFD700;
+  box-shadow: 0 0 10px #FFD700;
+}
+
 #damageValue {
   padding-top: 5px;
   display: inline-block; /* Make the text an inline block */

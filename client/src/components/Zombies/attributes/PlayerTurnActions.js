@@ -194,25 +194,30 @@ const showSparklesEffect = () => {
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div style={{ marginTop: "-40px", paddingBottom: "80px" }}>
-    <div className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''}`} id="damageAmount" style={{margin: "0 auto"}}>
-      <span id="damageValue" className={loading ? 'hidden' : ''}>
-        {damageValue}
-      </span>
-      <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-    </div>
-<div style={{ 
-  display: "flex", 
-  justifyContent: "center", 
-  alignItems: "center", 
-  height: "100%", 
-  marginTop: "20px"
-}}>
-  <div style={{ 
-    display: "flex", 
-    flexDirection: "column", 
-    alignItems: "center", 
-    gap: "12px" 
-  }}>
+      <div
+        id="damageAmount"
+        onClick={handleToggle}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
+        style={{ margin: "0 auto", cursor: "pointer" }}
+      >
+        <span id="damageValue" className={loading ? 'hidden' : ''}>
+          {damageValue}
+        </span>
+        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+      </div>
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100%",
+        marginTop: "20px"
+      }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "12px"
+        }}>
     {/* Critical Hit Toggle (Above) */}
     <button
       onClick={handleToggle}
