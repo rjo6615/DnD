@@ -72,10 +72,15 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
   const [skillSelections, setSkillSelections] = useState([]);
   const [notification, setNotification] = useState(null);
 
-  const hasSkillChoice = Boolean(
-    selectedFeatData?.skillChoiceCount ||
-    selectedFeatData?.skillChoices ||
-    selectedFeatData?.skillOptions
+  const skillChoiceFields = [
+    'skillChoiceCount',
+    'skillChoices',
+    'skillOptions',
+    'skillChoice',
+    'skillProficiencies',
+  ];
+  const hasSkillChoice = skillChoiceFields.some(
+    (field) => selectedFeatData?.[field]
   );
 
   useEffect(() => {
