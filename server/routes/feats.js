@@ -23,6 +23,53 @@ module.exports = (router) => {
     'hpMaxBonusPerLevel',
   ];
 
+  const collectAllowedSkills = (occupation = [], feat = []) => {
+    const allowed = new Set();
+    if (Array.isArray(occupation)) {
+      occupation.forEach((occ) => {
+        if (occ && occ.skills && typeof occ.skills === 'object') {
+          Object.keys(occ.skills).forEach((skill) => {
+            if (occ.skills[skill] && occ.skills[skill].proficient) {
+              allowed.add(skill);
+            }
+          });
+        }
+      });
+    }
+    if (Array.isArray(feat)) {
+      feat.forEach((ft) => {
+        if (ft && ft.skills && typeof ft.skills === 'object') {
+          Object.keys(ft.skills).forEach((skill) => {
+            if (ft.skills[skill] && ft.skills[skill].proficient) {
+              allowed.add(skill);
+            }
+          });
+        }
+      });
+    }
+    return Array.from(allowed);
+  };
+
+  const extractFeatSkills = (feats = []) => {
+    const skills = {};
+    if (Array.isArray(feats)) {
+      feats.forEach((ft) => {
+        if (ft && ft.skills && typeof ft.skills === 'object') {
+          Object.keys(ft.skills).forEach((sk) => {
+            const info = ft.skills[sk];
+            if (info && (info.proficient || info.expertise)) {
+              skills[sk] = {
+                proficient: !!info.proficient,
+                expertise: !!info.expertise,
+              };
+            }
+          });
+        }
+      });
+    }
+    return skills;
+  };
+
   // Apply authentication to all feat routes
   featRouter.use(authenticateToken);
 
@@ -80,13 +127,48 @@ module.exports = (router) => {
 
   // This section will update feats.
   featRouter.route('/update/:id').put(async (req, res, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
+    const newFeats = Array.isArray(req.body.feat) ? req.body.feat : [];
+
     try {
-      await db_connect.collection("Characters").updateOne(id, {
-        $set: { 'feat': req.body.feat }
+      const character = await db_connect.collection('Characters').findOne(id);
+      if (!character) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const prevFeatSkills = extractFeatSkills(character.feat);
+      const newFeatSkills = extractFeatSkills(newFeats);
+      const allowedSkillsSet = new Set(
+        collectAllowedSkills(character.occupation, newFeats)
+      );
+
+      const updatedSkills = { ...(character.skills || {}) };
+
+      Object.entries(newFeatSkills).forEach(([skill, info]) => {
+        if (!updatedSkills[skill]) updatedSkills[skill] = {};
+        updatedSkills[skill].proficient = info.proficient;
+        updatedSkills[skill].expertise = info.expertise;
       });
-      logger.info("character feat updated");
+
+      Object.keys(prevFeatSkills).forEach((skill) => {
+        if (!allowedSkillsSet.has(skill) && updatedSkills[skill]) {
+          updatedSkills[skill].proficient = false;
+          updatedSkills[skill].expertise = false;
+        }
+      });
+
+      await db_connect.collection('Characters').updateOne(id, {
+        $set: {
+          feat: newFeats,
+          skills: updatedSkills,
+          allowedSkills: Array.from(allowedSkillsSet),
+        },
+      });
+      logger.info('character feat updated');
       res.json({ message: 'User updated successfully' });
     } catch (err) {
       next(err);

@@ -3,19 +3,31 @@ const express = require('express');
 const authenticateToken = require('../middleware/auth');
 const proficiencyBonus = require('../utils/proficiency');
 
-// Helper to determine allowed skills from occupations when not precomputed
-const collectAllowedSkills = (occupation) => {
-  if (!Array.isArray(occupation)) return [];
+// Helper to determine allowed skills from occupations and feats when not precomputed
+const collectAllowedSkills = (occupation = [], feat = []) => {
   const allowed = new Set();
-  occupation.forEach((occ) => {
-    if (occ && occ.skills && typeof occ.skills === 'object') {
-      Object.keys(occ.skills).forEach((sk) => {
-        if (occ.skills[sk] && occ.skills[sk].proficient) {
-          allowed.add(sk);
-        }
-      });
-    }
-  });
+  if (Array.isArray(occupation)) {
+    occupation.forEach((occ) => {
+      if (occ && occ.skills && typeof occ.skills === 'object') {
+        Object.keys(occ.skills).forEach((sk) => {
+          if (occ.skills[sk] && occ.skills[sk].proficient) {
+            allowed.add(sk);
+          }
+        });
+      }
+    });
+  }
+  if (Array.isArray(feat)) {
+    feat.forEach((ft) => {
+      if (ft && ft.skills && typeof ft.skills === 'object') {
+        Object.keys(ft.skills).forEach((sk) => {
+          if (ft.skills[sk] && ft.skills[sk].proficient) {
+            allowed.add(sk);
+          }
+        });
+      }
+    });
+  }
   return Array.from(allowed);
 };
 
@@ -72,7 +84,8 @@ module.exports = (router) => {
         return res.status(404).json({ message: 'Character not found' });
       }
 
-      const allowedSkills = charDoc.allowedSkills || collectAllowedSkills(charDoc.occupation);
+      const allowedSkills =
+        charDoc.allowedSkills || collectAllowedSkills(charDoc.occupation, charDoc.feat);
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
       }

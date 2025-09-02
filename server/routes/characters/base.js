@@ -7,18 +7,30 @@ const logger = require('../../utils/logger');
 const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
 
-const collectAllowedSkills = (occupation) => {
-  if (!Array.isArray(occupation)) return [];
+const collectAllowedSkills = (occupation = [], feat = []) => {
   const allowed = new Set();
-  occupation.forEach((occ) => {
-    if (occ && occ.skills && typeof occ.skills === 'object') {
-      Object.keys(occ.skills).forEach((skill) => {
-        if (occ.skills[skill] && occ.skills[skill].proficient) {
-          allowed.add(skill);
-        }
-      });
-    }
-  });
+  if (Array.isArray(occupation)) {
+    occupation.forEach((occ) => {
+      if (occ && occ.skills && typeof occ.skills === 'object') {
+        Object.keys(occ.skills).forEach((skill) => {
+          if (occ.skills[skill] && occ.skills[skill].proficient) {
+            allowed.add(skill);
+          }
+        });
+      }
+    });
+  }
+  if (Array.isArray(feat)) {
+    feat.forEach((ft) => {
+      if (ft && ft.skills && typeof ft.skills === 'object') {
+        Object.keys(ft.skills).forEach((skill) => {
+          if (ft.skills[skill] && ft.skills[skill].proficient) {
+            allowed.add(skill);
+          }
+        });
+      }
+    });
+  }
   return Array.from(allowed);
 };
 
@@ -50,7 +62,10 @@ module.exports = (router) => {
               0
             )
           : 0;
-        result.allowedSkills = collectAllowedSkills(result.occupation);
+        result.allowedSkills = collectAllowedSkills(
+          result.occupation,
+          result.feat
+        );
       }
       res.json(result);
     } catch (err) {
@@ -72,7 +87,7 @@ module.exports = (router) => {
           : 0;
         return {
           ...char,
-          allowedSkills: collectAllowedSkills(char.occupation),
+          allowedSkills: collectAllowedSkills(char.occupation, char.feat),
           proficiencyBonus: proficiencyBonus(totalLevel),
           proficiencyPoints: Array.isArray(char.occupation)
             ? char.occupation.reduce(
@@ -121,7 +136,7 @@ module.exports = (router) => {
           myobj.skills[skill] = { ...skillFields[skill] };
         });
       }
-      myobj.allowedSkills = collectAllowedSkills(myobj.occupation);
+      myobj.allowedSkills = collectAllowedSkills(myobj.occupation, myobj.feat);
 
       // derive proficiency bonus from total character level
       const totalLevel = Array.isArray(myobj.occupation)
