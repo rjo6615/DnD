@@ -17,6 +17,8 @@ import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 
+const HEADER_PADDING = 16;
+
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id; 
@@ -43,7 +45,7 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight + navHeight);
+      setHeaderHeight(headerRef.current.offsetHeight + navHeight + HEADER_PADDING);
     }
   }, [form, navHeight]);
 
@@ -200,78 +202,194 @@ for (const occupation of occupations) {
     }
   }
 }
-if (!form) {
-  return <div style={{ fontFamily: 'Raleway, sans-serif', background: "radial-gradient(circle, #1a1a2e, #16213e, #0f3460)", minHeight: "100vh" }}>Loading...</div>;
-}
 
 return (
-<div className="pt-3 text-center"
-  style={{
-    fontFamily: 'Raleway, sans-serif',
-    backgroundImage: `url(${loginbg})`,
-    minHeight: "100vh",
-    height: "100vh",
-    overflow: "hidden",
-    backgroundSize: "cover",
-    backgroundRepeat: "no-repeat",
-    paddingTop: navHeight
-  }}
->
-      <div ref={headerRef}>
+  <div
+    className="text-center"
+    style={{
+      fontFamily: 'Raleway, sans-serif',
+      backgroundImage: `url(${loginbg})`,
+      minHeight: "100vh",
+      height: "100vh",
+      overflow: "hidden",
+      backgroundSize: "cover",
+      backgroundRepeat: "no-repeat",
+      paddingTop: navHeight + HEADER_PADDING,
+    }}
+  >
+    <div ref={headerRef}>
       <h1
-  style={{
-    fontSize: "28px",
-    fontWeight: 600,
-    color: "#FFFFFF", 
-    padding: "8px 0",
-    textAlign: "center",
-    letterSpacing: "1px",
-    textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-    fontFamily: "'Merriweather', serif",
-    textTransform: "capitalize",
-    borderBottom: "2px solid #555", // Subtle underline for structure
-    display: "inline-block",
-  }}
-  className="mx-auto"
->
-  {form.characterName}
-</h1>
+        style={{
+          fontSize: "28px",
+          fontWeight: 600,
+          color: "#FFFFFF",
+          padding: "8px 0",
+          textAlign: "center",
+          letterSpacing: "1px",
+          textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
+          fontFamily: "'Merriweather', serif",
+          textTransform: "capitalize",
+          borderBottom: "2px solid #555", // Subtle underline for structure
+          display: "inline-block",
+        }}
+        className="mx-auto"
+      >
+        {form.characterName}
+      </h1>
 
-          <HealthDefense
-            form={form}
-            totalLevel={totalLevel}
-            dexMod={statMods.dex}
-            conMod={statMods.con}
-            initiative={featBonuses.initiative}
-            speed={featBonuses.speed}
-            ac={featBonuses.ac}
-            hpMaxBonus={featBonuses.hpMaxBonus}
-            hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-          />
-        </div>
-        <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str} headerHeight={headerHeight}/>
-        <Navbar fixed="bottom" data-bs-theme="dark" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-          <Container style={{ backgroundColor: 'transparent' }}>
-            <Nav className="me-auto mx-auto" style={{ backgroundColor: 'transparent' }}>
-              <Button onClick={handleShowCharacterInfo} style={{color: "black", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-image-portrait" variant="secondary"></Button>
-              <Button onClick={handleShowStats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D"}} className="mx-1 fas fa-scroll" variant="secondary"></Button>
-              <Button onClick={handleShowSkill} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: skillsGold}} className="mx-1 fas fa-book-open" variant="secondary"></Button>
-              <Button onClick={handleShowFeats} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: featsGold}} className="mx-1 fas fa-hand-fist" variant="secondary"></Button>
-              <Button onClick={handleShowWeapons} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-wand-sparkles" variant="secondary"></Button>
-              <Button onClick={handleShowArmor} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-shield" variant="secondary"></Button>   
-              <Button onClick={handleShowItems} style={{color: "black", padding: "8px", marginTop: "10px", backgroundColor: "#6C757D"}} className="mx-1 fas fa-briefcase" variant="secondary"></Button>  
-              <Button onClick={handleShowHelpModal} style={{color: "white", padding: "8px", marginTop: "10px"}} className="mx-1 fas fa-info" variant="primary"></Button>    
-            </Nav>
-          </Container>
-        </Navbar>
-        <CharacterInfo form={form} show={showCharacterInfo} handleClose={handleCloseCharacterInfo} />
-        <Skills form={form} showSkill={showSkill} handleCloseSkill={handleCloseSkill} totalLevel={totalLevel} strMod={statMods.str} dexMod={statMods.dex} conMod={statMods.con} intMod={statMods.int} chaMod={statMods.cha} wisMod={statMods.wis} onSkillsChange={(skills) => setForm(prev => ({ ...prev, skills }))} />
-        <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
-        <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
-        <Weapons form={form} showWeapons={showWeapons} handleCloseWeapons={handleCloseWeapons} strMod={statMods.str} dexMod={statMods.dex}/>
-        <Armor form={form} showArmor={showArmor} handleCloseArmor={handleCloseArmor} dexMod={statMods.dex} />
-        <Items form={form} showItems={showItems} handleCloseItems={handleCloseItems} />
-        <Help form={form} showHelpModal={showHelpModal} handleCloseHelpModal={handleCloseHelpModal} />
+      <HealthDefense
+        form={form}
+        totalLevel={totalLevel}
+        dexMod={statMods.dex}
+        conMod={statMods.con}
+        initiative={featBonuses.initiative}
+        speed={featBonuses.speed}
+        ac={featBonuses.ac}
+        hpMaxBonus={featBonuses.hpMaxBonus}
+        hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+      />
     </div>
-  );
+    <PlayerTurnActions
+      form={form}
+      atkBonus={atkBonus}
+      dexMod={statMods.dex}
+      strMod={statMods.str}
+      headerHeight={headerHeight}
+    />
+    <Navbar
+      fixed="bottom"
+      data-bs-theme="dark"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+    >
+      <Container style={{ backgroundColor: 'transparent' }}>
+        <Nav
+          className="me-auto mx-auto"
+          style={{ backgroundColor: 'transparent' }}
+        >
+          <Button
+            onClick={handleShowCharacterInfo}
+            style={{ color: "black", padding: "8px", marginTop: "10px" }}
+            className="mx-1 fas fa-image-portrait"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowStats}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
+            }}
+            className="mx-1 fas fa-scroll"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowSkill}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: skillsGold,
+            }}
+            className="mx-1 fas fa-book-open"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowFeats}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: featsGold,
+            }}
+            className="mx-1 fas fa-hand-fist"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowWeapons}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: "#6C757D",
+            }}
+            className="mx-1 fas fa-wand-sparkles"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowArmor}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: "#6C757D",
+            }}
+            className="mx-1 fas fa-shield"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowItems}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: "#6C757D",
+            }}
+            className="mx-1 fas fa-briefcase"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowHelpModal}
+            style={{ color: "white", padding: "8px", marginTop: "10px" }}
+            className="mx-1 fas fa-info"
+            variant="primary"
+          ></Button>
+        </Nav>
+      </Container>
+    </Navbar>
+    <CharacterInfo
+      form={form}
+      show={showCharacterInfo}
+      handleClose={handleCloseCharacterInfo}
+    />
+    <Skills
+      form={form}
+      showSkill={showSkill}
+      handleCloseSkill={handleCloseSkill}
+      totalLevel={totalLevel}
+      strMod={statMods.str}
+      dexMod={statMods.dex}
+      conMod={statMods.con}
+      intMod={statMods.int}
+      chaMod={statMods.cha}
+      wisMod={statMods.wis}
+      onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+    />
+    <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
+    <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
+    <Weapons
+      form={form}
+      showWeapons={showWeapons}
+      handleCloseWeapons={handleCloseWeapons}
+      strMod={statMods.str}
+      dexMod={statMods.dex}
+    />
+    <Armor
+      form={form}
+      showArmor={showArmor}
+      handleCloseArmor={handleCloseArmor}
+      dexMod={statMods.dex}
+    />
+    <Items
+      form={form}
+      showItems={showItems}
+      handleCloseItems={handleCloseItems}
+    />
+    <Help
+      form={form}
+      showHelpModal={showHelpModal}
+      handleCloseHelpModal={handleCloseHelpModal}
+    />
+  </div>
+);
 }
