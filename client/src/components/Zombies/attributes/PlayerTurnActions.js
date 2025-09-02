@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
-export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) { 
+export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, headerHeight = 0 }) {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
@@ -195,7 +195,7 @@ const showSparklesEffect = () => {
 };
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
-    <div style={{ marginTop: "-40px", paddingBottom: "80px" }}>
+    <div>
       <div
         id="damageAmount"
         onClick={handleToggle}
@@ -212,7 +212,7 @@ const showSparklesEffect = () => {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: `calc(100vh - ${FOOTER_HEIGHT}px)`
+          height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight}px)`
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
