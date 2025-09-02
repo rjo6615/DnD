@@ -218,55 +218,27 @@ const showSparklesEffect = () => {
           alignItems: "center",
           gap: "12px"
         }}>
-    {/* Critical Hit Toggle (Above) */}
-    <button
-      onClick={handleToggle}
-      style={{
-        width: "48px",
-        height: "48px",
-        borderRadius: "50%",
-        border: isGold ? "2px solid #FFD700" : "2px solid #B0B0B0",
-        backgroundColor: "#1e1e1e",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        transition: "all 0.3s ease",
-        boxShadow: isGold ? "0 0 10px #FFD700" : "none",
-      }}
-      title={isGold ? "Critical Hit Enabled" : "Toggle Critical Hit"}
-    >
-      <i
-        className={`fa-solid ${isGold ? "fa-bolt" : "fa-bolt-lightning"}`}
-        style={{
-          color: isGold ? "#FFD700" : "#B0B0B0",
-          fontSize: "22px",
-          transition: "color 0.3s ease",
-        }}
-      ></i>
-    </button>
-
-    {/* Attack Button (Below) */}
-    <button
-      onClick={handleShowAttack}
-      style={{
-        width: "64px",
-        height: "64px",
-        backgroundImage: `url(${sword})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        border: "none",
-        borderRadius: "12px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
-        transition: "transform 0.2s ease",
-        cursor: "pointer",
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-      onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-      title="Attack"
-    />
-  </div>
-</div>
+          {/* Attack Button */}
+          <button
+            onClick={handleShowAttack}
+            style={{
+              width: "64px",
+              height: "64px",
+              backgroundImage: `url(${sword})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              border: "none",
+              borderRadius: "12px",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
+              transition: "transform 0.2s ease",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+            onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            title="Attack"
+          />
+        </div>
+      </div>
 {/* Attack Modal */}
       <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
         <Card className="modern-card">
