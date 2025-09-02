@@ -46,7 +46,7 @@ module.exports = (router) => {
         result.proficiencyBonus = proficiencyBonus(totalLevel);
         result.proficiencyPoints = Array.isArray(result.occupation)
           ? result.occupation.reduce(
-              (sum, o) => sum + (o.proficiencyPoints || 0),
+              (sum, o) => sum + Number(o.proficiencyPoints || 0),
               0
             )
           : 0;
@@ -76,7 +76,7 @@ module.exports = (router) => {
           proficiencyBonus: proficiencyBonus(totalLevel),
           proficiencyPoints: Array.isArray(char.occupation)
             ? char.occupation.reduce(
-                (sum, o) => sum + (o.proficiencyPoints || 0),
+                (sum, o) => sum + Number(o.proficiencyPoints || 0),
                 0
               )
             : 0,
@@ -130,7 +130,7 @@ module.exports = (router) => {
       myobj.proficiencyBonus = proficiencyBonus(totalLevel);
       myobj.proficiencyPoints = Array.isArray(myobj.occupation)
         ? myobj.occupation.reduce(
-            (sum, o) => sum + (o.proficiencyPoints || 0),
+            (sum, o) => sum + Number(o.proficiencyPoints || 0),
             0
           )
         : 0;

@@ -91,7 +91,12 @@ async function applyMulticlass(characterId, newOccupation) {
   });
   delete occDoc.skillMod;
 
-  const occEntry = { ...occDoc, Level: 1, skills };
+  const occEntry = {
+    ...occDoc,
+    Level: 1,
+    skills,
+    proficiencyPoints: Number(occDoc.proficiencyPoints || 0),
+  };
   const hpGain = Math.floor(Math.random() * occDoc.Health) + 1;
   const newHealth = (character.health || 0) + hpGain;
 
