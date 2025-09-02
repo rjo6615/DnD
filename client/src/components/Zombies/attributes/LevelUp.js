@@ -104,6 +104,7 @@ export default function LevelUp({ show, handleClose, form }) {
         const data = await response.json();
         if (response.ok) {
           setNotification('Database update complete');
+          setShowAddClassModal(false);
           navigate(0);
         } else if (response.status === 400) {
           setValidationError(data.message || 'Multiclass validation failed');
@@ -114,7 +115,6 @@ export default function LevelUp({ show, handleClose, form }) {
         console.error(err);
         setError('Database update failed');
       }
-      setShowAddClassModal(false);
     } else {
       setValidationError('Please select an occupation.');
     }
@@ -158,21 +158,26 @@ export default function LevelUp({ show, handleClose, form }) {
                   {notification}
                 </Alert>
               )}
-              {error && (
-                <Alert variant="danger" onClose={() => setError('')} dismissible>
-                  {error}
-                </Alert>
-              )}
-              {/* Add occupation */}
-              <Form>
-                <Button className="action-btn" onClick={handleAddOccupationClick}>
-                  Add Occupation
-                </Button>
-                <Modal
+                {error && (
+                  <Alert variant="danger" onClose={() => setError('')} dismissible>
+                    {error}
+                  </Alert>
+                )}
+                {validationError && (
+                  <Alert variant="warning" onClose={() => setValidationError('')} dismissible>
+                    {validationError}
+                  </Alert>
+                )}
+                {/* Add occupation */}
+                <Form>
+                  <Button className="action-btn" onClick={handleAddOccupationClick}>
+                    Add Occupation
+                  </Button>
+                  <Modal
                   className="dnd-modal modern-modal"
                   centered
                   show={showAddClassModal}
-                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setValidationError(''); setError(''); setNotification(''); }}
+                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setError(''); setNotification(''); }}
                 >
                   <Card className="modern-card text-center">
                     <Card.Header className="modal-header">
@@ -213,12 +218,12 @@ export default function LevelUp({ show, handleClose, form }) {
                       {validationError && <div className="text-danger">{validationError}</div>}
                     </Card.Body>
                     <Card.Footer className="modal-footer">
-                        <Button
-                          className="action-btn close-btn"
-                          onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setValidationError(''); setError(''); setNotification(''); }}
-                        >
-                        Close
-                      </Button>
+                          <Button
+                            className="action-btn close-btn"
+                            onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setError(''); setNotification(''); }}
+                          >
+                          Close
+                        </Button>
                       <Button
                         className="action-btn save-btn"
                         onClick={handleConfirmClick}
