@@ -1,6 +1,7 @@
 const ObjectId = require('mongodb').ObjectId;
 const dbo = require('../db/conn');
 const { skillNames } = require('../routes/fieldConstants');
+const multiclassProficiencies = require('../data/multiclassProficiencies');
 
 const prereqs = {
   barbarian: { all: ['str'], min: 13 },
@@ -75,27 +76,23 @@ async function applyMulticlass(characterId, newOccupation) {
   const occDoc = await occupations.findOne({ Occupation: newOccupation });
   if (!occDoc) throw new Error('Occupation not found');
 
+  const granted = multiclassProficiencies[newOccupation.toLowerCase()] || [];
   const skills = {};
   skillNames.forEach((skill) => {
-    const rank = occDoc[skill];
-    let proficient = false;
-    let expertise = false;
-    if (typeof rank === 'number') {
-      proficient = rank > 0;
-      expertise = rank > 1;
-    } else if (occDoc.skills && occDoc.skills[skill]) {
-      ({ proficient = false, expertise = false } = occDoc.skills[skill]);
-    }
-    skills[skill] = { proficient, expertise };
+    skills[skill] = {
+      proficient: granted.includes(skill),
+      expertise: false,
+    };
     delete occDoc[skill];
   });
   delete occDoc.skillMod;
+  delete occDoc.proficiencyPoints;
 
   const occEntry = {
     ...occDoc,
     Level: 1,
     skills,
-    proficiencyPoints: Number(occDoc.proficiencyPoints || 0),
+    proficiencyPoints: 0,
   };
   const hpGain = Math.floor(Math.random() * occDoc.Health) + 1;
   const newHealth = (character.health || 0) + hpGain;
