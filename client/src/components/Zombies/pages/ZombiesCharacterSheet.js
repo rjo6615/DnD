@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
@@ -29,6 +29,15 @@ export default function ZombiesCharacterSheet() {
   const [showArmor, setShowArmor] = useState(false);
   const [showItems, setShowItems] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+
+  const headerRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useEffect(() => {
+    if (headerRef.current) {
+      setHeaderHeight(headerRef.current.offsetHeight);
+    }
+  }, [form]);
 
   useEffect(() => {
     async function fetchCharacterData(id) {
@@ -198,7 +207,7 @@ return (
     backgroundRepeat: "no-repeat"
   }}
 >
-      <div style={{paddingTop: '80px'}}>
+      <div ref={headerRef}>
       <h1
   style={{
     fontSize: "28px",
@@ -229,7 +238,8 @@ return (
             hpMaxBonus={featBonuses.hpMaxBonus}
             hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
           />
-        <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str}/>
+        </div>
+        <PlayerTurnActions form={form} atkBonus={atkBonus} dexMod={statMods.dex} strMod={statMods.str} headerHeight={headerHeight}/>
         <Navbar fixed="bottom" data-bs-theme="dark" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <Container style={{ backgroundColor: 'transparent' }}>
             <Nav className="me-auto mx-auto" style={{ backgroundColor: 'transparent' }}>
@@ -252,7 +262,6 @@ return (
         <Armor form={form} showArmor={showArmor} handleCloseArmor={handleCloseArmor} dexMod={statMods.dex} />
         <Items form={form} showItems={showItems} handleCloseItems={handleCloseItems} />
         <Help form={form} showHelpModal={showHelpModal} handleCloseHelpModal={handleCloseHelpModal} />
-      </div>
     </div>
   );
 }
