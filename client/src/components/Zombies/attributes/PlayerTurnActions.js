@@ -8,6 +8,8 @@ export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) {
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
 
+  const FOOTER_HEIGHT = 80;
+
 //--------------------------------------------Crit button toggle------------------------------------------------
 const [isGold, setIsGold] = useState(false);
 
@@ -205,19 +207,15 @@ const showSparklesEffect = () => {
         </span>
         <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
       </div>
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100%",
-        marginTop: "20px"
-      }}>
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "12px"
-        }}>
+      
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: `calc(100vh - ${FOOTER_HEIGHT}px)`
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
           {/* Attack Button */}
           <button
             onClick={handleShowAttack}
@@ -237,8 +235,30 @@ const showSparklesEffect = () => {
             title="Attack"
           />
         </div>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div className="content">
+            {showSparkles && (
+              <div className="sparkle"></div>
+            )}
+            {showSparkles1 && (
+              <div className="sparkle1"></div>
+            )}
+            <div onClick={handleRandomizeClick}
+    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
+      {faceElements}
+    </div>
+          </div>
+        </div>
       </div>
 {/* Attack Modal */}
+
       <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
         <Card className="modern-card">
           <Card.Header className="modal-header">
@@ -308,19 +328,6 @@ const showSparklesEffect = () => {
             </Card.Footer>
         </Card>
       </Modal>
-      {/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
-      <div className="content">
-    {showSparkles && (
-      <div className="sparkle"></div>
-    )}
-    {showSparkles1 && (
-      <div className="sparkle1"></div>
-    )}
-    <div onClick={handleRandomizeClick} 
-    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-      {faceElements}
     </div>
-</div>
-    </div>    
   );
 };
