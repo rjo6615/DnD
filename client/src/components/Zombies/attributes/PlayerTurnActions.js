@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
@@ -9,6 +9,16 @@ export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, hea
   const handleShowAttack = () => setShowAttack(true);
 
   const FOOTER_HEIGHT = 80;
+  const damageRef = useRef(null);
+  const [damageHeight, setDamageHeight] = useState(0);
+
+  useEffect(() => {
+    if (damageRef.current) {
+      const style = getComputedStyle(damageRef.current);
+      const margins = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+      setDamageHeight(damageRef.current.offsetHeight + margins);
+    }
+  }, []);
 
 //--------------------------------------------Crit button toggle------------------------------------------------
 const [isGold, setIsGold] = useState(false);
@@ -198,6 +208,7 @@ const showSparklesEffect = () => {
     <div>
       <div
         id="damageAmount"
+        ref={damageRef}
         onClick={handleToggle}
         className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
         style={{ margin: "0 auto", cursor: "pointer" }}
@@ -212,7 +223,7 @@ const showSparklesEffect = () => {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight}px)`
+          height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight + damageHeight}px)`
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
