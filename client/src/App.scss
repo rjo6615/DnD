@@ -130,7 +130,7 @@ $rotateX: -$angle;
   $translateLowerY: calc(#{$faceHeight} * 0.78 + #{$translateRingY});
 
   .content {
-    margin: auto auto;
+    margin: 0 auto;
     position: relative;
     width: $containerWidth;
     height: $containerHeight;
