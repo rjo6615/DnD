@@ -133,6 +133,15 @@ module.exports = (router) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     const newFeats = Array.isArray(req.body.feat) ? req.body.feat : [];
+    const incomingSkills = req.body.skills || {};
+    const featName = req.body.featName;
+
+    if (featName && newFeats.length) {
+      const featIndex = newFeats.findIndex((f) => f.featName === featName);
+      if (featIndex >= 0) {
+        newFeats[featIndex].skills = incomingSkills;
+      }
+    }
 
     try {
       const character = await db_connect.collection('Characters').findOne(id);

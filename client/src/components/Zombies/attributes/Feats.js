@@ -5,6 +5,56 @@ import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 
+// Tools and musical instruments that can be selected for proficiency.
+// This list is not exhaustive to every possible item in the game but
+// represents the common options a feat may allow a user to choose from.
+const TOOL_OPTIONS = [
+  { key: 'alchemistsSupplies', label: "Alchemist's Supplies" },
+  { key: 'brewersSupplies', label: "Brewer's Supplies" },
+  { key: 'calligraphersSupplies', label: "Calligrapher's Supplies" },
+  { key: 'carpentersTools', label: "Carpenter's Tools" },
+  { key: 'cartographersTools', label: "Cartographer's Tools" },
+  { key: 'cobblersTools', label: "Cobbler's Tools" },
+  { key: 'cooksUtensils', label: "Cook's Utensils" },
+  { key: 'glassblowersTools', label: "Glassblower's Tools" },
+  { key: 'jewelersTools', label: "Jeweler's Tools" },
+  { key: 'leatherworkersTools', label: "Leatherworker's Tools" },
+  { key: 'masonsTools', label: "Mason's Tools" },
+  { key: 'paintersSupplies', label: "Painter's Supplies" },
+  { key: 'pottersTools', label: "Potter's Tools" },
+  { key: 'smithsTools', label: "Smith's Tools" },
+  { key: 'tinkersTools', label: "Tinker's Tools" },
+  { key: 'weaversTools', label: "Weaver's Tools" },
+  { key: 'woodcarversTools', label: "Woodcarver's Tools" },
+  { key: 'disguiseKit', label: 'Disguise Kit' },
+  { key: 'forgeryKit', label: 'Forgery Kit' },
+  { key: 'herbalismKit', label: 'Herbalism Kit' },
+  { key: 'navigatorTools', label: "Navigator's Tools" },
+  { key: 'poisonersKit', label: "Poisoner's Kit" },
+  { key: 'thievesTools', label: "Thieves' Tools" },
+  { key: 'landVehicles', label: 'Vehicles (Land)' },
+  { key: 'waterVehicles', label: 'Vehicles (Water)' },
+  { key: 'diceSet', label: 'Gaming Set (Dice)' },
+  { key: 'dragonchessSet', label: 'Gaming Set (Dragonchess)' },
+  { key: 'playingCardSet', label: 'Gaming Set (Playing Cards)' },
+  { key: 'bagpipes', label: 'Bagpipes' },
+  { key: 'drum', label: 'Drum' },
+  { key: 'dulcimer', label: 'Dulcimer' },
+  { key: 'flute', label: 'Flute' },
+  { key: 'lute', label: 'Lute' },
+  { key: 'lyre', label: 'Lyre' },
+  { key: 'horn', label: 'Horn' },
+  { key: 'panFlute', label: 'Pan Flute' },
+  { key: 'shawm', label: 'Shawm' },
+  { key: 'viol', label: 'Viol' },
+];
+
+// Combine skills and tools into a single list for selection components.
+const ALL_SKILLS = [...SKILLS, ...TOOL_OPTIONS];
+
+// Maximum number of selectable proficiencies a feat may grant.
+const SKILL_SELECT_LIMIT = 3;
+
 export default function Feats({ form, showFeats, handleCloseFeats }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -21,6 +71,12 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
   const [abilitySelections, setAbilitySelections] = useState({});
   const [skillSelections, setSkillSelections] = useState([]);
   const [notification, setNotification] = useState(null);
+
+  const hasSkillChoice = Boolean(
+    selectedFeatData?.skillChoiceCount ||
+    selectedFeatData?.skillChoices ||
+    selectedFeatData?.skillOptions
+  );
 
   useEffect(() => {
     if (notification) {
@@ -81,10 +137,14 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
   };
 
   const handleSkillChoice = (e) => {
-    if (!selectedFeatData?.skillChoiceCount) return;
+    // Determine if the selected feat allows the user to pick proficiencies.
+    const limit = Math.min(
+      selectedFeatData?.skillChoiceCount || SKILL_SELECT_LIMIT,
+      SKILL_SELECT_LIMIT
+    );
     let selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-    if (selected.length > selectedFeatData.skillChoiceCount) {
-      selected = selected.slice(0, selectedFeatData.skillChoiceCount);
+    if (selected.length > limit) {
+      selected = selected.slice(0, limit);
     }
     const skillsObj = selected.reduce((acc, key) => {
       acc[key] = { proficient: true };
@@ -145,6 +205,8 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       },
       body: JSON.stringify({
         feat: updatedFeats,
+        skills: addFeat.skills || {},
+        featName: addFeat.featName,
       }),
     }).catch((error) => {
       setNotification({ variant: 'danger', message: error.toString() });
@@ -237,10 +299,9 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                           const skillValues = [];
                           if (el.skills) {
                             Object.keys(el.skills).forEach((key) => {
-                              const skill = SKILLS.find((s) => s.key === key);
-                              if (skill) {
-                                skillValues.push(`${skill.label}: proficient`);
-                              }
+                              const skill = ALL_SKILLS.find((s) => s.key === key);
+                              const label = skill ? skill.label : key;
+                              skillValues.push(`${label}: proficient`);
                             });
                           }
                           SKILLS.forEach(({ label, key }) => {
@@ -363,24 +424,24 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                         );
                       })}
 
-                    {selectedFeatData?.skillChoiceCount && (
+                    {hasSkillChoice && (
                       <Form.Group className="mb-3 mx-5">
                         <Form.Label className="text-light">
-                          Skill Proficiencies
+                          Skill/Tool Proficiencies
                         </Form.Label>
                         <Form.Select
                           multiple
                           value={skillSelections}
                           onChange={handleSkillChoice}
                         >
-                          {SKILLS.map(({ key, label }) => (
+                          {ALL_SKILLS.map(({ key, label }) => (
                             <option key={key} value={key}>
                               {label}
                             </option>
                           ))}
                         </Form.Select>
                         <Form.Text className="text-light">
-                          Select up to {selectedFeatData.skillChoiceCount}
+                          Select up to {Math.min(selectedFeatData?.skillChoiceCount || SKILL_SELECT_LIMIT, SKILL_SELECT_LIMIT)}
                         </Form.Text>
                       </Form.Group>
                     )}
@@ -391,9 +452,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                         (selectedFeatData?.abilityIncreaseOptions &&
                           Object.keys(abilitySelections).length !==
                             selectedFeatData.abilityIncreaseOptions.length) ||
-                        (selectedFeatData?.skillChoiceCount &&
-                          skillSelections.length !==
-                            selectedFeatData.skillChoiceCount)
+                        (hasSkillChoice && skillSelections.length === 0)
                       }
                       className="action-btn" type="submit"
                     >
