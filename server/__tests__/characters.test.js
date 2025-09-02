@@ -597,4 +597,62 @@ describe('Character routes', () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/STR or DEX 13/);
   });
+
+  test('update feat with skills updates character', async () => {
+    let captured;
+    const character = {
+      occupation: [],
+      feat: [],
+      skills: { acrobatics: { proficient: false, expertise: false } },
+      allowedSkills: [],
+    };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => character,
+        updateOne: async (filter, update) => {
+          captured = update;
+          return { modifiedCount: 1 };
+        },
+      }),
+    });
+    const newFeat = [
+      { featName: 'Agile', skills: { acrobatics: { proficient: true } } },
+    ];
+    const res = await request(app)
+      .put('/feats/update/507f1f77bcf86cd799439011')
+      .send({ feat: newFeat });
+    expect(res.status).toBe(200);
+    expect(captured.$set.feat).toEqual(newFeat);
+    expect(captured.$set.skills.acrobatics.proficient).toBe(true);
+    expect(captured.$set.allowedSkills).toEqual(['acrobatics']);
+  });
+
+  test('removing feat strips granted skills', async () => {
+    let captured;
+    const character = {
+      occupation: [],
+      feat: [
+        { featName: 'Agile', skills: { acrobatics: { proficient: true } } },
+      ],
+      skills: { acrobatics: { proficient: true, expertise: false } },
+      allowedSkills: ['acrobatics'],
+    };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => character,
+        updateOne: async (filter, update) => {
+          captured = update;
+          return { modifiedCount: 1 };
+        },
+      }),
+    });
+
+    const res = await request(app)
+      .put('/feats/update/507f1f77bcf86cd799439011')
+      .send({ feat: [] });
+    expect(res.status).toBe(200);
+    expect(captured.$set.feat).toEqual([]);
+    expect(captured.$set.allowedSkills).toEqual([]);
+    expect(captured.$set.skills.acrobatics.proficient).toBe(false);
+  });
 });
