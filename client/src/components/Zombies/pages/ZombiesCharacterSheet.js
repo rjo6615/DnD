@@ -32,12 +32,20 @@ export default function ZombiesCharacterSheet() {
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const [navHeight, setNavHeight] = useState(0);
+
+  useEffect(() => {
+    const nav = document.querySelector('.navbar.fixed-top');
+    if (nav) {
+      setNavHeight(nav.offsetHeight);
+    }
+  }, []);
 
   useEffect(() => {
     if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
+      setHeaderHeight(headerRef.current.offsetHeight + navHeight);
     }
-  }, [form]);
+  }, [form, navHeight]);
 
   useEffect(() => {
     async function fetchCharacterData(id) {
@@ -202,9 +210,11 @@ return (
     fontFamily: 'Raleway, sans-serif',
     backgroundImage: `url(${loginbg})`,
     minHeight: "100vh",
-    paddingBottom: "70px",
-    backgroundSize: "cover", 
-    backgroundRepeat: "no-repeat"
+    height: "100vh",
+    overflow: "hidden",
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+    paddingTop: navHeight
   }}
 >
       <div ref={headerRef}>
