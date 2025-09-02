@@ -228,10 +228,9 @@ const showSparklesEffect = () => {
               backgroundSize: "cover",
               backgroundPosition: "center",
               border: "none",
-              borderRadius: "12px",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
               transition: "transform 0.2s ease",
               cursor: "pointer",
+              backgroundColor: 'transparent',
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
             onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
