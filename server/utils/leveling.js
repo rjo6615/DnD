@@ -21,6 +21,19 @@ function calculateFeatSlots(className = '', level = 0) {
 }
 
 /**
+ * Calculate the total number of feat slots across multiple occupations.
+ * @param {Array} occupations - Array of occupations with className and level.
+ * @returns {number} Total feat slots for all occupations.
+ */
+function calculateTotalFeatSlots(occupations = []) {
+  if (!Array.isArray(occupations)) return 0;
+  return occupations.reduce((total, occ) => {
+    const { className = '', level = 0 } = occ || {};
+    return total + calculateFeatSlots(className, level);
+  }, 0);
+}
+
+/**
  * Calculate available stat points from leveling.
  * Currently characters do not gain stat points from leveling alone.
  * @returns {number} Always returns 0.
@@ -29,4 +42,8 @@ function calculateStatPoints() {
   return 0;
 }
 
-module.exports = { calculateFeatSlots, calculateStatPoints };
+module.exports = {
+  calculateFeatSlots,
+  calculateTotalFeatSlots,
+  calculateStatPoints,
+};
