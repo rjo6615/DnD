@@ -544,4 +544,53 @@ describe('Character routes', () => {
       .send({ feat: 'Power Attack' });
     expect(res.status).toBe(400);
   });
+
+  test('multiclass success', async () => {
+    let captured;
+    const character = { health: 10, occupation: [], str: 14 };
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return {
+            findOne: async () => character,
+            updateOne: async (filter, update) => {
+              captured = { filter, update };
+              return { modifiedCount: 1 };
+            },
+          };
+        }
+        return {
+          findOne: async () => ({ Occupation: 'Fighter', Health: 10, acrobatics: 1 }),
+        };
+      },
+    });
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+    const res = await request(app)
+      .post('/characters/multiclass/507f1f77bcf86cd799439011')
+      .send({ newOccupation: 'Fighter' });
+    expect(res.status).toBe(200);
+    expect(captured.update.$set.health).toBe(11);
+    Math.random.mockRestore();
+  });
+
+  test('multiclass ability failure', async () => {
+    const character = { health: 10, occupation: [], str: 10, dex: 10 };
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return {
+            findOne: async () => character,
+          };
+        }
+        return {
+          findOne: async () => ({ Occupation: 'Fighter', Health: 10 }),
+        };
+      },
+    });
+    const res = await request(app)
+      .post('/characters/multiclass/507f1f77bcf86cd799439011')
+      .send({ newOccupation: 'Fighter' });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/STR or DEX 13/);
+  });
 });
