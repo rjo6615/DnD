@@ -13,6 +13,7 @@ const characterHealth = require('./characters/health');
 const skills = require('./skills');
 const feats = require('./feats');
 const equipment = require('./equipment');
+const races = require('./races');
 
 routes.use(async (req, res, next) => {
   try {
@@ -26,6 +27,7 @@ routes.use(async (req, res, next) => {
 auth(routes);
 users(routes);
 campaigns(routes);
+races(routes);
 // Register occupations routes before generic ID-based routes to ensure
 // "/characters/occupations" is matched correctly.
 characterOccupations(routes);

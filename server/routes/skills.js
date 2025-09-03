@@ -4,7 +4,7 @@ const authenticateToken = require('../middleware/auth');
 const proficiencyBonus = require('../utils/proficiency');
 
 // Helper to determine allowed skills from occupations and feats when not precomputed
-const collectAllowedSkills = (occupation = [], feat = []) => {
+const collectAllowedSkills = (occupation = [], feat = [], race) => {
   const allowed = new Set();
   if (Array.isArray(occupation)) {
     occupation.forEach((occ) => {
@@ -25,6 +25,13 @@ const collectAllowedSkills = (occupation = [], feat = []) => {
             allowed.add(sk);
           }
         });
+      }
+    });
+  }
+  if (race && race.skills && typeof race.skills === 'object') {
+    Object.keys(race.skills).forEach((sk) => {
+      if (race.skills[sk] && race.skills[sk].proficient) {
+        allowed.add(sk);
       }
     });
   }
@@ -85,7 +92,7 @@ module.exports = (router) => {
       }
 
       const allowedSkills =
-        charDoc.allowedSkills || collectAllowedSkills(charDoc.occupation, charDoc.feat);
+        charDoc.allowedSkills || collectAllowedSkills(charDoc.occupation, charDoc.feat, charDoc.race);
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
       }

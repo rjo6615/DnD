@@ -7,7 +7,7 @@ const logger = require('../../utils/logger');
 const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
 
-const collectAllowedSkills = (occupation = [], feat = []) => {
+const collectAllowedSkills = (occupation = [], feat = [], race) => {
   const allowed = new Set();
   if (Array.isArray(occupation)) {
     occupation.forEach((occ) => {
@@ -31,6 +31,13 @@ const collectAllowedSkills = (occupation = [], feat = []) => {
       }
     });
   }
+  if (race && race.skills && typeof race.skills === 'object') {
+    Object.keys(race.skills).forEach((skill) => {
+      if (race.skills[skill] && race.skills[skill].proficient) {
+        allowed.add(skill);
+      }
+    });
+  }
   return Array.from(allowed);
 };
 
@@ -48,6 +55,13 @@ const countFeatProficiencies = (feat = []) => {
     });
   }
   return profs.size;
+};
+
+const countRaceProficiencies = (race) => {
+  if (race && race.skills && typeof race.skills === 'object') {
+    return Object.values(race.skills).filter((s) => s && s.proficient).length;
+  }
+  return 0;
 };
 
 module.exports = (router) => {
@@ -79,10 +93,12 @@ module.exports = (router) => {
             )
           : 0;
         const featPoints = countFeatProficiencies(result.feat);
-        result.proficiencyPoints = occupationPoints + featPoints;
+        const racePoints = countRaceProficiencies(result.race);
+        result.proficiencyPoints = occupationPoints + featPoints + racePoints;
         result.allowedSkills = collectAllowedSkills(
           result.occupation,
-          result.feat
+          result.feat,
+          result.race
         );
       }
       res.json(result);
@@ -112,9 +128,9 @@ module.exports = (router) => {
         const featPoints = countFeatProficiencies(char.feat);
         return {
           ...char,
-          allowedSkills: collectAllowedSkills(char.occupation, char.feat),
+          allowedSkills: collectAllowedSkills(char.occupation, char.feat, char.race),
           proficiencyBonus: proficiencyBonus(totalLevel),
-          proficiencyPoints: occupationPoints + featPoints,
+          proficiencyPoints: occupationPoints + featPoints + countRaceProficiencies(char.race),
         };
       });
       res.json(withBonus);
@@ -136,6 +152,7 @@ module.exports = (router) => {
       body('occupation').optional().isArray(),
       body('occupation.*.Level').isInt().toInt(),
       body('feat').optional().isArray(),
+      body('race').optional().isObject(),
       body('weapon').optional().isArray(),
       body('armor').optional().isArray(),
       body('item').optional().isArray(),
@@ -156,7 +173,7 @@ module.exports = (router) => {
           myobj.skills[skill] = { ...skillFields[skill] };
         });
       }
-      myobj.allowedSkills = collectAllowedSkills(myobj.occupation, myobj.feat);
+      myobj.allowedSkills = collectAllowedSkills(myobj.occupation, myobj.feat, myobj.race);
 
       // derive proficiency bonus from total character level
       const totalLevel = Array.isArray(myobj.occupation)
@@ -170,7 +187,18 @@ module.exports = (router) => {
           )
         : 0;
       const featPoints = countFeatProficiencies(myobj.feat);
-      myobj.proficiencyPoints = occupationPoints + featPoints;
+      const racePoints = countRaceProficiencies(myobj.race);
+      myobj.proficiencyPoints = occupationPoints + featPoints + racePoints;
+      if (myobj.race && myobj.race.speed != null) {
+        myobj.speed = myobj.race.speed;
+      }
+      if (myobj.race && myobj.race.skills) {
+        Object.keys(myobj.race.skills).forEach((skill) => {
+          if (!myobj.skills[skill]) myobj.skills[skill] = { ...skillFields[skill] };
+          myobj.skills[skill].proficient = myobj.race.skills[skill].proficient;
+          myobj.skills[skill].expertise = myobj.race.skills[skill].expertise || false;
+        });
+      }
 
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
@@ -296,6 +324,82 @@ module.exports = (router) => {
         );
         logger.info('Feats updated');
         res.json({ message: 'Feats updated' });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  // This section will update race.
+  characterRouter.route('/:id/race').put(
+    [body('race').isObject().withMessage('race must be an object')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const db_connect = req.db;
+      const newRace = matchedData(req, { locations: ['body'] }).race;
+      try {
+        const character = await db_connect
+          .collection('Characters')
+          .findOne({ _id: ObjectId(req.params.id) });
+        if (!character) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+
+        const allowedSkillsSet = new Set(
+          collectAllowedSkills(character.occupation, character.feat, newRace)
+        );
+        const updatedSkills = { ...(character.skills || {}) };
+
+        // Apply new race proficiencies
+        if (newRace.skills) {
+          Object.keys(newRace.skills).forEach((sk) => {
+            if (!updatedSkills[sk]) updatedSkills[sk] = { ...skillFields[sk] };
+            updatedSkills[sk].proficient = newRace.skills[sk].proficient;
+            updatedSkills[sk].expertise = newRace.skills[sk].expertise || false;
+          });
+        }
+
+        // Remove proficiencies no longer allowed
+        Object.keys(updatedSkills).forEach((sk) => {
+          if (!allowedSkillsSet.has(sk)) {
+            updatedSkills[sk].proficient = false;
+            updatedSkills[sk].expertise = false;
+          }
+        });
+
+        const occupationPoints = Array.isArray(character.occupation)
+          ? character.occupation.reduce(
+              (sum, o) => sum + Number(o.proficiencyPoints || 0),
+              0
+            )
+          : 0;
+        const featPoints = countFeatProficiencies(character.feat);
+        const racePoints = countRaceProficiencies(newRace);
+        const newProficiencyPoints = occupationPoints + featPoints + racePoints;
+
+        await db_connect.collection('Characters').updateOne(
+          { _id: ObjectId(req.params.id) },
+          {
+            $set: {
+              race: newRace,
+              skills: updatedSkills,
+              allowedSkills: Array.from(allowedSkillsSet),
+              proficiencyPoints: newProficiencyPoints,
+              speed: newRace.speed || 0,
+            },
+          }
+        );
+
+        res.json({
+          race: newRace,
+          skills: updatedSkills,
+          allowedSkills: Array.from(allowedSkillsSet),
+          proficiencyPoints: newProficiencyPoints,
+          speed: newRace.speed || 0,
+        });
       } catch (err) {
         next(err);
       }
