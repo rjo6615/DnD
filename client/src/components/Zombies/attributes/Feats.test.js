@@ -12,14 +12,23 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ id: '1' }),
 }));
 
-async function renderWithFeat(featData) {
+async function renderWithFeat(featData, formOverrides = {}) {
   apiFetch.mockReset();
   apiFetch.mockResolvedValue({
     ok: true,
     json: async () => [featData],
   });
-  const form = { feat: [], occupation: [{ Level: 4, Name: 'Fighter' }] };
-  render(<Feats form={form} showFeats={true} handleCloseFeats={() => {}} />);
+  const defaultForm = {
+    feat: [],
+    occupation: [{ Level: 4, Name: 'Fighter' }],
+  };
+  render(
+    <Feats
+      form={{ ...defaultForm, ...formOverrides }}
+      showFeats={true}
+      handleCloseFeats={() => {}}
+    />
+  );
   await screen.findByRole('option', { name: featData.featName });
   await userEvent.selectOptions(
     screen.getByRole('combobox'),
@@ -47,5 +56,43 @@ describe('Feats skill selection', () => {
     expect(
       await screen.findByText('Skill/Tool Proficiencies')
     ).toBeInTheDocument();
+  });
+});
+
+describe('Feats skill persistence', () => {
+  test('keeps default and existing skills when re-editing', async () => {
+    const featData = {
+      featName: 'SkillFeat',
+      skillChoiceCount: 3,
+      skills: { stealth: { proficient: true } },
+    };
+    await renderWithFeat(featData, {
+      feat: [{ featName: 'SkillFeat', skills: { acrobatics: { proficient: true } } }],
+      occupation: [{ Level: 8, Name: 'Fighter' }],
+    });
+    expect(
+      screen.getByRole('option', { name: 'Stealth' }).selected
+    ).toBe(true);
+    expect(
+      screen.getByRole('option', { name: 'Acrobatics' }).selected
+    ).toBe(true);
+  });
+
+  test('removes deselected skills', async () => {
+    const featData = {
+      featName: 'SkillFeat',
+      skillChoiceCount: 3,
+      skills: { stealth: { proficient: true } },
+    };
+    await renderWithFeat(featData);
+    const select = screen.getByRole('listbox');
+    await userEvent.selectOptions(select, 'Acrobatics');
+    await userEvent.deselectOptions(select, 'Stealth');
+    expect(
+      screen.getByRole('option', { name: 'Stealth' }).selected
+    ).toBe(false);
+    expect(
+      screen.getByRole('option', { name: 'Acrobatics' }).selected
+    ).toBe(true);
   });
 });
