@@ -170,11 +170,23 @@ module.exports = (router) => {
         }
       });
 
+      const occupationPoints = Array.isArray(character.occupation)
+        ? character.occupation.reduce(
+            (sum, o) => sum + Number(o.proficiencyPoints || 0),
+            0
+          )
+        : 0;
+      const featPointCount = Object.values(newFeatSkills).filter(
+        (info) => info.proficient
+      ).length;
+      const newProficiencyPoints = occupationPoints + featPointCount;
+
       await db_connect.collection('Characters').updateOne(id, {
         $set: {
           feat: newFeats,
           skills: updatedSkills,
           allowedSkills: Array.from(allowedSkillsSet),
+          proficiencyPoints: newProficiencyPoints,
         },
       });
       logger.info('character feat updated');

@@ -34,6 +34,22 @@ const collectAllowedSkills = (occupation = [], feat = []) => {
   return Array.from(allowed);
 };
 
+const countFeatProficiencies = (feat = []) => {
+  const profs = new Set();
+  if (Array.isArray(feat)) {
+    feat.forEach((ft) => {
+      if (ft && ft.skills && typeof ft.skills === 'object') {
+        Object.keys(ft.skills).forEach((skill) => {
+          if (ft.skills[skill] && ft.skills[skill].proficient) {
+            profs.add(skill);
+          }
+        });
+      }
+    });
+  }
+  return profs.size;
+};
+
 module.exports = (router) => {
   const characterRouter = express.Router();
 
@@ -56,12 +72,14 @@ module.exports = (router) => {
           ? result.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
           : 0;
         result.proficiencyBonus = proficiencyBonus(totalLevel);
-        result.proficiencyPoints = Array.isArray(result.occupation)
+        const occupationPoints = Array.isArray(result.occupation)
           ? result.occupation.reduce(
               (sum, o) => sum + Number(o.proficiencyPoints || 0),
               0
             )
           : 0;
+        const featPoints = countFeatProficiencies(result.feat);
+        result.proficiencyPoints = occupationPoints + featPoints;
         result.allowedSkills = collectAllowedSkills(
           result.occupation,
           result.feat
@@ -85,16 +103,18 @@ module.exports = (router) => {
         const totalLevel = Array.isArray(char.occupation)
           ? char.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
           : 0;
+        const occupationPoints = Array.isArray(char.occupation)
+          ? char.occupation.reduce(
+              (sum, o) => sum + Number(o.proficiencyPoints || 0),
+              0
+            )
+          : 0;
+        const featPoints = countFeatProficiencies(char.feat);
         return {
           ...char,
           allowedSkills: collectAllowedSkills(char.occupation, char.feat),
           proficiencyBonus: proficiencyBonus(totalLevel),
-          proficiencyPoints: Array.isArray(char.occupation)
-            ? char.occupation.reduce(
-                (sum, o) => sum + Number(o.proficiencyPoints || 0),
-                0
-              )
-            : 0,
+          proficiencyPoints: occupationPoints + featPoints,
         };
       });
       res.json(withBonus);
@@ -143,12 +163,14 @@ module.exports = (router) => {
         ? myobj.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
         : 0;
       myobj.proficiencyBonus = proficiencyBonus(totalLevel);
-      myobj.proficiencyPoints = Array.isArray(myobj.occupation)
+      const occupationPoints = Array.isArray(myobj.occupation)
         ? myobj.occupation.reduce(
             (sum, o) => sum + Number(o.proficiencyPoints || 0),
             0
           )
         : 0;
+      const featPoints = countFeatProficiencies(myobj.feat);
+      myobj.proficiencyPoints = occupationPoints + featPoints;
 
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
