@@ -78,10 +78,15 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
     'skillOptions',
     'skillChoice',
     'skillProficiencies',
+    'toolChoiceCount',
+    'toolChoices',
+    'toolOptions',
+    'toolChoice',
+    'toolProficiencies',
   ];
-  const hasSkillChoice = skillChoiceFields.some(
-    (field) => selectedFeatData?.[field]
-  );
+  const hasSkillChoice =
+    skillChoiceFields.some((field) => selectedFeatData?.[field]) ||
+    selectedFeatData?.featName === 'Skilled';
 
   useEffect(() => {
     if (notification) {
