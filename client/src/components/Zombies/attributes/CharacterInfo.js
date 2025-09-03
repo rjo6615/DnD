@@ -15,6 +15,10 @@ export default function CharacterInfo({ form, show, handleClose }) {
     setShowLevelUpModal(false);
   };
 
+  const raceLanguages = (form.race?.languages || [])
+    .filter((language) => language && !language.includes("Choice"))
+    .join(", ");
+
   return (
     <Modal
       className="dnd-modal modern-modal"
@@ -49,6 +53,10 @@ export default function CharacterInfo({ form, show, handleClose }) {
               <tr>
                 <th>Race</th>
                 <td>{form.race?.name || ''}</td>
+              </tr>
+              <tr>
+                <th>Languages</th>
+                <td>{raceLanguages}</td>
               </tr>
               <tr>
                 <th>Age</th>
