@@ -1,17 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
-import ShopkeeperModal from "./ShopkeeperModal";
 
 export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, headerHeight = 0 }) {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
-
-  const [showShopkeeper, setShowShopkeeper] = useState(false);
-  const handleShowShopkeeper = () => setShowShopkeeper(true);
-  const handleHideShopkeeper = () => setShowShopkeeper(false);
 
   const FOOTER_HEIGHT = 80;
   const damageRef = useRef(null);
@@ -211,25 +206,18 @@ const showSparklesEffect = () => {
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div
-          id="damageAmount"
-          ref={damageRef}
-          onClick={handleToggle}
-          className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
-          style={{ margin: "0 auto", cursor: "pointer" }}
-        >
-          <span id="damageValue" className={loading ? 'hidden' : ''}>
-            {damageValue}
-          </span>
-          <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-        </div>
-        <button style={{ marginLeft: '10px' }} onClick={handleShowShopkeeper}>
-          Shop
-        </button>
+      <div
+        id="damageAmount"
+        ref={damageRef}
+        onClick={handleToggle}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
+        style={{ margin: "0 auto", cursor: "pointer" }}
+      >
+        <span id="damageValue" className={loading ? 'hidden' : ''}>
+          {damageValue}
+        </span>
+        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
       </div>
-
-      <ShopkeeperModal show={showShopkeeper} onHide={handleHideShopkeeper} />
       
       <div
         style={{
