@@ -91,6 +91,10 @@ const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
 const handleShow = () => setShow(true);
 
+const [showAbilitySkillModal, setShowAbilitySkillModal] = useState(false);
+const [abilitySelections, setAbilitySelections] = useState([]);
+const [skillSelections, setSkillSelections] = useState([]);
+
 // Fetch Occupations
 useEffect(() => {
   if (!user) return;
@@ -154,6 +158,12 @@ function updateForm(value) {
  // Function to handle submission.
  async function onSubmit(e) {
   e.preventDefault();
+  if (form.race?.abilityChoices || form.race?.skillChoices) {
+    setAbilitySelections(Array(form.race?.abilityChoices?.count || 0).fill(""));
+    setSkillSelections(Array(form.race?.skillChoices?.count || 0).fill(""));
+    setShowAbilitySkillModal(true);
+    return;
+  }
   sendToDb();
 }
 
@@ -284,10 +294,11 @@ useEffect(() => {
 }, [ form.occupation ]);
 
  // Sends form data to database
-   const sendToDb = useCallback(async () => {
+   const sendToDb = useCallback(async (characterData) => {
+    const baseCharacter = characterData ?? form;
     const newCharacter = {
-      ...form,
-      feat: (form.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
+      ...baseCharacter,
+      feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
     };
     if (newCharacter.race == null) {
       delete newCharacter.race;
@@ -334,38 +345,6 @@ const handleRaceChange = (e) => {
   }
 
   let updatedSkills = { ...(form.skills || {}) };
-
-  if (raceObj.abilityChoices) {
-    const { count, options } = raceObj.abilityChoices;
-    for (let i = 0; i < count; i++) {
-      const choice = window.prompt(
-        `Select ability ${i + 1} of ${count}: ${options.join(', ')}`
-      );
-      if (choice && options.includes(choice)) {
-        raceObj.abilities[choice] = (raceObj.abilities[choice] || 0) + 1;
-      }
-    }
-    delete raceObj.abilityChoices;
-  }
-
-  if (raceObj.skillChoices) {
-    const { count } = raceObj.skillChoices;
-    const available = SKILLS.map((s) => s.key).filter(
-      (s) => !updatedSkills[s]?.proficient
-    );
-    raceObj.skills = raceObj.skills || {};
-    for (let i = 0; i < count; i++) {
-      const choice = window.prompt(
-        `Select skill ${i + 1} of ${count}: ${available.join(', ')}`
-      );
-      if (choice && available.includes(choice)) {
-        raceObj.skills[choice] = { proficient: true };
-        updatedSkills[choice] = { proficient: true };
-        available.splice(available.indexOf(choice), 1);
-      }
-    }
-    delete raceObj.skillChoices;
-  }
 
   if (raceObj.skills) {
     updatedSkills = { ...updatedSkills, ...raceObj.skills };
@@ -461,7 +440,61 @@ const sendManualToDb = useCallback(async (characterData) => {
 const onSubmitManual = async (e) => {
   e.preventDefault();
   const updatedForm = await handleConfirmOccupation();
-  await sendManualToDb(updatedForm);
+  if (updatedForm.race?.abilityChoices || updatedForm.race?.skillChoices) {
+    setAbilitySelections(Array(updatedForm.race?.abilityChoices?.count || 0).fill(""));
+    setSkillSelections(Array(updatedForm.race?.skillChoices?.count || 0).fill(""));
+    setShowAbilitySkillModal(true);
+    setForm(updatedForm);
+    return;
+  }
+  await sendToDb(updatedForm);
+};
+
+const handleAbilitySkillConfirm = () => {
+  const raceObj = { ...form.race };
+  let updatedSkills = { ...(form.skills || {}) };
+
+  if (raceObj.abilityChoices) {
+    abilitySelections.forEach((choice) => {
+      if (choice) {
+        raceObj.abilities[choice] = (raceObj.abilities[choice] || 0) + 1;
+      }
+    });
+    delete raceObj.abilityChoices;
+  }
+
+  if (raceObj.skillChoices) {
+    raceObj.skills = raceObj.skills || {};
+    skillSelections.forEach((skill) => {
+      if (skill) {
+        raceObj.skills[skill] = { proficient: true };
+        updatedSkills[skill] = { proficient: true };
+      }
+    });
+    delete raceObj.skillChoices;
+  }
+
+  const updatedForm = { ...form, race: raceObj };
+  if (Object.keys(updatedSkills).length) {
+    updatedForm.skills = updatedSkills;
+  }
+
+  setForm(updatedForm);
+  setShowAbilitySkillModal(false);
+  setAbilitySelections([]);
+  setSkillSelections([]);
+  sendToDb(updatedForm);
+};
+
+const getAvailableAbilityOptions = (index) => {
+  const taken = abilitySelections.filter((_, i) => i !== index);
+  return form.race?.abilityChoices?.options.filter((opt) => !taken.includes(opt)) || [];
+};
+
+const getAvailableSkillOptions = (index) => {
+  const taken = skillSelections.filter((_, i) => i !== index);
+  const base = SKILLS.map((s) => s.key).filter((s) => !form.skills?.[s]?.proficient);
+  return base.filter((opt) => !taken.includes(opt));
 };
 
   return (
@@ -627,12 +660,59 @@ const onSubmitManual = async (e) => {
           </div>
      </Form>
      </div>
-     </Card.Body> 
-     </Card>   
-     </div>    
+      </Card.Body>
+      </Card>
+      </div>
       </Modal>
+       <Modal className="dnd-modal" centered show={showAbilitySkillModal} onHide={() => setShowAbilitySkillModal(false)}>
+       <div className="text-center">
+        <Card className="dnd-background">
+          <Card.Title>Choose Bonuses</Card.Title>
+        <Card.Body>
+        {form.race?.abilityChoices && abilitySelections.map((sel, idx) => (
+          <Form.Group className="mb-2" key={`ability-${idx}`}>
+            <Form.Label className="text-light">Ability Choice {idx + 1}</Form.Label>
+            <Form.Select value={sel} onChange={(e) => {
+              const arr = [...abilitySelections];
+              arr[idx] = e.target.value;
+              setAbilitySelections(arr);
+            }}>
+              <option value="" disabled>Select ability</option>
+              {getAvailableAbilityOptions(idx).map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        ))}
+        {form.race?.skillChoices && skillSelections.map((sel, idx) => (
+          <Form.Group className="mb-2" key={`skill-${idx}`}>
+            <Form.Label className="text-light">Skill Choice {idx + 1}</Form.Label>
+            <Form.Select value={sel} onChange={(e) => {
+              const arr = [...skillSelections];
+              arr[idx] = e.target.value;
+              setSkillSelections(arr);
+            }}>
+              <option value="" disabled>Select skill</option>
+              {getAvailableSkillOptions(idx).map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        ))}
+        <div className="text-center">
+          <Button variant="primary" onClick={handleAbilitySkillConfirm}>
+            Confirm
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={() => setShowAbilitySkillModal(false)}>
+            Close
+          </Button>
+        </div>
+        </Card.Body>
+        </Card>
+        </div>
+       </Modal>
       </div>
     </div>
-    
+
   );
 }
