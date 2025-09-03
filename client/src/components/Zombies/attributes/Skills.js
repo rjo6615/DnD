@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
@@ -33,8 +33,17 @@ export default function Skills({
     (s) => s.proficient
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
-    (form.proficiencyPoints || 0) - currentProficiencyCount
+    Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
   );
+
+  useEffect(() => {
+    const count = Object.values(form.skills || {}).filter((s) => s.proficient)
+      .length;
+    setSkills(form.skills || {});
+    setProficiencyPointsLeft(
+      Math.max(0, (form.proficiencyPoints || 0) - count)
+    );
+  }, [form.skills, form.proficiencyPoints]);
 
   if (!form) {
     return <div>Loading...</div>;
@@ -96,7 +105,7 @@ export default function Skills({
           (s) => s.proficient
         ).length;
         setProficiencyPointsLeft(
-          (form.proficiencyPoints || 0) - proficientCount
+          Math.max(0, (form.proficiencyPoints || 0) - proficientCount)
         );
         onSkillsChange?.(newSkills);
         return newSkills;
@@ -118,7 +127,7 @@ export default function Skills({
       updated.expertise = false;
     }
     setProficiencyPointsLeft((prev) =>
-      updated.proficient ? prev - 1 : prev + 1
+      updated.proficient ? Math.max(0, prev - 1) : prev + 1
     );
     updateSkill(skill, updated);
   };
