@@ -325,8 +325,57 @@ const handleOccupationChange = (event) => {
 
 const handleRaceChange = (e) => {
   const key = e.target.value;
-  const raceObj = races[key] || null;
-  updateForm({ race: raceObj, speed: raceObj ? raceObj.speed : 0 });
+  const baseRace = races[key] || null;
+  const raceObj = baseRace ? JSON.parse(JSON.stringify(baseRace)) : null;
+
+  if (!raceObj) {
+    updateForm({ race: null, speed: 0 });
+    return;
+  }
+
+  let updatedSkills = { ...(form.skills || {}) };
+
+  if (raceObj.abilityChoices) {
+    const { count, options } = raceObj.abilityChoices;
+    for (let i = 0; i < count; i++) {
+      const choice = window.prompt(
+        `Select ability ${i + 1} of ${count}: ${options.join(', ')}`
+      );
+      if (choice && options.includes(choice)) {
+        raceObj.abilities[choice] = (raceObj.abilities[choice] || 0) + 1;
+      }
+    }
+    delete raceObj.abilityChoices;
+  }
+
+  if (raceObj.skillChoices) {
+    const { count } = raceObj.skillChoices;
+    const available = SKILLS.map((s) => s.key).filter(
+      (s) => !updatedSkills[s]?.proficient
+    );
+    raceObj.skills = raceObj.skills || {};
+    for (let i = 0; i < count; i++) {
+      const choice = window.prompt(
+        `Select skill ${i + 1} of ${count}: ${available.join(', ')}`
+      );
+      if (choice && available.includes(choice)) {
+        raceObj.skills[choice] = { proficient: true };
+        updatedSkills[choice] = { proficient: true };
+        available.splice(available.indexOf(choice), 1);
+      }
+    }
+    delete raceObj.skillChoices;
+  }
+
+  if (raceObj.skills) {
+    updatedSkills = { ...updatedSkills, ...raceObj.skills };
+  }
+
+  const updatedValues = { race: raceObj, speed: raceObj.speed };
+  if (Object.keys(updatedSkills).length) {
+    updatedValues.skills = updatedSkills;
+  }
+  updateForm(updatedValues);
 };
 
 const [isOccupationConfirmed, setIsOccupationConfirmed] = useState(false);
