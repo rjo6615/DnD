@@ -113,3 +113,23 @@ describe('Feats skill limits', () => {
     expect(select.selectedOptions).toHaveLength(2);
   });
 });
+
+describe('Feats existing proficiencies', () => {
+  test('disables skills the character is already proficient in', async () => {
+    await renderWithFeat({ featName: 'Skilled' }, {
+      skills: { stealth: { proficient: true } },
+    });
+    expect(
+      screen.getByRole('option', { name: 'Stealth' }).disabled
+    ).toBe(true);
+  });
+
+  test('disables tool proficiencies the character already has', async () => {
+    await renderWithFeat({ featName: 'Skilled' }, {
+      skills: { smithsTools: { proficient: true } },
+    });
+    expect(
+      screen.getByRole('option', { name: "Smith's Tools" }).disabled
+    ).toBe(true);
+  });
+});
