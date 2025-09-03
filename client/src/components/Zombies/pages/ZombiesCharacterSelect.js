@@ -175,48 +175,86 @@ const rollDiceSixTimes = () => {
 };
 
 function bigMaff() {
-// Occupation Randomizer
-let occupationLength = occupation.length;
-let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
-let newOccupation = occupation[randomOccupation];
-updateForm({ occupation: [newOccupation] }); 
+  // Occupation Randomizer
+  let occupationLength = occupation.length;
+  let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
+  let newOccupation = occupation[randomOccupation];
+  updateForm({ occupation: [newOccupation] });
 
-// Age Randomizer
-let newAge = Math.round(Math.random() * (50 - 19)) + 19;
-updateForm({ age: newAge }); 
+  // Race Randomizer
+  const raceKeys = Object.keys(races);
+  let chosenRace = null;
+  if (raceKeys.length) {
+    const randomRaceKey = raceKeys[Math.floor(Math.random() * raceKeys.length)];
+    chosenRace = JSON.parse(JSON.stringify(races[randomRaceKey]));
+    if (chosenRace.abilityChoices) {
+      const { count, options } = chosenRace.abilityChoices;
+      for (let i = 0; i < count; i++) {
+        const choice = options[Math.floor(Math.random() * options.length)];
+        chosenRace.abilities[choice] = (chosenRace.abilities[choice] || 0) + 1;
+      }
+      delete chosenRace.abilityChoices;
+    }
+    if (chosenRace.skillChoices) {
+      const { count } = chosenRace.skillChoices;
+      const available = SKILLS.map((s) => s.key);
+      chosenRace.skills = chosenRace.skills || {};
+      for (let i = 0; i < count; i++) {
+        if (!available.length) break;
+        const idx = Math.floor(Math.random() * available.length);
+        const skill = available.splice(idx, 1)[0];
+        chosenRace.skills[skill] = { proficient: true };
+      }
+      delete chosenRace.skillChoices;
+    }
+    updateForm({ race: chosenRace, speed: chosenRace.speed });
+      if (chosenRace.skills) {
+        updateForm({ skills: { ...(form.skills || {}), ...chosenRace.skills } });
+      }
+  }
 
-// Sex Randomizer
-let sexArr = ["Male", "Female"];
-let randomSex = Math.round(Math.random() * 1);
-let newSex = sexArr[randomSex];
-updateForm({ sex: newSex }); 
+  // Age Randomizer
+  let newAge = Math.round(Math.random() * (50 - 19)) + 19;
+  updateForm({ age: newAge });
 
-// Height Randomizer - store height as total inches to satisfy numeric validation
-let randomHeight = Math.round(Math.random() * (76 - 60)) + 60;
-updateForm({ height: randomHeight });
+  // Sex Randomizer
+  let sexArr = ["Male", "Female"];
+  let randomSex = Math.round(Math.random() * 1);
+  let newSex = sexArr[randomSex];
+  updateForm({ sex: newSex });
 
-// Weight Randomizer
-let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
-let newWeight= randomWeight;
-updateForm({ weight: newWeight });
+  // Height Randomizer - store height as total inches to satisfy numeric validation
+  let randomHeight = Math.round(Math.random() * (76 - 60)) + 60;
+  updateForm({ height: randomHeight });
 
-// Stat Randomizer
-let randomStr = sumArray[0] + Number(newOccupation.str); 
-updateForm({ str: randomStr });
-let randomDex = sumArray[1] + Number(newOccupation.dex); 
-updateForm({ dex: randomDex }); 
-let randomCon = sumArray[2] + Number(newOccupation.con); 
-updateForm({ con: randomCon }); 
-let randomInt = sumArray[3] + Number(newOccupation.int); 
-updateForm({ int: randomInt });
-let randomWis = sumArray[4] + Number(newOccupation.wis); 
-updateForm({ wis: randomWis });
-let randomCha = sumArray[5] + Number(newOccupation.cha);
-updateForm({ cha: randomCha });
+  // Weight Randomizer
+  let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
+  let newWeight = randomWeight;
+  updateForm({ weight: newWeight });
 
-let startStatTotal = sumArray[0] + Number(newOccupation.str) + sumArray[1] + Number(newOccupation.dex) + sumArray[2] + Number(newOccupation.con)
- + sumArray[3] + Number(newOccupation.int) + sumArray[4] + Number(newOccupation.wis) + sumArray[5] + Number(newOccupation.cha);
-updateForm({ startStatTotal: startStatTotal });
+  // Stat Randomizer
+    const raceAbilities = (chosenRace && chosenRace.abilities) || {};
+    let randomStr = sumArray[0] + Number(newOccupation.str) + (raceAbilities.str || 0);
+    updateForm({ str: randomStr });
+    let randomDex = sumArray[1] + Number(newOccupation.dex) + (raceAbilities.dex || 0);
+    updateForm({ dex: randomDex });
+    let randomCon = sumArray[2] + Number(newOccupation.con) + (raceAbilities.con || 0);
+    updateForm({ con: randomCon });
+    let randomInt = sumArray[3] + Number(newOccupation.int) + (raceAbilities.int || 0);
+    updateForm({ int: randomInt });
+    let randomWis = sumArray[4] + Number(newOccupation.wis) + (raceAbilities.wis || 0);
+    updateForm({ wis: randomWis });
+    let randomCha = sumArray[5] + Number(newOccupation.cha) + (raceAbilities.cha || 0);
+    updateForm({ cha: randomCha });
+
+  let startStatTotal =
+    randomStr +
+    randomDex +
+    randomCon +
+    randomInt +
+    randomWis +
+    randomCha;
+  updateForm({ startStatTotal: startStatTotal });
 }
 
 // Health Randomizer
@@ -251,6 +289,9 @@ useEffect(() => {
       ...form,
       feat: (form.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
     };
+    if (newCharacter.race == null) {
+      delete newCharacter.race;
+    }
     try {
       await apiFetch("/characters/add", {
         method: "POST",
