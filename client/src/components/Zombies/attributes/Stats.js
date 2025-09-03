@@ -109,7 +109,7 @@ export default function Stats({ form, showStats, handleCloseStats }) {
                     <th>Stat</th>
                     <th>Level</th>
                     <th>Mod</th>
-                    <th></th>
+                    <th>View</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,11 +120,10 @@ export default function Stats({ form, showStats, handleCloseStats }) {
                       <td>{statMods[key]}</td>
                       <td>
                         <Button
-                          className="action-btn"
+                          className="action-btn fa-regular fa-eye"
                           onClick={() => handleView(key)}
                           size="sm"
                         >
-                          View
                         </Button>
                       </td>
                     </tr>
