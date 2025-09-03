@@ -8,7 +8,6 @@ import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
-import Race from "../attributes/Race";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import Weapons from "../attributes/Weapons";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
@@ -28,7 +27,6 @@ export default function ZombiesCharacterSheet() {
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
   const [showFeats, setShowFeats] = useState(false);
-  const [showRace, setShowRace] = useState(false);
   const [showWeapons, setShowWeapons] = useState(false);
   const [showArmor, setShowArmor] = useState(false);
   const [showItems, setShowItems] = useState(false);
@@ -99,8 +97,6 @@ export default function ZombiesCharacterSheet() {
   const handleCloseSkill = () => setShowSkill(false); // Handler to close skills modal
   const handleShowFeats = () => setShowFeats(true);
   const handleCloseFeats = () => setShowFeats(false);
-  const handleShowRace = () => setShowRace(true);
-  const handleCloseRace = () => setShowRace(false);
   const handleShowWeapons = () => setShowWeapons(true);
   const handleCloseWeapons = () => setShowWeapons(false); 
   const handleShowArmor = () => setShowArmor(true);
@@ -310,17 +306,6 @@ return (
             variant="secondary"
           ></Button>
           <Button
-            onClick={handleShowRace}
-            style={{
-              color: "black",
-              padding: "8px",
-              marginTop: "10px",
-              backgroundColor: "#6C757D",
-            }}
-            className="mx-1 fa-solid fa-person-running"
-            variant="secondary"
-          ></Button>
-          <Button
             onClick={handleShowWeapons}
             style={{
               color: "black",
@@ -382,7 +367,6 @@ return (
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
-    <Race form={form} showRace={showRace} handleCloseRace={handleCloseRace} onRaceChange={(updated) => setForm((prev) => ({ ...prev, ...updated }))} />
     <Weapons
       form={form}
       showWeapons={showWeapons}
