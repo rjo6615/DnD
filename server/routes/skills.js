@@ -91,10 +91,21 @@ module.exports = (router) => {
         return res.status(404).json({ message: 'Character not found' });
       }
 
+      const raceProficient = !!(
+        charDoc.race?.skills?.[skill]?.proficient
+      );
+
       const allowedSkills =
-        charDoc.allowedSkills || collectAllowedSkills(charDoc.occupation, charDoc.feat, charDoc.race);
+        charDoc.allowedSkills ||
+        collectAllowedSkills(charDoc.occupation, charDoc.feat, charDoc.race);
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
+      }
+
+      if (raceProficient && !proficient) {
+        return res
+          .status(400)
+          .json({ message: 'Cannot remove racial proficiency' });
       }
 
       const proficientCount = Object.values(charDoc.skills || {}).filter(
