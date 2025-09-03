@@ -164,10 +164,19 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
       return acc;
     }, {});
     setSkillSelections(selected);
-    setAddFeat((prev) => ({
-      ...prev,
-      skills: { ...(prev.skills || {}), ...skillsObj },
-    }));
+    setAddFeat((prev) => {
+      const prevSkills = { ...(prev.skills || {}) };
+      const mergedSkills = { ...prevSkills, ...skillsObj };
+      Object.keys(mergedSkills).forEach((key) => {
+        if (!selected.includes(key)) {
+          delete mergedSkills[key];
+        }
+      });
+      return {
+        ...prev,
+        skills: mergedSkills,
+      };
+    });
   };
 
   // ---------------------------------------Feats left-----------------------------------------------------
