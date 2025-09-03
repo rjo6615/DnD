@@ -96,3 +96,20 @@ describe('Feats skill persistence', () => {
     ).toBe(true);
   });
 });
+
+describe('Feats skill limits', () => {
+  test('disables additional options once limit is reached', async () => {
+    const featData = {
+      featName: 'SkillFeat',
+      skillChoiceCount: 2,
+    };
+    await renderWithFeat(featData);
+    const select = screen.getByRole('listbox');
+    await userEvent.selectOptions(select, ['Acrobatics', 'Stealth']);
+    const arcanaOption = screen.getByRole('option', { name: 'Arcana' });
+    expect(arcanaOption.disabled).toBe(true);
+    await userEvent.selectOptions(select, 'Arcana');
+    expect(arcanaOption.selected).toBe(false);
+    expect(select.selectedOptions).toHaveLength(2);
+  });
+});

@@ -88,6 +88,12 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
     skillChoiceFields.some((field) => selectedFeatData?.[field]) ||
     selectedFeatData?.featName === 'Skilled';
 
+  // Determine how many skills a user may select for the chosen feat.
+  const skillLimit = Math.min(
+    selectedFeatData?.skillChoiceCount || SKILL_SELECT_LIMIT,
+    SKILL_SELECT_LIMIT
+  );
+
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(null), 3000);
@@ -151,13 +157,9 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
 
   const handleSkillChoice = (e) => {
     // Determine if the selected feat allows the user to pick proficiencies.
-    const limit = Math.min(
-      selectedFeatData?.skillChoiceCount || SKILL_SELECT_LIMIT,
-      SKILL_SELECT_LIMIT
-    );
     let selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-    if (selected.length > limit) {
-      selected = selected.slice(0, limit);
+    if (selected.length > skillLimit) {
+      selected = selected.slice(0, skillLimit);
     }
     const skillsObj = selected.reduce((acc, key) => {
       acc[key] = { proficient: true };
@@ -459,15 +461,25 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                           value={skillSelections}
                           onChange={handleSkillChoice}
                         >
-                          {ALL_SKILLS.map(({ key, label }) => (
-                            <option key={key} value={key}>
-                              {label}
-                            </option>
-                          ))}
+                          {ALL_SKILLS.map(({ key, label }) => {
+                            const selected = skillSelections.includes(key);
+                            const disabled =
+                              !selected && skillSelections.length >= skillLimit;
+                            return (
+                              <option key={key} value={key} disabled={disabled}>
+                                {label}
+                              </option>
+                            );
+                          })}
                         </Form.Select>
                         <Form.Text className="text-light">
-                          Select up to {Math.min(selectedFeatData?.skillChoiceCount || SKILL_SELECT_LIMIT, SKILL_SELECT_LIMIT)}
+                          Select up to {skillLimit}
                         </Form.Text>
+                        {skillSelections.length >= skillLimit && (
+                          <Form.Text className="text-danger">
+                            Maximum skill selections reached
+                          </Form.Text>
+                        )}
                       </Form.Group>
                     )}
 
