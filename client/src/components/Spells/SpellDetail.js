@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import apiFetch from '../../utils/apiFetch';
 
+/** @typedef {import('../../../../types/spell').Spell} Spell */
+
 function SpellDetail() {
   const { name } = useParams();
-  const [spell, setSpell] = useState(null);
+  const [spell, setSpell] = useState/** @type {Spell | null} */(null);
 
   useEffect(() => {
     apiFetch(`/spells/${name}`)
