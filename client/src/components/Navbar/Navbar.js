@@ -3,6 +3,7 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
+import { Link } from 'react-router-dom';
 import logoLight from "../../images/logo-light.png";
 import apiFetch from "../../utils/apiFetch";
 
@@ -18,15 +19,16 @@ function NavbarComponent() {
         <Navbar.Brand href="/">
           <img src={logoLight} alt="" width="60px" height="60px" className="d-inline-block align-text-top" />
         </Navbar.Brand>
-        <Nav className="ml-auto">
-          <Nav.Link>
-            <Button style={{ borderColor: "gray" }} className='bg-secondary' onClick={handleLogout}>
-              Logout
-            </Button>
-          </Nav.Link>
-        </Nav>
-      </Container>
-    </Navbar>
+          <Nav className="ml-auto">
+            <Nav.Link as={Link} to="/spells">Spells</Nav.Link>
+            <Nav.Link>
+              <Button style={{ borderColor: "gray" }} className='bg-secondary' onClick={handleLogout}>
+                Logout
+              </Button>
+            </Nav.Link>
+          </Nav>
+        </Container>
+      </Navbar>
   );
 }
 

@@ -119,17 +119,18 @@ export default function Stats({ form, showStats, handleCloseStats }) {
                       <td>{computedStats[key]}</td>
                       <td>{statMods[key]}</td>
                       <td>
-                        <Button
-                          className="action-btn fa-regular fa-eye"
-                          onClick={() => handleView(key)}
-                          size="sm"
-                        >
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+                          <Button
+                            className="action-btn fa-regular fa-eye"
+                            onClick={() => handleView(key)}
+                            size="sm"
+                            aria-label="view"
+                          >
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
             </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
