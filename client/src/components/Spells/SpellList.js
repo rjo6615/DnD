@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import apiFetch from '../../utils/apiFetch';
 
+/** @typedef {import('../../../../types/spell').Spell} Spell */
+
 function SpellList() {
-  const [spells, setSpells] = useState(null);
+  const [spells, setSpells] = useState/** @type {Spell[] | null} */(null);
 
   useEffect(() => {
     apiFetch('/spells')

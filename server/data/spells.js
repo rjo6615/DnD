@@ -1,3 +1,7 @@
+const { isSpell } = require('../validation/spell');
+/** @typedef {import('../../types/spell').Spell} Spell */
+
+/** @type {Record<string, Spell>} */
 const spells = {
   fireball: {
     name: 'Fireball',
@@ -36,5 +40,11 @@ const spells = {
     classes: ['Bard', 'Sorcerer', 'Warlock', 'Wizard'],
   },
 };
+
+Object.values(spells).forEach(spell => {
+  if (!isSpell(spell)) {
+    throw new Error(`Invalid spell data: ${spell && spell.name}`);
+  }
+});
 
 module.exports = spells;
