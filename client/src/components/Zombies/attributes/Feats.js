@@ -94,6 +94,15 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
     SKILL_SELECT_LIMIT
   );
 
+  // Track the character's existing skill and tool proficiencies so feats
+  // can't grant duplicates. The form.skills object stores both skills and
+  // tools with a `proficient` flag.
+  const existingProficiencies = new Set(
+    Object.entries(form.skills || {})
+      .filter(([, value]) => value?.proficient)
+      .map(([key]) => key)
+  );
+
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(null), 3000);
@@ -463,8 +472,10 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                         >
                           {ALL_SKILLS.map(({ key, label }) => {
                             const selected = skillSelections.includes(key);
+                            const alreadyProficient = existingProficiencies.has(key);
                             const disabled =
-                              !selected && skillSelections.length >= skillLimit;
+                              (!selected && skillSelections.length >= skillLimit) ||
+                              (!selected && alreadyProficient);
                             return (
                               <option key={key} value={key} disabled={disabled}>
                                 {label}
