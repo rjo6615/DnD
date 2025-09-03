@@ -89,6 +89,11 @@ export default function Skills({
   const profBonus = proficiencyBonus(totalLevel);
 
   const selectableSkills = new Set(form.allowedSkills || []);
+  const raceProficiencies = new Set(
+    Object.entries(form.race?.skills || {})
+      .filter(([, s]) => s?.proficient)
+      .map(([key]) => key)
+  );
 
   async function updateSkill(skill, updated) {
     try {
@@ -121,6 +126,7 @@ export default function Skills({
   }
 
   const toggleProficient = (skill) => {
+    if (raceProficiencies.has(skill)) return;
     if (!selectableSkills.has(skill)) return;
     const current = skills[skill] || { proficient: false, expertise: false };
     if (!current.proficient && proficiencyPointsLeft <= 0) return;
@@ -195,6 +201,7 @@ export default function Skills({
                   featTotals[key] +
                   raceTotals[key];
                 const isSelectable = selectableSkills.has(key);
+                const isRaceSkill = raceProficiencies.has(key);
                 return (
                   <tr key={key}>
                     <td>{label}</td>
@@ -204,7 +211,7 @@ export default function Skills({
                       <Form.Check
                         type="checkbox"
                         checked={proficient}
-                        disabled={!isSelectable}
+                        disabled={!isSelectable || isRaceSkill}
                         onChange={() => toggleProficient(key)}
                       />
                     </td>
