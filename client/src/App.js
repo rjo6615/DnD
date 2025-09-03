@@ -9,6 +9,8 @@ import ZombiesCharacterSelect from "./components/Zombies/pages/ZombiesCharacterS
 import ZombiesDM from "./components/Zombies/pages/ZombiesDM";
 import Login from "./components/Login/Login";
 import Notifications from "./components/Notifications";
+import SpellList from "./components/Spells/SpellList";
+import SpellDetail from "./components/Spells/SpellDetail";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
@@ -50,6 +52,8 @@ function AppRoutes() {
       {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
       <Routes>
         <Route path="/" element={<Zombies />} />
+        <Route path="/spells" element={<SpellList />} />
+        <Route path="/spells/:name" element={<SpellDetail />} />
         <Route path="/zombies-character-select/:campaign" element={<ZombiesCharacterSelect />} />
         <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
         <Route path="/zombies-dm/:campaign" element={<ZombiesDM />} />
