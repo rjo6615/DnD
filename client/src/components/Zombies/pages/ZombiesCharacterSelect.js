@@ -412,7 +412,7 @@ const sendManualToDb = useCallback(async (characterData) => {
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
   if (!newCharacter.occupation?.[0]?.Level) {
-    notify("Occupation level is required.", 'warning');
+    notify("Class level is required.", 'warning');
     return;
   }
   try {
@@ -533,7 +533,7 @@ const getAvailableSkillOptions = (index) => {
             <tr>
               <th>Character</th>
               <th>Level</th>
-              <th>Occupation</th>
+              <th>Class</th>
               <th>View</th>
             </tr>
           </thead>
@@ -604,13 +604,13 @@ const getAvailableSkillOptions = (index) => {
        <Form.Label className="text-light">Character Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
         type="text" placeholder="Enter character name max 12 characters" pattern="^([^0-9]{0,12})$"/>        
-        <Form.Label className="text-light">Occupation</Form.Label>
+        <Form.Label className="text-light">Class</Form.Label>
         <Form.Select
               ref={selectedAddOccupationRef}
               onChange={handleOccupationChange}
               defaultValue=""
             >
-              <option value="" disabled>Select your occupation</option>
+              <option value="" disabled>Select your class</option>
               {getOccupation.map((occupation, i) => (
                 <option key={i}>{occupation.Occupation}</option>
               ))}

@@ -40,7 +40,7 @@ export default function CharacterInfo({ form, show, handleClose }) {
                 <td>{totalLevel}</td>
               </tr>
               <tr>
-                <th>Occupation</th>
+                <th>Class</th>
                 <td>
                   {form.occupation.map((el, i) => (
                     <span key={i}>

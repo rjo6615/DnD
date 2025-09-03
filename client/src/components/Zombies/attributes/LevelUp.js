@@ -63,7 +63,7 @@ export default function LevelUp({ show, handleClose, form }) {
     }
   };
 
-  //--------------------------------------------Add Occupation--------------------------------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------Add Class--------------------------------------------------------------------------------------------------------------------------------------------
   const [showAddClassModal, setShowAddClassModal] = useState(false);
   const [selectedOccupation, setSelectedOccupation] = useState(null);
   const selectedAddOccupationRef = useRef();
@@ -116,7 +116,7 @@ export default function LevelUp({ show, handleClose, form }) {
         setError('Database update failed');
       }
     } else {
-      setValidationError('Please select an occupation.');
+      setValidationError('Please select a class.');
     }
   };
 
@@ -168,10 +168,10 @@ export default function LevelUp({ show, handleClose, form }) {
                     {validationError}
                   </Alert>
                 )}
-                {/* Add occupation */}
+                {/* Add class */}
                 <Form>
                   <Button className="action-btn" onClick={handleAddOccupationClick}>
-                    Add Occupation
+                    Add Class
                   </Button>
                   <Modal
                   className="dnd-modal modern-modal"
@@ -181,7 +181,7 @@ export default function LevelUp({ show, handleClose, form }) {
                 >
                   <Card className="modern-card text-center">
                     <Card.Header className="modal-header">
-                      <Card.Title className="modal-title">Add Occupation</Card.Title>
+                      <Card.Title className="modal-title">Add Class</Card.Title>
                     </Card.Header>
                     <Card.Body>
                       {notification && (
@@ -195,13 +195,13 @@ export default function LevelUp({ show, handleClose, form }) {
                         </Alert>
                       )}
                       <Form.Group className="mb-3 mx-5">
-                        <Form.Label className="text-light">Select Occupation</Form.Label>
+                        <Form.Label className="text-light">Select Class</Form.Label>
                         <Form.Select
                           ref={selectedAddOccupationRef}
                           onChange={handleOccupationChange}
                           defaultValue=""
                         >
-                          <option value="" disabled>Select your occupation</option>
+                          <option value="" disabled>Select your class</option>
                           {getOccupation.map((occupation, i) => {
                             const isOccupationSelected = form.occupation.some(
                               (item) => item.Occupation === occupation.Occupation
@@ -243,13 +243,13 @@ export default function LevelUp({ show, handleClose, form }) {
                 <br />
                 <span>or</span>
                 <Form.Group className="mb-3 mx-5">
-                  <Form.Label className="text-light">Select Occupation</Form.Label>
+                  <Form.Label className="text-light">Select Class</Form.Label>
                   <Form.Select
                     ref={selectedOccupationRef}
                     defaultValue=""
                     onChange={handleChosenOccupationChange}
                   >
-                    <option value="" disabled>Select your occupation</option>
+                    <option value="" disabled>Select your class</option>
                     {form.occupation.map((occupation, i) => (
                       <option key={i}>{occupation.Occupation}</option>
                     ))}

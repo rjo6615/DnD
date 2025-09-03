@@ -340,7 +340,7 @@ const [form2, setForm2] = useState({
             <th>Player</th>
             <th>Character</th>
             <th>Level</th>
-            <th>Occupation</th>
+            <th>Class</th>
             <th>View</th>
           </tr>
         </thead>
