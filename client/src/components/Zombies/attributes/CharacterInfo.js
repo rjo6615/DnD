@@ -47,6 +47,10 @@ export default function CharacterInfo({ form, show, handleClose }) {
                 </td>
               </tr>
               <tr>
+                <th>Race</th>
+                <td>{form.race?.name || ''}</td>
+              </tr>
+              <tr>
                 <th>Age</th>
                 <td>{form.age}</td>
               </tr>

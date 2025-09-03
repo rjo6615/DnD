@@ -36,8 +36,14 @@ export default function Stats({ form, showStats, handleCloseStats }) {
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
+  const raceBonus = form.race?.abilities || {};
+
   const computedStats = Object.keys(stats).reduce((acc, key) => {
-    acc[key] = stats[key] + totalItemBonus[key] + totalFeatBonus[key];
+    acc[key] =
+      stats[key] +
+      totalItemBonus[key] +
+      totalFeatBonus[key] +
+      (raceBonus[key] || 0);
     return acc;
   }, {});
 

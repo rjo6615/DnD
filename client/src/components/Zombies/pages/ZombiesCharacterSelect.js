@@ -53,6 +53,7 @@ const createDefaultForm = useCallback((campaign) => {
     characterName: "",
     campaign: campaign.toString(),
     occupation: [""],
+    race: null,
     feat: [],
     weapon: [createEmptyArray(6)],
     armor: [createEmptyArray(4)],
@@ -80,9 +81,11 @@ useEffect(() => {
   }
 }, [user]);
 
-const [occupation, setOccupation] = useState({ 
-  occupation: [], 
+const [occupation, setOccupation] = useState({
+  occupation: [],
 });
+
+const [races, setRaces] = useState({});
 
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
@@ -114,6 +117,21 @@ useEffect(() => {
   return;
 
 }, [navigate, user]);
+
+// Fetch Races
+useEffect(() => {
+  if (!user) return;
+  async function fetchRaces() {
+    const response = await apiFetch(`/races`);
+    if (!response.ok) {
+      notify(`An error has occurred: ${response.statusText}`);
+      return;
+    }
+    const data = await response.json();
+    setRaces(data);
+  }
+  fetchRaces();
+}, [user]);
 
 // Update the state properties.
 function updateForm(value) {
@@ -262,6 +280,12 @@ const [getOccupation, setGetOccupation] = useState([]);
 const handleOccupationChange = (event) => {
   const selectedIndex = event.target.selectedIndex;
   setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
+};
+
+const handleRaceChange = (e) => {
+  const key = e.target.value;
+  const raceObj = races[key] || null;
+  updateForm({ race: raceObj, speed: raceObj ? raceObj.speed : 0 });
 };
 
 const [isOccupationConfirmed, setIsOccupationConfirmed] = useState(false);
@@ -467,7 +491,14 @@ const onSubmitManual = async (e) => {
               {getOccupation.map((occupation, i) => (
                 <option key={i}>{occupation.Occupation}</option>
               ))}
-            </Form.Select>  
+            </Form.Select>
+        <Form.Label className="text-light">Race</Form.Label>
+        <Form.Select onChange={handleRaceChange} defaultValue="">
+          <option value="" disabled>Select your race</option>
+          {Object.keys(races).map((key) => (
+            <option key={key} value={key}>{races[key].name}</option>
+          ))}
+        </Form.Select>
          <Form.Label className="text-light">Age</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ age: e.target.value })}
         type="number" placeholder="Enter age" pattern="[0-9]*" />

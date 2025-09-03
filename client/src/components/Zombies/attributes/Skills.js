@@ -81,6 +81,11 @@ export default function Skills({
     return acc;
   }, {});
 
+  const raceTotals = SKILLS.reduce((acc, { key }) => {
+    acc[key] = Number(form.race?.[key] || 0);
+    return acc;
+  }, {});
+
   const profBonus = proficiencyBonus(totalLevel);
 
   const selectableSkills = new Set(form.allowedSkills || []);
@@ -187,7 +192,8 @@ export default function Skills({
                   profBonus * multiplier +
                   penalty +
                   itemTotals[key] +
-                  featTotals[key];
+                  featTotals[key] +
+                  raceTotals[key];
                 const isSelectable = selectableSkills.has(key);
                 return (
                   <tr key={key}>

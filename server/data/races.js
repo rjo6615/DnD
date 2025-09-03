@@ -1,0 +1,69 @@
+const races = {
+  human: {
+    name: "Human",
+    speed: 30,
+    abilities: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
+    skills: {},
+    languages: ["Common", "Choice"],
+  },
+  dwarf: {
+    name: "Dwarf",
+    speed: 25,
+    abilities: { con: 2 },
+    skills: {},
+    languages: ["Common", "Dwarvish"],
+  },
+  elf: {
+    name: "Elf",
+    speed: 30,
+    abilities: { dex: 2 },
+    skills: { perception: { proficient: true } },
+    languages: ["Common", "Elvish"],
+  },
+  halfling: {
+    name: "Halfling",
+    speed: 25,
+    abilities: { dex: 2 },
+    skills: {},
+    languages: ["Common", "Halfling"],
+  },
+  dragonborn: {
+    name: "Dragonborn",
+    speed: 30,
+    abilities: { str: 2, cha: 1 },
+    skills: {},
+    languages: ["Common", "Draconic"],
+  },
+  gnome: {
+    name: "Gnome",
+    speed: 25,
+    abilities: { int: 2 },
+    skills: {},
+    languages: ["Common", "Gnomish"],
+  },
+  "half-elf": {
+    name: "Half-Elf",
+    speed: 30,
+    abilities: { cha: 2 },
+    abilityChoices: { count: 2, options: ["str", "dex", "con", "int", "wis"] },
+    skillChoices: { count: 2 },
+    skills: {},
+    languages: ["Common", "Elvish", "Choice"],
+  },
+  "half-orc": {
+    name: "Half-Orc",
+    speed: 30,
+    abilities: { str: 2, con: 1 },
+    skills: { intimidation: { proficient: true } },
+    languages: ["Common", "Orc"],
+  },
+  tiefling: {
+    name: "Tiefling",
+    speed: 30,
+    abilities: { cha: 2, int: 1 },
+    skills: {},
+    languages: ["Common", "Infernal"],
+  },
+};
+
+module.exports = races;
