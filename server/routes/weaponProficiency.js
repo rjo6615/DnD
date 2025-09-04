@@ -57,20 +57,12 @@ module.exports = (router) => {
         charDoc.feat,
         charDoc.race
       );
-
-      const proficient = new Set(granted);
-      const manual = charDoc.weaponProficiencies || {};
-      Object.keys(manual).forEach((w) => {
-        if (manual[w]) {
-          proficient.add(w);
-        } else {
-          proficient.delete(w);
-        }
-      });
+      const proficient = charDoc.weaponProficiencies || {};
 
       return res.status(200).json({
         allowed,
-        proficient: Array.from(proficient),
+        granted,
+        proficient,
       });
     } catch (err) {
       next(err);

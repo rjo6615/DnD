@@ -10,7 +10,7 @@ import apiFetch from '../../utils/apiFetch';
  */
 function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
   const [weapons, setWeapons] =
-    useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean }> | null} */(null);
+    useState/** @type {Record<string, Weapon & { owned?: boolean, granted?: boolean, proficient?: boolean }> | null} */(null);
 
   useEffect(() => {
     async function fetchWeapons() {
@@ -22,7 +22,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
             : Promise.resolve([]),
           characterId
             ? apiFetch(`/weapon-proficiency/${characterId}`).then((res) => res.json())
-            : Promise.resolve({ allowed: null, proficient: [] }),
+            : Promise.resolve({ allowed: null, granted: [], proficient: {} }),
         ]);
 
         const customMap = Array.isArray(custom)
@@ -44,7 +44,8 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
         const ownedSet = new Set(initialWeapons.map((w) => w.name || w));
         const all = { ...phb, ...customMap };
         const allowedSet = prof.allowed ? new Set(prof.allowed) : null;
-        const proficientSet = new Set(prof.proficient || []);
+        const granted = prof.granted || [];
+        const proficient = prof.proficient || {};
         const keys = allowedSet
           ? Object.keys(all).filter((k) => allowedSet.has(k))
           : Object.keys(all);
@@ -52,7 +53,8 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
           acc[key] = {
             ...all[key],
             owned: ownedSet.has(all[key].name),
-            proficient: proficientSet.has(key),
+            granted: granted.includes(key),
+            proficient: Boolean(proficient[key]),
           };
           return acc;
         }, {});
@@ -115,7 +117,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
                     aria-label={weapon.name}
                   />
                 </td>
-                <td>{weapon.proficient ? 'Yes' : 'No'}</td>
+                <td>{weapon.granted || weapon.proficient ? 'Yes' : 'No'}</td>
                 <td>{weapon.name}</td>
                 <td>{weapon.damage}</td>
                 <td>{weapon.category}</td>

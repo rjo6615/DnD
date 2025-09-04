@@ -52,7 +52,13 @@ test('fetches weapons and toggles ownership', async () => {
 test('marks weapon proficiency', async () => {
   apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce(
-    { json: async () => ({ allowed: ['club', 'dagger'], proficient: ['dagger'] }) }
+    {
+      json: async () => ({
+        allowed: ['club', 'dagger'],
+        granted: ['dagger'],
+        proficient: {},
+      }),
+    }
   );
 
   render(<WeaponList characterId="char1" />);
