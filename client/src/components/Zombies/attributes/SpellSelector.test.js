@@ -68,7 +68,7 @@ test('saves selected spells', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
-  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
   const lastCall = apiFetch.mock.calls[1];
   expect(lastCall[0]).toBe('/characters/1/spells');
   expect(JSON.parse(lastCall[1].body)).toEqual({
@@ -100,7 +100,7 @@ test('uses Occupation when Name is missing', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
-  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
   const lastCall = apiFetch.mock.calls[1];
   expect(JSON.parse(lastCall[1].body)).toEqual({
     spells: [{ name: 'Fireball', level: 3, damage: '' }],

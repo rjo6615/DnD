@@ -163,14 +163,16 @@ export default function SpellSelector({
   }, [selectedLevels, selectedSpells, allSpells, classesInfo]);
 
   function toggleSpell(name) {
-    setSelectedSpells((prev) =>
-      prev.includes(name)
+    setSelectedSpells((prev) => {
+      const updated = prev.includes(name)
         ? prev.filter((s) => s !== name)
-        : [...prev, name]
-    );
+        : [...prev, name];
+      saveSpells(updated);
+      return updated;
+    });
   }
 
-  async function saveSpells() {
+  async function saveSpells(spells = selectedSpells) {
     try {
       const currentPoints = classesInfo.reduce((sum, { name, level }) => {
         const slotRow = SLOT_TABLE[level] || [];
@@ -190,7 +192,7 @@ export default function SpellSelector({
         return sum + Math.max(0, totalSlots - count);
       }, 0);
 
-      const selectedSpellObjects = selectedSpells.map((name) => {
+      const selectedSpellObjects = spells.map((name) => {
         const info = Object.values(allSpells).find((s) => s.name === name) || {};
         return {
           name,
@@ -210,7 +212,6 @@ export default function SpellSelector({
         throw new Error('Failed to save spells');
       }
       onSpellsChange?.(selectedSpellObjects, currentPoints);
-      handleClose();
     } catch (err) {
       setError(err.message);
     }
@@ -338,11 +339,8 @@ export default function SpellSelector({
           )}
         </Card.Body>
         <Card.Footer className="text-end">
-          <Button variant="secondary" className="me-2" onClick={handleClose}>
+          <Button variant="secondary" onClick={handleClose}>
             Close
-          </Button>
-          <Button variant="primary" onClick={saveSpells}>
-            Save
           </Button>
         </Card.Footer>
       </Card>
