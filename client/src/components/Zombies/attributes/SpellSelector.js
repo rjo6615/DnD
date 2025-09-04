@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Button, Form, Tabs, Tab } from 'react-bootstrap';
+import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
 /**
@@ -113,6 +113,7 @@ export default function SpellSelector({
   const [pointsLeft, setPointsLeft] = useState({});
   const [activeClass, setActiveClass] = useState(classesInfo[0]?.name || '');
   const [error, setError] = useState(null);
+  const [viewSpell, setViewSpell] = useState(null);
 
   useEffect(() => {
     apiFetch('/spells')
@@ -181,7 +182,7 @@ export default function SpellSelector({
           selectedLevel === 0
             ? CANTRIP_TABLE[level] || 0
             : slotRow[selectedLevel] || 0;
-        const count = selectedSpells.reduce((acc, spellName) => {
+        const count = spells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);
           return info &&
             info.level === selectedLevel &&
@@ -218,132 +219,236 @@ export default function SpellSelector({
   }
 
   return (
-    <Modal
-      className="dnd-modal modern-modal"
-      show={show}
-      onHide={handleClose}
-      size="lg"
-      centered
-    >
-      <Card className="modern-card">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">Spells</Card.Title>
-        </Card.Header>
-        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          {error && <div className="text-danger mb-2">{error}</div>}
-          {classesInfo.length === 1 ? (
-            (() => {
-              const cls = classesInfo[0].name;
-              return (
-                <>
-                  <Form className="mb-3">
-                    <Form.Group>
-                      <Form.Label htmlFor={`spellLevel-${cls}`}>Level</Form.Label>
-                      <Form.Select
-                        id={`spellLevel-${cls}`}
-                        value={selectedLevels[cls]}
-                        onChange={(e) =>
-                          setSelectedLevels((prev) => ({
-                            ...prev,
-                            [cls]: Number(e.target.value),
-                          }))
-                        }
-                      >
-                        {levelOptions[cls].map((lvl) => (
-                          <option key={lvl} value={lvl}>
-                            {lvl}
-                          </option>
+    <>
+      <Modal
+        className="dnd-modal modern-modal"
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        centered
+      >
+        <Card className="modern-card">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Spells</Card.Title>
+          </Card.Header>
+          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            {error && <div className="text-danger mb-2">{error}</div>}
+            {classesInfo.length === 1 ? (
+              (() => {
+                const cls = classesInfo[0].name;
+                return (
+                  <>
+                    <Form className="mb-3">
+                      <Form.Group>
+                        <Form.Label htmlFor={`spellLevel-${cls}`}>
+                          Level
+                        </Form.Label>
+                        <Form.Select
+                          id={`spellLevel-${cls}`}
+                          value={selectedLevels[cls]}
+                          onChange={(e) =>
+                            setSelectedLevels((prev) => ({
+                              ...prev,
+                              [cls]: Number(e.target.value),
+                            }))
+                          }
+                        >
+                          {levelOptions[cls].map((lvl) => (
+                            <option key={lvl} value={lvl}>
+                              {lvl}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Form>
+                    <div className="points-container" style={{ display: 'flex' }}>
+                      <span className="points-label text-light">
+                        Points Left:
+                      </span>
+                      <span className="points-value">
+                        {pointsLeft[cls] || 0}
+                      </span>
+                    </div>
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="modern-table"
+                    >
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Name</th>
+                          <th>School</th>
+                          <th>Casting Time</th>
+                          <th>Range</th>
+                          <th>Duration</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {spellsForClass(cls).map((spell) => (
+                          <tr key={spell.name}>
+                            <td>
+                              <Form.Check
+                                id={`spell-${spell.name}`}
+                                type="checkbox"
+                                checked={selectedSpells.includes(spell.name)}
+                                disabled={
+                                  !selectedSpells.includes(spell.name) &&
+                                  (pointsLeft[cls] || 0) <= 0
+                                }
+                                onChange={() => toggleSpell(spell.name)}
+                              />
+                            </td>
+                            <td>{spell.name}</td>
+                            <td>{spell.school}</td>
+                            <td>{spell.castingTime}</td>
+                            <td>{spell.range}</td>
+                            <td>{spell.duration}</td>
+                            <td>
+                              <Button
+                                variant="link"
+                                onClick={() => setViewSpell(spell)}
+                              >
+                                <i className="fa-solid fa-eye"></i>
+                              </Button>
+                            </td>
+                          </tr>
                         ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Form>
-                  <div className="points-container" style={{ display: 'flex' }}>
-                    <span className="points-label text-light">Points Left:</span>
-                    <span className="points-value">{pointsLeft[cls] || 0}</span>
-                  </div>
-                  {spellsForClass(cls).map((spell) => (
-                    <Form.Check
-                      key={spell.name}
-                      id={`spell-${spell.name}`}
-                      type="checkbox"
-                      label={spell.name}
-                      checked={selectedSpells.includes(spell.name)}
-                      disabled={
-                        !selectedSpells.includes(spell.name) &&
-                        (pointsLeft[cls] || 0) <= 0
-                      }
-                      onChange={() => toggleSpell(spell.name)}
-                      className="mb-2"
-                    />
-                  ))}
-                </>
-              );
-            })()
-          ) : (
-            <Tabs
-              activeKey={activeClass}
-              onSelect={(k) => setActiveClass(k || '')}
-              className="mb-3"
+                      </tbody>
+                    </Table>
+                  </>
+                );
+              })()
+            ) : (
+              <Tabs
+                activeKey={activeClass}
+                onSelect={(k) => setActiveClass(k || '')}
+                className="mb-3"
+              >
+                {classesInfo.map(({ name }) => (
+                  <Tab eventKey={name} title={name} key={name}>
+                    <Form className="mb-3">
+                      <Form.Group>
+                        <Form.Label htmlFor={`spellLevel-${name}`}>
+                          Level
+                        </Form.Label>
+                        <Form.Select
+                          id={`spellLevel-${name}`}
+                          value={selectedLevels[name]}
+                          onChange={(e) =>
+                            setSelectedLevels((prev) => ({
+                              ...prev,
+                              [name]: Number(e.target.value),
+                            }))
+                          }
+                        >
+                          {levelOptions[name].map((lvl) => (
+                            <option key={lvl} value={lvl}>
+                              {lvl}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Form>
+                    <div className="points-container" style={{ display: 'flex' }}>
+                      <span className="points-label text-light">
+                        Points Left:
+                      </span>
+                      <span className="points-value">
+                        {pointsLeft[name] || 0}
+                      </span>
+                    </div>
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="modern-table"
+                    >
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Name</th>
+                          <th>School</th>
+                          <th>Casting Time</th>
+                          <th>Range</th>
+                          <th>Duration</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {spellsForClass(name).map((spell) => (
+                          <tr key={spell.name}>
+                            <td>
+                              <Form.Check
+                                id={`spell-${spell.name}`}
+                                type="checkbox"
+                                checked={selectedSpells.includes(spell.name)}
+                                disabled={
+                                  !selectedSpells.includes(spell.name) &&
+                                  (pointsLeft[name] || 0) <= 0
+                                }
+                                onChange={() => toggleSpell(spell.name)}
+                              />
+                            </td>
+                            <td>{spell.name}</td>
+                            <td>{spell.school}</td>
+                            <td>{spell.castingTime}</td>
+                            <td>{spell.range}</td>
+                            <td>{spell.duration}</td>
+                            <td>
+                              <Button
+                                variant="link"
+                                onClick={() => setViewSpell(spell)}
+                              >
+                                <i className="fa-solid fa-eye"></i>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </Tab>
+                ))}
+              </Tabs>
+            )}
+          </Card.Body>
+          <Card.Footer className="text-end">
+            <Button variant="secondary" onClick={handleClose}>
+              Close
+            </Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
+      <Modal
+        show={!!viewSpell}
+        onHide={() => setViewSpell(null)}
+        centered
+        size="lg"
+        className="dnd-modal modern-modal"
+      >
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">
+              {viewSpell?.name}
+            </Card.Title>
+          </Card.Header>
+          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            {viewSpell?.description}
+          </Card.Body>
+          <Card.Footer className="modal-footer">
+            <Button
+              className="action-btn close-btn"
+              onClick={() => setViewSpell(null)}
             >
-              {classesInfo.map(({ name }) => (
-                <Tab eventKey={name} title={name} key={name}>
-                  <Form className="mb-3">
-                    <Form.Group>
-                      <Form.Label htmlFor={`spellLevel-${name}`}>
-                        Level
-                      </Form.Label>
-                      <Form.Select
-                        id={`spellLevel-${name}`}
-                        value={selectedLevels[name]}
-                        onChange={(e) =>
-                          setSelectedLevels((prev) => ({
-                            ...prev,
-                            [name]: Number(e.target.value),
-                          }))
-                        }
-                      >
-                        {levelOptions[name].map((lvl) => (
-                          <option key={lvl} value={lvl}>
-                            {lvl}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Form>
-                  <div className="points-container" style={{ display: 'flex' }}>
-                    <span className="points-label text-light">
-                      Points Left:
-                    </span>
-                    <span className="points-value">
-                      {pointsLeft[name] || 0}
-                    </span>
-                  </div>
-                  {spellsForClass(name).map((spell) => (
-                    <Form.Check
-                      key={spell.name}
-                      id={`spell-${spell.name}`}
-                      type="checkbox"
-                      label={spell.name}
-                      checked={selectedSpells.includes(spell.name)}
-                      disabled={
-                        !selectedSpells.includes(spell.name) &&
-                        (pointsLeft[name] || 0) <= 0
-                      }
-                      onChange={() => toggleSpell(spell.name)}
-                      className="mb-2"
-                    />
-                  ))}
-                </Tab>
-              ))}
-            </Tabs>
-          )}
-        </Card.Body>
-        <Card.Footer className="text-end">
-          <Button variant="secondary" onClick={handleClose}>
-            Close
-          </Button>
-        </Card.Footer>
-      </Card>
-    </Modal>
+              Close
+            </Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
+    </>
   );
 }
