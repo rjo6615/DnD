@@ -99,5 +99,29 @@ describe('Weapon proficiency routes', () => {
     );
     expect(res.body.proficient).toEqual({ club: true });
   });
+
+  test('expands category weapon proficiencies', async () => {
+    const charDoc = {
+      occupation: [{ weapons: ['simple'] }],
+      feat: [],
+      race: {},
+      weaponProficiencies: {},
+    };
+
+    const findOne = jest.fn().mockResolvedValue(charDoc);
+    dbo.mockResolvedValue({ collection: () => ({ findOne }) });
+
+    const res = await request(app).get(
+      '/weapon-proficiency/507f1f77bcf86cd799439011'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.allowed).toEqual(
+      expect.arrayContaining(['club', 'light-crossbow'])
+    );
+    expect(res.body.granted).toEqual(
+      expect.arrayContaining(['club', 'light-crossbow'])
+    );
+  });
 });
 
