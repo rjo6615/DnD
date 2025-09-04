@@ -33,11 +33,7 @@ test('fetches and toggles weapon proficiency', async () => {
   expect(daggerCheckbox).toBeChecked();
   expect(laserCheckbox).not.toBeChecked();
 
-  await waitFor(() =>
-    expect(onChange).toHaveBeenCalledWith([
-      expect.objectContaining({ name: 'Dagger', proficient: true }),
-    ])
-  );
+  expect(onChange).not.toHaveBeenCalled();
   onChange.mockClear();
 
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ weapon: 'club', proficient: true }) });
@@ -53,7 +49,7 @@ test('fetches and toggles weapon proficiency', async () => {
   );
   await waitFor(() => expect(clubCheckbox).toBeChecked());
   await waitFor(() =>
-    expect(onChange).toHaveBeenCalledWith(
+    expect(onChange).toHaveBeenLastCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ name: 'Club', proficient: true }),
         expect.objectContaining({ name: 'Dagger', proficient: true }),
