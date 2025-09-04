@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -9,7 +9,7 @@ import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
-import Weapons from "../attributes/Weapons";
+import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
 import Armor from "../attributes/Armor";
 import Items from "../attributes/Items";
@@ -383,13 +383,15 @@ return (
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
-    <Weapons
-      form={form}
-      showWeapons={showWeapons}
-      handleCloseWeapons={handleCloseWeapons}
-      strMod={statMods.str}
-      dexMod={statMods.dex}
-    />
+    <Modal
+      className="dnd-modal modern-modal"
+      show={showWeapons}
+      onHide={handleCloseWeapons}
+      size="lg"
+      centered
+    >
+      <WeaponList characterId={characterId} campaign={form.campaign} />
+    </Modal>
     <Armor
       form={form}
       showArmor={showArmor}

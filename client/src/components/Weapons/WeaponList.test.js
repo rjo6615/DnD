@@ -9,17 +9,28 @@ const weaponsData = {
   club: { name: 'Club', damage: '1d4 bludgeoning', category: 'simple melee', properties: ['light'], weight: 2, cost: '1 sp', proficient: false },
   dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp', proficient: true },
 };
+const customData = [
+  { weaponName: 'Laser Sword', damage: '1d8 radiant', weaponStyle: 'martial melee' },
+];
+
+afterEach(() => {
+  apiFetch.mockReset();
+});
 
 test('fetches and toggles weapon proficiency', async () => {
   apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ json: async () => customData });
 
-  render(<WeaponList characterId="123" />);
+  render(<WeaponList characterId="123" campaign="Camp1" />);
 
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
+  expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
   const clubCheckbox = await screen.findByLabelText(/Club/);
   const daggerCheckbox = await screen.findByLabelText(/Dagger/);
+  const laserCheckbox = await screen.findByLabelText(/Laser Sword/);
   expect(clubCheckbox).not.toBeChecked();
   expect(daggerCheckbox).toBeChecked();
+  expect(laserCheckbox).not.toBeChecked();
 
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ weapon: 'club', proficient: true }) });
   await userEvent.click(clubCheckbox);
@@ -37,8 +48,9 @@ test('fetches and toggles weapon proficiency', async () => {
 
 test('disables checkbox when server rejects toggle', async () => {
   apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ json: async () => customData });
 
-  render(<WeaponList characterId="123" />);
+  render(<WeaponList characterId="123" campaign="Camp1" />);
   const daggerCheckbox = await screen.findByLabelText(/Dagger/);
 
   apiFetch.mockResolvedValueOnce({ ok: false });

@@ -5,16 +5,47 @@ import apiFetch from '../../utils/apiFetch';
 
 /**
  * List of weapons with proficiency toggles.
- * @param {{ characterId: string }} props
+ * @param {{ characterId: string, campaign?: string }} props
  */
-function WeaponList({ characterId }) {
-  const [weapons, setWeapons] = useState/** @type {Record<string, Weapon & {disabled?: boolean}> | null} */(null);
+function WeaponList({ characterId, campaign }) {
+  const [weapons, setWeapons] =
+    useState/** @type {Record<string, Weapon & {disabled?: boolean}> | null} */(null);
 
   useEffect(() => {
-    apiFetch('/weapons')
-      .then((res) => res.json())
-      .then((data) => setWeapons(data));
-  }, []);
+    async function fetchWeapons() {
+      try {
+        const [phb, custom] = await Promise.all([
+          apiFetch('/weapons').then((res) => res.json()),
+          campaign
+            ? apiFetch(`/equipment/weapons/${campaign}`).then((res) => res.json())
+            : Promise.resolve([]),
+        ]);
+
+        const customMap = Array.isArray(custom)
+          ? custom.reduce((acc, w) => {
+              const key = w.weaponName;
+              if (!key) return acc;
+              acc[key] = {
+                name: w.weaponName,
+                category: w.weaponStyle || 'custom',
+                damage: w.damage || '',
+                properties: [],
+                weight: w.weight || '',
+                cost: w.cost || '',
+                proficient: false,
+              };
+              return acc;
+            }, {})
+          : {};
+
+        setWeapons({ ...phb, ...customMap });
+      } catch {
+        setWeapons({});
+      }
+    }
+
+    fetchWeapons();
+  }, [campaign]);
 
   if (!weapons) {
     return <div>Loading...</div>;
