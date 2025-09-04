@@ -156,6 +156,7 @@ module.exports = (router) => {
       body('weapon').optional().isArray(),
       body('armor').optional().isArray(),
       body('item').optional().isArray(),
+      body('spells').optional().isArray(),
       body('sex').optional().trim(),
       body('diceColor').optional().trim(),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
@@ -324,6 +325,29 @@ module.exports = (router) => {
         );
         logger.info('Feats updated');
         res.json({ message: 'Feats updated' });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  // This section will update spells.
+  characterRouter.route('/:id/spells').put(
+    [body('spells').isArray().withMessage('spells must be an array')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const db_connect = req.db;
+      const { spells } = matchedData(req, { locations: ['body'] });
+      try {
+        await db_connect.collection('Characters').updateOne(
+          { _id: ObjectId(req.params.id) },
+          { $set: { spells } }
+        );
+        logger.info('Spells updated');
+        res.json({ message: 'Spells updated' });
       } catch (err) {
         next(err);
       }
