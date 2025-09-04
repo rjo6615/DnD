@@ -48,11 +48,6 @@ function WeaponList({ characterId, campaign, onChange }) {
     fetchWeapons();
   }, [campaign]);
 
-  useEffect(() => {
-    if (typeof onChange !== 'function' || !weapons) return;
-    onChange(Object.values(weapons).filter((w) => w.proficient));
-  }, [weapons, onChange]);
-
   if (!weapons) {
     return <div>Loading...</div>;
   }
@@ -62,10 +57,14 @@ function WeaponList({ characterId, campaign, onChange }) {
     const previous = weapon.proficient;
     const desired = !previous;
 
-    setWeapons((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], proficient: desired, pending: true },
-    }));
+    let nextWeapons = {
+      ...weapons,
+      [key]: { ...weapon, proficient: desired, pending: true },
+    };
+    setWeapons(nextWeapons);
+    if (typeof onChange === 'function') {
+      onChange(Object.values(nextWeapons).filter((w) => w.proficient));
+    }
 
     try {
       const res = await apiFetch(`/weapon-proficiency/${characterId}`, {
@@ -75,23 +74,28 @@ function WeaponList({ characterId, campaign, onChange }) {
       });
       if (res.ok) {
         const { proficient } = await res.json();
-        setWeapons((prev) => ({
-          ...prev,
-          [key]: { ...prev[key], proficient, pending: false },
-        }));
+        nextWeapons = {
+          ...nextWeapons,
+          [key]: { ...nextWeapons[key], proficient, pending: false },
+        };
       } else {
-        setWeapons((prev) => ({
-          ...prev,
-          [key]: { ...prev[key], proficient: previous, pending: false },
-        }));
+        nextWeapons = {
+          ...weapons,
+          [key]: { ...weapon, proficient: previous, pending: false },
+        };
         console.error('Failed to update weapon proficiency');
       }
     } catch {
-      setWeapons((prev) => ({
-        ...prev,
-        [key]: { ...prev[key], proficient: previous, pending: false },
-      }));
+      nextWeapons = {
+        ...weapons,
+        [key]: { ...weapon, proficient: previous, pending: false },
+      };
       console.error('Failed to update weapon proficiency');
+    }
+
+    setWeapons(nextWeapons);
+    if (typeof onChange === 'function') {
+      onChange(Object.values(nextWeapons).filter((w) => w.proficient));
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
@@ -110,19 +110,22 @@ export default function ZombiesCharacterSheet() {
   const handleShowHelpModal = () => setShowHelpModal(true);
   const handleCloseHelpModal = () => setShowHelpModal(false);
 
-  const handleWeaponsChange = async (weapons) => {
-    setForm((prev) => ({ ...prev, weapon: weapons }));
-    try {
-      await apiFetch(`/equipment/update-weapon/${characterId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weapon: weapons }),
-      });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
-    }
-  };
+  const handleWeaponsChange = useCallback(
+    async (weapons) => {
+      setForm((prev) => ({ ...prev, weapon: weapons }));
+      try {
+        await apiFetch(`/equipment/update-weapon/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weapon: weapons }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
+  );
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
