@@ -22,7 +22,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
             : Promise.resolve([]),
           characterId
             ? apiFetch(`/weapon-proficiency/${characterId}`).then((res) => res.json())
-            : Promise.resolve({ allowed: null, proficient: [] }),
+            : Promise.resolve({ allowed: null, granted: [], proficient: {} }),
         ]);
 
         const customMap = Array.isArray(custom)
