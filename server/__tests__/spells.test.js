@@ -47,4 +47,11 @@ describe('Spells routes', () => {
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Spell not found');
   });
+
+  test('damaging spells include parsed damage field', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app).get('/spells/fireball');
+    expect(res.status).toBe(200);
+    expect(res.body.damage).toBe('8d6');
+  });
 });
