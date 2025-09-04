@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SpellSelector from './SpellSelector';
 
@@ -36,7 +36,7 @@ const spellsData = {
   },
 };
 
-test('filters spells by class and level', async () => {
+test('filters spells by level', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
   render(
     <SpellSelector
@@ -45,7 +45,7 @@ test('filters spells by class and level', async () => {
       handleClose={() => {}}
     />
   );
-  await screen.findByLabelText('Class');
+  await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   expect(await screen.findByText('Fireball')).toBeInTheDocument();
   expect(screen.queryByText('Cure Wounds')).toBeNull();
@@ -64,7 +64,7 @@ test('saves selected spells', async () => {
       onSpellsChange={onChange}
     />
   );
-  await screen.findByLabelText('Class');
+  await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
@@ -96,8 +96,7 @@ test('uses Occupation when Name is missing', async () => {
       onSpellsChange={onChange}
     />
   );
-  await screen.findByLabelText('Class');
-  expect(screen.getByLabelText('Class').value).toBe('Wizard');
+  await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
@@ -113,4 +112,47 @@ test('uses Occupation when Name is missing', async () => {
       1
     )
   );
+});
+
+test('renders tabs for multiple classes', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [
+          { Name: 'Wizard', Level: 5 },
+          { Name: 'Cleric', Level: 5 },
+        ],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  await screen.findByRole('tab', { name: 'Wizard' });
+  await screen.findByRole('tab', { name: 'Cleric' });
+  expect(screen.queryByLabelText('Class')).toBeNull();
+
+  const panels = screen.getAllByRole('tabpanel');
+  const wizardPanel = panels[0];
+  const clericPanel = panels[1];
+
+  // Wizard tab is active by default
+  await userEvent.selectOptions(
+    within(wizardPanel).getByLabelText('Level'),
+    '3'
+  );
+  expect(
+    await within(wizardPanel).findByText('Fireball')
+  ).toBeInTheDocument();
+  expect(within(wizardPanel).queryByText('Cure Wounds')).toBeNull();
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Cleric' }));
+  await userEvent.selectOptions(
+    within(clericPanel).getByLabelText('Level'),
+    '1'
+  );
+  expect(
+    await within(clericPanel).findByText('Cure Wounds')
+  ).toBeInTheDocument();
 });

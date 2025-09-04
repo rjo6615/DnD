@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Button, Form } from 'react-bootstrap';
+import { Modal, Card, Button, Form, Tabs, Tab } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
 /**
@@ -49,24 +49,41 @@ export default function SpellSelector({
     return options;
   };
 
-  const initialClass =
-    form.occupation?.[0]?.Name || form.occupation?.[0]?.Occupation || '';
-  const [selectedClass, setSelectedClass] = useState(initialClass);
-  const initialClassLevel = Number(
-    form.occupation.find(
-      (o) => o.Name === initialClass || o.Occupation === initialClass
-    )?.Level
-  ) || 0;
-  const initialLevelOptions = getAvailableLevels(initialClassLevel);
-  const [levelOptions, setLevelOptions] = useState(initialLevelOptions);
-  const [selectedLevel, setSelectedLevel] = useState(
-    initialLevelOptions.find((lvl) => lvl > 0) || 0
+  const classesInfo = useMemo(
+    () =>
+      (form.occupation || []).map((o) => ({
+        name: o.Name || o.Occupation,
+        level: Number(o.Level) || 0,
+      })),
+    [form.occupation]
   );
+
+  const levelOptions = useMemo(
+    () =>
+      classesInfo.reduce((acc, { name, level }) => {
+        acc[name] = getAvailableLevels(level);
+        return acc;
+      }, {}),
+    [classesInfo]
+  );
+
+  const initialLevels = useMemo(
+    () =>
+      classesInfo.reduce((acc, { name }) => {
+        const options = levelOptions[name] || [];
+        acc[name] = options.find((lvl) => lvl > 0) || 0;
+        return acc;
+      }, {}),
+    [classesInfo, levelOptions]
+  );
+
+  const [selectedLevels, setSelectedLevels] = useState(initialLevels);
   const [allSpells, setAllSpells] = useState({});
   const [selectedSpells, setSelectedSpells] = useState(
     (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
   );
-  const [pointsLeft, setPointsLeft] = useState(0);
+  const [pointsLeft, setPointsLeft] = useState({});
+  const [activeClass, setActiveClass] = useState(classesInfo[0]?.name || '');
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -82,39 +99,36 @@ export default function SpellSelector({
     );
   }, [form.spells]);
 
-  const classes = Array.from(
-    new Set(form.occupation.map((o) => o.Name || o.Occupation))
-  );
+  useEffect(() => {
+    setSelectedLevels(initialLevels);
+    setActiveClass(classesInfo[0]?.name || '');
+  }, [initialLevels, classesInfo]);
+
+  function spellsForClass(cls) {
+    return Object.values(allSpells).filter(
+      (spell) =>
+        spell.classes.includes(cls) &&
+        spell.level === Number(selectedLevels[cls])
+    );
+  }
 
   useEffect(() => {
-    const occ = form.occupation.find(
-      (o) => o.Name === selectedClass || o.Occupation === selectedClass
-    );
-    const classLevel = Number(occ?.Level) || 0;
-    const options = getAvailableLevels(classLevel);
-    setLevelOptions(options);
-    setSelectedLevel(options.find((lvl) => lvl > 0) || 0);
-  }, [selectedClass, form.occupation]);
-
-  const spellsForFilter = Object.values(allSpells).filter(
-    (spell) =>
-      (!selectedClass || spell.classes.includes(selectedClass)) &&
-      spell.level === Number(selectedLevel)
-  );
-
-  useEffect(() => {
-    const occ = form.occupation.find(
-      (o) => o.Name === selectedClass || o.Occupation === selectedClass
-    );
-    const classLevel = Number(occ?.Level) || 0;
-    const slotRow = SLOT_TABLE[classLevel] || [];
-    const totalSlots = slotRow[Number(selectedLevel)] || 0;
-    const count = selectedSpells.reduce((sum, name) => {
-      const info = Object.values(allSpells).find((s) => s.name === name);
-      return info && info.level === Number(selectedLevel) ? sum + 1 : sum;
-    }, 0);
-    setPointsLeft(Math.max(0, totalSlots - count));
-  }, [selectedClass, selectedLevel, selectedSpells, allSpells, form.occupation]);
+    const newPoints = {};
+    classesInfo.forEach(({ name, level }) => {
+      const slotRow = SLOT_TABLE[level] || [];
+      const totalSlots = slotRow[Number(selectedLevels[name])] || 0;
+      const count = selectedSpells.reduce((sum, spellName) => {
+        const info = Object.values(allSpells).find((s) => s.name === spellName);
+        return info &&
+          info.level === Number(selectedLevels[name]) &&
+          info.classes.includes(name)
+          ? sum + 1
+          : sum;
+      }, 0);
+      newPoints[name] = Math.max(0, totalSlots - count);
+    });
+    setPointsLeft(newPoints);
+  }, [selectedLevels, selectedSpells, allSpells, classesInfo]);
 
   function toggleSpell(name) {
     setSelectedSpells((prev) =>
@@ -126,29 +140,35 @@ export default function SpellSelector({
 
   async function saveSpells() {
     try {
-      const occ = form.occupation.find(
-        (o) => o.Name === selectedClass || o.Occupation === selectedClass
-      );
-      const classLevel = Number(occ?.Level) || 0;
-      const slotRow = SLOT_TABLE[classLevel] || [];
-      const totalSlots = slotRow[Number(selectedLevel)] || 0;
-      const count = selectedSpells.reduce((sum, name) => {
-        const info = Object.values(allSpells).find((s) => s.name === name);
-        return info && info.level === Number(selectedLevel) ? sum + 1 : sum;
+      const currentPoints = classesInfo.reduce((sum, { name, level }) => {
+        const slotRow = SLOT_TABLE[level] || [];
+        const totalSlots = slotRow[Number(selectedLevels[name])] || 0;
+        const count = selectedSpells.reduce((acc, spellName) => {
+          const info = Object.values(allSpells).find((s) => s.name === spellName);
+          return info &&
+            info.level === Number(selectedLevels[name]) &&
+            info.classes.includes(name)
+            ? acc + 1
+            : acc;
+        }, 0);
+        return sum + Math.max(0, totalSlots - count);
       }, 0);
-      const currentPoints = Math.max(0, totalSlots - count);
+
       const selectedSpellObjects = selectedSpells.map((name) => {
         const info = Object.values(allSpells).find((s) => s.name === name) || {};
         return {
           name,
-          level: info.level || Number(selectedLevel),
+          level: info.level || 0,
           damage: info.damage || '',
         };
       });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spells: selectedSpellObjects, spellPoints: currentPoints }),
+        body: JSON.stringify({
+          spells: selectedSpellObjects,
+          spellPoints: currentPoints,
+        }),
       });
       if (!res.ok) {
         throw new Error('Failed to save spells');
@@ -174,52 +194,112 @@ export default function SpellSelector({
         </Card.Header>
         <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
           {error && <div className="text-danger mb-2">{error}</div>}
-          <Form className="mb-3">
-            <Form.Group className="mb-2">
-              <Form.Label htmlFor="spellClass">Class</Form.Label>
-              <Form.Select
-                id="spellClass"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-              >
-                {classes.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-            <Form.Group>
-              <Form.Label htmlFor="spellLevel">Level</Form.Label>
-              <Form.Select
-                id="spellLevel"
-                value={selectedLevel}
-                onChange={(e) => setSelectedLevel(e.target.value)}
-              >
-                {levelOptions.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {lvl}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Form>
-          <div className="points-container" style={{ display: 'flex' }}>
-            <span className="points-label text-light">Points Left:</span>
-            <span className="points-value">{pointsLeft}</span>
-          </div>
-          {spellsForFilter.map((spell) => (
-            <Form.Check
-              key={spell.name}
-              id={`spell-${spell.name}`}
-              type="checkbox"
-              label={spell.name}
-              checked={selectedSpells.includes(spell.name)}
-              disabled={!selectedSpells.includes(spell.name) && pointsLeft <= 0}
-              onChange={() => toggleSpell(spell.name)}
-              className="mb-2"
-            />
-          ))}
+          {classesInfo.length === 1 ? (
+            (() => {
+              const cls = classesInfo[0].name;
+              return (
+                <>
+                  <Form className="mb-3">
+                    <Form.Group>
+                      <Form.Label htmlFor={`spellLevel-${cls}`}>Level</Form.Label>
+                      <Form.Select
+                        id={`spellLevel-${cls}`}
+                        value={selectedLevels[cls]}
+                        onChange={(e) =>
+                          setSelectedLevels((prev) => ({
+                            ...prev,
+                            [cls]: Number(e.target.value),
+                          }))
+                        }
+                      >
+                        {levelOptions[cls].map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Form>
+                  <div className="points-container" style={{ display: 'flex' }}>
+                    <span className="points-label text-light">Points Left:</span>
+                    <span className="points-value">{pointsLeft[cls] || 0}</span>
+                  </div>
+                  {spellsForClass(cls).map((spell) => (
+                    <Form.Check
+                      key={spell.name}
+                      id={`spell-${spell.name}`}
+                      type="checkbox"
+                      label={spell.name}
+                      checked={selectedSpells.includes(spell.name)}
+                      disabled={
+                        !selectedSpells.includes(spell.name) &&
+                        (pointsLeft[cls] || 0) <= 0
+                      }
+                      onChange={() => toggleSpell(spell.name)}
+                      className="mb-2"
+                    />
+                  ))}
+                </>
+              );
+            })()
+          ) : (
+            <Tabs
+              activeKey={activeClass}
+              onSelect={(k) => setActiveClass(k || '')}
+              className="mb-3"
+            >
+              {classesInfo.map(({ name }) => (
+                <Tab eventKey={name} title={name} key={name}>
+                  <Form className="mb-3">
+                    <Form.Group>
+                      <Form.Label htmlFor={`spellLevel-${name}`}>
+                        Level
+                      </Form.Label>
+                      <Form.Select
+                        id={`spellLevel-${name}`}
+                        value={selectedLevels[name]}
+                        onChange={(e) =>
+                          setSelectedLevels((prev) => ({
+                            ...prev,
+                            [name]: Number(e.target.value),
+                          }))
+                        }
+                      >
+                        {levelOptions[name].map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Form>
+                  <div className="points-container" style={{ display: 'flex' }}>
+                    <span className="points-label text-light">
+                      Points Left:
+                    </span>
+                    <span className="points-value">
+                      {pointsLeft[name] || 0}
+                    </span>
+                  </div>
+                  {spellsForClass(name).map((spell) => (
+                    <Form.Check
+                      key={spell.name}
+                      id={`spell-${spell.name}`}
+                      type="checkbox"
+                      label={spell.name}
+                      checked={selectedSpells.includes(spell.name)}
+                      disabled={
+                        !selectedSpells.includes(spell.name) &&
+                        (pointsLeft[name] || 0) <= 0
+                      }
+                      onChange={() => toggleSpell(spell.name)}
+                      className="mb-2"
+                    />
+                  ))}
+                </Tab>
+              ))}
+            </Tabs>
+          )}
         </Card.Body>
         <Card.Footer className="text-end">
           <Button variant="secondary" className="me-2" onClick={handleClose}>
