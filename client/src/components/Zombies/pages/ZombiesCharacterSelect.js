@@ -401,22 +401,29 @@ const handleConfirmOccupation = useCallback(() => {
     );
 
     if (!occupationExists && selectedAddOccupationObject) {
-      const normalizedOccupation = {
-        ...selectedOccupation,
-        Occupation: selectedOccupation.name,
-        Health: selectedOccupation.hitDie,
-        Level: form.occupation?.[0]?.Level || 1,
-        proficiencyPoints: selectedOccupation.proficiencies?.skills?.count || 0,
-        armor: selectedOccupation.proficiencies?.armor || [],
-        weapons: selectedOccupation.proficiencies?.weapons || [],
-        tools: selectedOccupation.proficiencies?.tools || [],
-        savingThrows: selectedOccupation.proficiencies?.savingThrows || [],
-        skills: selectedOccupation.proficiencies?.skills?.options
-          ? selectedOccupation.proficiencies.skills.options.reduce((acc, skill) => {
-              acc[skill] = { proficient: true };
-              return acc;
-            }, {})
-          : {},
+      const normalizedOcc = {
+        Occupation: selectedAddOccupationObject.name,
+        Health: selectedAddOccupationObject.hitDie,
+        Level: 1,
+        proficiencyPoints: selectedAddOccupationObject.proficiencies?.skills?.count || 0,
+        armor: selectedAddOccupationObject.proficiencies?.armor || [],
+        weapons: selectedAddOccupationObject.proficiencies?.weapons || [],
+        tools: selectedAddOccupationObject.proficiencies?.tools || [],
+        savingThrows: selectedAddOccupationObject.proficiencies?.savingThrows || [],
+        skills: (() => {
+          const skills = {};
+          const profSkills = selectedAddOccupationObject.proficiencies?.skills;
+          if (profSkills?.options && profSkills.count) {
+            const available = [...profSkills.options];
+            for (let i = 0; i < profSkills.count; i++) {
+              if (!available.length) break;
+              const idx = Math.floor(Math.random() * available.length);
+              const skill = available.splice(idx, 1)[0];
+              skills[skill] = { proficient: true };
+            }
+          }
+          return skills;
+        })(),
       };
 
       const addOccupationStr = Number(selectedAddOccupationObject.str || 0) + Number(form.str);
@@ -436,7 +443,7 @@ const handleConfirmOccupation = useCallback(() => {
 
       const updatedForm = {
         ...form,
-        occupation: [normalizedOccupation],
+        occupation: [normalizedOcc],
         str: addOccupationStr,
         dex: addOccupationDex,
         con: addOccupationCon,
@@ -460,10 +467,6 @@ const sendManualToDb = useCallback(async (characterData) => {
     ...baseCharacter,
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
-  if (!newCharacter.occupation?.[0]?.Level) {
-    notify("Class level is required.", 'warning');
-    return;
-  }
   try {
     const response = await apiFetch("/characters/add", {
       method: "POST",
