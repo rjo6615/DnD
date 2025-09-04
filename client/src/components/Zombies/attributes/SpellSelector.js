@@ -16,7 +16,7 @@ export default function SpellSelector({
   const params = useParams();
   const [allSpells, setAllSpells] = useState({});
   const [selectedClass, setSelectedClass] = useState(
-    form.occupation?.[0]?.Name || ''
+    form.occupation?.[0]?.Name || form.occupation?.[0]?.Occupation || ''
   );
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [selectedSpells, setSelectedSpells] = useState(
@@ -38,7 +38,9 @@ export default function SpellSelector({
     );
   }, [form.spells]);
 
-  const classes = Array.from(new Set(form.occupation.map((o) => o.Name)));
+  const classes = Array.from(
+    new Set(form.occupation.map((o) => o.Name || o.Occupation))
+  );
   const levelOptions = Array.from({ length: 10 }, (_, i) => i);
 
   // Full-caster spell slot table indexed by class level then spell level

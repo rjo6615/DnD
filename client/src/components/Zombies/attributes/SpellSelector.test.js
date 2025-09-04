@@ -82,3 +82,35 @@ test('saves selected spells', async () => {
     )
   );
 });
+
+test('uses Occupation when Name is missing', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+  const onChange = jest.fn();
+  render(
+    <SpellSelector
+      form={{ occupation: [{ Occupation: 'Wizard', Level: 5 }], spells: [] }}
+      show={true}
+      handleClose={() => {}}
+      onSpellsChange={onChange}
+    />
+  );
+  await screen.findByLabelText('Class');
+  expect(screen.getByLabelText('Class').value).toBe('Wizard');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
+  const checkbox = (await screen.findAllByRole('checkbox'))[0];
+  await userEvent.click(checkbox);
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  const lastCall = apiFetch.mock.calls[1];
+  expect(JSON.parse(lastCall[1].body)).toEqual({
+    spells: [{ name: 'Fireball', level: 3, damage: '' }],
+    spellPoints: 1,
+  });
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [{ name: 'Fireball', level: 3, damage: '' }],
+      1
+    )
+  );
+});
