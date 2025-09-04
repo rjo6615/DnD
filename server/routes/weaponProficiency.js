@@ -1,33 +1,72 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
+const weaponData = require('../data/weapons');
 
 // Collect allowed and granted weapons from occupation, feat, and race
 function collectWeaponInfo(occupation = [], feat = [], race) {
   const allowed = new Set();
   const granted = new Set();
+
+  const expandCategory = (term) => {
+    const lower = String(term).toLowerCase();
+    return Object.keys(weaponData).filter((key) =>
+      weaponData[key].category.toLowerCase().startsWith(lower)
+    );
+  };
+
+  const processArray = (arr) => {
+    arr.forEach((w) => {
+      if (typeof w === 'string') {
+        const expanded = expandCategory(w);
+        if (expanded.length) {
+          expanded.forEach((key) => {
+            allowed.add(key);
+            granted.add(key);
+          });
+        } else {
+          allowed.add(w);
+          granted.add(w);
+        }
+      } else {
+        allowed.add(w);
+        granted.add(w);
+      }
+    });
+  };
+
+  const processObject = (obj) => {
+    Object.keys(obj).forEach((w) => {
+      const val = obj[w];
+      const expanded = expandCategory(w);
+      const isGranted = val === true || (val && val.proficient);
+      if (expanded.length) {
+        expanded.forEach((key) => {
+          allowed.add(key);
+          if (isGranted) granted.add(key);
+        });
+      } else {
+        allowed.add(w);
+        if (isGranted) granted.add(w);
+      }
+    });
+  };
+
   const processSource = (src) => {
     if (!src) return;
     const weapons = src.weapons || src.weaponProficiencies;
     if (!weapons) return;
     if (Array.isArray(weapons)) {
-      weapons.forEach((w) => {
-        allowed.add(w);
-        granted.add(w);
-      });
+      processArray(weapons);
     } else if (typeof weapons === 'object') {
-      Object.keys(weapons).forEach((w) => {
-        allowed.add(w);
-        const val = weapons[w];
-        if (val === true || (val && val.proficient)) {
-          granted.add(w);
-        }
-      });
+      processObject(weapons);
     }
   };
+
   if (Array.isArray(occupation)) occupation.forEach(processSource);
   if (Array.isArray(feat)) feat.forEach(processSource);
   processSource(race);
+
   return { allowed: Array.from(allowed), granted: Array.from(granted) };
 }
 
