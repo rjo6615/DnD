@@ -199,6 +199,9 @@ export default function SpellSelector({
           name,
           level: info.level || 0,
           damage: info.damage || '',
+          castingTime: info.castingTime || '',
+          range: info.range || '',
+          duration: info.duration || '',
         };
       });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
