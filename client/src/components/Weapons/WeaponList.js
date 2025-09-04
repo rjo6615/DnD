@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Card, Table, Form } from 'react-bootstrap';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
@@ -81,29 +82,47 @@ function WeaponList({ characterId, campaign }) {
   };
 
   return (
-    <div>
-      <h1>Weapons</h1>
-      <ul>
-        {Object.entries(weapons).map(([key, weapon]) => (
-          <li key={key}>
-            <label>
-              <input
-                type="checkbox"
-                checked={weapon.proficient}
-                disabled={weapon.disabled}
-                onChange={handleToggle(key)}
-              />{' '}
-              {weapon.name} - {weapon.damage} ({weapon.category})
-            </label>
-            <div>
-              <small>
-                {weapon.properties.join(', ') || 'No properties'} | Weight: {weapon.weight} | Cost: {weapon.cost}
-              </small>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Card className="modern-card">
+      <Card.Header className="modal-header">
+        <Card.Title className="modal-title">Weapons</Card.Title>
+      </Card.Header>
+      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+        <Table striped bordered hover size="sm" className="modern-table">
+          <thead>
+            <tr>
+              <th>Prof</th>
+              <th>Name</th>
+              <th>Damage</th>
+              <th>Category</th>
+              <th>Properties</th>
+              <th>Weight</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(weapons).map(([key, weapon]) => (
+              <tr key={key}>
+                <td>
+                  <Form.Check
+                    type="checkbox"
+                    checked={weapon.proficient}
+                    disabled={weapon.disabled}
+                    onChange={handleToggle(key)}
+                    aria-label={weapon.name}
+                  />
+                </td>
+                <td>{weapon.name}</td>
+                <td>{weapon.damage}</td>
+                <td>{weapon.category}</td>
+                <td>{weapon.properties.join(', ') || 'No properties'}</td>
+                <td>{weapon.weight}</td>
+                <td>{weapon.cost}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card.Body>
+    </Card>
   );
 }
 
