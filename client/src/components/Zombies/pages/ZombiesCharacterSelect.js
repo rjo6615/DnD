@@ -190,12 +190,31 @@ function bigMaff() {
   let occupationLength = occupation.length;
   let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
   let newOccupation = occupation[randomOccupation];
-  const normalizedOccupation = {
+  const wrappedOccupation = {
     Occupation: newOccupation.name,
     Health: newOccupation.hitDie,
     Level: 1,
+    proficiencyPoints: newOccupation.proficiencies?.skills?.count || 0,
+    armor: newOccupation.proficiencies?.armor || [],
+    weapons: newOccupation.proficiencies?.weapons || [],
+    tools: newOccupation.proficiencies?.tools || [],
+    savingThrows: newOccupation.proficiencies?.savingThrows || [],
+    skills: (() => {
+      const skills = {};
+      const profSkills = newOccupation.proficiencies?.skills;
+      if (profSkills?.options && profSkills.count) {
+        const available = [...profSkills.options];
+        for (let i = 0; i < profSkills.count; i++) {
+          if (!available.length) break;
+          const idx = Math.floor(Math.random() * available.length);
+          const skill = available.splice(idx, 1)[0];
+          skills[skill] = { proficient: true };
+        }
+      }
+      return skills;
+    })(),
   };
-  updateForm({ occupation: [normalizedOccupation] });
+  updateForm({ occupation: [wrappedOccupation] });
 
   // Race Randomizer
   const raceKeys = Object.keys(races);
