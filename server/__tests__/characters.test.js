@@ -66,7 +66,14 @@ describe('Character routes', () => {
       weapon: ['Sword'],
       armor: ['Plate'],
       item: ['Potion'],
-      spells: [{ name: 'Fireball', level: 3, damage: '8d6' }],
+      spells: [{
+        name: 'Fireball',
+        level: 3,
+        damage: '8d6',
+        castingTime: '1 action',
+        range: '150 ft',
+        duration: 'Instantaneous',
+      }],
     };
     const res = await request(app)
       .post('/characters/add')
@@ -89,7 +96,14 @@ describe('Character routes', () => {
     expect(Array.isArray(captured.feat)).toBe(true);
     expect(Array.isArray(captured.weapon)).toBe(true);
     expect(Array.isArray(captured.spells)).toBe(true);
-    expect(captured.spells[0]).toMatchObject({ name: 'Fireball', level: 3, damage: '8d6' });
+    expect(captured.spells[0]).toMatchObject({
+      name: 'Fireball',
+      level: 3,
+      damage: '8d6',
+      castingTime: '1 action',
+      range: '150 ft',
+      duration: 'Instantaneous',
+    });
   });
 
   test('add character db failure', async () => {
@@ -124,7 +138,17 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .put('/characters/507f1f77bcf86cd799439011/spells')
-      .send({ spells: [{ name: 'Fireball', level: 3, damage: '8d6' }], spellPoints: 1 });
+      .send({
+        spells: [{
+          name: 'Fireball',
+          level: 3,
+          damage: '8d6',
+          castingTime: '1 action',
+          range: '150 ft',
+          duration: 'Instantaneous',
+        }],
+        spellPoints: 1,
+      });
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Spells updated');
   });
@@ -216,6 +240,36 @@ describe('Character routes', () => {
     const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
     expect(res.status).toBe(200);
     expect(res.body.allowedSkills).toEqual([]);
+  });
+
+  test('get character returns spells with metadata', async () => {
+    const character = {
+      token: 'alice',
+      campaign: 'Camp1',
+      spells: [{
+        name: 'Fireball',
+        level: 3,
+        damage: '8d6',
+        castingTime: '1 action',
+        range: '150 ft',
+        duration: 'Instantaneous',
+      }],
+    };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => character,
+      }),
+    });
+    const res = await request(app).get('/characters/507f1f77bcf86cd799439011');
+    expect(res.status).toBe(200);
+    expect(res.body.spells[0]).toMatchObject({
+      name: 'Fireball',
+      level: 3,
+      damage: '8d6',
+      castingTime: '1 action',
+      range: '150 ft',
+      duration: 'Instantaneous',
+    });
   });
 
   test('get weapons success', async () => {

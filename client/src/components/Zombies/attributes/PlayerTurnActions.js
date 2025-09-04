@@ -358,6 +358,9 @@ const showSparklesEffect = () => {
                       <th>Spell Name</th>
                       <th>Level</th>
                       <th>Damage</th>
+                      <th>Casting Time</th>
+                      <th>Range</th>
+                      <th>Duration</th>
                       <th>Attack</th>
                     </tr>
                   </thead>
@@ -369,6 +372,9 @@ const showSparklesEffect = () => {
                           <td>{spell.name}</td>
                           <td>{spell.level}</td>
                           <td>{spell.damage}</td>
+                          <td>{spell.castingTime}</td>
+                          <td>{spell.range}</td>
+                          <td>{spell.duration}</td>
                           <td>
                             <Button
                               onClick={() => {
