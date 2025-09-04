@@ -96,3 +96,25 @@ test('shows all weapons when allowed list is empty', async () => {
   expect(await screen.findByText('Dagger')).toBeInTheDocument();
 });
 
+test('reloads allowed and proficient weapons when character changes', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      json: async () => ({ allowed: ['club'], proficient: ['club'], granted: [] }),
+    })
+    .mockResolvedValueOnce({ json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      json: async () => ({ allowed: ['dagger'], proficient: ['dagger'], granted: [] }),
+    });
+
+  const { rerender } = render(<WeaponList characterId="char1" />);
+
+  expect(await screen.findByText('Club')).toBeInTheDocument();
+  expect(screen.queryByText('Dagger')).not.toBeInTheDocument();
+
+  rerender(<WeaponList characterId="char2" />);
+  expect(await screen.findByText('Dagger')).toBeInTheDocument();
+  expect(screen.queryByText('Club')).not.toBeInTheDocument();
+  expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char2');
+});
+
