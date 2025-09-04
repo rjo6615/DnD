@@ -190,7 +190,7 @@ function bigMaff() {
   let occupationLength = occupation.length;
   let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
   let newOccupation = occupation[randomOccupation];
-  const wrappedOccupation = {
+  const normalizedOcc = {
     Occupation: newOccupation.name,
     Health: newOccupation.hitDie,
     Level: 1,
@@ -214,7 +214,7 @@ function bigMaff() {
       return skills;
     })(),
   };
-  updateForm({ occupation: [wrappedOccupation] });
+  updateForm({ occupation: [normalizedOcc] });
 
   // Race Randomizer
   const raceKeys = Object.keys(races);
@@ -269,17 +269,17 @@ function bigMaff() {
 
   // Stat Randomizer
     const raceAbilities = (chosenRace && chosenRace.abilities) || {};
-    let randomStr = sumArray[0] + Number(newOccupation.str) + (raceAbilities.str || 0);
+    let randomStr = sumArray[0] + Number(newOccupation.str || 0) + (raceAbilities.str || 0);
     updateForm({ str: randomStr });
-    let randomDex = sumArray[1] + Number(newOccupation.dex) + (raceAbilities.dex || 0);
+    let randomDex = sumArray[1] + Number(newOccupation.dex || 0) + (raceAbilities.dex || 0);
     updateForm({ dex: randomDex });
-    let randomCon = sumArray[2] + Number(newOccupation.con) + (raceAbilities.con || 0);
+    let randomCon = sumArray[2] + Number(newOccupation.con || 0) + (raceAbilities.con || 0);
     updateForm({ con: randomCon });
-    let randomInt = sumArray[3] + Number(newOccupation.int) + (raceAbilities.int || 0);
+    let randomInt = sumArray[3] + Number(newOccupation.int || 0) + (raceAbilities.int || 0);
     updateForm({ int: randomInt });
-    let randomWis = sumArray[4] + Number(newOccupation.wis) + (raceAbilities.wis || 0);
+    let randomWis = sumArray[4] + Number(newOccupation.wis || 0) + (raceAbilities.wis || 0);
     updateForm({ wis: randomWis });
-    let randomCha = sumArray[5] + Number(newOccupation.cha) + (raceAbilities.cha || 0);
+    let randomCha = sumArray[5] + Number(newOccupation.cha || 0) + (raceAbilities.cha || 0);
     updateForm({ cha: randomCha });
 
   let startStatTotal =
@@ -290,21 +290,27 @@ function bigMaff() {
     randomWis +
     randomCha;
   updateForm({ startStatTotal: startStatTotal });
+
+  const conModValue = Math.floor((randomCon - 10) / 2);
+  const newHealth = Number(normalizedOcc.Health);
+  const tempHealth = newHealth + conModValue * Number(normalizedOcc.Level);
+  updateForm({ health: newHealth, tempHealth });
 }
 
 // Health Randomizer
-let conMod = Math.floor((form.con - 10) / 2); 
+let conMod = Math.floor((form.con - 10) / 2);
 const [healthArray, setHealthArray] = useState([]);
-let newHealth =  healthArray[0] + Number(form.occupation[0].Health);
-let tempHealth = newHealth + Number(conMod) * Number(form.occupation[0].Level);
-useEffect(() => {    
-  updateForm({ health: newHealth});
-  updateForm({ tempHealth: tempHealth});
-}, [ newHealth, tempHealth]);
+const normalizedOccState = form.occupation?.[0] || {};
+let newHealth = (healthArray[0] || 0) + Number(normalizedOccState.Health || 0);
+let tempHealth = newHealth + Number(conMod) * Number(normalizedOccState.Level || 0);
+useEffect(() => {
+  updateForm({ health: newHealth });
+  updateForm({ tempHealth });
+}, [newHealth, tempHealth]);
 
-  useEffect(() => {  
-  const lvl = (form.occupation[0].Level - 1);
-  const diceValue = form.occupation[0].Health;
+  useEffect(() => {
+  const lvl = (normalizedOccState.Level || 1) - 1;
+  const diceValue = normalizedOccState.Health || 0;
   const rollHealthDice = () => {
     const newHealthArray = [];
     for (let i = 0; i < 1; i++) { //array amount
