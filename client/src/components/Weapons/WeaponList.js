@@ -10,7 +10,7 @@ import apiFetch from '../../utils/apiFetch';
  */
 function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
   const [weapons, setWeapons] =
-    useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean }> | null} */(null);
+    useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean }> | null} */(null);
 
   useEffect(() => {
     async function fetchWeapons() {
@@ -45,6 +45,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
         const all = { ...phb, ...customMap };
         const allowedSet = prof.allowed ? new Set(prof.allowed) : null;
         const proficientSet = new Set(prof.proficient || []);
+        const grantedSet = new Set(prof.granted || []);
         const keys = allowedSet
           ? Object.keys(all).filter((k) => allowedSet.has(k))
           : Object.keys(all);
@@ -53,6 +54,8 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
             ...all[key],
             owned: ownedSet.has(all[key].name),
             proficient: proficientSet.has(key),
+            granted: grantedSet.has(key),
+            pending: false,
           };
           return acc;
         }, {});
@@ -71,7 +74,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
     return <div>Loading...</div>;
   }
 
-  const handleToggle = (key) => () => {
+  const handleOwnedToggle = (key) => () => {
     const weapon = weapons[key];
     const desired = !weapon.owned;
     const nextWeapons = {
@@ -81,6 +84,33 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
     setWeapons(nextWeapons);
     if (typeof onChange === 'function') {
       onChange(Object.values(nextWeapons).filter((w) => w.owned));
+    }
+  };
+
+  const handleToggle = (key) => async () => {
+    const weapon = weapons[key];
+    if (weapon.granted) return;
+    const desired = !weapon.proficient;
+    const nextWeapons = {
+      ...weapons,
+      [key]: { ...weapon, proficient: desired, pending: true },
+    };
+    setWeapons(nextWeapons);
+    try {
+      await apiFetch(`/weapon-proficiency/${characterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weapon: key, proficient: desired }),
+      });
+      setWeapons((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], pending: false },
+      }));
+    } catch {
+      setWeapons((prev) => ({
+        ...prev,
+        [key]: { ...weapon, pending: false },
+      }));
     }
   };
 
@@ -111,11 +141,21 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
                     type="checkbox"
                     className="weapon-checkbox"
                     checked={weapon.owned}
-                    onChange={handleToggle(key)}
+                    onChange={handleOwnedToggle(key)}
                     aria-label={weapon.name}
                   />
                 </td>
-                <td>{weapon.proficient ? 'Yes' : 'No'}</td>
+                <td>
+                  <Form.Check
+                    type="checkbox"
+                    className="weapon-checkbox"
+                    checked={weapon.proficient}
+                    disabled={weapon.granted || weapon.pending}
+                    onChange={handleToggle(key)}
+                    aria-label={`${weapon.name} proficiency`}
+                    style={weapon.granted || weapon.pending ? { opacity: 0.5 } : undefined}
+                  />
+                </td>
                 <td>{weapon.name}</td>
                 <td>{weapon.damage}</td>
                 <td>{weapon.category}</td>
