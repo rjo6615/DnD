@@ -290,9 +290,10 @@ const showSparklesEffect = () => {
       <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
         <Card className="modern-card">
           <Card.Header className="modal-header">
-            <Card.Title className="modal-title">Weapons</Card.Title>
+            <Card.Title className="modal-title">Attacks</Card.Title>
           </Card.Header>
           <Card.Body>
+            <Card.Title className="modal-title">Weapons</Card.Title>
             <Table className="modern-table" striped bordered hover responsive>
               <thead>
                 <tr>
