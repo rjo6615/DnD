@@ -4,39 +4,28 @@ const authenticateToken = require('../../middleware/auth');
 const logger = require('../../utils/logger');
 const { skillNames } = require('../fieldConstants');
 const { applyMulticlass } = require('../../utils/multiclass');
+const classes = require('../../data/classes');
 
 module.exports = (router) => {
   const characterRouter = express.Router();
 
   // This section will get a list of all the occupations.
-  characterRouter.route('/occupations').get(async (req, res, next) => {
+  characterRouter.route('/occupations').get((req, res, next) => {
     try {
-      const db_connect = req.db;
-      const result = await db_connect
-        .collection('Occupations')
-        .find({})
-        .toArray();
-
-      const transformed = result.map((doc) => {
+      const result = Object.values(classes).map((cls) => {
         const skills = {};
         skillNames.forEach((skill) => {
-          const rank = doc[skill];
-          let proficient = false;
-          let expertise = false;
-          if (typeof rank === 'number') {
-            proficient = rank > 0;
-            expertise = rank > 1;
-            delete doc[skill];
-          } else if (doc.skills && doc.skills[skill]) {
-            ({ proficient = false, expertise = false } = doc.skills[skill]);
-          }
-          skills[skill] = { proficient, expertise };
+          skills[skill] = { proficient: false, expertise: false };
         });
-        delete doc.skillMod;
-        return { ...doc, skills };
+        return {
+          name: cls.name,
+          hitDie: cls.hitDie,
+          proficiencies: cls.proficiencies,
+          spellcasting: cls.spellcasting,
+          skills,
+        };
       });
-
-      res.json(transformed);
+      res.json(result);
     } catch (err) {
       next(err);
     }
