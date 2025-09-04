@@ -21,6 +21,7 @@ function NavbarComponent() {
         </Navbar.Brand>
           <Nav className="ml-auto">
             <Nav.Link as={Link} to="/spells">Spells</Nav.Link>
+            <Nav.Link as={Link} to="/weapons">Weapons</Nav.Link>
             <Nav.Link>
               <Button style={{ borderColor: "gray" }} className='bg-secondary' onClick={handleLogout}>
                 Logout
