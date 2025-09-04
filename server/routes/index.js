@@ -16,6 +16,7 @@ const equipment = require('./equipment');
 const races = require('./races');
 const spells = require('./spells');
 const weapons = require('./weapons');
+const weaponProficiency = require('./weaponProficiency');
 
 routes.use(async (req, res, next) => {
   try {
@@ -41,5 +42,6 @@ characterHealth(routes);
 skills(routes);
 feats(routes);
 equipment(routes);
+weaponProficiency(routes);
 
 module.exports = routes;
