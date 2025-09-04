@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Button, Form, ListGroup } from 'react-bootstrap';
+import { Modal, Card, Button, Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
 /**
@@ -20,6 +20,7 @@ export default function SpellSelector({
   );
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [selectedSpells, setSelectedSpells] = useState(form.spells || []);
+  const [pointsLeft, setPointsLeft] = useState(0);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -36,11 +37,50 @@ export default function SpellSelector({
   const classes = Array.from(new Set(form.occupation.map((o) => o.Name)));
   const levelOptions = Array.from({ length: 10 }, (_, i) => i);
 
+  // Full-caster spell slot table indexed by class level then spell level
+  const SLOT_TABLE = {
+    0: Array(10).fill(0),
+    1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+    2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+    3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
+    4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+    5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
+    6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
+    7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
+    8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
+    9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
+    10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
+    11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+    12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+    13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+    14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+    15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+    16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+    17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
+    18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
+    19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
+    20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
+  };
+
   const spellsForFilter = Object.values(allSpells).filter(
     (spell) =>
       (!selectedClass || spell.classes.includes(selectedClass)) &&
       spell.level === Number(selectedLevel)
   );
+
+  useEffect(() => {
+    const occ = form.occupation.find(
+      (o) => o.Name === selectedClass || o.Occupation === selectedClass
+    );
+    const classLevel = Number(occ?.Level) || 0;
+    const slotRow = SLOT_TABLE[classLevel] || [];
+    const totalSlots = slotRow[Number(selectedLevel)] || 0;
+    const count = selectedSpells.reduce((sum, name) => {
+      const info = Object.values(allSpells).find((s) => s.name === name);
+      return info && info.level === Number(selectedLevel) ? sum + 1 : sum;
+    }, 0);
+    setPointsLeft(Math.max(0, totalSlots - count));
+  }, [selectedClass, selectedLevel, selectedSpells, allSpells, form.occupation]);
 
   function toggleSpell(name) {
     setSelectedSpells((prev) =>
@@ -52,15 +92,26 @@ export default function SpellSelector({
 
   async function saveSpells() {
     try {
+      const occ = form.occupation.find(
+        (o) => o.Name === selectedClass || o.Occupation === selectedClass
+      );
+      const classLevel = Number(occ?.Level) || 0;
+      const slotRow = SLOT_TABLE[classLevel] || [];
+      const totalSlots = slotRow[Number(selectedLevel)] || 0;
+      const count = selectedSpells.reduce((sum, name) => {
+        const info = Object.values(allSpells).find((s) => s.name === name);
+        return info && info.level === Number(selectedLevel) ? sum + 1 : sum;
+      }, 0);
+      const currentPoints = Math.max(0, totalSlots - count);
       const res = await apiFetch(`/characters/${params.id}/spells`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spells: selectedSpells }),
+        body: JSON.stringify({ spells: selectedSpells, spellPoints: currentPoints }),
       });
       if (!res.ok) {
         throw new Error('Failed to save spells');
       }
-      onSpellsChange?.(selectedSpells);
+      onSpellsChange?.(selectedSpells, currentPoints);
       handleClose();
     } catch (err) {
       setError(err.message);
@@ -111,18 +162,22 @@ export default function SpellSelector({
               </Form.Select>
             </Form.Group>
           </Form>
-          <ListGroup>
-            {spellsForFilter.map((spell) => (
-              <ListGroup.Item
-                key={spell.name}
-                action
-                active={selectedSpells.includes(spell.name)}
-                onClick={() => toggleSpell(spell.name)}
-              >
-                {spell.name}
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
+          <div className="points-container" style={{ display: 'flex' }}>
+            <span className="points-label text-light">Points Left:</span>
+            <span className="points-value">{pointsLeft}</span>
+          </div>
+          {spellsForFilter.map((spell) => (
+            <Form.Check
+              key={spell.name}
+              id={`spell-${spell.name}`}
+              type="checkbox"
+              label={spell.name}
+              checked={selectedSpells.includes(spell.name)}
+              disabled={!selectedSpells.includes(spell.name) && pointsLeft <= 0}
+              onChange={() => toggleSpell(spell.name)}
+              className="mb-2"
+            />
+          ))}
         </Card.Body>
         <Card.Footer className="text-end">
           <Button variant="secondary" className="me-2" onClick={handleClose}>

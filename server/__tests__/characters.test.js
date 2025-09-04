@@ -123,7 +123,7 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .put('/characters/507f1f77bcf86cd799439011/spells')
-      .send({ spells: ['Fireball'] });
+      .send({ spells: ['Fireball'], spellPoints: 1 });
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Spells updated');
   });

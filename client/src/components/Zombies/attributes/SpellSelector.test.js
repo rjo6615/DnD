@@ -66,11 +66,14 @@ test('saves selected spells', async () => {
   );
   await screen.findByLabelText('Class');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
-  await userEvent.click(await screen.findByText('Fireball'));
+  const checkbox = (await screen.findAllByRole('checkbox'))[0];
+  await userEvent.click(checkbox);
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
-  expect(apiFetch).toHaveBeenLastCalledWith(
-    '/characters/1/spells',
-    expect.objectContaining({ method: 'PUT' })
-  );
-  await waitFor(() => expect(onChange).toHaveBeenCalledWith(['Fireball']));
+  const lastCall = apiFetch.mock.calls[1];
+  expect(lastCall[0]).toBe('/characters/1/spells');
+  expect(JSON.parse(lastCall[1].body)).toEqual({
+    spells: ['Fireball'],
+    spellPoints: 1,
+  });
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith(['Fireball'], 1));
 });
