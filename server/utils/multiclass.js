@@ -87,7 +87,7 @@ async function applyMulticlass(characterId, newOccupation) {
   });
 
   const occEntry = {
-    Name: classInfo.name,
+    Occupation: classInfo.name,
     Health: classInfo.hitDie,
     armor: classInfo.proficiencies.armor,
     weapons: classInfo.proficiencies.weapons,
