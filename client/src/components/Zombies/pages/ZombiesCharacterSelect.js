@@ -395,6 +395,24 @@ const handleConfirmOccupation = useCallback(() => {
     );
 
     if (!occupationExists && selectedAddOccupationObject) {
+      const normalizedOccupation = {
+        ...selectedOccupation,
+        Occupation: selectedOccupation.name,
+        Health: selectedOccupation.hitDie,
+        Level: form.occupation?.[0]?.Level || 1,
+        proficiencyPoints: selectedOccupation.proficiencies?.skills?.count || 0,
+        armor: selectedOccupation.proficiencies?.armor || [],
+        weapons: selectedOccupation.proficiencies?.weapons || [],
+        tools: selectedOccupation.proficiencies?.tools || [],
+        savingThrows: selectedOccupation.proficiencies?.savingThrows || [],
+        skills: selectedOccupation.proficiencies?.skills?.options
+          ? selectedOccupation.proficiencies.skills.options.reduce((acc, skill) => {
+              acc[skill] = { proficient: true };
+              return acc;
+            }, {})
+          : {},
+      };
+
       const addOccupationStr = Number(selectedAddOccupationObject.str || 0) + Number(form.str);
       const addOccupationDex = Number(selectedAddOccupationObject.dex || 0) + Number(form.dex);
       const addOccupationCon = Number(selectedAddOccupationObject.con || 0) + Number(form.con);
@@ -412,21 +430,14 @@ const handleConfirmOccupation = useCallback(() => {
 
       const updatedForm = {
         ...form,
-        occupation: [
-          {
-            ...selectedOccupation,
-            Occupation: selectedOccupation.name,
-            Health: selectedOccupation.hitDie,
-            Level: form.occupation?.[0]?.Level || 1,
-          },
-        ],
-        startStatTotal: totalNewStats,
+        occupation: [normalizedOccupation],
         str: addOccupationStr,
         dex: addOccupationDex,
         con: addOccupationCon,
         int: addOccupationInt,
         wis: addOccupationWis,
         cha: addOccupationCha,
+        startStatTotal: totalNewStats,
       };
 
       setForm(updatedForm);
