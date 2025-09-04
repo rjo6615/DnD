@@ -28,9 +28,9 @@ test('fetches weapons and toggles ownership', async () => {
 
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
-  const clubCheckbox = await screen.findByLabelText(/Club/);
-  const daggerCheckbox = await screen.findByLabelText(/Dagger/);
-  const laserCheckbox = await screen.findByLabelText(/Laser Sword/);
+  const clubCheckbox = await screen.findByLabelText('Club');
+  const daggerCheckbox = await screen.findByLabelText('Dagger');
+  const laserCheckbox = await screen.findByLabelText('Laser Sword');
   expect(clubCheckbox).not.toBeChecked();
   expect(daggerCheckbox).toBeChecked();
   expect(laserCheckbox).not.toBeChecked();
@@ -55,8 +55,8 @@ test('marks weapon proficiency', async () => {
     {
       json: async () => ({
         allowed: ['club', 'dagger'],
+        proficient: ['dagger'],
         granted: ['dagger'],
-        proficient: {},
       }),
     }
   );
@@ -68,7 +68,10 @@ test('marks weapon proficiency', async () => {
 
   const daggerTr = daggerRow.closest('tr');
   const clubTr = screen.getByText('Club').closest('tr');
-  expect(within(daggerTr).getByText('Yes')).toBeInTheDocument();
-  expect(within(clubTr).getByText('No')).toBeInTheDocument();
+  const daggerProf = within(daggerTr).getByLabelText('Dagger proficiency');
+  const clubProf = within(clubTr).getByLabelText('Club proficiency');
+  expect(daggerProf).toBeChecked();
+  expect(daggerProf).toBeDisabled();
+  expect(clubProf).not.toBeChecked();
 });
 
