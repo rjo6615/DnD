@@ -357,22 +357,14 @@ describe('Character routes', () => {
   });
 
   test('get occupations success', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        find: () => ({ toArray: async () => [{ name: 'Soldier' }] })
-      })
-    });
+    dbo.mockResolvedValue({});
     const res = await request(app).get('/characters/occupations');
     expect(res.status).toBe(200);
-    expect(res.body[0].name).toBe('Soldier');
+    expect(res.body.some((c) => c.name === 'Fighter')).toBe(true);
   });
 
   test('get occupations failure', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        find: () => ({ toArray: async () => { throw new Error('db error'); } })
-      })
-    });
+    dbo.mockRejectedValue(new Error('db error'));
     const res = await request(app).get('/characters/occupations');
     expect(res.status).toBe(500);
   });
@@ -629,9 +621,7 @@ describe('Character routes', () => {
             },
           };
         }
-        return {
-          findOne: async () => ({ Occupation: 'Fighter', Health: 10, acrobatics: 1 }),
-        };
+        throw new Error(`Unexpected collection ${name}`);
       },
     });
     jest.spyOn(Math, 'random').mockReturnValue(0);
@@ -656,9 +646,7 @@ describe('Character routes', () => {
             findOne: async () => character,
           };
         }
-        return {
-          findOne: async () => ({ Occupation: 'Fighter', Health: 10 }),
-        };
+        throw new Error(`Unexpected collection ${name}`);
       },
     });
     const res = await request(app)
