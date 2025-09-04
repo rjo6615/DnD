@@ -151,6 +151,8 @@ module.exports = (router) => {
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('occupation').optional().isArray(),
       body('occupation.*.Level').isInt().toInt(),
+      body('occupation.*.Occupation').optional().trim(),
+      body('occupation.*.Health').optional().isInt().toInt(),
       body('feat').optional().isArray(),
       body('race').optional().isObject(),
       body('weapon').optional().isArray(),
