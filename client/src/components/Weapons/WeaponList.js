@@ -11,6 +11,7 @@ import apiFetch from '../../utils/apiFetch';
 function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean }> | null} */(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchWeapons() {
@@ -64,8 +65,10 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
         }, {});
 
         setWeapons(withOwnership);
+        setError(null);
       } catch {
         setWeapons({});
+        setError('Failed to load weapons. Please check that the server is available.');
       }
     }
 
@@ -75,6 +78,19 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
   if (!weapons) {
     return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <Card className="modern-card">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">Weapons</Card.Title>
+        </Card.Header>
+        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+          <div className="text-danger">{error}</div>
+        </Card.Body>
+      </Card>
+    );
   }
 
   const handleOwnedToggle = (key) => () => {
