@@ -105,6 +105,7 @@ function WeaponList({ characterId, campaign }) {
                 <td>
                   <Form.Check
                     type="checkbox"
+                    className="weapon-checkbox"
                     checked={weapon.proficient}
                     disabled={weapon.disabled}
                     onChange={handleToggle(key)}
