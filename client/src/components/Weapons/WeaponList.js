@@ -6,20 +6,23 @@ import apiFetch from '../../utils/apiFetch';
 
 /**
  * List of weapons with ownership toggles.
- * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[] }} props
+ * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[], characterId?: string }} props
  */
-function WeaponList({ campaign, onChange, initialWeapons = [] }) {
+function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
   const [weapons, setWeapons] =
-    useState/** @type {Record<string, Weapon & { owned?: boolean }> | null} */(null);
+    useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean }> | null} */(null);
 
   useEffect(() => {
     async function fetchWeapons() {
       try {
-        const [phb, custom] = await Promise.all([
+        const [phb, custom, prof] = await Promise.all([
           apiFetch('/weapons').then((res) => res.json()),
           campaign
             ? apiFetch(`/equipment/weapons/${campaign}`).then((res) => res.json())
             : Promise.resolve([]),
+          characterId
+            ? apiFetch(`/weapon-proficiency/${characterId}`).then((res) => res.json())
+            : Promise.resolve({ allowed: null, proficient: [] }),
         ]);
 
         const customMap = Array.isArray(custom)
@@ -40,8 +43,17 @@ function WeaponList({ campaign, onChange, initialWeapons = [] }) {
 
         const ownedSet = new Set(initialWeapons.map((w) => w.name || w));
         const all = { ...phb, ...customMap };
-        const withOwnership = Object.keys(all).reduce((acc, key) => {
-          acc[key] = { ...all[key], owned: ownedSet.has(all[key].name) };
+        const allowedSet = prof.allowed ? new Set(prof.allowed) : null;
+        const proficientSet = new Set(prof.proficient || []);
+        const keys = allowedSet
+          ? Object.keys(all).filter((k) => allowedSet.has(k))
+          : Object.keys(all);
+        const withOwnership = keys.reduce((acc, key) => {
+          acc[key] = {
+            ...all[key],
+            owned: ownedSet.has(all[key].name),
+            proficient: proficientSet.has(key),
+          };
           return acc;
         }, {});
 
@@ -82,6 +94,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [] }) {
           <thead>
             <tr>
               <th>Owned</th>
+              <th>Proficient</th>
               <th>Name</th>
               <th>Damage</th>
               <th>Category</th>
@@ -102,6 +115,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [] }) {
                     aria-label={weapon.name}
                   />
                 </td>
+                <td>{weapon.proficient ? 'Yes' : 'No'}</td>
                 <td>{weapon.name}</td>
                 <td>{weapon.damage}</td>
                 <td>{weapon.category}</td>

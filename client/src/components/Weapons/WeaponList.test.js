@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WeaponList from './WeaponList';
 import apiFetch from '../../utils/apiFetch';
@@ -47,5 +47,22 @@ test('fetches weapons and toggles ownership', async () => {
     )
   );
   expect(apiFetch).toHaveBeenCalledTimes(2);
+});
+
+test('marks weapon proficiency', async () => {
+  apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce(
+    { json: async () => ({ allowed: ['club', 'dagger'], proficient: ['dagger'] }) }
+  );
+
+  render(<WeaponList characterId="char1" />);
+
+  const daggerRow = await screen.findByText('Dagger');
+  expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
+
+  const daggerTr = daggerRow.closest('tr');
+  const clubTr = screen.getByText('Club').closest('tr');
+  expect(within(daggerTr).getByText('Yes')).toBeInTheDocument();
+  expect(within(clubTr).getByText('No')).toBeInTheDocument();
 });
 
