@@ -408,8 +408,8 @@ return (
         centered
       >
         <WeaponList
-          characterId={characterId}
           campaign={form.campaign}
+          initialWeapons={form.weapon}
           onChange={handleWeaponsChange}
         />
       </Modal>

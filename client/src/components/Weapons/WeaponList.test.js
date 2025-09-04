@@ -6,8 +6,8 @@ import apiFetch from '../../utils/apiFetch';
 jest.mock('../../utils/apiFetch');
 
 const weaponsData = {
-  club: { name: 'Club', damage: '1d4 bludgeoning', category: 'simple melee', properties: ['light'], weight: 2, cost: '1 sp', proficient: false },
-  dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp', proficient: true },
+  club: { name: 'Club', damage: '1d4 bludgeoning', category: 'simple melee', properties: ['light'], weight: 2, cost: '1 sp' },
+  dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp' },
 };
 const customData = [
   { weaponName: 'Laser Sword', damage: '1d8 radiant', weaponStyle: 'martial melee' },
@@ -17,12 +17,14 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches and toggles weapon proficiency', async () => {
+test('fetches weapons and toggles ownership', async () => {
   apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ json: async () => customData });
   const onChange = jest.fn();
 
-  render(<WeaponList characterId="123" campaign="Camp1" onChange={onChange} />);
+  render(
+    <WeaponList campaign="Camp1" initialWeapons={[weaponsData.dagger]} onChange={onChange} />
+  );
 
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
@@ -33,44 +35,17 @@ test('fetches and toggles weapon proficiency', async () => {
   expect(daggerCheckbox).toBeChecked();
   expect(laserCheckbox).not.toBeChecked();
 
-  expect(onChange).not.toHaveBeenCalled();
   onChange.mockClear();
-
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ weapon: 'club', proficient: true }) });
   await userEvent.click(clubCheckbox);
-  await waitFor(() =>
-    expect(apiFetch).toHaveBeenLastCalledWith(
-      '/weapon-proficiency/123',
-      expect.objectContaining({
-        method: 'PUT',
-        body: JSON.stringify({ weapon: 'club', proficient: true }),
-      })
-    )
-  );
   await waitFor(() => expect(clubCheckbox).toBeChecked());
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith(
       expect.arrayContaining([
-        expect.objectContaining({ name: 'Club', proficient: true }),
-        expect.objectContaining({ name: 'Dagger', proficient: true }),
+        expect.objectContaining({ name: 'Club' }),
+        expect.objectContaining({ name: 'Dagger' }),
       ])
     )
   );
-});
-
-test('reverts checkbox when server rejects toggle', async () => {
-  apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
-  apiFetch.mockResolvedValueOnce({ json: async () => customData });
-
-  render(<WeaponList characterId="123" campaign="Camp1" />);
-  const daggerCheckbox = await screen.findByLabelText(/Dagger/);
-
-  apiFetch.mockResolvedValueOnce({ ok: false });
-  await userEvent.click(daggerCheckbox);
-
-  await waitFor(() => {
-    expect(daggerCheckbox).toBeChecked();
-    expect(daggerCheckbox).not.toBeDisabled();
-  });
+  expect(apiFetch).toHaveBeenCalledTimes(2);
 });
 

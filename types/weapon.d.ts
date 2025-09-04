@@ -24,7 +24,7 @@ export interface Weapon {
    */
   cost: string;
   /**
-   * Whether the creature wielding the weapon is proficient with it.
+   * Whether the creature currently owns the weapon.
    */
-  proficient: boolean;
+  owned: boolean;
 }

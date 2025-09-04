@@ -5,12 +5,12 @@ import apiFetch from '../../utils/apiFetch';
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
 
 /**
- * List of weapons with proficiency toggles.
- * @param {{ characterId: string, campaign?: string, onChange?: (weapons: Weapon[]) => void }} props
+ * List of weapons with ownership toggles.
+ * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[] }} props
  */
-function WeaponList({ characterId, campaign, onChange }) {
+function WeaponList({ campaign, onChange, initialWeapons = [] }) {
   const [weapons, setWeapons] =
-    useState/** @type {Record<string, Weapon & {pending?: boolean}> | null} */(null);
+    useState/** @type {Record<string, Weapon & { owned?: boolean }> | null} */(null);
 
   useEffect(() => {
     async function fetchWeapons() {
@@ -33,69 +33,42 @@ function WeaponList({ characterId, campaign, onChange }) {
                 properties: [],
                 weight: w.weight || '',
                 cost: w.cost || '',
-                proficient: false,
               };
               return acc;
             }, {})
           : {};
 
-        setWeapons({ ...phb, ...customMap });
+        const ownedSet = new Set(initialWeapons.map((w) => w.name || w));
+        const all = { ...phb, ...customMap };
+        const withOwnership = Object.keys(all).reduce((acc, key) => {
+          acc[key] = { ...all[key], owned: ownedSet.has(all[key].name) };
+          return acc;
+        }, {});
+
+        setWeapons(withOwnership);
       } catch {
         setWeapons({});
       }
     }
 
     fetchWeapons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign]);
 
   if (!weapons) {
     return <div>Loading...</div>;
   }
 
-  const handleToggle = (key) => async () => {
+  const handleToggle = (key) => () => {
     const weapon = weapons[key];
-    const previous = weapon.proficient;
-    const desired = !previous;
-
-    let nextWeapons = {
+    const desired = !weapon.owned;
+    const nextWeapons = {
       ...weapons,
-      [key]: { ...weapon, proficient: desired, pending: true },
+      [key]: { ...weapon, owned: desired },
     };
     setWeapons(nextWeapons);
     if (typeof onChange === 'function') {
-      onChange(Object.values(nextWeapons).filter((w) => w.proficient));
-    }
-
-    try {
-      const res = await apiFetch(`/weapon-proficiency/${characterId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weapon: key, proficient: desired }),
-      });
-      if (res.ok) {
-        const { proficient } = await res.json();
-        nextWeapons = {
-          ...nextWeapons,
-          [key]: { ...nextWeapons[key], proficient, pending: false },
-        };
-      } else {
-        nextWeapons = {
-          ...weapons,
-          [key]: { ...weapon, proficient: previous, pending: false },
-        };
-        console.error('Failed to update weapon proficiency');
-      }
-    } catch {
-      nextWeapons = {
-        ...weapons,
-        [key]: { ...weapon, proficient: previous, pending: false },
-      };
-      console.error('Failed to update weapon proficiency');
-    }
-
-    setWeapons(nextWeapons);
-    if (typeof onChange === 'function') {
-      onChange(Object.values(nextWeapons).filter((w) => w.proficient));
+      onChange(Object.values(nextWeapons).filter((w) => w.owned));
     }
   };
 
@@ -108,7 +81,7 @@ function WeaponList({ characterId, campaign, onChange }) {
         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
-              <th>Prof</th>
+              <th>Owned</th>
               <th>Name</th>
               <th>Damage</th>
               <th>Category</th>
@@ -124,8 +97,7 @@ function WeaponList({ characterId, campaign, onChange }) {
                   <Form.Check
                     type="checkbox"
                     className="weapon-checkbox"
-                    checked={weapon.proficient}
-                    disabled={weapon.pending}
+                    checked={weapon.owned}
                     onChange={handleToggle(key)}
                     aria-label={weapon.name}
                   />
