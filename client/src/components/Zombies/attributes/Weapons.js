@@ -71,28 +71,12 @@ const [weapon, setWeapon] = useState({
 
   }, [navigate, currentCampaign]);
   //  Sends weapon data to database for update
-   const splitWeaponArr = (array, size) => {
-    let result = [];
-    for (let i = 0; i < array.length; i += size) {
-      let chunk = array.slice(i, i + size);
-      result.push(chunk);
-    }
-    return result;
-  };
-   let newWeapon;
-   if (JSON.stringify(form.weapon) === JSON.stringify([["","","","","",""]])) {
-    let newWeaponArr = addWeapon.weapon.split(',');
-    const weaponArrSize = 6;
-    const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
-    newWeapon = weaponArrChunks;
-   } else {
-    let newWeaponArr = (form.weapon + "," + addWeapon.weapon).split(',');
-    const weaponArrSize = 6;
-    const weaponArrChunks = splitWeaponArr(newWeaponArr, weaponArrSize);
-    newWeapon = weaponArrChunks;
-   }
-   async function addWeaponToDb(e){
+  async function addWeaponToDb(e){
     e.preventDefault();
+    const newWeapon = [
+      ...form.weapon.filter((w) => w[0]),
+      addWeapon.weapon.split(','),
+    ];
     try {
       await apiFetch(`/equipment/update-weapon/${params.id}`, {
        method: "PUT",
@@ -108,20 +92,16 @@ const [weapon, setWeapon] = useState({
      setNotification({ message: error.message || String(error), variant: 'danger' });
     }
   }
-   // This method will delete a weapon
-   function deleteWeapons(el) {
+  // This method will delete a weapon
+  function deleteWeapons(el) {
     const index = form.weapon.indexOf(el);
     form.weapon.splice(index, 1);
-    updateWeapon(form.weapon);
     addDeleteWeaponToDb();
    }
-   const showDeleteBtn = JSON.stringify(form.weapon) !== JSON.stringify([["","","","","",""]]);
-   const showAtkBonusSave = showDeleteBtn;
+  const showDeleteBtn = form.weapon.length > 0;
+  const showAtkBonusSave = showDeleteBtn;
   async function addDeleteWeaponToDb(){
-    let newWeaponForm = form.weapon;
-    if (JSON.stringify(form.weapon) === JSON.stringify([])){
-      newWeaponForm = [["","","","","",""]];
-    }
+    const newWeaponForm = form.weapon.filter((w) => w[0]);
     try {
       await apiFetch(`/equipment/update-weapon/${params.id}`, {
         method: "PUT",

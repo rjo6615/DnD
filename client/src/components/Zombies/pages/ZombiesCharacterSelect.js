@@ -55,7 +55,7 @@ const createDefaultForm = useCallback((campaign) => {
     occupation: [""],
     race: null,
     feat: [],
-    weapon: [createEmptyArray(6)],
+    weapon: [],
     armor: [createEmptyArray(4)],
     item: [createEmptyArray(SKILLS.length + 8)],
     age: "",

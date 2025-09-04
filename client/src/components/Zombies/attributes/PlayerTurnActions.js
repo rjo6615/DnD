@@ -306,7 +306,7 @@ const showSparklesEffect = () => {
                 </tr>
               </thead>
               <tbody>
-                {form.weapon.map((el) => (
+                {form.weapon.filter((el) => el[0]).map((el) => (
                   <tr key={el[0]}>
                     <td>{el[0]}</td>
                     <td>
