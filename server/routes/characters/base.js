@@ -333,18 +333,25 @@ module.exports = (router) => {
 
   // This section will update spells.
   characterRouter.route('/:id/spells').put(
-    [body('spells').isArray().withMessage('spells must be an array')],
+    [
+      body('spells').isArray().withMessage('spells must be an array'),
+      body('spellPoints').optional().isInt().toInt(),
+    ],
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ message: 'Invalid ID' });
       }
       const db_connect = req.db;
-      const { spells } = matchedData(req, { locations: ['body'] });
+      const { spells, spellPoints } = matchedData(req, { locations: ['body'] });
+      const update = { spells };
+      if (typeof spellPoints === 'number') {
+        update.spellPoints = spellPoints;
+      }
       try {
         await db_connect.collection('Characters').updateOne(
           { _id: ObjectId(req.params.id) },
-          { $set: { spells } }
+          { $set: update }
         );
         logger.info('Spells updated');
         res.json({ message: 'Spells updated' });

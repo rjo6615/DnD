@@ -404,7 +404,9 @@ return (
       form={form}
       show={showSpells}
       handleClose={handleCloseSpells}
-      onSpellsChange={(spells) => setForm((prev) => ({ ...prev, spells }))}
+      onSpellsChange={(spells, spellPoints) =>
+        setForm((prev) => ({ ...prev, spells, spellPoints }))
+      }
     />
     <Help
       form={form}
