@@ -75,7 +75,7 @@ describe('Weapon proficiency routes', () => {
     expect(findOneAndUpdate).toHaveBeenCalled();
   });
 
-  test('returns allowed and proficient weapons', async () => {
+  test('returns allowed, granted, and manual proficiencies', async () => {
     const charDoc = {
       occupation: [{ weapons: { club: false } }],
       feat: [],
@@ -94,9 +94,10 @@ describe('Weapon proficiency routes', () => {
     expect(res.body.allowed).toEqual(
       expect.arrayContaining(['club', 'dagger'])
     );
-    expect(res.body.proficient).toEqual(
-      expect.arrayContaining(['club', 'dagger'])
+    expect(res.body.granted).toEqual(
+      expect.arrayContaining(['dagger'])
     );
+    expect(res.body.proficient).toEqual({ club: true });
   });
 });
 
