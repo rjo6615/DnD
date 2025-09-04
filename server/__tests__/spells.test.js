@@ -24,18 +24,21 @@ describe('Spells routes', () => {
     jest.clearAllMocks();
   });
 
-  test('GET /spells returns all spells', async () => {
+  test('GET /spells returns all spells and sample fields', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app).get('/spells');
     expect(res.status).toBe(200);
-    expect(res.body.fireball.name).toBe('Fireball');
+    expect(Object.keys(res.body).length).toBeGreaterThanOrEqual(10);
+    expect(res.body['cure-wounds'].level).toBe(1);
+    expect(res.body.fireball.school).toBe('Evocation');
   });
 
   test('GET /spells/:name returns spell case-insensitively', async () => {
     dbo.mockResolvedValue({});
-    const res = await request(app).get('/spells/Fireball');
+    const res = await request(app).get('/spells/WISH');
     expect(res.status).toBe(200);
-    expect(res.body.name).toBe('Fireball');
+    expect(res.body.name).toBe('Wish');
+    expect(res.body.level).toBe(9);
   });
 
   test('GET /spells/:name returns 404 for missing spell', async () => {
