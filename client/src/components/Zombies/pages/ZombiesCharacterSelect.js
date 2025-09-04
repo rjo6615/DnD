@@ -393,7 +393,14 @@ const handleConfirmOccupation = useCallback(() => {
 
       const updatedForm = {
         ...form,
-        occupation: [{ ...selectedOccupation, Occupation: selectedOccupation.name }],
+        occupation: [
+          {
+            ...selectedOccupation,
+            Occupation: selectedOccupation.name,
+            Health: selectedOccupation.hitDie,
+            Level: form.occupation?.[0]?.Level || 1,
+          },
+        ],
         startStatTotal: totalNewStats,
         str: addOccupationStr,
         dex: addOccupationDex,
