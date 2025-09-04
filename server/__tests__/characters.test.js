@@ -65,7 +65,8 @@ describe('Character routes', () => {
       feat: ['Power Attack'],
       weapon: ['Sword'],
       armor: ['Plate'],
-      item: ['Potion']
+      item: ['Potion'],
+      spells: ['Fireball'],
     };
     const res = await request(app)
       .post('/characters/add')
@@ -87,6 +88,7 @@ describe('Character routes', () => {
     });
     expect(Array.isArray(captured.feat)).toBe(true);
     expect(Array.isArray(captured.weapon)).toBe(true);
+    expect(Array.isArray(captured.spells)).toBe(true);
   });
 
   test('add character db failure', async () => {
@@ -111,6 +113,19 @@ describe('Character routes', () => {
       .post('/characters/add')
       .send({ token: 'alice' });
     expect(res.status).toBe(400);
+  });
+
+  test('update spells success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        updateOne: async () => ({ matchedCount: 1 }),
+      }),
+    });
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/spells')
+      .send({ spells: ['Fireball'] });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Spells updated');
   });
 
   test('get characters for campaign and user success', async () => {

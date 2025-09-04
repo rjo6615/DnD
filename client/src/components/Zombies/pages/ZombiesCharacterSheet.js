@@ -16,6 +16,7 @@ import Items from "../attributes/Items";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
+import SpellSelector from "../attributes/SpellSelector";
 
 const HEADER_PADDING = 16;
 
@@ -30,6 +31,7 @@ export default function ZombiesCharacterSheet() {
   const [showWeapons, setShowWeapons] = useState(false);
   const [showArmor, setShowArmor] = useState(false);
   const [showItems, setShowItems] = useState(false);
+  const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   const headerRef = useRef(null);
@@ -102,9 +104,11 @@ export default function ZombiesCharacterSheet() {
   const handleShowArmor = () => setShowArmor(true);
   const handleCloseArmor = () => setShowArmor(false); 
   const handleShowItems = () => setShowItems(true);
-  const handleCloseItems = () => setShowItems(false); 
+  const handleCloseItems = () => setShowItems(false);
+  const handleShowSpells = () => setShowSpells(true);
+  const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
-  const handleCloseHelpModal = () => setShowHelpModal(false); 
+  const handleCloseHelpModal = () => setShowHelpModal(false);
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
@@ -339,6 +343,17 @@ return (
             variant="secondary"
           ></Button>
           <Button
+            onClick={handleShowSpells}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: "#6C757D",
+            }}
+            className="mx-1 fas fa-hat-wizard"
+            variant="secondary"
+          ></Button>
+          <Button
             onClick={handleShowHelpModal}
             style={{ color: "white", padding: "8px", marginTop: "10px" }}
             className="mx-1 fas fa-info"
@@ -384,6 +399,12 @@ return (
       form={form}
       showItems={showItems}
       handleCloseItems={handleCloseItems}
+    />
+    <SpellSelector
+      form={form}
+      show={showSpells}
+      handleClose={handleCloseSpells}
+      onSpellsChange={(spells) => setForm((prev) => ({ ...prev, spells }))}
     />
     <Help
       form={form}
