@@ -43,7 +43,10 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
         const ownedSet = new Set(initialWeapons.map((w) => w.name || w));
         const all = { ...phb, ...customMap };
-        const allowedSet = prof.allowed ? new Set(prof.allowed) : null;
+        const allowedSet =
+          Array.isArray(prof.allowed) && prof.allowed.length > 0
+            ? new Set(prof.allowed)
+            : null;
         const proficientSet = new Set(prof.proficient || []);
         const grantedSet = new Set(prof.granted || []);
         const keys = allowedSet
