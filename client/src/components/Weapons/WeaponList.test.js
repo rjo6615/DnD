@@ -20,8 +20,9 @@ afterEach(() => {
 test('fetches and toggles weapon proficiency', async () => {
   apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ json: async () => customData });
+  const onChange = jest.fn();
 
-  render(<WeaponList characterId="123" campaign="Camp1" />);
+  render(<WeaponList characterId="123" campaign="Camp1" onChange={onChange} />);
 
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
@@ -31,6 +32,13 @@ test('fetches and toggles weapon proficiency', async () => {
   expect(clubCheckbox).not.toBeChecked();
   expect(daggerCheckbox).toBeChecked();
   expect(laserCheckbox).not.toBeChecked();
+
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({ name: 'Dagger', proficient: true }),
+    ])
+  );
+  onChange.mockClear();
 
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ weapon: 'club', proficient: true }) });
   await userEvent.click(clubCheckbox);
@@ -44,6 +52,14 @@ test('fetches and toggles weapon proficiency', async () => {
     )
   );
   await waitFor(() => expect(clubCheckbox).toBeChecked());
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Club', proficient: true }),
+        expect.objectContaining({ name: 'Dagger', proficient: true }),
+      ])
+    )
+  );
 });
 
 test('disables checkbox when server rejects toggle', async () => {

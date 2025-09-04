@@ -82,7 +82,7 @@ export default function ZombiesCharacterSheet() {
           });
           return featObj;
         });
-        setForm({ ...data, feat: feats });
+        setForm({ ...data, feat: feats, weapon: data.weapon || [] });
       } catch (error) {
         console.error(error);
       }
@@ -102,13 +102,27 @@ export default function ZombiesCharacterSheet() {
   const handleShowWeapons = () => setShowWeapons(true);
   const handleCloseWeapons = () => setShowWeapons(false); 
   const handleShowArmor = () => setShowArmor(true);
-  const handleCloseArmor = () => setShowArmor(false); 
+  const handleCloseArmor = () => setShowArmor(false);
   const handleShowItems = () => setShowItems(true);
   const handleCloseItems = () => setShowItems(false);
   const handleShowSpells = () => setShowSpells(true);
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
   const handleCloseHelpModal = () => setShowHelpModal(false);
+
+  const handleWeaponsChange = async (weapons) => {
+    setForm((prev) => ({ ...prev, weapon: weapons }));
+    try {
+      await apiFetch(`/equipment/update-weapon/${characterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weapon: weapons }),
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+  };
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
@@ -383,15 +397,19 @@ return (
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
-    <Modal
-      className="dnd-modal modern-modal"
-      show={showWeapons}
-      onHide={handleCloseWeapons}
-      size="lg"
-      centered
-    >
-      <WeaponList characterId={characterId} campaign={form.campaign} />
-    </Modal>
+      <Modal
+        className="dnd-modal modern-modal"
+        show={showWeapons}
+        onHide={handleCloseWeapons}
+        size="lg"
+        centered
+      >
+        <WeaponList
+          characterId={characterId}
+          campaign={form.campaign}
+          onChange={handleWeaponsChange}
+        />
+      </Modal>
     <Armor
       form={form}
       showArmor={showArmor}

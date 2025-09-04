@@ -31,61 +31,36 @@ const handleToggle = () => {
 const handleToggleAfterDamage = () => {
   setIsGold(false);
 };
-// --------------------------------Breaks down weapon damage into useable numbers--------------------------------
-let critMatch;
-let critValue;
-const handleWeaponsButtonCrit = (el) => {
-if (el[3].match(/\d{2}-\d{2}x\d+/)) {
-  critMatch = el[3].match(/(\d{2})-(\d{2})x(\d+)/);    
-  if (critMatch) {
-    const [, , , critTimes] = critMatch;  
-    const critTimesValue = parseInt(critTimes, 10);      
-    critValue = critTimesValue;
-  } else {
-    console.error("Invalid input string");
-  }
-} else if (el[3].match(/x\d+/)) {
-  critMatch = el[3].match(/x(\d+)/);   
-  if (critMatch) {
-    const [, critTimes] = critMatch;
-    const critTimesValue = parseInt(critTimes, 10);
-    critValue = critTimesValue;
-  } else {
-    console.error("Invalid input string");
-  }
-} 
-}
- let damageString;
- let match;
-const handleWeaponsButtonClick = (el) => {
-  if (el[4] === "0") {
-    damageString = el[2] + "+" + (Number(el[1]) + Number(strMod));
-    match = damageString.match(/(\d+)d(\d+)\+(\d+)/);
-  } else if (el[4] === "1") {
-    damageString = el[2] + "+" + (Number(el[1]) + Math.floor( Number((strMod * 1.5))));
-    match = damageString.match(/(\d+)d(\d+)\+(\d+)/);
-  } else if (el[4] === "2") {
-    damageString = el[2] + "+" + (Number(el[1]) + Number(0))
-    match = damageString.match(/(\d+)d(\d+)\+(\d+)/);  }
-  
-  if (match) {
-    const [, numberOfDice, sidesOfDice, constantValue] = match;
+  // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
+  const abilityForWeapon = (weapon) =>
+    weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
+
+  const getAttackBonus = (weapon) => atkBonus + abilityForWeapon(weapon);
+
+  const getDamageString = (weapon) => {
+    const ability = abilityForWeapon(weapon);
+    return `${weapon.damage}+${ability}`;
+  };
+
+  const handleWeaponAttack = (weapon) => {
+    const diceMatch = weapon.damage.match(/(\d+)d(\d+)/);
+    if (!diceMatch) {
+      // eslint-disable-next-line no-console
+      console.error('Invalid damage string');
+      return;
+    }
+    const [, numberOfDice, sidesOfDice] = diceMatch;
     const numberOfDiceValue = parseInt(numberOfDice, 10);
     const sidesOfDiceValue = parseInt(sidesOfDice, 10);
-    const constantValueValue = parseInt(constantValue, 10);
+    const ability = abilityForWeapon(weapon);
     const diceRolls = rollDice(numberOfDiceValue, sidesOfDiceValue);
-    const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);  
+    const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
+    let damageValue = damageSum + ability;
     if (isGold) {
-      let damageValue = (damageSum * critValue) + constantValueValue;
-      updateDamageValueWithAnimation(damageValue);
-    } else {
-      let damageValue = damageSum + constantValueValue;
-      updateDamageValueWithAnimation(damageValue);
+      damageValue *= 2; // default crit x2
     }
-  } else {
-    console.error("Invalid input string");
-  }
-};
+    updateDamageValueWithAnimation(damageValue);
+  };
 
 const handleSpellsButtonClick = (spell) => {
   if (!spell?.damage) return;
@@ -294,61 +269,36 @@ const showSparklesEffect = () => {
           </Card.Header>
           <Card.Body>
             <Card.Title className="modal-title">Weapons</Card.Title>
-            <Table className="modern-table" striped bordered hover responsive>
-              <thead>
-                <tr>
-                  <th>Weapon Name</th>
-                  <th>Attack Bonus</th>
-                  <th>Damage</th>
-                  <th>Critical</th>
-                  <th>Range</th>
-                  <th>Attack</th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.weapon.filter((el) => el[0]).map((el) => (
-                  <tr key={el[0]}>
-                    <td>{el[0]}</td>
-                    <td>
-                      {(() => {
-                        if (el[4] === "0") {
-                          return Number(atkBonus) + Number(strMod) + Number(el[1]);
-                        } else if (el[4] === "1") {
-                          return Number(atkBonus) + Number(strMod) + Number(el[1]);
-                        } else if (el[4] === "2") {
-                          return Number(atkBonus) + Number(dexMod) + Number(el[1]);
-                        }
-                      })()}
-                    </td>
-                    <td>
-                      {el[2]}
-                      {(() => {
-                        if (el[4] === "0") {
-                          return "+" + (Number(el[1]) + Number(strMod));
-                        } else if (el[4] === "1") {
-                          return "+" + (Number(el[1]) + Math.floor(Number(strMod * 1.5)));
-                        } else if (el[4] === "2") {
-                          return "+" + (Number(el[1]) + Number(0));
-                        }
-                      })()}
-                    </td>
-                    <td>{el[3]}</td>
-                    <td>{el[5]}</td>
-                    <td>
-                      <Button
-                        onClick={() => {
-                          handleWeaponsButtonCrit(el);
-                          handleWeaponsButtonClick(el);
-                          handleCloseAttack();
-                        }}
-                        size="sm"
-                        className="action-btn fa-solid fa-plus"
-                      ></Button>
-                    </td>
+              <Table className="modern-table" striped bordered hover responsive>
+                <thead>
+                  <tr>
+                    <th>Weapon Name</th>
+                    <th>Attack Bonus</th>
+                    <th>Damage</th>
+                    <th>Attack</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {Array.isArray(form.weapon) &&
+                    form.weapon.map((weapon) => (
+                      <tr key={weapon.name}>
+                        <td>{weapon.name}</td>
+                        <td>{getAttackBonus(weapon)}</td>
+                        <td>{getDamageString(weapon)}</td>
+                        <td>
+                          <Button
+                            onClick={() => {
+                              handleWeaponAttack(weapon);
+                              handleCloseAttack();
+                            }}
+                            size="sm"
+                            className="action-btn fa-solid fa-plus"
+                          ></Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
             {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
               <>
                 <Card.Title className="modal-title mt-4">Spells</Card.Title>
