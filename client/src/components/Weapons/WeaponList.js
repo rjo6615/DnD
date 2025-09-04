@@ -6,9 +6,9 @@ import apiFetch from '../../utils/apiFetch';
 
 /**
  * List of weapons with proficiency toggles.
- * @param {{ characterId: string, campaign?: string }} props
+ * @param {{ characterId: string, campaign?: string, onChange?: (weapons: Weapon[]) => void }} props
  */
-function WeaponList({ characterId, campaign }) {
+function WeaponList({ characterId, campaign, onChange }) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & {disabled?: boolean}> | null} */(null);
 
@@ -47,6 +47,11 @@ function WeaponList({ characterId, campaign }) {
 
     fetchWeapons();
   }, [campaign]);
+
+  useEffect(() => {
+    if (typeof onChange !== 'function' || !weapons) return;
+    onChange(Object.values(weapons).filter((w) => w.proficient));
+  }, [weapons, onChange]);
 
   if (!weapons) {
     return <div>Loading...</div>;
