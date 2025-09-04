@@ -72,12 +72,30 @@ test('saves selected spells', async () => {
   const lastCall = apiFetch.mock.calls[1];
   expect(lastCall[0]).toBe('/characters/1/spells');
   expect(JSON.parse(lastCall[1].body)).toEqual({
-    spells: [{ name: 'Fireball', level: 3, damage: '' }],
+    spells: [
+      {
+        name: 'Fireball',
+        level: 3,
+        damage: '',
+        castingTime: '1 action',
+        range: '150 feet',
+        duration: 'Instantaneous',
+      },
+    ],
     spellPoints: 1,
   });
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
-      [{ name: 'Fireball', level: 3, damage: '' }],
+      [
+        {
+          name: 'Fireball',
+          level: 3,
+          damage: '',
+          castingTime: '1 action',
+          range: '150 feet',
+          duration: 'Instantaneous',
+        },
+      ],
       1
     )
   );
@@ -103,12 +121,30 @@ test('uses Occupation when Name is missing', async () => {
   await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
   const lastCall = apiFetch.mock.calls[1];
   expect(JSON.parse(lastCall[1].body)).toEqual({
-    spells: [{ name: 'Fireball', level: 3, damage: '' }],
+    spells: [
+      {
+        name: 'Fireball',
+        level: 3,
+        damage: '',
+        castingTime: '1 action',
+        range: '150 feet',
+        duration: 'Instantaneous',
+      },
+    ],
     spellPoints: 1,
   });
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
-      [{ name: 'Fireball', level: 3, damage: '' }],
+      [
+        {
+          name: 'Fireball',
+          level: 3,
+          damage: '',
+          castingTime: '1 action',
+          range: '150 feet',
+          duration: 'Instantaneous',
+        },
+      ],
       1
     )
   );
