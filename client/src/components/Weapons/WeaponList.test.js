@@ -62,7 +62,7 @@ test('fetches and toggles weapon proficiency', async () => {
   );
 });
 
-test('disables checkbox when server rejects toggle', async () => {
+test('reverts checkbox when server rejects toggle', async () => {
   apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ json: async () => customData });
 
@@ -71,6 +71,10 @@ test('disables checkbox when server rejects toggle', async () => {
 
   apiFetch.mockResolvedValueOnce({ ok: false });
   await userEvent.click(daggerCheckbox);
-  await waitFor(() => expect(daggerCheckbox).toBeDisabled());
+
+  await waitFor(() => {
+    expect(daggerCheckbox).toBeChecked();
+    expect(daggerCheckbox).not.toBeDisabled();
+  });
 });
 
