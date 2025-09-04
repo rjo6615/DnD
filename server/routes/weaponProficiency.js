@@ -37,6 +37,46 @@ module.exports = (router) => {
   // authentication for all weapon proficiency routes
   wpRouter.use(authenticateToken);
 
+  // Get allowed and proficient weapons for a character
+  wpRouter.get('/:id', async (req, res, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
+    const db = req.db;
+    const id = { _id: ObjectId(req.params.id) };
+
+    try {
+      const charDoc = await db.collection('Characters').findOne(id);
+      if (!charDoc) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const { allowed, granted } = collectWeaponInfo(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race
+      );
+
+      const proficient = new Set(granted);
+      const manual = charDoc.weaponProficiencies || {};
+      Object.keys(manual).forEach((w) => {
+        if (manual[w]) {
+          proficient.add(w);
+        } else {
+          proficient.delete(w);
+        }
+      });
+
+      return res.status(200).json({
+        allowed,
+        proficient: Array.from(proficient),
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Toggle weapon proficiency
   wpRouter.put('/:id', async (req, res, next) => {
     if (!ObjectId.isValid(req.params.id)) {

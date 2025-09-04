@@ -74,5 +74,29 @@ describe('Weapon proficiency routes', () => {
     expect(res.body).toEqual({ weapon: 'shortbow', proficient: true });
     expect(findOneAndUpdate).toHaveBeenCalled();
   });
+
+  test('returns allowed and proficient weapons', async () => {
+    const charDoc = {
+      occupation: [{ weapons: { club: false } }],
+      feat: [],
+      race: { weapons: { dagger: { proficient: true } } },
+      weaponProficiencies: { club: true },
+    };
+
+    const findOne = jest.fn().mockResolvedValue(charDoc);
+    dbo.mockResolvedValue({ collection: () => ({ findOne }) });
+
+    const res = await request(app).get(
+      '/weapon-proficiency/507f1f77bcf86cd799439011'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.allowed).toEqual(
+      expect.arrayContaining(['club', 'dagger'])
+    );
+    expect(res.body.proficient).toEqual(
+      expect.arrayContaining(['club', 'dagger'])
+    );
+  });
 });
 
