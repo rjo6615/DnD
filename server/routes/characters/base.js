@@ -157,6 +157,9 @@ module.exports = (router) => {
       body('armor').optional().isArray(),
       body('item').optional().isArray(),
       body('spells').optional().isArray(),
+      body('spells.*.name').optional().isString(),
+      body('spells.*.level').optional().isInt().toInt(),
+      body('spells.*.damage').optional().isString(),
       body('sex').optional().trim(),
       body('diceColor').optional().trim(),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
@@ -335,6 +338,9 @@ module.exports = (router) => {
   characterRouter.route('/:id/spells').put(
     [
       body('spells').isArray().withMessage('spells must be an array'),
+      body('spells.*.name').isString(),
+      body('spells.*.level').isInt().toInt(),
+      body('spells.*.damage').optional().isString(),
       body('spellPoints').optional().isInt().toInt(),
     ],
     handleValidationErrors,
@@ -343,7 +349,10 @@ module.exports = (router) => {
         return res.status(400).json({ message: 'Invalid ID' });
       }
       const db_connect = req.db;
-      const { spells, spellPoints } = matchedData(req, { locations: ['body'] });
+      const { spells, spellPoints } = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
       const update = { spells };
       if (typeof spellPoints === 'number') {
         update.spellPoints = spellPoints;

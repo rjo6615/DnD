@@ -87,6 +87,23 @@ const handleWeaponsButtonClick = (el) => {
   }
 };
 
+const handleSpellsButtonClick = (spell) => {
+  if (!spell?.damage) return;
+  const match = spell.damage.match(/(\d+)d(\d+)([+-]\d+)?/);
+  if (match) {
+    const [, numberOfDice, sidesOfDice, modifier] = match;
+    const numberOfDiceValue = parseInt(numberOfDice, 10);
+    const sidesOfDiceValue = parseInt(sidesOfDice, 10);
+    const constantValueValue = modifier ? parseInt(modifier, 10) : 0;
+    const diceRolls = rollDice(numberOfDiceValue, sidesOfDiceValue);
+    const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
+    const damageValue = damageSum + constantValueValue;
+    updateDamageValueWithAnimation(damageValue);
+  } else {
+    console.error("Invalid damage string");
+  }
+};
+
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const opacity = 0.85;
 // Calculate RGBA color with opacity
@@ -331,6 +348,42 @@ const showSparklesEffect = () => {
                 ))}
               </tbody>
             </Table>
+            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
+              <>
+                <Card.Title className="modal-title mt-4">Spells</Card.Title>
+                <Table className="modern-table" striped bordered hover responsive>
+                  <thead>
+                    <tr>
+                      <th>Spell Name</th>
+                      <th>Level</th>
+                      <th>Damage</th>
+                      <th>Attack</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.spells
+                      .filter((s) => s && s.damage)
+                      .map((spell, idx) => (
+                        <tr key={idx}>
+                          <td>{spell.name}</td>
+                          <td>{spell.level}</td>
+                          <td>{spell.damage}</td>
+                          <td>
+                            <Button
+                              onClick={() => {
+                                handleSpellsButtonClick(spell);
+                                handleCloseAttack();
+                              }}
+                              size="sm"
+                              className="action-btn fa-solid fa-plus"
+                            ></Button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </Table>
+              </>
+            )}
             </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>

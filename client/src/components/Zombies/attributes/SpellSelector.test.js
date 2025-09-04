@@ -72,8 +72,13 @@ test('saves selected spells', async () => {
   const lastCall = apiFetch.mock.calls[1];
   expect(lastCall[0]).toBe('/characters/1/spells');
   expect(JSON.parse(lastCall[1].body)).toEqual({
-    spells: ['Fireball'],
+    spells: [{ name: 'Fireball', level: 3, damage: '' }],
     spellPoints: 1,
   });
-  await waitFor(() => expect(onChange).toHaveBeenCalledWith(['Fireball'], 1));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [{ name: 'Fireball', level: 3, damage: '' }],
+      1
+    )
+  );
 });

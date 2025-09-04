@@ -19,7 +19,9 @@ export default function SpellSelector({
     form.occupation?.[0]?.Name || ''
   );
   const [selectedLevel, setSelectedLevel] = useState(0);
-  const [selectedSpells, setSelectedSpells] = useState(form.spells || []);
+  const [selectedSpells, setSelectedSpells] = useState(
+    (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
+  );
   const [pointsLeft, setPointsLeft] = useState(0);
   const [error, setError] = useState(null);
 
@@ -31,7 +33,9 @@ export default function SpellSelector({
   }, []);
 
   useEffect(() => {
-    setSelectedSpells(form.spells || []);
+    setSelectedSpells(
+      (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
+    );
   }, [form.spells]);
 
   const classes = Array.from(new Set(form.occupation.map((o) => o.Name)));
@@ -103,15 +107,23 @@ export default function SpellSelector({
         return info && info.level === Number(selectedLevel) ? sum + 1 : sum;
       }, 0);
       const currentPoints = Math.max(0, totalSlots - count);
+      const selectedSpellObjects = selectedSpells.map((name) => {
+        const info = Object.values(allSpells).find((s) => s.name === name) || {};
+        return {
+          name,
+          level: info.level || Number(selectedLevel),
+          damage: info.damage || '',
+        };
+      });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spells: selectedSpells, spellPoints: currentPoints }),
+        body: JSON.stringify({ spells: selectedSpellObjects, spellPoints: currentPoints }),
       });
       if (!res.ok) {
         throw new Error('Failed to save spells');
       }
-      onSpellsChange?.(selectedSpells, currentPoints);
+      onSpellsChange?.(selectedSpellObjects, currentPoints);
       handleClose();
     } catch (err) {
       setError(err.message);

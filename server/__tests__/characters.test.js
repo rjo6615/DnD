@@ -66,7 +66,7 @@ describe('Character routes', () => {
       weapon: ['Sword'],
       armor: ['Plate'],
       item: ['Potion'],
-      spells: ['Fireball'],
+      spells: [{ name: 'Fireball', level: 3, damage: '8d6' }],
     };
     const res = await request(app)
       .post('/characters/add')
@@ -89,6 +89,7 @@ describe('Character routes', () => {
     expect(Array.isArray(captured.feat)).toBe(true);
     expect(Array.isArray(captured.weapon)).toBe(true);
     expect(Array.isArray(captured.spells)).toBe(true);
+    expect(captured.spells[0]).toMatchObject({ name: 'Fireball', level: 3, damage: '8d6' });
   });
 
   test('add character db failure', async () => {
@@ -123,7 +124,7 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .put('/characters/507f1f77bcf86cd799439011/spells')
-      .send({ spells: ['Fireball'], spellPoints: 1 });
+      .send({ spells: [{ name: 'Fireball', level: 3, damage: '8d6' }], spellPoints: 1 });
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Spells updated');
   });
