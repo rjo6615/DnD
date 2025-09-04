@@ -22,23 +22,30 @@ function WeaponList({ characterId }) {
 
   const handleToggle = (key) => async () => {
     const weapon = weapons[key];
-    const newProficient = !weapon.proficient;
+    const desired = !weapon.proficient;
     try {
       const res = await apiFetch(`/weapon-proficiency/${characterId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weapon: key, proficient: newProficient }),
+        body: JSON.stringify({ weapon: key, proficient: desired }),
       });
       if (res.ok) {
+        const { proficient } = await res.json();
         setWeapons((prev) => ({
           ...prev,
-          [key]: { ...prev[key], proficient: newProficient, disabled: false },
+          [key]: { ...prev[key], proficient, disabled: false },
         }));
       } else {
-        setWeapons((prev) => ({ ...prev, [key]: { ...prev[key], disabled: true } }));
+        setWeapons((prev) => ({
+          ...prev,
+          [key]: { ...prev[key], disabled: true },
+        }));
       }
-    } catch (err) {
-      setWeapons((prev) => ({ ...prev, [key]: { ...prev[key], disabled: true } }));
+    } catch {
+      setWeapons((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], disabled: true },
+      }));
     }
   };
 
