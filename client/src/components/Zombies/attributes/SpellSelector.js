@@ -14,34 +14,6 @@ export default function SpellSelector({
   onSpellsChange,
 }) {
   const params = useParams();
-  const [allSpells, setAllSpells] = useState({});
-  const [selectedClass, setSelectedClass] = useState(
-    form.occupation?.[0]?.Name || form.occupation?.[0]?.Occupation || ''
-  );
-  const [selectedLevel, setSelectedLevel] = useState(0);
-  const [selectedSpells, setSelectedSpells] = useState(
-    (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
-  );
-  const [pointsLeft, setPointsLeft] = useState(0);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    apiFetch('/spells')
-      .then((res) => res.json())
-      .then((data) => setAllSpells(data))
-      .catch((err) => setError(err.message));
-  }, []);
-
-  useEffect(() => {
-    setSelectedSpells(
-      (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
-    );
-  }, [form.spells]);
-
-  const classes = Array.from(
-    new Set(form.occupation.map((o) => o.Name || o.Occupation))
-  );
-  const levelOptions = Array.from({ length: 10 }, (_, i) => i);
 
   // Full-caster spell slot table indexed by class level then spell level
   const SLOT_TABLE = {
@@ -67,6 +39,62 @@ export default function SpellSelector({
     19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
     20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
   };
+
+  const getAvailableLevels = (classLevel) => {
+    const slotRow = SLOT_TABLE[classLevel] || [];
+    const options = [0];
+    slotRow.forEach((slots, lvl) => {
+      if (lvl > 0 && slots > 0) options.push(lvl);
+    });
+    return options;
+  };
+
+  const initialClass =
+    form.occupation?.[0]?.Name || form.occupation?.[0]?.Occupation || '';
+  const [selectedClass, setSelectedClass] = useState(initialClass);
+  const initialClassLevel = Number(
+    form.occupation.find(
+      (o) => o.Name === initialClass || o.Occupation === initialClass
+    )?.Level
+  ) || 0;
+  const initialLevelOptions = getAvailableLevels(initialClassLevel);
+  const [levelOptions, setLevelOptions] = useState(initialLevelOptions);
+  const [selectedLevel, setSelectedLevel] = useState(
+    initialLevelOptions.find((lvl) => lvl > 0) || 0
+  );
+  const [allSpells, setAllSpells] = useState({});
+  const [selectedSpells, setSelectedSpells] = useState(
+    (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
+  );
+  const [pointsLeft, setPointsLeft] = useState(0);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiFetch('/spells')
+      .then((res) => res.json())
+      .then((data) => setAllSpells(data))
+      .catch((err) => setError(err.message));
+  }, []);
+
+  useEffect(() => {
+    setSelectedSpells(
+      (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
+    );
+  }, [form.spells]);
+
+  const classes = Array.from(
+    new Set(form.occupation.map((o) => o.Name || o.Occupation))
+  );
+
+  useEffect(() => {
+    const occ = form.occupation.find(
+      (o) => o.Name === selectedClass || o.Occupation === selectedClass
+    );
+    const classLevel = Number(occ?.Level) || 0;
+    const options = getAvailableLevels(classLevel);
+    setLevelOptions(options);
+    setSelectedLevel(options.find((lvl) => lvl > 0) || 0);
+  }, [selectedClass, form.occupation]);
 
   const spellsForFilter = Object.values(allSpells).filter(
     (spell) =>
