@@ -188,6 +188,7 @@ const featBonuses = (form.feat || []).reduce(
 
 const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
+const spellsGold = (form.spellPoints || 0) > 0 ? "gold" : "#6C757D";
 // ------------------------------------------Attack Bonus---------------------------------------------------
 let atkBonus = 0;
 const occupations = form.occupation;
@@ -309,6 +310,17 @@ return (
             className="mx-1 fas fa-hand-fist"
             variant="secondary"
           ></Button>
+                    <Button
+            onClick={handleShowSpells}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: spellsGold,
+            }}
+            className="mx-1 fas fa-hat-wizard"
+            variant="secondary"
+          ></Button>
           <Button
             onClick={handleShowWeapons}
             style={{
@@ -340,17 +352,6 @@ return (
               backgroundColor: "#6C757D",
             }}
             className="mx-1 fas fa-briefcase"
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowSpells}
-            style={{
-              color: "black",
-              padding: "8px",
-              marginTop: "10px",
-              backgroundColor: "#6C757D",
-            }}
-            className="mx-1 fas fa-hat-wizard"
             variant="secondary"
           ></Button>
           <Button

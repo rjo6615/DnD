@@ -40,9 +40,35 @@ export default function SpellSelector({
     20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
   };
 
+  // Number of cantrips known by class level
+  const CANTRIP_TABLE = {
+    0: 0,
+    1: 3,
+    2: 3,
+    3: 3,
+    4: 4,
+    5: 4,
+    6: 4,
+    7: 4,
+    8: 4,
+    9: 4,
+    10: 5,
+    11: 5,
+    12: 5,
+    13: 5,
+    14: 5,
+    15: 5,
+    16: 5,
+    17: 5,
+    18: 5,
+    19: 5,
+    20: 5,
+  };
+
   const getAvailableLevels = (classLevel) => {
     const slotRow = SLOT_TABLE[classLevel] || [];
-    const options = [0];
+    const options = [];
+    if ((CANTRIP_TABLE[classLevel] || 0) > 0) options.push(0);
     slotRow.forEach((slots, lvl) => {
       if (lvl > 0 && slots > 0) options.push(lvl);
     });
@@ -71,7 +97,9 @@ export default function SpellSelector({
     () =>
       classesInfo.reduce((acc, { name }) => {
         const options = levelOptions[name] || [];
-        acc[name] = options.find((lvl) => lvl > 0) || 0;
+        const first =
+          options.find((lvl) => lvl > 0) ?? options[0] ?? 0;
+        acc[name] = first;
         return acc;
       }, {}),
     [classesInfo, levelOptions]
@@ -116,11 +144,15 @@ export default function SpellSelector({
     const newPoints = {};
     classesInfo.forEach(({ name, level }) => {
       const slotRow = SLOT_TABLE[level] || [];
-      const totalSlots = slotRow[Number(selectedLevels[name])] || 0;
+      const selectedLevel = Number(selectedLevels[name]);
+      const totalSlots =
+        selectedLevel === 0
+          ? CANTRIP_TABLE[level] || 0
+          : slotRow[selectedLevel] || 0;
       const count = selectedSpells.reduce((sum, spellName) => {
         const info = Object.values(allSpells).find((s) => s.name === spellName);
         return info &&
-          info.level === Number(selectedLevels[name]) &&
+          info.level === selectedLevel &&
           info.classes.includes(name)
           ? sum + 1
           : sum;
@@ -144,11 +176,15 @@ export default function SpellSelector({
     try {
       const currentPoints = classesInfo.reduce((sum, { name, level }) => {
         const slotRow = SLOT_TABLE[level] || [];
-        const totalSlots = slotRow[Number(selectedLevels[name])] || 0;
-        const count = spells.reduce((acc, spellName) => {
+        const selectedLevel = Number(selectedLevels[name]);
+        const totalSlots =
+          selectedLevel === 0
+            ? CANTRIP_TABLE[level] || 0
+            : slotRow[selectedLevel] || 0;
+        const count = selectedSpells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);
           return info &&
-            info.level === Number(selectedLevels[name]) &&
+            info.level === selectedLevel &&
             info.classes.includes(name)
             ? acc + 1
             : acc;
