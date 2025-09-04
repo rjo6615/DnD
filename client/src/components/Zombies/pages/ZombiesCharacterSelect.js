@@ -190,7 +190,12 @@ function bigMaff() {
   let occupationLength = occupation.length;
   let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
   let newOccupation = occupation[randomOccupation];
-  updateForm({ occupation: [newOccupation] });
+  const normalizedOccupation = {
+    Occupation: newOccupation.name,
+    Health: newOccupation.hitDie,
+    Level: 1,
+  };
+  updateForm({ occupation: [normalizedOccupation] });
 
   // Race Randomizer
   const raceKeys = Object.keys(races);
