@@ -123,7 +123,7 @@ export default function LevelUp({ show, handleClose, form }) {
   useEffect(() => {
     if (!user) return;
     async function fetchData() {
-      const response = await apiFetch('/characters/occupations');
+      const response = await apiFetch('/classes');
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -137,7 +137,7 @@ export default function LevelUp({ show, handleClose, form }) {
         navigate("/");
         return;
       }
-      setGetOccupation(record);
+      setGetOccupation(Object.values(record));
     }
     fetchData();
     return;
@@ -204,12 +204,12 @@ export default function LevelUp({ show, handleClose, form }) {
                           <option value="" disabled>Select your class</option>
                           {getOccupation.map((occupation, i) => {
                             const isOccupationSelected = form.occupation.some(
-                              (item) => item.Occupation === occupation.Occupation
+                              (item) => item.Occupation === occupation.name
                             );
 
                             return (
                               <option key={i} disabled={isOccupationSelected}>
-                                {occupation.Occupation}
+                                {occupation.name}
                               </option>
                             );
                           })}

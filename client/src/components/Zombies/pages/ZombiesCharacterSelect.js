@@ -99,7 +99,7 @@ const [skillSelections, setSkillSelections] = useState([]);
 useEffect(() => {
   if (!user) return;
   async function fetchData() {
-    const response = await apiFetch(`/characters/occupations`);
+    const response = await apiFetch(`/classes`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -114,8 +114,9 @@ useEffect(() => {
       return;
     }
 
-    setOccupation(record);
-    setGetOccupation(record);
+    const classes = Object.values(record);
+    setOccupation(classes);
+    setGetOccupation(classes);
   }
   fetchData();
   return;
@@ -363,19 +364,19 @@ const handleConfirmOccupation = useCallback(() => {
   if (selectedOccupation && !isOccupationConfirmed) {
     const selectedAddOccupation = selectedAddOccupationRef.current.value;
     const occupationExists = form.occupation.some(
-      (occupation) => occupation.Occupation === selectedOccupation.Occupation
+      (occupation) => occupation.Occupation === selectedOccupation.name
     );
     const selectedAddOccupationObject = getOccupation.find(
-      (occupation) => occupation.Occupation === selectedAddOccupation
+      (occupation) => occupation.name === selectedAddOccupation
     );
 
     if (!occupationExists && selectedAddOccupationObject) {
-      const addOccupationStr = Number(selectedAddOccupationObject.str) + Number(form.str);
-      const addOccupationDex = Number(selectedAddOccupationObject.dex) + Number(form.dex);
-      const addOccupationCon = Number(selectedAddOccupationObject.con) + Number(form.con);
-      const addOccupationInt = Number(selectedAddOccupationObject.int) + Number(form.int);
-      const addOccupationWis = Number(selectedAddOccupationObject.wis) + Number(form.wis);
-      const addOccupationCha = Number(selectedAddOccupationObject.cha) + Number(form.cha);
+      const addOccupationStr = Number(selectedAddOccupationObject.str || 0) + Number(form.str);
+      const addOccupationDex = Number(selectedAddOccupationObject.dex || 0) + Number(form.dex);
+      const addOccupationCon = Number(selectedAddOccupationObject.con || 0) + Number(form.con);
+      const addOccupationInt = Number(selectedAddOccupationObject.int || 0) + Number(form.int);
+      const addOccupationWis = Number(selectedAddOccupationObject.wis || 0) + Number(form.wis);
+      const addOccupationCha = Number(selectedAddOccupationObject.cha || 0) + Number(form.cha);
 
       const totalNewStats =
         addOccupationStr +
@@ -387,7 +388,7 @@ const handleConfirmOccupation = useCallback(() => {
 
       const updatedForm = {
         ...form,
-        occupation: [selectedOccupation],
+        occupation: [{ ...selectedOccupation, Occupation: selectedOccupation.name }],
         startStatTotal: totalNewStats,
         str: addOccupationStr,
         dex: addOccupationDex,
@@ -612,7 +613,7 @@ const getAvailableSkillOptions = (index) => {
             >
               <option value="" disabled>Select your class</option>
               {getOccupation.map((occupation, i) => (
-                <option key={i}>{occupation.Occupation}</option>
+                <option key={i}>{occupation.name}</option>
               ))}
             </Form.Select>
         <Form.Label className="text-light">Race</Form.Label>
