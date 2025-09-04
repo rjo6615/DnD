@@ -17,9 +17,11 @@ test('fetches and toggles weapon proficiency', async () => {
 
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   const clubCheckbox = await screen.findByLabelText(/Club/);
+  const daggerCheckbox = await screen.findByLabelText(/Dagger/);
   expect(clubCheckbox).not.toBeChecked();
+  expect(daggerCheckbox).toBeChecked();
 
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ weapon: 'club', proficient: false }) });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ weapon: 'club', proficient: true }) });
   await userEvent.click(clubCheckbox);
   await waitFor(() =>
     expect(apiFetch).toHaveBeenLastCalledWith(
@@ -30,7 +32,7 @@ test('fetches and toggles weapon proficiency', async () => {
       })
     )
   );
-  await waitFor(() => expect(clubCheckbox).not.toBeChecked());
+  await waitFor(() => expect(clubCheckbox).toBeChecked());
 });
 
 test('disables checkbox when server rejects toggle', async () => {
