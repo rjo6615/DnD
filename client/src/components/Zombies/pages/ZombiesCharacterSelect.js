@@ -282,14 +282,9 @@ function bigMaff() {
     let randomCha = sumArray[5] + Number(newOccupation.cha || 0) + (raceAbilities.cha || 0);
     updateForm({ cha: randomCha });
 
-  let startStatTotal =
-    randomStr +
-    randomDex +
-    randomCon +
-    randomInt +
-    randomWis +
-    randomCha;
-  updateForm({ startStatTotal: startStatTotal });
+  const stats = [randomStr, randomDex, randomCon, randomInt, randomWis, randomCha];
+  const startStatTotal = stats.reduce((sum, stat) => sum + (Number(stat) || 0), 0);
+  updateForm({ startStatTotal });
 
   const conModValue = Math.floor((randomCon - 10) / 2);
   const newHealth = Number(normalizedOcc.Health);
