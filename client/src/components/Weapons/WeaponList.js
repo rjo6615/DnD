@@ -74,7 +74,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
     fetchWeapons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaign]);
+  }, [campaign, characterId]);
 
   if (!weapons) {
     return <div>Loading...</div>;
