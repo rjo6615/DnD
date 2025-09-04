@@ -269,7 +269,13 @@ export default function SpellSelector({
                         {pointsLeft[cls] || 0}
                       </span>
                     </div>
-                    <Table striped bordered hover size="sm">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="modern-table"
+                    >
                       <thead>
                         <tr>
                           <th></th>
@@ -355,7 +361,13 @@ export default function SpellSelector({
                         {pointsLeft[name] || 0}
                       </span>
                     </div>
-                    <Table striped bordered hover size="sm">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="modern-table"
+                    >
                       <thead>
                         <tr>
                           <th></th>
@@ -416,16 +428,26 @@ export default function SpellSelector({
         onHide={() => setViewSpell(null)}
         centered
         size="lg"
+        className="dnd-modal modern-modal"
       >
-        <Modal.Header closeButton>
-          <Modal.Title>{viewSpell?.name}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{viewSpell?.description}</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setViewSpell(null)}>
-            Close
-          </Button>
-        </Modal.Footer>
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">
+              {viewSpell?.name}
+            </Card.Title>
+          </Card.Header>
+          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            {viewSpell?.description}
+          </Card.Body>
+          <Card.Footer className="modal-footer">
+            <Button
+              className="action-btn close-btn"
+              onClick={() => setViewSpell(null)}
+            >
+              Close
+            </Button>
+          </Card.Footer>
+        </Card>
       </Modal>
     </>
   );
