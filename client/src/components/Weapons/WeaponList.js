@@ -10,7 +10,7 @@ import apiFetch from '../../utils/apiFetch';
  */
 function WeaponList({ characterId, campaign, onChange }) {
   const [weapons, setWeapons] =
-    useState/** @type {Record<string, Weapon & {disabled?: boolean}> | null} */(null);
+    useState/** @type {Record<string, Weapon & {pending?: boolean}> | null} */(null);
 
   useEffect(() => {
     async function fetchWeapons() {
@@ -59,7 +59,14 @@ function WeaponList({ characterId, campaign, onChange }) {
 
   const handleToggle = (key) => async () => {
     const weapon = weapons[key];
-    const desired = !weapon.proficient;
+    const previous = weapon.proficient;
+    const desired = !previous;
+
+    setWeapons((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], proficient: desired, pending: true },
+    }));
+
     try {
       const res = await apiFetch(`/weapon-proficiency/${characterId}`, {
         method: 'PUT',
@@ -70,19 +77,21 @@ function WeaponList({ characterId, campaign, onChange }) {
         const { proficient } = await res.json();
         setWeapons((prev) => ({
           ...prev,
-          [key]: { ...prev[key], proficient, disabled: false },
+          [key]: { ...prev[key], proficient, pending: false },
         }));
       } else {
         setWeapons((prev) => ({
           ...prev,
-          [key]: { ...prev[key], disabled: true },
+          [key]: { ...prev[key], proficient: previous, pending: false },
         }));
+        console.error('Failed to update weapon proficiency');
       }
     } catch {
       setWeapons((prev) => ({
         ...prev,
-        [key]: { ...prev[key], disabled: true },
+        [key]: { ...prev[key], proficient: previous, pending: false },
       }));
+      console.error('Failed to update weapon proficiency');
     }
   };
 
@@ -112,7 +121,7 @@ function WeaponList({ characterId, campaign, onChange }) {
                     type="checkbox"
                     className="weapon-checkbox"
                     checked={weapon.proficient}
-                    disabled={weapon.disabled}
+                    disabled={weapon.pending}
                     onChange={handleToggle(key)}
                     aria-label={weapon.name}
                   />
