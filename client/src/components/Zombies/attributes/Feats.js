@@ -322,13 +322,14 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                       <td>{el.featName}</td>
                       <td style={{ display: showDeleteFeatBtn }}>
                         <Button
-                          size="sm"
-                          className="action-btn fa-regular fa-eye"
+                          variant="link"
                           onClick={() => {
                             handleShowFeatNotes();
                             setModalFeatData(el);
                           }}
-                        ></Button>
+                        >
+                          <i className="fa-solid fa-eye"></i>
+                        </Button>
                       </td>
                       <td style={{ display: showDeleteFeatBtn }}>
                         {(() => {
@@ -423,14 +424,15 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                           ))}
                         </Form.Select>
                         <Button
-                          size="sm"
-                          className="action-btn fa-regular fa-eye ms-2"
+                          variant="link"
                           disabled={!selectedFeatData}
                           onClick={() => {
                             setModalFeatData(selectedFeatData);
                             handleShowFeatNotes();
                           }}
-                        ></Button>
+                        >
+                          <i className="fa-solid fa-eye"></i>
+                        </Button>
                       </div>
                     </Form.Group>
 

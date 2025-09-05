@@ -120,11 +120,10 @@ export default function Stats({ form, showStats, handleCloseStats }) {
                       <td>{statMods[key]}</td>
                       <td>
                           <Button
-                            className="action-btn fa-regular fa-eye"
                             onClick={() => handleView(key)}
-                            size="sm"
-                            aria-label="view"
+                            variant="link"
                           >
+                            <i className="fa-solid fa-eye"></i>
                           </Button>
                         </td>
                       </tr>
