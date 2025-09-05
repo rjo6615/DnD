@@ -594,9 +594,10 @@ const [form2, setForm2] = useState({
                       <td>{w.weight}</td>
                       <td>{w.cost}</td>
                       <td>
-                        <Button size="sm" variant="danger" onClick={() => deleteWeapon(w._id)}>
-                          Delete
-                        </Button>
+                        <Button
+                          className="btn-danger action-btn fa-solid fa-trash"
+                          onClick={() => deleteWeapon(w._id)}
+                        />
                       </td>
                     </tr>
                   ))}
