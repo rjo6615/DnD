@@ -294,3 +294,22 @@ test('warns when unknown armor names are returned', async () => {
   warn.mockRestore();
 });
 
+test('skips invalid initial armor entries with warning', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
+
+  render(
+    <ArmorList
+      initialArmor={[armorData['chain mail'], { invalid: true }, 42, null]}
+    />
+  );
+
+  expect(await screen.findByLabelText('Chain Mail')).toBeChecked();
+  expect(warn).toHaveBeenCalledWith('Skipping invalid initial armor entries:', [
+    { invalid: true },
+    42,
+    null,
+  ]);
+  warn.mockRestore();
+});
+

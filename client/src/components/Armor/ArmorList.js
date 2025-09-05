@@ -79,8 +79,18 @@ function ArmorList({
             }, {})
           : {};
 
+        const initialArmorArray = Array.isArray(initialArmor) ? initialArmor : [];
+        const invalidInitialArmor = initialArmorArray.filter(
+          (a) => typeof a !== 'string' && typeof a?.name !== 'string'
+        );
+        if (invalidInitialArmor.length) {
+          console.warn('Skipping invalid initial armor entries:', invalidInitialArmor);
+        }
         const ownedSet = new Set(
-          initialArmor.map((a) => (a.name || a).toLowerCase())
+          initialArmorArray
+            .map((a) => (typeof a === 'string' ? a : a?.name))
+            .filter((name) => typeof name === 'string')
+            .map((name) => name.toLowerCase())
         );
         const all = { ...phb, ...customMap };
         const proficientSet = new Set(Object.keys(prof.proficient || {}));
