@@ -131,7 +131,17 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
     };
     setWeapons(nextWeapons);
     if (typeof onChange === 'function') {
-      onChange(Object.values(nextWeapons).filter((w) => w.owned));
+      const ownedWeapons = Object.values(nextWeapons)
+        .filter((w) => w.owned)
+        .map(({ name, category, damage, properties, weight, cost }) => ({
+          name,
+          category,
+          damage,
+          properties,
+          weight,
+          cost,
+        }));
+      onChange(ownedWeapons);
     }
   };
 
@@ -148,7 +158,11 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
       await apiFetch(`/weapon-proficiency/${characterId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weapon: key, proficient: desired }),
+        body: JSON.stringify({
+          weapon: weapon.name,
+          category: weapon.category,
+          proficient: desired,
+        }),
       });
       setWeapons((prev) => ({
         ...prev,
