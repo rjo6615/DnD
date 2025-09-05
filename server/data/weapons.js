@@ -344,5 +344,13 @@ const weapons = {
 for (const [key, weapon] of Object.entries(weapons)) {
   weapon.type = weapon.type || key;
 }
+// Derive canonical option lists for client consumption
+const types = Object.keys(weapons);
+const categories = [
+  ...new Set(Object.values(weapons).map((w) => w.category)),
+];
+const properties = [
+  ...new Set(Object.values(weapons).flatMap((w) => w.properties)),
+];
 
-module.exports = weapons;
+module.exports = { weapons, types, categories, properties };
