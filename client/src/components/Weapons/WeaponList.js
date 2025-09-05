@@ -72,7 +72,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
           Array.isArray(prof.allowed) && prof.allowed.length > 0
             ? new Set(prof.allowed)
             : null;
-        const proficientSet = new Set(prof.proficient || []);
+        const proficientSet = new Set(Object.keys(prof.proficient || {}));
         const grantedSet = new Set(prof.granted || []);
         const keys = allowedSet
           ? Object.keys(all).filter((k) => allowedSet.has(k))

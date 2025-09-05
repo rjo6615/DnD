@@ -22,7 +22,7 @@ test('fetches weapons and toggles ownership', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => ({ allowed: null, proficient: [], granted: [] }),
+    json: async () => ({ allowed: null, proficient: {}, granted: [] }),
   });
   const onChange = jest.fn();
 
@@ -66,7 +66,7 @@ test('marks weapon proficiency', async () => {
       ok: true,
       json: async () => ({
         allowed: ['club', 'dagger'],
-        proficient: ['dagger'],
+        proficient: { dagger: true },
         granted: ['dagger'],
       }),
     }
@@ -90,7 +90,7 @@ test('shows all weapons when allowed list is empty', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => ({ allowed: [], proficient: [], granted: [] }),
+    json: async () => ({ allowed: [], proficient: {}, granted: [] }),
   });
 
   render(<WeaponList characterId="char1" />);
@@ -104,12 +104,12 @@ test('reloads allowed and proficient weapons when character changes', async () =
     .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
     .mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ allowed: ['club'], proficient: ['club'], granted: [] }),
+      json: async () => ({ allowed: ['club'], proficient: { club: true }, granted: [] }),
     })
     .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
     .mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ allowed: ['dagger'], proficient: ['dagger'], granted: [] }),
+      json: async () => ({ allowed: ['dagger'], proficient: { dagger: true }, granted: [] }),
     });
 
   const { rerender } = render(<WeaponList characterId="char1" />);
