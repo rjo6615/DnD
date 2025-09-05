@@ -1,10 +1,7 @@
 const express = require('express');
-const {
-  armors,
-  types,
-  categories,
-  properties,
-} = require('../data/armor');
+const { armors, types, categories } = require('../data/armor');
+
+/** @typedef {import('../../types/armor').Armor} Armor */
 
 module.exports = (router) => {
   const armorRouter = express.Router();
@@ -14,10 +11,11 @@ module.exports = (router) => {
   });
 
   armorRouter.get('/options', (_req, res) => {
-    res.json({ types, categories, properties });
+    res.json({ types, categories });
   });
 
   armorRouter.get('/:name', (req, res) => {
+    /** @type {Armor | undefined} */
     const armor = armors[req.params.name.toLowerCase()];
     if (!armor) {
       return res.status(404).json({ message: 'Armor not found' });
