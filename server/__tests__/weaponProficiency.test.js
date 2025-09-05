@@ -34,7 +34,14 @@ describe('Weapon proficiency routes', () => {
     const findOneAndUpdate = jest.fn();
 
     dbo.mockResolvedValue({
-      collection: () => ({ findOne, findOneAndUpdate })
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne, findOneAndUpdate };
+        }
+        if (name === 'Weapons') {
+          return { find: () => ({ toArray: jest.fn().mockResolvedValue([]) }) };
+        }
+      },
     });
 
     const res = await request(app)
@@ -63,7 +70,14 @@ describe('Weapon proficiency routes', () => {
     const findOneAndUpdate = jest.fn().mockResolvedValue({ value: updatedDoc });
 
     dbo.mockResolvedValue({
-      collection: () => ({ findOne, findOneAndUpdate })
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne, findOneAndUpdate };
+        }
+        if (name === 'Weapons') {
+          return { find: () => ({ toArray: jest.fn().mockResolvedValue([]) }) };
+        }
+      },
     });
 
     const res = await request(app)
@@ -84,7 +98,16 @@ describe('Weapon proficiency routes', () => {
     };
 
     const findOne = jest.fn().mockResolvedValue(charDoc);
-    dbo.mockResolvedValue({ collection: () => ({ findOne }) });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne };
+        }
+        if (name === 'Weapons') {
+          return { find: () => ({ toArray: jest.fn().mockResolvedValue([]) }) };
+        }
+      },
+    });
 
     const res = await request(app).get(
       '/weapon-proficiency/507f1f77bcf86cd799439011'
@@ -109,7 +132,16 @@ describe('Weapon proficiency routes', () => {
     };
 
     const findOne = jest.fn().mockResolvedValue(charDoc);
-    dbo.mockResolvedValue({ collection: () => ({ findOne }) });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne };
+        }
+        if (name === 'Weapons') {
+          return { find: () => ({ toArray: jest.fn().mockResolvedValue([]) }) };
+        }
+      },
+    });
 
     const res = await request(app).get(
       '/weapon-proficiency/507f1f77bcf86cd799439011'
@@ -134,7 +166,16 @@ describe('Weapon proficiency routes', () => {
     };
 
     const findOne = jest.fn().mockResolvedValue(charDoc);
-    dbo.mockResolvedValue({ collection: () => ({ findOne }) });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne };
+        }
+        if (name === 'Weapons') {
+          return { find: () => ({ toArray: jest.fn().mockResolvedValue([]) }) };
+        }
+      },
+    });
 
     const res = await request(app).get(
       '/weapon-proficiency/507f1f77bcf86cd799439011'
@@ -156,6 +197,47 @@ describe('Weapon proficiency routes', () => {
         shortbow: true,
         longbow: true,
       })
+    );
+  });
+
+  test('returns custom weapons for allowed categories', async () => {
+    const charDoc = {
+      campaign: 'alpha',
+      occupation: [{ weapons: ['simple'] }],
+      feat: [],
+      race: {},
+      weaponProficiencies: {},
+    };
+
+    const customWeapons = [
+      { name: 'Laser Sword', category: 'simple melee' },
+    ];
+
+    const findOne = jest.fn().mockResolvedValue(charDoc);
+    const toArray = jest.fn().mockResolvedValue(customWeapons);
+    const find = jest.fn().mockReturnValue({ toArray });
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne };
+        }
+        if (name === 'Weapons') {
+          return { find };
+        }
+      },
+    });
+
+    const res = await request(app).get(
+      '/weapon-proficiency/507f1f77bcf86cd799439011'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.allowed).toEqual(
+      expect.arrayContaining(['Laser Sword'])
+    );
+    expect(res.body.granted).toEqual(
+      expect.arrayContaining(['Laser Sword'])
     );
   });
 });
