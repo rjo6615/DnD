@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Form } from 'react-bootstrap';
+import { Card, Table, Form, Alert } from 'react-bootstrap';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
@@ -18,6 +18,7 @@ function WeaponList({
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean }> | null} */(null);
   const [error, setError] = useState(null);
+  const [unknownWeapons, setUnknownWeapons] = useState([]);
 
   useEffect(() => {
     if (!show) return;
@@ -83,10 +84,17 @@ function WeaponList({
         const proficientSet = new Set(Object.keys(prof.proficient || {}));
         const grantedSet = new Set(prof.granted || []);
         const keys = allowedSet ? [...allowedSet] : Object.keys(all);
+        const unknown = [];
         const withOwnership = keys.reduce((acc, key) => {
+          const base = all[key];
+          if (!base) {
+            console.warn('Unrecognized weapon from server:', key);
+            unknown.push(key);
+            return acc;
+          }
           acc[key] = {
-            ...all[key],
-            owned: ownedSet.has(all[key].name),
+            ...base,
+            owned: ownedSet.has(base.name),
             proficient: grantedSet.has(key) || proficientSet.has(key),
             granted: grantedSet.has(key),
             pending: false,
@@ -95,6 +103,7 @@ function WeaponList({
         }, {});
 
         setWeapons(withOwnership);
+        setUnknownWeapons(unknown);
         setError(null);
       } catch (err) {
         console.error('Failed to load weapons:', err?.message, err?.response?.status);
@@ -188,6 +197,11 @@ function WeaponList({
         <Card.Title className="modal-title">Weapons</Card.Title>
       </Card.Header>
       <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+        {unknownWeapons.length > 0 && (
+          <Alert variant="warning">
+            Unrecognized weapons from server: {unknownWeapons.join(', ')}
+          </Alert>
+        )}
         <Table striped bordered hover size="sm" className="modern-table">
           <thead>
             <tr>
