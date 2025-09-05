@@ -4,15 +4,23 @@ const authenticateToken = require('../middleware/auth');
 const weaponData = require('../data/weapons');
 
 // Collect allowed and granted weapons from occupation, feat, and race
-function collectWeaponInfo(occupation = [], feat = [], race) {
+function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = []) {
   const allowed = new Set();
   const granted = new Set();
 
   const expandCategory = (term) => {
     const lower = String(term).toLowerCase();
-    return Object.keys(weaponData).filter((key) =>
+    const standard = Object.keys(weaponData).filter((key) =>
       weaponData[key].category.toLowerCase().startsWith(lower)
     );
+    const custom = Array.isArray(customWeapons)
+      ? customWeapons
+          .filter(
+            (w) => w.category && w.category.toLowerCase().startsWith(lower)
+          )
+          .map((w) => w.name)
+      : [];
+    return [...standard, ...custom];
   };
 
   const processArray = (arr) => {
@@ -91,10 +99,16 @@ module.exports = (router) => {
         return res.status(404).json({ message: 'Character not found' });
       }
 
+      const customWeapons = await db
+        .collection('Weapons')
+        .find({ campaign: charDoc.campaign })
+        .toArray();
+
       const { allowed, granted } = collectWeaponInfo(
         charDoc.occupation,
         charDoc.feat,
-        charDoc.race
+        charDoc.race,
+        customWeapons
       );
       const proficient = Object.assign(
         Object.fromEntries(granted.map((w) => [w, true])),
@@ -130,10 +144,16 @@ module.exports = (router) => {
         return res.status(404).json({ message: 'Character not found' });
       }
 
+      const customWeapons = await db
+        .collection('Weapons')
+        .find({ campaign: charDoc.campaign })
+        .toArray();
+
       const { allowed, granted } = collectWeaponInfo(
         charDoc.occupation,
         charDoc.feat,
-        charDoc.race
+        charDoc.race,
+        customWeapons
       );
 
       if (!allowed.includes(weapon)) {
