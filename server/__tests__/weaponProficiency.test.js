@@ -97,7 +97,7 @@ describe('Weapon proficiency routes', () => {
     expect(res.body.granted).toEqual(
       expect.arrayContaining(['dagger'])
     );
-    expect(res.body.proficient).toEqual({ club: true });
+    expect(res.body.proficient).toEqual({ dagger: true, club: true });
   });
 
   test('expands category weapon proficiencies', async () => {
@@ -148,6 +148,14 @@ describe('Weapon proficiency routes', () => {
         'shortbow',
         'longbow',
       ])
+    );
+    expect(res.body.proficient).toEqual(
+      expect.objectContaining({
+        longsword: true,
+        shortsword: true,
+        shortbow: true,
+        longbow: true,
+      })
     );
   });
 });
