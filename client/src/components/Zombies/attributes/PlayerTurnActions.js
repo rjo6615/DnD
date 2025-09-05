@@ -2,6 +2,30 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
+export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
+  const match = damageString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+  if (!match) {
+    // eslint-disable-next-line no-console
+    console.error('Invalid damage string');
+    return null;
+  }
+
+  if (!match[2]) {
+    let damageValue = parseInt(match[1], 10) + ability;
+    if (crit) damageValue *= 2;
+    return damageValue;
+  }
+
+  const numberOfDiceValue = parseInt(match[1], 10);
+  const sidesOfDiceValue = parseInt(match[2], 10);
+  const modifier = parseInt(match[3] || 0, 10);
+  const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+  const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
+  let damageValue = damageSum + modifier + ability;
+  if (crit) damageValue *= 2;
+  return damageValue;
+}
+
 export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, headerHeight = 0 }) {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
@@ -43,40 +67,17 @@ const handleToggleAfterDamage = () => {
   };
 
   const handleWeaponAttack = (weapon) => {
-    const diceMatch = weapon.damage.match(/(\d+)d(\d+)/);
-    if (!diceMatch) {
-      // eslint-disable-next-line no-console
-      console.error('Invalid damage string');
-      return;
-    }
-    const [, numberOfDice, sidesOfDice] = diceMatch;
-    const numberOfDiceValue = parseInt(numberOfDice, 10);
-    const sidesOfDiceValue = parseInt(sidesOfDice, 10);
     const ability = abilityForWeapon(weapon);
-    const diceRolls = rollDice(numberOfDiceValue, sidesOfDiceValue);
-    const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
-    let damageValue = damageSum + ability;
-    if (isGold) {
-      damageValue *= 2; // default crit x2
-    }
+    const damageValue = calculateDamage(weapon.damage, ability, isGold, rollDice);
+    if (damageValue === null) return;
     updateDamageValueWithAnimation(damageValue);
   };
 
 const handleSpellsButtonClick = (spell) => {
   if (!spell?.damage) return;
-  const match = spell.damage.match(/(\d+)d(\d+)([+-]\d+)?/);
-  if (match) {
-    const [, numberOfDice, sidesOfDice, modifier] = match;
-    const numberOfDiceValue = parseInt(numberOfDice, 10);
-    const sidesOfDiceValue = parseInt(sidesOfDice, 10);
-    const constantValueValue = modifier ? parseInt(modifier, 10) : 0;
-    const diceRolls = rollDice(numberOfDiceValue, sidesOfDiceValue);
-    const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
-    const damageValue = damageSum + constantValueValue;
-    updateDamageValueWithAnimation(damageValue);
-  } else {
-    console.error("Invalid damage string");
-  }
+  const damageValue = calculateDamage(spell.damage, 0, false, rollDice);
+  if (damageValue === null) return;
+  updateDamageValueWithAnimation(damageValue);
 };
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
