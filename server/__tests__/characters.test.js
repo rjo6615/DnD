@@ -275,12 +275,12 @@ describe('Character routes', () => {
   test('get weapons success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: async () => [{ weaponName: 'Sword' }] })
+        find: () => ({ toArray: async () => [{ name: 'Sword' }] })
       })
     });
     const res = await request(app).get('/equipment/weapons/Camp1');
     expect(res.status).toBe(200);
-    expect(res.body[0].weaponName).toBe('Sword');
+    expect(res.body[0].name).toBe('Sword');
   });
 
   test('get weapons failure', async () => {
@@ -457,7 +457,7 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/equipment/weapon/add')
-      .send({ campaign: 'Camp1', weaponName: 'Sword' });
+      .send({ campaign: 'Camp1', name: 'Sword' });
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
   });
@@ -468,7 +468,7 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/equipment/weapon/add')
-      .send({ campaign: 'Camp1', weaponName: 'Sword' });
+      .send({ campaign: 'Camp1', name: 'Sword' });
     expect(res.status).toBe(500);
   });
 

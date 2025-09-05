@@ -538,8 +538,8 @@ const [form2, setForm2] = useState({
         <tbody>
           {weapons.map((w) => (
             <tr key={w._id}>
-              <td>{w.weaponName || w.name}</td>
-              <td>{w.weaponStyle || w.category}</td>
+              <td>{w.name}</td>
+              <td>{w.category}</td>
               <td>{w.damage}</td>
               <td>{Array.isArray(w.properties) ? w.properties.join(', ') : ''}</td>
               <td>{w.weight}</td>

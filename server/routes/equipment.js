@@ -66,12 +66,12 @@ module.exports = (router) => {
   equipmentRouter.route('/weapon/add').post(
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
-      body('weaponName').trim().notEmpty().withMessage('weaponName is required'),
-      body('enhancement').optional({ checkFalsy: true }).isInt().toInt(),
-      body('range').optional({ checkFalsy: true }).isInt().toInt(),
+      body('name').trim().notEmpty().withMessage('name is required'),
+      body('category').optional().trim(),
       body('damage').optional().trim(),
-      body('critical').optional().trim(),
-      body('weaponStyle').optional().trim(),
+      body('properties').optional().isArray(),
+      body('weight').optional().trim(),
+      body('cost').optional().trim(),
     ],
     handleValidationErrors,
     async (req, response, next) => {

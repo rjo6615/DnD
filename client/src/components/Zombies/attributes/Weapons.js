@@ -3,28 +3,11 @@ import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
-export default function Weapons({form, showWeapons, handleCloseWeapons, strMod, dexMod}) {
+export default function Weapons({form, showWeapons, handleCloseWeapons}) {
   const params = useParams();
   const navigate = useNavigate();
   //--------------------------------------------Weapons Section-----------------------------------------------------------------------------------------------------------------------------------------------
 const currentCampaign = form.campaign.toString();
-let atkBonus = 0;
-const occupations = form.occupation;
-
-for (const occupation of occupations) {
-  const level = parseInt(occupation.Level, 10);
-  const attackBonusValue = parseInt(occupation.atkBonus, 10);
-
-  if (!isNaN(level)) {
-    if (attackBonusValue === 0) {
-      atkBonus += Math.floor(level / 2);
-    } else if (attackBonusValue === 1) {
-      atkBonus += Math.floor(level * 0.75);
-    } else if (attackBonusValue === 2) {
-      atkBonus += level;
-    }
-  }
-}
 
 const [weapon, setWeapon] = useState({ 
     weapon: [], 
@@ -73,9 +56,17 @@ const [weapon, setWeapon] = useState({
   //  Sends weapon data to database for update
   async function addWeaponToDb(e){
     e.preventDefault();
+    const weaponObj = JSON.parse(addWeapon.weapon);
     const newWeapon = [
       ...form.weapon.filter((w) => w[0]),
-      addWeapon.weapon.split(','),
+      [
+        weaponObj.name,
+        weaponObj.category,
+        weaponObj.damage,
+        Array.isArray(weaponObj.properties) ? weaponObj.properties.join(',') : '',
+        weaponObj.weight,
+        weaponObj.cost,
+      ],
     ];
     try {
       await apiFetch(`/equipment/update-weapon/${params.id}`, {
@@ -98,8 +89,7 @@ const [weapon, setWeapon] = useState({
     form.weapon.splice(index, 1);
     addDeleteWeaponToDb();
    }
-  const showDeleteBtn = form.weapon.length > 0;
-  const showAtkBonusSave = showDeleteBtn;
+    const showDeleteBtn = form.weapon.length > 0;
   async function addDeleteWeaponToDb(){
     const newWeaponForm = form.weapon.filter((w) => w[0]);
     try {
@@ -137,60 +127,41 @@ return(
             {notification.message}
           </Alert>
         )}
-        <Table striped bordered hover size="sm" className="modern-table">
-          <thead>
-            <tr>
-              <th>Weapon Name</th>
-              <th>Attack Bonus</th>
-              <th>Damage</th>
-              <th>Critical</th>
-              <th>Range</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {form.weapon.map((el) => (
-              <tr key={el[0]}>
-                <td>{el[0]}</td>
-                <td hidden={!showAtkBonusSave}>
-                  {(() => {
-                    if (el[4] === "0") {
-                      return Number(atkBonus) + Number(strMod) + Number(el[1]);
-                    } else if (el[4] === "1") {
-                      return Number(atkBonus) + Number(strMod) + Number(el[1]);
-                    } else if (el[4] === "2") {
-                      return Number(atkBonus) + Number(dexMod) + Number(el[1]);
-                    }
-                  })()}
-                </td>
-                <td hidden={!showAtkBonusSave}>
-                  {el[2]}
-                  {(() => {
-                    if (el[4] === "0") {
-                      return "+" + (Number(el[1]) + Number(strMod));
-                    } else if (el[4] === "1") {
-                      return "+" + (Number(el[1]) + Math.floor(Number(strMod * 1.5)));
-                    } else if (el[4] === "2") {
-                      return "+" + (Number(el[1]) + Number(0));
-                    }
-                  })()}
-                </td>
-                <td>{el[3]}</td>
-                <td>{el[5]}</td>
-                <td>
-                  <Button
-                    size="sm"
-                    className="btn-danger action-btn fa-solid fa-trash"
-                    hidden={!showDeleteBtn}
-                    onClick={() => {
-                      deleteWeapons(el);
-                    }}
-                  ></Button>
-                </td>
+          <Table striped bordered hover size="sm" className="modern-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Damage</th>
+                <th>Properties</th>
+                <th>Weight</th>
+                <th>Cost</th>
+                <th>Delete</th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {form.weapon.map((el) => (
+                <tr key={el[0]}>
+                  <td>{el[0]}</td>
+                  <td>{el[1]}</td>
+                  <td>{el[2]}</td>
+                  <td>{el[3]}</td>
+                  <td>{el[4]}</td>
+                  <td>{el[5]}</td>
+                  <td>
+                    <Button
+                      size="sm"
+                      className="btn-danger action-btn fa-solid fa-trash"
+                      hidden={!showDeleteBtn}
+                      onClick={() => {
+                        deleteWeapons(el);
+                      }}
+                    ></Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
         <Row>
           <Col>
             <Form onSubmit={addWeaponToDb}>
@@ -208,18 +179,8 @@ return(
                     Select your weapon
                   </option>
                   {weapon.weapon.map((el) => (
-                    <option
-                      key={el.weaponName}
-                      value={[
-                        el.weaponName,
-                        el.enhancement,
-                        el.damage,
-                        el.critical,
-                        el.weaponStyle,
-                        el.range,
-                      ]}
-                    >
-                      {el.weaponName}
+                    <option key={el.name} value={JSON.stringify(el)}>
+                      {el.name}
                     </option>
                   ))}
                 </Form.Select>

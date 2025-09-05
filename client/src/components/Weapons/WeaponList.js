@@ -52,13 +52,13 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
         const customMap = Array.isArray(custom)
           ? custom.reduce((acc, w) => {
-              const key = w.weaponName;
+              const key = w.name;
               if (!key) return acc;
               acc[key] = {
-                name: w.weaponName,
-                category: w.weaponStyle || 'custom',
+                name: w.name,
+                category: w.category || 'custom',
                 damage: w.damage || '',
-                properties: [],
+                properties: w.properties || [],
                 weight: w.weight || '',
                 cost: w.cost || '',
               };

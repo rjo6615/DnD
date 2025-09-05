@@ -38,32 +38,16 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send({ campaign: 'Camp1', weaponName: 'Sword' });
+        .send({ campaign: 'Camp1', name: 'Sword' });
       expect(res.status).toBe(200);
       expect(res.body.acknowledged).toBe(true);
     });
 
-    test('insert success with empty numeric fields', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
-      });
-      const res = await request(app)
-        .post('/equipment/weapon/add')
-        .send({
-          campaign: 'Camp1',
-          weaponName: 'Sword',
-          enhancement: '',
-          range: ''
-        });
-      expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
-    });
-
-    test('numeric validation failure', async () => {
+    test('invalid properties type', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send({ campaign: 'Camp1', weaponName: 'Sword', enhancement: 'bad' });
+        .send({ campaign: 'Camp1', name: 'Sword', properties: 'bad' });
       expect(res.status).toBe(400);
     });
   });
