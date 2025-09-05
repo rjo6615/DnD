@@ -86,6 +86,24 @@ module.exports = (router) => {
     }
   );
 
+  // This section will delete a weapon.
+  equipmentRouter.route('/weapon/:id').delete(async (req, res, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const myquery = { _id: ObjectId(req.params.id) };
+    const db_connect = req.db;
+    try {
+      const result = await db_connect.collection('Weapons').deleteOne(myquery);
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Weapon not found' });
+      }
+      res.json({ message: 'Weapon deleted' });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Armor Section
 
   // This section will get a list of all the armor.
