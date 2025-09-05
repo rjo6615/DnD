@@ -25,7 +25,7 @@ const classes = {
     hitDie: 8,
     proficiencies: {
       armor: ['light'],
-      weapons: ['simple', 'handCrossbows', 'longswords', 'rapiers', 'shortswords'],
+      weapons: ['simple', 'hand-crossbow', 'longsword', 'rapier', 'shortsword'],
       tools: ['three musical instruments'],
       savingThrows: ['dex', 'cha'],
       skills: {
@@ -74,7 +74,7 @@ const classes = {
     hitDie: 8,
     proficiencies: {
       armor: ['light (non-metal)', 'medium (non-metal)', 'shields (non-metal)'],
-      weapons: ['clubs', 'daggers', 'darts', 'javelins', 'maces', 'quarterstaffs', 'scimitars', 'sickles', 'slings', 'spears'],
+      weapons: ['club', 'dagger', 'dart', 'javelin', 'mace', 'quarterstaff', 'scimitar', 'sickle', 'sling', 'spear'],
       tools: ['herbalism kit'],
       savingThrows: ['int', 'wis'],
       skills: {
@@ -104,7 +104,7 @@ const classes = {
     hitDie: 8,
     proficiencies: {
       armor: [],
-      weapons: ['simple', 'shortswords'],
+      weapons: ['simple', 'shortsword'],
       tools: ['one type of artisan tools or instrument'],
       savingThrows: ['str', 'dex'],
       skills: {
@@ -149,7 +149,7 @@ const classes = {
     hitDie: 8,
     proficiencies: {
       armor: ['light'],
-      weapons: ['simple', 'handCrossbows', 'longswords', 'rapiers', 'shortswords'],
+      weapons: ['simple', 'hand-crossbow', 'longsword', 'rapier', 'shortsword'],
       tools: ['thieves tools'],
       savingThrows: ['dex', 'int'],
       skills: {
@@ -164,7 +164,7 @@ const classes = {
     hitDie: 6,
     proficiencies: {
       armor: [],
-      weapons: ['daggers', 'darts', 'slings', 'quarterstaffs', 'light crossbows'],
+      weapons: ['dagger', 'dart', 'sling', 'quarterstaff', 'light-crossbow'],
       tools: [],
       savingThrows: ['con', 'cha'],
       skills: {
@@ -194,7 +194,7 @@ const classes = {
     hitDie: 6,
     proficiencies: {
       armor: [],
-      weapons: ['daggers', 'darts', 'slings', 'quarterstaffs', 'light crossbows'],
+      weapons: ['dagger', 'dart', 'sling', 'quarterstaff', 'light-crossbow'],
       tools: [],
       savingThrows: ['int', 'wis'],
       skills: {
