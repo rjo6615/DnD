@@ -80,11 +80,12 @@ function WeaponList({
           Array.isArray(prof.allowed) && prof.allowed.length > 0
             ? new Set(prof.allowed)
             : null;
+        if (allowedSet) {
+          Object.keys(customMap).forEach((k) => allowedSet.add(k));
+        }
         const proficientSet = new Set(Object.keys(prof.proficient || {}));
         const grantedSet = new Set(prof.granted || []);
-        const keys = allowedSet
-          ? Object.keys(all).filter((k) => allowedSet.has(k))
-          : Object.keys(all);
+        const keys = allowedSet ? [...allowedSet] : Object.keys(all);
         const withOwnership = keys.reduce((acc, key) => {
           acc[key] = {
             ...all[key],
