@@ -59,6 +59,21 @@ test('fetches weapons and toggles ownership', async () => {
   expect(apiFetch).toHaveBeenCalledTimes(3);
 });
 
+test('custom weapons appear even when not in allowed list', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ allowed: ['club'], proficient: {}, granted: [] }),
+  });
+
+  render(<WeaponList campaign="Camp1" characterId="char1" />);
+
+  expect(await screen.findByLabelText('Club')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Laser Sword')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Dagger')).not.toBeInTheDocument();
+});
+
 test('marks weapon proficiency', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce(
