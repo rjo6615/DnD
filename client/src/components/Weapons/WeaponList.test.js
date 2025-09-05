@@ -86,6 +86,26 @@ test('marks weapon proficiency', async () => {
   expect(clubProf).not.toBeChecked();
 });
 
+test('granted proficiencies render checked and disabled', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      allowed: ['club', 'dagger'],
+      proficient: {},
+      granted: ['dagger'],
+    }),
+  });
+
+  render(<WeaponList characterId="char1" />);
+
+  const daggerRow = await screen.findByText('Dagger');
+  const daggerTr = daggerRow.closest('tr');
+  const daggerProf = within(daggerTr).getByLabelText('Dagger proficiency');
+  expect(daggerProf).toBeChecked();
+  expect(daggerProf).toBeDisabled();
+});
+
 test('toggling a non-proficient weapon checks and disables it', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
