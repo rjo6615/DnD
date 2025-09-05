@@ -205,3 +205,29 @@ test('refetches weapons when modal is opened', async () => {
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
 });
 
+test('warns when unknown weapon names are returned', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        allowed: ['club', 'mystery'],
+        proficient: {},
+        granted: [],
+      }),
+    });
+
+  render(<WeaponList characterId="char1" />);
+
+  expect(await screen.findByText('Club')).toBeInTheDocument();
+  expect(screen.queryByText('mystery')).not.toBeInTheDocument();
+  const alert = await screen.findByText(/Unrecognized weapons from server:/);
+  expect(alert).toHaveTextContent('mystery');
+  expect(warn).toHaveBeenCalledWith(
+    'Unrecognized weapon from server:',
+    'mystery'
+  );
+  warn.mockRestore();
+});
+
