@@ -59,7 +59,7 @@ test('fetches weapons and toggles ownership', async () => {
   expect(apiFetch).toHaveBeenCalledTimes(3);
 });
 
-test('custom weapons omitted when not in allowed list', async () => {
+test('renders all weapons regardless of allowed list', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
@@ -70,8 +70,8 @@ test('custom weapons omitted when not in allowed list', async () => {
   render(<WeaponList campaign="Camp1" characterId="char1" />);
 
   expect(await screen.findByLabelText('Club')).toBeInTheDocument();
-  expect(screen.queryByLabelText('Laser Sword')).not.toBeInTheDocument();
-  expect(screen.queryByLabelText('Dagger')).not.toBeInTheDocument();
+  expect(await screen.findByLabelText('Laser Sword')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Dagger')).toBeInTheDocument();
 });
 
 test('marks weapon proficiency', async () => {
@@ -163,7 +163,7 @@ test('shows all weapons when allowed list is empty', async () => {
   expect(await screen.findByText('Dagger')).toBeInTheDocument();
 });
 
-test('reloads allowed and proficient weapons when character changes', async () => {
+test('reloads proficiency data when character changes', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
     .mockResolvedValueOnce({
@@ -178,12 +178,30 @@ test('reloads allowed and proficient weapons when character changes', async () =
 
   const { rerender } = render(<WeaponList characterId="char1" />);
 
-  expect(await screen.findByText('Club')).toBeInTheDocument();
-  expect(screen.queryByText('Dagger')).not.toBeInTheDocument();
+  const clubRow1 = await screen.findByText('Club');
+  const daggerRow1 = await screen.findByText('Dagger');
+  expect(
+    within(clubRow1.closest('tr')).getByLabelText('Club proficiency')
+  ).toBeChecked();
+  expect(
+    within(daggerRow1.closest('tr')).getByLabelText('Dagger proficiency')
+  ).not.toBeChecked();
 
   rerender(<WeaponList characterId="char2" />);
-  expect(await screen.findByText('Dagger')).toBeInTheDocument();
-  expect(screen.queryByText('Club')).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      within(screen.getByText('Club').closest('tr')).getByLabelText(
+        'Club proficiency'
+      )
+    ).not.toBeChecked()
+  );
+  await waitFor(() =>
+    expect(
+      within(screen.getByText('Dagger').closest('tr')).getByLabelText(
+        'Dagger proficiency'
+      )
+    ).toBeChecked()
+  );
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char2');
 });
 

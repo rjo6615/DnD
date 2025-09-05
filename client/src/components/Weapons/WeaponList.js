@@ -81,21 +81,26 @@ function WeaponList({
           initialWeapons.map((w) => (w.name || w).toLowerCase())
         );
         const all = { ...phb, ...customMap };
-        const allowedSet =
-          Array.isArray(prof.allowed) && prof.allowed.length > 0
-            ? new Set(prof.allowed)
-            : null;
         const proficientSet = new Set(Object.keys(prof.proficient || {}));
         const grantedSet = new Set(prof.granted || []);
-        const keys = allowedSet ? [...allowedSet] : Object.keys(all);
+        const keys = Object.keys(all);
         const unknown = [];
+
+        [
+          prof.allowed || [],
+          prof.granted || [],
+          Object.keys(prof.proficient || {}),
+        ].forEach((arr) =>
+          arr.forEach((name) => {
+            if (!all[name]) {
+              console.warn('Unrecognized weapon from server:', name);
+              unknown.push(name);
+            }
+          })
+        );
+
         const withOwnership = keys.reduce((acc, key) => {
           const base = all[key];
-          if (!base) {
-            console.warn('Unrecognized weapon from server:', key);
-            unknown.push(key);
-            return acc;
-          }
           acc[key] = {
             ...base,
             name: key,
