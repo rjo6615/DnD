@@ -145,7 +145,6 @@ const [form2, setForm2] = useState({
     properties: "",
     weight: "",
     cost: "",
-    proficient: false,
   });
   
   const [show2, setShow2] = useState(false);
@@ -195,7 +194,6 @@ const [form2, setForm2] = useState({
       properties: propertiesArray,
       weight: weightNumber,
       cost: form2.cost,
-      proficient: form2.proficient ?? false,
     };
     Object.keys(newWeapon).forEach((key) => {
       if (newWeapon[key] === "" || newWeapon[key] === undefined) {
@@ -222,7 +220,6 @@ const [form2, setForm2] = useState({
       properties: "",
       weight: "",
       cost: "",
-      proficient: false,
     });
      fetchWeapons();
    }
@@ -506,14 +503,7 @@ const [form2, setForm2] = useState({
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ cost: e.target.value })}
           type="text" placeholder="Enter cost" />
 
-         <Form.Check
-           className="mb-2 text-light"
-           type="checkbox"
-           label="Proficient"
-           onChange={(e) => updateForm2({ proficient: e.target.checked })}
-         />
-
-       </Form.Group>
+      </Form.Group>
        <div className="text-center">
        <Button variant="primary" onClick={handleClose2} type="submit">
               Create

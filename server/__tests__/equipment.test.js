@@ -42,7 +42,6 @@ describe('Equipment routes', () => {
         properties: ['versatile'],
         weight: 6,
         cost: '10 gp',
-        proficient: true,
       };
       dbo.mockResolvedValue({
         collection: () => ({ insertOne: async () => ({ insertedId }) })
@@ -78,20 +77,6 @@ describe('Equipment routes', () => {
           category: 'Martial',
           damage: '1d8',
           weight: 'heavy',
-        });
-      expect(res.status).toBe(400);
-    });
-
-    test('invalid proficient type', async () => {
-      dbo.mockResolvedValue({});
-      const res = await request(app)
-        .post('/equipment/weapon/add')
-        .send({
-          campaign: 'Camp1',
-          name: 'Sword',
-          category: 'Martial',
-          damage: '1d8',
-          proficient: 'yes',
         });
       expect(res.status).toBe(400);
     });
