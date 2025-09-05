@@ -16,7 +16,7 @@ function WeaponList({
   show = true,
 }) {
   const [weapons, setWeapons] =
-    useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean }> | null} */(null);
+    useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownWeapons, setUnknownWeapons] = useState([]);
 
@@ -61,10 +61,11 @@ function WeaponList({
 
         const customMap = Array.isArray(custom)
           ? custom.reduce((acc, w) => {
-              const key = w.name;
+              const key = (w.name || '').toLowerCase();
               if (!key) return acc;
               acc[key] = {
-                name: w.name,
+                name: key,
+                displayName: w.name,
                 category: w.category || 'custom',
                 damage: w.damage || '',
                 properties: w.properties || [],
@@ -75,7 +76,9 @@ function WeaponList({
             }, {})
           : {};
 
-        const ownedSet = new Set(initialWeapons.map((w) => w.name || w));
+        const ownedSet = new Set(
+          initialWeapons.map((w) => (w.name || w).toLowerCase())
+        );
         const all = { ...phb, ...customMap };
         const allowedSet =
           Array.isArray(prof.allowed) && prof.allowed.length > 0
@@ -94,7 +97,9 @@ function WeaponList({
           }
           acc[key] = {
             ...base,
-            owned: ownedSet.has(base.name),
+            name: key,
+            displayName: base.displayName || base.name,
+            owned: ownedSet.has(key),
             proficient: grantedSet.has(key) || proficientSet.has(key),
             granted: grantedSet.has(key),
             pending: false,
@@ -224,7 +229,7 @@ function WeaponList({
                     className="weapon-checkbox"
                     checked={weapon.owned}
                     onChange={handleOwnedToggle(key)}
-                    aria-label={weapon.name}
+                    aria-label={weapon.displayName || weapon.name}
                   />
                 </td>
                 <td>
@@ -236,7 +241,7 @@ function WeaponList({
                       weapon.proficient || weapon.granted || weapon.pending
                     }
                     onChange={handleToggle(key)}
-                    aria-label={`${weapon.name} proficiency`}
+                    aria-label={`${weapon.displayName || weapon.name} proficiency`}
                     style={
                       weapon.proficient || weapon.granted || weapon.pending
                         ? { opacity: 0.5 }
@@ -244,7 +249,7 @@ function WeaponList({
                     }
                   />
                 </td>
-                <td>{weapon.name}</td>
+                <td>{weapon.displayName || weapon.name}</td>
                 <td>{weapon.damage}</td>
                 <td>{weapon.category}</td>
                 <td>{weapon.properties.join(', ') || 'No properties'}</td>
