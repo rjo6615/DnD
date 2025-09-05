@@ -12,13 +12,21 @@ export interface Armor {
    */
   category: string;
   /**
-   * Armor class description, e.g. "16" or "12 + Dex modifier".
+   * Base armor class provided by the armor.
    */
-  ac: string;
+  ac: number;
   /**
-   * List of properties from the SRD, e.g. ["stealth disadvantage"].
+   * Maximum Dexterity modifier allowed, or null for no limit.
    */
-  properties: string[];
+  maxDex?: number | null;
+  /**
+   * Required strength score to wear the armor, or null if none.
+   */
+  strength?: number | null;
+  /**
+   * Whether the armor imposes disadvantage on Stealth checks.
+   */
+  stealth?: boolean;
   /**
    * Weight in pounds.
    */

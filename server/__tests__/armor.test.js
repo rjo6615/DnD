@@ -35,7 +35,12 @@ describe('Armor API routes', () => {
   test('fetches a single armor', async () => {
     const res = await request(app).get('/armor/chain-mail');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ name: 'Chain Mail', ac: '16' });
+    expect(res.body).toMatchObject({
+      name: 'Chain Mail',
+      ac: 16,
+      strength: 13,
+      stealth: true,
+    });
   });
 
   test('returns 404 for unknown armor', async () => {
