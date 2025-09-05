@@ -137,14 +137,15 @@ async function sendNewPlayersToDb() {
 
 //---------------------------------------Weapons----------------------------------------------
 
-const [form2, setForm2] = useState({ 
+const [form2, setForm2] = useState({
     campaign: currentCampaign,
-    weaponName: "", 
-    enhancement: "",
+    name: "",
+    category: "",
     damage: "",
-    critical: "",
-    weaponStyle: "",
-    range: ""
+    properties: "",
+    weight: "",
+    cost: "",
+    proficient: false,
   });
   
   const [show2, setShow2] = useState(false);
@@ -163,12 +164,23 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb2(){
-    const newWeapon = { ...form2 };
+    const propertiesArray = form2.properties
+      ? form2.properties.split(',').map((p) => p.trim()).filter(Boolean)
+      : [];
+    const weightNumber = form2.weight === "" ? undefined : Number(form2.weight);
+    const newWeapon = {
+      campaign: currentCampaign,
+      name: form2.name,
+      category: form2.category,
+      damage: form2.damage,
+      properties: propertiesArray,
+      weight: weightNumber,
+      cost: form2.cost,
+      proficient: form2.proficient ?? false,
+    };
     Object.keys(newWeapon).forEach((key) => {
-      if (newWeapon[key] === "") {
+      if (newWeapon[key] === "" || newWeapon[key] === undefined) {
         delete newWeapon[key];
-      } else if (!isNaN(newWeapon[key])) {
-        newWeapon[key] = Number(newWeapon[key]);
       }
     });
      await apiFetch("/equipment/weapon/add", {
@@ -182,15 +194,16 @@ const [form2, setForm2] = useState({
        setStatus({ type: 'danger', message: error.toString() });
        return;
      });
-   
+
      setForm2({
       campaign: currentCampaign,
-      weaponName: "",
-      enhancement: "",
+      name: "",
+      category: "",
       damage: "",
-      critical: "",
-      weaponStyle: "",
-      range: ""
+      properties: "",
+      weight: "",
+      cost: "",
+      proficient: false,
     });
      navigate(0);
    }
@@ -435,36 +448,38 @@ const [form2, setForm2] = useState({
           <div className="text-center">
         <Form onSubmit={onSubmit2} className="px-5">
         <Form.Group className="mb-3 pt-3" >
-  
-         <Form.Label className="text-light">Weapon Name</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ weaponName: e.target.value })}
-          type="text" placeholder="Enter Weapon name" /> 
-  
-         <Form.Label className="text-light">Enhancement Bonus</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ enhancement: e.target.value })}
-          type="text" placeholder="Enter Enhancement Bonus" />
-  
+
+         <Form.Label className="text-light">Name</Form.Label>
+         <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
+          type="text" placeholder="Enter weapon name" />
+
+         <Form.Label className="text-light">Category</Form.Label>
+         <Form.Control className="mb-2" onChange={(e) => updateForm2({ category: e.target.value })}
+          type="text" placeholder="Enter weapon category" />
+
          <Form.Label className="text-light">Damage</Form.Label>
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
-          type="text" placeholder="Enter Damage" />  
-  
-         <Form.Label className="text-light">Critical</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ critical: e.target.value })}
-          type="text" placeholder="Enter Weapon Critical" />
-  
-         <Form.Label className="text-light">Weapon Type</Form.Label>
-         <Form.Select className="mb-2" onChange={(e) => updateForm2({ weaponStyle: e.target.value })}
-          type="text">
-          <option></option>
-          <option value= "0">One Handed</option> 
-          <option value= "1">Two Handed</option> 
-          <option value= "2">Ranged</option> 
-          </Form.Select>
-  
-         <Form.Label className="text-light">Range</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ range: e.target.value })}
-          type="text" placeholder="Enter Range" />   
-  
+          type="text" placeholder="Enter damage" />
+
+         <Form.Label className="text-light">Properties</Form.Label>
+         <Form.Control className="mb-2" onChange={(e) => updateForm2({ properties: e.target.value })}
+          type="text" placeholder="Enter properties separated by commas" />
+
+         <Form.Label className="text-light">Weight</Form.Label>
+         <Form.Control className="mb-2" onChange={(e) => updateForm2({ weight: e.target.value })}
+          type="text" placeholder="Enter weight" />
+
+         <Form.Label className="text-light">Cost</Form.Label>
+         <Form.Control className="mb-2" onChange={(e) => updateForm2({ cost: e.target.value })}
+          type="text" placeholder="Enter cost" />
+
+         <Form.Check
+           className="mb-2 text-light"
+           type="checkbox"
+           label="Proficient"
+           onChange={(e) => updateForm2({ proficient: e.target.checked })}
+         />
+
        </Form.Group>
        <div className="text-center">
        <Button variant="primary" onClick={handleClose2} type="submit">
