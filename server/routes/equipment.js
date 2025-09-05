@@ -67,11 +67,12 @@ module.exports = (router) => {
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('name').trim().notEmpty().withMessage('name is required'),
-      body('category').optional().trim(),
-      body('damage').optional().trim(),
+      body('category').trim().notEmpty().withMessage('category is required'),
+      body('damage').trim().notEmpty().withMessage('damage is required'),
       body('properties').optional().isArray(),
-      body('weight').optional().trim(),
-      body('cost').optional().trim(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
+      body('proficient').optional().isBoolean().toBoolean(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
@@ -79,7 +80,8 @@ module.exports = (router) => {
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Weapons').insertOne(myobj);
-        response.json(result);
+        const weapon = { _id: result.insertedId, ...myobj };
+        response.json(weapon);
       } catch (err) {
         next(err);
       }
