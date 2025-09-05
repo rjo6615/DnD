@@ -11,7 +11,7 @@ import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
-import Armor from "../attributes/Armor";
+import ArmorList from "../../Armor/ArmorList";
 import Items from "../attributes/Items";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
@@ -82,7 +82,12 @@ export default function ZombiesCharacterSheet() {
           });
           return featObj;
         });
-        setForm({ ...data, feat: feats, weapon: data.weapon || [] });
+        setForm({
+          ...data,
+          feat: feats,
+          weapon: data.weapon || [],
+          armor: data.armor || [],
+        });
       } catch (error) {
         console.error(error);
       }
@@ -118,6 +123,23 @@ export default function ZombiesCharacterSheet() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ weapon: weapons }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
+  );
+
+  const handleArmorChange = useCallback(
+    async (armor) => {
+      setForm((prev) => ({ ...prev, armor }));
+      try {
+        await apiFetch(`/equipment/update-armor/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ armor }),
         });
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -415,12 +437,21 @@ return (
           show={showWeapons}
         />
       </Modal>
-    <Armor
-      form={form}
-      showArmor={showArmor}
-      handleCloseArmor={handleCloseArmor}
-      dexMod={statMods.dex}
-    />
+      <Modal
+        className="dnd-modal modern-modal"
+        show={showArmor}
+        onHide={handleCloseArmor}
+        size="lg"
+        centered
+      >
+        <ArmorList
+          campaign={form.campaign}
+          initialArmor={form.armor}
+          onChange={handleArmorChange}
+          characterId={characterId}
+          show={showArmor}
+        />
+      </Modal>
     <Items
       form={form}
       showItems={showItems}
