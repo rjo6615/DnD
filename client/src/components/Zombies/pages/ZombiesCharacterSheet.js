@@ -411,6 +411,7 @@ return (
           campaign={form.campaign}
           initialWeapons={form.weapon}
           onChange={handleWeaponsChange}
+          characterId={characterId}
         />
       </Modal>
     <Armor
