@@ -18,9 +18,10 @@ afterEach(() => {
 });
 
 test('fetches weapons and toggles ownership', async () => {
-  apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
-  apiFetch.mockResolvedValueOnce({ json: async () => customData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
+    ok: true,
     json: async () => ({ allowed: null, proficient: [], granted: [] }),
   });
   const onChange = jest.fn();
@@ -59,9 +60,10 @@ test('fetches weapons and toggles ownership', async () => {
 });
 
 test('marks weapon proficiency', async () => {
-  apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce(
     {
+      ok: true,
       json: async () => ({
         allowed: ['club', 'dagger'],
         proficient: ['dagger'],
@@ -85,8 +87,9 @@ test('marks weapon proficiency', async () => {
 });
 
 test('shows all weapons when allowed list is empty', async () => {
-  apiFetch.mockResolvedValueOnce({ json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({
+    ok: true,
     json: async () => ({ allowed: [], proficient: [], granted: [] }),
   });
 
@@ -98,12 +101,14 @@ test('shows all weapons when allowed list is empty', async () => {
 
 test('reloads allowed and proficient weapons when character changes', async () => {
   apiFetch
-    .mockResolvedValueOnce({ json: async () => weaponsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
     .mockResolvedValueOnce({
+      ok: true,
       json: async () => ({ allowed: ['club'], proficient: ['club'], granted: [] }),
     })
-    .mockResolvedValueOnce({ json: async () => weaponsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
     .mockResolvedValueOnce({
+      ok: true,
       json: async () => ({ allowed: ['dagger'], proficient: ['dagger'], granted: [] }),
     });
 

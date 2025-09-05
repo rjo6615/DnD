@@ -17,12 +17,36 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
     async function fetchWeapons() {
       try {
         const [phb, custom, prof] = await Promise.all([
-          apiFetch('/weapons').then((res) => res.json()),
+          apiFetch('/weapons').then((res) => {
+            if (!res.ok) {
+              const error = new Error(`${res.status} ${res.statusText}`);
+              error.status = res.status;
+              error.statusText = res.statusText;
+              throw error;
+            }
+            return res.json();
+          }),
           campaign
-            ? apiFetch(`/equipment/weapons/${campaign}`).then((res) => res.json())
+            ? apiFetch(`/equipment/weapons/${campaign}`).then((res) => {
+                if (!res.ok) {
+                  const error = new Error(`${res.status} ${res.statusText}`);
+                  error.status = res.status;
+                  error.statusText = res.statusText;
+                  throw error;
+                }
+                return res.json();
+              })
             : Promise.resolve([]),
           characterId
-            ? apiFetch(`/weapon-proficiency/${characterId}`).then((res) => res.json())
+            ? apiFetch(`/weapon-proficiency/${characterId}`).then((res) => {
+                if (!res.ok) {
+                  const error = new Error(`${res.status} ${res.statusText}`);
+                  error.status = res.status;
+                  error.statusText = res.statusText;
+                  throw error;
+                }
+                return res.json();
+              })
             : Promise.resolve({ allowed: null, granted: [], proficient: {} }),
         ]);
 
@@ -66,9 +90,13 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
         setWeapons(withOwnership);
         setError(null);
-      } catch {
+      } catch (err) {
         setWeapons({});
-        setError('Failed to load weapons. Please check that the server is available.');
+        if (err && err.status) {
+          setError(`Failed to load weapons: ${err.status} ${err.statusText}`);
+        } else {
+          setError('Failed to load weapons. Please check that the server is available.');
+        }
       }
     }
 
