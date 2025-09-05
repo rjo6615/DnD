@@ -1,11 +1,20 @@
 const express = require('express');
-const weapons = require('../data/weapons');
+const {
+  weapons,
+  types,
+  categories,
+  properties,
+} = require('../data/weapons');
 
 module.exports = (router) => {
   const weaponRouter = express.Router();
 
   weaponRouter.get('/', (_req, res) => {
     res.json(weapons);
+  });
+
+  weaponRouter.get('/options', (_req, res) => {
+    res.json({ types, categories, properties });
   });
 
   weaponRouter.get('/:name', (req, res) => {

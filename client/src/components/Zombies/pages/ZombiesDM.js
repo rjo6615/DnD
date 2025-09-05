@@ -143,7 +143,7 @@ const [form2, setForm2] = useState({
     type: "",
     category: "",
     damage: "",
-    properties: "",
+    properties: [],
     weight: "",
     cost: "",
   });
@@ -153,6 +153,11 @@ const [form2, setForm2] = useState({
   const handleShow2 = () => setShow2(true);
 
   const [weapons, setWeapons] = useState([]);
+  const [weaponOptions, setWeaponOptions] = useState({
+    types: [],
+    categories: [],
+    properties: [],
+  });
 
   const fetchWeapons = async () => {
     const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
@@ -165,9 +170,21 @@ const [form2, setForm2] = useState({
     setWeapons(data);
   };
 
+  const fetchWeaponOptions = async () => {
+    const response = await apiFetch('/weapons/options');
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setWeaponOptions(data);
+  };
+
   useEffect(() => {
     if (show2) {
       fetchWeapons();
+      fetchWeaponOptions();
     }
   }, [show2, currentCampaign]);
   
@@ -183,9 +200,6 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb2(){
-    const propertiesArray = form2.properties
-      ? form2.properties.split(',').map((p) => p.trim()).filter(Boolean)
-      : [];
     const weightNumber = form2.weight === "" ? undefined : Number(form2.weight);
     const newWeapon = {
       campaign: currentCampaign,
@@ -193,7 +207,7 @@ const [form2, setForm2] = useState({
       type: form2.type,
       category: form2.category,
       damage: form2.damage,
-      properties: propertiesArray,
+      properties: form2.properties,
       weight: weightNumber,
       cost: form2.cost,
     };
@@ -220,7 +234,7 @@ const [form2, setForm2] = useState({
       type: "",
       category: "",
       damage: "",
-      properties: "",
+      properties: [],
       weight: "",
       cost: "",
     });
@@ -480,27 +494,54 @@ const [form2, setForm2] = useState({
           <Card.Body>   
           <div className="text-center">
         <Form onSubmit={onSubmit2} className="px-5">
-        <Form.Group className="mb-3 pt-3" >
+         <Form.Group className="mb-3 pt-3" >
 
          <Form.Label className="text-light">Name</Form.Label>
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
           type="text" placeholder="Enter weapon name" />
 
          <Form.Label className="text-light">Type</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ type: e.target.value })}
-          type="text" placeholder="Enter base weapon type" />
+         <Form.Select
+          className="mb-2"
+          value={form2.type}
+          onChange={(e) => updateForm2({ type: e.target.value })}
+        >
+          <option value="">Select type</option>
+          {weaponOptions.types.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </Form.Select>
 
          <Form.Label className="text-light">Category</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ category: e.target.value })}
-          type="text" placeholder="Enter weapon category" />
+         <Form.Select
+          className="mb-2"
+          value={form2.category}
+          onChange={(e) => updateForm2({ category: e.target.value })}
+        >
+          <option value="">Select category</option>
+          {weaponOptions.categories.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </Form.Select>
 
          <Form.Label className="text-light">Damage</Form.Label>
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
           type="text" placeholder="Enter damage" />
 
          <Form.Label className="text-light">Properties</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ properties: e.target.value })}
-          type="text" placeholder="Enter properties separated by commas" />
+         <Form.Select
+          multiple
+          className="mb-2"
+          value={form2.properties}
+          onChange={(e) => {
+            const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+            updateForm2({ properties: selected });
+          }}
+        >
+          {weaponOptions.properties.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </Form.Select>
 
          <Form.Label className="text-light">Weight</Form.Label>
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ weight: e.target.value })}
@@ -540,7 +581,7 @@ const [form2, setForm2] = useState({
               <td>{w.type}</td>
               <td>{w.category}</td>
               <td>{w.damage}</td>
-              <td>{Array.isArray(w.properties) ? w.properties.join(', ') : ''}</td>
+              <td>{w.properties?.join(', ')}</td>
               <td>{w.weight}</td>
               <td>{w.cost}</td>
               <td>

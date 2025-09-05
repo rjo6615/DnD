@@ -1,7 +1,7 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
-const weaponData = require('../data/weapons');
+const { weapons: weaponData } = require('../data/weapons');
 
 // Collect allowed and granted weapons from occupation, feat, and race
 function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = []) {
