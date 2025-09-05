@@ -67,6 +67,7 @@ module.exports = (router) => {
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('name').trim().notEmpty().withMessage('name is required'),
+      body('type').optional().isString().trim().toLowerCase(),
       body('category').trim().notEmpty().withMessage('category is required'),
       body('damage').trim().notEmpty().withMessage('damage is required'),
       body('properties').optional().isArray(),

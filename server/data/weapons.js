@@ -340,4 +340,9 @@ const weapons = {
   },
 };
 
+// Default the type of each weapon to its key for canonical mapping
+for (const [key, weapon] of Object.entries(weapons)) {
+  weapon.type = weapon.type || key;
+}
+
 module.exports = weapons;

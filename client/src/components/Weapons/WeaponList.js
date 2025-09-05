@@ -66,6 +66,7 @@ function WeaponList({
               acc[key] = {
                 name: key,
                 displayName: w.name,
+                type: w.type,
                 category: w.category || 'custom',
                 damage: w.damage || '',
                 properties: w.properties || [],
@@ -153,13 +154,14 @@ function WeaponList({
     if (typeof onChange === 'function') {
       const ownedWeapons = Object.values(nextWeapons)
         .filter((w) => w.owned)
-        .map(({ name, category, damage, properties, weight, cost }) => ({
+        .map(({ name, category, damage, properties, weight, cost, type }) => ({
           name,
           category,
           damage,
           properties,
           weight,
           cost,
+          type,
         }));
       onChange(ownedWeapons);
     }
