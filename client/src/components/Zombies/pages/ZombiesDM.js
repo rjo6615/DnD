@@ -151,6 +151,25 @@ const [form2, setForm2] = useState({
   const [show2, setShow2] = useState(false);
   const handleClose2 = () => setShow2(false);
   const handleShow2 = () => setShow2(true);
+
+  const [weapons, setWeapons] = useState([]);
+
+  const fetchWeapons = async () => {
+    const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setWeapons(data);
+  };
+
+  useEffect(() => {
+    if (show2) {
+      fetchWeapons();
+    }
+  }, [show2, currentCampaign]);
   
   function updateForm2(value) {
     return setForm2((prev) => {
@@ -205,8 +224,22 @@ const [form2, setForm2] = useState({
       cost: "",
       proficient: false,
     });
-     navigate(0);
+     fetchWeapons();
    }
+
+  async function deleteWeapon(id) {
+    try {
+      const response = await apiFetch(`/equipment/weapon/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      setWeapons((prev) => prev.filter((w) => w._id !== id));
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
    //  ------------------------------------Armor-----------------------------------
   
   const [show3, setShow3] = useState(false);
@@ -489,12 +522,42 @@ const [form2, setForm2] = useState({
               Close
             </Button>
             </div>
-       </Form>
-       </div>
-       </Card.Body>
-       </Card>  
-       </div>      
-        </Modal>
+      </Form>
+      <Table striped bordered condensed="true" className="mt-3">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Damage</th>
+            <th>Properties</th>
+            <th>Weight</th>
+            <th>Cost</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {weapons.map((w) => (
+            <tr key={w._id}>
+              <td>{w.weaponName || w.name}</td>
+              <td>{w.weaponStyle || w.category}</td>
+              <td>{w.damage}</td>
+              <td>{Array.isArray(w.properties) ? w.properties.join(', ') : ''}</td>
+              <td>{w.weight}</td>
+              <td>{w.cost}</td>
+              <td>
+                <Button size="sm" variant="danger" onClick={() => deleteWeapon(w._id)}>
+                  Delete
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      </div>
+      </Card.Body>
+      </Card>
+      </div>
+       </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
   <Modal className="dnd-modal" centered show={show3} onHide={handleClose3}>
   <div className="text-center">
