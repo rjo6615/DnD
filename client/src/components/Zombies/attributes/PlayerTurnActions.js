@@ -293,7 +293,7 @@ const showSparklesEffect = () => {
                   {Array.isArray(form.weapon) &&
                     form.weapon.map((weapon) => (
                       <tr key={weapon.name}>
-                        <td>{weapon.name}</td>
+                        <td className="text-capitalize">{weapon.name}</td>
                         <td>{getAttackBonus(weapon)}</td>
                         <td>{getDamageString(weapon)}</td>
                         <td>
