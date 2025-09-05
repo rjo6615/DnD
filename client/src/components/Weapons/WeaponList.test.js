@@ -10,7 +10,7 @@ const weaponsData = {
   dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp' },
 };
 const customData = [
-  { weaponName: 'Laser Sword', damage: '1d8 radiant', weaponStyle: 'martial melee' },
+  { name: 'Laser Sword', damage: '1d8 radiant', category: 'martial melee', properties: [] },
 ];
 
 afterEach(() => {
