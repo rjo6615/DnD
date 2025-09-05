@@ -90,17 +90,19 @@ module.exports = (router) => {
 
   // This section will delete a weapon.
   equipmentRouter.route('/weapon/:id').delete(async (req, res, next) => {
-    if (!ObjectId.isValid(req.params.id)) {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
-    const myquery = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     try {
-      const result = await db_connect.collection('Weapons').deleteOne(myquery);
+      const result = await db_connect
+        .collection('Weapons')
+        .deleteOne({ _id: ObjectId(id) });
       if (result.deletedCount === 0) {
         return res.status(404).json({ message: 'Weapon not found' });
       }
-      res.json({ message: 'Weapon deleted' });
+      res.json({ acknowledged: true });
     } catch (err) {
       next(err);
     }
