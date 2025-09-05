@@ -34,6 +34,18 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 |----------|-------------|
 | `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
 
+### Client Environment Variables
+
+When running the React client separately from the server, configure the API base URL by setting a `REACT_APP_API_URL` environment variable. It must point to the origin of the server so the client can reach the backend.
+
+For local development, create a `.env` file in the `client` directory with a value such as:
+
+```
+REACT_APP_API_URL=http://localhost:5000
+```
+
+Update the URL to match your server's address in other environments.
+
 
 ## API Error Format
 

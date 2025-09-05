@@ -137,19 +137,60 @@ async function sendNewPlayersToDb() {
 
 //---------------------------------------Weapons----------------------------------------------
 
-const [form2, setForm2] = useState({ 
+const [form2, setForm2] = useState({
     campaign: currentCampaign,
-    weaponName: "", 
-    enhancement: "",
+    name: "",
+    type: "",
+    category: "",
     damage: "",
-    critical: "",
-    weaponStyle: "",
-    range: ""
+    properties: [],
+    weight: "",
+    cost: "",
   });
   
   const [show2, setShow2] = useState(false);
-  const handleClose2 = () => setShow2(false);
+  const [isCreatingWeapon, setIsCreatingWeapon] = useState(false);
+  const handleClose2 = () => {
+    setShow2(false);
+    setIsCreatingWeapon(false);
+  };
   const handleShow2 = () => setShow2(true);
+
+  const [weapons, setWeapons] = useState([]);
+  const [weaponOptions, setWeaponOptions] = useState({
+    types: [],
+    categories: [],
+    properties: [],
+  });
+
+  const fetchWeapons = async () => {
+    const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setWeapons(data);
+  };
+
+  const fetchWeaponOptions = async () => {
+    const response = await apiFetch('/weapons/options');
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setWeaponOptions(data);
+  };
+
+  useEffect(() => {
+    if (show2) {
+      fetchWeapons();
+      fetchWeaponOptions();
+    }
+  }, [show2, currentCampaign]);
   
   function updateForm2(value) {
     return setForm2((prev) => {
@@ -163,12 +204,20 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb2(){
-    const newWeapon = { ...form2 };
+    const weightNumber = form2.weight === "" ? undefined : Number(form2.weight);
+    const newWeapon = {
+      campaign: currentCampaign,
+      name: form2.name,
+      type: form2.type,
+      category: form2.category,
+      damage: form2.damage,
+      properties: form2.properties,
+      weight: weightNumber,
+      cost: form2.cost,
+    };
     Object.keys(newWeapon).forEach((key) => {
-      if (newWeapon[key] === "") {
+      if (newWeapon[key] === "" || newWeapon[key] === undefined) {
         delete newWeapon[key];
-      } else if (!isNaN(newWeapon[key])) {
-        newWeapon[key] = Number(newWeapon[key]);
       }
     });
      await apiFetch("/equipment/weapon/add", {
@@ -182,18 +231,33 @@ const [form2, setForm2] = useState({
        setStatus({ type: 'danger', message: error.toString() });
        return;
      });
-   
+
      setForm2({
-      campaign: currentCampaign,
-      weaponName: "",
-      enhancement: "",
+     campaign: currentCampaign,
+     name: "",
+      type: "",
+      category: "",
       damage: "",
-      critical: "",
-      weaponStyle: "",
-      range: ""
+      properties: [],
+      weight: "",
+      cost: "",
     });
-     navigate(0);
+     fetchWeapons();
    }
+
+  async function deleteWeapon(id) {
+    try {
+      const response = await apiFetch(`/equipment/weapon/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      setWeapons((prev) => prev.filter((w) => w._id !== id));
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
    //  ------------------------------------Armor-----------------------------------
   
   const [show3, setShow3] = useState(false);
@@ -427,59 +491,131 @@ const [form2, setForm2] = useState({
        </div>
         </Modal>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
-          <Modal className="dnd-modal" centered show={show2} onHide={handleClose2}>
+          <Modal className="dnd-modal modern-modal" centered show={show2} onHide={handleClose2}>
           <div className="text-center">
-          <Card className="dnd-background">
-            <Card.Title>Create Weapon</Card.Title>         
-          <Card.Body>   
+          <Card className="modern-card">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
+            </Card.Header>
+          <Card.Body>
           <div className="text-center">
-        <Form onSubmit={onSubmit2} className="px-5">
-        <Form.Group className="mb-3 pt-3" >
-  
-         <Form.Label className="text-light">Weapon Name</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ weaponName: e.target.value })}
-          type="text" placeholder="Enter Weapon name" /> 
-  
-         <Form.Label className="text-light">Enhancement Bonus</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ enhancement: e.target.value })}
-          type="text" placeholder="Enter Enhancement Bonus" />
-  
-         <Form.Label className="text-light">Damage</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
-          type="text" placeholder="Enter Damage" />  
-  
-         <Form.Label className="text-light">Critical</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ critical: e.target.value })}
-          type="text" placeholder="Enter Weapon Critical" />
-  
-         <Form.Label className="text-light">Weapon Type</Form.Label>
-         <Form.Select className="mb-2" onChange={(e) => updateForm2({ weaponStyle: e.target.value })}
-          type="text">
-          <option></option>
-          <option value= "0">One Handed</option> 
-          <option value= "1">Two Handed</option> 
-          <option value= "2">Ranged</option> 
-          </Form.Select>
-  
-         <Form.Label className="text-light">Range</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm2({ range: e.target.value })}
-          type="text" placeholder="Enter Range" />   
-  
-       </Form.Group>
-       <div className="text-center">
-       <Button variant="primary" onClick={handleClose2} type="submit">
-              Create
-            </Button>
-            <Button className="ms-4" variant="secondary" onClick={handleClose2}>
-              Close
-            </Button>
-            </div>
-       </Form>
-       </div>
-       </Card.Body>
-       </Card>  
-       </div>      
-        </Modal>
+            {isCreatingWeapon ? (
+              <Form onSubmit={onSubmit2} className="px-5">
+               <Form.Group className="mb-3 pt-3" >
+
+               <Form.Label className="text-light">Name</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
+                type="text" placeholder="Enter weapon name" />
+
+               <Form.Label className="text-light">Type</Form.Label>
+               <Form.Select
+                className="mb-2"
+                value={form2.type}
+                onChange={(e) => updateForm2({ type: e.target.value })}
+              >
+                <option value="">Select type</option>
+                {weaponOptions.types.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </Form.Select>
+
+               <Form.Label className="text-light">Category</Form.Label>
+               <Form.Select
+                className="mb-2"
+                value={form2.category}
+                onChange={(e) => updateForm2({ category: e.target.value })}
+              >
+                <option value="">Select category</option>
+                {weaponOptions.categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Form.Select>
+
+               <Form.Label className="text-light">Damage</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
+                type="text" placeholder="Enter damage" />
+
+               <Form.Label className="text-light">Properties</Form.Label>
+               <Form.Select
+                multiple
+                className="mb-2"
+                value={form2.properties}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                  updateForm2({ properties: selected });
+                }}
+              >
+                {weaponOptions.properties.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </Form.Select>
+
+               <Form.Label className="text-light">Weight</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ weight: e.target.value })}
+                type="text" placeholder="Enter weight" />
+
+               <Form.Label className="text-light">Cost</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ cost: e.target.value })}
+                type="text" placeholder="Enter cost" />
+
+            </Form.Group>
+             <div className="text-center">
+             <Button variant="primary" onClick={handleClose2} type="submit">
+                    Create
+                  </Button>
+                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
+                    Cancel
+                  </Button>
+                  </div>
+            </Form>
+            ) : (
+              <>
+              <Table striped bordered hover size="sm" className="modern-table mt-3">
+                <thead>
+                  <tr>
+                   <th>Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Damage</th>
+                    <th>Properties</th>
+                    <th>Weight</th>
+                    <th>Cost</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weapons.map((w) => (
+                    <tr key={w._id}>
+                      <td>{w.name}</td>
+                      <td>{w.type}</td>
+                      <td>{w.category}</td>
+                      <td>{w.damage}</td>
+                      <td>{w.properties?.join(', ')}</td>
+                      <td>{w.weight}</td>
+                      <td>{w.cost}</td>
+                      <td>
+                        <Button
+                          className="btn-danger action-btn fa-solid fa-trash"
+                          onClick={() => deleteWeapon(w._id)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              <Button variant="primary" onClick={() => setIsCreatingWeapon(true)}>
+                Create Weapon
+              </Button>
+              <Button className="ms-4" variant="secondary" onClick={handleClose2}>
+                Close
+              </Button>
+              </>
+            )}
+          </div>
+          </Card.Body>
+          </Card>
+          </div>
+           </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
   <Modal className="dnd-modal" centered show={show3} onHide={handleClose3}>
   <div className="text-center">

@@ -275,12 +275,12 @@ describe('Character routes', () => {
   test('get weapons success', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
-        find: () => ({ toArray: async () => [{ weaponName: 'Sword' }] })
+        find: () => ({ toArray: async () => [{ name: 'Sword' }] })
       })
     });
     const res = await request(app).get('/equipment/weapons/Camp1');
     expect(res.status).toBe(200);
-    expect(res.body[0].weaponName).toBe('Sword');
+    expect(res.body[0].name).toBe('Sword');
   });
 
   test('get weapons failure', async () => {
@@ -357,22 +357,14 @@ describe('Character routes', () => {
   });
 
   test('get occupations success', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        find: () => ({ toArray: async () => [{ name: 'Soldier' }] })
-      })
-    });
+    dbo.mockResolvedValue({});
     const res = await request(app).get('/characters/occupations');
     expect(res.status).toBe(200);
-    expect(res.body[0].name).toBe('Soldier');
+    expect(res.body.some((c) => c.name === 'Fighter')).toBe(true);
   });
 
   test('get occupations failure', async () => {
-    dbo.mockResolvedValue({
-      collection: () => ({
-        find: () => ({ toArray: async () => { throw new Error('db error'); } })
-      })
-    });
+    dbo.mockRejectedValue(new Error('db error'));
     const res = await request(app).get('/characters/occupations');
     expect(res.status).toBe(500);
   });
@@ -460,14 +452,21 @@ describe('Character routes', () => {
   });
 
   test('add weapon success', async () => {
+    const insertedId = '507f1f77bcf86cd799439012';
+    const payload = {
+      campaign: 'Camp1',
+      name: 'Sword',
+      category: 'Martial',
+      damage: '1d8',
+    };
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ insertedId }) })
     });
     const res = await request(app)
       .post('/equipment/weapon/add')
-      .send({ campaign: 'Camp1', weaponName: 'Sword' });
+      .send(payload);
     expect(res.status).toBe(200);
-    expect(res.body.acknowledged).toBe(true);
+    expect(res.body).toEqual({ _id: insertedId, ...payload });
   });
 
   test('add weapon failure', async () => {
@@ -476,7 +475,12 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/equipment/weapon/add')
-      .send({ campaign: 'Camp1', weaponName: 'Sword' });
+      .send({
+        campaign: 'Camp1',
+        name: 'Sword',
+        category: 'Martial',
+        damage: '1d8',
+      });
     expect(res.status).toBe(500);
   });
 
@@ -629,9 +633,7 @@ describe('Character routes', () => {
             },
           };
         }
-        return {
-          findOne: async () => ({ Occupation: 'Fighter', Health: 10, acrobatics: 1 }),
-        };
+        throw new Error(`Unexpected collection ${name}`);
       },
     });
     jest.spyOn(Math, 'random').mockReturnValue(0);
@@ -641,9 +643,11 @@ describe('Character routes', () => {
     expect(res.status).toBe(200);
     expect(captured.update.$set.health).toBe(11);
     const occ = captured.update.$set.occupation[0];
+    expect(occ.Occupation).toBe('Fighter');
     expect(occ.skills.acrobatics).toEqual({ proficient: true, expertise: false });
     expect(occ.proficiencyPoints).toBe(0);
     expect(captured.update.$set.allowedSkills).toEqual(['acrobatics']);
+    expect(res.body.occupation[0].Occupation).toBe('Fighter');
     Math.random.mockRestore();
   });
 
@@ -656,9 +660,7 @@ describe('Character routes', () => {
             findOne: async () => character,
           };
         }
-        return {
-          findOne: async () => ({ Occupation: 'Fighter', Health: 10 }),
-        };
+        throw new Error(`Unexpected collection ${name}`);
       },
     });
     const res = await request(app)

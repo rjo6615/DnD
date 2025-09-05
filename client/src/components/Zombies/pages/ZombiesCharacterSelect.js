@@ -99,7 +99,7 @@ const [skillSelections, setSkillSelections] = useState([]);
 useEffect(() => {
   if (!user) return;
   async function fetchData() {
-    const response = await apiFetch(`/characters/occupations`);
+    const response = await apiFetch(`/classes`);
 
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -114,8 +114,9 @@ useEffect(() => {
       return;
     }
 
-    setOccupation(record);
-    setGetOccupation(record);
+    const classes = Object.values(record);
+    setOccupation(classes);
+    setGetOccupation(classes);
   }
   fetchData();
   return;
@@ -189,7 +190,31 @@ function bigMaff() {
   let occupationLength = occupation.length;
   let randomOccupation = Math.round(Math.random() * (occupationLength - 1));
   let newOccupation = occupation[randomOccupation];
-  updateForm({ occupation: [newOccupation] });
+  const normalizedOcc = {
+    Occupation: newOccupation.name,
+    Health: newOccupation.hitDie,
+    Level: 1,
+    proficiencyPoints: newOccupation.proficiencies?.skills?.count || 0,
+    armor: newOccupation.proficiencies?.armor || [],
+    weapons: newOccupation.proficiencies?.weapons || [],
+    tools: newOccupation.proficiencies?.tools || [],
+    savingThrows: newOccupation.proficiencies?.savingThrows || [],
+    skills: (() => {
+      const skills = {};
+      const profSkills = newOccupation.proficiencies?.skills;
+      if (profSkills?.options && profSkills.count) {
+        const available = [...profSkills.options];
+        for (let i = 0; i < profSkills.count; i++) {
+          if (!available.length) break;
+          const idx = Math.floor(Math.random() * available.length);
+          const skill = available.splice(idx, 1)[0];
+          skills[skill] = { proficient: true };
+        }
+      }
+      return skills;
+    })(),
+  };
+  updateForm({ occupation: [normalizedOcc] });
 
   // Race Randomizer
   const raceKeys = Object.keys(races);
@@ -244,42 +269,43 @@ function bigMaff() {
 
   // Stat Randomizer
     const raceAbilities = (chosenRace && chosenRace.abilities) || {};
-    let randomStr = sumArray[0] + Number(newOccupation.str) + (raceAbilities.str || 0);
+    let randomStr = sumArray[0] + Number(newOccupation.str || 0) + (raceAbilities.str || 0);
     updateForm({ str: randomStr });
-    let randomDex = sumArray[1] + Number(newOccupation.dex) + (raceAbilities.dex || 0);
+    let randomDex = sumArray[1] + Number(newOccupation.dex || 0) + (raceAbilities.dex || 0);
     updateForm({ dex: randomDex });
-    let randomCon = sumArray[2] + Number(newOccupation.con) + (raceAbilities.con || 0);
+    let randomCon = sumArray[2] + Number(newOccupation.con || 0) + (raceAbilities.con || 0);
     updateForm({ con: randomCon });
-    let randomInt = sumArray[3] + Number(newOccupation.int) + (raceAbilities.int || 0);
+    let randomInt = sumArray[3] + Number(newOccupation.int || 0) + (raceAbilities.int || 0);
     updateForm({ int: randomInt });
-    let randomWis = sumArray[4] + Number(newOccupation.wis) + (raceAbilities.wis || 0);
+    let randomWis = sumArray[4] + Number(newOccupation.wis || 0) + (raceAbilities.wis || 0);
     updateForm({ wis: randomWis });
-    let randomCha = sumArray[5] + Number(newOccupation.cha) + (raceAbilities.cha || 0);
+    let randomCha = sumArray[5] + Number(newOccupation.cha || 0) + (raceAbilities.cha || 0);
     updateForm({ cha: randomCha });
 
-  let startStatTotal =
-    randomStr +
-    randomDex +
-    randomCon +
-    randomInt +
-    randomWis +
-    randomCha;
-  updateForm({ startStatTotal: startStatTotal });
+  const stats = [randomStr, randomDex, randomCon, randomInt, randomWis, randomCha];
+  const startStatTotal = stats.reduce((sum, stat) => sum + (Number(stat) || 0), 0);
+  updateForm({ startStatTotal });
+
+  const conModValue = Math.floor((randomCon - 10) / 2);
+  const newHealth = Number(normalizedOcc.Health);
+  const tempHealth = newHealth + conModValue * Number(normalizedOcc.Level);
+  updateForm({ health: newHealth, tempHealth });
 }
 
 // Health Randomizer
-let conMod = Math.floor((form.con - 10) / 2); 
+let conMod = Math.floor((form.con - 10) / 2);
 const [healthArray, setHealthArray] = useState([]);
-let newHealth =  healthArray[0] + Number(form.occupation[0].Health);
-let tempHealth = newHealth + Number(conMod) * Number(form.occupation[0].Level);
-useEffect(() => {    
-  updateForm({ health: newHealth});
-  updateForm({ tempHealth: tempHealth});
-}, [ newHealth, tempHealth]);
+const normalizedOccState = form.occupation?.[0] || {};
+let newHealth = (healthArray[0] || 0) + Number(normalizedOccState.Health || 0);
+let tempHealth = newHealth + Number(conMod) * Number(normalizedOccState.Level || 0);
+useEffect(() => {
+  updateForm({ health: newHealth });
+  updateForm({ tempHealth });
+}, [newHealth, tempHealth]);
 
-  useEffect(() => {  
-  const lvl = (form.occupation[0].Level - 1);
-  const diceValue = form.occupation[0].Health;
+  useEffect(() => {
+  const lvl = (normalizedOccState.Level || 1) - 1;
+  const diceValue = normalizedOccState.Health || 0;
   const rollHealthDice = () => {
     const newHealthArray = [];
     for (let i = 0; i < 1; i++) { //array amount
@@ -363,19 +389,44 @@ const handleConfirmOccupation = useCallback(() => {
   if (selectedOccupation && !isOccupationConfirmed) {
     const selectedAddOccupation = selectedAddOccupationRef.current.value;
     const occupationExists = form.occupation.some(
-      (occupation) => occupation.Occupation === selectedOccupation.Occupation
+      (occupation) => occupation.Occupation === selectedOccupation.name
     );
     const selectedAddOccupationObject = getOccupation.find(
-      (occupation) => occupation.Occupation === selectedAddOccupation
+      (occupation) => occupation.name === selectedAddOccupation
     );
 
     if (!occupationExists && selectedAddOccupationObject) {
-      const addOccupationStr = Number(selectedAddOccupationObject.str) + Number(form.str);
-      const addOccupationDex = Number(selectedAddOccupationObject.dex) + Number(form.dex);
-      const addOccupationCon = Number(selectedAddOccupationObject.con) + Number(form.con);
-      const addOccupationInt = Number(selectedAddOccupationObject.int) + Number(form.int);
-      const addOccupationWis = Number(selectedAddOccupationObject.wis) + Number(form.wis);
-      const addOccupationCha = Number(selectedAddOccupationObject.cha) + Number(form.cha);
+      const normalizedOcc = {
+        Occupation: selectedAddOccupationObject.name,
+        Health: selectedAddOccupationObject.hitDie,
+        Level: 1,
+        proficiencyPoints: selectedAddOccupationObject.proficiencies?.skills?.count || 0,
+        armor: selectedAddOccupationObject.proficiencies?.armor || [],
+        weapons: selectedAddOccupationObject.proficiencies?.weapons || [],
+        tools: selectedAddOccupationObject.proficiencies?.tools || [],
+        savingThrows: selectedAddOccupationObject.proficiencies?.savingThrows || [],
+        skills: (() => {
+          const skills = {};
+          const profSkills = selectedAddOccupationObject.proficiencies?.skills;
+          if (profSkills?.options && profSkills.count) {
+            const available = [...profSkills.options];
+            for (let i = 0; i < profSkills.count; i++) {
+              if (!available.length) break;
+              const idx = Math.floor(Math.random() * available.length);
+              const skill = available.splice(idx, 1)[0];
+              skills[skill] = { proficient: true };
+            }
+          }
+          return skills;
+        })(),
+      };
+
+      const addOccupationStr = Number(selectedAddOccupationObject.str || 0) + Number(form.str);
+      const addOccupationDex = Number(selectedAddOccupationObject.dex || 0) + Number(form.dex);
+      const addOccupationCon = Number(selectedAddOccupationObject.con || 0) + Number(form.con);
+      const addOccupationInt = Number(selectedAddOccupationObject.int || 0) + Number(form.int);
+      const addOccupationWis = Number(selectedAddOccupationObject.wis || 0) + Number(form.wis);
+      const addOccupationCha = Number(selectedAddOccupationObject.cha || 0) + Number(form.cha);
 
       const totalNewStats =
         addOccupationStr +
@@ -387,14 +438,14 @@ const handleConfirmOccupation = useCallback(() => {
 
       const updatedForm = {
         ...form,
-        occupation: [selectedOccupation],
-        startStatTotal: totalNewStats,
+        occupation: [normalizedOcc],
         str: addOccupationStr,
         dex: addOccupationDex,
         con: addOccupationCon,
         int: addOccupationInt,
         wis: addOccupationWis,
         cha: addOccupationCha,
+        startStatTotal: totalNewStats,
       };
 
       setForm(updatedForm);
@@ -411,10 +462,6 @@ const sendManualToDb = useCallback(async (characterData) => {
     ...baseCharacter,
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
-  if (!newCharacter.occupation?.[0]?.Level) {
-    notify("Class level is required.", 'warning');
-    return;
-  }
   try {
     const response = await apiFetch("/characters/add", {
       method: "POST",
@@ -612,7 +659,7 @@ const getAvailableSkillOptions = (index) => {
             >
               <option value="" disabled>Select your class</option>
               {getOccupation.map((occupation, i) => (
-                <option key={i}>{occupation.Occupation}</option>
+                <option key={i}>{occupation.name}</option>
               ))}
             </Form.Select>
         <Form.Label className="text-light">Race</Form.Label>

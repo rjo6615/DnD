@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -9,7 +9,7 @@ import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
-import Weapons from "../attributes/Weapons";
+import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
 import Armor from "../attributes/Armor";
 import Items from "../attributes/Items";
@@ -82,7 +82,7 @@ export default function ZombiesCharacterSheet() {
           });
           return featObj;
         });
-        setForm({ ...data, feat: feats });
+        setForm({ ...data, feat: feats, weapon: data.weapon || [] });
       } catch (error) {
         console.error(error);
       }
@@ -102,13 +102,30 @@ export default function ZombiesCharacterSheet() {
   const handleShowWeapons = () => setShowWeapons(true);
   const handleCloseWeapons = () => setShowWeapons(false); 
   const handleShowArmor = () => setShowArmor(true);
-  const handleCloseArmor = () => setShowArmor(false); 
+  const handleCloseArmor = () => setShowArmor(false);
   const handleShowItems = () => setShowItems(true);
   const handleCloseItems = () => setShowItems(false);
   const handleShowSpells = () => setShowSpells(true);
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
   const handleCloseHelpModal = () => setShowHelpModal(false);
+
+  const handleWeaponsChange = useCallback(
+    async (weapons) => {
+      setForm((prev) => ({ ...prev, weapon: weapons }));
+      try {
+        await apiFetch(`/equipment/update-weapon/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weapon: weapons }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
+  );
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
@@ -383,13 +400,21 @@ return (
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
-    <Weapons
-      form={form}
-      showWeapons={showWeapons}
-      handleCloseWeapons={handleCloseWeapons}
-      strMod={statMods.str}
-      dexMod={statMods.dex}
-    />
+      <Modal
+        className="dnd-modal modern-modal"
+        show={showWeapons}
+        onHide={handleCloseWeapons}
+        size="lg"
+        centered
+      >
+        <WeaponList
+          campaign={form.campaign}
+          initialWeapons={form.weapon}
+          onChange={handleWeaponsChange}
+          characterId={characterId}
+          show={showWeapons}
+        />
+      </Modal>
     <Armor
       form={form}
       showArmor={showArmor}

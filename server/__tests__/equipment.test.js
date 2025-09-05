@@ -33,37 +33,52 @@ describe('Equipment routes', () => {
     });
 
     test('insert success', async () => {
+      const insertedId = '507f1f77bcf86cd799439012';
+      const payload = {
+        campaign: 'Camp1',
+        name: 'Sword',
+        type: 'quarterstaff',
+        category: 'Martial',
+        damage: '1d8',
+        properties: ['versatile'],
+        weight: 6,
+        cost: '10 gp',
+      };
       dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+        collection: () => ({ insertOne: async () => ({ insertedId }) })
       });
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send({ campaign: 'Camp1', weaponName: 'Sword' });
+        .send({ ...payload, type: 'Quarterstaff' });
       expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
+      expect(res.body).toEqual({ _id: insertedId, ...payload });
     });
 
-    test('insert success with empty numeric fields', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
-      });
+    test('invalid properties type', async () => {
+      dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/weapon/add')
         .send({
           campaign: 'Camp1',
-          weaponName: 'Sword',
-          enhancement: '',
-          range: ''
+          name: 'Sword',
+          category: 'Martial',
+          damage: '1d8',
+          properties: 'bad',
         });
-      expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
+      expect(res.status).toBe(400);
     });
 
-    test('numeric validation failure', async () => {
+    test('invalid weight type', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send({ campaign: 'Camp1', weaponName: 'Sword', enhancement: 'bad' });
+        .send({
+          campaign: 'Camp1',
+          name: 'Sword',
+          category: 'Martial',
+          damage: '1d8',
+          weight: 'heavy',
+        });
       expect(res.status).toBe(400);
     });
   });
@@ -105,6 +120,32 @@ describe('Equipment routes', () => {
         .put('/equipment/update-weapon/507f1f77bcf86cd799439011')
         .send({ weapon: 'Sword' });
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('delete weapon', () => {
+    test('delete success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
+      });
+      const res = await request(app).delete('/equipment/weapon/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ acknowledged: true });
+    });
+
+    test('delete weapon invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app).delete('/equipment/weapon/123');
+      expect(res.status).toBe(400);
+    });
+
+    test('delete weapon not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/weapon/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Weapon not found');
     });
   });
 

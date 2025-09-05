@@ -66,12 +66,13 @@ module.exports = (router) => {
   equipmentRouter.route('/weapon/add').post(
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
-      body('weaponName').trim().notEmpty().withMessage('weaponName is required'),
-      body('enhancement').optional({ checkFalsy: true }).isInt().toInt(),
-      body('range').optional({ checkFalsy: true }).isInt().toInt(),
-      body('damage').optional().trim(),
-      body('critical').optional().trim(),
-      body('weaponStyle').optional().trim(),
+      body('name').trim().notEmpty().withMessage('name is required'),
+      body('type').optional().isString().trim().toLowerCase(),
+      body('category').trim().notEmpty().withMessage('category is required'),
+      body('damage').trim().notEmpty().withMessage('damage is required'),
+      body('properties').optional().isArray(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
@@ -79,12 +80,33 @@ module.exports = (router) => {
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Weapons').insertOne(myobj);
-        response.json(result);
+        const weapon = { _id: result.insertedId, ...myobj };
+        response.json(weapon);
       } catch (err) {
         next(err);
       }
     }
   );
+
+  // This section will delete a weapon.
+  equipmentRouter.route('/weapon/:id').delete(async (req, res, next) => {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const db_connect = req.db;
+    try {
+      const result = await db_connect
+        .collection('Weapons')
+        .deleteOne({ _id: ObjectId(id) });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Weapon not found' });
+      }
+      res.json({ acknowledged: true });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   // Armor Section
 

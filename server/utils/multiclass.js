@@ -2,6 +2,7 @@ const ObjectId = require('mongodb').ObjectId;
 const dbo = require('../db/conn');
 const { skillNames } = require('../routes/fieldConstants');
 const multiclassProficiencies = require('../data/multiclassProficiencies');
+const classes = require('../data/classes');
 
 const prereqs = {
   barbarian: { all: ['str'], min: 13 },
@@ -59,7 +60,6 @@ function collectAllowedSkills(occupation = []) {
 async function applyMulticlass(characterId, newOccupation) {
   const db = await dbo();
   const characters = db.collection('Characters');
-  const occupations = db.collection('Occupations');
   const _id = new ObjectId(characterId);
   const character = await characters.findOne({ _id });
   if (!character) throw new Error('Character not found');
@@ -73,28 +73,31 @@ async function applyMulticlass(characterId, newOccupation) {
   const validation = canMulticlass(character, newOccupation);
   if (!validation.allowed) return validation;
 
-  const occDoc = await occupations.findOne({ Occupation: newOccupation });
-  if (!occDoc) throw new Error('Occupation not found');
+  const key = newOccupation.toLowerCase();
+  const classInfo = classes[key];
+  if (!classInfo) throw new Error('Occupation not found');
 
-  const granted = multiclassProficiencies[newOccupation.toLowerCase()] || [];
+  const granted = multiclassProficiencies[key] || [];
   const skills = {};
   skillNames.forEach((skill) => {
     skills[skill] = {
       proficient: granted.includes(skill),
       expertise: false,
     };
-    delete occDoc[skill];
   });
-  delete occDoc.skillMod;
-  delete occDoc.proficiencyPoints;
 
   const occEntry = {
-    ...occDoc,
+    Occupation: classInfo.name,
+    Health: classInfo.hitDie,
+    armor: classInfo.proficiencies.armor,
+    weapons: classInfo.proficiencies.weapons,
+    tools: classInfo.proficiencies.tools,
+    savingThrows: classInfo.proficiencies.savingThrows,
     Level: 1,
     skills,
     proficiencyPoints: 0,
   };
-  const hpGain = Math.floor(Math.random() * occDoc.Health) + 1;
+  const hpGain = Math.floor(Math.random() * classInfo.hitDie) + 1;
   const newHealth = (character.health || 0) + hpGain;
 
   const updatedOccupation = Array.isArray(character.occupation)

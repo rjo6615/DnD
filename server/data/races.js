@@ -12,6 +12,12 @@ const races = {
     abilities: { con: 2 },
     skills: {},
     languages: ["Common", "Dwarvish"],
+    weaponProficiencies: [
+      "battleaxe",
+      "handaxe",
+      "light-hammer",
+      "warhammer",
+    ],
   },
   elf: {
     name: "Elf",
@@ -19,6 +25,12 @@ const races = {
     abilities: { dex: 2 },
     skills: { perception: { proficient: true } },
     languages: ["Common", "Elvish"],
+    weaponProficiencies: [
+      "longsword",
+      "shortsword",
+      "shortbow",
+      "longbow",
+    ],
   },
   halfling: {
     name: "Halfling",

@@ -39,12 +39,19 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 const apiHost = process.env.API_ORIGIN || 'https://realmtracker.org';
+const connectSrc = ["'self'", apiHost];
+if (!isProd) {
+  const devApiHost = process.env.API_ORIGIN_DEV || 'http://localhost:5000';
+  if (!connectSrc.includes(devApiHost)) {
+    connectSrc.push(devApiHost);
+  }
+}
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: ["'self'", apiHost],
+        connectSrc,
       },
     },
   })
