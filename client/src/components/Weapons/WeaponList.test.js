@@ -67,7 +67,7 @@ test('marks weapon proficiency', async () => {
       json: async () => ({
         allowed: ['club', 'dagger'],
         proficient: { dagger: true },
-        granted: ['dagger'],
+        granted: [],
       }),
     }
   );
@@ -84,6 +84,35 @@ test('marks weapon proficiency', async () => {
   expect(daggerProf).toBeChecked();
   expect(daggerProf).toBeDisabled();
   expect(clubProf).not.toBeChecked();
+});
+
+test('toggling a non-proficient weapon checks and disables it', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        allowed: ['club', 'dagger'],
+        proficient: {},
+        granted: [],
+      }),
+    })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+
+  render(<WeaponList characterId="char1" />);
+
+  const clubRow = await screen.findByText('Club');
+  const clubTr = clubRow.closest('tr');
+  const clubProf = within(clubTr).getByLabelText('Club proficiency');
+
+  expect(clubProf).not.toBeChecked();
+  await userEvent.click(clubProf);
+  await waitFor(() => expect(clubProf).toBeChecked());
+  await waitFor(() => expect(clubProf).toBeDisabled());
+
+  await userEvent.click(clubProf);
+  expect(clubProf).toBeChecked();
+  expect(apiFetch).toHaveBeenCalledTimes(3);
 });
 
 test('shows all weapons when allowed list is empty', async () => {
