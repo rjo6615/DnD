@@ -27,19 +27,27 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   }
 
   if (!match[2]) {
-    let damageValue = parseInt(match[1], 10) + ability;
-    if (crit) damageValue *= 2;
-    return damageValue;
+    // Flat damage: ignore crit flag and simply add ability modifier once
+    const baseValue = parseInt(match[1], 10);
+    return baseValue + ability;
   }
 
   const numberOfDiceValue = parseInt(match[1], 10);
   const sidesOfDiceValue = parseInt(match[2], 10);
   const modifier = parseInt(match[3] || 0, 10);
+
+  // Roll the initial set of dice
   const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
-  const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
-  let damageValue = damageSum + modifier + ability;
-  if (crit) damageValue *= 2;
-  return damageValue;
+  let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
+
+  // On a critical hit, roll an additional set of dice and add to the total
+  if (crit) {
+    const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+    damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+  }
+
+  // Add numeric modifier and ability modifier once
+  return damageSum + modifier + ability;
 }
 
 export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, headerHeight = 0 }) {
@@ -89,9 +97,9 @@ const handleToggleAfterDamage = () => {
     updateDamageValueWithAnimation(damageValue);
   };
 
-const handleSpellsButtonClick = (spell) => {
+const handleSpellsButtonClick = (spell, crit = false) => {
   if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, false);
+  const damageValue = calculateDamage(spell.damage, 0, crit);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
 };
@@ -331,7 +339,7 @@ const showSparklesEffect = () => {
                           <td>
                             <Button
                               onClick={() => {
-                                handleSpellsButtonClick(spell);
+                                handleSpellsButtonClick(spell, isGold);
                                 handleCloseAttack();
                               }}
                               size="sm"

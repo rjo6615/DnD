@@ -14,4 +14,18 @@ describe('calculateDamage parser', () => {
   test('handles flat damage 100', () => {
     expect(calculateDamage('100', 0, false, fixedRoll)).toBe(100);
   });
+
+  test('crit rolls extra dice but adds modifiers once', () => {
+    let calls = 0;
+    const critRoll = (count, sides) => {
+      calls++;
+      return Array(count).fill(1);
+    };
+    expect(calculateDamage('1d4+2', 4, true, critRoll)).toBe(8);
+    expect(calls).toBe(2);
+  });
+
+  test('flat damage ignores crit flag', () => {
+    expect(calculateDamage('100', 0, true, fixedRoll)).toBe(100);
+  });
 });
