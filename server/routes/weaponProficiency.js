@@ -8,6 +8,16 @@ function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = [])
   const allowed = new Set();
   const granted = new Set();
 
+  const canonicalize = (name) => {
+    const lower = String(name).toLowerCase();
+    if (weaponData[lower]) return lower;
+    if (lower.endsWith('s')) {
+      const singular = lower.slice(0, -1);
+      if (weaponData[singular]) return singular;
+    }
+    return lower;
+  };
+
   const expandCategory = (term) => {
     const lower = String(term).toLowerCase();
     const standard = Object.keys(weaponData).filter((key) =>
@@ -29,12 +39,14 @@ function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = [])
         const expanded = expandCategory(w);
         if (expanded.length) {
           expanded.forEach((key) => {
-            allowed.add(key);
-            granted.add(key);
+            const canonical = canonicalize(key);
+            allowed.add(canonical);
+            granted.add(canonical);
           });
         } else {
-          allowed.add(w);
-          granted.add(w);
+          const canonical = canonicalize(w);
+          allowed.add(canonical);
+          granted.add(canonical);
         }
       } else {
         allowed.add(w);
@@ -50,12 +62,14 @@ function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = [])
       const isGranted = val === true || (val && val.proficient);
       if (expanded.length) {
         expanded.forEach((key) => {
-          allowed.add(key);
-          if (isGranted) granted.add(key);
+          const canonical = canonicalize(key);
+          allowed.add(canonical);
+          if (isGranted) granted.add(canonical);
         });
       } else {
-        allowed.add(w);
-        if (isGranted) granted.add(w);
+        const canonical = canonicalize(w);
+        allowed.add(canonical);
+        if (isGranted) granted.add(canonical);
       }
     });
   };
