@@ -33,21 +33,66 @@ describe('Equipment routes', () => {
     });
 
     test('insert success', async () => {
+      const insertedId = '507f1f77bcf86cd799439012';
+      const payload = {
+        campaign: 'Camp1',
+        name: 'Sword',
+        category: 'Martial',
+        damage: '1d8',
+        properties: ['versatile'],
+        weight: 6,
+        cost: '10 gp',
+        proficient: true,
+      };
       dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+        collection: () => ({ insertOne: async () => ({ insertedId }) })
       });
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send({ campaign: 'Camp1', name: 'Sword' });
+        .send(payload);
       expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
+      expect(res.body).toEqual({ _id: insertedId, ...payload });
     });
 
     test('invalid properties type', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send({ campaign: 'Camp1', name: 'Sword', properties: 'bad' });
+        .send({
+          campaign: 'Camp1',
+          name: 'Sword',
+          category: 'Martial',
+          damage: '1d8',
+          properties: 'bad',
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('invalid weight type', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .post('/equipment/weapon/add')
+        .send({
+          campaign: 'Camp1',
+          name: 'Sword',
+          category: 'Martial',
+          damage: '1d8',
+          weight: 'heavy',
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('invalid proficient type', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .post('/equipment/weapon/add')
+        .send({
+          campaign: 'Camp1',
+          name: 'Sword',
+          category: 'Martial',
+          damage: '1d8',
+          proficient: 'yes',
+        });
       expect(res.status).toBe(400);
     });
   });
@@ -106,6 +151,15 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({});
       const res = await request(app).delete('/equipment/weapon/123');
       expect(res.status).toBe(400);
+    });
+
+    test('delete weapon not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/weapon/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Weapon not found');
     });
   });
 

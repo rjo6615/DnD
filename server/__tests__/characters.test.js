@@ -452,14 +452,21 @@ describe('Character routes', () => {
   });
 
   test('add weapon success', async () => {
+    const insertedId = '507f1f77bcf86cd799439012';
+    const payload = {
+      campaign: 'Camp1',
+      name: 'Sword',
+      category: 'Martial',
+      damage: '1d8',
+    };
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ insertedId }) })
     });
     const res = await request(app)
       .post('/equipment/weapon/add')
-      .send({ campaign: 'Camp1', name: 'Sword' });
+      .send(payload);
     expect(res.status).toBe(200);
-    expect(res.body.acknowledged).toBe(true);
+    expect(res.body).toEqual({ _id: insertedId, ...payload });
   });
 
   test('add weapon failure', async () => {
@@ -468,7 +475,12 @@ describe('Character routes', () => {
     });
     const res = await request(app)
       .post('/equipment/weapon/add')
-      .send({ campaign: 'Camp1', name: 'Sword' });
+      .send({
+        campaign: 'Camp1',
+        name: 'Sword',
+        category: 'Martial',
+        damage: '1d8',
+      });
     expect(res.status).toBe(500);
   });
 
