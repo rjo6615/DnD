@@ -6,14 +6,22 @@ import apiFetch from '../../utils/apiFetch';
 
 /**
  * List of weapons with ownership toggles.
- * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[], characterId?: string }} props
+ * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[], characterId?: string, show?: boolean }} props
  */
-function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
+function WeaponList({
+  campaign,
+  onChange,
+  initialWeapons = [],
+  characterId,
+  show = true,
+}) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean }> | null} */(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!show) return;
+
     async function fetchWeapons() {
       try {
         const [phb, custom, prof] = await Promise.all([
@@ -103,7 +111,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
     fetchWeapons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaign, characterId]);
+  }, [campaign, characterId, show]);
 
   if (!weapons) {
     return <div>Loading...</div>;

@@ -412,6 +412,7 @@ return (
           initialWeapons={form.weapon}
           onChange={handleWeaponsChange}
           characterId={characterId}
+          show={showWeapons}
         />
       </Modal>
     <Armor

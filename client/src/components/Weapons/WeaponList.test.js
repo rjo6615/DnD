@@ -172,3 +172,21 @@ test('reloads allowed and proficient weapons when character changes', async () =
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char2');
 });
 
+test('refetches weapons when modal is opened', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: [], proficient: {}, granted: [] }),
+    });
+
+  const { rerender } = render(<WeaponList characterId="char1" show={false} />);
+
+  expect(apiFetch).not.toHaveBeenCalled();
+
+  rerender(<WeaponList characterId="char1" show />);
+  expect(await screen.findByText('Dagger')).toBeInTheDocument();
+  expect(apiFetch).toHaveBeenCalledWith('/weapons');
+  expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
+});
+
