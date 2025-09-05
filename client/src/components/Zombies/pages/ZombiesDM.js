@@ -491,10 +491,12 @@ const [form2, setForm2] = useState({
        </div>
         </Modal>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
-          <Modal className="dnd-modal" centered show={show2} onHide={handleClose2}>
+          <Modal className="dnd-modal modern-modal" centered show={show2} onHide={handleClose2}>
           <div className="text-center">
-          <Card className="dnd-background">
-            <Card.Title>{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
+          <Card className="modern-card">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
+            </Card.Header>
           <Card.Body>
           <div className="text-center">
             {isCreatingWeapon ? (
@@ -568,7 +570,7 @@ const [form2, setForm2] = useState({
             </Form>
             ) : (
               <>
-              <Table striped bordered condensed="true" className="mt-3">
+              <Table striped bordered hover size="sm" className="modern-table mt-3">
                 <thead>
                   <tr>
                    <th>Name</th>
