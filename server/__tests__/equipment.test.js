@@ -37,6 +37,7 @@ describe('Equipment routes', () => {
       const payload = {
         campaign: 'Camp1',
         name: 'Sword',
+        type: 'quarterstaff',
         category: 'Martial',
         damage: '1d8',
         properties: ['versatile'],
@@ -48,7 +49,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .post('/equipment/weapon/add')
-        .send(payload);
+        .send({ ...payload, type: 'Quarterstaff' });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ _id: insertedId, ...payload });
     });

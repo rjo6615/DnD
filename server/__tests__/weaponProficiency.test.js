@@ -271,5 +271,47 @@ describe('Weapon proficiency routes', () => {
       expect.arrayContaining(['laser sword'])
     );
   });
+
+  test('maps custom weapon types to class proficiencies', async () => {
+    const classes = require('../data/classes');
+    const charDoc = {
+      campaign: 'alpha',
+      occupation: [{ weapons: classes.druid.proficiencies.weapons }],
+      feat: [],
+      race: {},
+      weaponProficiencies: {},
+    };
+
+    const customWeapons = [
+      { name: 'Carved Stick', category: 'simple melee', type: 'quarterstaff' },
+    ];
+
+    const findOne = jest.fn().mockResolvedValue(charDoc);
+    const toArray = jest.fn().mockResolvedValue(customWeapons);
+    const find = jest.fn().mockReturnValue({ toArray });
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne };
+        }
+        if (name === 'Weapons') {
+          return { find };
+        }
+      },
+    });
+
+    const res = await request(app).get(
+      '/weapon-proficiency/507f1f77bcf86cd799439011'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.allowed).toEqual(
+      expect.arrayContaining(['quarterstaff', 'carved stick'])
+    );
+    expect(res.body.granted).toEqual(
+      expect.arrayContaining(['quarterstaff', 'carved stick'])
+    );
+  });
 });
 

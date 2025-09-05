@@ -4,6 +4,10 @@ export interface Weapon {
    */
   name: string;
   /**
+   * Canonical weapon key used for proficiency mapping.
+   */
+  type?: string;
+  /**
    * Weapon category such as "simple melee" or "martial ranged".
    */
   category: string;

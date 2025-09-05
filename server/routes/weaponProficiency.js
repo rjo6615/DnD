@@ -18,6 +18,27 @@ function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = [])
     return lower;
   };
 
+  const typeMap = Array.isArray(customWeapons)
+    ? customWeapons.reduce((acc, w) => {
+        const type = String(w.type || w.name).toLowerCase();
+        const nameKey = canonicalize(w.name);
+        (acc[type] ||= []).push(nameKey);
+        return acc;
+      }, {})
+    : {};
+
+  const addWeapon = (canonical, isGranted = true) => {
+    allowed.add(canonical);
+    if (isGranted) granted.add(canonical);
+    const extra = typeMap[canonical];
+    if (extra) {
+      extra.forEach((name) => {
+        allowed.add(name);
+        if (isGranted) granted.add(name);
+      });
+    }
+  };
+
   const expandCategory = (term) => {
     const lower = String(term).toLowerCase();
     const standard = Object.keys(weaponData).filter((key) =>
@@ -40,17 +61,14 @@ function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = [])
         if (expanded.length) {
           expanded.forEach((key) => {
             const canonical = canonicalize(key);
-            allowed.add(canonical);
-            granted.add(canonical);
+            addWeapon(canonical);
           });
         } else {
           const canonical = canonicalize(w);
-          allowed.add(canonical);
-          granted.add(canonical);
+          addWeapon(canonical);
         }
       } else {
-        allowed.add(w);
-        granted.add(w);
+        addWeapon(w);
       }
     });
   };
@@ -63,13 +81,11 @@ function collectWeaponInfo(occupation = [], feat = [], race, customWeapons = [])
       if (expanded.length) {
         expanded.forEach((key) => {
           const canonical = canonicalize(key);
-          allowed.add(canonical);
-          if (isGranted) granted.add(canonical);
+          addWeapon(canonical, isGranted);
         });
       } else {
         const canonical = canonicalize(w);
-        allowed.add(canonical);
-        if (isGranted) granted.add(canonical);
+        addWeapon(canonical, isGranted);
       }
     });
   };

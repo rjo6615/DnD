@@ -140,6 +140,7 @@ async function sendNewPlayersToDb() {
 const [form2, setForm2] = useState({
     campaign: currentCampaign,
     name: "",
+    type: "",
     category: "",
     damage: "",
     properties: "",
@@ -189,6 +190,7 @@ const [form2, setForm2] = useState({
     const newWeapon = {
       campaign: currentCampaign,
       name: form2.name,
+      type: form2.type,
       category: form2.category,
       damage: form2.damage,
       properties: propertiesArray,
@@ -213,8 +215,9 @@ const [form2, setForm2] = useState({
      });
 
      setForm2({
-      campaign: currentCampaign,
-      name: "",
+     campaign: currentCampaign,
+     name: "",
+      type: "",
       category: "",
       damage: "",
       properties: "",
@@ -483,6 +486,10 @@ const [form2, setForm2] = useState({
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
           type="text" placeholder="Enter weapon name" />
 
+         <Form.Label className="text-light">Type</Form.Label>
+         <Form.Control className="mb-2" onChange={(e) => updateForm2({ type: e.target.value })}
+          type="text" placeholder="Enter base weapon type" />
+
          <Form.Label className="text-light">Category</Form.Label>
          <Form.Control className="mb-2" onChange={(e) => updateForm2({ category: e.target.value })}
           type="text" placeholder="Enter weapon category" />
@@ -516,7 +523,8 @@ const [form2, setForm2] = useState({
       <Table striped bordered condensed="true" className="mt-3">
         <thead>
           <tr>
-            <th>Name</th>
+           <th>Name</th>
+            <th>Type</th>
             <th>Category</th>
             <th>Damage</th>
             <th>Properties</th>
@@ -529,6 +537,7 @@ const [form2, setForm2] = useState({
           {weapons.map((w) => (
             <tr key={w._id}>
               <td>{w.name}</td>
+              <td>{w.type}</td>
               <td>{w.category}</td>
               <td>{w.damage}</td>
               <td>{Array.isArray(w.properties) ? w.properties.join(', ') : ''}</td>
