@@ -81,7 +81,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
           acc[key] = {
             ...all[key],
             owned: ownedSet.has(all[key].name),
-            proficient: proficientSet.has(key),
+            proficient: grantedSet.has(key) || proficientSet.has(key),
             granted: grantedSet.has(key),
             pending: false,
           };
