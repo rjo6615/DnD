@@ -51,8 +51,8 @@ test('fetches weapons and toggles ownership', async () => {
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith(
       expect.arrayContaining([
-        expect.objectContaining({ name: 'Club' }),
-        expect.objectContaining({ name: 'Dagger' }),
+        expect.objectContaining({ name: 'club' }),
+        expect.objectContaining({ name: 'dagger' }),
       ])
     )
   );
