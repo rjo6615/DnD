@@ -91,6 +91,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
         setWeapons(withOwnership);
         setError(null);
       } catch (err) {
+        console.error('Failed to load weapons:', err?.message, err?.response?.status);
         setWeapons({});
         if (err && err.status) {
           setError(`Failed to load weapons: ${err.status} ${err.statusText}`);
