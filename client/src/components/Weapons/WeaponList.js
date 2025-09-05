@@ -137,7 +137,7 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
 
   const handleToggle = (key) => async () => {
     const weapon = weapons[key];
-    if (weapon.granted) return;
+    if (weapon.granted || weapon.proficient) return;
     const desired = !weapon.proficient;
     const nextWeapons = {
       ...weapons,
@@ -198,10 +198,16 @@ function WeaponList({ campaign, onChange, initialWeapons = [], characterId }) {
                     type="checkbox"
                     className="weapon-checkbox"
                     checked={weapon.proficient}
-                    disabled={weapon.granted || weapon.pending}
+                    disabled={
+                      weapon.proficient || weapon.granted || weapon.pending
+                    }
                     onChange={handleToggle(key)}
                     aria-label={`${weapon.name} proficiency`}
-                    style={weapon.granted || weapon.pending ? { opacity: 0.5 } : undefined}
+                    style={
+                      weapon.proficient || weapon.granted || weapon.pending
+                        ? { opacity: 0.5 }
+                        : undefined
+                    }
                   />
                 </td>
                 <td>{weapon.name}</td>
