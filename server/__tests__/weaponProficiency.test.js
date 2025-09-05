@@ -123,5 +123,32 @@ describe('Weapon proficiency routes', () => {
       expect.arrayContaining(['club', 'light-crossbow'])
     );
   });
+
+  test('includes racial weapon proficiencies', async () => {
+    const races = require('../data/races');
+    const charDoc = {
+      occupation: [],
+      feat: [],
+      race: races.elf,
+      weaponProficiencies: {},
+    };
+
+    const findOne = jest.fn().mockResolvedValue(charDoc);
+    dbo.mockResolvedValue({ collection: () => ({ findOne }) });
+
+    const res = await request(app).get(
+      '/weapon-proficiency/507f1f77bcf86cd799439011'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.granted).toEqual(
+      expect.arrayContaining([
+        'longsword',
+        'shortsword',
+        'shortbow',
+        'longbow',
+      ])
+    );
+  });
 });
 
