@@ -96,7 +96,10 @@ module.exports = (router) => {
         charDoc.feat,
         charDoc.race
       );
-      const proficient = charDoc.weaponProficiencies || {};
+      const proficient = Object.assign(
+        Object.fromEntries(granted.map((w) => [w, true])),
+        charDoc.weaponProficiencies || {}
+      );
 
       return res.status(200).json({
         allowed,
