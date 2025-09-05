@@ -72,7 +72,6 @@ module.exports = (router) => {
       body('properties').optional().isArray(),
       body('weight').optional().isFloat().toFloat(),
       body('cost').optional().isString().trim(),
-      body('proficient').optional().isBoolean().toBoolean(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
