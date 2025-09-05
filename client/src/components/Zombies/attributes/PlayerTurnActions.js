@@ -2,6 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
+// Dice rolling helper used by calculateDamage and component actions
+function rollDice(numberOfDiceValue, sidesOfDiceValue) {
+  if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
+    return "Both the number of dice and sides must be greater than zero.";
+  }
+
+  const results = [];
+  for (let i = 0; i < numberOfDiceValue; i++) {
+    // Generate a random number between 1 and sidesOfDiceValue (inclusive)
+    const result = Math.floor(Math.random() * sidesOfDiceValue) + 1;
+    results.push(result);
+  }
+
+  return results;
+}
+
 export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
   const match = damageString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
   if (!match) {
@@ -68,14 +84,14 @@ const handleToggleAfterDamage = () => {
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const damageValue = calculateDamage(weapon.damage, ability, isGold, rollDice);
+    const damageValue = calculateDamage(weapon.damage, ability, isGold);
     if (damageValue === null) return;
     updateDamageValueWithAnimation(damageValue);
   };
 
 const handleSpellsButtonClick = (spell) => {
   if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, false, rollDice);
+  const damageValue = calculateDamage(spell.damage, 0, false);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
 };
@@ -87,20 +103,6 @@ const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(
 
 // Apply the calculated RGBA color to the element
 document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-function rollDice(numberOfDiceValue, sidesOfDiceValue) {
-  if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
-    return "Both the number of dice and sides must be greater than zero.";
-  }
-
-  let results = [];
-  for (let i = 0; i < numberOfDiceValue; i++) {
-    // Generate a random number between 1 and sidesOfDiceValue (inclusive)
-    let result = Math.floor(Math.random() * sidesOfDiceValue) + 1;
-    results.push(result);
-  }
-
-  return results;
-}
 
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
