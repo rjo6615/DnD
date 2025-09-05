@@ -140,11 +140,11 @@ describe('Equipment routes', () => {
   describe('delete weapon', () => {
     test('delete success', async () => {
       dbo.mockResolvedValue({
-        collection: () => ({ deleteOne: async () => ({ deletedCount: 1 }) })
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
       });
       const res = await request(app).delete('/equipment/weapon/507f1f77bcf86cd799439011');
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Weapon deleted');
+      expect(res.body).toEqual({ acknowledged: true });
     });
 
     test('delete weapon invalid id', async () => {
@@ -155,7 +155,7 @@ describe('Equipment routes', () => {
 
     test('delete weapon not found', async () => {
       dbo.mockResolvedValue({
-        collection: () => ({ deleteOne: async () => ({ deletedCount: 0 }) })
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
       });
       const res = await request(app).delete('/equipment/weapon/507f1f77bcf86cd799439011');
       expect(res.status).toBe(404);
