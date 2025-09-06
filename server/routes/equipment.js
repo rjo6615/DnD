@@ -129,7 +129,7 @@ module.exports = (router) => {
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('armorName').trim().notEmpty().withMessage('armorName is required'),
-      body('armorBonus').optional({ checkFalsy: true }).isInt().toInt(),
+      body('acBonus').optional({ checkFalsy: true }).isInt().toInt(),
       body('maxDex').optional({ checkFalsy: true }).isInt().toInt(),
       body('armorCheckPenalty').optional({ checkFalsy: true }).isInt().toInt(),
       body('type').optional().isString().trim().toLowerCase(),

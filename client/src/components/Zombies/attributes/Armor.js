@@ -183,7 +183,7 @@ return(
          type="text">
           <option value="" disabled>Select your armor</option>
           {armor.armor.map((el) => (
-          <option key={el.armorName} value={[el.armorName, el.armorBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
+          <option key={el.armorName} value={[el.armorName, el.acBonus, el.maxDex, el.armorCheckPenalty]}>{el.armorName}</option>
           ))}
         </Form.Select>
       </Form.Group>

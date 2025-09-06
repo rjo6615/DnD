@@ -187,7 +187,7 @@ describe('Equipment routes', () => {
         .send({
           campaign: 'Camp1',
           armorName: 'Leather',
-          armorBonus: '',
+          acBonus: '',
           maxDex: '',
           armorCheckPenalty: '',
         });
@@ -202,7 +202,7 @@ describe('Equipment routes', () => {
         .send({
           campaign: 'Camp1',
           armorName: 'Plate',
-          armorBonus: 'bad',
+          acBonus: 'bad',
           strength: 'bad',
           stealth: 'maybe',
           weight: 'bad',

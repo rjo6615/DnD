@@ -279,7 +279,7 @@ const [form2, setForm2] = useState({
     name: "",
     type: "",
     category: "",
-    armorBonus: "",
+    acBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
     strength: "",
@@ -349,7 +349,7 @@ const [form2, setForm2] = useState({
     name: "",
     type: "",
     category: "",
-    armorBonus: "",
+    acBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
     strength: "",
@@ -717,8 +717,8 @@ const [form2, setForm2] = useState({
             ))}
           </Form.Select>
 
-          <Form.Label className="text-light">Armor Bonus</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })} type="text" placeholder="Enter Armor Bonus" />
+          <Form.Label className="text-light">AC Bonus</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ acBonus: e.target.value })} type="text" placeholder="Enter AC Bonus" />
 
           <Form.Label className="text-light">Max Dex Bonus</Form.Label>
           <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
@@ -759,7 +759,7 @@ const [form2, setForm2] = useState({
             <th>Name</th>
             <th>Type</th>
             <th>Category</th>
-            <th>Armor Bonus</th>
+            <th>AC Bonus</th>
             <th>Max Dex</th>
             <th>Check Penalty</th>
             <th>Delete</th>
@@ -771,7 +771,7 @@ const [form2, setForm2] = useState({
               <td>{a.name}</td>
               <td>{a.type}</td>
               <td>{a.category}</td>
-              <td>{a.armorBonus}</td>
+              <td>{a.acBonus}</td>
               <td>{a.maxDex}</td>
               <td>{a.armorCheckPenalty}</td>
               <td>
