@@ -6,7 +6,6 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function HealthDefense({
   form,
-  totalLevel,
   conMod,
   dexMod,
   ac = 0,
@@ -61,7 +60,11 @@ export default function HealthDefense({
     }
   }
 
-  const profBonus = proficiencyBonus(form.proficiencyBonus ?? totalLevel);
+  const totalLevel = occupations.reduce(
+    (total, o) => total + Number(o.Level),
+    0
+  );
+  const profBonus = form.proficiencyBonus ?? proficiencyBonus(totalLevel);
 
   // Health
   const maxHealth =
