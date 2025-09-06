@@ -11,6 +11,14 @@ describe('calculateDamage parser', () => {
     expect(calculateDamage('10d4+1', 0, false, fixedRoll)).toBe(11);
   });
 
+  test('handles 1d8 slashing', () => {
+    expect(calculateDamage('1d8 slashing', 0, false, fixedRoll)).toBe(1);
+  });
+
+  test('handles 2d6 fire', () => {
+    expect(calculateDamage('2d6 fire', 0, false, fixedRoll)).toBe(2);
+  });
+
   test('handles flat damage 100', () => {
     expect(calculateDamage('100', 0, false, fixedRoll)).toBe(100);
   });

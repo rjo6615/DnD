@@ -19,7 +19,8 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
 }
 
 export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
-  const match = damageString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+  const cleanString = damageString.split(' ')[0];
+  const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
   if (!match) {
     // eslint-disable-next-line no-console
     console.error('Invalid damage string');
@@ -87,7 +88,8 @@ const handleToggleAfterDamage = () => {
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    return `${weapon.damage}+${ability}`;
+    const dice = weapon.damage.split(' ')[0];
+    return `${dice}+${ability}`;
   };
 
   const handleWeaponAttack = (weapon) => {
