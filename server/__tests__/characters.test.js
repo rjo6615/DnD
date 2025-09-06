@@ -373,15 +373,14 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({
-          occupation: [{ Level: 1 }],
-          allowedSkills: ['acrobatics'],
+          occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
         }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
-            occupation: [{ Level: 1 }],
+            occupation: [{ Level: 1, Occupation: 'Rogue' }],
             skills: { acrobatics: { proficient: true, expertise: false } },
           },
         }),
@@ -404,15 +403,14 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({
-          occupation: [{ Level: 1 }],
-          allowedSkills: ['acrobatics'],
+          occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
         }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
-            occupation: [{ Level: 1 }],
+            occupation: [{ Level: 1, Occupation: 'Rogue' }],
             skills: { acrobatics: { proficient: true, expertise: true } },
           },
         }),
@@ -435,8 +433,7 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({
-          occupation: [{ Level: 1 }],
-          allowedSkills: ['acrobatics'],
+          occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
         }),
