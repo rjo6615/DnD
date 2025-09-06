@@ -525,7 +525,7 @@ const [form2, setForm2] = useState({
       </Table>
     </div>
 
-        <Modal className="dnd-modal" centered show={showPlayers} onHide={handleClosePlayers}>
+        <Modal className="dnd-modal" size="lg" centered show={showPlayers} onHide={handleClosePlayers}>
          <div className="text-center">
           <Card className="dnd-background">
             <Card.Title>Players</Card.Title>
@@ -580,7 +580,7 @@ const [form2, setForm2] = useState({
        </div>
         </Modal>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
-          <Modal className="dnd-modal modern-modal" centered show={show2} onHide={handleClose2}>
+          <Modal className="dnd-modal modern-modal" size="lg" centered show={show2} onHide={handleClose2}>
           <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
@@ -706,7 +706,7 @@ const [form2, setForm2] = useState({
           </div>
            </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
-  <Modal className="dnd-modal modern-modal" centered show={show3} onHide={handleClose3}>
+  <Modal className="dnd-modal modern-modal" size="lg" centered show={show3} onHide={handleClose3}>
   <div className="text-center">
   <Card className="modern-card">
     <Card.Header className="modal-header">
@@ -820,7 +820,7 @@ const [form2, setForm2] = useState({
   </div>
   </Modal>
   {/* -----------------------------------------Item Modal--------------------------------------------- */}
-  <Modal className="dnd-modal" centered show={show4} onHide={handleClose4}>
+  <Modal className="dnd-modal" size="lg" centered show={show4} onHide={handleClose4}>
        <div className="text-center">
         <Card className="dnd-background">
             <Card.Title>Create Item</Card.Title>
