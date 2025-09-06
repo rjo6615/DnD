@@ -8,6 +8,9 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
   const allowed = new Set();
   const granted = new Set();
 
+  const isWildcard = (term) =>
+    /^all\s+armou?r(?:s)?$/i.test(String(term).trim());
+
   const canonicalize = (name) => {
     const lower = String(name).toLowerCase();
     if (armorData[lower]) return lower;
@@ -57,15 +60,19 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
   const processArray = (arr) => {
     arr.forEach((a) => {
       if (typeof a === 'string') {
-        const expanded = expandCategory(a);
-        if (expanded.length) {
-          expanded.forEach((key) => {
-            const canonical = canonicalize(key);
-            addArmor(canonical);
-          });
+        if (isWildcard(a)) {
+          Object.keys(armorData).forEach((key) => addArmor(key));
         } else {
-          const canonical = canonicalize(a);
-          addArmor(canonical);
+          const expanded = expandCategory(a);
+          if (expanded.length) {
+            expanded.forEach((key) => {
+              const canonical = canonicalize(key);
+              addArmor(canonical);
+            });
+          } else {
+            const canonical = canonicalize(a);
+            addArmor(canonical);
+          }
         }
       } else {
         addArmor(a);
@@ -76,16 +83,20 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
   const processObject = (obj) => {
     Object.keys(obj).forEach((a) => {
       const val = obj[a];
-      const expanded = expandCategory(a);
       const isGranted = val === true || (val && val.proficient);
-      if (expanded.length) {
-        expanded.forEach((key) => {
-          const canonical = canonicalize(key);
-          addArmor(canonical, isGranted);
-        });
+      if (isWildcard(a)) {
+        Object.keys(armorData).forEach((key) => addArmor(key, isGranted));
       } else {
-        const canonical = canonicalize(a);
-        addArmor(canonical, isGranted);
+        const expanded = expandCategory(a);
+        if (expanded.length) {
+          expanded.forEach((key) => {
+            const canonical = canonicalize(key);
+            addArmor(canonical, isGranted);
+          });
+        } else {
+          const canonical = canonicalize(a);
+          addArmor(canonical, isGranted);
+        }
       }
     });
   };
@@ -105,7 +116,15 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
   if (Array.isArray(feat)) feat.forEach(processSource);
   processSource(race);
 
-  return { allowed: Array.from(allowed), granted: Array.from(granted) };
+  const canonicalKeys = new Set(Object.keys(armorData));
+  if (Array.isArray(customArmors)) {
+    customArmors.forEach((a) => canonicalKeys.add(canonicalize(a.name)));
+  }
+
+  return {
+    allowed: Array.from(allowed).filter((a) => canonicalKeys.has(a)),
+    granted: Array.from(granted).filter((a) => canonicalKeys.has(a)),
+  };
 }
 
 module.exports = (router) => {
