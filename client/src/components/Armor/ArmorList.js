@@ -68,7 +68,7 @@ function ArmorList({
                 displayName: a.name || a.armorName,
                 type: a.type,
                 category: a.category || 'custom',
-                ac: a.ac ?? a.armorBonus ?? '',
+                acBonus: a.acBonus ?? a.ac ?? a.armorBonus ?? '',
                 maxDex: a.maxDex ?? null,
                 strength: a.strength ?? null,
                 stealth: a.stealth ?? false,
@@ -175,7 +175,7 @@ function ArmorList({
           ({
             name,
             category,
-            ac,
+            acBonus,
             maxDex,
             strength,
             stealth,
@@ -185,7 +185,7 @@ function ArmorList({
           }) => ({
             name,
             category,
-            ac,
+            acBonus,
             maxDex,
             strength,
             stealth,
@@ -278,7 +278,13 @@ function ArmorList({
                   />
                 </td>
                 <td>{piece.displayName || piece.name}</td>
-                <td>{piece.ac}</td>
+                <td>
+                  {piece.category === 'shield'
+                    ? piece.acBonus
+                    : piece.acBonus !== '' && piece.acBonus !== null && piece.acBonus !== undefined
+                    ? 10 + Number(piece.acBonus)
+                    : ''}
+                </td>
                 <td>
                   {piece.maxDex === null || piece.maxDex === undefined
                     ? '—'

@@ -8,7 +8,7 @@ const armors = {
   padded: {
     name: "Padded",
     category: "light",
-    ac: 11,
+    acBonus: 1,
     maxDex: null,
     strength: null,
     stealth: true,
@@ -19,7 +19,7 @@ const armors = {
   leather: {
     name: "Leather",
     category: "light",
-    ac: 11,
+    acBonus: 1,
     maxDex: null,
     strength: null,
     stealth: false,
@@ -30,7 +30,7 @@ const armors = {
   "studded-leather": {
     name: "Studded Leather",
     category: "light",
-    ac: 12,
+    acBonus: 2,
     maxDex: null,
     strength: null,
     stealth: false,
@@ -41,7 +41,7 @@ const armors = {
   hide: {
     name: "Hide",
     category: "medium",
-    ac: 12,
+    acBonus: 2,
     maxDex: 2,
     strength: null,
     stealth: false,
@@ -52,7 +52,7 @@ const armors = {
   "chain-shirt": {
     name: "Chain Shirt",
     category: "medium",
-    ac: 13,
+    acBonus: 3,
     maxDex: 2,
     strength: null,
     stealth: false,
@@ -63,7 +63,7 @@ const armors = {
   "scale-mail": {
     name: "Scale Mail",
     category: "medium",
-    ac: 14,
+    acBonus: 4,
     maxDex: 2,
     strength: null,
     stealth: true,
@@ -74,7 +74,7 @@ const armors = {
   breastplate: {
     name: "Breastplate",
     category: "medium",
-    ac: 14,
+    acBonus: 4,
     maxDex: 2,
     strength: null,
     stealth: false,
@@ -85,7 +85,7 @@ const armors = {
   "half-plate": {
     name: "Half Plate",
     category: "medium",
-    ac: 15,
+    acBonus: 5,
     maxDex: 2,
     strength: null,
     stealth: true,
@@ -96,7 +96,7 @@ const armors = {
   "ring-mail": {
     name: "Ring Mail",
     category: "heavy",
-    ac: 14,
+    acBonus: 4,
     maxDex: 0,
     strength: null,
     stealth: true,
@@ -107,7 +107,7 @@ const armors = {
   "chain-mail": {
     name: "Chain Mail",
     category: "heavy",
-    ac: 16,
+    acBonus: 6,
     maxDex: 0,
     strength: 13,
     stealth: true,
@@ -118,7 +118,7 @@ const armors = {
   splint: {
     name: "Splint",
     category: "heavy",
-    ac: 17,
+    acBonus: 7,
     maxDex: 0,
     strength: 15,
     stealth: true,
@@ -129,7 +129,7 @@ const armors = {
   plate: {
     name: "Plate",
     category: "heavy",
-    ac: 18,
+    acBonus: 8,
     maxDex: 0,
     strength: 15,
     stealth: true,
@@ -140,7 +140,7 @@ const armors = {
   shield: {
     name: "Shield",
     category: "shield",
-    ac: 2,
+    acBonus: 2,
     maxDex: null,
     strength: null,
     stealth: false,

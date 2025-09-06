@@ -12,9 +12,9 @@ export interface Armor {
    */
   category: string;
   /**
-   * Base armor class provided by the armor.
+   * Armor class bonus provided by the armor (base AC minus 10).
    */
-  ac: number;
+  acBonus: number;
   /**
    * Maximum Dexterity modifier allowed, or null for no limit.
    */
