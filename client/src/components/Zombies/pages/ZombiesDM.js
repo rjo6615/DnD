@@ -276,7 +276,7 @@ const [form2, setForm2] = useState({
 
   const [form3, setForm3] = useState({
     campaign: currentCampaign,
-    name: "",
+    armorName: "",
     type: "",
     category: "",
     armorBonus: "",
@@ -352,7 +352,7 @@ const [form2, setForm2] = useState({
 
    setForm3({
     campaign: currentCampaign,
-    name: "",
+    armorName: "",
     type: "",
     category: "",
     armorBonus: "",
@@ -705,7 +705,13 @@ const [form2, setForm2] = useState({
       <Form onSubmit={onSubmit3} className="px-5">
         <Form.Group className="mb-3 pt-3">
           <Form.Label className="text-light">Name</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ name: e.target.value })} type="text" placeholder="Enter armor name" />
+          <Form.Control
+            className="mb-2"
+            value={form3.armorName}
+            onChange={(e) => updateForm3({ armorName: e.target.value })}
+            type="text"
+            placeholder="Enter armor name"
+          />
 
           <Form.Label className="text-light">Type</Form.Label>
           <Form.Select className="mb-2" value={form3.type} onChange={(e) => updateForm3({ type: e.target.value })}>
@@ -774,7 +780,7 @@ const [form2, setForm2] = useState({
         <tbody>
           {armor.map((a) => (
             <tr key={a._id}>
-              <td>{a.name}</td>
+              <td>{a.armorName ?? a.name}</td>
               <td>{a.type}</td>
               <td>{a.category}</td>
               <td>{a.armorBonus ?? a.acBonus}</td>
