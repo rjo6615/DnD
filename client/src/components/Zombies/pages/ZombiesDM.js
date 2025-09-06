@@ -220,30 +220,43 @@ const [form2, setForm2] = useState({
         delete newWeapon[key];
       }
     });
-     await apiFetch("/equipment/weapon/add", {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-       },
-       body: JSON.stringify(newWeapon),
-     })
-     .catch(error => {
-       setStatus({ type: 'danger', message: error.toString() });
-       return;
-     });
+    try {
+      const response = await apiFetch("/equipment/weapon/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newWeapon),
+      });
 
-     setForm2({
-     campaign: currentCampaign,
-     name: "",
-      type: "",
-      category: "",
-      damage: "",
-      properties: [],
-      weight: "",
-      cost: "",
-    });
-     fetchWeapons();
-   }
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || errorData?.error || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
+        return;
+      }
+
+      setForm2({
+        campaign: currentCampaign,
+        name: "",
+        type: "",
+        category: "",
+        damage: "",
+        properties: [],
+        weight: "",
+        cost: "",
+      });
+      handleClose2();
+      fetchWeapons();
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
 
   async function deleteWeapon(id) {
     try {
@@ -636,7 +649,7 @@ const [form2, setForm2] = useState({
 
             </Form.Group>
              <div className="text-center">
-             <Button variant="primary" onClick={handleClose2} type="submit">
+             <Button variant="primary" type="submit">
                     Create
                   </Button>
                   <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
