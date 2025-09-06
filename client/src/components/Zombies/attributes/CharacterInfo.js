@@ -30,6 +30,9 @@ export default function CharacterInfo({ form, show, handleClose }) {
     .map(([k]) => skillLabelMap[k] || k)
     .join(", ");
 
+  const backgroundDescription =
+    form.background?.description?.trim() || "No description available";
+
   return (
     <Modal
       className="dnd-modal modern-modal"
@@ -68,6 +71,10 @@ export default function CharacterInfo({ form, show, handleClose }) {
               <tr>
                 <th>Background</th>
                 <td>{form.background?.name || ''}</td>
+              </tr>
+              <tr>
+                <th>Description</th>
+                <td>{backgroundDescription}</td>
               </tr>
               <tr>
                 <th>Skills</th>
