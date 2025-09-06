@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Form, Row, Container, Table, Card, Alert } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
@@ -163,34 +163,34 @@ const [form2, setForm2] = useState({
     properties: [],
   });
 
-  const fetchWeapons = async () => {
-    const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
-    if (!response.ok) {
-      const message = `An error has occurred: ${response.statusText}`;
-      setStatus({ type: 'danger', message });
-      return;
-    }
-    const data = await response.json();
-    setWeapons(data);
-  };
+    const fetchWeapons = useCallback(async () => {
+      const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      const data = await response.json();
+      setWeapons(data);
+    }, [currentCampaign]);
 
-  const fetchWeaponOptions = async () => {
-    const response = await apiFetch('/weapons/options');
-    if (!response.ok) {
-      const message = `An error has occurred: ${response.statusText}`;
-      setStatus({ type: 'danger', message });
-      return;
-    }
-    const data = await response.json();
-    setWeaponOptions(data);
-  };
+    const fetchWeaponOptions = useCallback(async () => {
+      const response = await apiFetch('/weapons/options');
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      const data = await response.json();
+      setWeaponOptions(data);
+    }, []);
 
-  useEffect(() => {
-    if (show2) {
-      fetchWeapons();
-      fetchWeaponOptions();
-    }
-  }, [show2, currentCampaign]);
+    useEffect(() => {
+      if (show2) {
+        fetchWeapons();
+        fetchWeaponOptions();
+      }
+    }, [show2, currentCampaign, fetchWeapons, fetchWeaponOptions]);
   
   function updateForm2(value) {
     return setForm2((prev) => {
