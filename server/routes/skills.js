@@ -108,8 +108,11 @@ module.exports = (router) => {
           .json({ message: 'Cannot remove racial proficiency' });
       }
 
-      const proficientCount = Object.values(charDoc.skills || {}).filter(
-        (s) => s && s.proficient
+      const proficientCount = Object.entries(charDoc.skills || {}).filter(
+        ([key, s]) =>
+          s &&
+          s.proficient &&
+          !charDoc.race?.skills?.[key]?.proficient
       ).length;
       const alreadyProficient = charDoc.skills?.[skill]?.proficient;
       if (

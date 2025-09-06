@@ -46,5 +46,49 @@ describe('Skills routes', () => {
     expect(res.body.message).toBe('Cannot remove racial proficiency');
     expect(findOneAndUpdate).not.toHaveBeenCalled();
   });
+
+  test('allows two proficiencies in addition to racial proficiency', async () => {
+    const charDoc = {
+      race: { skills: { perception: { proficient: true } } },
+      skills: { perception: { proficient: true } },
+      proficiencyPoints: 2,
+      allowedSkills: ['perception', 'stealth', 'arcana', 'athletics'],
+      dex: 10,
+      int: 10
+    };
+
+    const findOne = jest.fn().mockImplementation(() => Promise.resolve({ ...charDoc }));
+    const findOneAndUpdate = jest.fn().mockImplementation((id, update) => {
+      Object.entries(update.$set || {}).forEach(([key, value]) => {
+        if (key.startsWith('skills.')) {
+          const skillKey = key.split('.')[1];
+          charDoc.skills[skillKey] = value;
+        } else {
+          charDoc[key] = value;
+        }
+      });
+      return Promise.resolve({ value: { ...charDoc } });
+    });
+
+    dbo.mockResolvedValue({
+      collection: () => ({ findOne, findOneAndUpdate })
+    });
+
+    let res = await request(app)
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
+      .send({ skill: 'stealth', proficient: true, expertise: false });
+    expect(res.status).toBe(200);
+
+    res = await request(app)
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
+      .send({ skill: 'arcana', proficient: true, expertise: false });
+    expect(res.status).toBe(200);
+
+    res = await request(app)
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
+      .send({ skill: 'athletics', proficient: true, expertise: false });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('No proficiency points remaining');
+  });
 });
 
