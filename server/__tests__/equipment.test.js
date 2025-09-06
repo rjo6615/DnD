@@ -211,10 +211,22 @@ describe('Equipment routes', () => {
   });
 
   describe('update-armor', () => {
-    test('update success', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
-      });
+    test('accepts armor when strength sufficient', async () => {
+      const connection = {
+        collection: (name) => {
+          if (name === 'Characters') {
+            return {
+              findOne: async () => ({ str: 16, campaign: 'Camp1' }),
+              updateOne: async () => ({ matchedCount: 1 }),
+            };
+          }
+          if (name === 'Armor') {
+            return { find: () => ({ toArray: async () => [] }) };
+          }
+          return {};
+        },
+      };
+      dbo.mockResolvedValue(connection);
       const res = await request(app)
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Plate'] });
@@ -222,10 +234,42 @@ describe('Equipment routes', () => {
       expect(res.body.message).toBe('Armor updated');
     });
 
+    test('rejects armor requiring higher strength', async () => {
+      const connection = {
+        collection: (name) => {
+          if (name === 'Characters') {
+            return { findOne: async () => ({ str: 10, campaign: 'Camp1' }) };
+          }
+          if (name === 'Armor') {
+            return { find: () => ({ toArray: async () => [] }) };
+          }
+          return {};
+        },
+      };
+      dbo.mockResolvedValue(connection);
+      const res = await request(app)
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: ['Plate'] });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/Plate/);
+    });
+
     test('update not found', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
-      });
+      const connection = {
+        collection: (name) => {
+          if (name === 'Characters') {
+            return {
+              findOne: async () => ({ str: 16, campaign: 'Camp1' }),
+              updateOne: async () => ({ matchedCount: 0 }),
+            };
+          }
+          if (name === 'Armor') {
+            return { find: () => ({ toArray: async () => [] }) };
+          }
+          return {};
+        },
+      };
+      dbo.mockResolvedValue(connection);
       const res = await request(app)
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Plate'] });

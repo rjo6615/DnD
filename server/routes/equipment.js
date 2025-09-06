@@ -4,6 +4,7 @@ const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const { numericFields, skillNames } = require('./fieldConstants');
+const { armors: armorData } = require('../data/armor');
 
 module.exports = (router) => {
   const equipmentRouter = express.Router();
@@ -157,19 +158,59 @@ module.exports = (router) => {
     [body('armor').isArray().withMessage('armor must be an array')],
     handleValidationErrors,
     async (req, res, next) => {
-        if (!ObjectId.isValid(req.params.id)) {
-          return res.status(400).json({ message: 'Invalid ID' });
-        }
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
       const { armor } = matchedData(req, { locations: ['body'] });
       try {
+        const charDoc = await db_connect
+          .collection('Characters')
+          .findOne(id, { projection: { str: 1, campaign: 1 } });
+        if (!charDoc) {
+          return res.status(404).json({ message: 'Armor not found' });
+        }
+
+        const strengthMap = {};
+        Object.entries(armorData).forEach(([key, a]) => {
+          if (a.strength != null) {
+            strengthMap[key.toLowerCase()] = a.strength;
+            strengthMap[a.name.toLowerCase()] = a.strength;
+          }
+        });
+
+        const customArmors = await db_connect
+          .collection('Armor')
+          .find({ campaign: charDoc.campaign })
+          .toArray();
+        customArmors.forEach((a) => {
+          const name = String(a.name || a.armorName || '').toLowerCase();
+          if (name && a.strength != null) {
+            strengthMap[name] = a.strength;
+          }
+        });
+
+        for (const entry of armor) {
+          const name =
+            typeof entry === 'string'
+              ? entry
+              : entry?.name || entry?.armorName;
+          if (!name) continue;
+          const required = strengthMap[String(name).toLowerCase()];
+          if (required != null && charDoc.str < required) {
+            return res
+              .status(400)
+              .json({ message: `${name} requires strength ${required}` });
+          }
+        }
+
         const result = await db_connect.collection('Characters').updateOne(id, {
           $set: { armor },
         });
-          if (result.matchedCount === 0) {
-            return res.status(404).json({ message: 'Armor not found' });
-          }
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: 'Armor not found' });
+        }
         res.json({ message: 'Armor updated' });
       } catch (err) {
         next(err);
