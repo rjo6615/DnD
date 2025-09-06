@@ -317,7 +317,7 @@ useEffect(() => {
   };
   rollHealthDice();
   return;
-}, [ form.occupation ]);
+}, [normalizedOccState.Health, normalizedOccState.Level]);
 
  // Sends form data to database
    const sendToDb = useCallback(async (characterData) => {
