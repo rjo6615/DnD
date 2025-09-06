@@ -27,8 +27,7 @@ describe('Skills routes', () => {
   test('rejects removal of racial proficiency', async () => {
     const charDoc = {
       race: { skills: { perception: { proficient: true } } },
-      skills: { perception: { proficient: true } },
-      allowedSkills: ['perception']
+      skills: { perception: { proficient: true } }
     };
 
     const findOne = jest.fn().mockResolvedValue(charDoc);
@@ -52,7 +51,10 @@ describe('Skills routes', () => {
       race: { skills: { perception: { proficient: true } } },
       skills: { perception: { proficient: true } },
       proficiencyPoints: 2,
-      allowedSkills: ['perception', 'stealth', 'arcana', 'athletics'],
+      occupation: [
+        { Level: 1, Occupation: 'Rogue' },
+        { Level: 1, Occupation: 'Wizard' }
+      ],
       dex: 10,
       int: 10
     };

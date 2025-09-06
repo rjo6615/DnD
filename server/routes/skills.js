@@ -62,9 +62,11 @@ module.exports = (router) => {
         charDoc.race?.skills?.[skill]?.proficient
       );
 
-      const allowedSkills =
-        charDoc.allowedSkills ||
-        collectAllowedSkills(charDoc.occupation, charDoc.feat, charDoc.race);
+      const allowedSkills = collectAllowedSkills(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race
+      );
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
       }
@@ -101,6 +103,7 @@ module.exports = (router) => {
         $set: {
           [`skills.${skill}`]: { proficient, expertise },
           proficiencyBonus: profBonus,
+          allowedSkills,
         },
       };
 
