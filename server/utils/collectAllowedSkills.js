@@ -47,7 +47,8 @@ function collectAllowedSkills(occupation = [], feat = [], race, background) {
       if (ft?.skills && typeof ft.skills === 'object') {
         Object.keys(ft.skills).forEach((sk) => {
           const info = ft.skills[sk];
-          if (info?.proficient || info?.expertise) allowed.add(sk);
+          if (info?.proficient) allowed.add(sk);
+          if (info?.expertise) allowed.add(sk);
         });
       }
     });

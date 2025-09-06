@@ -123,12 +123,24 @@ module.exports = (router) => {
         return res.status(404).json({ message: 'Character not found' });
       }
 
+      const combinedFeats = Array.isArray(newFeats)
+        ? newFeats.map((ft) => {
+            const existing = character.feat?.find(
+              (old) => old.featName === ft.featName
+            );
+            if (existing?.skills && !ft.skills) {
+              return { ...ft, skills: existing.skills };
+            }
+            return ft;
+          })
+        : [];
+
       const prevFeatSkills = extractFeatSkills(character.feat);
-      const newFeatSkills = extractFeatSkills(newFeats);
+      const newFeatSkills = extractFeatSkills(combinedFeats);
       const allowedSkillsSet = new Set(
         collectAllowedSkills(
           character.occupation,
-          newFeats,
+          combinedFeats,
           character.race,
           character.background
         )
@@ -169,7 +181,7 @@ module.exports = (router) => {
 
       await db_connect.collection('Characters').updateOne(id, {
         $set: {
-          feat: newFeats,
+          feat: combinedFeats,
           skills: updatedSkills,
           allowedSkills: Array.from(allowedSkillsSet),
           proficiencyPoints: newProficiencyPoints,
