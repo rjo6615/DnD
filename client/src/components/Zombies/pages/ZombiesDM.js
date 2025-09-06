@@ -261,12 +261,24 @@ const [form2, setForm2] = useState({
    //  ------------------------------------Armor-----------------------------------
   
   const [show3, setShow3] = useState(false);
-  const handleClose3 = () => setShow3(false);
+  const [isCreatingArmor, setIsCreatingArmor] = useState(false);
+  const handleClose3 = () => {
+    setShow3(false);
+    setIsCreatingArmor(false);
+  };
   const handleShow3 = () => setShow3(true);
-  
-   const [form3, setForm3] = useState({ 
+
+  const [armor, setArmor] = useState([]);
+  const [armorOptions, setArmorOptions] = useState({
+    types: [],
+    categories: [],
+  });
+
+  const [form3, setForm3] = useState({
     campaign: currentCampaign,
-    armorName: "", 
+    name: "",
+    type: "",
+    category: "",
     armorBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
@@ -277,6 +289,35 @@ const [form2, setForm2] = useState({
       return { ...prev, ...value };
     });
   }
+
+  const fetchArmor = async () => {
+    const response = await apiFetch(`/equipment/armor/${currentCampaign}`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setArmor(data);
+  };
+
+  const fetchArmorOptions = async () => {
+    const response = await apiFetch('/armor/options');
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setArmorOptions(data);
+  };
+
+  useEffect(() => {
+    if (show3) {
+      fetchArmor();
+      fetchArmorOptions();
+    }
+  }, [show3, currentCampaign]);
   
   async function onSubmit3(e) {
     e.preventDefault();   
@@ -296,14 +337,32 @@ const [form2, setForm2] = useState({
      setStatus({ type: 'danger', message: error.toString() });
      return;
    });
-  
+
    setForm3({
-    armorName: "", 
+    campaign: currentCampaign,
+    name: "",
+    type: "",
+    category: "",
     armorBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
   });
-   navigate(0);
+   fetchArmor();
+   setIsCreatingArmor(false);
+  }
+
+  async function deleteArmor(id) {
+    try {
+      const response = await apiFetch(`/equipment/armor/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      setArmor((prev) => prev.filter((a) => a._id !== id));
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
   }
   
   //------------------------------------Items-------------------------------------------------------------------------------
@@ -617,40 +676,96 @@ const [form2, setForm2] = useState({
           </div>
            </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
-  <Modal className="dnd-modal" centered show={show3} onHide={handleClose3}>
+  <Modal className="dnd-modal modern-modal" centered show={show3} onHide={handleClose3}>
   <div className="text-center">
-  <Card className="dnd-background">
-    <Card.Title>Create Armor</Card.Title>
-  <Card.Body>   
+  <Card className="modern-card">
+    <Card.Header className="modal-header">
+      <Card.Title className="modal-title">{isCreatingArmor ? "Create Armor" : "Armor"}</Card.Title>
+    </Card.Header>
+  <Card.Body>
   <div className="text-center">
-  <Form onSubmit={onSubmit3} className="px-5">
-  <Form.Group className="mb-3 pt-3"  >
-  <Form.Label className="text-light">Armor Name</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorName: e.target.value })}
-  type="text" placeholder="Enter Armor name" />   
-  <Form.Label className="text-light">Armor Bonus</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })}
-  type="text" placeholder="Enter Armor Bonus" />
-  <Form.Label className="text-light">Max Dex Bonus</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })}
-  type="text" placeholder="Enter Max Dex Bonus" />     
-  <Form.Label className="text-light">Armor Check Penalty</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })}
-  type="text" placeholder="Enter Armor Check Penalty" />     
-  </Form.Group>
-  <div className="text-center">
-  <Button variant="primary" onClick={handleClose3} type="submit">
-      Create
-    </Button>
-    <Button className="ms-4" variant="secondary" onClick={handleClose3}>
-      Close
-    </Button>
-    </div>
-  </Form>
+    {isCreatingArmor ? (
+      <Form onSubmit={onSubmit3} className="px-5">
+        <Form.Group className="mb-3 pt-3">
+          <Form.Label className="text-light">Name</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ name: e.target.value })} type="text" placeholder="Enter armor name" />
+
+          <Form.Label className="text-light">Type</Form.Label>
+          <Form.Select className="mb-2" value={form3.type} onChange={(e) => updateForm3({ type: e.target.value })}>
+            <option value="">Select type</option>
+            {armorOptions.types.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </Form.Select>
+
+          <Form.Label className="text-light">Category</Form.Label>
+          <Form.Select className="mb-2" value={form3.category} onChange={(e) => updateForm3({ category: e.target.value })}>
+            <option value="">Select category</option>
+            {armorOptions.categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </Form.Select>
+
+          <Form.Label className="text-light">Armor Bonus</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })} type="text" placeholder="Enter Armor Bonus" />
+
+          <Form.Label className="text-light">Max Dex Bonus</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
+
+          <Form.Label className="text-light">Armor Check Penalty</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })} type="text" placeholder="Enter Armor Check Penalty" />
+        </Form.Group>
+        <div className="text-center">
+          <Button variant="primary" type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingArmor(false)}>
+            Cancel
+          </Button>
+        </div>
+      </Form>
+    ) : (
+      <>
+      <Table striped bordered hover size="sm" className="modern-table mt-3">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Armor Bonus</th>
+            <th>Max Dex</th>
+            <th>Check Penalty</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {armor.map((a) => (
+            <tr key={a._id}>
+              <td>{a.name}</td>
+              <td>{a.type}</td>
+              <td>{a.category}</td>
+              <td>{a.armorBonus}</td>
+              <td>{a.maxDex}</td>
+              <td>{a.armorCheckPenalty}</td>
+              <td>
+                <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      <Button variant="primary" onClick={() => setIsCreatingArmor(true)}>
+        Create Armor
+      </Button>
+      <Button className="ms-4" variant="secondary" onClick={handleClose3}>
+        Close
+      </Button>
+      </>
+    )}
   </div>
-  </Card.Body> 
-  </Card> 
-  </div>      
+  </Card.Body>
+  </Card>
+  </div>
   </Modal>
   {/* -----------------------------------------Item Modal--------------------------------------------- */}
   <Modal className="dnd-modal" centered show={show4} onHide={handleClose4}>
