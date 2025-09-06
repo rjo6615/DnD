@@ -171,6 +171,26 @@ module.exports = (router) => {
     }
   );
 
+  // This section will delete an armor.
+  equipmentRouter.route('/armor/:id').delete(async (req, res, next) => {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const db_connect = req.db;
+    try {
+      const result = await db_connect
+        .collection('Armor')
+        .deleteOne({ _id: ObjectId(id) });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Armor not found' });
+      }
+      res.json({ acknowledged: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Item Section
 
   // This section will get a list of all the items.

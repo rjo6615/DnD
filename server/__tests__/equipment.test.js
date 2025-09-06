@@ -217,6 +217,32 @@ describe('Equipment routes', () => {
     });
   });
 
+  describe('delete armor', () => {
+    test('delete success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
+      });
+      const res = await request(app).delete('/equipment/armor/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ acknowledged: true });
+    });
+
+    test('delete armor invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app).delete('/equipment/armor/123');
+      expect(res.status).toBe(400);
+    });
+
+    test('delete armor not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/armor/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Armor not found');
+    });
+  });
+
   describe('/item/add', () => {
     test('validation failure', async () => {
       dbo.mockResolvedValue({});

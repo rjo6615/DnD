@@ -359,6 +359,7 @@ const [form2, setForm2] = useState({
         setStatus({ type: 'danger', message });
         return;
       }
+      await response.json();
       setArmor((prev) => prev.filter((a) => a._id !== id));
     } catch (error) {
       setStatus({ type: 'danger', message: error.toString() });
