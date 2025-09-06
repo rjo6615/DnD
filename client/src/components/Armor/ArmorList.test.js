@@ -9,7 +9,7 @@ const armorData = {
   leather: {
     name: 'Leather Armor',
     category: 'light',
-    ac: 11,
+    acBonus: 1,
     maxDex: null,
     strength: null,
     stealth: false,
@@ -19,7 +19,7 @@ const armorData = {
   'chain mail': {
     name: 'Chain Mail',
     category: 'heavy',
-    ac: 16,
+    acBonus: 6,
     maxDex: 0,
     strength: 13,
     stealth: true,
@@ -31,7 +31,7 @@ const customData = [
   {
     name: 'Force Shield',
     category: 'special',
-    ac: 18,
+    acBonus: 8,
     maxDex: null,
     strength: null,
     stealth: false,

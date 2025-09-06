@@ -37,7 +37,7 @@ describe('Armor API routes', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       name: 'Chain Mail',
-      ac: 16,
+      acBonus: 6,
       strength: 13,
       stealth: true,
     });

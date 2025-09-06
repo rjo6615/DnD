@@ -20,9 +20,14 @@ export default function HealthDefense({
     
   // Armor AC/MaxDex
   const armorItems = (form.armor || []).map((el) =>
-    Array.isArray(el) ? el : [el.name, el.ac, el.maxDex, el.checkPenalty]
+    Array.isArray(el)
+      ? el
+      : [el.name, el.acBonus ?? el.ac ?? el.armorBonus, el.maxDex, el.checkPenalty]
   );
-  const armorAcBonus = armorItems.map((item) => Number(item[1] ?? 0));
+  const armorAcBonus = armorItems.map((item) => {
+    const value = Number(item[1] ?? 0);
+    return value > 10 ? value - 10 : value;
+  });
   const armorMaxDexBonus = armorItems.map((item) => Number(item[2] ?? 0));
   let totalArmorAcBonus =
     armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +

@@ -18,18 +18,37 @@ function ArmorDetail() {
     return <div>Loading...</div>;
   }
 
+  const ac =
+    armor.category === 'shield'
+      ? armor.acBonus
+      : 10 + Number(armor.acBonus);
+
   return (
     <div>
       <h2>{armor.name}</h2>
-      <p><strong>Category:</strong> {armor.category}</p>
-      <p><strong>AC:</strong> {armor.ac}</p>
+      <p>
+        <strong>Category:</strong> {armor.category}
+      </p>
+      <p>
+        <strong>AC:</strong> {ac}
+      </p>
       {armor.maxDex !== null && armor.maxDex !== undefined && (
-        <p><strong>Max Dex:</strong> {armor.maxDex}</p>
+        <p>
+          <strong>Max Dex:</strong> {armor.maxDex}
+        </p>
       )}
-      {armor.strength && <p><strong>Strength:</strong> {armor.strength}</p>}
+      {armor.strength && (
+        <p>
+          <strong>Strength:</strong> {armor.strength}
+        </p>
+      )}
       {armor.stealth && <p><strong>Stealth:</strong> disadvantage</p>}
-      <p><strong>Weight:</strong> {armor.weight}</p>
-      <p><strong>Cost:</strong> {armor.cost}</p>
+      <p>
+        <strong>Weight:</strong> {armor.weight}
+      </p>
+      <p>
+        <strong>Cost:</strong> {armor.cost}
+      </p>
     </div>
   );
 }

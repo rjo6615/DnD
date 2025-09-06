@@ -10,7 +10,7 @@ test('fetches and displays armor detail', async () => {
     json: async () => ({
       name: 'Chain Mail',
       category: 'heavy',
-      ac: 16,
+      acBonus: 6,
       maxDex: 0,
       strength: 13,
       stealth: true,
