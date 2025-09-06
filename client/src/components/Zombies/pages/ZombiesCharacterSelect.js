@@ -347,7 +347,7 @@ useEffect(() => {
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
-const handleClose5 = () => setShow5(false);
+const handleClose5 = useCallback(() => setShow5(false), []);
 const handleShow5 = () => setShow5(true);
 
 const [selectedOccupation, setSelectedOccupation] = useState(null);
