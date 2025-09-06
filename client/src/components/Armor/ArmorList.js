@@ -68,7 +68,7 @@ function ArmorList({
                 displayName: a.name || a.armorName,
                 type: a.type,
                 category: a.category || 'custom',
-                acBonus: a.acBonus ?? a.ac ?? '',
+                acBonus: a.acBonus ?? a.armorBonus ?? a.ac ?? '',
                 maxDex: a.maxDex ?? null,
                 strength: a.strength ?? null,
                 stealth: a.stealth ?? false,

@@ -25,7 +25,7 @@ export default function HealthDefense({
       const value = Number(item[1] ?? 0);
       return value > 10 ? value - 10 : value;
     }
-    return Number(item.acBonus ?? 0);
+    return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
   });
   const armorMaxDexBonus = armorItems.map((item) =>
     Array.isArray(item) ? Number(item[2] ?? 0) : Number(item.maxDex ?? 0)

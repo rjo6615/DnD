@@ -783,7 +783,7 @@ const [form2, setForm2] = useState({
               <td>{a.armorName ?? a.name}</td>
               <td>{a.type}</td>
               <td>{a.category}</td>
-              <td>{a.armorBonus ?? a.acBonus}</td>
+              <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
               <td>{a.maxDex}</td>
               <td>{a.armorCheckPenalty}</td>
               <td>

@@ -18,7 +18,7 @@ function ArmorDetail() {
     return <div>Loading...</div>;
   }
 
-  const acBonus = Number(armor.acBonus);
+  const acBonus = Number(armor.acBonus ?? armor.armorBonus ?? armor.ac ?? 0);
 
   return (
     <div>
