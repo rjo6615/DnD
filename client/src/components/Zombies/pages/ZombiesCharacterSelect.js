@@ -494,7 +494,7 @@ const onSubmitManual = async (e) => {
     setForm(updatedForm);
     return;
   }
-  await sendToDb(updatedForm);
+  await sendManualToDb(updatedForm);
 };
 
 const handleAbilitySkillConfirm = () => {
@@ -530,7 +530,11 @@ const handleAbilitySkillConfirm = () => {
   setShowAbilitySkillModal(false);
   setAbilitySelections([]);
   setSkillSelections([]);
-  sendToDb(updatedForm);
+  if (show5) {
+    sendManualToDb(updatedForm);
+  } else {
+    sendToDb(updatedForm);
+  }
 };
 
 const getAvailableAbilityOptions = (index) => {
