@@ -7,6 +7,7 @@ const logger = require('../../utils/logger');
 const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
 const collectAllowedSkills = require('../../utils/collectAllowedSkills');
+const collectAllowedExpertise = require('../../utils/collectAllowedExpertise');
 
 const countFeatProficiencies = (feat = []) => {
   const profs = new Set();
@@ -36,6 +37,59 @@ const countBackgroundProficiencies = (background) => {
     return Object.values(background.skills).filter((s) => s && s.proficient).length;
   }
   return 0;
+};
+
+const countFeatExpertise = (feat = []) => {
+  let count = 0;
+  if (Array.isArray(feat)) {
+    feat.forEach((ft) => {
+      if (ft && ft.skills && typeof ft.skills === 'object') {
+        Object.values(ft.skills).forEach((info) => {
+          if (info && info.expertise) count += 1;
+        });
+      }
+    });
+  }
+  return count;
+};
+
+const countRaceExpertise = (race) => {
+  if (race && race.skills && typeof race.skills === 'object') {
+    return Object.values(race.skills).filter((s) => s && s.expertise).length;
+  }
+  return 0;
+};
+
+const countBackgroundExpertise = (background) => {
+  if (background && background.skills && typeof background.skills === 'object') {
+    return Object.values(background.skills).filter((s) => s && s.expertise).length;
+  }
+  return 0;
+};
+
+const countClassExpertise = (occupation = []) => {
+  let count = 0;
+  if (Array.isArray(occupation)) {
+    occupation.forEach((occ) => {
+      const name = (
+        typeof occ.Occupation === 'string'
+          ? occ.Occupation
+          : typeof occ.Name === 'string'
+          ? occ.Name
+          : ''
+      ).toLowerCase();
+      const level = occ.Level || occ.level || 0;
+      if (name === 'rogue') {
+        if (level >= 1) count += 2;
+        if (level >= 6) count += 2;
+      }
+      if (name === 'bard') {
+        if (level >= 3) count += 2;
+        if (level >= 10) count += 2;
+      }
+    });
+  }
+  return count;
 };
 
 module.exports = (router) => {
@@ -77,6 +131,18 @@ module.exports = (router) => {
           result.race,
           result.background
         );
+        const classExpertise = countClassExpertise(result.occupation);
+        const featExpertise = countFeatExpertise(result.feat);
+        const raceExpertise = countRaceExpertise(result.race);
+        const backgroundExpertise = countBackgroundExpertise(result.background);
+        result.expertisePoints =
+          classExpertise + featExpertise + raceExpertise + backgroundExpertise;
+        result.allowedExpertise = collectAllowedExpertise(
+          result.occupation,
+          result.feat,
+          result.race,
+          result.background
+        );
       }
       res.json(result);
     } catch (err) {
@@ -113,9 +179,20 @@ module.exports = (router) => {
             char.race,
             char.background
           ),
+          allowedExpertise: collectAllowedExpertise(
+            char.occupation,
+            char.feat,
+            char.race,
+            char.background
+          ),
           proficiencyBonus: proficiencyBonus(totalLevel),
           proficiencyPoints:
             occupationPoints + featPoints + racePoints + backgroundPoints,
+          expertisePoints:
+            countClassExpertise(char.occupation) +
+            countFeatExpertise(char.feat) +
+            countRaceExpertise(char.race) +
+            countBackgroundExpertise(char.background),
         };
       });
       res.json(withBonus);
@@ -180,6 +257,12 @@ module.exports = (router) => {
         myobj.race,
         myobj.background
       );
+      myobj.allowedExpertise = collectAllowedExpertise(
+        myobj.occupation,
+        myobj.feat,
+        myobj.race,
+        myobj.background
+      );
 
       // derive proficiency bonus from total character level
       const totalLevel = Array.isArray(myobj.occupation)
@@ -197,6 +280,12 @@ module.exports = (router) => {
       const backgroundPoints = countBackgroundProficiencies(myobj.background);
       myobj.proficiencyPoints =
         occupationPoints + featPoints + racePoints + backgroundPoints;
+      const classExpertise = countClassExpertise(myobj.occupation);
+      const featExpertise = countFeatExpertise(myobj.feat);
+      const raceExpertise = countRaceExpertise(myobj.race);
+      const backgroundExpertise = countBackgroundExpertise(myobj.background);
+      myobj.expertisePoints =
+        classExpertise + featExpertise + raceExpertise + backgroundExpertise;
       if (myobj.race && myobj.race.speed != null) {
         myobj.speed = myobj.race.speed;
       }
@@ -217,7 +306,11 @@ module.exports = (router) => {
 
       try {
         const result = await db_connect.collection('Characters').insertOne(myobj);
-        res.json({ ...result, proficiencyPoints: myobj.proficiencyPoints });
+        res.json({
+          ...result,
+          proficiencyPoints: myobj.proficiencyPoints,
+          expertisePoints: myobj.expertisePoints,
+        });
       } catch (err) {
         next(err);
       }
@@ -410,6 +503,14 @@ module.exports = (router) => {
             character.background
           )
         );
+        const allowedExpertiseSet = new Set(
+          collectAllowedExpertise(
+            character.occupation,
+            character.feat,
+            newRace,
+            character.background
+          )
+        );
         const updatedSkills = { ...(character.skills || {}) };
 
         // Apply new race proficiencies
@@ -440,6 +541,12 @@ module.exports = (router) => {
         const backgroundPoints = countBackgroundProficiencies(character.background);
         const newProficiencyPoints =
           occupationPoints + featPoints + racePoints + backgroundPoints;
+        const classExpertise = countClassExpertise(character.occupation);
+        const featExpertise = countFeatExpertise(character.feat);
+        const raceExpertise = countRaceExpertise(newRace);
+        const backgroundExpertise = countBackgroundExpertise(character.background);
+        const newExpertisePoints =
+          classExpertise + featExpertise + raceExpertise + backgroundExpertise;
 
         await db_connect.collection('Characters').updateOne(
           { _id: ObjectId(req.params.id) },
@@ -448,7 +555,9 @@ module.exports = (router) => {
               race: newRace,
               skills: updatedSkills,
               allowedSkills: Array.from(allowedSkillsSet),
+              allowedExpertise: Array.from(allowedExpertiseSet),
               proficiencyPoints: newProficiencyPoints,
+              expertisePoints: newExpertisePoints,
               speed: newRace.speed || 0,
             },
           }
@@ -458,7 +567,9 @@ module.exports = (router) => {
           race: newRace,
           skills: updatedSkills,
           allowedSkills: Array.from(allowedSkillsSet),
+          allowedExpertise: Array.from(allowedExpertiseSet),
           proficiencyPoints: newProficiencyPoints,
+          expertisePoints: newExpertisePoints,
           speed: newRace.speed || 0,
         });
       } catch (err) {
@@ -493,6 +604,14 @@ module.exports = (router) => {
             newBackground
           )
         );
+        const allowedExpertiseSet = new Set(
+          collectAllowedExpertise(
+            character.occupation,
+            character.feat,
+            character.race,
+            newBackground
+          )
+        );
         const updatedSkills = { ...(character.skills || {}) };
 
         if (newBackground.skills) {
@@ -521,6 +640,12 @@ module.exports = (router) => {
         const backgroundPoints = countBackgroundProficiencies(newBackground);
         const newProficiencyPoints =
           occupationPoints + featPoints + racePoints + backgroundPoints;
+        const classExpertise = countClassExpertise(character.occupation);
+        const featExpertise = countFeatExpertise(character.feat);
+        const raceExpertise = countRaceExpertise(character.race);
+        const backgroundExpertise = countBackgroundExpertise(newBackground);
+        const newExpertisePoints =
+          classExpertise + featExpertise + raceExpertise + backgroundExpertise;
 
         await db_connect.collection('Characters').updateOne(
           { _id: ObjectId(req.params.id) },
@@ -529,7 +654,9 @@ module.exports = (router) => {
               background: newBackground,
               skills: updatedSkills,
               allowedSkills: Array.from(allowedSkillsSet),
+              allowedExpertise: Array.from(allowedExpertiseSet),
               proficiencyPoints: newProficiencyPoints,
+              expertisePoints: newExpertisePoints,
             },
           }
         );
@@ -538,7 +665,9 @@ module.exports = (router) => {
           background: newBackground,
           skills: updatedSkills,
           allowedSkills: Array.from(allowedSkillsSet),
+          allowedExpertise: Array.from(allowedExpertiseSet),
           proficiencyPoints: newProficiencyPoints,
+          expertisePoints: newExpertisePoints,
         });
       } catch (err) {
         next(err);
