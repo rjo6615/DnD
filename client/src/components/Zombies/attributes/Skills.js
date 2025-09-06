@@ -53,7 +53,7 @@ export default function Skills({
   const armorItems = (form.armor || []).map((el) =>
     Array.isArray(el)
       ? el
-      : [el.name, el.acBonus ?? el.ac, el.maxDex, el.checkPenalty]
+      : [el.name, el.acBonus ?? el.armorBonus ?? el.ac, el.maxDex, el.checkPenalty]
   );
   const checkPenalty = armorItems.map((item) => Number(item[3] ?? 0));
   const totalCheckPenalty = checkPenalty.reduce(
