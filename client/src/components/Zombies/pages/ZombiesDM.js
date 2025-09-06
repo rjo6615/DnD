@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Form, Row, Container, Table, Card, Alert } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
@@ -307,7 +307,7 @@ const [form2, setForm2] = useState({
     });
   }
 
-  const fetchArmor = async () => {
+  const fetchArmor = useCallback(async () => {
     const response = await apiFetch(`/equipment/armor/${currentCampaign}`);
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -316,9 +316,9 @@ const [form2, setForm2] = useState({
     }
     const data = await response.json();
     setArmor(data);
-  };
+  }, [currentCampaign]);
 
-  const fetchArmorOptions = async () => {
+  const fetchArmorOptions = useCallback(async () => {
     const response = await apiFetch('/armor/options');
     if (!response.ok) {
       const message = `An error has occurred: ${response.statusText}`;
@@ -327,14 +327,14 @@ const [form2, setForm2] = useState({
     }
     const data = await response.json();
     setArmorOptions(data);
-  };
+  }, []);
 
   useEffect(() => {
     if (show3) {
       fetchArmor();
       fetchArmorOptions();
     }
-  }, [show3, currentCampaign]);
+  }, [show3, currentCampaign, fetchArmor, fetchArmorOptions]);
   
   async function onSubmit3(e) {
     e.preventDefault();   
