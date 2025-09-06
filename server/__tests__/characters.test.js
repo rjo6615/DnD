@@ -647,7 +647,16 @@ describe('Character routes', () => {
     expect(occ.Occupation).toBe('Fighter');
     expect(occ.skills.acrobatics).toEqual({ proficient: true, expertise: false });
     expect(occ.proficiencyPoints).toBe(0);
-    expect(captured.update.$set.allowedSkills).toEqual(['acrobatics']);
+    expect(captured.update.$set.allowedSkills).toEqual([
+      'acrobatics',
+      'animalHandling',
+      'athletics',
+      'history',
+      'insight',
+      'intimidation',
+      'perception',
+      'survival',
+    ]);
     expect(res.body.occupation[0].Occupation).toBe('Fighter');
     Math.random.mockRestore();
   });

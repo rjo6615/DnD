@@ -5,6 +5,7 @@ const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const { skillNames } = require('./fieldConstants');
 const logger = require('../utils/logger');
+const collectAllowedSkills = require('../utils/collectAllowedSkills');
 
 module.exports = (router) => {
   const featRouter = express.Router();
@@ -22,33 +23,6 @@ module.exports = (router) => {
     'hpMaxBonus',
     'hpMaxBonusPerLevel',
   ];
-
-  const collectAllowedSkills = (occupation = [], feat = []) => {
-    const allowed = new Set();
-    if (Array.isArray(occupation)) {
-      occupation.forEach((occ) => {
-        if (occ && occ.skills && typeof occ.skills === 'object') {
-          Object.keys(occ.skills).forEach((skill) => {
-            if (occ.skills[skill] && occ.skills[skill].proficient) {
-              allowed.add(skill);
-            }
-          });
-        }
-      });
-    }
-    if (Array.isArray(feat)) {
-      feat.forEach((ft) => {
-        if (ft && ft.skills && typeof ft.skills === 'object') {
-          Object.keys(ft.skills).forEach((skill) => {
-            if (ft.skills[skill] && ft.skills[skill].proficient) {
-              allowed.add(skill);
-            }
-          });
-        }
-      });
-    }
-    return Array.from(allowed);
-  };
 
   const extractFeatSkills = (feats = []) => {
     const skills = {};
