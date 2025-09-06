@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import CharacterInfo from './CharacterInfo';
 
 jest.mock('./LevelUp', () => () => <div />);
@@ -14,47 +14,35 @@ test('renders race languages', () => {
     weight: 180,
   };
 
-  render(<CharacterInfo form={form} show={true} handleClose={() => {}} />);
+  render(<CharacterInfo form={form} show={true} handleClose={() => {}} onShowBackground={() => {}} />);
 
   expect(screen.getByText('Common, Elvish')).toBeInTheDocument();
 });
 
-test('renders proficient background skills', () => {
+test('renders background name and calls onShowBackground', () => {
+  const onShowBackground = jest.fn();
   const form = {
     occupation: [],
     race: { languages: [] },
-    background: {
-      name: 'Sailor',
-      skills: {
-        athletics: { proficient: true },
-        stealth: { proficient: false },
-        perception: { proficient: true },
-      },
-    },
+    background: { name: 'Sailor' },
     age: 100,
     sex: 'M',
     height: "6'",
     weight: 180,
   };
 
-  render(<CharacterInfo form={form} show={true} handleClose={() => {}} />);
+  render(
+    <CharacterInfo
+      form={form}
+      show={true}
+      handleClose={() => {}}
+      onShowBackground={onShowBackground}
+    />
+  );
 
-  expect(screen.getByText('Athletics, Perception')).toBeInTheDocument();
-});
-
-test('shows default background description when missing', () => {
-  const form = {
-    occupation: [],
-    race: { languages: [] },
-    background: { name: 'Sailor', description: '' },
-    age: 100,
-    sex: 'M',
-    height: "6'",
-    weight: 180,
-  };
-
-  render(<CharacterInfo form={form} show={true} handleClose={() => {}} />);
-
-  expect(screen.getByText('No description available')).toBeInTheDocument();
+  expect(screen.getByText('Sailor')).toBeInTheDocument();
+  const button = screen.getByLabelText('Show Background');
+  fireEvent.click(button);
+  expect(onShowBackground).toHaveBeenCalled();
 });
 
