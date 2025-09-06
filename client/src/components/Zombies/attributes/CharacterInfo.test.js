@@ -42,3 +42,19 @@ test('renders proficient background skills', () => {
   expect(screen.getByText('Athletics, Perception')).toBeInTheDocument();
 });
 
+test('shows default background description when missing', () => {
+  const form = {
+    occupation: [],
+    race: { languages: [] },
+    background: { name: 'Sailor', description: '' },
+    age: 100,
+    sex: 'M',
+    height: "6'",
+    weight: 180,
+  };
+
+  render(<CharacterInfo form={form} show={true} handleClose={() => {}} />);
+
+  expect(screen.getByText('No description available')).toBeInTheDocument();
+});
+
