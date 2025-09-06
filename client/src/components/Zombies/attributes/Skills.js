@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form } from 'react-bootstrap';
+import { Modal, Card, Table, Button, Form, Alert } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
 import { SKILLS } from '../skillSchema';
@@ -29,6 +29,7 @@ export default function Skills({
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
+  const [error, setError] = useState('');
   const raceProficiencies = new Set(
     Object.entries(form.race?.skills || {})
       .filter(([, s]) => s?.proficient)
@@ -109,7 +110,8 @@ export default function Skills({
         body: JSON.stringify({ skill, ...updated }),
       });
       if (!res.ok) {
-        throw new Error('Network response was not ok');
+        const message = await res.text();
+        throw new Error(message || 'Failed to update skill');
       }
       const data = await res.json();
       setSkills((prev) => {
@@ -128,6 +130,7 @@ export default function Skills({
       });
     } catch (err) {
       console.error(err);
+      setError(err.message || 'Error updating skill');
     }
   }
 
@@ -143,9 +146,6 @@ export default function Skills({
     if (!updated.proficient) {
       updated.expertise = false;
     }
-    setProficiencyPointsLeft((prev) =>
-      updated.proficient ? Math.max(0, prev - 1) : prev + 1
-    );
     updateSkill(skill, updated);
   };
 
@@ -172,6 +172,11 @@ export default function Skills({
           <Card.Title className="modal-title">Skills</Card.Title>
         </Card.Header>
         <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          {error && (
+            <Alert variant="danger" onClose={() => setError('')} dismissible>
+              {error}
+            </Alert>
+          )}
           <div className="points-container" style={{ display: 'flex' }}>
             <span className="points-label text-light">Points Left:</span>
             <span className="points-value">{proficiencyPointsLeft}</span>
