@@ -55,6 +55,10 @@ export default function CharacterInfo({ form, show, handleClose }) {
                 <td>{form.race?.name || ''}</td>
               </tr>
               <tr>
+                <th>Background</th>
+                <td>{form.background?.name || ''}</td>
+              </tr>
+              <tr>
                 <th>Languages</th>
                 <td>{raceLanguages}</td>
               </tr>

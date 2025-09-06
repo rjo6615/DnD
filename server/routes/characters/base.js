@@ -31,6 +31,13 @@ const countRaceProficiencies = (race) => {
   return 0;
 };
 
+const countBackgroundProficiencies = (background) => {
+  if (background && background.skills && typeof background.skills === 'object') {
+    return Object.values(background.skills).filter((s) => s && s.proficient).length;
+  }
+  return 0;
+};
+
 module.exports = (router) => {
   const characterRouter = express.Router();
 
@@ -61,11 +68,14 @@ module.exports = (router) => {
           : 0;
         const featPoints = countFeatProficiencies(result.feat);
         const racePoints = countRaceProficiencies(result.race);
-        result.proficiencyPoints = occupationPoints + featPoints + racePoints;
+        const backgroundPoints = countBackgroundProficiencies(result.background);
+        result.proficiencyPoints =
+          occupationPoints + featPoints + racePoints + backgroundPoints;
         result.allowedSkills = collectAllowedSkills(
           result.occupation,
           result.feat,
-          result.race
+          result.race,
+          result.background
         );
       }
       res.json(result);
@@ -93,11 +103,19 @@ module.exports = (router) => {
             )
           : 0;
         const featPoints = countFeatProficiencies(char.feat);
+        const racePoints = countRaceProficiencies(char.race);
+        const backgroundPoints = countBackgroundProficiencies(char.background);
         return {
           ...char,
-          allowedSkills: collectAllowedSkills(char.occupation, char.feat, char.race),
+          allowedSkills: collectAllowedSkills(
+            char.occupation,
+            char.feat,
+            char.race,
+            char.background
+          ),
           proficiencyBonus: proficiencyBonus(totalLevel),
-          proficiencyPoints: occupationPoints + featPoints + countRaceProficiencies(char.race),
+          proficiencyPoints:
+            occupationPoints + featPoints + racePoints + backgroundPoints,
         };
       });
       res.json(withBonus);
@@ -128,6 +146,7 @@ module.exports = (router) => {
       body('occupation.*.skills').optional().isObject(),
       body('feat').optional().isArray(),
       body('race').optional().isObject(),
+      body('background').optional().isObject(),
       body('weapon').optional().isArray(),
       body('armor').optional().isArray(),
       body('item').optional().isArray(),
@@ -155,7 +174,12 @@ module.exports = (router) => {
           myobj.skills[skill] = { ...skillFields[skill] };
         });
       }
-      myobj.allowedSkills = collectAllowedSkills(myobj.occupation, myobj.feat, myobj.race);
+      myobj.allowedSkills = collectAllowedSkills(
+        myobj.occupation,
+        myobj.feat,
+        myobj.race,
+        myobj.background
+      );
 
       // derive proficiency bonus from total character level
       const totalLevel = Array.isArray(myobj.occupation)
@@ -170,7 +194,9 @@ module.exports = (router) => {
         : 0;
       const featPoints = countFeatProficiencies(myobj.feat);
       const racePoints = countRaceProficiencies(myobj.race);
-      myobj.proficiencyPoints = occupationPoints + featPoints + racePoints;
+      const backgroundPoints = countBackgroundProficiencies(myobj.background);
+      myobj.proficiencyPoints =
+        occupationPoints + featPoints + racePoints + backgroundPoints;
       if (myobj.race && myobj.race.speed != null) {
         myobj.speed = myobj.race.speed;
       }
@@ -179,6 +205,13 @@ module.exports = (router) => {
           if (!myobj.skills[skill]) myobj.skills[skill] = { ...skillFields[skill] };
           myobj.skills[skill].proficient = myobj.race.skills[skill].proficient;
           myobj.skills[skill].expertise = myobj.race.skills[skill].expertise || false;
+        });
+      }
+      if (myobj.background && myobj.background.skills) {
+        Object.keys(myobj.background.skills).forEach((skill) => {
+          if (!myobj.skills[skill]) myobj.skills[skill] = { ...skillFields[skill] };
+          myobj.skills[skill].proficient = myobj.background.skills[skill].proficient;
+          myobj.skills[skill].expertise = myobj.background.skills[skill].expertise || false;
         });
       }
 
@@ -370,7 +403,12 @@ module.exports = (router) => {
         }
 
         const allowedSkillsSet = new Set(
-          collectAllowedSkills(character.occupation, character.feat, newRace)
+          collectAllowedSkills(
+            character.occupation,
+            character.feat,
+            newRace,
+            character.background
+          )
         );
         const updatedSkills = { ...(character.skills || {}) };
 
@@ -399,7 +437,9 @@ module.exports = (router) => {
           : 0;
         const featPoints = countFeatProficiencies(character.feat);
         const racePoints = countRaceProficiencies(newRace);
-        const newProficiencyPoints = occupationPoints + featPoints + racePoints;
+        const backgroundPoints = countBackgroundProficiencies(character.background);
+        const newProficiencyPoints =
+          occupationPoints + featPoints + racePoints + backgroundPoints;
 
         await db_connect.collection('Characters').updateOne(
           { _id: ObjectId(req.params.id) },
@@ -420,6 +460,85 @@ module.exports = (router) => {
           allowedSkills: Array.from(allowedSkillsSet),
           proficiencyPoints: newProficiencyPoints,
           speed: newRace.speed || 0,
+        });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  // This section will update background.
+  characterRouter.route('/:id/background').put(
+    [body('background').isObject().withMessage('background must be an object')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const db_connect = req.db;
+      const newBackground = matchedData(req, { locations: ['body'] }).background;
+      try {
+        const character = await db_connect
+          .collection('Characters')
+          .findOne({ _id: ObjectId(req.params.id) });
+        if (!character) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+
+        const allowedSkillsSet = new Set(
+          collectAllowedSkills(
+            character.occupation,
+            character.feat,
+            character.race,
+            newBackground
+          )
+        );
+        const updatedSkills = { ...(character.skills || {}) };
+
+        if (newBackground.skills) {
+          Object.keys(newBackground.skills).forEach((sk) => {
+            if (!updatedSkills[sk]) updatedSkills[sk] = { ...skillFields[sk] };
+            updatedSkills[sk].proficient = newBackground.skills[sk].proficient;
+            updatedSkills[sk].expertise = newBackground.skills[sk].expertise || false;
+          });
+        }
+
+        Object.keys(updatedSkills).forEach((sk) => {
+          if (!allowedSkillsSet.has(sk)) {
+            updatedSkills[sk].proficient = false;
+            updatedSkills[sk].expertise = false;
+          }
+        });
+
+        const occupationPoints = Array.isArray(character.occupation)
+          ? character.occupation.reduce(
+              (sum, o) => sum + Number(o.proficiencyPoints || 0),
+              0
+            )
+          : 0;
+        const featPoints = countFeatProficiencies(character.feat);
+        const racePoints = countRaceProficiencies(character.race);
+        const backgroundPoints = countBackgroundProficiencies(newBackground);
+        const newProficiencyPoints =
+          occupationPoints + featPoints + racePoints + backgroundPoints;
+
+        await db_connect.collection('Characters').updateOne(
+          { _id: ObjectId(req.params.id) },
+          {
+            $set: {
+              background: newBackground,
+              skills: updatedSkills,
+              allowedSkills: Array.from(allowedSkillsSet),
+              proficiencyPoints: newProficiencyPoints,
+            },
+          }
+        );
+
+        res.json({
+          background: newBackground,
+          skills: updatedSkills,
+          allowedSkills: Array.from(allowedSkillsSet),
+          proficiencyPoints: newProficiencyPoints,
         });
       } catch (err) {
         next(err);

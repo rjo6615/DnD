@@ -42,7 +42,7 @@ describe('Skills routes', () => {
       .send({ skill: 'perception', proficient: false, expertise: false });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Cannot remove racial proficiency');
+    expect(res.body.message).toBe('Cannot remove granted proficiency');
     expect(findOneAndUpdate).not.toHaveBeenCalled();
   });
 

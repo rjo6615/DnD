@@ -61,27 +61,32 @@ module.exports = (router) => {
       const raceProficient = !!(
         charDoc.race?.skills?.[skill]?.proficient
       );
+      const backgroundProficient = !!(
+        charDoc.background?.skills?.[skill]?.proficient
+      );
 
       const allowedSkills = collectAllowedSkills(
         charDoc.occupation,
         charDoc.feat,
-        charDoc.race
+        charDoc.race,
+        charDoc.background
       );
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
       }
 
-      if (raceProficient && !proficient) {
+      if ((raceProficient || backgroundProficient) && !proficient) {
         return res
           .status(400)
-          .json({ message: 'Cannot remove racial proficiency' });
+          .json({ message: 'Cannot remove granted proficiency' });
       }
 
       const proficientCount = Object.entries(charDoc.skills || {}).filter(
         ([key, s]) =>
           s &&
           s.proficient &&
-          !charDoc.race?.skills?.[key]?.proficient
+          !charDoc.race?.skills?.[key]?.proficient &&
+          !charDoc.background?.skills?.[key]?.proficient
       ).length;
       const alreadyProficient = charDoc.skills?.[skill]?.proficient;
       if (

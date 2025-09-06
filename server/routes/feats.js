@@ -126,7 +126,12 @@ module.exports = (router) => {
       const prevFeatSkills = extractFeatSkills(character.feat);
       const newFeatSkills = extractFeatSkills(newFeats);
       const allowedSkillsSet = new Set(
-        collectAllowedSkills(character.occupation, newFeats)
+        collectAllowedSkills(
+          character.occupation,
+          newFeats,
+          character.race,
+          character.background
+        )
       );
 
       const updatedSkills = { ...(character.skills || {}) };
@@ -153,7 +158,14 @@ module.exports = (router) => {
       const featPointCount = Object.values(newFeatSkills).filter(
         (info) => info.proficient
       ).length;
-      const newProficiencyPoints = occupationPoints + featPointCount;
+      const racePointCount = Object.values(
+        character.race?.skills || {}
+      ).filter((info) => info?.proficient).length;
+      const backgroundPointCount = Object.values(
+        character.background?.skills || {}
+      ).filter((info) => info?.proficient).length;
+      const newProficiencyPoints =
+        occupationPoints + featPointCount + racePointCount + backgroundPointCount;
 
       await db_connect.collection('Characters').updateOne(id, {
         $set: {

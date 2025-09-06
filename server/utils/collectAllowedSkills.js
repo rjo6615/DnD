@@ -9,7 +9,7 @@ const classes = require('../data/classes');
  * @param {Object} race
  * @returns {string[]}
  */
-function collectAllowedSkills(occupation = [], feat = [], race) {
+function collectAllowedSkills(occupation = [], feat = [], race, background) {
   const allowed = new Set();
 
   // From class proficiencies
@@ -55,6 +55,18 @@ function collectAllowedSkills(occupation = [], feat = [], race) {
     }
     if (Array.isArray(race.skillChoices?.options)) {
       race.skillChoices.options.forEach((sk) => allowed.add(sk));
+    }
+  }
+
+  // From background
+  if (background && typeof background === 'object') {
+    if (background.skills && typeof background.skills === 'object') {
+      Object.keys(background.skills).forEach((sk) => {
+        if (background.skills[sk]?.proficient) allowed.add(sk);
+      });
+    }
+    if (Array.isArray(background.toolProficiencies)) {
+      background.toolProficiencies.forEach((tool) => allowed.add(tool));
     }
   }
 

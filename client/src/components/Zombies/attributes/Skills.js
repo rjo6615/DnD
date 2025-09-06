@@ -29,8 +29,18 @@ export default function Skills({
         .map(([key]) => key)
     );
   }, [form.race?.skills]);
+  const backgroundProficiencies = useMemo(() => {
+    return new Set(
+      Object.entries(form.background?.skills || {})
+        .filter(([, s]) => s?.proficient)
+        .map(([key]) => key)
+    );
+  }, [form.background?.skills]);
+  const lockedProficiencies = useMemo(() => {
+    return new Set([...raceProficiencies, ...backgroundProficiencies]);
+  }, [raceProficiencies, backgroundProficiencies]);
   const currentProficiencyCount = Object.entries(form.skills || {}).filter(
-    ([key, s]) => s.proficient && !raceProficiencies.has(key)
+    ([key, s]) => s.proficient && !lockedProficiencies.has(key)
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
     Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
@@ -38,13 +48,13 @@ export default function Skills({
 
   useEffect(() => {
     const count = Object.entries(form.skills || {}).filter(
-      ([key, s]) => s.proficient && !raceProficiencies.has(key)
+      ([key, s]) => s.proficient && !lockedProficiencies.has(key)
     ).length;
     setSkills(form.skills || {});
     setProficiencyPointsLeft(
       Math.max(0, (form.proficiencyPoints || 0) - count)
     );
-  }, [form.skills, form.proficiencyPoints, raceProficiencies]);
+  }, [form.skills, form.proficiencyPoints, lockedProficiencies]);
 
   if (!form) {
     return <div>Loading...</div>;
@@ -114,7 +124,7 @@ export default function Skills({
           [skill]: { proficient: data.proficient, expertise: data.expertise },
         };
         const proficientCount = Object.entries(newSkills).filter(
-          ([key, s]) => s.proficient && !raceProficiencies.has(key)
+          ([key, s]) => s.proficient && !lockedProficiencies.has(key)
         ).length;
         setProficiencyPointsLeft(
           Math.max(0, (form.proficiencyPoints || 0) - proficientCount)
@@ -129,7 +139,7 @@ export default function Skills({
   }
 
   const toggleProficient = (skill) => {
-    if (raceProficiencies.has(skill)) return;
+    if (lockedProficiencies.has(skill)) return;
     if (!selectableSkills.has(skill)) return;
     const current = skills[skill] || { proficient: false, expertise: false };
     if (!current.proficient && proficiencyPointsLeft <= 0) return;
@@ -207,6 +217,7 @@ export default function Skills({
                   raceTotals[key];
                 const isSelectable = selectableSkills.has(key);
                 const isRaceSkill = raceProficiencies.has(key);
+                const isBackgroundSkill = backgroundProficiencies.has(key);
                 return (
                   <tr key={key}>
                     <td>{label}</td>
@@ -217,7 +228,7 @@ export default function Skills({
                         className="skill-checkbox"
                         type="checkbox"
                         checked={proficient}
-                        disabled={!isSelectable || isRaceSkill}
+                        disabled={!isSelectable || isRaceSkill || isBackgroundSkill}
                         onChange={() => toggleProficient(key)}
                       />
                     </td>
