@@ -329,7 +329,9 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb3(){
-    const newArmor = { ...form3 };
+    const newArmor = Object.fromEntries(
+      Object.entries(form3).filter(([_, v]) => v !== "")
+    );
     await apiFetch("/equipment/armor/add", {
        method: "POST",
        headers: {
