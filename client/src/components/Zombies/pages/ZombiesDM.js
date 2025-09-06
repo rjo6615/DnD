@@ -465,29 +465,22 @@ const [form2, setForm2] = useState({
   </Alert>
 )}
 
+<div className="d-flex justify-content-center flex-wrap gap-2 mb-3" style={{ position: 'relative', zIndex: '4' }}>
+  {/*-----------------------------------Add Player-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={() => { handleShowPlayers(); }} className="p-1 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
+  {/*-----------------------------------Create Weapon-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow2(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Weapon</Button>
+  {/*-----------------------------------Create Armor-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
+  {/*-----------------------------------Create Item-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Item</Button>
+</div>
+
 <div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
-      <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background">
+      <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background w-75 mx-auto">
         <thead>
             <tr>
                 <th colSpan="5" style={{fontSize: 28}}>{params.campaign}</th>
-            </tr>
-            <tr>
-              <th>
-                {/*-----------------------------------Add Player-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={() => { handleShowPlayers();}} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
-              </th>
-                            <th>
-                {/*-----------------------------------Create Weapon-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow2(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Weapon</Button>
-              </th>
-                            <th>
-                {/*-----------------------------------Create Armor-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
-              </th>
-                            <th>
-                {/*-----------------------------------Create Item-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Item</Button>
-              </th>
             </tr>
           <tr>
             <th>Player</th>
@@ -510,13 +503,13 @@ const [form2, setForm2] = useState({
               </td>
               <td>
                 <Button
-                  className="fantasy-button"
                   size="sm"
-                  style={{ width: 'auto', border: 'none' }}
-                  variant="primary"
+                  variant="link"
+                  className="p-0"
+                  style={{ border: 'none' }}
                   onClick={() => navigateToCharacter(Characters._id)}
                 >
-                  View
+                  <i className="fa-solid fa-eye text-primary"></i>
                 </Button>
               </td>
             </tr>
