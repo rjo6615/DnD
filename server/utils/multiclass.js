@@ -3,6 +3,7 @@ const dbo = require('../db/conn');
 const { skillNames } = require('../routes/fieldConstants');
 const multiclassProficiencies = require('../data/multiclassProficiencies');
 const classes = require('../data/classes');
+const collectAllowedSkills = require('./collectAllowedSkills');
 
 const prereqs = {
   barbarian: { all: ['str'], min: 13 },
@@ -40,21 +41,6 @@ function canMulticlass(character = {}, newOccupation = '') {
     };
   }
   return { allowed: true };
-}
-
-function collectAllowedSkills(occupation = []) {
-  if (!Array.isArray(occupation)) return [];
-  const allowed = new Set();
-  occupation.forEach((occ) => {
-    if (occ && occ.skills && typeof occ.skills === 'object') {
-      Object.keys(occ.skills).forEach((skill) => {
-        if (occ.skills[skill] && occ.skills[skill].proficient) {
-          allowed.add(skill);
-        }
-      });
-    }
-  });
-  return Array.from(allowed);
 }
 
 async function applyMulticlass(characterId, newOccupation) {

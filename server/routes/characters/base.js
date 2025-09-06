@@ -6,40 +6,7 @@ const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
 const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
-
-const collectAllowedSkills = (occupation = [], feat = [], race) => {
-  const allowed = new Set();
-  if (Array.isArray(occupation)) {
-    occupation.forEach((occ) => {
-      if (occ && occ.skills && typeof occ.skills === 'object') {
-        Object.keys(occ.skills).forEach((skill) => {
-          if (occ.skills[skill] && occ.skills[skill].proficient) {
-            allowed.add(skill);
-          }
-        });
-      }
-    });
-  }
-  if (Array.isArray(feat)) {
-    feat.forEach((ft) => {
-      if (ft && ft.skills && typeof ft.skills === 'object') {
-        Object.keys(ft.skills).forEach((skill) => {
-          if (ft.skills[skill] && ft.skills[skill].proficient) {
-            allowed.add(skill);
-          }
-        });
-      }
-    });
-  }
-  if (race && race.skills && typeof race.skills === 'object') {
-    Object.keys(race.skills).forEach((skill) => {
-      if (race.skills[skill] && race.skills[skill].proficient) {
-        allowed.add(skill);
-      }
-    });
-  }
-  return Array.from(allowed);
-};
+const collectAllowedSkills = require('../../utils/collectAllowedSkills');
 
 const countFeatProficiencies = (feat = []) => {
   const profs = new Set();

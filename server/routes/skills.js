@@ -3,40 +3,7 @@ const express = require('express');
 const authenticateToken = require('../middleware/auth');
 const proficiencyBonus = require('../utils/proficiency');
 
-// Helper to determine allowed skills from occupations and feats when not precomputed
-const collectAllowedSkills = (occupation = [], feat = [], race) => {
-  const allowed = new Set();
-  if (Array.isArray(occupation)) {
-    occupation.forEach((occ) => {
-      if (occ && occ.skills && typeof occ.skills === 'object') {
-        Object.keys(occ.skills).forEach((sk) => {
-          if (occ.skills[sk] && occ.skills[sk].proficient) {
-            allowed.add(sk);
-          }
-        });
-      }
-    });
-  }
-  if (Array.isArray(feat)) {
-    feat.forEach((ft) => {
-      if (ft && ft.skills && typeof ft.skills === 'object') {
-        Object.keys(ft.skills).forEach((sk) => {
-          if (ft.skills[sk] && ft.skills[sk].proficient) {
-            allowed.add(sk);
-          }
-        });
-      }
-    });
-  }
-  if (race && race.skills && typeof race.skills === 'object') {
-    Object.keys(race.skills).forEach((sk) => {
-      if (race.skills[sk] && race.skills[sk].proficient) {
-        allowed.add(sk);
-      }
-    });
-  }
-  return Array.from(allowed);
-};
+const collectAllowedSkills = require('../utils/collectAllowedSkills');
 
 // Map each skill to its associated ability score
 const skillAbilityMap = {
