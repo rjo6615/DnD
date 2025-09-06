@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { proficiencyBonus } from '../../../utils/dnd';
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 

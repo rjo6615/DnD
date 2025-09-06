@@ -5,6 +5,7 @@ import { Modal, Card, Table, Button, Form, Alert } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
 import { SKILLS } from '../skillSchema';
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function Skills({
   form,
