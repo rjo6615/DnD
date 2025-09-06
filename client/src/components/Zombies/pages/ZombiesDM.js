@@ -294,7 +294,6 @@ const [form2, setForm2] = useState({
     category: "",
     armorBonus: "",
     maxDex: "",
-    armorCheckPenalty: "",
     strength: "",
     stealth: "",
     weight: "",
@@ -342,7 +341,7 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb3(){
-    const numericFields = ['armorBonus', 'maxDex', 'armorCheckPenalty', 'strength', 'weight'];
+    const numericFields = ['armorBonus', 'maxDex', 'strength', 'weight'];
     const newArmor = Object.fromEntries(
       Object.entries(form3)
         .filter(([_, v]) => v !== "")
@@ -370,7 +369,6 @@ const [form2, setForm2] = useState({
     category: "",
     armorBonus: "",
     maxDex: "",
-    armorCheckPenalty: "",
     strength: "",
     stealth: "",
     weight: "",
@@ -741,9 +739,6 @@ const [form2, setForm2] = useState({
           <Form.Label className="text-light">Max Dex Bonus</Form.Label>
           <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
 
-          <Form.Label className="text-light">Armor Check Penalty</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })} type="text" placeholder="Enter Armor Check Penalty" />
-
           <Form.Label className="text-light">Strength Requirement</Form.Label>
           <Form.Control className="mb-2" onChange={(e) => updateForm3({ strength: e.target.value })} type="text" placeholder="Enter Strength Requirement" />
 
@@ -779,7 +774,6 @@ const [form2, setForm2] = useState({
             <th>Category</th>
             <th>AC Bonus</th>
             <th>Max Dex</th>
-            <th>Check Penalty</th>
             <th>Delete</th>
           </tr>
         </thead>
@@ -791,7 +785,6 @@ const [form2, setForm2] = useState({
               <td>{a.category}</td>
               <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
               <td>{a.maxDex}</td>
-              <td>{a.armorCheckPenalty}</td>
               <td>
                 <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
               </td>
