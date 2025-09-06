@@ -9,7 +9,7 @@ module.exports = (router) => {
   });
 
   backgroundRouter.get('/:name', (req, res) => {
-    const bg = backgrounds[req.params.name.toLowerCase()];
+    const bg = backgrounds[req.params.name];
     if (!bg) {
       return res.status(404).json({ message: 'Background not found' });
     }
