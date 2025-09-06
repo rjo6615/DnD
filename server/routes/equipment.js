@@ -131,7 +131,6 @@ module.exports = (router) => {
       body('armorName').trim().notEmpty().withMessage('armorName is required'),
       body('armorBonus').optional({ checkFalsy: true }).isInt().toInt(),
       body('maxDex').optional({ checkFalsy: true }).isInt().toInt(),
-      body('armorCheckPenalty').optional({ checkFalsy: true }).isInt().toInt(),
       body('type').optional().isString().trim().toLowerCase(),
       body('category').optional().isString().trim().toLowerCase(),
       body('strength').optional().isInt().toInt(),

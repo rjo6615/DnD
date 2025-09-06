@@ -189,7 +189,6 @@ describe('Equipment routes', () => {
           armorName: 'Leather',
           armorBonus: '',
           maxDex: '',
-          armorCheckPenalty: '',
         });
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ _id: 'def456', campaign: 'Camp1', armorName: 'Leather' });

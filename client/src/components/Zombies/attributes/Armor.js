@@ -64,13 +64,13 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     return result;
   };
   let newArmor;
-  if (JSON.stringify(form.armor) === JSON.stringify([["","","",""]])) {
+  if (JSON.stringify(form.armor) === JSON.stringify([["","",""]])) {
     let newArmorArr = addArmor.armor.split(',');
-    const armorArrChunks = splitArmorArr(newArmorArr, 4);
+    const armorArrChunks = splitArmorArr(newArmorArr, 3);
     newArmor = armorArrChunks;
   } else {
     let newArmorArr = (form.armor + "," + addArmor.armor).split(',');
-    const armorArrChunks = splitArmorArr(newArmorArr, 4);
+    const armorArrChunks = splitArmorArr(newArmorArr, 3);
     newArmor = armorArrChunks;
   }
   async function addArmorToDb(e){
@@ -97,11 +97,11 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     updateArmor(form.armor);
     addDeleteArmorToDb();
   }
-  const showDeleteArmorBtn = JSON.stringify(form.armor) !== JSON.stringify([["","","",""]]);
+  const showDeleteArmorBtn = JSON.stringify(form.armor) !== JSON.stringify([["","",""]]);
   async function addDeleteArmorToDb(){
     let newArmorForm = form.armor;
     if (JSON.stringify(form.armor) === JSON.stringify([])){
-      newArmorForm = [["","","",""]];
+      newArmorForm = [["","",""]];
       await apiFetch(`/equipment/update-armor/${params.id}`, {
         method: "PUT",
         headers: {
@@ -156,7 +156,6 @@ return(
               <th>Armor Name</th>
               <th>Ac Bns</th>
               <th>Max Dex Bns</th>
-              <th>Check Penalty</th>
               <th>Delete</th>
             </tr>
           </thead>
@@ -166,7 +165,6 @@ return(
               <td>{el[0]}</td>
               <td>{el[1]}</td>
               <td>{el[2]}</td>
-              <td>{el[3]}</td>
               <td><Button size="sm" className="btn-danger action-btn fa-solid fa-trash" hidden={!showDeleteArmorBtn} onClick={() => {deleteArmors(el);}}></Button></td>
             </tr>
             ))}
@@ -185,7 +183,7 @@ return(
           {armor.armor.map((el) => (
           <option
             key={el.armorName}
-            value={[el.armorName, el.acBonus || el.armorBonus, el.maxDex, el.armorCheckPenalty]}
+            value={[el.armorName, el.acBonus || el.armorBonus, el.maxDex]}
           >
             {el.armorName}
           </option>
