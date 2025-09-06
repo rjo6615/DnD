@@ -279,7 +279,7 @@ const [form2, setForm2] = useState({
     name: "",
     type: "",
     category: "",
-    acBonus: "",
+    armorBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
     strength: "",
@@ -329,8 +329,14 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb3(){
+    const numericFields = ['armorBonus', 'maxDex', 'armorCheckPenalty', 'strength', 'weight'];
     const newArmor = Object.fromEntries(
-      Object.entries(form3).filter(([_, v]) => v !== "")
+      Object.entries(form3)
+        .filter(([_, v]) => v !== "")
+        .map(([key, value]) => [
+          key,
+          numericFields.includes(key) ? Number(value) : value,
+        ])
     );
     await apiFetch("/equipment/armor/add", {
        method: "POST",
@@ -349,7 +355,7 @@ const [form2, setForm2] = useState({
     name: "",
     type: "",
     category: "",
-    acBonus: "",
+    armorBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
     strength: "",
@@ -718,7 +724,7 @@ const [form2, setForm2] = useState({
           </Form.Select>
 
           <Form.Label className="text-light">AC Bonus</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ acBonus: e.target.value })} type="text" placeholder="Enter AC Bonus" />
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })} type="text" placeholder="Enter AC Bonus" />
 
           <Form.Label className="text-light">Max Dex Bonus</Form.Label>
           <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
@@ -771,7 +777,7 @@ const [form2, setForm2] = useState({
               <td>{a.name}</td>
               <td>{a.type}</td>
               <td>{a.category}</td>
-              <td>{a.acBonus}</td>
+              <td>{a.armorBonus ?? a.acBonus}</td>
               <td>{a.maxDex}</td>
               <td>{a.armorCheckPenalty}</td>
               <td>
