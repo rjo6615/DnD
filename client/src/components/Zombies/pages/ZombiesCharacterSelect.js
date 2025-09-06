@@ -348,20 +348,25 @@ useEffect(() => {
       delete newCharacter.race;
     }
     try {
-      await apiFetch("/characters/add", {
+      const response = await apiFetch("/characters/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(newCharacter),
       });
+      if (!response.ok) {
+        notify(`An error occurred: ${response.statusText}`);
+        return;
+      }
+      const { insertedId } = await response.json();
+      handleClose();
+      setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
+      setForm(createDefaultForm(params.campaign));
     } catch (error) {
       notify(error.toString());
-      return;
-    };
-   setForm(createDefaultForm(params.campaign));
-  navigate(0);
-}, [form, setForm, navigate, createDefaultForm, params.campaign]);
+    }
+}, [form, params.campaign, handleClose, setRecords, setForm, createDefaultForm]);
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
