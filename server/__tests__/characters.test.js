@@ -406,12 +406,14 @@ describe('Character routes', () => {
           occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
+          expertisePoints: 2,
         }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
             occupation: [{ Level: 1, Occupation: 'Rogue' }],
             skills: { acrobatics: { proficient: true, expertise: true } },
+            expertisePoints: 2,
           },
         }),
       }),

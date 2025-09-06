@@ -4,6 +4,7 @@ const authenticateToken = require('../middleware/auth');
 const proficiencyBonus = require('../utils/proficiency');
 
 const collectAllowedSkills = require('../utils/collectAllowedSkills');
+const collectAllowedExpertise = require('../utils/collectAllowedExpertise');
 
 // Map each skill to its associated ability score
 const skillAbilityMap = {
@@ -64,6 +65,15 @@ module.exports = (router) => {
       const backgroundProficient = !!(
         charDoc.background?.skills?.[skill]?.proficient
       );
+      const raceExpertise = !!(
+        charDoc.race?.skills?.[skill]?.expertise
+      );
+      const backgroundExpertise = !!(
+        charDoc.background?.skills?.[skill]?.expertise
+      );
+      const featExpertise = Array.isArray(charDoc.feat)
+        ? charDoc.feat.some((ft) => ft?.skills?.[skill]?.expertise)
+        : false;
 
       const allowedSkills = collectAllowedSkills(
         charDoc.occupation,
@@ -74,6 +84,12 @@ module.exports = (router) => {
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
       }
+      const allowedExpertise = collectAllowedExpertise(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race,
+        charDoc.background
+      );
 
       if ((raceProficient || backgroundProficient) && !proficient) {
         return res
@@ -99,6 +115,42 @@ module.exports = (router) => {
           .json({ message: 'No proficiency points remaining' });
       }
 
+      const proficiencyAfterUpdate =
+        proficient || alreadyProficient || raceProficient || backgroundProficient;
+      if (expertise && !proficiencyAfterUpdate) {
+        return res
+          .status(400)
+          .json({ message: 'Expertise requires proficiency' });
+      }
+      if (expertise && !allowedExpertise.includes(skill)) {
+        return res
+          .status(400)
+          .json({ message: 'Skill not allowed for expertise' });
+      }
+      if ((raceExpertise || backgroundExpertise || featExpertise) && !expertise) {
+        return res
+          .status(400)
+          .json({ message: 'Cannot remove granted expertise' });
+      }
+      const expertiseCount = Object.entries(charDoc.skills || {}).filter(
+        ([key, s]) =>
+          s &&
+          s.expertise &&
+          !charDoc.race?.skills?.[key]?.expertise &&
+          !charDoc.background?.skills?.[key]?.expertise &&
+          !charDoc.feat?.some((ft) => ft?.skills?.[key]?.expertise)
+      ).length;
+      const alreadyExpertise = charDoc.skills?.[skill]?.expertise;
+      if (
+        expertise &&
+        !alreadyExpertise &&
+        expertiseCount >= (charDoc.expertisePoints || 0)
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'No expertise slots remaining' });
+      }
+
       const totalLevel = Array.isArray(charDoc.occupation)
         ? charDoc.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
         : 0;
@@ -106,9 +158,10 @@ module.exports = (router) => {
 
       const update = {
         $set: {
-          [`skills.${skill}`]: { proficient, expertise },
+          [`skills.${skill}`]: { proficient: proficiencyAfterUpdate, expertise },
           proficiencyBonus: profBonus,
           allowedSkills,
+          allowedExpertise,
         },
       };
 

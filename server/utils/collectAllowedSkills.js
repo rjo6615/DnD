@@ -3,7 +3,9 @@ const classes = require('../data/classes');
 /**
  * Collect allowed skill names based on a character's occupations, feats, and race.
  * Includes all skill options provided by class proficiencies, feat skillOptions,
- * and race skillChoices, plus any explicit skills marked proficient.
+ * and race skillChoices, plus any explicit skills marked proficient or granting
+ * expertise. Expertise implies proficiency, so any explicit expertise grants
+ * are also considered allowed skills.
  * @param {Array} occupation
  * @param {Array} feat
  * @param {Object} race
@@ -26,7 +28,8 @@ function collectAllowedSkills(occupation = [], feat = [], race, background) {
       }
       if (occ?.skills && typeof occ.skills === 'object') {
         Object.keys(occ.skills).forEach((sk) => {
-          if (occ.skills[sk]?.proficient) allowed.add(sk);
+          const info = occ.skills[sk];
+          if (info?.proficient || info?.expertise) allowed.add(sk);
         });
       }
     });
@@ -38,9 +41,13 @@ function collectAllowedSkills(occupation = [], feat = [], race, background) {
       if (Array.isArray(ft?.skillOptions)) {
         ft.skillOptions.forEach((sk) => allowed.add(sk));
       }
+      if (Array.isArray(ft?.expertiseOptions)) {
+        ft.expertiseOptions.forEach((sk) => allowed.add(sk));
+      }
       if (ft?.skills && typeof ft.skills === 'object') {
         Object.keys(ft.skills).forEach((sk) => {
-          if (ft.skills[sk]?.proficient) allowed.add(sk);
+          const info = ft.skills[sk];
+          if (info?.proficient || info?.expertise) allowed.add(sk);
         });
       }
     });
@@ -50,11 +57,15 @@ function collectAllowedSkills(occupation = [], feat = [], race, background) {
   if (race && typeof race === 'object') {
     if (race.skills && typeof race.skills === 'object') {
       Object.keys(race.skills).forEach((sk) => {
-        if (race.skills[sk]?.proficient) allowed.add(sk);
+        const info = race.skills[sk];
+        if (info?.proficient || info?.expertise) allowed.add(sk);
       });
     }
     if (Array.isArray(race.skillChoices?.options)) {
       race.skillChoices.options.forEach((sk) => allowed.add(sk));
+    }
+    if (Array.isArray(race.expertiseChoices?.options)) {
+      race.expertiseChoices.options.forEach((sk) => allowed.add(sk));
     }
   }
 
@@ -62,11 +73,15 @@ function collectAllowedSkills(occupation = [], feat = [], race, background) {
   if (background && typeof background === 'object') {
     if (background.skills && typeof background.skills === 'object') {
       Object.keys(background.skills).forEach((sk) => {
-        if (background.skills[sk]?.proficient) allowed.add(sk);
+        const info = background.skills[sk];
+        if (info?.proficient || info?.expertise) allowed.add(sk);
       });
     }
     if (Array.isArray(background.toolProficiencies)) {
       background.toolProficiencies.forEach((tool) => allowed.add(tool));
+    }
+    if (Array.isArray(background.expertiseChoices)) {
+      background.expertiseChoices.forEach((sk) => allowed.add(sk));
     }
   }
 

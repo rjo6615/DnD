@@ -36,6 +36,23 @@ export default function Skills({
         .map(([key]) => key)
     );
   }, [form.background?.skills]);
+  const raceExpertise = useMemo(() => {
+    return new Set(
+      Object.entries(form.race?.skills || {})
+        .filter(([, s]) => s?.expertise)
+        .map(([key]) => key)
+    );
+  }, [form.race?.skills]);
+  const backgroundExpertise = useMemo(() => {
+    return new Set(
+      Object.entries(form.background?.skills || {})
+        .filter(([, s]) => s?.expertise)
+        .map(([key]) => key)
+    );
+  }, [form.background?.skills]);
+  const lockedExpertise = useMemo(() => {
+    return new Set([...raceExpertise, ...backgroundExpertise]);
+  }, [raceExpertise, backgroundExpertise]);
   const lockedProficiencies = useMemo(() => {
     return new Set([...raceProficiencies, ...backgroundProficiencies]);
   }, [raceProficiencies, backgroundProficiencies]);
@@ -44,6 +61,12 @@ export default function Skills({
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
     Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
+  );
+  const currentExpertiseCount = Object.entries(form.skills || {}).filter(
+    ([key, s]) => s.expertise && !lockedExpertise.has(key)
+  ).length;
+  const [expertisePointsLeft, setExpertisePointsLeft] = useState(
+    Math.max(0, (form.expertisePoints || 0) - currentExpertiseCount)
   );
 
   useEffect(() => {
@@ -54,7 +77,19 @@ export default function Skills({
     setProficiencyPointsLeft(
       Math.max(0, (form.proficiencyPoints || 0) - count)
     );
-  }, [form.skills, form.proficiencyPoints, lockedProficiencies]);
+    const expertiseUsed = Object.entries(form.skills || {}).filter(
+      ([key, s]) => s.expertise && !lockedExpertise.has(key)
+    ).length;
+    setExpertisePointsLeft(
+      Math.max(0, (form.expertisePoints || 0) - expertiseUsed)
+    );
+  }, [
+    form.skills,
+    form.proficiencyPoints,
+    form.expertisePoints,
+    lockedProficiencies,
+    lockedExpertise,
+  ]);
 
   if (!form) {
     return <div>Loading...</div>;
@@ -105,6 +140,7 @@ export default function Skills({
   const profBonus = proficiencyBonus(totalLevel);
 
   const selectableSkills = new Set(form.allowedSkills || []);
+  const selectableExpertise = new Set(form.allowedExpertise || []);
 
   async function updateSkill(skill, updated) {
     try {
@@ -155,8 +191,11 @@ export default function Skills({
 
   const toggleExpertise = (skill) => {
     const current = skills[skill] || { proficient: false, expertise: false };
+    if (!current.proficient) return;
+    if (!selectableExpertise.has(skill)) return;
+    if (!current.expertise && expertisePointsLeft <= 0) return;
     const updated = {
-      proficient: true,
+      proficient: current.proficient,
       expertise: !current.expertise,
     };
     updateSkill(skill, updated);
@@ -184,6 +223,10 @@ export default function Skills({
           <div className="points-container" style={{ display: 'flex' }}>
             <span className="points-label text-light">Points Left:</span>
             <span className="points-value">{proficiencyPointsLeft}</span>
+          </div>
+          <div className="points-container" style={{ display: 'flex' }}>
+            <span className="points-label text-light">Expertise Left:</span>
+            <span className="points-value">{expertisePointsLeft}</span>
           </div>
           <Table striped bordered hover size="sm" className="modern-table">
             <thead>
@@ -237,7 +280,12 @@ export default function Skills({
                         className="skill-checkbox"
                         type="checkbox"
                         checked={expertise}
-                        disabled={!proficient}
+                        disabled={
+                          !proficient ||
+                          !selectableExpertise.has(key) ||
+                          lockedExpertise.has(key) ||
+                          (!expertise && expertisePointsLeft <= 0)
+                        }
                         onChange={() => toggleExpertise(key)}
                       />
                     </td>
