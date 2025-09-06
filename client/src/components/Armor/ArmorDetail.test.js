@@ -32,5 +32,9 @@ test('fetches and displays armor detail', async () => {
   await waitFor(() => expect(screen.getByText('Chain Mail')).toBeInTheDocument());
   expect(screen.getByText(/heavy/)).toBeInTheDocument();
   expect(screen.getByText(/6/)).toBeInTheDocument();
+  expect(screen.getByText(/Strength:/)).toBeInTheDocument();
+  expect(screen.getByText(/disadvantage/)).toBeInTheDocument();
+  expect(screen.getByText(/55/)).toBeInTheDocument();
+  expect(screen.getByText(/75 gp/)).toBeInTheDocument();
 });
 

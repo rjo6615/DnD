@@ -282,6 +282,10 @@ const [form2, setForm2] = useState({
     armorBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
+    strength: "",
+    stealth: "",
+    weight: "",
+    cost: "",
   });
   
   function updateForm3(value) {
@@ -346,6 +350,10 @@ const [form2, setForm2] = useState({
     armorBonus: "",
     maxDex: "",
     armorCheckPenalty: "",
+    strength: "",
+    stealth: "",
+    weight: "",
+    cost: "",
   });
    fetchArmor();
    setIsCreatingArmor(false);
@@ -715,6 +723,22 @@ const [form2, setForm2] = useState({
 
           <Form.Label className="text-light">Armor Check Penalty</Form.Label>
           <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })} type="text" placeholder="Enter Armor Check Penalty" />
+
+          <Form.Label className="text-light">Strength Requirement</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ strength: e.target.value })} type="text" placeholder="Enter Strength Requirement" />
+
+          <Form.Label className="text-light">Stealth</Form.Label>
+          <Form.Select className="mb-2" value={form3.stealth} onChange={(e) => updateForm3({ stealth: e.target.value })}>
+            <option value="">Select option</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </Form.Select>
+
+          <Form.Label className="text-light">Weight</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ weight: e.target.value })} type="text" placeholder="Enter Weight" />
+
+          <Form.Label className="text-light">Cost</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ cost: e.target.value })} type="text" placeholder="Enter Cost" />
         </Form.Group>
         <div className="text-center">
           <Button variant="primary" type="submit">

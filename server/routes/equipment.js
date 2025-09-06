@@ -132,6 +132,12 @@ module.exports = (router) => {
       body('armorBonus').optional().isInt().toInt(),
       body('maxDex').optional().isInt().toInt(),
       body('armorCheckPenalty').optional().isInt().toInt(),
+      body('type').optional().isString().trim().toLowerCase(),
+      body('category').optional().isString().trim().toLowerCase(),
+      body('strength').optional().isInt().toInt(),
+      body('stealth').optional().isBoolean().toBoolean(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
@@ -139,7 +145,8 @@ module.exports = (router) => {
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Armor').insertOne(myobj);
-        response.json(result);
+        const armor = { _id: result.insertedId, ...myobj };
+        response.json(armor);
       } catch (err) {
         next(err);
       }

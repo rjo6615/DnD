@@ -159,20 +159,37 @@ describe('Equipment routes', () => {
 
     test('insert success', async () => {
       dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+        collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
       });
+      const payload = {
+        campaign: 'Camp1',
+        armorName: 'Plate',
+        type: 'heavy',
+        category: 'martial',
+        strength: 15,
+        stealth: true,
+        weight: 65,
+        cost: '1500 gp',
+      };
       const res = await request(app)
         .post('/equipment/armor/add')
-        .send({ campaign: 'Camp1', armorName: 'Plate' });
+        .send(payload);
       expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
+      expect(res.body).toMatchObject({ _id: 'abc123', ...payload });
     });
 
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/armor/add')
-        .send({ campaign: 'Camp1', armorName: 'Plate', armorBonus: 'bad' });
+        .send({
+          campaign: 'Camp1',
+          armorName: 'Plate',
+          armorBonus: 'bad',
+          strength: 'bad',
+          stealth: 'maybe',
+          weight: 'bad',
+        });
       expect(res.status).toBe(400);
     });
   });
