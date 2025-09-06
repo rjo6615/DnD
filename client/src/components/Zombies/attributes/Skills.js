@@ -245,8 +245,8 @@ export default function Skills({
         <Card.Footer className="modal-footer d-flex">
           <Button
             onClick={() => handleCloseSkill()}
-            className="action-btn close-btn fa-solid fa-xmark flex-fill"
-          ></Button>
+            className="action-btn close-btn flex-fill"
+          >Close</Button>
         </Card.Footer>
       </Card>
     </Modal>

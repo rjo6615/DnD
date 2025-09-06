@@ -81,7 +81,7 @@ export default function CharacterInfo({ form, show, handleClose }) {
           <Button className="action-btn" variant="secondary" onClick={handleShowLevelUpModal}>
             <img src={levelup} alt="Level Up" height="24" />
           </Button>
-          <Button className="action-btn close-btn" variant="secondary" onClick={handleClose}>
+          <Button className="action-btn close-btn" variant="primary" onClick={handleClose}>
             Close
           </Button>
         </Card.Footer>

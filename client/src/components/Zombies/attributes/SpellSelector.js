@@ -419,8 +419,10 @@ export default function SpellSelector({
               </Tabs>
             )}
           </Card.Body>
-          <Card.Footer className="text-end">
-            <Button variant="secondary" onClick={handleClose}>
+          <Card.Footer className="modal-footer">
+            <Button 
+            className="action-btn close-btn"
+            onClick={handleClose}>
               Close
             </Button>
           </Card.Footer>
