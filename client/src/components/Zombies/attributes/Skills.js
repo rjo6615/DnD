@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form, Alert } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
@@ -30,11 +30,13 @@ export default function Skills({
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
   const [error, setError] = useState('');
-  const raceProficiencies = new Set(
-    Object.entries(form.race?.skills || {})
-      .filter(([, s]) => s?.proficient)
-      .map(([key]) => key)
-  );
+  const raceProficiencies = useMemo(() => {
+    return new Set(
+      Object.entries(form.race?.skills || {})
+        .filter(([, s]) => s?.proficient)
+        .map(([key]) => key)
+    );
+  }, [form.race?.skills]);
   const currentProficiencyCount = Object.entries(form.skills || {}).filter(
     ([key, s]) => s.proficient && !raceProficiencies.has(key)
   ).length;
@@ -50,7 +52,7 @@ export default function Skills({
     setProficiencyPointsLeft(
       Math.max(0, (form.proficiencyPoints || 0) - count)
     );
-  }, [form.skills, form.proficiencyPoints]);
+  }, [form.skills, form.proficiencyPoints, raceProficiencies]);
 
   if (!form) {
     return <div>Loading...</div>;
