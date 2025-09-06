@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { proficiencyBonus } from '../../../utils/dnd';
 import { Modal, Card, Table, Button, Form, Alert } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
