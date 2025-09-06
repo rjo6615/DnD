@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 
@@ -17,6 +18,7 @@ export default function HealthDefense({
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
   let atkBonus = 0;
+  const profBonus = proficiencyBonus(totalLevel);
     
   // Armor AC/MaxDex
   const armorItems = form.armor || [];
@@ -243,6 +245,7 @@ return (
     <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
       <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
       <div><strong>Attack Bonus:</strong> {atkBonus}</div>
+      <div><strong>Proficiency Bonus:</strong> {profBonus}</div>
       <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
       <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
     </div>
