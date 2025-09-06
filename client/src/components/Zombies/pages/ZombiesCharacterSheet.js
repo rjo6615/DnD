@@ -457,6 +457,7 @@ return (
           onChange={handleArmorChange}
           characterId={characterId}
           show={showArmor}
+          strength={computedStats.str}
         />
         <div className="modal-footer">
           <Button className="action-btn close-btn" onClick={handleCloseArmor}>

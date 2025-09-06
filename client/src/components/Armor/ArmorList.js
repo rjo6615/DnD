@@ -6,7 +6,14 @@ import apiFetch from '../../utils/apiFetch';
 
 /**
  * List of armor with ownership and proficiency toggles.
- * @param {{ campaign?: string, onChange?: (armor: Armor[]) => void, initialArmor?: Armor[], characterId?: string, show?: boolean }} props
+ * @param {{
+ *   campaign?: string,
+ *   onChange?: (armor: Armor[]) => void,
+ *   initialArmor?: Armor[],
+ *   characterId?: string,
+ *   show?: boolean,
+ *   strength?: number,
+ * }} props
  */
 function ArmorList({
   campaign,
@@ -14,6 +21,7 @@ function ArmorList({
   initialArmor = [],
   characterId,
   show = true,
+  strength = Number.POSITIVE_INFINITY,
 }) {
   const [armor, setArmor] =
     useState/** @type {Record<string, Armor & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -162,6 +170,8 @@ function ArmorList({
 
   const handleOwnedToggle = (key) => () => {
     const piece = armor[key];
+    const unmet = piece.strength && strength < piece.strength;
+    if (unmet) return;
     const desired = !piece.owned;
     const nextArmor = {
       ...armor,
@@ -251,17 +261,23 @@ function ArmorList({
             </tr>
           </thead>
           <tbody>
-            {Object.entries(armor).map(([key, piece]) => (
-              <tr key={key}>
-                <td>
-                  <Form.Check
-                    type="checkbox"
-                    className="weapon-checkbox"
-                    checked={piece.owned}
-                    onChange={handleOwnedToggle(key)}
-                    aria-label={piece.displayName || piece.name}
-                  />
-                </td>
+            {Object.entries(armor).map(([key, piece]) => {
+              const unmet = piece.strength && strength < piece.strength;
+              return (
+                <tr key={key}>
+                  <td>
+                    <Form.Check
+                      type="checkbox"
+                      className="weapon-checkbox"
+                      checked={piece.owned}
+                      disabled={unmet}
+                      onChange={handleOwnedToggle(key)}
+                      aria-label={piece.displayName || piece.name}
+                      title={
+                        unmet ? `Requires STR ${piece.strength}` : undefined
+                      }
+                    />
+                  </td>
                 <td>
                   <Form.Check
                     type="checkbox"
@@ -297,7 +313,8 @@ function ArmorList({
                 <td>{piece.weight}</td>
                 <td>{piece.cost}</td>
               </tr>
-            ))}
+            );
+          })}
           </tbody>
         </Table>
       </Card.Body>

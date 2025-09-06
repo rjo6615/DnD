@@ -59,6 +59,7 @@ test('fetches armor and toggles ownership', async () => {
       initialArmor={[armorData['chain mail']]}
       onChange={onChange}
       characterId="char1"
+      strength={15}
     />
   );
 
@@ -86,6 +87,22 @@ test('fetches armor and toggles ownership', async () => {
   expect(apiFetch).toHaveBeenCalledTimes(3);
 });
 
+test('disables ownership when strength requirement unmet', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+  });
+
+  render(<ArmorList characterId="char1" strength={10} />);
+
+  const chainCheckbox = await screen.findByLabelText('Chain Mail');
+  expect(chainCheckbox).toBeDisabled();
+  expect(chainCheckbox).not.toBeChecked();
+  await userEvent.click(chainCheckbox);
+  expect(chainCheckbox).not.toBeChecked();
+});
+
 test('renders all armor regardless of allowed list', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
@@ -94,7 +111,7 @@ test('renders all armor regardless of allowed list', async () => {
     json: async () => ({ allowed: ['leather'], proficient: {}, granted: [] }),
   });
 
-  render(<ArmorList campaign="Camp1" characterId="char1" />);
+  render(<ArmorList campaign="Camp1" characterId="char1" strength={15} />);
 
   expect(await screen.findByLabelText('Leather Armor')).toBeInTheDocument();
   expect(await screen.findByLabelText('Force Shield')).toBeInTheDocument();
@@ -114,7 +131,7 @@ test('marks armor proficiency', async () => {
     }
   );
 
-  render(<ArmorList characterId="char1" />);
+  render(<ArmorList characterId="char1" strength={15} />);
 
   const chainRow = await screen.findByText('Chain Mail');
   expect(apiFetch).toHaveBeenCalledWith('/armor-proficiency/char1');
@@ -139,7 +156,7 @@ test('granted proficiencies render checked and disabled', async () => {
     }),
   });
 
-  render(<ArmorList characterId="char1" />);
+  render(<ArmorList characterId="char1" strength={15} />);
 
   const chainRow = await screen.findByText('Chain Mail');
   const chainTr = chainRow.closest('tr');
@@ -162,7 +179,7 @@ test('toggling a non-proficient armor allows checking and unchecking', async () 
     .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
 
-  render(<ArmorList characterId="char1" />);
+  render(<ArmorList characterId="char1" strength={15} />);
 
   const leatherRow = await screen.findByText('Leather Armor');
   const leatherTr = leatherRow.closest('tr');
@@ -186,7 +203,7 @@ test('shows all armor when allowed list is empty', async () => {
     json: async () => ({ allowed: [], proficient: {}, granted: [] }),
   });
 
-  render(<ArmorList characterId="char1" />);
+  render(<ArmorList characterId="char1" strength={15} />);
 
   expect(await screen.findByText('Leather Armor')).toBeInTheDocument();
   expect(await screen.findByText('Chain Mail')).toBeInTheDocument();
@@ -205,7 +222,7 @@ test('reloads proficiency data when character changes', async () => {
       json: async () => ({ allowed: ['chain mail'], proficient: { 'chain mail': true }, granted: [] }),
     });
 
-  const { rerender } = render(<ArmorList characterId="char1" />);
+  const { rerender } = render(<ArmorList characterId="char1" strength={15} />);
 
   const leatherRow1 = await screen.findByText('Leather Armor');
   const chainRow1 = await screen.findByText('Chain Mail');
@@ -216,7 +233,7 @@ test('reloads proficiency data when character changes', async () => {
     within(chainRow1.closest('tr')).getByLabelText('Chain Mail proficiency')
   ).not.toBeChecked();
 
-  rerender(<ArmorList characterId="char2" />);
+  rerender(<ArmorList characterId="char2" strength={15} />);
   await waitFor(() =>
     expect(
       within(screen.getByText('Leather Armor').closest('tr')).getByLabelText(
@@ -242,11 +259,11 @@ test('refetches armor when modal is opened', async () => {
       json: async () => ({ allowed: [], proficient: {}, granted: [] }),
     });
 
-  const { rerender } = render(<ArmorList characterId="char1" show={false} />);
+  const { rerender } = render(<ArmorList characterId="char1" show={false} strength={15} />);
 
   expect(apiFetch).not.toHaveBeenCalled();
 
-  rerender(<ArmorList characterId="char1" show />);
+  rerender(<ArmorList characterId="char1" show strength={15} />);
   expect(await screen.findByText('Chain Mail')).toBeInTheDocument();
   expect(apiFetch).toHaveBeenCalledWith('/armor');
   expect(apiFetch).toHaveBeenCalledWith('/armor-proficiency/char1');
@@ -261,7 +278,7 @@ test('shows error message when armor fetch fails', async () => {
       json: async () => ({ allowed: null, proficient: {}, granted: [] }),
     });
 
-  render(<ArmorList characterId="char1" />);
+  render(<ArmorList characterId="char1" strength={15} />);
 
   expect(
     await screen.findByText('Failed to load armor: 500 Server Error')
@@ -281,7 +298,7 @@ test('warns when unknown armor names are returned', async () => {
       }),
     });
 
-  render(<ArmorList characterId="char1" />);
+  render(<ArmorList characterId="char1" strength={15} />);
 
   expect(await screen.findByText('Leather Armor')).toBeInTheDocument();
   expect(screen.queryByText('mystery')).not.toBeInTheDocument();
@@ -301,6 +318,7 @@ test('skips invalid initial armor entries with warning', async () => {
   render(
     <ArmorList
       initialArmor={[armorData['chain mail'], { invalid: true }, 42, null]}
+      strength={15}
     />
   );
 
