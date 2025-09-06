@@ -214,7 +214,6 @@ export default function Skills({
                     <td>{modMap[ability]}</td>
                     <td>
                       <Form.Check
-                        className="skill-checkbox"
                         type="checkbox"
                         checked={proficient}
                         disabled={!isSelectable || isRaceSkill}
@@ -223,7 +222,6 @@ export default function Skills({
                     </td>
                     <td>
                       <Form.Check
-                        className="skill-checkbox"
                         type="checkbox"
                         checked={expertise}
                         disabled={!proficient}
