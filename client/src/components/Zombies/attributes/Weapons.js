@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Table, Button, Form, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Weapons({form, showWeapons, handleCloseWeapons}) {
   const params = useParams();
   const navigate = useNavigate();
-  //--------------------------------------------Weapons Section-----------------------------------------------------------------
-------------------------------------------------------------------------------
+  //--------------------------------------------Weapons Section-----------------------------------------------------------------------------------------------------------------------------------------------
 const currentCampaign = form.campaign.toString();
 
-const [weapon, setWeapon] = useState({
-    weapon: [],
+const [weapon, setWeapon] = useState({ 
+    weapon: [], 
   });
   const [addWeapon, setAddWeapon] = useState({
     weapon: "",
@@ -20,13 +19,13 @@ const [weapon, setWeapon] = useState({
   const [notification, setNotification] = useState(null);
   const handleChosenWeaponChange = (e) => {
       setChosenWeapon(e.target.value);
-  };
+  }; 
   function updateWeapon(value) {
     return setAddWeapon((prev) => {
       return { ...prev, ...value };
     });
   }
-
+  
   // Fetch Weapons
   useEffect(() => {
     async function fetchWeapons() {
@@ -109,39 +108,26 @@ const [weapon, setWeapon] = useState({
       setNotification({ message: error.message || String(error), variant: 'danger' });
     }
   }
-
-  return (
+return(
     <div>
-      {/* -----------------------------------------Weapons Render-------------------------------------------------------------
---------------------------------------------------------------------- */}
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showWeapons}
-        onHide={handleCloseWeapons}
-        size="lg"
-        centered
-      >
-        <Modal.Header className="modal-header">
-          <Modal.Title className="modal-title">Weapons</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          {notification && (
-            <Alert
-              variant={notification.variant}
-              onClose={() => setNotification(null)}
-              dismissible
-            >
-              {notification.message}
-            </Alert>
-          )}
-          <Table
-            striped
-            bordered
-            hover
-            size="sm"
-            className="modern-table"
-            width="100%"
+        {/* -----------------------------------------Weapons Render---------------------------------------------------------------------------------------------------------------------------------- */}
+<Modal className="dnd-modal modern-modal" show={showWeapons} onHide={handleCloseWeapons} size="lg" centered>
+  <div className="text-center">
+    <Card className="modern-card">
+      <Card.Header className="modal-header">
+        <Card.Title className="modal-title">Weapons</Card.Title>
+      </Card.Header>
+      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+        {notification && (
+          <Alert
+            variant={notification.variant}
+            onClose={() => setNotification(null)}
+            dismissible
           >
+            {notification.message}
+          </Alert>
+        )}
+          <Table striped bordered hover size="sm" className="modern-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -176,42 +162,44 @@ const [weapon, setWeapon] = useState({
               ))}
             </tbody>
           </Table>
-          <Form onSubmit={addWeaponToDb}>
-            <Form.Group className="mb-3">
-              <Form.Label className="text-light">Select Weapon</Form.Label>
-              <Form.Select
-                onChange={(e) => {
-                  updateWeapon({ weapon: e.target.value });
-                  handleChosenWeaponChange(e);
-                }}
-                defaultValue=""
-                type="text"
-              >
-                <option value="" disabled>
-                  Select your weapon
-                </option>
-                {weapon.weapon.map((el) => (
-                  <option key={el.name} value={JSON.stringify(el)}>
-                    {el.name}
+        <Row>
+          <Col>
+            <Form onSubmit={addWeaponToDb}>
+              <Form.Group className="mb-3 mx-5">
+                <Form.Label className="text-light">Select Weapon</Form.Label>
+                <Form.Select
+                  onChange={(e) => {
+                    updateWeapon({ weapon: e.target.value });
+                    handleChosenWeaponChange(e);
+                  }}
+                  defaultValue=""
+                  type="text"
+                >
+                  <option value="" disabled>
+                    Select your weapon
                   </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-            <Button
-              disabled={!chosenWeapon}
-              className="action-btn mx-auto d-block"
-              type="submit"
-            >
-              Add
-            </Button>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                  {weapon.weapon.map((el) => (
+                    <option key={el.name} value={JSON.stringify(el)}>
+                      {el.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <Button disabled={!chosenWeapon} className="action-btn" type="submit">
+                Add
+              </Button>
+            </Form>
+          </Col>
+        </Row>
+      </Card.Body>
+      <Card.Footer className="modal-footer">
+        <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
+          Close
+        </Button>
+      </Card.Footer>
+    </Card>
+  </div>
+</Modal>
     </div>
-  );
+)
 }
