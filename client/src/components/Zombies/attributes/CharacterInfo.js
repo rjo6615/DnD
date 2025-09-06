@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import levelup from "../../../images/levelup.png";
 import LevelUp from "./LevelUp"; // Import LevelUp component
+import { SKILLS } from "../skillSchema";
 
 export default function CharacterInfo({ form, show, handleClose }) {
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
@@ -17,6 +18,16 @@ export default function CharacterInfo({ form, show, handleClose }) {
 
   const raceLanguages = (form.race?.languages || [])
     .filter((language) => language && !language.includes("Choice"))
+    .join(", ");
+
+  const skillLabelMap = SKILLS.reduce((acc, { key, label }) => {
+    acc[key] = label;
+    return acc;
+  }, {});
+
+  const backgroundSkills = Object.entries(form.background?.skills || {})
+    .filter(([, v]) => v?.proficient)
+    .map(([k]) => skillLabelMap[k] || k)
     .join(", ");
 
   return (
@@ -57,6 +68,10 @@ export default function CharacterInfo({ form, show, handleClose }) {
               <tr>
                 <th>Background</th>
                 <td>{form.background?.name || ''}</td>
+              </tr>
+              <tr>
+                <th>Skills</th>
+                <td>{backgroundSkills}</td>
               </tr>
               <tr>
                 <th>Languages</th>

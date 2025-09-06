@@ -19,3 +19,26 @@ test('renders race languages', () => {
   expect(screen.getByText('Common, Elvish')).toBeInTheDocument();
 });
 
+test('renders proficient background skills', () => {
+  const form = {
+    occupation: [],
+    race: { languages: [] },
+    background: {
+      name: 'Sailor',
+      skills: {
+        athletics: { proficient: true },
+        stealth: { proficient: false },
+        perception: { proficient: true },
+      },
+    },
+    age: 100,
+    sex: 'M',
+    height: "6'",
+    weight: 180,
+  };
+
+  render(<CharacterInfo form={form} show={true} handleClose={() => {}} />);
+
+  expect(screen.getByText('Athletics, Perception')).toBeInTheDocument();
+});
+
