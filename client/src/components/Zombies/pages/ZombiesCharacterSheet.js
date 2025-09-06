@@ -17,6 +17,7 @@ import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
+import BackgroundModal from "../attributes/BackgroundModal";
 
 const HEADER_PADDING = 16;
 
@@ -33,6 +34,7 @@ export default function ZombiesCharacterSheet() {
   const [showItems, setShowItems] = useState(false);
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showBackground, setShowBackground] = useState(false);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -114,6 +116,8 @@ export default function ZombiesCharacterSheet() {
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
   const handleCloseHelpModal = () => setShowHelpModal(false);
+  const handleShowBackground = () => setShowBackground(true);
+  const handleCloseBackground = () => setShowBackground(false);
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -319,6 +323,12 @@ return (
             variant="secondary"
           ></Button>
           <Button
+            onClick={handleShowBackground}
+            style={{ color: "black", padding: "8px", marginTop: "10px" }}
+            className="mx-1 fas fa-eye"
+            variant="secondary"
+          ></Button>
+          <Button
             onClick={handleShowStats}
             style={{
               color: "black",
@@ -423,6 +433,11 @@ return (
       onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
+    <BackgroundModal
+      show={showBackground}
+      onHide={handleCloseBackground}
+      background={form.background}
+    />
     <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
       <Modal
         className="dnd-modal modern-modal"
