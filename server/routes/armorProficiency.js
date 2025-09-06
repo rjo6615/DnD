@@ -23,8 +23,8 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
 
   const typeMap = Array.isArray(customArmors)
     ? customArmors.reduce((acc, a) => {
-        const type = String(a.type || a.name).toLowerCase();
-        const nameKey = canonicalize(a.name);
+        const type = String(a.type || a.name || a.armorName).toLowerCase();
+        const nameKey = canonicalize(a.name || a.armorName);
         (acc[type] ||= []).push(nameKey);
         return acc;
       }, {})
@@ -52,7 +52,7 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
           .filter(
             (a) => a.category && a.category.toLowerCase().startsWith(lower)
           )
-          .map((a) => a.name)
+          .map((a) => a.name || a.armorName)
       : [];
     return [...standard, ...custom];
   };
@@ -118,7 +118,9 @@ function collectArmorInfo(occupation = [], feat = [], race, customArmors = []) {
 
   const canonicalKeys = new Set(Object.keys(armorData));
   if (Array.isArray(customArmors)) {
-    customArmors.forEach((a) => canonicalKeys.add(canonicalize(a.name)));
+    customArmors.forEach((a) =>
+      canonicalKeys.add(canonicalize(a.name || a.armorName))
+    );
   }
 
   return {
