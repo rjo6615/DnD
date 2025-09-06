@@ -62,7 +62,7 @@ function AppRoutes({ user }) {
         <Route path="/weapons" element={<WeaponList characterId={user?._id} />} />
         <Route path="/weapons/:name" element={<WeaponDetail />} />
         {/* Armor routes */}
-        <Route path="/armor" element={<ArmorList characterId={user?._id} />} />
+        <Route path="/armor" element={<ArmorList characterId={user?._id} strength={20} />} />
         <Route path="/armor/:name" element={<ArmorDetail />} />
         <Route path="/zombies-character-select/:campaign" element={<ZombiesCharacterSelect />} />
         <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
