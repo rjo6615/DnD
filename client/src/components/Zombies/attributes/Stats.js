@@ -122,6 +122,7 @@ export default function Stats({ form, showStats, handleCloseStats }) {
                           <Button
                             onClick={() => handleView(key)}
                             variant="link"
+                            aria-label="view"
                           >
                             <i className="fa-solid fa-eye"></i>
                           </Button>

@@ -19,16 +19,17 @@ export default function HealthDefense({
   let atkBonus = 0;
     
   // Armor AC/MaxDex
-  const armorItems = (form.armor || []).map((el) =>
-    Array.isArray(el)
-      ? el
-      : [el.name, el.acBonus ?? el.ac ?? el.armorBonus, el.maxDex, el.checkPenalty]
-  );
+  const armorItems = form.armor || [];
   const armorAcBonus = armorItems.map((item) => {
-    const value = Number(item[1] ?? 0);
-    return value > 10 ? value - 10 : value;
+    if (Array.isArray(item)) {
+      const value = Number(item[1] ?? 0);
+      return value > 10 ? value - 10 : value;
+    }
+    return Number(item.acBonus ?? 0);
   });
-  const armorMaxDexBonus = armorItems.map((item) => Number(item[2] ?? 0));
+  const armorMaxDexBonus = armorItems.map((item) =>
+    Array.isArray(item) ? Number(item[2] ?? 0) : Number(item.maxDex ?? 0)
+  );
   let totalArmorAcBonus =
     armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
     Number(ac);

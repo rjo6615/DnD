@@ -12,6 +12,10 @@ export interface Armor {
    */
   category: string;
   /**
+   * Total armor class provided by the armor before additional bonuses.
+   */
+  ac: number;
+  /**
    * Armor class bonus provided by the armor (base AC minus 10).
    */
   acBonus: number;

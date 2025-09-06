@@ -242,7 +242,7 @@ function ArmorList({
               <th>Owned</th>
               <th>Proficient</th>
               <th>Name</th>
-              <th>AC</th>
+              <th>AC Bonus</th>
               <th>Max Dex</th>
               <th>Strength</th>
               <th>Stealth</th>
@@ -279,10 +279,8 @@ function ArmorList({
                 </td>
                 <td>{piece.displayName || piece.name}</td>
                 <td>
-                  {piece.category === 'shield'
+                  {piece.acBonus !== '' && piece.acBonus !== null && piece.acBonus !== undefined
                     ? piece.acBonus
-                    : piece.acBonus !== '' && piece.acBonus !== null && piece.acBonus !== undefined
-                    ? 10 + Number(piece.acBonus)
                     : ''}
                 </td>
                 <td>
