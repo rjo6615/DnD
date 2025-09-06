@@ -178,6 +178,23 @@ describe('Equipment routes', () => {
       expect(res.body).toMatchObject({ _id: 'abc123', ...payload });
     });
 
+    test('blank numeric fields allowed', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ insertOne: async () => ({ insertedId: 'def456' }) })
+      });
+      const res = await request(app)
+        .post('/equipment/armor/add')
+        .send({
+          campaign: 'Camp1',
+          armorName: 'Leather',
+          armorBonus: '',
+          maxDex: '',
+          armorCheckPenalty: '',
+        });
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ _id: 'def456', campaign: 'Camp1', armorName: 'Leather' });
+    });
+
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
