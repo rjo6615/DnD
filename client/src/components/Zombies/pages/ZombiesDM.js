@@ -581,155 +581,130 @@ const [form2, setForm2] = useState({
         </Modal>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
           <Modal className="dnd-modal modern-modal" centered show={show2} onHide={handleClose2}>
-            <Modal.Header className="modal-header">
-              <Modal.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-              {isCreatingWeapon ? (
-                <Form onSubmit={onSubmit2}>
-                  <Form.Group className="mb-3 pt-3">
-                    <Form.Label className="text-light">Name</Form.Label>
-                    <Form.Control
-                      className="mb-2"
-                      onChange={(e) => updateForm2({ name: e.target.value })}
-                      type="text"
-                      placeholder="Enter weapon name"
-                    />
+          <div className="text-center">
+          <Card className="modern-card">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
+            </Card.Header>
+          <Card.Body>
+          <div className="text-center">
+            {isCreatingWeapon ? (
+              <Form onSubmit={onSubmit2} className="px-5">
+               <Form.Group className="mb-3 pt-3" >
 
-                    <Form.Label className="text-light">Type</Form.Label>
-                    <Form.Select
-                      className="mb-2"
-                      value={form2.type}
-                      onChange={(e) => updateForm2({ type: e.target.value })}
-                    >
-                      <option value="">Select type</option>
-                      {weaponOptions.types.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </Form.Select>
+               <Form.Label className="text-light">Name</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
+                type="text" placeholder="Enter weapon name" />
 
-                    <Form.Label className="text-light">Category</Form.Label>
-                    <Form.Select
-                      className="mb-2"
-                      value={form2.category}
-                      onChange={(e) => updateForm2({ category: e.target.value })}
-                    >
-                      <option value="">Select category</option>
-                      {weaponOptions.categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </Form.Select>
+               <Form.Label className="text-light">Type</Form.Label>
+               <Form.Select
+                className="mb-2"
+                value={form2.type}
+                onChange={(e) => updateForm2({ type: e.target.value })}
+              >
+                <option value="">Select type</option>
+                {weaponOptions.types.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </Form.Select>
 
-                    <Form.Label className="text-light">Damage</Form.Label>
-                    <Form.Control
-                      className="mb-2"
-                      onChange={(e) => updateForm2({ damage: e.target.value })}
-                      type="text"
-                      placeholder="Enter damage"
-                    />
+               <Form.Label className="text-light">Category</Form.Label>
+               <Form.Select
+                className="mb-2"
+                value={form2.category}
+                onChange={(e) => updateForm2({ category: e.target.value })}
+              >
+                <option value="">Select category</option>
+                {weaponOptions.categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Form.Select>
 
-                    <Form.Label className="text-light">Properties</Form.Label>
-                    <Form.Select
-                      multiple
-                      className="mb-2"
-                      value={form2.properties}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-                        updateForm2({ properties: selected });
-                      }}
-                    >
-                      {weaponOptions.properties.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </Form.Select>
+               <Form.Label className="text-light">Damage</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
+                type="text" placeholder="Enter damage" />
 
-                    <Form.Label className="text-light">Weight</Form.Label>
-                    <Form.Control
-                      className="mb-2"
-                      onChange={(e) => updateForm2({ weight: e.target.value })}
-                      type="text"
-                      placeholder="Enter weight"
-                    />
+               <Form.Label className="text-light">Properties</Form.Label>
+               <Form.Select
+                multiple
+                className="mb-2"
+                value={form2.properties}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                  updateForm2({ properties: selected });
+                }}
+              >
+                {weaponOptions.properties.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </Form.Select>
 
-                    <Form.Label className="text-light">Cost</Form.Label>
-                    <Form.Control
-                      className="mb-2"
-                      onChange={(e) => updateForm2({ cost: e.target.value })}
-                      type="text"
-                      placeholder="Enter cost"
-                    />
-                  </Form.Group>
-                  <div className="d-flex justify-content-center gap-2">
-                    <Button variant="primary" type="submit">
-                      Create
-                    </Button>
-                    <Button variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
-                      Cancel
-                    </Button>
+               <Form.Label className="text-light">Weight</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ weight: e.target.value })}
+                type="text" placeholder="Enter weight" />
+
+               <Form.Label className="text-light">Cost</Form.Label>
+               <Form.Control className="mb-2" onChange={(e) => updateForm2({ cost: e.target.value })}
+                type="text" placeholder="Enter cost" />
+
+            </Form.Group>
+             <div className="text-center">
+             <Button variant="primary" type="submit">
+                    Create
+                  </Button>
+                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
+                    Cancel
+                  </Button>
                   </div>
-                </Form>
-              ) : (
-                <>
-                  <Table
-                    striped
-                    bordered
-                    hover
-                    size="sm"
-                    className="modern-table mt-3"
-                    width="100%"
-                  >
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Category</th>
-                        <th>Damage</th>
-                        <th>Properties</th>
-                        <th>Weight</th>
-                        <th>Cost</th>
-                        <th>Delete</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weapons.map((w) => (
-                        <tr key={w._id}>
-                          <td>{w.name}</td>
-                          <td>{w.type}</td>
-                          <td>{w.category}</td>
-                          <td>{w.damage}</td>
-                          <td>{w.properties?.join(', ')}</td>
-                          <td>{w.weight}</td>
-                          <td>{w.cost}</td>
-                          <td>
-                            <Button
-                              className="btn-danger action-btn fa-solid fa-trash"
-                              onClick={() => deleteWeapon(w._id)}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                  <div className="d-flex justify-content-center">
-                    <Button variant="primary" onClick={() => setIsCreatingWeapon(true)}>
-                      Create Weapon
-                    </Button>
-                  </div>
-                </>
-              )}
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={handleClose2}>
+            </Form>
+            ) : (
+              <>
+              <Table striped bordered hover size="sm" className="modern-table mt-3">
+                <thead>
+                  <tr>
+                   <th>Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Damage</th>
+                    <th>Properties</th>
+                    <th>Weight</th>
+                    <th>Cost</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weapons.map((w) => (
+                    <tr key={w._id}>
+                      <td>{w.name}</td>
+                      <td>{w.type}</td>
+                      <td>{w.category}</td>
+                      <td>{w.damage}</td>
+                      <td>{w.properties?.join(', ')}</td>
+                      <td>{w.weight}</td>
+                      <td>{w.cost}</td>
+                      <td>
+                        <Button
+                          className="btn-danger action-btn fa-solid fa-trash"
+                          onClick={() => deleteWeapon(w._id)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              <Button variant="primary" onClick={() => setIsCreatingWeapon(true)}>
+                Create Weapon
+              </Button>
+              <Button className="ms-4" variant="secondary" onClick={handleClose2}>
                 Close
               </Button>
-            </Modal.Footer>
-          </Modal>
+              </>
+            )}
+          </div>
+          </Card.Body>
+          </Card>
+          </div>
+           </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
   <Modal className="dnd-modal modern-modal" centered show={show3} onHide={handleClose3}>
   <div className="text-center">
