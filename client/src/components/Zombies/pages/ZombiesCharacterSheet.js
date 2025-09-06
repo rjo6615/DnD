@@ -438,6 +438,11 @@ return (
           characterId={characterId}
           show={showWeapons}
         />
+        <div className="modal-footer">
+          <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
+            Close
+          </Button>
+        </div>
       </Modal>
       <Modal
         className="dnd-modal modern-modal"
@@ -453,6 +458,11 @@ return (
           characterId={characterId}
           show={showArmor}
         />
+        <div className="modal-footer">
+          <Button className="action-btn close-btn" onClick={handleCloseArmor}>
+            Close
+          </Button>
+        </div>
       </Modal>
     <Items
       form={form}
