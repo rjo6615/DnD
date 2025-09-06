@@ -50,7 +50,10 @@ export default function Skills({
   }
 
   // Armor Check Penalty
-  const checkPenalty = form.armor.map((el) => el[3]);
+  const armorItems = (form.armor || []).map((el) =>
+    Array.isArray(el) ? el : [el.name, el.ac, el.maxDex, el.checkPenalty]
+  );
+  const checkPenalty = armorItems.map((item) => Number(item[3] ?? 0));
   const totalCheckPenalty = checkPenalty.reduce(
     (sum, a) => Number(sum) + Number(a),
     0
