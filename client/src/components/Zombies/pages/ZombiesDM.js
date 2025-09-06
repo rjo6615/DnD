@@ -586,7 +586,7 @@ const [form2, setForm2] = useState({
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
             </Card.Header>
-          <Card.Body>
+          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
           <div className="text-center">
             {isCreatingWeapon ? (
               <Form onSubmit={onSubmit2} className="px-5">
@@ -659,7 +659,7 @@ const [form2, setForm2] = useState({
             </Form>
             ) : (
               <>
-              <Table striped bordered hover size="sm" className="modern-table mt-3">
+              <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
                 <thead>
                   <tr>
                    <th>Name</th>
