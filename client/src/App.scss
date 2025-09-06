@@ -30,6 +30,11 @@
   border-color: #adb5bd;
 }
 
+.skill-checkbox .form-check-input:disabled:checked {
+  background-color: rgba(var(--bs-primary-rgb), 0.5);
+  border-color: rgba(var(--bs-primary-rgb), 0.5);
+}
+
 .App {
   text-align: center;
 }

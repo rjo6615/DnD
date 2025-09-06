@@ -29,16 +29,22 @@ export default function Skills({
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
-  const currentProficiencyCount = Object.values(form.skills || {}).filter(
-    (s) => s.proficient
+  const raceProficiencies = new Set(
+    Object.entries(form.race?.skills || {})
+      .filter(([, s]) => s?.proficient)
+      .map(([key]) => key)
+  );
+  const currentProficiencyCount = Object.entries(form.skills || {}).filter(
+    ([key, s]) => s.proficient && !raceProficiencies.has(key)
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
     Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
   );
 
   useEffect(() => {
-    const count = Object.values(form.skills || {}).filter((s) => s.proficient)
-      .length;
+    const count = Object.entries(form.skills || {}).filter(
+      ([key, s]) => s.proficient && !raceProficiencies.has(key)
+    ).length;
     setSkills(form.skills || {});
     setProficiencyPointsLeft(
       Math.max(0, (form.proficiencyPoints || 0) - count)
@@ -94,11 +100,6 @@ export default function Skills({
   const profBonus = proficiencyBonus(totalLevel);
 
   const selectableSkills = new Set(form.allowedSkills || []);
-  const raceProficiencies = new Set(
-    Object.entries(form.race?.skills || {})
-      .filter(([, s]) => s?.proficient)
-      .map(([key]) => key)
-  );
 
   async function updateSkill(skill, updated) {
     try {
@@ -116,8 +117,8 @@ export default function Skills({
           ...prev,
           [skill]: { proficient: data.proficient, expertise: data.expertise },
         };
-        const proficientCount = Object.values(newSkills).filter(
-          (s) => s.proficient
+        const proficientCount = Object.entries(newSkills).filter(
+          ([key, s]) => s.proficient && !raceProficiencies.has(key)
         ).length;
         setProficiencyPointsLeft(
           Math.max(0, (form.proficiencyPoints || 0) - proficientCount)
