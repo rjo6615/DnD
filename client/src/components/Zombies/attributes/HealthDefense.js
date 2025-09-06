@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function HealthDefense({
   form,
@@ -59,6 +60,8 @@ export default function HealthDefense({
       }
     }
   }
+
+  const profBonus = proficiencyBonus(form.proficiencyBonus ?? totalLevel);
 
   // Health
   const maxHealth =
@@ -240,14 +243,16 @@ return (
     }}
   >
     {/* Core Stats */}
-    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-      <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-      <div><strong>Attack Bonus:</strong> {atkBonus}</div>
-      <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
-      <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
-    </div>
+      <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+        <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+        <div><strong>Attack Bonus:</strong> {atkBonus}</div>
+        <div><strong>Proficiency Bonus:</strong> {profBonus}</div>
+        <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
+        <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
+      </div>
 
+      </div>
     </div>
-  </div>
-)
+  );
 }
+
