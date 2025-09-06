@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
@@ -7,6 +7,56 @@ import { useParams } from 'react-router-dom';
  * Modal component allowing users to select spells for their character.
  * Spells are fetched from the server and filtered by class and level.
  */
+// Full-caster spell slot table indexed by class level then spell level
+const SLOT_TABLE = {
+  0: Array(10).fill(0),
+  1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+  2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
+  4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
+  6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
+  7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
+  8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
+  9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
+  10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
+  11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+  12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+  13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+  14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+  15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+  16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+  17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
+  18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
+  19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
+  20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
+};
+
+// Number of cantrips known by class level
+const CANTRIP_TABLE = {
+  0: 0,
+  1: 3,
+  2: 3,
+  3: 3,
+  4: 4,
+  5: 4,
+  6: 4,
+  7: 4,
+  8: 4,
+  9: 4,
+  10: 5,
+  11: 5,
+  12: 5,
+  13: 5,
+  14: 5,
+  15: 5,
+  16: 5,
+  17: 5,
+  18: 5,
+  19: 5,
+  20: 5,
+};
+
 export default function SpellSelector({
   form,
   show,
@@ -15,57 +65,7 @@ export default function SpellSelector({
 }) {
   const params = useParams();
 
-  // Full-caster spell slot table indexed by class level then spell level
-  const SLOT_TABLE = {
-    0: Array(10).fill(0),
-    1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
-    2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
-    3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
-    4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
-    5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
-    6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
-    7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
-    8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
-    9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
-    10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
-    11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
-    12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
-    13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
-    14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
-    15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
-    16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
-    17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
-    18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
-    19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
-    20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
-  };
-
-  // Number of cantrips known by class level
-  const CANTRIP_TABLE = {
-    0: 0,
-    1: 3,
-    2: 3,
-    3: 3,
-    4: 4,
-    5: 4,
-    6: 4,
-    7: 4,
-    8: 4,
-    9: 4,
-    10: 5,
-    11: 5,
-    12: 5,
-    13: 5,
-    14: 5,
-    15: 5,
-    16: 5,
-    17: 5,
-    18: 5,
-    19: 5,
-    20: 5,
-  };
-
-  const getAvailableLevels = (classLevel) => {
+  const getAvailableLevels = useCallback((classLevel) => {
     const slotRow = SLOT_TABLE[classLevel] || [];
     const options = [];
     if ((CANTRIP_TABLE[classLevel] || 0) > 0) options.push(0);
@@ -73,7 +73,7 @@ export default function SpellSelector({
       if (lvl > 0 && slots > 0) options.push(lvl);
     });
     return options;
-  };
+  }, []);
 
   const classesInfo = useMemo(
     () =>
@@ -90,7 +90,7 @@ export default function SpellSelector({
         acc[name] = getAvailableLevels(level);
         return acc;
       }, {}),
-    [classesInfo]
+    [classesInfo, getAvailableLevels]
   );
 
   const initialLevels = useMemo(
