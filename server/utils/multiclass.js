@@ -93,6 +93,7 @@ async function applyMulticlass(characterId, newOccupation) {
     updatedOccupation,
     character.feat,
     character.race,
+    character.background,
   );
 
   await characters.updateOne(
