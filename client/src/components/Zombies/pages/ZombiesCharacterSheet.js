@@ -323,12 +323,6 @@ return (
             variant="secondary"
           ></Button>
           <Button
-            onClick={handleShowBackground}
-            style={{ color: "black", padding: "8px", marginTop: "10px" }}
-            className="mx-1 fas fa-eye"
-            variant="secondary"
-          ></Button>
-          <Button
             onClick={handleShowStats}
             style={{
               color: "black",
@@ -418,6 +412,7 @@ return (
       form={form}
       show={showCharacterInfo}
       handleClose={handleCloseCharacterInfo}
+      onShowBackground={handleShowBackground}
     />
     <Skills
       form={form}

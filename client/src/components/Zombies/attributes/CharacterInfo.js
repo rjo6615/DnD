@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import levelup from "../../../images/levelup.png";
 import LevelUp from "./LevelUp"; // Import LevelUp component
-import { SKILLS } from "../skillSchema";
 
-export default function CharacterInfo({ form, show, handleClose }) {
+export default function CharacterInfo({ form, show, handleClose, onShowBackground }) {
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
 
@@ -19,19 +18,6 @@ export default function CharacterInfo({ form, show, handleClose }) {
   const raceLanguages = (form.race?.languages || [])
     .filter((language) => language && !language.includes("Choice"))
     .join(", ");
-
-  const skillLabelMap = SKILLS.reduce((acc, { key, label }) => {
-    acc[key] = label;
-    return acc;
-  }, {});
-
-  const backgroundSkills = Object.entries(form.background?.skills || {})
-    .filter(([, v]) => v?.proficient)
-    .map(([k]) => skillLabelMap[k] || k)
-    .join(", ");
-
-  const backgroundDescription =
-    form.background?.description?.trim() || "No description available";
 
   return (
     <Modal
@@ -70,15 +56,16 @@ export default function CharacterInfo({ form, show, handleClose }) {
               </tr>
               <tr>
                 <th>Background</th>
-                <td>{form.background?.name || ''}</td>
-              </tr>
-              <tr>
-                <th>Description</th>
-                <td>{backgroundDescription}</td>
-              </tr>
-              <tr>
-                <th>Skills</th>
-                <td>{backgroundSkills}</td>
+                <td>
+                  {form.background?.name || ''}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="ms-2 fas fa-eye"
+                    aria-label="Show Background"
+                    onClick={onShowBackground}
+                  ></Button>
+                </td>
               </tr>
               <tr>
                 <th>Languages</th>
