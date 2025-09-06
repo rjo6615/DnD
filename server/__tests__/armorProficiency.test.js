@@ -4,6 +4,7 @@ process.env.CLIENT_ORIGINS = 'http://localhost';
 
 const request = require('supertest');
 const express = require('express');
+const { armors: armorData } = require('../data/armor');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
@@ -145,6 +146,34 @@ describe('Armor proficiency routes', () => {
     expect(res.body.granted).toEqual(
       expect.arrayContaining(['padded', 'leather', 'studded-leather'])
     );
+  });
+
+  test('expands all armor wildcard', async () => {
+    const charDoc = {
+      race: { armor: ['all armors'] },
+      armorProficiencies: {},
+    };
+
+    const findOne = jest.fn().mockResolvedValue(charDoc);
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return { findOne };
+        }
+        if (name === 'Armor') {
+          return { find: () => ({ toArray: jest.fn().mockResolvedValue([]) }) };
+        }
+      },
+    });
+
+    const res = await request(app).get(
+      '/armor-proficiency/507f1f77bcf86cd799439011'
+    );
+
+    const allKeys = Object.keys(armorData).sort();
+    expect(res.status).toBe(200);
+    expect(res.body.allowed.sort()).toEqual(allKeys);
+    expect(res.body.granted.sort()).toEqual(allKeys);
   });
 });
 
