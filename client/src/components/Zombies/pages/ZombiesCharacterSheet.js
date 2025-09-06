@@ -203,7 +203,9 @@ export default function ZombiesCharacterSheet() {
 
   const skillPointsLeft =
     (form.proficiencyPoints || 0) -
-    Object.values(form.skills || {}).filter((s) => s.proficient).length;
+    Object.entries(form.skills || {}).filter(
+      ([key, s]) => s.proficient && !form.race?.skills?.[key]?.proficient
+    ).length;
   const skillsGold = skillPointsLeft > 0 ? 'gold' : '#6C757D';
 
 // ---------------------------------------Feats and bonuses----------------------------------------------
