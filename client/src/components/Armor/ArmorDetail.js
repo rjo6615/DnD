@@ -18,10 +18,7 @@ function ArmorDetail() {
     return <div>Loading...</div>;
   }
 
-  const ac =
-    armor.category === 'shield'
-      ? armor.acBonus
-      : 10 + Number(armor.acBonus);
+  const acBonus = Number(armor.acBonus);
 
   return (
     <div>
@@ -30,7 +27,7 @@ function ArmorDetail() {
         <strong>Category:</strong> {armor.category}
       </p>
       <p>
-        <strong>AC:</strong> {ac}
+        <strong>AC Bonus:</strong> {acBonus}
       </p>
       {armor.maxDex !== null && armor.maxDex !== undefined && (
         <p>

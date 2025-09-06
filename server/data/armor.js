@@ -8,7 +8,7 @@ const armors = {
   padded: {
     name: "Padded",
     category: "light",
-    acBonus: 1,
+    ac: 11,
     maxDex: null,
     strength: null,
     stealth: true,
@@ -19,7 +19,7 @@ const armors = {
   leather: {
     name: "Leather",
     category: "light",
-    acBonus: 1,
+    ac: 11,
     maxDex: null,
     strength: null,
     stealth: false,
@@ -30,7 +30,7 @@ const armors = {
   "studded-leather": {
     name: "Studded Leather",
     category: "light",
-    acBonus: 2,
+    ac: 12,
     maxDex: null,
     strength: null,
     stealth: false,
@@ -41,7 +41,7 @@ const armors = {
   hide: {
     name: "Hide",
     category: "medium",
-    acBonus: 2,
+    ac: 12,
     maxDex: 2,
     strength: null,
     stealth: false,
@@ -52,7 +52,7 @@ const armors = {
   "chain-shirt": {
     name: "Chain Shirt",
     category: "medium",
-    acBonus: 3,
+    ac: 13,
     maxDex: 2,
     strength: null,
     stealth: false,
@@ -63,7 +63,7 @@ const armors = {
   "scale-mail": {
     name: "Scale Mail",
     category: "medium",
-    acBonus: 4,
+    ac: 14,
     maxDex: 2,
     strength: null,
     stealth: true,
@@ -74,7 +74,7 @@ const armors = {
   breastplate: {
     name: "Breastplate",
     category: "medium",
-    acBonus: 4,
+    ac: 14,
     maxDex: 2,
     strength: null,
     stealth: false,
@@ -85,7 +85,7 @@ const armors = {
   "half-plate": {
     name: "Half Plate",
     category: "medium",
-    acBonus: 5,
+    ac: 15,
     maxDex: 2,
     strength: null,
     stealth: true,
@@ -96,7 +96,7 @@ const armors = {
   "ring-mail": {
     name: "Ring Mail",
     category: "heavy",
-    acBonus: 4,
+    ac: 14,
     maxDex: 0,
     strength: null,
     stealth: true,
@@ -107,7 +107,7 @@ const armors = {
   "chain-mail": {
     name: "Chain Mail",
     category: "heavy",
-    acBonus: 6,
+    ac: 16,
     maxDex: 0,
     strength: 13,
     stealth: true,
@@ -118,7 +118,7 @@ const armors = {
   splint: {
     name: "Splint",
     category: "heavy",
-    acBonus: 7,
+    ac: 17,
     maxDex: 0,
     strength: 15,
     stealth: true,
@@ -129,7 +129,7 @@ const armors = {
   plate: {
     name: "Plate",
     category: "heavy",
-    acBonus: 8,
+    ac: 18,
     maxDex: 0,
     strength: 15,
     stealth: true,
@@ -140,7 +140,7 @@ const armors = {
   shield: {
     name: "Shield",
     category: "shield",
-    acBonus: 2,
+    ac: 12,
     maxDex: null,
     strength: null,
     stealth: false,
@@ -153,6 +153,7 @@ const armors = {
 // Default the type of each armor to its key for canonical mapping
 for (const [key, armor] of Object.entries(armors)) {
   armor.type = armor.type || key;
+  armor.acBonus = armor.ac - 10;
 }
 // Derive canonical option lists for client consumption
 const types = Object.keys(armors);

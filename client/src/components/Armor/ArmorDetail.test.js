@@ -31,6 +31,6 @@ test('fetches and displays armor detail', async () => {
   expect(apiFetch).toHaveBeenCalledWith('/armor/chain-mail');
   await waitFor(() => expect(screen.getByText('Chain Mail')).toBeInTheDocument());
   expect(screen.getByText(/heavy/)).toBeInTheDocument();
-  expect(screen.getByText(/16/)).toBeInTheDocument();
+  expect(screen.getByText(/6/)).toBeInTheDocument();
 });
 
