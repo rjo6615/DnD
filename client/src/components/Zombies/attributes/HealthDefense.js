@@ -246,14 +246,20 @@ return (
     }}
   >
     {/* Core Stats */}
-      <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-        <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-        <div><strong>Attack Bonus:</strong> {atkBonus}</div>
-        <div><strong>Proficiency Bonus:</strong> {profBonus}</div>
-        <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
-        <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
-      </div>
+<div style={{ color: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+  {/* First row */}
+  <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+    <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+    <div><strong>Attack Bonus:</strong> {atkBonus}</div>
+    <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
+    <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
+  </div>
 
+  {/* Second row */}
+  <div>
+    <strong>Proficiency Bonus:</strong> {profBonus}
+  </div>
+</div>
       </div>
     </div>
   );
