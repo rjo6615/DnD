@@ -8,6 +8,33 @@
   border-color: var(--bs-primary);
 }
 
+.skill-checkbox .form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-width: 2px;
+}
+
+.skill-checkbox .form-check-input:not(:disabled) {
+  cursor: pointer;
+  border-color: var(--bs-dark);
+}
+
+.skill-checkbox .form-check-input:checked:not(:disabled) {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.skill-checkbox .form-check-input:disabled {
+  cursor: not-allowed;
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.skill-checkbox .form-check-input:disabled:checked {
+  background-color: rgba(var(--bs-primary-rgb), 0.5);
+  border-color: rgba(var(--bs-primary-rgb), 0.5);
+}
+
 .App {
   text-align: center;
 }
