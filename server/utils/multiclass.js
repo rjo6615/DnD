@@ -89,7 +89,11 @@ async function applyMulticlass(characterId, newOccupation) {
   const updatedOccupation = Array.isArray(character.occupation)
     ? [...character.occupation, occEntry]
     : [occEntry];
-  const allowedSkills = collectAllowedSkills(updatedOccupation);
+  const allowedSkills = collectAllowedSkills(
+    updatedOccupation,
+    character.feat,
+    character.race,
+  );
 
   await characters.updateOne(
     { _id },
