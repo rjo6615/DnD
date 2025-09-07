@@ -134,6 +134,18 @@ const updateDamageValueWithAnimation = (newValue) => {
 
 const [pulse, setPulse] = useState(false);
 
+// Allow other components to display values in the damage circle
+useEffect(() => {
+  const handler = (e) => {
+    const value = Number(e.detail);
+    if (!Number.isNaN(value)) {
+      updateDamageValueWithAnimation(value);
+    }
+  };
+  window.addEventListener('damage-roll', handler);
+  return () => window.removeEventListener('damage-roll', handler);
+}, []);
+
 useEffect(() => {
   if (!loading) {
     setPulse(true);
