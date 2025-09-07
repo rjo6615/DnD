@@ -340,14 +340,31 @@ test('druid spells known uses wisdom modifier', async () => {
   await waitFor(() => expect(label.nextSibling).toHaveTextContent('4'));
 });
 
-test('warlock is not treated as a spellcasting class', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+test('warlock is treated as a spellcasting class using charisma', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 5 }) });
   render(
     <SpellSelector
-      form={{ occupation: [{ Name: 'Warlock', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [{ Name: 'Warlock', Level: 3, casterProgression: 'full' }],
+        cha: 14,
+        wis: 10,
+        spells: [],
+        item: [],
+        feat: [],
+      }}
       show={true}
       handleClose={() => {}}
     />
   );
-  await screen.findByText(/no spellcasting classes available/i);
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
+  expect(apiFetch.mock.calls[1][0]).toBe(
+    '/classes/warlock/features/3?abilityMod=2'
+  );
+  const select = await screen.findByLabelText('Level');
+  const options = Array.from(select.options).map((o) => o.value);
+  expect(options).toContain('0');
+  const label = await screen.findByText('Points Left:');
+  await waitFor(() => expect(label.nextSibling).toHaveTextContent('5'));
 });
