@@ -112,7 +112,7 @@ module.exports = (router) => {
       }
 
       const proficiencyAfterUpdate =
-        proficient || alreadyProficient || raceProficient || backgroundProficient;
+        proficient || raceProficient || backgroundProficient;
       if (expertise && !proficiencyAfterUpdate) {
         return res
           .status(400)
@@ -149,12 +149,20 @@ module.exports = (router) => {
 
       const update = {
         $set: {
-          [`skills.${skill}`]: { proficient: proficiencyAfterUpdate, expertise },
           proficiencyBonus: profBonus,
           allowedSkills,
           allowedExpertise,
         },
       };
+
+      if (proficiencyAfterUpdate || expertise) {
+        update.$set[`skills.${skill}`] = {
+          proficient: proficiencyAfterUpdate,
+          expertise,
+        };
+      } else {
+        update.$unset = { [`skills.${skill}`]: '' };
+      }
 
       const result = await db_connect
         .collection('Characters')
