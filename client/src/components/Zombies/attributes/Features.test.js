@@ -7,13 +7,24 @@ jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
 
 test('renders features and opens modal with description', async () => {
-  apiFetch.mockResolvedValue({
-    ok: true,
-    json: async () => ({
-      features: [
-        { name: 'Action Surge', description: 'You can take one additional action.' }
-      ]
-    })
+  apiFetch.mockImplementation((url) => {
+    if (url.includes('/2')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          features: [
+            {
+              name: 'Action Surge',
+              description: 'You can take one additional action.'
+            }
+          ]
+        })
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({ features: [] })
+    });
   });
 
   const form = { occupation: [{ Name: 'Fighter', Level: 2 }] };
