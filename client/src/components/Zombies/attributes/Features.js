@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Card, Table, Button } from 'react-bootstrap';
+import { Modal, Card, Table, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 
@@ -7,10 +7,14 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!showFeatures) return;
     async function fetchFeatures() {
+      setLoading(true);
+      setError(null);
       const allFeatures = [];
       try {
         for (const occ of form.occupation || []) {
@@ -26,8 +30,11 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
+        setError('Unable to load class features');
+      } finally {
+        setFeatures(allFeatures);
+        setLoading(false);
       }
-      setFeatures(allFeatures);
     }
     fetchFeatures();
   }, [form.occupation, showFeatures]);
@@ -48,6 +55,9 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
               <Card.Title className="modal-title">Features</Card.Title>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              {error && (
+                <div className="text-danger mb-2">{error}</div>
+              )}
               <Table striped bordered hover size="sm" className="modern-table">
                 <thead>
                   <tr>
@@ -57,23 +67,37 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {features.map((feat, idx) => (
-                    <tr key={`${feat.class}-${idx}`}>
-                      <td>{feat.class}</td>
-                      <td>{feat.name}</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          className="action-btn fa-regular fa-eye"
-                          aria-label="view feature"
-                          onClick={() => {
-                            setModalFeature(feat);
-                            setShowModal(true);
-                          }}
-                        ></Button>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="3" className="text-center">
+                        <Spinner animation="border" size="sm" role="status" />
                       </td>
                     </tr>
-                  ))}
+                  ) : features.length > 0 ? (
+                    features.map((feat, idx) => (
+                      <tr key={`${feat.class}-${idx}`}>
+                        <td>{feat.class}</td>
+                        <td>{feat.name}</td>
+                        <td>
+                          <Button
+                            size="sm"
+                            className="action-btn fa-regular fa-eye"
+                            aria-label="view feature"
+                            onClick={() => {
+                              setModalFeature(feat);
+                              setShowModal(true);
+                            }}
+                          ></Button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : !error ? (
+                    <tr>
+                      <td colSpan="3" className="text-center">
+                        No features found
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </Table>
             </Card.Body>
