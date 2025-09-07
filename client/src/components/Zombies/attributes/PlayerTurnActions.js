@@ -318,9 +318,11 @@ const showSparklesEffect = () => {
                               handleWeaponAttack(weapon);
                               handleCloseAttack();
                             }}
-                            size="sm"
-                            className="action-btn fa-solid fa-plus"
-                          ></Button>
+                            variant="link"
+                            aria-label="roll"
+                          >
+                            <i className="fa-solid fa-dice-d20"></i>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -357,10 +359,12 @@ const showSparklesEffect = () => {
                               onClick={() => {
                                 handleSpellsButtonClick(spell, isGold);
                                 handleCloseAttack();
-                              }}
-                              size="sm"
-                              className="action-btn fa-solid fa-plus"
-                            ></Button>
+                              }} 
+                              variant="link"
+                              aria-label="roll"                 
+                            >
+                              <i className="fa-solid fa-dice-d20"></i>
+                            </Button>
                           </td>
                         </tr>
                       ))}
