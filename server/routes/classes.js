@@ -19,8 +19,8 @@ module.exports = (router) => {
     const spellSlots = cls.spellSlots?.[level];
     let spellsKnown;
     if (typeof cls.spellsKnown === 'function') {
-      const chaMod = Number(req.query.chaMod) || 0;
-      spellsKnown = cls.spellsKnown(level, chaMod);
+      const abilityMod = Number(req.query.abilityMod) || 0;
+      spellsKnown = cls.spellsKnown(level, abilityMod);
     } else {
       spellsKnown = cls.spellsKnown?.[level];
     }
