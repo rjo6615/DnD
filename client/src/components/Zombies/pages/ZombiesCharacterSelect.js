@@ -265,6 +265,15 @@ function bigMaff() {
         updateForm({ skills: { ...(form.skills || {}), ...chosenRace.skills } });
       }
   }
+  // Background Randomizer
+  const backgroundKeys = Object.keys(backgrounds);
+  if (backgroundKeys.length) {
+    const bg = JSON.parse(JSON.stringify(
+      backgrounds[backgroundKeys[Math.floor(Math.random() * backgroundKeys.length)]]
+    ));
+    const updatedSkills = { ...(form.skills || {}), ...(bg.skills || {}) };
+    updateForm({ background: bg, skills: updatedSkills });
+  }
 
   // Age Randomizer
   let newAge = Math.round(Math.random() * (50 - 19)) + 19;
