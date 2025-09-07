@@ -49,7 +49,15 @@ module.exports = (router) => {
         return res.status(400).json({ message: result.message });
       }
       logger.info('Character multiclass applied');
-      res.json(result);
+      res.json({
+        allowed: true,
+        occupation: result.occupation,
+        health: result.health,
+        allowedSkills: result.allowedSkills,
+        allowedExpertise: result.allowedExpertise,
+        proficiencyPoints: result.proficiencyPoints,
+        expertisePoints: result.expertisePoints,
+      });
     } catch (error) {
       logger.error(error);
       next(error);
