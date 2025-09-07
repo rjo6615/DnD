@@ -14,7 +14,8 @@ export function rollSkill(bonus = 0) {
   } else if (d20 === 1) {
     window.dispatchEvent(new CustomEvent('critical-failure', { detail: 'fumble' }));
   }
-  return d20 + bonus;
+  const result = d20 + bonus;
+  return { result, d20 };
 }
 
 export default function Skills({
@@ -226,8 +227,12 @@ export default function Skills({
       itemTotals[skillKey] +
       featTotals[skillKey] +
       raceTotals[skillKey];
-    const result = rollSkill(bonus);
-    window.dispatchEvent(new CustomEvent('damage-roll', { detail: result }));
+    const { result, d20 } = rollSkill(bonus);
+    window.dispatchEvent(
+      new CustomEvent('damage-roll', {
+        detail: { value: result, critical: d20 === 20, fumble: d20 === 1 },
+      })
+    );
 
     handleCloseSkill?.();
   };
