@@ -57,6 +57,16 @@ const CANTRIP_TABLE = {
   20: 5,
 };
 
+const SPELLCASTING_CLASSES = {
+  bard: 'full',
+  cleric: 'full',
+  druid: 'full',
+  sorcerer: 'full',
+  wizard: 'full',
+  paladin: 'half',
+  ranger: 'half',
+};
+
 export default function SpellSelector({
   form,
   show,
@@ -80,15 +90,14 @@ export default function SpellSelector({
       .map((o) => {
         const name = o.Name || o.Occupation;
         const level = Number(o.Level) || 0;
-        const casterProgression = o.casterProgression || o.CasterProgression || 'full';
-        const effectiveLevel =
-          casterProgression === 'half'
-            ? level < 2
-              ? 0
-              : Math.ceil(level / 2)
-            : casterProgression === 'full'
-            ? level
-            : 0;
+        const key = (name || '').toLowerCase();
+        const casterProgression = SPELLCASTING_CLASSES[key] || 'none';
+        let effectiveLevel = 0;
+        if (casterProgression === 'full') {
+          effectiveLevel = level;
+        } else if (casterProgression === 'half') {
+          effectiveLevel = level === 1 ? 0 : Math.ceil(level / 2);
+        }
         return { name, level, casterProgression, effectiveLevel };
       })
       .filter((o) => o.effectiveLevel >= 1);
@@ -246,7 +255,9 @@ export default function SpellSelector({
           </Card.Header>
           <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
             {error && <div className="text-danger mb-2">{error}</div>}
-            {classesInfo.length === 1 ? (
+            {classesInfo.length === 0 ? (
+              <div className="text-light">No spellcasting classes available.</div>
+            ) : classesInfo.length === 1 ? (
               (() => {
                 const cls = classesInfo[0].name;
                 return (

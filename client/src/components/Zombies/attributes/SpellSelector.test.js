@@ -40,7 +40,10 @@ test('filters spells by level', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
   render(
     <SpellSelector
-      form={{ occupation: [{ Name: 'Wizard', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
       show={true}
       handleClose={() => {}}
     />
@@ -58,7 +61,10 @@ test('saves selected spells', async () => {
   const onChange = jest.fn();
   render(
     <SpellSelector
-      form={{ occupation: [{ Name: 'Wizard', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
       show={true}
       handleClose={() => {}}
       onSpellsChange={onChange}
@@ -108,7 +114,12 @@ test('uses Occupation when Name is missing', async () => {
   const onChange = jest.fn();
   render(
     <SpellSelector
-      form={{ occupation: [{ Occupation: 'Wizard', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [
+          { Occupation: 'Wizard', Level: 5, casterProgression: 'full' },
+        ],
+        spells: [],
+      }}
       show={true}
       handleClose={() => {}}
       onSpellsChange={onChange}
@@ -156,8 +167,8 @@ test('renders tabs for multiple classes', async () => {
     <SpellSelector
       form={{
         occupation: [
-          { Name: 'Wizard', Level: 5 },
-          { Name: 'Cleric', Level: 5 },
+          { Name: 'Wizard', Level: 5, casterProgression: 'full' },
+          { Name: 'Cleric', Level: 5, casterProgression: 'full' },
         ],
         spells: [],
       }}
@@ -228,4 +239,19 @@ test('level 1 half-caster has no spell slots', async () => {
   await waitFor(() => {
     expect(screen.queryByLabelText('Level')).toBeNull();
   });
+  expect(
+    screen.getByText(/no spellcasting classes available/i)
+  ).toBeInTheDocument();
+});
+
+test('warlock is not treated as a spellcasting class', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  render(
+    <SpellSelector
+      form={{ occupation: [{ Name: 'Warlock', Level: 5 }], spells: [] }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  await screen.findByText(/no spellcasting classes available/i);
 });
