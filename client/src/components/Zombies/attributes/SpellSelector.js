@@ -62,6 +62,7 @@ const SPELLCASTING_CLASSES = {
   cleric: 'full',
   druid: 'full',
   sorcerer: 'full',
+  warlock: 'full',
   wizard: 'full',
   paladin: 'half',
   ranger: 'half',
