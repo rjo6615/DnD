@@ -22,20 +22,21 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
           const displayName = occ.Name || occ.Occupation || occ.name || '';
           const className = displayName.toLowerCase();
           if (!className) continue;
-          const res = await apiFetch(
-            `/classes/${className}/features/${occ.Level || 1}`
-          );
-          if (!res.ok) continue;
-          const data = await res.json();
-          (data.features || []).forEach((f) =>
-            allFeatures.push({ ...f, class: displayName })
-          );
+          for (let lvl = 1; lvl <= (occ.Level || 1); lvl++) {
+            const res = await apiFetch(`/classes/${className}/features/${lvl}`);
+            if (!res.ok) continue;
+            const data = await res.json();
+            (data.features || []).forEach((f) =>
+              allFeatures.push({ ...f, class: displayName, level: lvl })
+            );
+          }
         }
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
         setError('Unable to load class features');
       } finally {
+        allFeatures.sort((a, b) => (a.level || 0) - (b.level || 0));
         setFeatures(allFeatures);
         setLoading(false);
       }
@@ -66,6 +67,7 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                 <thead>
                   <tr>
                     <th>Class</th>
+                    <th>Level</th>
                     <th>Feature</th>
                     <th>View</th>
                   </tr>
@@ -73,14 +75,15 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="3" className="text-center">
+                      <td colSpan="4" className="text-center">
                         <Spinner animation="border" size="sm" role="status" />
                       </td>
                     </tr>
                   ) : features.length > 0 ? (
                     features.map((feat, idx) => (
-                      <tr key={`${feat.class}-${idx}`}>
+                      <tr key={`${feat.class}-${feat.level}-${idx}`}>
                         <td>{feat.class}</td>
+                        <td>{feat.level}</td>
                         <td>{feat.name}</td>
                         <td>
                           <Button
@@ -97,7 +100,7 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                     ))
                   ) : !error ? (
                     <tr>
-                      <td colSpan="3" className="text-center">
+                      <td colSpan="4" className="text-center">
                         No features found
                       </td>
                     </tr>
