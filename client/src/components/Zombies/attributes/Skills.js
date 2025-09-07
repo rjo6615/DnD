@@ -206,7 +206,7 @@ export default function Skills({
 
   const toggleExpertise = (skill) => {
     const current = skills[skill] || { proficient: false, expertise: false };
-    if (!current.proficient) return;
+    if (!(current.proficient || lockedProficiencies.has(skill))) return;
     if (!selectableExpertise.has(skill)) return;
     if (!current.expertise && expertisePointsLeft <= 0) return;
     const updated = {
@@ -298,7 +298,9 @@ export default function Skills({
                   const penalty = armorPenalty
                     ? armorPenalty * totalCheckPenalty
                     : 0;
-                  const multiplier = expertise ? 2 : proficient ? 1 : 0;
+                  const isProficient =
+                    proficient || lockedProficiencies.has(key);
+                  const multiplier = expertise ? 2 : isProficient ? 1 : 0;
                   const total =
                     modMap[ability] +
                     profBonus * multiplier +
@@ -338,7 +340,7 @@ export default function Skills({
                           type="checkbox"
                           checked={expertise}
                           disabled={
-                            !proficient ||
+                            !isProficient ||
                             !selectableExpertise.has(key) ||
                             lockedExpertise.has(key) ||
                             (!expertise && expertisePointsLeft <= 0)
@@ -349,7 +351,7 @@ export default function Skills({
                       <td>
                         <Button
                           onClick={() =>
-                            handleRoll(key, ability, proficient, expertise)
+                            handleRoll(key, ability, isProficient, expertise)
                           }
                           variant="link"
                           aria-label="roll"
