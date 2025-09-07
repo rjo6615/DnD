@@ -19,18 +19,10 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import SpellSlotTabs from "../attributes/SpellSlotTabs";
+import { SPELLCASTING_CLASSES } from "../attributes/spellUtils";
 
 const HEADER_PADDING = 16;
-const SPELLCASTING_CLASSES = {
-  bard: 'full',
-  cleric: 'full',
-  druid: 'full',
-  sorcerer: 'full',
-  wizard: 'full',
-  warlock: 'full',
-  paladin: 'half',
-  ranger: 'half',
-};
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -48,6 +40,7 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
+  const [spellSlotsUsed, setSpellSlotsUsed] = useState({});
 
   const playerTurnActionsRef = useRef(null);
 
@@ -421,6 +414,13 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
+    {hasSpellcasting && (
+      <SpellSlotTabs
+        occupation={form?.occupation}
+        usedSlots={spellSlotsUsed}
+        setUsedSlots={setSpellSlotsUsed}
+      />
+    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
