@@ -123,10 +123,27 @@ module.exports = (router) => {
         return res.status(404).json({ message: 'Character not found' });
       }
 
+      const combinedFeats = Array.isArray(newFeats)
+        ? newFeats.map((ft) => {
+            const existing = character.feat?.find(
+              (old) => old.featName === ft.featName
+            );
+            if (existing?.skills && !ft.skills) {
+              return { ...ft, skills: existing.skills };
+            }
+            return ft;
+          })
+        : [];
+
       const prevFeatSkills = extractFeatSkills(character.feat);
-      const newFeatSkills = extractFeatSkills(newFeats);
+      const newFeatSkills = extractFeatSkills(combinedFeats);
       const allowedSkillsSet = new Set(
-        collectAllowedSkills(character.occupation, newFeats)
+        collectAllowedSkills(
+          character.occupation,
+          combinedFeats,
+          character.race,
+          character.background
+        )
       );
 
       const updatedSkills = { ...(character.skills || {}) };
@@ -153,11 +170,18 @@ module.exports = (router) => {
       const featPointCount = Object.values(newFeatSkills).filter(
         (info) => info.proficient
       ).length;
-      const newProficiencyPoints = occupationPoints + featPointCount;
+      const racePointCount = Object.values(
+        character.race?.skills || {}
+      ).filter((info) => info?.proficient).length;
+      const backgroundPointCount = Object.values(
+        character.background?.skills || {}
+      ).filter((info) => info?.proficient).length;
+      const newProficiencyPoints =
+        occupationPoints + featPointCount + racePointCount + backgroundPointCount;
 
       await db_connect.collection('Characters').updateOne(id, {
         $set: {
-          feat: newFeats,
+          feat: combinedFeats,
           skills: updatedSkills,
           allowedSkills: Array.from(allowedSkillsSet),
           proficiencyPoints: newProficiencyPoints,

@@ -4,6 +4,7 @@ process.env.CLIENT_ORIGINS = 'http://localhost';
 
 const request = require('supertest');
 const express = require('express');
+const classSpellLists = require('../data/classSpellLists');
 
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
@@ -53,5 +54,14 @@ describe('Spells routes', () => {
     const res = await request(app).get('/spells/fireball');
     expect(res.status).toBe(200);
     expect(res.body.damage).toBe('8d6');
+  });
+
+  test('GET /spells?class=bard returns only bard spells', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app).get('/spells').query({ class: 'bard' });
+    expect(res.status).toBe(200);
+    const keys = Object.keys(res.body);
+    expect(keys).toEqual(classSpellLists.bard);
+    expect(keys).not.toContain('fireball');
   });
 });

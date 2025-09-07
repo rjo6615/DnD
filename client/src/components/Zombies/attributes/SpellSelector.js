@@ -65,29 +65,39 @@ export default function SpellSelector({
 }) {
   const params = useParams();
 
-  const getAvailableLevels = useCallback((classLevel) => {
-    const slotRow = SLOT_TABLE[classLevel] || [];
+  const getAvailableLevels = useCallback((effectiveLevel) => {
+    const slotRow = SLOT_TABLE[effectiveLevel] || [];
     const options = [];
-    if ((CANTRIP_TABLE[classLevel] || 0) > 0) options.push(0);
+    if ((CANTRIP_TABLE[effectiveLevel] || 0) > 0) options.push(0);
     slotRow.forEach((slots, lvl) => {
       if (lvl > 0 && slots > 0) options.push(lvl);
     });
     return options;
   }, []);
 
-  const classesInfo = useMemo(
-    () =>
-      (form.occupation || []).map((o) => ({
-        name: o.Name || o.Occupation,
-        level: Number(o.Level) || 0,
-      })),
-    [form.occupation]
-  );
+  const classesInfo = useMemo(() => {
+    return (form.occupation || [])
+      .map((o) => {
+        const name = o.Name || o.Occupation;
+        const level = Number(o.Level) || 0;
+        const casterProgression = o.casterProgression || o.CasterProgression || 'full';
+        const effectiveLevel =
+          casterProgression === 'half'
+            ? level < 2
+              ? 0
+              : Math.ceil(level / 2)
+            : casterProgression === 'full'
+            ? level
+            : 0;
+        return { name, level, casterProgression, effectiveLevel };
+      })
+      .filter((o) => o.effectiveLevel >= 1);
+  }, [form.occupation]);
 
   const levelOptions = useMemo(
     () =>
-      classesInfo.reduce((acc, { name, level }) => {
-        acc[name] = getAvailableLevels(level);
+      classesInfo.reduce((acc, { name, effectiveLevel }) => {
+        acc[name] = getAvailableLevels(effectiveLevel);
         return acc;
       }, {}),
     [classesInfo, getAvailableLevels]
@@ -143,12 +153,12 @@ export default function SpellSelector({
 
   useEffect(() => {
     const newPoints = {};
-    classesInfo.forEach(({ name, level }) => {
-      const slotRow = SLOT_TABLE[level] || [];
+    classesInfo.forEach(({ name, effectiveLevel }) => {
+      const slotRow = SLOT_TABLE[effectiveLevel] || [];
       const selectedLevel = Number(selectedLevels[name]);
       const totalSlots =
         selectedLevel === 0
-          ? CANTRIP_TABLE[level] || 0
+          ? CANTRIP_TABLE[effectiveLevel] || 0
           : slotRow[selectedLevel] || 0;
       const count = selectedSpells.reduce((sum, spellName) => {
         const info = Object.values(allSpells).find((s) => s.name === spellName);
@@ -175,12 +185,12 @@ export default function SpellSelector({
 
   async function saveSpells(spells = selectedSpells) {
     try {
-      const currentPoints = classesInfo.reduce((sum, { name, level }) => {
-        const slotRow = SLOT_TABLE[level] || [];
+      const currentPoints = classesInfo.reduce((sum, { name, effectiveLevel }) => {
+        const slotRow = SLOT_TABLE[effectiveLevel] || [];
         const selectedLevel = Number(selectedLevels[name]);
         const totalSlots =
           selectedLevel === 0
-            ? CANTRIP_TABLE[level] || 0
+            ? CANTRIP_TABLE[effectiveLevel] || 0
             : slotRow[selectedLevel] || 0;
         const count = spells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);

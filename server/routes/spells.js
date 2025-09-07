@@ -1,5 +1,6 @@
 const express = require('express');
 const spells = require('../data/spells');
+const classSpellLists = require('../data/classSpellLists');
 
 // Extract a basic damage dice string (e.g., "8d6" or "1d8+2") from spell descriptions
 function extractDamage(description = '') {
@@ -18,7 +19,15 @@ Object.values(spells).forEach((spell) => {
 module.exports = (router) => {
   const spellRouter = express.Router();
 
-  spellRouter.get('/', (_req, res) => {
+  spellRouter.get('/', (req, res) => {
+    const className = req.query.class?.toLowerCase();
+    if (className && classSpellLists[className]) {
+      const allowed = classSpellLists[className];
+      const filtered = Object.fromEntries(
+        allowed.map(id => [id, spells[id]]).filter(([, spell]) => spell)
+      );
+      return res.json(filtered);
+    }
     res.json(spells);
   });
 

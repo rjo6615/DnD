@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 
 import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import SkillInfoModal from './SkillInfoModal';
 
 export default function Skills({
   form,
@@ -18,10 +19,13 @@ export default function Skills({
   chaMod,
   wisMod,
   onSkillsChange,
+  onRollResult,
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
   const [error, setError] = useState('');
+  const [showSkillInfo, setShowSkillInfo] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState(null);
   const raceProficiencies = useMemo(() => {
     return new Set(
       Object.entries(form.race?.skills || {})
@@ -29,22 +33,67 @@ export default function Skills({
         .map(([key]) => key)
     );
   }, [form.race?.skills]);
-  const currentProficiencyCount = Object.entries(form.skills || {}).filter(
-    ([key, s]) => s.proficient && !raceProficiencies.has(key)
+  const backgroundProficiencies = useMemo(() => {
+    return new Set(
+      Object.entries(form.background?.skills || {})
+        .filter(([, s]) => s?.proficient)
+        .map(([key]) => key)
+    );
+  }, [form.background?.skills]);
+  const raceExpertise = useMemo(() => {
+    return new Set(
+      Object.entries(form.race?.skills || {})
+        .filter(([, s]) => s?.expertise)
+        .map(([key]) => key)
+    );
+  }, [form.race?.skills]);
+  const backgroundExpertise = useMemo(() => {
+    return new Set(
+      Object.entries(form.background?.skills || {})
+        .filter(([, s]) => s?.expertise)
+        .map(([key]) => key)
+    );
+  }, [form.background?.skills]);
+  const lockedExpertise = useMemo(() => {
+    return new Set([...raceExpertise, ...backgroundExpertise]);
+  }, [raceExpertise, backgroundExpertise]);
+  const lockedProficiencies = useMemo(() => {
+    return new Set([...raceProficiencies, ...backgroundProficiencies]);
+  }, [raceProficiencies, backgroundProficiencies]);
+  const currentProficiencyCount = Object.values(form.skills || {}).filter(
+    (s) => s.proficient
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
     Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
   );
+  const currentExpertiseCount = Object.values(form.skills || {}).filter(
+    (s) => s.expertise
+  ).length;
+  const [expertisePointsLeft, setExpertisePointsLeft] = useState(
+    Math.max(0, (form.expertisePoints || 0) - currentExpertiseCount)
+  );
 
   useEffect(() => {
-    const count = Object.entries(form.skills || {}).filter(
-      ([key, s]) => s.proficient && !raceProficiencies.has(key)
+    const count = Object.values(form.skills || {}).filter(
+      (s) => s.proficient
     ).length;
     setSkills(form.skills || {});
     setProficiencyPointsLeft(
       Math.max(0, (form.proficiencyPoints || 0) - count)
     );
-  }, [form.skills, form.proficiencyPoints, raceProficiencies]);
+    const expertiseUsed = Object.values(form.skills || {}).filter(
+      (s) => s.expertise
+    ).length;
+    setExpertisePointsLeft(
+      Math.max(0, (form.expertisePoints || 0) - expertiseUsed)
+    );
+  }, [
+    form.skills,
+    form.proficiencyPoints,
+    form.expertisePoints,
+    lockedProficiencies,
+    lockedExpertise,
+  ]);
 
   if (!form) {
     return <div>Loading...</div>;
@@ -95,6 +144,7 @@ export default function Skills({
   const profBonus = proficiencyBonus(totalLevel);
 
   const selectableSkills = new Set(form.allowedSkills || []);
+  const selectableExpertise = new Set(form.allowedExpertise || []);
 
   async function updateSkill(skill, updated) {
     try {
@@ -113,8 +163,8 @@ export default function Skills({
           ...prev,
           [skill]: { proficient: data.proficient, expertise: data.expertise },
         };
-        const proficientCount = Object.entries(newSkills).filter(
-          ([key, s]) => s.proficient && !raceProficiencies.has(key)
+        const proficientCount = Object.values(newSkills).filter(
+          (s) => s.proficient
         ).length;
         setProficiencyPointsLeft(
           Math.max(0, (form.proficiencyPoints || 0) - proficientCount)
@@ -129,7 +179,7 @@ export default function Skills({
   }
 
   const toggleProficient = (skill) => {
-    if (raceProficiencies.has(skill)) return;
+    if (lockedProficiencies.has(skill)) return;
     if (!selectableSkills.has(skill)) return;
     const current = skills[skill] || { proficient: false, expertise: false };
     if (!current.proficient && proficiencyPointsLeft <= 0) return;
@@ -145,105 +195,174 @@ export default function Skills({
 
   const toggleExpertise = (skill) => {
     const current = skills[skill] || { proficient: false, expertise: false };
+    if (!current.proficient) return;
+    if (!selectableExpertise.has(skill)) return;
+    if (!current.expertise && expertisePointsLeft <= 0) return;
     const updated = {
-      proficient: true,
+      proficient: current.proficient,
       expertise: !current.expertise,
     };
     updateSkill(skill, updated);
   };
 
+  const handleRoll = (skillKey, ability, proficient, expertise) => {
+    const d20 = Math.floor(Math.random() * 20) + 1;
+    const skill = SKILLS.find((s) => s.key === skillKey);
+    const armorPenalty = skill?.armorPenalty || 0;
+    const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
+    const bonus =
+      modMap[ability] +
+      profBonus * (expertise ? 2 : proficient ? 1 : 0) +
+      penalty +
+      itemTotals[skillKey] +
+      featTotals[skillKey] +
+      raceTotals[skillKey];
+    const result = d20 + bonus;
+    window.dispatchEvent(new CustomEvent('damage-roll', { detail: result }));
+
+    handleCloseSkill?.();
+  };
+
+  const handleView = (skill) => {
+    setSelectedSkill(skill);
+    setShowSkillInfo(true);
+  };
+
+  const handleCloseSkillInfo = () => {
+    setShowSkillInfo(false);
+  };
+
   return (
-    <Modal
-      className="dnd-modal modern-modal"
-      show={showSkill}
-      onHide={handleCloseSkill}
-      size="lg"
-      scrollable
-      centered
-    >
-      <Card className="modern-card text-center">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">Skills</Card.Title>
-        </Card.Header>
-        <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-          {error && (
-            <Alert variant="danger" onClose={() => setError('')} dismissible>
-              {error}
-            </Alert>
-          )}
-          <div className="points-container" style={{ display: 'flex' }}>
-            <span className="points-label text-light">Points Left:</span>
-            <span className="points-value">{proficiencyPointsLeft}</span>
-          </div>
-          <Table striped bordered hover size="sm" className="modern-table">
-            <thead>
-              <tr>
-                <th>Skill</th>
-                <th>Total</th>
-                <th>Mod</th>
-                <th>Prof</th>
-                <th>Exp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SKILLS.map(({
-                key,
-                label,
-                ability,
-                armorPenalty = 0,
-              }) => {
-                const { proficient = false, expertise = false } =
-                  skills[key] || {};
-                const penalty = armorPenalty
-                  ? armorPenalty * totalCheckPenalty
-                  : 0;
-                const multiplier = expertise ? 2 : proficient ? 1 : 0;
-                const total =
-                  modMap[ability] +
-                  profBonus * multiplier +
-                  penalty +
-                  itemTotals[key] +
-                  featTotals[key] +
-                  raceTotals[key];
-                const isSelectable = selectableSkills.has(key);
-                const isRaceSkill = raceProficiencies.has(key);
-                return (
-                  <tr key={key}>
-                    <td>{label}</td>
-                    <td>{total}</td>
-                    <td>{modMap[ability]}</td>
-                    <td>
-                      <Form.Check
-                        className="skill-checkbox"
-                        type="checkbox"
-                        checked={proficient}
-                        disabled={!isSelectable || isRaceSkill}
-                        onChange={() => toggleProficient(key)}
-                      />
-                    </td>
-                    <td>
-                      <Form.Check
-                        className="skill-checkbox"
-                        type="checkbox"
-                        checked={expertise}
-                        disabled={!proficient}
-                        onChange={() => toggleExpertise(key)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </Card.Body>
-        <Card.Footer className="modal-footer d-flex">
-          <Button
-            onClick={() => handleCloseSkill()}
-            className="action-btn close-btn flex-fill"
-          >Close</Button>
-        </Card.Footer>
-      </Card>
-    </Modal>
+    <>
+      <Modal
+        className="dnd-modal modern-modal"
+        show={showSkill}
+        onHide={handleCloseSkill}
+        size="lg"
+        scrollable
+        centered
+      >
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Skills</Card.Title>
+          </Card.Header>
+          <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            {error && (
+              <Alert variant="danger" onClose={() => setError('')} dismissible>
+                {error}
+              </Alert>
+            )}
+            <div className="points-container" style={{ display: 'flex' }}>
+              <span className="points-label text-light">Points Left:</span>
+              <span className="points-value">{proficiencyPointsLeft}</span>
+            </div>
+            <div className="points-container" style={{ display: 'flex' }}>
+              <span className="points-label text-light">Expertise Left:</span>
+              <span className="points-value">{expertisePointsLeft}</span>
+            </div>
+            <Table striped bordered hover size="sm" className="modern-table">
+              <thead>
+                <tr>
+                  <th>Skill</th>
+                  <th>View</th>
+                  <th>Total</th>
+                  <th>Mod</th>
+                  <th>Prof</th>
+                  <th>Exp</th>
+                  <th>Roll</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SKILLS.map(({
+                  key,
+                  label,
+                  ability,
+                  armorPenalty = 0,
+                }) => {
+                  const { proficient = false, expertise = false } =
+                    skills[key] || {};
+                  const penalty = armorPenalty
+                    ? armorPenalty * totalCheckPenalty
+                    : 0;
+                  const multiplier = expertise ? 2 : proficient ? 1 : 0;
+                  const total =
+                    modMap[ability] +
+                    profBonus * multiplier +
+                    penalty +
+                    itemTotals[key] +
+                    featTotals[key] +
+                    raceTotals[key];
+                  const isSelectable = selectableSkills.has(key);
+                  const isRaceSkill = raceProficiencies.has(key);
+                  const isBackgroundSkill = backgroundProficiencies.has(key);
+                  return (
+                    <tr key={key}>
+                      <td>{label}</td>
+                      <td>
+                        <Button
+                          onClick={() => handleView(key)}
+                          variant="link"
+                          aria-label="view"
+                        >
+                          <i className="fa-solid fa-eye"></i>
+                        </Button>
+                      </td>
+                      <td>{total}</td>
+                      <td>{modMap[ability]}</td>
+                      <td>
+                        <Form.Check
+                          className="skill-checkbox"
+                          type="checkbox"
+                          checked={proficient}
+                          disabled={!isSelectable || isRaceSkill || isBackgroundSkill}
+                          onChange={() => toggleProficient(key)}
+                        />
+                      </td>
+                      <td>
+                        <Form.Check
+                          className="skill-checkbox"
+                          type="checkbox"
+                          checked={expertise}
+                          disabled={
+                            !proficient ||
+                            !selectableExpertise.has(key) ||
+                            lockedExpertise.has(key) ||
+                            (!expertise && expertisePointsLeft <= 0)
+                          }
+                          onChange={() => toggleExpertise(key)}
+                        />
+                      </td>
+                      <td>
+                        <Button
+                          onClick={() =>
+                            handleRoll(key, ability, proficient, expertise)
+                          }
+                          variant="link"
+                          aria-label="roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </Card.Body>
+          <Card.Footer className="modal-footer d-flex">
+            <Button
+              onClick={() => handleCloseSkill()}
+              className="action-btn close-btn flex-fill"
+            >Close</Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
+      <SkillInfoModal
+        show={showSkillInfo}
+        onHide={handleCloseSkillInfo}
+        skillKey={selectedSkill}
+      />
+    </>
   );
 }
 

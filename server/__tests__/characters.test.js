@@ -9,6 +9,7 @@ jest.mock('../db/conn');
 const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const charactersRouter = require('../routes');
+const classes = require('../data/classes');
 
 const app = express();
 app.use(express.json());
@@ -406,12 +407,14 @@ describe('Character routes', () => {
           occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
+          expertisePoints: 2,
         }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
             occupation: [{ Level: 1, Occupation: 'Rogue' }],
             skills: { acrobatics: { proficient: true, expertise: true } },
+            expertisePoints: 2,
           },
         }),
       }),
@@ -643,6 +646,7 @@ describe('Character routes', () => {
     const occ = captured.update.$set.occupation[0];
     expect(occ.Occupation).toBe('Fighter');
     expect(occ.skills.acrobatics).toEqual({ proficient: true, expertise: false });
+    expect(occ.casterProgression).toBe(classes.fighter.casterProgression);
     expect(occ.proficiencyPoints).toBe(0);
     expect(captured.update.$set.allowedSkills).toEqual([
       'acrobatics',
@@ -655,6 +659,7 @@ describe('Character routes', () => {
       'survival',
     ]);
     expect(res.body.occupation[0].Occupation).toBe('Fighter');
+    expect(res.body.occupation[0].casterProgression).toBe(classes.fighter.casterProgression);
     Math.random.mockRestore();
   });
 

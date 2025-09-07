@@ -52,8 +52,9 @@ const createDefaultForm = useCallback((campaign) => {
     token: "",
     characterName: "",
     campaign: campaign.toString(),
-    occupation: [""],
+    occupation: [],
     race: null,
+    background: null,
     feat: [],
     weapon: [],
     armor: [createEmptyArray(4)],
@@ -86,6 +87,7 @@ const [occupation, setOccupation] = useState({
 });
 
 const [races, setRaces] = useState({});
+const [backgrounds, setBackgrounds] = useState({});
 
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
@@ -173,6 +175,22 @@ const [sumArray, setSumArray] = useState([]);
 useEffect(() => {
   rollDiceSixTimes();
 }, []);
+
+// Fetch Backgrounds
+useEffect(() => {
+  if (!user) return;
+  async function fetchBackgrounds() {
+    const response = await apiFetch(`/backgrounds`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      notify(message);
+      return;
+    }
+    const record = await response.json();
+    setBackgrounds(record);
+  }
+  fetchBackgrounds();
+}, [user]);
 const rollDiceSixTimes = () => {
   const newSumArray = [];
   for (let i = 0; i < 6; i++) {
@@ -246,6 +264,15 @@ function bigMaff() {
       if (chosenRace.skills) {
         updateForm({ skills: { ...(form.skills || {}), ...chosenRace.skills } });
       }
+  }
+  // Background Randomizer
+  const backgroundKeys = Object.keys(backgrounds);
+  if (backgroundKeys.length) {
+    const bg = JSON.parse(JSON.stringify(
+      backgrounds[backgroundKeys[Math.floor(Math.random() * backgroundKeys.length)]]
+    ));
+    const updatedSkills = { ...(form.skills || {}), ...(bg.skills || {}) };
+    updateForm({ background: bg, skills: updatedSkills });
   }
 
   // Age Randomizer
@@ -329,21 +356,34 @@ useEffect(() => {
     if (newCharacter.race == null) {
       delete newCharacter.race;
     }
+    if (newCharacter.background == null) {
+      delete newCharacter.background;
+    }
+    Object.keys(newCharacter).forEach((key) => {
+      if (newCharacter[key] === "") {
+        delete newCharacter[key];
+      }
+    });
     try {
-      await apiFetch("/characters/add", {
+      const response = await apiFetch("/characters/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(newCharacter),
       });
+      if (!response.ok) {
+        notify(`An error occurred: ${response.statusText}`);
+        return;
+      }
+      const { insertedId } = await response.json();
+      handleClose();
+      setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
+      setForm(createDefaultForm(params.campaign));
     } catch (error) {
       notify(error.toString());
-      return;
-    };
-   setForm(createDefaultForm(params.campaign));
-  navigate(0);
-}, [form, setForm, navigate, createDefaultForm, params.campaign]);
+    }
+}, [form, params.campaign, handleClose, setRecords, setForm, createDefaultForm]);
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
@@ -377,6 +417,25 @@ const handleRaceChange = (e) => {
   }
 
   const updatedValues = { race: raceObj, speed: raceObj.speed };
+  if (Object.keys(updatedSkills).length) {
+    updatedValues.skills = updatedSkills;
+  }
+  updateForm(updatedValues);
+};
+
+const handleBackgroundChange = (e) => {
+  const key = e.target.value;
+  const base = backgrounds[key] || null;
+  const bgObj = base ? JSON.parse(JSON.stringify(base)) : null;
+  if (!bgObj) {
+    updateForm({ background: null });
+    return;
+  }
+  let updatedSkills = { ...(form.skills || {}) };
+  if (bgObj.skills) {
+    updatedSkills = { ...updatedSkills, ...bgObj.skills };
+  }
+  const updatedValues = { background: bgObj };
   if (Object.keys(updatedSkills).length) {
     updatedValues.skills = updatedSkills;
   }
@@ -462,6 +521,17 @@ const sendManualToDb = useCallback(async (characterData) => {
     ...baseCharacter,
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
+  if (newCharacter.race == null) {
+    delete newCharacter.race;
+  }
+  if (newCharacter.background == null) {
+    delete newCharacter.background;
+  }
+  Object.keys(newCharacter).forEach((key) => {
+    if (newCharacter[key] === "") {
+      delete newCharacter[key];
+    }
+  });
   try {
     const response = await apiFetch("/characters/add", {
       method: "POST",
@@ -671,6 +741,13 @@ const getAvailableSkillOptions = (index) => {
           <option value="" disabled>Select your race</option>
           {Object.keys(races).map((key) => (
             <option key={key} value={key}>{races[key].name}</option>
+          ))}
+        </Form.Select>
+        <Form.Label className="text-light">Background</Form.Label>
+        <Form.Select onChange={handleBackgroundChange} defaultValue="">
+          <option value="" disabled>Select your background</option>
+          {Object.keys(backgrounds).map((key) => (
+            <option key={key} value={key}>{backgrounds[key].name}</option>
           ))}
         </Form.Select>
          <Form.Label className="text-light">Age</Form.Label>

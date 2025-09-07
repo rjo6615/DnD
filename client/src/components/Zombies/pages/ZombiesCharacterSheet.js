@@ -17,6 +17,8 @@ import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
+import BackgroundModal from "../attributes/BackgroundModal";
+import Features from "../attributes/Features";
 
 const HEADER_PADDING = 16;
 
@@ -28,11 +30,15 @@ export default function ZombiesCharacterSheet() {
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
   const [showFeats, setShowFeats] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(false);
   const [showWeapons, setShowWeapons] = useState(false);
   const [showArmor, setShowArmor] = useState(false);
   const [showItems, setShowItems] = useState(false);
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showBackground, setShowBackground] = useState(false);
+
+  const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -104,6 +110,8 @@ export default function ZombiesCharacterSheet() {
   const handleCloseSkill = () => setShowSkill(false); // Handler to close skills modal
   const handleShowFeats = () => setShowFeats(true);
   const handleCloseFeats = () => setShowFeats(false);
+  const handleShowFeatures = () => setShowFeatures(true);
+  const handleCloseFeatures = () => setShowFeatures(false);
   const handleShowWeapons = () => setShowWeapons(true);
   const handleCloseWeapons = () => setShowWeapons(false); 
   const handleShowArmor = () => setShowArmor(true);
@@ -114,6 +122,12 @@ export default function ZombiesCharacterSheet() {
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
   const handleCloseHelpModal = () => setShowHelpModal(false);
+  const handleShowBackground = () => setShowBackground(true);
+  const handleCloseBackground = () => setShowBackground(false);
+
+  const handleRollResult = (result) => {
+    playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+  };
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -301,6 +315,7 @@ return (
       dexMod={statMods.dex}
       strMod={statMods.str}
       headerHeight={headerHeight}
+      ref={playerTurnActionsRef}
     />
     <Navbar
       fixed="bottom"
@@ -349,6 +364,17 @@ return (
               backgroundColor: featsGold,
             }}
             className="mx-1 fas fa-hand-fist"
+            variant="secondary"
+          ></Button>
+          <Button
+            onClick={handleShowFeatures}
+            style={{
+              color: "black",
+              padding: "8px",
+              marginTop: "10px",
+              backgroundColor: "#6C757D",
+            }}
+            className="mx-1 fas fa-star"
             variant="secondary"
           ></Button>
                     <Button
@@ -408,6 +434,7 @@ return (
       form={form}
       show={showCharacterInfo}
       handleClose={handleCloseCharacterInfo}
+      onShowBackground={handleShowBackground}
     />
     <Skills
       form={form}
@@ -421,9 +448,20 @@ return (
       chaMod={statMods.cha}
       wisMod={statMods.wis}
       onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+      onRollResult={handleRollResult}
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
+    <BackgroundModal
+      show={showBackground}
+      onHide={handleCloseBackground}
+      background={form.background}
+    />
     <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
+    <Features
+      form={form}
+      showFeatures={showFeatures}
+      handleCloseFeatures={handleCloseFeatures}
+    />
       <Modal
         className="dnd-modal modern-modal"
         show={showWeapons}
