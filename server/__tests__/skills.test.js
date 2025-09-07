@@ -46,7 +46,7 @@ describe('Skills routes', () => {
     expect(findOneAndUpdate).not.toHaveBeenCalled();
   });
 
-  test('allows two proficiencies in addition to racial proficiency', async () => {
+  test('limits proficiencies including racial proficiency', async () => {
     const charDoc = {
       race: { skills: { perception: { proficient: true } } },
       skills: { perception: { proficient: true } },
@@ -84,11 +84,6 @@ describe('Skills routes', () => {
     res = await request(app)
       .put('/skills/update-skills/507f1f77bcf86cd799439011')
       .send({ skill: 'arcana', proficient: true, expertise: false });
-    expect(res.status).toBe(200);
-
-    res = await request(app)
-      .put('/skills/update-skills/507f1f77bcf86cd799439011')
-      .send({ skill: 'athletics', proficient: true, expertise: false });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('No proficiency points remaining');
   });
