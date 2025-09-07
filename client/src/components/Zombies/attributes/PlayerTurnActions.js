@@ -113,8 +113,6 @@ useEffect(() => {
   if (loading) {
     const timer = setTimeout(() => {
       setLoading(false);
-      setIsCritical(false);
-      setIsFumble(false);
     }, 1000); // 1 second delay
     return () => clearTimeout(timer);
   }
@@ -122,12 +120,13 @@ useEffect(() => {
 
 const updateDamageValueWithAnimation = (newValue) => {
   setLoading(true);
+  setPulseClass('');
   setDamageValue(newValue);
 };
 
 useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
 
-const [pulse, setPulse] = useState(false);
+const [pulseClass, setPulseClass] = useState('');
 
 // Allow other components to display values in the damage circle
 useEffect(() => {
@@ -146,9 +145,14 @@ useEffect(() => {
 
 useEffect(() => {
   if (!loading) {
-    setPulse(true);
-    const timer = setTimeout(() => setPulse(false), 2000); // Remove the pulse class after the animation
-    return () => clearTimeout(timer); // Cleanup the timer on unmount or when loading changes
+    const cls = isCritical ? 'pulse-gold' : isFumble ? 'pulse-red' : 'pulse';
+    setPulseClass(cls);
+    const timer = setTimeout(() => {
+      setPulseClass('');
+      setIsCritical(false);
+      setIsFumble(false);
+    }, 2000);
+    return () => clearTimeout(timer);
   }
 }, [loading]);
 //-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
@@ -224,7 +228,7 @@ const showSparklesEffect = () => {
       <div
         id="damageAmount"
         ref={damageRef}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
         style={{ margin: "0 auto" }}
       >
         <span id="damageValue" className={loading ? 'hidden' : ''}>

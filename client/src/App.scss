@@ -934,12 +934,52 @@ h1 {
   }
 }
 
+@keyframes pulseGold {
+  0% {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(255, 215, 0, 0.4);
+    transform: scale(1.1);
+  }
+  100% {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseRed {
+  0% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.4);
+    transform: scale(1.1);
+  }
+  100% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+}
+
 #damageAmount {
   transition: background-color 0.5s ease, transform 0.5s ease;
 }
 
 .pulse {
   animation: pulseOnce 2s 1; /* Run the animation once over 2 seconds */
+}
+
+.pulse-gold {
+  animation: pulseGold 2s 1;
+  box-shadow: 0 0 10px #FFD700;
+}
+
+.pulse-red {
+  animation: pulseRed 2s 1;
+  box-shadow: 0 0 10px #FF0000;
 }
 
 .hidden {
