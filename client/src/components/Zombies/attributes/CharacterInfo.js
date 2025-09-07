@@ -59,12 +59,11 @@ export default function CharacterInfo({ form, show, handleClose, onShowBackgroun
                 <td>
                   {form.background?.name || ''}
                   <Button
-                    size="sm"
-                    variant="secondary"
-                    className="ms-2 fas fa-eye"
-                    aria-label="Show Background"
                     onClick={onShowBackground}
-                  ></Button>
+                    variant="link"
+                  >
+                    <i className="fa-solid fa-eye"></i>
+                  </Button>
                 </td>
               </tr>
               <tr>
