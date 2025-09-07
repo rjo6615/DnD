@@ -52,7 +52,7 @@ const createDefaultForm = useCallback((campaign) => {
     token: "",
     characterName: "",
     campaign: campaign.toString(),
-    occupation: [""],
+    occupation: [],
     race: null,
     background: null,
     feat: [],

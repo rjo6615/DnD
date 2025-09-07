@@ -17,14 +17,18 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
       setError(null);
       const allFeatures = [];
       try {
-        for (const occ of form.occupation || []) {
+        for (const occ of Array.isArray(form.occupation) ? form.occupation : []) {
+          if (typeof occ !== 'object' || occ === null) continue;
+          const displayName = occ.Name || occ.Occupation || occ.name || '';
+          const className = displayName.toLowerCase();
+          if (!className) continue;
           const res = await apiFetch(
-            `/classes/${occ.Name.toLowerCase()}/features/${occ.Level}`
+            `/classes/${className}/features/${occ.Level || 1}`
           );
           if (!res.ok) continue;
           const data = await res.json();
           (data.features || []).forEach((f) =>
-            allFeatures.push({ ...f, class: occ.Name })
+            allFeatures.push({ ...f, class: displayName })
           );
         }
       } catch (err) {
