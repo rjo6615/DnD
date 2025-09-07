@@ -31,37 +31,4 @@ export const SKILLS = [
   { key: 'useRope', label: 'Use Rope', mod: 'dex', featIndex: 31, itemIndex: 37 },
 ];
 
-export const SKILL_DESCRIPTIONS = {
-  appraise: 'Estimate the value of items and objects.',
-  balance: 'Keep your footing on narrow or slippery surfaces.',
-  bluff: 'Convince others of falsehoods or feign actions.',
-  climb: 'Ascend, descend, or traverse vertical surfaces.',
-  concentration: 'Maintain focus despite distractions.',
-  decipherScript: 'Understand unfamiliar or ancient writings.',
-  diplomacy: 'Negotiate or influence through tact and charm.',
-  disableDevice: 'Disarm traps or sabotage mechanical devices.',
-  disguise: 'Alter appearance to hide identity.',
-  escapeArtist: 'Slip bonds or squeeze through tight spaces.',
-  forgery: 'Create or detect counterfeit documents.',
-  gatherInfo: 'Collect rumors and useful local information.',
-  handleAnimal: 'Train, handle, or calm animals.',
-  heal: 'Treat wounds and ailments with first aid.',
-  hide: 'Conceal yourself from sight.',
-  intimidate: 'Influence others through threats or force.',
-  jump: 'Leap over obstacles or across distances.',
-  listen: 'Detect faint sounds or approaching creatures.',
-  moveSilently: 'Sneak quietly without being heard.',
-  openLock: 'Pick mechanical locks without a key.',
-  ride: 'Guide and control mounts.',
-  search: 'Find hidden objects, compartments, or clues.',
-  senseMotive: 'Discern intentions and detect lies.',
-  sleightOfHand: 'Perform tricks or steal small objects unnoticed.',
-  spot: 'Notice fine details or hidden creatures.',
-  survival: 'Live off the land and track creatures.',
-  swim: 'Move and stay afloat in water.',
-  tumble: 'Dodge attacks and move acrobatically.',
-  useTech: 'Operate or repair technological devices.',
-  useRope: 'Tie knots and use ropes effectively.',
-};
-
 export default SKILLS;

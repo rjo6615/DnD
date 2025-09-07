@@ -3,7 +3,7 @@ import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Form } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
-import { SKILLS, SKILL_DESCRIPTIONS } from "../skillSchema";
+import { SKILLS } from "../skillSchema";
 export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, strMod, dexMod, conMod, intMod, chaMod, wisMod}) {
   const params = useParams();
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
       setChosenSkill(e.target.value);
   }
   
-  const [addSkillForm, setAddSkillForm] = useState({
+  const [addSkillForm, setAddSkillForm] = useState({ 
     newSkill: "",
   });
   function updateAddSkill(value) {
@@ -25,7 +25,7 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
       return { ...prev, ...value };
     });
   }
-  const [newSkill, setNewSkill] = useState({
+  const [newSkill, setNewSkill] = useState({ 
     skill: "",
   });
   function updateNewSkill(value) {
@@ -33,16 +33,6 @@ export default function Skills({ form, showSkill, handleCloseSkill, totalLevel, 
       return { ...prev, ...value };
     });
   }
-
-  const [showDescription, setShowDescription] = useState(false);
-  const [descriptionContent, setDescriptionContent] = useState("");
-  const [descriptionTitle, setDescriptionTitle] = useState("");
-
-  const handleViewDescription = (key, label) => {
-    setDescriptionContent(SKILL_DESCRIPTIONS[key] || "No description available.");
-    setDescriptionTitle(label);
-    setShowDescription(true);
-  };
   
   if (!form) {
     return <div>Loading...</div>;
@@ -256,7 +246,6 @@ let firstLevelSkill =
                 <tr>
                   <th></th>
                   <th>Skill</th>
-                  <th>View</th>
                   <th>Total</th>
                   <th>Rank</th>
                   <th>Mod</th>
@@ -277,13 +266,6 @@ let firstLevelSkill =
                         ></Button>
                       </td>
                       <td>{label}</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          onClick={() => handleViewDescription(key, label)}
-                          className="action-btn fa-solid fa-circle-info"
-                        ></Button>
-                      </td>
                       <td>
                         <span id={totalId}>{skillTotalForm[key]} </span>
                       </td>
@@ -316,13 +298,6 @@ let firstLevelSkill =
                       ></Button>
                     </td>
                     <td>{el[0]}</td>
-                    <td>
-                      <Button
-                        size="sm"
-                        onClick={() => handleViewDescription(el[0], el[0])}
-                        className="action-btn fa-solid fa-circle-info"
-                      ></Button>
-                    </td>
                     <td>
                       <span id={el[0] + "total"}>{Number(el[1]) + intMod}</span>
                     </td>
@@ -416,25 +391,6 @@ let firstLevelSkill =
                 form="addSkillForm"
               >
                 Create
-              </Button>
-            </Card.Footer>
-          </Card>
-        </Modal>
-        <Modal className="modern-modal" show={showDescription} onHide={() => setShowDescription(false)} centered>
-          <Card className="modern-card text-center">
-            <Card.Header className="modal-header">
-              <Card.Title className="modal-title">{descriptionTitle}</Card.Title>
-            </Card.Header>
-            <Card.Body>
-              <p>{descriptionContent}</p>
-            </Card.Body>
-            <Card.Footer className="modal-footer">
-              <Button
-                className="action-btn close-btn"
-                variant="secondary"
-                onClick={() => setShowDescription(false)}
-              >
-                Close
               </Button>
             </Card.Footer>
           </Card>
