@@ -226,8 +226,6 @@ export default function ZombiesCharacterSheet() {
     .find((name) => SPELLCASTING_CLASSES[name]);
   const spellAbilityKey =
     spellcastingClass && (SPELLCASTING_ABILITIES[spellcastingClass] || 'cha');
-  const spellAbilityMod = spellcastingClass ? statMods[spellAbilityKey] : null;
-
   const hasSpellcasting = (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
     const progression = SPELLCASTING_CLASSES[name];
@@ -237,6 +235,8 @@ export default function ZombiesCharacterSheet() {
     if (progression === 'half') return level >= 2;
     return false;
   });
+
+  const spellAbilityMod = hasSpellcasting ? statMods[spellAbilityKey] : null;
 
   useEffect(() => {
     async function calculateSpellPoints() {
@@ -383,7 +383,7 @@ return (
         ac={featBonuses.ac}
         hpMaxBonus={featBonuses.hpMaxBonus}
         hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-        {...(spellAbilityMod != null && { spellAbilityMod })}
+        {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
     <PlayerTurnActions
