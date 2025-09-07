@@ -42,6 +42,8 @@ describe('calculateDamage parser', () => {
 
 describe('PlayerTurnActions critical events', () => {
   test('damage-roll event toggles classes on damageAmount', () => {
+    jest.useFakeTimers();
+
     render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
@@ -60,8 +62,12 @@ describe('PlayerTurnActions critical events', () => {
         })
       );
     });
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
     expect(damage.classList.contains('critical-active')).toBe(true);
     expect(damage.classList.contains('critical-failure')).toBe(false);
+    expect(damage.classList.contains('pulse-gold')).toBe(true);
 
     act(() => {
       window.dispatchEvent(
@@ -70,16 +76,24 @@ describe('PlayerTurnActions critical events', () => {
         })
       );
     });
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
     expect(damage.classList.contains('critical-active')).toBe(false);
     expect(damage.classList.contains('critical-failure')).toBe(true);
+    expect(damage.classList.contains('pulse-red')).toBe(true);
 
     act(() => {
       window.dispatchEvent(
         new CustomEvent('damage-roll', { detail: { value: 1 } })
       );
     });
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
     expect(damage.classList.contains('critical-active')).toBe(false);
     expect(damage.classList.contains('critical-failure')).toBe(false);
+    expect(damage.classList.contains('pulse')).toBe(true);
   });
 
   test('crit toggle activates critical class', () => {
