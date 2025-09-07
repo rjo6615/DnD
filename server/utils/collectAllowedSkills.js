@@ -1,14 +1,16 @@
 const classes = require('../data/classes');
 
 /**
- * Collect allowed skill names based on a character's occupations, feats, and race.
+ * Collect allowed skill names based on a character's occupations, feats, race, and background.
  * Includes all skill options provided by class proficiencies, feat skillOptions,
- * and race skillChoices, plus any explicit skills marked proficient or granting
- * expertise. Expertise implies proficiency, so any explicit expertise grants
- * are also considered allowed skills.
+ * race skillChoices, and background skill selections, plus any explicit skills
+ * marked proficient or granting expertise. Expertise implies proficiency, so any
+ * explicit expertise grants are also considered allowed skills. Only skill
+ * proficiencies are returned; tool proficiencies are ignored.
  * @param {Array} occupation
  * @param {Array} feat
  * @param {Object} race
+ * @param {Object} background
  * @returns {string[]}
  */
 function collectAllowedSkills(occupation = [], feat = [], race, background) {
@@ -77,9 +79,6 @@ function collectAllowedSkills(occupation = [], feat = [], race, background) {
         const info = background.skills[sk];
         if (info?.proficient || info?.expertise) allowed.add(sk);
       });
-    }
-    if (Array.isArray(background.toolProficiencies)) {
-      background.toolProficiencies.forEach((tool) => allowed.add(tool));
     }
     if (Array.isArray(background.expertiseChoices)) {
       background.expertiseChoices.forEach((sk) => allowed.add(sk));
