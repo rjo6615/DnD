@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
@@ -51,7 +51,7 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   return damageSum + modifier + ability;
 }
 
-export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, headerHeight = 0 }) {
+const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
@@ -131,6 +131,8 @@ const updateDamageValueWithAnimation = (newValue) => {
   setLoading(true);
   setDamageValue(newValue);
 };
+
+useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
 
 const [pulse, setPulse] = useState(false);
 
@@ -364,4 +366,6 @@ const showSparklesEffect = () => {
       </Modal>
     </div>
   );
-};
+});
+
+export default PlayerTurnActions;

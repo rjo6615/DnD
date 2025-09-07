@@ -20,6 +20,7 @@ export default function Skills({
   chaMod,
   wisMod,
   onSkillsChange,
+  onRollResult,
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
