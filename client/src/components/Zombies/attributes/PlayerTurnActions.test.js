@@ -96,8 +96,8 @@ describe('PlayerTurnActions critical events', () => {
     expect(damage.classList.contains('pulse')).toBe(true);
   });
 
-  test('crit toggle activates critical class', () => {
-    const { getByLabelText } = render(
+  test('clicking damageAmount toggles critical class', () => {
+    render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
         strMod={0}
@@ -107,14 +107,19 @@ describe('PlayerTurnActions critical events', () => {
     );
 
     const damage = document.getElementById('damageAmount');
-    const critToggle = getByLabelText('Crit');
 
     expect(damage.classList.contains('critical-active')).toBe(false);
 
     act(() => {
-      fireEvent.click(critToggle);
+      fireEvent.click(damage);
     });
 
     expect(damage.classList.contains('critical-active')).toBe(true);
+
+    act(() => {
+      fireEvent.click(damage);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(false);
   });
 });

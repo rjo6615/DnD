@@ -98,6 +98,11 @@ const handleSpellsButtonClick = (spell, crit = false) => {
   updateDamageValueWithAnimation(damageValue);
 };
 
+const handleDamageClick = () => {
+  setIsCritical((prev) => !prev);
+  setIsFumble(false);
+};
+
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const opacity = 0.85;
 // Calculate RGBA color with opacity
@@ -230,6 +235,7 @@ const showSparklesEffect = () => {
         ref={damageRef}
         className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
         style={{ margin: "0 auto" }}
+        onClick={handleDamageClick}
       >
         <span id="damageValue" className={loading ? 'hidden' : ''}>
           {damageValue}
@@ -263,19 +269,6 @@ const showSparklesEffect = () => {
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             title="Attack"
           />
-          {/* Critical hit toggle */}
-          <label style={{ marginLeft: '10px', display: 'flex', alignItems: 'center' }}>
-            <input
-              type="checkbox"
-              checked={isCritical}
-              onChange={(e) => {
-                setIsCritical(e.target.checked);
-                if (e.target.checked) setIsFumble(false);
-              }}
-              aria-label="Crit"
-            />
-            <span style={{ marginLeft: '4px' }}>Crit</span>
-          </label>
         </div>
         <div
           style={{
