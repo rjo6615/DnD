@@ -2,15 +2,16 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ItemList from './ItemList';
 import apiFetch from '../../utils/apiFetch';
+import { items as srdItems } from '../../../../server/data/items';
 
 jest.mock('../../utils/apiFetch');
 
 const itemsData = {
-  rope: { name: 'Rope', category: 'gear', weight: 10, cost: '1 gp' },
-  torch: { name: 'Torch', category: 'gear', weight: 1, cost: '1 cp' },
+  torch: srdItems.torch,
+  'potion-healing': srdItems['potion-healing'],
 };
 const customData = [
-  { name: 'Jetpack', category: 'gear', weight: 20, cost: '500 gp' },
+  { name: 'Jetpack', category: 'adventuring gear', weight: 20, cost: '500 gp' },
 ];
 
 afterEach(() => {
@@ -33,20 +34,20 @@ test('fetches items and toggles ownership', async () => {
 
   expect(apiFetch).toHaveBeenCalledWith('/items');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/items/Camp1');
-  const ropeCheckbox = await screen.findByLabelText('Rope');
+  const potionCheckbox = await screen.findByLabelText('Potion of healing');
   const torchCheckbox = await screen.findByLabelText('Torch');
   const jetCheckbox = await screen.findByLabelText('Jetpack');
   expect(torchCheckbox).toBeChecked();
-  expect(ropeCheckbox).not.toBeChecked();
+  expect(potionCheckbox).not.toBeChecked();
   expect(jetCheckbox).not.toBeChecked();
 
   onChange.mockClear();
-  await userEvent.click(ropeCheckbox);
-  await waitFor(() => expect(ropeCheckbox).toBeChecked());
+  await userEvent.click(potionCheckbox);
+  await waitFor(() => expect(potionCheckbox).toBeChecked());
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith(
       expect.arrayContaining([
-        expect.objectContaining({ name: 'rope' }),
+        expect.objectContaining({ name: 'potion-healing' }),
         expect.objectContaining({ name: 'torch' }),
       ])
     )
