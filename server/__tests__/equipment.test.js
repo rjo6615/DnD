@@ -328,7 +328,13 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .post('/equipment/items')
-        .send({ campaign: 'Camp1', name: 'Potion', category: 'gear', weight: 1, cost: '5 gp' });
+        .send({
+          campaign: 'Camp1',
+          name: 'Potion of healing',
+          category: 'adventuring gear',
+          weight: 0.5,
+          cost: '50 gp'
+        });
       expect(res.status).toBe(200);
       expect(res.body._id).toBeDefined();
     });
@@ -337,8 +343,103 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/items')
-        .send({ campaign: 'Camp1', name: 'Potion', category: 'gear', weight: 'bad', cost: '5 gp' });
+        .send({
+          campaign: 'Camp1',
+          name: 'Potion of healing',
+          category: 'adventuring gear',
+          weight: 'bad',
+          cost: '50 gp'
+        });
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('get items', () => {
+    test('get items success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          find: () => ({ toArray: async () => [{ name: 'Potion of healing' }] })
+        })
+      });
+      const res = await request(app).get('/equipment/items/Camp1');
+      expect(res.status).toBe(200);
+      expect(res.body[0].name).toBe('Potion of healing');
+    });
+
+    test('get items failure', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          find: () => ({ toArray: async () => { throw new Error('db error'); } })
+        })
+      });
+      const res = await request(app).get('/equipment/items/Camp1');
+      expect(res.status).toBe(500);
+    });
+  });
+
+  describe('update items', () => {
+    test('update success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/items/507f1f77bcf86cd799439011')
+        .send({ weight: 1 });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Item updated');
+    });
+
+    test('update not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/items/507f1f77bcf86cd799439011')
+        .send({ weight: 1 });
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Item not found');
+    });
+
+    test('update item invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/items/123')
+        .send({ weight: 1 });
+      expect(res.status).toBe(400);
+    });
+
+    test('update item numeric failure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/items/507f1f77bcf86cd799439011')
+        .send({ weight: 'heavy' });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('delete items', () => {
+    test('delete success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
+      });
+      const res = await request(app).delete('/equipment/items/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ acknowledged: true });
+    });
+
+    test('delete item invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app).delete('/equipment/items/123');
+      expect(res.status).toBe(400);
+    });
+
+    test('delete item not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/items/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Item not found');
     });
   });
 
@@ -349,7 +450,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: ['Potion'] });
+        .send({ item: ['potion-healing'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Item updated');
     });
@@ -360,7 +461,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: ['Potion'] });
+        .send({ item: ['potion-healing'] });
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Item not found');
     });
@@ -369,7 +470,7 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .put('/equipment/update-item/123')
-        .send({ item: ['Potion'] });
+        .send({ item: ['potion-healing'] });
       expect(res.status).toBe(400);
     });
 
@@ -377,7 +478,7 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: 'Potion' });
+        .send({ item: 'potion-healing' });
       expect(res.status).toBe(400);
     });
   });
