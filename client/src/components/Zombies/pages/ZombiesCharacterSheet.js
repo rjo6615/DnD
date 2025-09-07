@@ -405,7 +405,7 @@ return (
                 marginTop: '10px',
                 backgroundColor: spellsGold,
               }}
-              className="mx-1 fas fa-hat-wizard"
+              className={`mx-1 fas fa-hat-wizard ${(form.spellPoints || 0) > 0 ? 'points-glow' : ''}`}
               variant="secondary"
             ></Button>
           )}

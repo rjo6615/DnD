@@ -982,6 +982,23 @@ h1 {
   box-shadow: 0 0 10px #FF0000;
 }
 
+@keyframes pointsGlow {
+  0% {
+    box-shadow: 0 0 6px #FFD700;
+  }
+  50% {
+    box-shadow: 0 0 12px #FFD700;
+  }
+  100% {
+    box-shadow: 0 0 6px #FFD700;
+  }
+}
+
+.points-glow {
+  animation: pointsGlow 2s infinite;
+  box-shadow: 0 0 6px #FFD700;
+}
+
 .hidden {
   display: none;
 }
