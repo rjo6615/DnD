@@ -97,12 +97,8 @@ module.exports = (router) => {
           .json({ message: 'Cannot remove granted proficiency' });
       }
 
-      const proficientCount = Object.entries(charDoc.skills || {}).filter(
-        ([key, s]) =>
-          s &&
-          s.proficient &&
-          !charDoc.race?.skills?.[key]?.proficient &&
-          !charDoc.background?.skills?.[key]?.proficient
+      const proficientCount = Object.values(charDoc.skills || {}).filter(
+        (s) => s && s.proficient
       ).length;
       const alreadyProficient = charDoc.skills?.[skill]?.proficient;
       if (
@@ -132,13 +128,8 @@ module.exports = (router) => {
           .status(400)
           .json({ message: 'Cannot remove granted expertise' });
       }
-      const expertiseCount = Object.entries(charDoc.skills || {}).filter(
-        ([key, s]) =>
-          s &&
-          s.expertise &&
-          !charDoc.race?.skills?.[key]?.expertise &&
-          !charDoc.background?.skills?.[key]?.expertise &&
-          !charDoc.feat?.some((ft) => ft?.skills?.[key]?.expertise)
+      const expertiseCount = Object.values(charDoc.skills || {}).filter(
+        (s) => s && s.expertise
       ).length;
       const alreadyExpertise = charDoc.skills?.[skill]?.expertise;
       if (

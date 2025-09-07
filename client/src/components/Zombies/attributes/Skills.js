@@ -56,29 +56,29 @@ export default function Skills({
   const lockedProficiencies = useMemo(() => {
     return new Set([...raceProficiencies, ...backgroundProficiencies]);
   }, [raceProficiencies, backgroundProficiencies]);
-  const currentProficiencyCount = Object.entries(form.skills || {}).filter(
-    ([key, s]) => s.proficient && !lockedProficiencies.has(key)
+  const currentProficiencyCount = Object.values(form.skills || {}).filter(
+    (s) => s.proficient
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
     Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
   );
-  const currentExpertiseCount = Object.entries(form.skills || {}).filter(
-    ([key, s]) => s.expertise && !lockedExpertise.has(key)
+  const currentExpertiseCount = Object.values(form.skills || {}).filter(
+    (s) => s.expertise
   ).length;
   const [expertisePointsLeft, setExpertisePointsLeft] = useState(
     Math.max(0, (form.expertisePoints || 0) - currentExpertiseCount)
   );
 
   useEffect(() => {
-    const count = Object.entries(form.skills || {}).filter(
-      ([key, s]) => s.proficient && !lockedProficiencies.has(key)
+    const count = Object.values(form.skills || {}).filter(
+      (s) => s.proficient
     ).length;
     setSkills(form.skills || {});
     setProficiencyPointsLeft(
       Math.max(0, (form.proficiencyPoints || 0) - count)
     );
-    const expertiseUsed = Object.entries(form.skills || {}).filter(
-      ([key, s]) => s.expertise && !lockedExpertise.has(key)
+    const expertiseUsed = Object.values(form.skills || {}).filter(
+      (s) => s.expertise
     ).length;
     setExpertisePointsLeft(
       Math.max(0, (form.expertisePoints || 0) - expertiseUsed)
@@ -159,8 +159,8 @@ export default function Skills({
           ...prev,
           [skill]: { proficient: data.proficient, expertise: data.expertise },
         };
-        const proficientCount = Object.entries(newSkills).filter(
-          ([key, s]) => s.proficient && !lockedProficiencies.has(key)
+        const proficientCount = Object.values(newSkills).filter(
+          (s) => s.proficient
         ).length;
         setProficiencyPointsLeft(
           Math.max(0, (form.proficiencyPoints || 0) - proficientCount)
