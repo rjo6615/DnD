@@ -27,6 +27,7 @@ const SPELLCASTING_CLASSES = {
   druid: 'full',
   sorcerer: 'full',
   wizard: 'full',
+  warlock: 'full',
   paladin: 'half',
   ranger: 'half',
 };

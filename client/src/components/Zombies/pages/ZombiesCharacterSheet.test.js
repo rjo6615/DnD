@@ -92,3 +92,32 @@ test('spells button glows when spellPoints absent but spells remain', async () =
   const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
 });
+
+test('warlock character renders spells button', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Warlock', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  expect(spellButton).toBeInTheDocument();
+});
