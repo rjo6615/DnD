@@ -13,6 +13,8 @@ import SpellList from "./components/Spells/SpellList";
 import SpellDetail from "./components/Spells/SpellDetail";
 import WeaponList from "./components/Weapons/WeaponList";
 import WeaponDetail from "./components/Weapons/WeaponDetail";
+import ArmorList from "./components/Armor/ArmorList";
+import ArmorDetail from "./components/Armor/ArmorDetail";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
@@ -59,6 +61,9 @@ function AppRoutes({ user }) {
         {/* Weapon routes */}
         <Route path="/weapons" element={<WeaponList characterId={user?._id} />} />
         <Route path="/weapons/:name" element={<WeaponDetail />} />
+        {/* Armor routes */}
+        <Route path="/armor" element={<ArmorList characterId={user?._id} strength={20} />} />
+        <Route path="/armor/:name" element={<ArmorDetail />} />
         <Route path="/zombies-character-select/:campaign" element={<ZombiesCharacterSelect />} />
         <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
         <Route path="/zombies-dm/:campaign" element={<ZombiesDM />} />

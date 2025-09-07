@@ -159,40 +159,111 @@ describe('Equipment routes', () => {
 
     test('insert success', async () => {
       dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+        collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
+      });
+      const payload = {
+        campaign: 'Camp1',
+        armorName: 'Plate',
+        type: 'heavy',
+        category: 'martial',
+        strength: 15,
+        stealth: true,
+        weight: 65,
+        cost: '1500 gp',
+      };
+      const res = await request(app)
+        .post('/equipment/armor/add')
+        .send(payload);
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ _id: 'abc123', ...payload });
+    });
+
+    test('blank numeric fields allowed', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ insertOne: async () => ({ insertedId: 'def456' }) })
       });
       const res = await request(app)
         .post('/equipment/armor/add')
-        .send({ campaign: 'Camp1', armorName: 'Plate' });
+        .send({
+          campaign: 'Camp1',
+          armorName: 'Leather',
+          armorBonus: '',
+          maxDex: '',
+        });
       expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
+      expect(res.body).toMatchObject({ _id: 'def456', campaign: 'Camp1', armorName: 'Leather' });
     });
 
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .post('/equipment/armor/add')
-        .send({ campaign: 'Camp1', armorName: 'Plate', armorBonus: 'bad' });
+        .send({
+          campaign: 'Camp1',
+          armorName: 'Plate',
+          armorBonus: 'bad',
+          strength: 'bad',
+          stealth: 'maybe',
+          weight: 'bad',
+        });
       expect(res.status).toBe(400);
     });
   });
 
   describe('update-armor', () => {
-    test('update success', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
-      });
+    const buildDb = (str, armorStrength, updateResult = { matchedCount: 1 }) => ({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return {
+            findOne: async () => ({ str, campaign: 'Camp1' }),
+            updateOne: async () => updateResult,
+          };
+        }
+        if (name === 'Armor') {
+          return {
+            find: () => ({
+              toArray: async () => [{ armorName: 'Test Armor', strength: armorStrength }],
+            }),
+          };
+        }
+        return {};
+      },
+    });
+
+    test('accepts armor when strength sufficient', async () => {
+      dbo.mockResolvedValue(buildDb(12, 10));
       const res = await request(app)
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
-        .send({ armor: ['Plate'] });
+        .send({ armor: ['Test Armor'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Armor updated');
     });
 
+    test('rejects armor requiring higher strength', async () => {
+      dbo.mockResolvedValue(buildDb(8, 10));
+      const res = await request(app)
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: ['Test Armor'] });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Test Armor requires strength 10');
+    });
+
     test('update not found', async () => {
-      dbo.mockResolvedValue({
-        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
-      });
+      const connection = {
+        collection: (name) => {
+          if (name === 'Characters') {
+            return {
+              findOne: async () => ({ str: 16, campaign: 'Camp1' }),
+              updateOne: async () => ({ matchedCount: 0 }),
+            };
+          }
+          if (name === 'Armor') {
+            return { find: () => ({ toArray: async () => [] }) };
+          }
+          return {};
+        },
+      };
+      dbo.mockResolvedValue(connection);
       const res = await request(app)
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Plate'] });
@@ -214,6 +285,32 @@ describe('Equipment routes', () => {
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: 'Plate' });
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('delete armor', () => {
+    test('delete success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
+      });
+      const res = await request(app).delete('/equipment/armor/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ acknowledged: true });
+    });
+
+    test('delete armor invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app).delete('/equipment/armor/123');
+      expect(res.status).toBe(400);
+    });
+
+    test('delete armor not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/armor/507f1f77bcf86cd799439011');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Armor not found');
     });
   });
 

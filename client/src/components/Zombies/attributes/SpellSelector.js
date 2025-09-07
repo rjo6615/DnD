@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
@@ -7,6 +7,56 @@ import { useParams } from 'react-router-dom';
  * Modal component allowing users to select spells for their character.
  * Spells are fetched from the server and filtered by class and level.
  */
+// Full-caster spell slot table indexed by class level then spell level
+const SLOT_TABLE = {
+  0: Array(10).fill(0),
+  1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+  2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
+  4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
+  6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
+  7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
+  8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
+  9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
+  10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
+  11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+  12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+  13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+  14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+  15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+  16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+  17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
+  18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
+  19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
+  20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
+};
+
+// Number of cantrips known by class level
+const CANTRIP_TABLE = {
+  0: 0,
+  1: 3,
+  2: 3,
+  3: 3,
+  4: 4,
+  5: 4,
+  6: 4,
+  7: 4,
+  8: 4,
+  9: 4,
+  10: 5,
+  11: 5,
+  12: 5,
+  13: 5,
+  14: 5,
+  15: 5,
+  16: 5,
+  17: 5,
+  18: 5,
+  19: 5,
+  20: 5,
+};
+
 export default function SpellSelector({
   form,
   show,
@@ -15,82 +65,42 @@ export default function SpellSelector({
 }) {
   const params = useParams();
 
-  // Full-caster spell slot table indexed by class level then spell level
-  const SLOT_TABLE = {
-    0: Array(10).fill(0),
-    1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
-    2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
-    3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
-    4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
-    5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
-    6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
-    7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
-    8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
-    9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
-    10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
-    11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
-    12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
-    13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
-    14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
-    15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
-    16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
-    17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
-    18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
-    19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
-    20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
-  };
-
-  // Number of cantrips known by class level
-  const CANTRIP_TABLE = {
-    0: 0,
-    1: 3,
-    2: 3,
-    3: 3,
-    4: 4,
-    5: 4,
-    6: 4,
-    7: 4,
-    8: 4,
-    9: 4,
-    10: 5,
-    11: 5,
-    12: 5,
-    13: 5,
-    14: 5,
-    15: 5,
-    16: 5,
-    17: 5,
-    18: 5,
-    19: 5,
-    20: 5,
-  };
-
-  const getAvailableLevels = (classLevel) => {
-    const slotRow = SLOT_TABLE[classLevel] || [];
+  const getAvailableLevels = useCallback((effectiveLevel) => {
+    const slotRow = SLOT_TABLE[effectiveLevel] || [];
     const options = [];
-    if ((CANTRIP_TABLE[classLevel] || 0) > 0) options.push(0);
+    if ((CANTRIP_TABLE[effectiveLevel] || 0) > 0) options.push(0);
     slotRow.forEach((slots, lvl) => {
       if (lvl > 0 && slots > 0) options.push(lvl);
     });
     return options;
-  };
+  }, []);
 
-  const classesInfo = useMemo(
-    () =>
-      (form.occupation || []).map((o) => ({
-        name: o.Name || o.Occupation,
-        level: Number(o.Level) || 0,
-      })),
-    [form.occupation]
-  );
+  const classesInfo = useMemo(() => {
+    return (form.occupation || [])
+      .map((o) => {
+        const name = o.Name || o.Occupation;
+        const level = Number(o.Level) || 0;
+        const casterProgression = o.casterProgression || o.CasterProgression || 'full';
+        const effectiveLevel =
+          casterProgression === 'half'
+            ? level < 2
+              ? 0
+              : Math.ceil(level / 2)
+            : casterProgression === 'full'
+            ? level
+            : 0;
+        return { name, level, casterProgression, effectiveLevel };
+      })
+      .filter((o) => o.effectiveLevel >= 1);
+  }, [form.occupation]);
 
   const levelOptions = useMemo(
     () =>
-      classesInfo.reduce((acc, { name, level }) => {
-        acc[name] = getAvailableLevels(level);
+      classesInfo.reduce((acc, { name, effectiveLevel }) => {
+        acc[name] = getAvailableLevels(effectiveLevel);
         return acc;
       }, {}),
-    [classesInfo]
+    [classesInfo, getAvailableLevels]
   );
 
   const initialLevels = useMemo(
@@ -143,12 +153,12 @@ export default function SpellSelector({
 
   useEffect(() => {
     const newPoints = {};
-    classesInfo.forEach(({ name, level }) => {
-      const slotRow = SLOT_TABLE[level] || [];
+    classesInfo.forEach(({ name, effectiveLevel }) => {
+      const slotRow = SLOT_TABLE[effectiveLevel] || [];
       const selectedLevel = Number(selectedLevels[name]);
       const totalSlots =
         selectedLevel === 0
-          ? CANTRIP_TABLE[level] || 0
+          ? CANTRIP_TABLE[effectiveLevel] || 0
           : slotRow[selectedLevel] || 0;
       const count = selectedSpells.reduce((sum, spellName) => {
         const info = Object.values(allSpells).find((s) => s.name === spellName);
@@ -175,12 +185,12 @@ export default function SpellSelector({
 
   async function saveSpells(spells = selectedSpells) {
     try {
-      const currentPoints = classesInfo.reduce((sum, { name, level }) => {
-        const slotRow = SLOT_TABLE[level] || [];
+      const currentPoints = classesInfo.reduce((sum, { name, effectiveLevel }) => {
+        const slotRow = SLOT_TABLE[effectiveLevel] || [];
         const selectedLevel = Number(selectedLevels[name]);
         const totalSlots =
           selectedLevel === 0
-            ? CANTRIP_TABLE[level] || 0
+            ? CANTRIP_TABLE[effectiveLevel] || 0
             : slotRow[selectedLevel] || 0;
         const count = spells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);
@@ -419,8 +429,10 @@ export default function SpellSelector({
               </Tabs>
             )}
           </Card.Body>
-          <Card.Footer className="text-end">
-            <Button variant="secondary" onClick={handleClose}>
+          <Card.Footer className="modal-footer">
+            <Button 
+            className="action-btn close-btn"
+            onClick={handleClose}>
               Close
             </Button>
           </Card.Footer>

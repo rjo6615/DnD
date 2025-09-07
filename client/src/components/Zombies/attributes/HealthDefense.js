@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function HealthDefense({
   form,
-  totalLevel,
   conMod,
   dexMod,
   ac = 0,
@@ -18,18 +18,23 @@ export default function HealthDefense({
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
   let atkBonus = 0;
     
-  //Armor AC/MaxDex
-     let armorAcBonus= [];
-     let armorMaxDexBonus= [];
-     form.armor.map((el) => (
-       armorAcBonus.push(el[1])
-     ))
-    let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) + Number(ac);
-     form.armor.map((el) => (
-      armorMaxDexBonus.push(el[2])
-     ))
-     let filteredMaxDexArray = armorMaxDexBonus.filter(e => e !== '0')
-     let armorMaxDexMin = Math.min(...filteredMaxDexArray);
+  // Armor AC/MaxDex
+  const armorItems = form.armor || [];
+  const armorAcBonus = armorItems.map((item) => {
+    if (Array.isArray(item)) {
+      const value = Number(item[1] ?? 0);
+      return value > 10 ? value - 10 : value;
+    }
+    return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
+  });
+  const armorMaxDexBonus = armorItems.map((item) =>
+    Array.isArray(item) ? Number(item[2] ?? 0) : Number(item.maxDex ?? 0)
+  );
+  let totalArmorAcBonus =
+    armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
+    Number(ac);
+  let filteredMaxDexArray = armorMaxDexBonus.filter((e) => e !== 0);
+  let armorMaxDexMin = Math.min(...filteredMaxDexArray);
     
      let armorMaxDex;
      if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
@@ -54,6 +59,12 @@ export default function HealthDefense({
       }
     }
   }
+
+  const totalLevel = occupations.reduce(
+    (total, o) => total + Number(o.Level),
+    0
+  );
+  const profBonus = form.proficiencyBonus ?? proficiencyBonus(totalLevel);
 
   // Health
   const maxHealth =
@@ -235,14 +246,22 @@ return (
     }}
   >
     {/* Core Stats */}
-    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-      <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-      <div><strong>Attack Bonus:</strong> {atkBonus}</div>
-      <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
-      <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
-    </div>
-
-    </div>
+<div style={{ color: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+  {/* First row */}
+  <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+    <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+    <div><strong>Attack Bonus:</strong> {atkBonus}</div>
+    <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
+    <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
   </div>
-)
+
+  {/* Second row */}
+  <div>
+    <strong>Proficiency Bonus:</strong> {profBonus}
+  </div>
+</div>
+      </div>
+    </div>
+  );
 }
+

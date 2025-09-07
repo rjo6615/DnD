@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
@@ -19,7 +19,8 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
 }
 
 export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
-  const match = damageString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+  const cleanString = damageString.split(' ')[0];
+  const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
   if (!match) {
     // eslint-disable-next-line no-console
     console.error('Invalid damage string');
@@ -50,7 +51,7 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   return damageSum + modifier + ability;
 }
 
-export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod, headerHeight = 0 }) {
+const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
@@ -87,7 +88,8 @@ const handleToggleAfterDamage = () => {
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    return `${weapon.damage}+${ability}`;
+    const dice = weapon.damage.split(' ')[0];
+    return `${dice}+${ability}`;
   };
 
   const handleWeaponAttack = (weapon) => {
@@ -130,7 +132,21 @@ const updateDamageValueWithAnimation = (newValue) => {
   setDamageValue(newValue);
 };
 
+useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
+
 const [pulse, setPulse] = useState(false);
+
+// Allow other components to display values in the damage circle
+useEffect(() => {
+  const handler = (e) => {
+    const value = Number(e.detail);
+    if (!Number.isNaN(value)) {
+      updateDamageValueWithAnimation(value);
+    }
+  };
+  window.addEventListener('damage-roll', handler);
+  return () => window.removeEventListener('damage-roll', handler);
+}, []);
 
 useEffect(() => {
   if (!loading) {
@@ -302,9 +318,11 @@ const showSparklesEffect = () => {
                               handleWeaponAttack(weapon);
                               handleCloseAttack();
                             }}
-                            size="sm"
-                            className="action-btn fa-solid fa-plus"
-                          ></Button>
+                            variant="link"
+                            aria-label="roll"
+                          >
+                            <i className="fa-solid fa-dice-d20"></i>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -341,10 +359,12 @@ const showSparklesEffect = () => {
                               onClick={() => {
                                 handleSpellsButtonClick(spell, isGold);
                                 handleCloseAttack();
-                              }}
-                              size="sm"
-                              className="action-btn fa-solid fa-plus"
-                            ></Button>
+                              }} 
+                              variant="link"
+                              aria-label="roll"                 
+                            >
+                              <i className="fa-solid fa-dice-d20"></i>
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -362,4 +382,6 @@ const showSparklesEffect = () => {
       </Modal>
     </div>
   );
-};
+});
+
+export default PlayerTurnActions;

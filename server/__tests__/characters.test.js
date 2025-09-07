@@ -9,6 +9,7 @@ jest.mock('../db/conn');
 const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const charactersRouter = require('../routes');
+const classes = require('../data/classes');
 
 const app = express();
 app.use(express.json());
@@ -373,15 +374,14 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({
-          occupation: [{ Level: 1 }],
-          allowedSkills: ['acrobatics'],
+          occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
         }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
-            occupation: [{ Level: 1 }],
+            occupation: [{ Level: 1, Occupation: 'Rogue' }],
             skills: { acrobatics: { proficient: true, expertise: false } },
           },
         }),
@@ -404,16 +404,17 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({
-          occupation: [{ Level: 1 }],
-          allowedSkills: ['acrobatics'],
+          occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
+          expertisePoints: 2,
         }),
         findOneAndUpdate: async () => ({
           value: {
             dex: 12,
-            occupation: [{ Level: 1 }],
+            occupation: [{ Level: 1, Occupation: 'Rogue' }],
             skills: { acrobatics: { proficient: true, expertise: true } },
+            expertisePoints: 2,
           },
         }),
       }),
@@ -435,8 +436,7 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({
         findOne: async () => ({
-          occupation: [{ Level: 1 }],
-          allowedSkills: ['acrobatics'],
+          occupation: [{ Level: 1, Occupation: 'Rogue' }],
           skills: {},
           proficiencyPoints: 1,
         }),
@@ -486,13 +486,14 @@ describe('Character routes', () => {
 
   test('add armor success', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
     });
+    const payload = { campaign: 'Camp1', armorName: 'Plate' };
     const res = await request(app)
       .post('/equipment/armor/add')
-      .send({ campaign: 'Camp1', armorName: 'Plate' });
+      .send(payload);
     expect(res.status).toBe(200);
-    expect(res.body.acknowledged).toBe(true);
+    expect(res.body).toMatchObject({ _id: 'abc123', ...payload });
   });
 
   test('add armor failure', async () => {
@@ -645,9 +646,20 @@ describe('Character routes', () => {
     const occ = captured.update.$set.occupation[0];
     expect(occ.Occupation).toBe('Fighter');
     expect(occ.skills.acrobatics).toEqual({ proficient: true, expertise: false });
+    expect(occ.casterProgression).toBe(classes.fighter.casterProgression);
     expect(occ.proficiencyPoints).toBe(0);
-    expect(captured.update.$set.allowedSkills).toEqual(['acrobatics']);
+    expect(captured.update.$set.allowedSkills).toEqual([
+      'acrobatics',
+      'animalHandling',
+      'athletics',
+      'history',
+      'insight',
+      'intimidation',
+      'perception',
+      'survival',
+    ]);
     expect(res.body.occupation[0].Occupation).toBe('Fighter');
+    expect(res.body.occupation[0].casterProgression).toBe(classes.fighter.casterProgression);
     Math.random.mockRestore();
   });
 

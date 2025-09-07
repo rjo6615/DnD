@@ -3,40 +3,8 @@ const express = require('express');
 const authenticateToken = require('../middleware/auth');
 const proficiencyBonus = require('../utils/proficiency');
 
-// Helper to determine allowed skills from occupations and feats when not precomputed
-const collectAllowedSkills = (occupation = [], feat = [], race) => {
-  const allowed = new Set();
-  if (Array.isArray(occupation)) {
-    occupation.forEach((occ) => {
-      if (occ && occ.skills && typeof occ.skills === 'object') {
-        Object.keys(occ.skills).forEach((sk) => {
-          if (occ.skills[sk] && occ.skills[sk].proficient) {
-            allowed.add(sk);
-          }
-        });
-      }
-    });
-  }
-  if (Array.isArray(feat)) {
-    feat.forEach((ft) => {
-      if (ft && ft.skills && typeof ft.skills === 'object') {
-        Object.keys(ft.skills).forEach((sk) => {
-          if (ft.skills[sk] && ft.skills[sk].proficient) {
-            allowed.add(sk);
-          }
-        });
-      }
-    });
-  }
-  if (race && race.skills && typeof race.skills === 'object') {
-    Object.keys(race.skills).forEach((sk) => {
-      if (race.skills[sk] && race.skills[sk].proficient) {
-        allowed.add(sk);
-      }
-    });
-  }
-  return Array.from(allowed);
-};
+const collectAllowedSkills = require('../utils/collectAllowedSkills');
+const collectAllowedExpertise = require('../utils/collectAllowedExpertise');
 
 // Map each skill to its associated ability score
 const skillAbilityMap = {
@@ -94,18 +62,39 @@ module.exports = (router) => {
       const raceProficient = !!(
         charDoc.race?.skills?.[skill]?.proficient
       );
+      const backgroundProficient = !!(
+        charDoc.background?.skills?.[skill]?.proficient
+      );
+      const raceExpertise = !!(
+        charDoc.race?.skills?.[skill]?.expertise
+      );
+      const backgroundExpertise = !!(
+        charDoc.background?.skills?.[skill]?.expertise
+      );
+      const featExpertise = Array.isArray(charDoc.feat)
+        ? charDoc.feat.some((ft) => ft?.skills?.[skill]?.expertise)
+        : false;
 
-      const allowedSkills =
-        charDoc.allowedSkills ||
-        collectAllowedSkills(charDoc.occupation, charDoc.feat, charDoc.race);
+      const allowedSkills = collectAllowedSkills(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race,
+        charDoc.background
+      );
       if (!allowedSkills.includes(skill)) {
         return res.status(400).json({ message: 'Skill not allowed' });
       }
+      const allowedExpertise = collectAllowedExpertise(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race,
+        charDoc.background
+      );
 
-      if (raceProficient && !proficient) {
+      if ((raceProficient || backgroundProficient) && !proficient) {
         return res
           .status(400)
-          .json({ message: 'Cannot remove racial proficiency' });
+          .json({ message: 'Cannot remove granted proficiency' });
       }
 
       const proficientCount = Object.values(charDoc.skills || {}).filter(
@@ -122,6 +111,37 @@ module.exports = (router) => {
           .json({ message: 'No proficiency points remaining' });
       }
 
+      const proficiencyAfterUpdate =
+        proficient || raceProficient || backgroundProficient;
+      if (expertise && !proficiencyAfterUpdate) {
+        return res
+          .status(400)
+          .json({ message: 'Expertise requires proficiency' });
+      }
+      if (expertise && !allowedExpertise.includes(skill)) {
+        return res
+          .status(400)
+          .json({ message: 'Skill not allowed for expertise' });
+      }
+      if ((raceExpertise || backgroundExpertise || featExpertise) && !expertise) {
+        return res
+          .status(400)
+          .json({ message: 'Cannot remove granted expertise' });
+      }
+      const expertiseCount = Object.values(charDoc.skills || {}).filter(
+        (s) => s && s.expertise
+      ).length;
+      const alreadyExpertise = charDoc.skills?.[skill]?.expertise;
+      if (
+        expertise &&
+        !alreadyExpertise &&
+        expertiseCount >= (charDoc.expertisePoints || 0)
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'No expertise slots remaining' });
+      }
+
       const totalLevel = Array.isArray(charDoc.occupation)
         ? charDoc.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
         : 0;
@@ -129,10 +149,20 @@ module.exports = (router) => {
 
       const update = {
         $set: {
-          [`skills.${skill}`]: { proficient, expertise },
           proficiencyBonus: profBonus,
+          allowedSkills,
+          allowedExpertise,
         },
       };
+
+      if (proficiencyAfterUpdate || expertise) {
+        update.$set[`skills.${skill}`] = {
+          proficient: proficiencyAfterUpdate,
+          expertise,
+        };
+      } else {
+        update.$unset = { [`skills.${skill}`]: '' };
+      }
 
       const result = await db_connect
         .collection('Characters')

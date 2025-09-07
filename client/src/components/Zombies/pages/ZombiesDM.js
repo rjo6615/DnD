@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Form, Row, Container, Table, Card, Alert } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
@@ -163,34 +163,34 @@ const [form2, setForm2] = useState({
     properties: [],
   });
 
-  const fetchWeapons = async () => {
-    const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
-    if (!response.ok) {
-      const message = `An error has occurred: ${response.statusText}`;
-      setStatus({ type: 'danger', message });
-      return;
-    }
-    const data = await response.json();
-    setWeapons(data);
-  };
+    const fetchWeapons = useCallback(async () => {
+      const response = await apiFetch(`/equipment/weapons/${currentCampaign}`);
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      const data = await response.json();
+      setWeapons(data);
+    }, [currentCampaign]);
 
-  const fetchWeaponOptions = async () => {
-    const response = await apiFetch('/weapons/options');
-    if (!response.ok) {
-      const message = `An error has occurred: ${response.statusText}`;
-      setStatus({ type: 'danger', message });
-      return;
-    }
-    const data = await response.json();
-    setWeaponOptions(data);
-  };
+    const fetchWeaponOptions = useCallback(async () => {
+      const response = await apiFetch('/weapons/options');
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      const data = await response.json();
+      setWeaponOptions(data);
+    }, []);
 
-  useEffect(() => {
-    if (show2) {
-      fetchWeapons();
-      fetchWeaponOptions();
-    }
-  }, [show2, currentCampaign]);
+    useEffect(() => {
+      if (show2) {
+        fetchWeapons();
+        fetchWeaponOptions();
+      }
+    }, [show2, currentCampaign, fetchWeapons, fetchWeaponOptions]);
   
   function updateForm2(value) {
     return setForm2((prev) => {
@@ -220,30 +220,43 @@ const [form2, setForm2] = useState({
         delete newWeapon[key];
       }
     });
-     await apiFetch("/equipment/weapon/add", {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-       },
-       body: JSON.stringify(newWeapon),
-     })
-     .catch(error => {
-       setStatus({ type: 'danger', message: error.toString() });
-       return;
-     });
+    try {
+      const response = await apiFetch("/equipment/weapon/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newWeapon),
+      });
 
-     setForm2({
-     campaign: currentCampaign,
-     name: "",
-      type: "",
-      category: "",
-      damage: "",
-      properties: [],
-      weight: "",
-      cost: "",
-    });
-     fetchWeapons();
-   }
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || errorData?.error || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
+        return;
+      }
+
+      setForm2({
+        campaign: currentCampaign,
+        name: "",
+        type: "",
+        category: "",
+        damage: "",
+        properties: [],
+        weight: "",
+        cost: "",
+      });
+      handleClose2();
+      fetchWeapons();
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
 
   async function deleteWeapon(id) {
     try {
@@ -261,15 +274,30 @@ const [form2, setForm2] = useState({
    //  ------------------------------------Armor-----------------------------------
   
   const [show3, setShow3] = useState(false);
-  const handleClose3 = () => setShow3(false);
+  const [isCreatingArmor, setIsCreatingArmor] = useState(false);
+  const handleClose3 = () => {
+    setShow3(false);
+    setIsCreatingArmor(false);
+  };
   const handleShow3 = () => setShow3(true);
-  
-   const [form3, setForm3] = useState({ 
+
+  const [armor, setArmor] = useState([]);
+  const [armorOptions, setArmorOptions] = useState({
+    types: [],
+    categories: [],
+  });
+
+  const [form3, setForm3] = useState({
     campaign: currentCampaign,
-    armorName: "", 
+    armorName: "",
+    type: "",
+    category: "",
     armorBonus: "",
     maxDex: "",
-    armorCheckPenalty: "",
+    strength: "",
+    stealth: "",
+    weight: "",
+    cost: "",
   });
   
   function updateForm3(value) {
@@ -277,6 +305,35 @@ const [form2, setForm2] = useState({
       return { ...prev, ...value };
     });
   }
+
+  const fetchArmor = useCallback(async () => {
+    const response = await apiFetch(`/equipment/armor/${currentCampaign}`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setArmor(data);
+  }, [currentCampaign]);
+
+  const fetchArmorOptions = useCallback(async () => {
+    const response = await apiFetch('/armor/options');
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setArmorOptions(data);
+  }, []);
+
+  useEffect(() => {
+    if (show3) {
+      fetchArmor();
+      fetchArmorOptions();
+    }
+  }, [show3, currentCampaign, fetchArmor, fetchArmorOptions]);
   
   async function onSubmit3(e) {
     e.preventDefault();   
@@ -284,7 +341,15 @@ const [form2, setForm2] = useState({
   }
   
   async function sendToDb3(){
-    const newArmor = { ...form3 };
+    const numericFields = ['armorBonus', 'maxDex', 'strength', 'weight'];
+    const newArmor = Object.fromEntries(
+      Object.entries(form3)
+        .filter(([_, v]) => v !== "")
+        .map(([key, value]) => [
+          key,
+          numericFields.includes(key) ? Number(value) : value,
+        ])
+    );
     await apiFetch("/equipment/armor/add", {
        method: "POST",
        headers: {
@@ -296,14 +361,36 @@ const [form2, setForm2] = useState({
      setStatus({ type: 'danger', message: error.toString() });
      return;
    });
-  
+
    setForm3({
-    armorName: "", 
+    campaign: currentCampaign,
+    armorName: "",
+    type: "",
+    category: "",
     armorBonus: "",
     maxDex: "",
-    armorCheckPenalty: "",
+    strength: "",
+    stealth: "",
+    weight: "",
+    cost: "",
   });
-   navigate(0);
+   fetchArmor();
+   setIsCreatingArmor(false);
+  }
+
+  async function deleteArmor(id) {
+    try {
+      const response = await apiFetch(`/equipment/armor/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      await response.json();
+      setArmor((prev) => prev.filter((a) => a._id !== id));
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
   }
   
   //------------------------------------Items-------------------------------------------------------------------------------
@@ -376,29 +463,22 @@ const [form2, setForm2] = useState({
   </Alert>
 )}
 
+<div className="d-flex justify-content-center flex-wrap gap-2 mb-3" style={{ position: 'relative', zIndex: '4' }}>
+  {/*-----------------------------------Add Player-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={() => { handleShowPlayers(); }} className="p-1 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
+  {/*-----------------------------------Create Weapon-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow2(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Weapon</Button>
+  {/*-----------------------------------Create Armor-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
+  {/*-----------------------------------Create Item-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Item</Button>
+</div>
+
 <div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
-      <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background">
+      <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background w-75 mx-auto">
         <thead>
             <tr>
                 <th colSpan="5" style={{fontSize: 28}}>{params.campaign}</th>
-            </tr>
-            <tr>
-              <th>
-                {/*-----------------------------------Add Player-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={() => { handleShowPlayers();}} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
-              </th>
-                            <th>
-                {/*-----------------------------------Create Weapon-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow2(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Weapon</Button>
-              </th>
-                            <th>
-                {/*-----------------------------------Create Armor-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
-              </th>
-                            <th>
-                {/*-----------------------------------Create Item-----------------------------------------------------*/}
-                <Button style={{ borderColor: 'transparent', position: "relative", zIndex: "4" }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 m-2 hostCampaign" size="sm" variant="secondary">Create Item</Button>
-              </th>
             </tr>
           <tr>
             <th>Player</th>
@@ -421,13 +501,13 @@ const [form2, setForm2] = useState({
               </td>
               <td>
                 <Button
-                  className="fantasy-button"
                   size="sm"
-                  style={{ width: 'auto', border: 'none' }}
-                  variant="primary"
+                  variant="link"
+                  className="p-0"
+                  style={{ border: 'none' }}
                   onClick={() => navigateToCharacter(Characters._id)}
                 >
-                  View
+                  <i className="fa-solid fa-eye text-primary"></i>
                 </Button>
               </td>
             </tr>
@@ -436,7 +516,7 @@ const [form2, setForm2] = useState({
       </Table>
     </div>
 
-        <Modal className="dnd-modal" centered show={showPlayers} onHide={handleClosePlayers}>
+        <Modal className="dnd-modal" size="lg" centered show={showPlayers} onHide={handleClosePlayers}>
          <div className="text-center">
           <Card className="dnd-background">
             <Card.Title>Players</Card.Title>
@@ -491,13 +571,13 @@ const [form2, setForm2] = useState({
        </div>
         </Modal>
           {/* ----------------------------------Weapon Modal---------------------------------------- */}
-          <Modal className="dnd-modal modern-modal" centered show={show2} onHide={handleClose2}>
+          <Modal className="dnd-modal modern-modal" size="lg" centered show={show2} onHide={handleClose2}>
           <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
             </Card.Header>
-          <Card.Body>
+          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
           <div className="text-center">
             {isCreatingWeapon ? (
               <Form onSubmit={onSubmit2} className="px-5">
@@ -560,7 +640,7 @@ const [form2, setForm2] = useState({
 
             </Form.Group>
              <div className="text-center">
-             <Button variant="primary" onClick={handleClose2} type="submit">
+             <Button variant="primary" type="submit">
                     Create
                   </Button>
                   <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
@@ -570,7 +650,7 @@ const [form2, setForm2] = useState({
             </Form>
             ) : (
               <>
-              <Table striped bordered hover size="sm" className="modern-table mt-3">
+              <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
                 <thead>
                   <tr>
                    <th>Name</th>
@@ -617,43 +697,116 @@ const [form2, setForm2] = useState({
           </div>
            </Modal>
   {/* --------------------------------------- Armor Modal --------------------------------- */}
-  <Modal className="dnd-modal" centered show={show3} onHide={handleClose3}>
+  <Modal className="dnd-modal modern-modal" size="lg" centered show={show3} onHide={handleClose3}>
   <div className="text-center">
-  <Card className="dnd-background">
-    <Card.Title>Create Armor</Card.Title>
-  <Card.Body>   
+  <Card className="modern-card">
+    <Card.Header className="modal-header">
+      <Card.Title className="modal-title">{isCreatingArmor ? "Create Armor" : "Armor"}</Card.Title>
+    </Card.Header>
+  <Card.Body>
   <div className="text-center">
-  <Form onSubmit={onSubmit3} className="px-5">
-  <Form.Group className="mb-3 pt-3"  >
-  <Form.Label className="text-light">Armor Name</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorName: e.target.value })}
-  type="text" placeholder="Enter Armor name" />   
-  <Form.Label className="text-light">Armor Bonus</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })}
-  type="text" placeholder="Enter Armor Bonus" />
-  <Form.Label className="text-light">Max Dex Bonus</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })}
-  type="text" placeholder="Enter Max Dex Bonus" />     
-  <Form.Label className="text-light">Armor Check Penalty</Form.Label>
-  <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorCheckPenalty: e.target.value })}
-  type="text" placeholder="Enter Armor Check Penalty" />     
-  </Form.Group>
-  <div className="text-center">
-  <Button variant="primary" onClick={handleClose3} type="submit">
-      Create
-    </Button>
-    <Button className="ms-4" variant="secondary" onClick={handleClose3}>
-      Close
-    </Button>
-    </div>
-  </Form>
+    {isCreatingArmor ? (
+      <Form onSubmit={onSubmit3} className="px-5">
+        <Form.Group className="mb-3 pt-3">
+          <Form.Label className="text-light">Name</Form.Label>
+          <Form.Control
+            className="mb-2"
+            value={form3.armorName}
+            onChange={(e) => updateForm3({ armorName: e.target.value })}
+            type="text"
+            placeholder="Enter armor name"
+          />
+
+          <Form.Label className="text-light">Type</Form.Label>
+          <Form.Select className="mb-2" value={form3.type} onChange={(e) => updateForm3({ type: e.target.value })}>
+            <option value="">Select type</option>
+            {armorOptions.types.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </Form.Select>
+
+          <Form.Label className="text-light">Category</Form.Label>
+          <Form.Select className="mb-2" value={form3.category} onChange={(e) => updateForm3({ category: e.target.value })}>
+            <option value="">Select category</option>
+            {armorOptions.categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </Form.Select>
+
+          <Form.Label className="text-light">AC Bonus</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })} type="text" placeholder="Enter AC Bonus" />
+
+          <Form.Label className="text-light">Max Dex Bonus</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
+
+          <Form.Label className="text-light">Strength Requirement</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ strength: e.target.value })} type="text" placeholder="Enter Strength Requirement" />
+
+          <Form.Label className="text-light">Stealth</Form.Label>
+          <Form.Select className="mb-2" value={form3.stealth} onChange={(e) => updateForm3({ stealth: e.target.value })}>
+            <option value="">Select option</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </Form.Select>
+
+          <Form.Label className="text-light">Weight</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ weight: e.target.value })} type="text" placeholder="Enter Weight" />
+
+          <Form.Label className="text-light">Cost</Form.Label>
+          <Form.Control className="mb-2" onChange={(e) => updateForm3({ cost: e.target.value })} type="text" placeholder="Enter Cost" />
+        </Form.Group>
+        <div className="text-center">
+          <Button variant="primary" type="submit">
+            Create
+          </Button>
+          <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingArmor(false)}>
+            Cancel
+          </Button>
+        </div>
+      </Form>
+    ) : (
+      <>
+      <Table striped bordered hover size="sm" className="modern-table mt-3">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>AC Bonus</th>
+            <th>Max Dex</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {armor.map((a) => (
+            <tr key={a._id}>
+              <td>{a.armorName ?? a.name}</td>
+              <td>{a.type}</td>
+              <td>{a.category}</td>
+              <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
+              <td>{a.maxDex}</td>
+              <td>
+                <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      <Button variant="primary" onClick={() => setIsCreatingArmor(true)}>
+        Create Armor
+      </Button>
+      <Button className="ms-4" variant="secondary" onClick={handleClose3}>
+        Close
+      </Button>
+      </>
+    )}
   </div>
-  </Card.Body> 
-  </Card> 
-  </div>      
+  </Card.Body>
+  </Card>
+  </div>
   </Modal>
   {/* -----------------------------------------Item Modal--------------------------------------------- */}
-  <Modal className="dnd-modal" centered show={show4} onHide={handleClose4}>
+  <Modal className="dnd-modal" size="lg" centered show={show4} onHide={handleClose4}>
        <div className="text-center">
         <Card className="dnd-background">
             <Card.Title>Create Item</Card.Title>

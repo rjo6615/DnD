@@ -192,3 +192,40 @@ test('renders tabs for multiple classes', async () => {
     await within(clericPanel).findByText('Cure Wounds')
   ).toBeInTheDocument();
 });
+
+test.each(['Paladin', 'Ranger'])(
+  '5th-level %s gains 2nd-level slots',
+  async (cls) => {
+    apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+    render(
+      <SpellSelector
+        form={{
+          occupation: [{ Name: cls, Level: 5, casterProgression: 'half' }],
+          spells: [],
+        }}
+        show={true}
+        handleClose={() => {}}
+      />
+    );
+    const select = await screen.findByLabelText('Level');
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).toContain('2');
+  }
+);
+
+test('level 1 half-caster has no spell slots', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Paladin', Level: 1, casterProgression: 'half' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Level')).toBeNull();
+  });
+});

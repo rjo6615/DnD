@@ -45,6 +45,7 @@ module.exports = (router) => {
       body('wis').isInt().toInt(),
       body('cha').isInt().toInt(),
       body('startStatTotal').isInt().toInt(),
+      body('abilityScoreImprovement').optional().isObject(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -54,7 +55,7 @@ module.exports = (router) => {
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
       const fields = matchedData(req, { locations: ['body'] });
-
+      
       try {
         await db_connect.collection('Characters').updateOne(id, {
           $set: fields,
