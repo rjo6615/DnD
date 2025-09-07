@@ -7,6 +7,16 @@ import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 
+export function rollSkill(bonus = 0) {
+  const d20 = Math.floor(Math.random() * 20) + 1;
+  if (d20 === 20) {
+    window.dispatchEvent(new CustomEvent('critical-hit', { detail: 'critical' }));
+  } else if (d20 === 1) {
+    window.dispatchEvent(new CustomEvent('critical-failure', { detail: 'fumble' }));
+  }
+  return d20 + bonus;
+}
+
 export default function Skills({
   form,
   showSkill,
@@ -206,7 +216,6 @@ export default function Skills({
   };
 
   const handleRoll = (skillKey, ability, proficient, expertise) => {
-    const d20 = Math.floor(Math.random() * 20) + 1;
     const skill = SKILLS.find((s) => s.key === skillKey);
     const armorPenalty = skill?.armorPenalty || 0;
     const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
@@ -217,7 +226,7 @@ export default function Skills({
       itemTotals[skillKey] +
       featTotals[skillKey] +
       raceTotals[skillKey];
-    const result = d20 + bonus;
+    const result = rollSkill(bonus);
     window.dispatchEvent(new CustomEvent('damage-roll', { detail: result }));
 
     handleCloseSkill?.();
