@@ -216,6 +216,17 @@ export default function ZombiesCharacterSheet() {
     cha: Math.floor((computedStats.cha - 10) / 2),
   };
 
+  const SPELLCASTING_ABILITIES = {
+    cleric: 'wis',
+    druid: 'wis',
+    wizard: 'int',
+  };
+  const spellcastingClass = (form?.occupation || [])
+    .map((cls) => (cls.Name || cls.Occupation || '').toLowerCase())
+    .find((name) => SPELLCASTING_CLASSES[name]);
+  const spellAbilityKey = SPELLCASTING_ABILITIES[spellcastingClass] || 'cha';
+  const spellAbilityMod = spellcastingClass ? statMods[spellAbilityKey] : 0;
+
   const hasSpellcasting = (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
     const progression = SPELLCASTING_CLASSES[name];
@@ -371,6 +382,7 @@ return (
         ac={featBonuses.ac}
         hpMaxBonus={featBonuses.hpMaxBonus}
         hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+        spellAbilityMod={spellAbilityMod}
       />
     </div>
     <PlayerTurnActions
