@@ -347,6 +347,14 @@ useEffect(() => {
     if (newCharacter.race == null) {
       delete newCharacter.race;
     }
+    if (newCharacter.background == null) {
+      delete newCharacter.background;
+    }
+    Object.keys(newCharacter).forEach((key) => {
+      if (newCharacter[key] === "") {
+        delete newCharacter[key];
+      }
+    });
     try {
       const response = await apiFetch("/characters/add", {
         method: "POST",
@@ -504,6 +512,17 @@ const sendManualToDb = useCallback(async (characterData) => {
     ...baseCharacter,
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
+  if (newCharacter.race == null) {
+    delete newCharacter.race;
+  }
+  if (newCharacter.background == null) {
+    delete newCharacter.background;
+  }
+  Object.keys(newCharacter).forEach((key) => {
+    if (newCharacter[key] === "") {
+      delete newCharacter[key];
+    }
+  });
   try {
     const response = await apiFetch("/characters/add", {
       method: "POST",
