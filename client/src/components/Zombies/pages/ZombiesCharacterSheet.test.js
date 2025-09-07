@@ -177,3 +177,31 @@ test('feats button includes points-glow when feat points available', async () =>
   const featButton = buttons.find((btn) => btn.classList.contains('fa-hand-fist'));
   await waitFor(() => expect(featButton).toHaveClass('points-glow'));
 });
+
+test('all footer buttons have footer-btn class', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  buttons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
+});
