@@ -26,7 +26,7 @@ export default function BackgroundModal({ show, onHide, background }) {
       <div className="text-center">
         <Card className="modern-card">
           <Card.Header className="modal-header">
-            <Card.Title className="modal-title">
+            <Card.Title className="modal-title text-center">
               {background.name || "Background"}
             </Card.Title>
           </Card.Header>
