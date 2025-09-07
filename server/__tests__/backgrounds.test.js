@@ -26,13 +26,13 @@ describe('Background API routes', () => {
   });
 
   test('fetches a multi-word background', async () => {
-    const res = await request(app).get('/backgrounds/guildArtisan');
+    const res = await request(app).get('/backgrounds/folkHero');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      name: 'Guild Artisan',
+      name: 'Folk Hero',
       skills: {
-        insight: { proficient: true },
-        persuasion: { proficient: true },
+        animalHandling: { proficient: true },
+        survival: { proficient: true },
       },
     });
   });

@@ -24,7 +24,7 @@ test('renders background name and calls onShowBackground', () => {
   const form = {
     occupation: [],
     race: { languages: [] },
-    background: { name: 'Sailor' },
+    background: { name: 'Soldier' },
     age: 100,
     sex: 'M',
     height: "6'",
@@ -40,7 +40,7 @@ test('renders background name and calls onShowBackground', () => {
     />
   );
 
-  expect(screen.getByText('Sailor')).toBeInTheDocument();
+  expect(screen.getByText('Soldier')).toBeInTheDocument();
   const button = screen.getByLabelText('Show Background');
   fireEvent.click(button);
   expect(onShowBackground).toHaveBeenCalled();
