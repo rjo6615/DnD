@@ -298,9 +298,9 @@ $rotateX: -$angle;
 #damageAmount {
   width: 70px;
   height: 70px;
-  border: 2px solid #8b0000; /* Dark red border */
+  border: 2px solid #0040ff; /* Dark red border */
   border-radius: 50%;
-  color: #8b0000; /* Dark red text color */
+  color: #ffffff; /* Dark red text color */
   font-size: 22px;
   font-weight: bold;
   text-align: center;
@@ -338,7 +338,7 @@ $rotateX: -$angle;
 /* Spinner styles */
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #8b0000; /* Dark red top border */
+  border-top: 4px solid #ffffff; /* Dark red top border */
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -915,15 +915,15 @@ h1 {
 
 @keyframes pulseOnce {
   0% {
-    background-color: rgba(255, 0, 0, 0.8);
+    background-color: rgba(0, 85, 255, 0.8);
     transform: scale(1);
   }
   50% {
-    background-color: rgba(255, 0, 0, 0.4);
+    background-color: rgba(0, 85, 255, 0.4);
     transform: scale(1.1);
   }
   100% {
-    background-color: rgba(255, 0, 0, 0.8);
+    background-color: rgba(0, 85, 255, 0.8);
     transform: scale(1);
   }
 }
