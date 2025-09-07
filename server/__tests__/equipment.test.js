@@ -314,30 +314,30 @@ describe('Equipment routes', () => {
     });
   });
 
-  describe('/item/add', () => {
+  describe('/items', () => {
     test('validation failure', async () => {
       dbo.mockResolvedValue({});
-      const res = await request(app).post('/equipment/item/add').send({});
+      const res = await request(app).post('/equipment/items').send({});
       expect(res.status).toBe(400);
       expect(res.body.errors).toBeDefined();
     });
 
     test('insert success', async () => {
       dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+        collection: () => ({ insertOne: async () => ({ insertedId: '507f1f77bcf86cd799439011' }) })
       });
       const res = await request(app)
-        .post('/equipment/item/add')
-        .send({ campaign: 'Camp1', itemName: 'Potion' });
+        .post('/equipment/items')
+        .send({ campaign: 'Camp1', name: 'Potion', category: 'gear', weight: 1, cost: '5 gp' });
       expect(res.status).toBe(200);
-      expect(res.body.acknowledged).toBe(true);
+      expect(res.body._id).toBeDefined();
     });
 
     test('numeric validation failure', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
-        .post('/equipment/item/add')
-        .send({ campaign: 'Camp1', itemName: 'Potion', str: 'bad' });
+        .post('/equipment/items')
+        .send({ campaign: 'Camp1', name: 'Potion', category: 'gear', weight: 'bad', cost: '5 gp' });
       expect(res.status).toBe(400);
     });
   });
