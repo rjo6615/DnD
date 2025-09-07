@@ -18,10 +18,11 @@ module.exports = (router) => {
     const features = cls.featuresByLevel?.[level];
     const spellSlots = cls.spellSlots?.[level];
     const spellsKnown = cls.spellsKnown?.[level];
-    if (!features && !spellSlots && spellsKnown == null) {
+    const pactMagic = cls.pactMagic?.[level];
+    if (!features && !spellSlots && spellsKnown == null && !pactMagic) {
       return res.status(404).json({ message: 'Level not found' });
     }
-    res.json({ features: features || [], spellSlots, spellsKnown });
+    res.json({ features: features || [], spellSlots, spellsKnown, pactMagic });
   });
 
   classRouter.get('/:name', (req, res) => {
