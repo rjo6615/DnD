@@ -21,6 +21,15 @@ import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 
 const HEADER_PADDING = 16;
+const SPELLCASTING_CLASSES = {
+  bard: 'full',
+  cleric: 'full',
+  druid: 'full',
+  sorcerer: 'full',
+  wizard: 'full',
+  paladin: 'half',
+  ranger: 'half',
+};
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -244,8 +253,10 @@ const featBonuses = (form.feat || []).reduce(
 const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const hasSpellcasting = (form.occupation || []).some((cls) => {
-  const progression = cls.casterProgression || 'none';
+  const name = (cls.Name || cls.Occupation || '').toLowerCase();
+  const progression = SPELLCASTING_CLASSES[name];
   const level = Number(cls.Level) || 0;
+  if (!progression) return false;
   if (progression === 'full') return level >= 1;
   if (progression === 'half') return level >= 2;
   return false;
