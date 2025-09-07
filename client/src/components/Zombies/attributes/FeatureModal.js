@@ -12,7 +12,6 @@ export default function FeatureModal({ show, onHide, feature }) {
       onHide={onHide}
       centered
       className="dnd-modal modern-modal"
-      animation={false}
     >
       <div className="text-center">
         <Card className="modern-card">

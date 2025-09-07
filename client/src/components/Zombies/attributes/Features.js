@@ -52,7 +52,6 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
         onHide={handleCloseFeatures}
         size="lg"
         centered
-        animation={false}
       >
         <div className="text-center">
           <Card className="modern-card">
