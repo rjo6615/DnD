@@ -137,7 +137,7 @@ useEffect(() => {
     if (!Number.isNaN(num)) {
       updateDamageValueWithAnimation(num);
     }
-    setIsCritical(!!critical);
+    setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
   window.addEventListener('damage-roll', handler);
