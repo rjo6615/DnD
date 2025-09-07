@@ -4,6 +4,90 @@ const { skillNames } = require('../routes/fieldConstants');
 const multiclassProficiencies = require('../data/multiclassProficiencies');
 const classes = require('../data/classes');
 const collectAllowedSkills = require('./collectAllowedSkills');
+const collectAllowedExpertise = require('./collectAllowedExpertise');
+
+const countFeatProficiencies = (feat = []) => {
+  const profs = new Set();
+  if (Array.isArray(feat)) {
+    feat.forEach((ft) => {
+      if (ft && ft.skills && typeof ft.skills === 'object') {
+        Object.keys(ft.skills).forEach((skill) => {
+          if (ft.skills[skill] && ft.skills[skill].proficient) {
+            profs.add(skill);
+          }
+        });
+      }
+    });
+  }
+  return profs.size;
+};
+
+const countRaceProficiencies = (race) => {
+  if (race && race.skills && typeof race.skills === 'object') {
+    return Object.values(race.skills).filter((s) => s && s.proficient).length;
+  }
+  return 0;
+};
+
+const countBackgroundProficiencies = (background) => {
+  if (background && background.skills && typeof background.skills === 'object') {
+    return Object.values(background.skills).filter((s) => s && s.proficient).length;
+  }
+  return 0;
+};
+
+const countFeatExpertise = (feat = []) => {
+  let count = 0;
+  if (Array.isArray(feat)) {
+    feat.forEach((ft) => {
+      if (ft && ft.skills && typeof ft.skills === 'object') {
+        Object.values(ft.skills).forEach((info) => {
+          if (info && info.expertise) count += 1;
+        });
+      }
+    });
+  }
+  return count;
+};
+
+const countRaceExpertise = (race) => {
+  if (race && race.skills && typeof race.skills === 'object') {
+    return Object.values(race.skills).filter((s) => s && s.expertise).length;
+  }
+  return 0;
+};
+
+const countBackgroundExpertise = (background) => {
+  if (background && background.skills && typeof background.skills === 'object') {
+    return Object.values(background.skills).filter((s) => s && s.expertise).length;
+  }
+  return 0;
+};
+
+const countClassExpertise = (occupation = []) => {
+  let count = 0;
+  if (Array.isArray(occupation)) {
+    occupation.forEach((occ) => {
+      const name = (
+        typeof occ.Occupation === 'string'
+          ? occ.Occupation
+          : typeof occ.Name === 'string'
+          ? occ.Name
+          : ''
+      ).toLowerCase();
+      const level = occ.Level || occ.level || 0;
+      if (name === 'rogue') {
+        if (level >= 1) count += 2;
+        if (level >= 6) count += 2;
+      }
+      if (name === 'bard') {
+        if (level >= 3) count += 2;
+        if (level >= 10) count += 2;
+      }
+    });
+  }
+  return count;
+};
 
 const prereqs = {
   barbarian: { all: ['str'], min: 13 },
@@ -132,6 +216,32 @@ async function applyMulticlass(characterId, newOccupation) {
     character.background,
   );
 
+  const allowedExpertise = collectAllowedExpertise(
+    updatedOccupation,
+    character.feat,
+    character.race,
+    character.background,
+  );
+
+  const occupationPoints = Array.isArray(updatedOccupation)
+    ? updatedOccupation.reduce(
+        (sum, o) => sum + Number(o.proficiencyPoints || 0),
+        0,
+      )
+    : 0;
+  const featPoints = countFeatProficiencies(character.feat);
+  const racePoints = countRaceProficiencies(character.race);
+  const backgroundPoints = countBackgroundProficiencies(character.background);
+  const proficiencyPoints =
+    occupationPoints + featPoints + racePoints + backgroundPoints;
+
+  const classExpertise = countClassExpertise(updatedOccupation);
+  const featExpertise = countFeatExpertise(character.feat);
+  const raceExpertise = countRaceExpertise(character.race);
+  const backgroundExpertise = countBackgroundExpertise(character.background);
+  const expertisePoints =
+    classExpertise + featExpertise + raceExpertise + backgroundExpertise;
+
   await characters.updateOne(
     { _id },
     {
@@ -139,11 +249,22 @@ async function applyMulticlass(characterId, newOccupation) {
         occupation: updatedOccupation,
         health: newHealth,
         allowedSkills,
+        allowedExpertise,
+        proficiencyPoints,
+        expertisePoints,
       },
     }
   );
 
-  return { allowed: true, occupation: updatedOccupation, health: newHealth, allowedSkills };
+  return {
+    allowed: true,
+    occupation: updatedOccupation,
+    health: newHealth,
+    allowedSkills,
+    allowedExpertise,
+    proficiencyPoints,
+    expertisePoints,
+  };
 }
 
 module.exports = { canMulticlass, applyMulticlass };
