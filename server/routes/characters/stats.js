@@ -14,16 +14,18 @@ module.exports = (router) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
     try {
-      await db_connect.collection('Characters').updateOne(id, {
-        $set: {
-          str: req.body.str,
-          dex: req.body.dex,
-          con: req.body.con,
-          int: req.body.int,
-          wis: req.body.wis,
-          cha: req.body.cha,
-        },
-      });
+      const update = {
+        str: req.body.str,
+        dex: req.body.dex,
+        con: req.body.con,
+        int: req.body.int,
+        wis: req.body.wis,
+        cha: req.body.cha,
+      };
+      if (req.body.abilityScoreImprovement) {
+        update.abilityScoreImprovement = req.body.abilityScoreImprovement;
+      }
+      await db_connect.collection('Characters').updateOne(id, { $set: update });
       logger.info('character stats updated');
       res.json({ message: 'User updated successfully' });
     } catch (err) {

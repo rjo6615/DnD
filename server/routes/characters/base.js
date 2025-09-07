@@ -224,6 +224,7 @@ module.exports = (router) => {
       body('feat').optional().isArray(),
       body('race').optional().isObject(),
       body('background').optional().isObject(),
+      body('abilityScoreImprovement').optional().isObject(),
       body('weapon').optional().isArray(),
       body('armor').optional().isArray(),
       body('item').optional().isArray(),
@@ -263,6 +264,10 @@ module.exports = (router) => {
         myobj.race,
         myobj.background
       );
+
+      if (!myobj.abilityScoreImprovement) {
+        myobj.abilityScoreImprovement = {};
+      }
 
       // derive proficiency bonus from total character level
       const totalLevel = Array.isArray(myobj.occupation)

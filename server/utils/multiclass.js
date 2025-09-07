@@ -20,12 +20,47 @@ const prereqs = {
   wizard: { all: ['int'], min: 13 },
 };
 
+function getTotalStat(character = {}, stat = '') {
+  let total = Number(character[stat] || 0);
+  if (character?.race?.abilities && character.race.abilities[stat] != null) {
+    total += Number(character.race.abilities[stat] || 0);
+  }
+  if (
+    character?.abilityScoreImprovement
+    && character.abilityScoreImprovement[stat] != null
+  ) {
+    total += Number(character.abilityScoreImprovement[stat] || 0);
+  }
+  if (Array.isArray(character.feat)) {
+    character.feat.forEach((ft) => {
+      if (ft && typeof ft === 'object') total += Number(ft[stat] || 0);
+    });
+  }
+  if (Array.isArray(character.occupation)) {
+    character.occupation.forEach((occ) => {
+      if (occ && typeof occ === 'object') total += Number(occ[stat] || 0);
+    });
+  }
+  if (Array.isArray(character.item)) {
+    const indexMap = { str: 2, dex: 3, con: 4, int: 5, wis: 6, cha: 7 };
+    character.item.forEach((it) => {
+      if (Array.isArray(it)) {
+        const idx = indexMap[stat];
+        if (idx != null) total += Number(it[idx] || 0);
+      } else if (it && typeof it === 'object') {
+        total += Number(it[stat] || 0);
+      }
+    });
+  }
+  return total;
+}
+
 function canMulticlass(character = {}, newOccupation = '') {
   const name = typeof newOccupation === 'string' ? newOccupation.toLowerCase() : '';
   const req = prereqs[name];
   if (!req) return { allowed: true };
   if (req.all) {
-    const ok = req.all.every((stat) => Number(character[stat]) >= req.min);
+    const ok = req.all.every((stat) => getTotalStat(character, stat) >= req.min);
     if (ok) return { allowed: true };
     return {
       allowed: false,
@@ -33,7 +68,7 @@ function canMulticlass(character = {}, newOccupation = '') {
     };
   }
   if (req.any) {
-    const ok = req.any.some((stat) => Number(character[stat]) >= req.min);
+    const ok = req.any.some((stat) => getTotalStat(character, stat) >= req.min);
     if (ok) return { allowed: true };
     return {
       allowed: false,
