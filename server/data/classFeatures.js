@@ -9,7 +9,7 @@
  *   spellSlots?: Record<number, Record<number, number>>,
  *   spellsKnown?:
  *     | Record<number, number>
- *     | ((level: number, chaMod: number) => number),
+ *     | ((level: number, abilityMod: number) => number),
  *   pactMagic?: Record<number, Record<number, number>>
  * }} ClassFeatures
  * @type {Record<string, ClassFeatures>}
@@ -93,8 +93,12 @@ const pactMagic = {
 };
 
 // Spells known tables
-function paladinSpellsKnown(level, chaMod) {
-  return Math.max(1, Math.floor(level / 2) + chaMod);
+function paladinSpellsKnown(level, abilityMod) {
+  return Math.max(1, Math.floor(level / 2) + abilityMod);
+}
+
+function wisdomPreparedSpells(level, wisMod) {
+  return Math.max(1, level + wisMod);
 }
 const bardSpellsKnown = {
   1: 4,
@@ -1459,11 +1463,13 @@ const classFeatures = {
   },
   cleric: {
     featuresByLevel: clericFeatures,
-    spellSlots: fullCasterSlots
+    spellSlots: fullCasterSlots,
+    spellsKnown: wisdomPreparedSpells
   },
   druid: {
     featuresByLevel: druidFeatures,
-    spellSlots: fullCasterSlots
+    spellSlots: fullCasterSlots,
+    spellsKnown: wisdomPreparedSpells
   },
   fighter: { featuresByLevel: fighterFeatures },
   monk: { featuresByLevel: monkFeatures },

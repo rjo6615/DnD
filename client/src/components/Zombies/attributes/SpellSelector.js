@@ -153,6 +153,20 @@ export default function SpellSelector({
     return Math.floor((computed - 10) / 2);
   }, [form.cha, form.item, form.feat, form.race]);
 
+  const wisMod = useMemo(() => {
+    const itemBonus = (form.item || []).reduce(
+      (sum, el) => sum + Number(el[6] || 0),
+      0
+    );
+    const featBonus = (form.feat || []).reduce(
+      (sum, el) => sum + Number(el.wis || 0),
+      0
+    );
+    const raceBonus = form.race?.abilities?.wis || 0;
+    const computed = (form.wis || 0) + itemBonus + featBonus + raceBonus;
+    return Math.floor((computed - 10) / 2);
+  }, [form.wis, form.item, form.feat, form.race]);
+
   useEffect(() => {
     apiFetch('/spells')
       .then((res) => res.json())
@@ -177,8 +191,10 @@ export default function SpellSelector({
       await Promise.all(
         classesInfo.map(async ({ name, level }) => {
           try {
+            const abilityMod =
+              ['cleric', 'druid'].includes(name.toLowerCase()) ? wisMod : chaMod;
             const res = await apiFetch(
-              `/classes/${name.toLowerCase()}/features/${level}?chaMod=${chaMod}`
+              `/classes/${name.toLowerCase()}/features/${level}?abilityMod=${abilityMod}`
             );
             if (res.ok) {
               const data = await res.json();
@@ -194,7 +210,7 @@ export default function SpellSelector({
       setSpellsKnown(result);
     };
     fetchSpellsKnown();
-  }, [classesInfo, chaMod]);
+  }, [classesInfo, chaMod, wisMod]);
 
   function spellsForClass(cls) {
     return Object.values(allSpells).filter(
