@@ -20,6 +20,7 @@ export default function Skills({
   chaMod,
   wisMod,
   onSkillsChange,
+  onRollResult,
 }) {
   const params = useParams();
   const [skills, setSkills] = useState(form.skills || {});
@@ -220,6 +221,7 @@ export default function Skills({
     const result = d20 + bonus;
     const label = skill?.label || skillKey;
     notify(`${label}: d20 (${d20}) + bonus (${bonus}) = ${result}`, 'success');
+    onRollResult?.(result);
   };
 
   const handleView = (skill) => {

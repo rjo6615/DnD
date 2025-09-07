@@ -38,6 +38,8 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
 
+  const playerTurnActionsRef = useRef(null);
+
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
@@ -122,6 +124,10 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = () => setShowHelpModal(false);
   const handleShowBackground = () => setShowBackground(true);
   const handleCloseBackground = () => setShowBackground(false);
+
+  const handleRollResult = (result) => {
+    playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+  };
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -309,6 +315,7 @@ return (
       dexMod={statMods.dex}
       strMod={statMods.str}
       headerHeight={headerHeight}
+      ref={playerTurnActionsRef}
     />
     <Navbar
       fixed="bottom"
@@ -441,6 +448,7 @@ return (
       chaMod={statMods.cha}
       wisMod={statMods.wis}
       onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+      onRollResult={handleRollResult}
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <BackgroundModal
