@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, Card, Button } from 'react-bootstrap';
 
 export default function FeatureModal({ show, onHide, feature }) {
-  if (!feature) return null;
+  if (!show || !feature) return null;
   return (
     <Modal
       show={show}
@@ -17,7 +17,7 @@ export default function FeatureModal({ show, onHide, feature }) {
             <Card.Title className="modal-title">{feature.name}</Card.Title>
           </Card.Header>
           <Card.Body>
-            <p>{feature.description}</p>
+            <p>{feature.description || 'Feature details unavailable'}</p>
           </Card.Body>
           <Card.Footer className="modal-footer">
             <Button className="action-btn close-btn" onClick={onHide}>
