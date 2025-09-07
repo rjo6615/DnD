@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
+import { notify } from '../../../utils/notification';
 
 export default function Skills({
   form,
@@ -204,6 +205,23 @@ export default function Skills({
     updateSkill(skill, updated);
   };
 
+  const handleRoll = (skillKey, ability, proficient, expertise) => {
+    const d20 = Math.floor(Math.random() * 20) + 1;
+    const skill = SKILLS.find((s) => s.key === skillKey);
+    const armorPenalty = skill?.armorPenalty || 0;
+    const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
+    const bonus =
+      modMap[ability] +
+      profBonus * (expertise ? 2 : proficient ? 1 : 0) +
+      penalty +
+      itemTotals[skillKey] +
+      featTotals[skillKey] +
+      raceTotals[skillKey];
+    const result = d20 + bonus;
+    const label = skill?.label || skillKey;
+    notify(`${label}: d20 (${d20}) + bonus (${bonus}) = ${result}`, 'success');
+  };
+
   const handleView = (skill) => {
     setSelectedSkill(skill);
     setShowSkillInfo(true);
@@ -250,6 +268,7 @@ export default function Skills({
                   <th>Mod</th>
                   <th>Prof</th>
                   <th>Exp</th>
+                  <th>Roll</th>
                 </tr>
               </thead>
               <tbody>
@@ -311,6 +330,17 @@ export default function Skills({
                           }
                           onChange={() => toggleExpertise(key)}
                         />
+                      </td>
+                      <td>
+                        <Button
+                          onClick={() =>
+                            handleRoll(key, ability, proficient, expertise)
+                          }
+                          variant="link"
+                          aria-label="roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
                       </td>
                     </tr>
                   );
