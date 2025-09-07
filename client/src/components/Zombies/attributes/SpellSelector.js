@@ -75,10 +75,14 @@ export default function SpellSelector({
 }) {
   const params = useParams();
 
-  const getAvailableLevels = useCallback((effectiveLevel) => {
+  const getAvailableLevels = useCallback((effectiveLevel, casterProgression) => {
     const slotRow = SLOT_TABLE[effectiveLevel] || [];
     const options = [];
-    if ((CANTRIP_TABLE[effectiveLevel] || 0) > 0) options.push(0);
+    if (
+      casterProgression === 'full' &&
+      (CANTRIP_TABLE[effectiveLevel] || 0) > 0
+    )
+      options.push(0);
     slotRow.forEach((slots, lvl) => {
       if (lvl > 0 && slots > 0) options.push(lvl);
     });
@@ -105,8 +109,8 @@ export default function SpellSelector({
 
   const levelOptions = useMemo(
     () =>
-      classesInfo.reduce((acc, { name, effectiveLevel }) => {
-        acc[name] = getAvailableLevels(effectiveLevel);
+      classesInfo.reduce((acc, { name, effectiveLevel, casterProgression }) => {
+        acc[name] = getAvailableLevels(effectiveLevel, casterProgression);
         return acc;
       }, {}),
     [classesInfo, getAvailableLevels]
