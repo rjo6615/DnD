@@ -114,6 +114,7 @@ async function applyMulticlass(characterId, newOccupation) {
     weapons: classInfo.proficiencies.weapons,
     tools: classInfo.proficiencies.tools,
     savingThrows: classInfo.proficiencies.savingThrows,
+    casterProgression: classInfo.casterProgression,
     Level: 1,
     skills,
     proficiencyPoints: 0,
