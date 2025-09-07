@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from "react";
-import apiFetch from '../../../utils/apiFetch';
+import React, { useState } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
-import { useParams, useNavigate } from "react-router-dom";
+import STATS from "../statSchema";
+import StatBreakdownModal from "./StatBreakdownModal";
 
-export default function Stats({ form, showStats, handleCloseStats, totalLevel }) {
-  const params = useParams();
-  const navigate = useNavigate();
-
-  const [stats, setStats] = useState({
+export default function Stats({ form, showStats, handleCloseStats }) {
+  const [stats] = useState({
     str: form.str || 0,
     dex: form.dex || 0,
     con: form.con || 0,
@@ -16,7 +13,8 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
     cha: form.cha || 0,
   });
 
-  const startStatTotal = form.startStatTotal || 0;
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [selectedStat, setSelectedStat] = useState(null);
 
   const totalItemBonus = (form.item || []).reduce(
     (acc, el) => ({
@@ -30,114 +28,122 @@ export default function Stats({ form, showStats, handleCloseStats, totalLevel })
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
-  const computedStats = Object.keys(stats).reduce((acc, key) => {
-    acc[key] = stats[key] + totalItemBonus[key];
+  const totalFeatBonus = (form.feat || []).reduce(
+    (acc, el) => ({
+      str: acc.str + Number(el.str || 0),
+      dex: acc.dex + Number(el.dex || 0),
+      con: acc.con + Number(el.con || 0),
+      int: acc.int + Number(el.int || 0),
+      wis: acc.wis + Number(el.wis || 0),
+      cha: acc.cha + Number(el.cha || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
+  const raceBonus = form.race?.abilities || {};
+  const classBonus = (form.occupation || []).reduce(
+    (acc, occ) => ({
+      str: acc.str + Number(occ.str || 0),
+      dex: acc.dex + Number(occ.dex || 0),
+      con: acc.con + Number(occ.con || 0),
+      int: acc.int + Number(occ.int || 0),
+      wis: acc.wis + Number(occ.wis || 0),
+      cha: acc.cha + Number(occ.cha || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
+  const breakdowns = Object.keys(stats).reduce((acc, key) => {
+    const base = stats[key] - classBonus[key];
+    const race = Number(raceBonus[key] || 0);
+    const feat = totalFeatBonus[key];
+    const item = totalItemBonus[key];
+    const cls = classBonus[key];
+    acc[key] = {
+      base,
+      class: cls,
+      race,
+      feat,
+      item,
+      total: base + cls + race + feat + item,
+    };
     return acc;
   }, {});
+
+  const computedStats = Object.fromEntries(
+    Object.entries(breakdowns).map(([key, b]) => [key, b.total])
+  );
 
   const statMods = Object.fromEntries(
     Object.entries(computedStats).map(([key, value]) => [key, Math.floor((value - 10) / 2)])
   );
 
-  const [statPointsLeft, setStatPointsLeft] = useState(0);
+  const handleView = (stat) => {
+    setSelectedStat(stat);
+    setShowBreakdown(true);
+  };
 
-  useEffect(() => {
-    const pointsUsed = Object.values(stats).reduce((a, b) => a + b, 0) - startStatTotal;
-    setStatPointsLeft(Math.floor(totalLevel / 4) - pointsUsed);
-  }, [stats, totalLevel, startStatTotal]);
-
-  async function statsUpdate() {
-    await apiFetch(`/characters/update-stats/${params.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(stats),
-    }).catch((error) => window.alert(error));
-
-    navigate(0);
-  }
-
-  function addStat(stat) {
-    if (statPointsLeft > 0) {
-      setStats((prev) => {
-        const newStats = { ...prev, [stat]: prev[stat] + 1 };
-        return newStats;
-      });
-    }
-  }
-
-  function removeStat(stat) {
-    if (stats[stat] > form[stat]) {
-      setStats((prev) => {
-        const newStats = { ...prev, [stat]: prev[stat] - 1 };
-        return newStats;
-      });
-    }
-  }
+  const handleCloseBreakdown = () => {
+    setShowBreakdown(false);
+  };
 
   return (
-    <Modal
-      show={showStats}
-      onHide={handleCloseStats}
-      size="lg"
-      scrollable
-      centered
-      className="modern-modal"
-    >
-      <div className="text-center">
-        <Card className="modern-card">
-          <Card.Header className="modal-header">
-            <Card.Title className="modal-title">Stats</Card.Title>
-          </Card.Header>
-          <Card.Body>
-            <div className="points-container" style={{ display: statPointsLeft >= 0 ? "flex" : "none" }}>
-              <span className="points-label">Points Left:</span>
-              <span className="points-value">{isNaN(statPointsLeft) ? 0 : statPointsLeft}</span>
-            </div>
-
-            <Table striped bordered hover size="sm" responsive className="modern-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Stat</th>
-                  <th>Level</th>
-                  <th>Mod</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {["str", "dex", "con", "int", "wis", "cha"].map((stat) => (
-                  <tr key={stat}>
-                    <td>
-                      <Button
-                        className="stat-btn minus-btn"
-                        style={{ visibility: stats[stat] > form[stat] ? "visible" : "hidden" }}
-                        onClick={() => removeStat(stat)}
-                      >-</Button>
-                    </td>
-                    <td>{stat.toUpperCase()}</td>
-                    <td>{computedStats[stat]}</td>
-                    <td>{statMods[stat]}</td>
-                    <td>
-                      <Button
-                        className="stat-btn plus-btn"
-                        style={{ visibility: statPointsLeft > 0 ? "visible" : "hidden" }}
-                        onClick={() => addStat(stat)}
-                      >+</Button>
-                    </td>
+    <>
+      <Modal
+        show={showStats}
+        onHide={handleCloseStats}
+        size="lg"
+        scrollable
+        centered
+        className="dnd-modal modern-modal"
+      >
+        <div className="text-center">
+          <Card className="modern-card">
+            <Card.Header className="modal-header">
+              <Card.Title className="modal-title">Stats</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <Table striped bordered hover size="sm" responsive className="modern-table">
+                <thead>
+                  <tr>
+                    <th>Stat</th>
+                    <th>Level</th>
+                    <th>Mod</th>
+                    <th>View</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-
-          <Card.Footer className="modal-footer">
-            <Button className="action-btn save-btn" onClick={statsUpdate}>Save</Button>
-            <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
-          </Card.Footer>
-        </Card>
-      </div>
-    </Modal>
+                </thead>
+                <tbody>
+                  {STATS.map(({ key }) => (
+                    <tr key={key}>
+                      <td>{key.toUpperCase()}</td>
+                      <td>{computedStats[key]}</td>
+                      <td>{statMods[key]}</td>
+                      <td>
+                          <Button
+                            onClick={() => handleView(key)}
+                            variant="link"
+                            aria-label="view"
+                          >
+                            <i className="fa-solid fa-eye"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+            </Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
+            </Card.Footer>
+          </Card>
+        </div>
+      </Modal>
+      <StatBreakdownModal
+        show={showBreakdown}
+        onHide={handleCloseBreakdown}
+        statKey={selectedStat}
+        breakdown={selectedStat ? breakdowns[selectedStat] : null}
+      />
+    </>
   );
 }

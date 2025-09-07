@@ -11,42 +11,43 @@ const numericFields = [
   'startStatTotal',
   'health',
   'tempHealth',
+  'initiative',
+  'ac',
+  'speed',
+  'hpMaxBonus',
+  'hpMaxBonusPerLevel',
 ];
 
-const skillFields = [
-  'appraise',
-  'balance',
-  'bluff',
-  'climb',
-  'concentration',
-  'decipherScript',
-  'diplomacy',
-  'disableDevice',
-  'disguise',
-  'escapeArtist',
-  'forgery',
-  'gatherInfo',
-  'handleAnimal',
-  'heal',
-  'hide',
-  'intimidate',
-  'jump',
-  'listen',
-  'moveSilently',
-  'openLock',
-  'ride',
-  'search',
-  'senseMotive',
+// Define the list of available skills
+const skillNames = [
+  'acrobatics',
+  'animalHandling',
+  'arcana',
+  'athletics',
+  'deception',
+  'history',
+  'insight',
+  'intimidation',
+  'investigation',
+  'medicine',
+  'nature',
+  'perception',
+  'performance',
+  'persuasion',
+  'religion',
   'sleightOfHand',
-  'spot',
+  'stealth',
   'survival',
-  'swim',
-  'tumble',
-  'useTech',
-  'useRope',
 ];
+
+// Map each skill to a proficiency/expertise structure
+const skillFields = skillNames.reduce((acc, skill) => {
+  acc[skill] = { proficient: false, expertise: false };
+  return acc;
+}, {});
 
 module.exports = {
   numericFields,
   skillFields,
+  skillNames,
 };

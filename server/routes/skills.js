@@ -1,7 +1,37 @@
 const ObjectId = require('mongodb').ObjectId;
 const express = require('express');
 const authenticateToken = require('../middleware/auth');
-const logger = require('../utils/logger');
+const proficiencyBonus = require('../utils/proficiency');
+
+const collectAllowedSkills = require('../utils/collectAllowedSkills');
+const collectAllowedExpertise = require('../utils/collectAllowedExpertise');
+
+// Map each skill to its associated ability score
+const skillAbilityMap = {
+  acrobatics: 'dex',
+  animalHandling: 'wis',
+  arcana: 'int',
+  athletics: 'str',
+  deception: 'cha',
+  history: 'int',
+  insight: 'wis',
+  intimidation: 'cha',
+  investigation: 'int',
+  medicine: 'wis',
+  nature: 'int',
+  perception: 'wis',
+  performance: 'cha',
+  persuasion: 'cha',
+  religion: 'int',
+  sleightOfHand: 'dex',
+  stealth: 'dex',
+  survival: 'wis',
+};
+
+function abilityMod(score = 10) {
+  return Math.floor((score - 10) / 2);
+}
+
 
 module.exports = (router) => {
   const skillsRouter = express.Router();
@@ -9,81 +39,144 @@ module.exports = (router) => {
   // Apply authentication to all skills routes
   skillsRouter.use(authenticateToken);
 
-  // This section will update skills.
+  // Update a single skill's proficiency/expertise and return its modifier
   skillsRouter.route('/update-skills/:id').put(async (req, res, next) => {
     const id = { _id: ObjectId(req.params.id) };
     const db_connect = req.db;
+    const { skill, proficient = false, expertise = false } = req.body;
+
+    if (!skill || !skillAbilityMap[skill]) {
+      return res.status(400).json({ message: 'Invalid skill' });
+    }
+
     try {
-      const result = await db_connect.collection("Characters").findOneAndUpdate(
-        id,
-        {
-          $set: {
-            "appraise": req.body.appraise,
-            "balance": req.body.balance,
-            "bluff": req.body.bluff,
-            "climb": req.body.climb,
-            "concentration": req.body.concentration,
-            "decipherScript": req.body.decipherScript,
-            "diplomacy": req.body.diplomacy,
-            "disableDevice": req.body.disableDevice,
-            "disguise": req.body.disguise,
-            "escapeArtist": req.body.escapeArtist,
-            "forgery": req.body.forgery,
-            "gatherInfo": req.body.gatherInfo,
-            "handleAnimal": req.body.handleAnimal,
-            "heal": req.body.heal,
-            "hide": req.body.hide,
-            "intimidate": req.body.intimidate,
-            "jump": req.body.jump,
-            "listen": req.body.listen,
-            "moveSilently": req.body.moveSilently,
-            "openLock": req.body.openLock,
-            "ride": req.body.ride,
-            "search": req.body.search,
-            "senseMotive": req.body.senseMotive,
-            "sleightOfHand": req.body.sleightOfHand,
-            "spot": req.body.spot,
-            "survival": req.body.survival,
-            "swim": req.body.swim,
-            "tumble": req.body.tumble,
-            "useTech": req.body.useTech,
-            "useRope": req.body.useRope,
-          },
+      // Fetch character to determine proficiency bonus from total level
+      const charDoc = await db_connect
+        .collection('Characters')
+        .findOne(id);
+
+      if (!charDoc) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const raceProficient = !!(
+        charDoc.race?.skills?.[skill]?.proficient
+      );
+      const backgroundProficient = !!(
+        charDoc.background?.skills?.[skill]?.proficient
+      );
+      const raceExpertise = !!(
+        charDoc.race?.skills?.[skill]?.expertise
+      );
+      const backgroundExpertise = !!(
+        charDoc.background?.skills?.[skill]?.expertise
+      );
+      const featExpertise = Array.isArray(charDoc.feat)
+        ? charDoc.feat.some((ft) => ft?.skills?.[skill]?.expertise)
+        : false;
+
+      const allowedSkills = collectAllowedSkills(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race,
+        charDoc.background
+      );
+      if (!allowedSkills.includes(skill)) {
+        return res.status(400).json({ message: 'Skill not allowed' });
+      }
+      const allowedExpertise = collectAllowedExpertise(
+        charDoc.occupation,
+        charDoc.feat,
+        charDoc.race,
+        charDoc.background
+      );
+
+      if ((raceProficient || backgroundProficient) && !proficient) {
+        return res
+          .status(400)
+          .json({ message: 'Cannot remove granted proficiency' });
+      }
+
+      const proficientCount = Object.values(charDoc.skills || {}).filter(
+        (s) => s && s.proficient
+      ).length;
+      const alreadyProficient = charDoc.skills?.[skill]?.proficient;
+      if (
+        proficient &&
+        !alreadyProficient &&
+        proficientCount >= (charDoc.proficiencyPoints || 0)
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'No proficiency points remaining' });
+      }
+
+      const proficiencyAfterUpdate =
+        proficient || raceProficient || backgroundProficient;
+      if (expertise && !proficiencyAfterUpdate) {
+        return res
+          .status(400)
+          .json({ message: 'Expertise requires proficiency' });
+      }
+      if (expertise && !allowedExpertise.includes(skill)) {
+        return res
+          .status(400)
+          .json({ message: 'Skill not allowed for expertise' });
+      }
+      if ((raceExpertise || backgroundExpertise || featExpertise) && !expertise) {
+        return res
+          .status(400)
+          .json({ message: 'Cannot remove granted expertise' });
+      }
+      const expertiseCount = Object.values(charDoc.skills || {}).filter(
+        (s) => s && s.expertise
+      ).length;
+      const alreadyExpertise = charDoc.skills?.[skill]?.expertise;
+      if (
+        expertise &&
+        !alreadyExpertise &&
+        expertiseCount >= (charDoc.expertisePoints || 0)
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'No expertise slots remaining' });
+      }
+
+      const totalLevel = Array.isArray(charDoc.occupation)
+        ? charDoc.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
+        : 0;
+      const profBonus = proficiencyBonus(totalLevel);
+
+      const update = {
+        $set: {
+          proficiencyBonus: profBonus,
+          allowedSkills,
+          allowedExpertise,
         },
-        { returnDocument: 'after' }
-      );
-      res.status(200).json(result.value);
-    } catch (err) {
-      next(err);
-    }
-  });
+      };
 
-  // This section will update added skills.
-  skillsRouter.route('/update-add-skill/:id').put(async (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      await db_connect.collection("Characters").updateOne(id, {
-        $set: { 'newSkill': req.body.newSkill }
-      });
-        logger.info("character knowledge updated");
-        res.json({ message: 'User updated successfully' });
-    } catch (err) {
-      next(err);
-    }
-  });
+      if (proficiencyAfterUpdate || expertise) {
+        update.$set[`skills.${skill}`] = {
+          proficient: proficiencyAfterUpdate,
+          expertise,
+        };
+      } else {
+        update.$unset = { [`skills.${skill}`]: '' };
+      }
 
-  // This section will update ranks of skills.
-  skillsRouter.route('/updated-add-skills/:id').put(async  (req, res, next) => {
-    const id = { _id: ObjectId(req.params.id) };
-    const db_connect = req.db;
-    try {
-      const result = await db_connect.collection("Characters").findOneAndUpdate(
-        id,
-        { $set: { 'newSkill': req.body.newSkill } },
-        { returnDocument: 'after' }
-      );
-      res.status(200).json(result.value);
+      const result = await db_connect
+        .collection('Characters')
+        .findOneAndUpdate(id, update, { returnDocument: 'after' });
+
+      const character = result.value;
+      const abilityScore = character[skillAbilityMap[skill]];
+      const base = abilityMod(abilityScore);
+      const multiplier = expertise ? 2 : proficient ? 1 : 0;
+      const modifier = base + profBonus * multiplier;
+
+      res
+        .status(200)
+        .json({ skill, proficient, expertise, modifier, proficiencyBonus: profBonus });
     } catch (err) {
       next(err);
     }

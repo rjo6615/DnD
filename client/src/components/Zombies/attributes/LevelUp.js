@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Card, Modal, Button, Form } from "react-bootstrap";
+import { Card, Modal, Button, Form, Alert } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import useUser from '../../../hooks/useUser';
 
@@ -24,6 +24,8 @@ export default function LevelUp({ show, handleClose, form }) {
   const handleCloseLvlModal = () => {
     setChosenOccupation('');
     setShowLvlModal(false);
+    setNotification('');
+    setError('');
     handleClose();
   };
 
@@ -61,16 +63,22 @@ export default function LevelUp({ show, handleClose, form }) {
     }
   };
 
-  //--------------------------------------------Add Occupation--------------------------------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------Add Class--------------------------------------------------------------------------------------------------------------------------------------------
   const [showAddClassModal, setShowAddClassModal] = useState(false);
   const [selectedOccupation, setSelectedOccupation] = useState(null);
   const selectedAddOccupationRef = useRef();
   const [getOccupation, setGetOccupation] = useState([]);
   const [chosenAddOccupation, setChosenAddOccupation] = useState('');
+  const [notification, setNotification] = useState('');
+  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleAddOccupationClick = () => {
     setShowAddClassModal(true);
     setChosenAddOccupation('');
+    setValidationError('');
+    setError('');
+    setNotification('');
   };
 
   const handleOccupationChange = (event) => {
@@ -79,102 +87,57 @@ export default function LevelUp({ show, handleClose, form }) {
     setChosenAddOccupation(event.target.value);
   };
 
-  const handleConfirmClick = () => {
+  const handleConfirmClick = async () => {
     if (selectedOccupation) {
+      setValidationError('');
+      setError('');
+      setNotification('');
       const selectedAddOccupation = selectedAddOccupationRef.current.value;
-      const selectedAddOccupationObject = getOccupation.find(
-        (occupation) => occupation.Occupation === selectedAddOccupation
-      );
-
-      const addOccupationHealth = Math.floor(Math.random() * Number(selectedAddOccupationObject.Health)) + 1 + Number(form.health);
-      const addOccupationStrTotal = Number(selectedAddOccupationObject.str) + Number(form.str);
-      const addOccupationDexTotal = Number(selectedAddOccupationObject.dex) + Number(form.dex);
-      const addOccupationConTotal = Number(selectedAddOccupationObject.con) + Number(form.con);
-      const addOccupationIntTotal = Number(selectedAddOccupationObject.int) + Number(form.int);
-      const addOccupationWisTotal = Number(selectedAddOccupationObject.wis) + Number(form.wis);
-      const addOccupationChaTotal = Number(selectedAddOccupationObject.cha) + Number(form.cha);
-
-      const addOccupationStr = Number(selectedAddOccupationObject.str);
-      const addOccupationDex = Number(selectedAddOccupationObject.dex);
-      const addOccupationCon = Number(selectedAddOccupationObject.con);
-      const addOccupationInt = Number(selectedAddOccupationObject.int);
-      const addOccupationWis = Number(selectedAddOccupationObject.wis);
-      const addOccupationCha = Number(selectedAddOccupationObject.cha);
-
-      const totalNewStats = addOccupationStr + addOccupationDex + addOccupationCon + addOccupationInt
-        + addOccupationWis + addOccupationCha;
-
-      const newStartStatTotal = Number(totalNewStats) + Number(form.startStatTotal);
-
-      // Push the selected occupation into form.occupation
-      form.occupation.push(selectedOccupation);
-
-      // Perform the database update here
-      apiFetch(`/characters/update-health/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json", // Set content type to JSON
-        },
-        body: JSON.stringify({
-          health: addOccupationHealth,
-          str: addOccupationStrTotal,
-          dex: addOccupationDexTotal,
-          con: addOccupationConTotal,
-          int: addOccupationIntTotal,
-          wis: addOccupationWisTotal,
-          cha: addOccupationChaTotal,
-          startStatTotal: newStartStatTotal
-        }), // Send as a JSON object
-      })
-        .then(() => {
-          window.alert("Database update complete");
-        })
-        .catch((error) => {
-          // Handle errors here
-          console.error(error);
+      try {
+        const response = await apiFetch(`/characters/multiclass/${params.id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ newOccupation: selectedAddOccupation }),
         });
-
-      // Perform the database update with the entire form.occupation array
-      apiFetch(`/characters/update-occupations/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form.occupation), // Send the array directly
-      })
-        .then(() => {
-          window.alert("Database update complete");
+        const data = await response.json();
+        if (response.ok) {
+          setNotification('Database update complete');
+          setShowAddClassModal(false);
           navigate(0);
-        })
-        .catch((error) => {
-          // Handle errors here
-          console.error(error);
-        });
-
-      setShowAddClassModal(false);
+        } else if (response.status === 400) {
+          setValidationError(data.message || 'Multiclass validation failed');
+        } else {
+          setError(data.message || 'Database update failed');
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Database update failed');
+      }
     } else {
-      alert('Please select an occupation.');
+      setValidationError('Please select a class.');
     }
   };
 
   useEffect(() => {
     if (!user) return;
     async function fetchData() {
-      const response = await apiFetch('/characters/occupations');
+      const response = await apiFetch('/classes');
 
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        setError(message);
         return;
       }
 
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
+        setError('Record not found');
         navigate("/");
         return;
       }
-      setGetOccupation(record);
+      setGetOccupation(Object.values(record));
     }
     fetchData();
     return;
@@ -183,58 +146,84 @@ export default function LevelUp({ show, handleClose, form }) {
 
   return (
     <div>
-      <Modal className="modern-modal" show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
+      <Modal className="dnd-modal modern-modal" show={showLvlModal} onHide={handleCloseLvlModal} size="md" centered>
         <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
               <Card.Title className="modal-title">Level Up</Card.Title>
             </Card.Header>
             <Card.Body>
-              {/* Add occupation */}
-              <Form>
-                <Button className="action-btn" onClick={handleAddOccupationClick}>
-                  Add Occupation
-                </Button>
-                <Modal
-                  className="modern-modal"
+              {notification && (
+                <Alert variant="success" onClose={() => setNotification('')} dismissible>
+                  {notification}
+                </Alert>
+              )}
+                {error && (
+                  <Alert variant="danger" onClose={() => setError('')} dismissible>
+                    {error}
+                  </Alert>
+                )}
+                {validationError && (
+                  <Alert variant="warning" onClose={() => setValidationError('')} dismissible>
+                    {validationError}
+                  </Alert>
+                )}
+                {/* Add class */}
+                <Form>
+                  <Button className="action-btn" onClick={handleAddOccupationClick}>
+                    Add Class
+                  </Button>
+                  <Modal
+                  className="dnd-modal modern-modal"
                   centered
                   show={showAddClassModal}
-                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}
+                  onHide={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setError(''); setNotification(''); }}
                 >
                   <Card className="modern-card text-center">
                     <Card.Header className="modal-header">
-                      <Card.Title className="modal-title">Add Occupation</Card.Title>
+                      <Card.Title className="modal-title">Add Class</Card.Title>
                     </Card.Header>
                     <Card.Body>
+                      {notification && (
+                        <Alert variant="success" onClose={() => setNotification('')} dismissible>
+                          {notification}
+                        </Alert>
+                      )}
+                      {error && (
+                        <Alert variant="danger" onClose={() => setError('')} dismissible>
+                          {error}
+                        </Alert>
+                      )}
                       <Form.Group className="mb-3 mx-5">
-                        <Form.Label className="text-dark">Select Occupation</Form.Label>
+                        <Form.Label className="text-light">Select Class</Form.Label>
                         <Form.Select
                           ref={selectedAddOccupationRef}
                           onChange={handleOccupationChange}
                           defaultValue=""
                         >
-                          <option value="" disabled>Select your occupation</option>
+                          <option value="" disabled>Select your class</option>
                           {getOccupation.map((occupation, i) => {
                             const isOccupationSelected = form.occupation.some(
-                              (item) => item.Occupation === occupation.Occupation
+                              (item) => item.Occupation === occupation.name
                             );
 
                             return (
                               <option key={i} disabled={isOccupationSelected}>
-                                {occupation.Occupation}
+                                {occupation.name}
                               </option>
                             );
                           })}
                         </Form.Select>
                       </Form.Group>
+                      {validationError && <div className="text-danger">{validationError}</div>}
                     </Card.Body>
                     <Card.Footer className="modal-footer">
-                      <Button
-                        className="action-btn close-btn"
-                        onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); }}
-                      >
-                        Close
-                      </Button>
+                          <Button
+                            className="action-btn close-btn"
+                            onClick={() => { setShowAddClassModal(false); setChosenAddOccupation(''); setError(''); setNotification(''); }}
+                          >
+                          Close
+                        </Button>
                       <Button
                         className="action-btn save-btn"
                         onClick={handleConfirmClick}
@@ -254,13 +243,13 @@ export default function LevelUp({ show, handleClose, form }) {
                 <br />
                 <span>or</span>
                 <Form.Group className="mb-3 mx-5">
-                  <Form.Label className="text-dark">Select Occupation</Form.Label>
+                  <Form.Label className="text-light">Select Class</Form.Label>
                   <Form.Select
                     ref={selectedOccupationRef}
                     defaultValue=""
                     onChange={handleChosenOccupationChange}
                   >
-                    <option value="" disabled>Select your occupation</option>
+                    <option value="" disabled>Select your class</option>
                     {form.occupation.map((occupation, i) => (
                       <option key={i}>{occupation.Occupation}</option>
                     ))}

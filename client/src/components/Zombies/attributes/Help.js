@@ -65,7 +65,7 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 return(
     <div>
         <Modal
-        className="modern-modal text-center"
+        className="dnd-modal modern-modal text-center"
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
         centered
@@ -81,7 +81,7 @@ return(
                   <thead>
                     <tr>
                       <td className="center-td">
-                        <strong>Change Dice Color:</strong>
+                        <strong className='text-light'>Change Dice Color:</strong>
                       </td>
                       <td className="center-td">
                         <input
@@ -109,7 +109,7 @@ return(
           </Card>
         </Modal>
         <Modal
-          className="modern-modal text-center"
+          className="dnd-modal modern-modal text-center"
           size="lg"
           aria-labelledby="contained-modal-title-vcenter"
           centered

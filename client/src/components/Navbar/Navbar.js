@@ -13,20 +13,22 @@ function NavbarComponent() {
   };
 
   return (
-    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: "rgba(0, 0, 0, 1)" }}>
+    <Navbar fixed="top" style={{ fontFamily: 'Raleway, sans-serif', height: "80px", backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
       <Container fluid>
         <Navbar.Brand href="/">
           <img src={logoLight} alt="" width="60px" height="60px" className="d-inline-block align-text-top" />
         </Navbar.Brand>
-        <Nav className="ml-auto">
-          <Nav.Link>
-            <Button style={{ borderColor: "gray" }} className='bg-secondary' onClick={handleLogout}>
-              Logout
-            </Button>
-          </Nav.Link>
-        </Nav>
-      </Container>
-    </Navbar>
+          <Nav className="ml-auto">
+            {/* <Nav.Link as={Link} to="/spells">Spells</Nav.Link> */}
+            {/* <Nav.Link as={Link} to="/weapons">Weapons</Nav.Link> */}
+            <Nav.Link>
+              <Button style={{ borderColor: "gray" }} className='bg-secondary' onClick={handleLogout}>
+                Logout
+              </Button>
+            </Nav.Link>
+          </Nav>
+        </Container>
+      </Navbar>
   );
 }
 

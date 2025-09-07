@@ -3,7 +3,8 @@ const express = require('express');
 const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
-const { numericFields, skillFields } = require('./fieldConstants');
+const { numericFields, skillNames } = require('./fieldConstants');
+const { armors: armorData } = require('../data/armor');
 
 module.exports = (router) => {
   const equipmentRouter = express.Router();
@@ -11,12 +12,15 @@ module.exports = (router) => {
   // Apply authentication to all equipment routes
   equipmentRouter.use(authenticateToken);
 
-  const itemFields = [
-    ...numericFields.filter((field) =>
+  const itemNumericFields = numericFields.filter(
+    (field) =>
       !['age', 'height', 'weight', 'startStatTotal', 'health', 'tempHealth'].includes(field)
-    ),
-    ...skillFields,
-  ];
+  );
+
+  const skillBooleanValidators = skillNames.flatMap((skill) => [
+    body(`skills.${skill}.proficient`).optional().isBoolean().toBoolean(),
+    body(`skills.${skill}.expertise`).optional().isBoolean().toBoolean(),
+  ]);
 
   // Weapon Section
 
@@ -63,12 +67,13 @@ module.exports = (router) => {
   equipmentRouter.route('/weapon/add').post(
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
-      body('weaponName').trim().notEmpty().withMessage('weaponName is required'),
-      body('enhancement').optional().isInt().toInt(),
-      body('range').optional().isInt().toInt(),
-      body('damage').optional().trim(),
-      body('critical').optional().trim(),
-      body('weaponStyle').optional().trim(),
+      body('name').trim().notEmpty().withMessage('name is required'),
+      body('type').optional().isString().trim().toLowerCase(),
+      body('category').trim().notEmpty().withMessage('category is required'),
+      body('damage').trim().notEmpty().withMessage('damage is required'),
+      body('properties').optional().isArray(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
@@ -76,12 +81,33 @@ module.exports = (router) => {
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Weapons').insertOne(myobj);
-        response.json(result);
+        const weapon = { _id: result.insertedId, ...myobj };
+        response.json(weapon);
       } catch (err) {
         next(err);
       }
     }
   );
+
+  // This section will delete a weapon.
+  equipmentRouter.route('/weapon/:id').delete(async (req, res, next) => {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const db_connect = req.db;
+    try {
+      const result = await db_connect
+        .collection('Weapons')
+        .deleteOne({ _id: ObjectId(id) });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Weapon not found' });
+      }
+      res.json({ acknowledged: true });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   // Armor Section
 
@@ -104,9 +130,14 @@ module.exports = (router) => {
     [
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('armorName').trim().notEmpty().withMessage('armorName is required'),
-      body('armorBonus').optional().isInt().toInt(),
-      body('maxDex').optional().isInt().toInt(),
-      body('armorCheckPenalty').optional().isInt().toInt(),
+      body('armorBonus').optional({ checkFalsy: true }).isInt().toInt(),
+      body('maxDex').optional({ checkFalsy: true }).isInt().toInt(),
+      body('type').optional().isString().trim().toLowerCase(),
+      body('category').optional().isString().trim().toLowerCase(),
+      body('strength').optional().isInt().toInt(),
+      body('stealth').optional().isBoolean().toBoolean(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
     ],
     handleValidationErrors,
     async (req, response, next) => {
@@ -114,7 +145,8 @@ module.exports = (router) => {
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Armor').insertOne(myobj);
-        response.json(result);
+        const armor = { _id: result.insertedId, ...myobj };
+        response.json(armor);
       } catch (err) {
         next(err);
       }
@@ -126,25 +158,85 @@ module.exports = (router) => {
     [body('armor').isArray().withMessage('armor must be an array')],
     handleValidationErrors,
     async (req, res, next) => {
-        if (!ObjectId.isValid(req.params.id)) {
-          return res.status(400).json({ message: 'Invalid ID' });
-        }
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
       const { armor } = matchedData(req, { locations: ['body'] });
       try {
+        const charDoc = await db_connect
+          .collection('Characters')
+          .findOne(id, { projection: { str: 1, campaign: 1 } });
+        if (!charDoc) {
+          return res.status(404).json({ message: 'Armor not found' });
+        }
+
+        const strengthMap = {};
+        Object.entries(armorData).forEach(([key, a]) => {
+          if (a.strength != null) {
+            strengthMap[key.toLowerCase()] = a.strength;
+            strengthMap[a.name.toLowerCase()] = a.strength;
+          }
+        });
+
+        const customArmors = await db_connect
+          .collection('Armor')
+          .find({ campaign: charDoc.campaign })
+          .toArray();
+        customArmors.forEach((a) => {
+          const name = String(a.name || a.armorName || '').toLowerCase();
+          if (name && a.strength != null) {
+            strengthMap[name] = a.strength;
+          }
+        });
+
+        for (const entry of armor) {
+          const name =
+            typeof entry === 'string'
+              ? entry
+              : entry?.name || entry?.armorName;
+          if (!name) continue;
+          const required = strengthMap[String(name).toLowerCase()];
+          if (required != null && charDoc.str < required) {
+            return res
+              .status(400)
+              .json({ message: `${name} requires strength ${required}` });
+          }
+        }
+
         const result = await db_connect.collection('Characters').updateOne(id, {
           $set: { armor },
         });
-          if (result.matchedCount === 0) {
-            return res.status(404).json({ message: 'Armor not found' });
-          }
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: 'Armor not found' });
+        }
         res.json({ message: 'Armor updated' });
       } catch (err) {
         next(err);
       }
     }
   );
+
+  // This section will delete an armor.
+  equipmentRouter.route('/armor/:id').delete(async (req, res, next) => {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const db_connect = req.db;
+    try {
+      const result = await db_connect
+        .collection('Armor')
+        .deleteOne({ _id: ObjectId(id) });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Armor not found' });
+      }
+      res.json({ acknowledged: true });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   // Item Section
 
@@ -168,7 +260,8 @@ module.exports = (router) => {
       body('campaign').trim().notEmpty().withMessage('campaign is required'),
       body('itemName').trim().notEmpty().withMessage('itemName is required'),
       body('notes').optional().trim(),
-      ...itemFields.map((field) => body(field).optional().isInt().toInt()),
+      ...itemNumericFields.map((field) => body(field).optional().isInt().toInt()),
+      ...skillBooleanValidators,
     ],
     handleValidationErrors,
     async (req, response, next) => {

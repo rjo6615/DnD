@@ -147,7 +147,7 @@ export default function Login({ onLogin }) {
   </div>
 
   {/* Signup Modal */}
-  <Modal show={show} onHide={handleClose} centered>
+  <Modal className="dnd-modal" show={show} onHide={handleClose} centered>
     <Modal.Header closeButton>
       <Modal.Title>Sign up</Modal.Title>
     </Modal.Header>

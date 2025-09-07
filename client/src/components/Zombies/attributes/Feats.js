@@ -1,294 +1,538 @@
-import React, { useState, useEffect } from 'react'; // Import useState and React
+import React, { useState, useEffect } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap';
 import { useNavigate, useParams } from "react-router-dom";
- 
- export default function Feats({form, showFeats, handleCloseFeats, totalLevel}) {
+import { SKILLS } from "../skillSchema";
+import { calculateFeatPointsLeft } from '../../../utils/featUtils';
+
+// Tools and musical instruments that can be selected for proficiency.
+// This list is not exhaustive to every possible item in the game but
+// represents the common options a feat may allow a user to choose from.
+const TOOL_OPTIONS = [
+  { key: 'alchemistsSupplies', label: "Alchemist's Supplies" },
+  { key: 'brewersSupplies', label: "Brewer's Supplies" },
+  { key: 'calligraphersSupplies', label: "Calligrapher's Supplies" },
+  { key: 'carpentersTools', label: "Carpenter's Tools" },
+  { key: 'cartographersTools', label: "Cartographer's Tools" },
+  { key: 'cobblersTools', label: "Cobbler's Tools" },
+  { key: 'cooksUtensils', label: "Cook's Utensils" },
+  { key: 'glassblowersTools', label: "Glassblower's Tools" },
+  { key: 'jewelersTools', label: "Jeweler's Tools" },
+  { key: 'leatherworkersTools', label: "Leatherworker's Tools" },
+  { key: 'masonsTools', label: "Mason's Tools" },
+  { key: 'paintersSupplies', label: "Painter's Supplies" },
+  { key: 'pottersTools', label: "Potter's Tools" },
+  { key: 'smithsTools', label: "Smith's Tools" },
+  { key: 'tinkersTools', label: "Tinker's Tools" },
+  { key: 'weaversTools', label: "Weaver's Tools" },
+  { key: 'woodcarversTools', label: "Woodcarver's Tools" },
+  { key: 'disguiseKit', label: 'Disguise Kit' },
+  { key: 'forgeryKit', label: 'Forgery Kit' },
+  { key: 'herbalismKit', label: 'Herbalism Kit' },
+  { key: 'navigatorTools', label: "Navigator's Tools" },
+  { key: 'poisonersKit', label: "Poisoner's Kit" },
+  { key: 'thievesTools', label: "Thieves' Tools" },
+  { key: 'landVehicles', label: 'Vehicles (Land)' },
+  { key: 'waterVehicles', label: 'Vehicles (Water)' },
+  { key: 'diceSet', label: 'Gaming Set (Dice)' },
+  { key: 'dragonchessSet', label: 'Gaming Set (Dragonchess)' },
+  { key: 'playingCardSet', label: 'Gaming Set (Playing Cards)' },
+  { key: 'bagpipes', label: 'Bagpipes' },
+  { key: 'drum', label: 'Drum' },
+  { key: 'dulcimer', label: 'Dulcimer' },
+  { key: 'flute', label: 'Flute' },
+  { key: 'lute', label: 'Lute' },
+  { key: 'lyre', label: 'Lyre' },
+  { key: 'horn', label: 'Horn' },
+  { key: 'panFlute', label: 'Pan Flute' },
+  { key: 'shawm', label: 'Shawm' },
+  { key: 'viol', label: 'Viol' },
+];
+
+// Combine skills and tools into a single list for selection components.
+const ALL_SKILLS = [...SKILLS, ...TOOL_OPTIONS];
+
+// Maximum number of selectable proficiencies a feat may grant.
+const SKILL_SELECT_LIMIT = 3;
+
+export default function Feats({ form, showFeats, handleCloseFeats }) {
   const params = useParams();
   const navigate = useNavigate();
-  //----------------------------------------------Feats Section------------------------------------------------------------------------------------------------------------------------------------
-const [feat, setFeat] = useState({ 
-    feat: [], 
-  });
-  const [addFeat, setAddFeat] = useState({ 
-    feat: "",
-  });
-  const [modalFeatData, setModalFeatData] = useState({
-    feat: "",
-  })
+  //----------------------------------------------Feats Section-----------------------------------------------------------------
+  //-------------------------------------------------------------------
+  const [feat, setFeat] = useState({ feat: [] });
+  const [addFeat, setAddFeat] = useState(null);
+  const [modalFeatData, setModalFeatData] = useState({ featName: "", notes: "" });
   const [showFeatNotes, setShowFeatNotes] = useState(false);
   const handleCloseFeatNotes = () => setShowFeatNotes(false);
   const handleShowFeatNotes = () => setShowFeatNotes(true);
   const [chosenFeat, setChosenFeat] = useState('');
-  const handleChosenFeatChange = (e) => {
-      setChosenFeat(e.target.value);
+  const [selectedFeatData, setSelectedFeatData] = useState(null);
+  const [abilitySelections, setAbilitySelections] = useState({});
+  const [skillSelections, setSkillSelections] = useState([]);
+  const [notification, setNotification] = useState(null);
+
+  const skillChoiceFields = [
+    'skillChoiceCount',
+    'skillChoices',
+    'skillOptions',
+    'skillChoice',
+    'skillProficiencies',
+    'toolChoiceCount',
+    'toolChoices',
+    'toolOptions',
+    'toolChoice',
+    'toolProficiencies',
+  ];
+  const hasSkillChoice =
+    skillChoiceFields.some((field) => selectedFeatData?.[field]) ||
+    selectedFeatData?.featName === 'Skilled';
+
+  // Determine how many skills a user may select for the chosen feat.
+  const skillLimit = Math.min(
+    selectedFeatData?.skillChoiceCount || SKILL_SELECT_LIMIT,
+    SKILL_SELECT_LIMIT
+  );
+
+  // Track the character's existing skill and tool proficiencies so feats
+  // can't grant duplicates. The form.skills object stores both skills and
+  // tools with a `proficient` flag.
+  const existingProficiencies = new Set(
+    Object.entries(form.skills || {})
+      .filter(([, value]) => value?.proficient)
+      .map(([key]) => key)
+  );
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const handleSelectFeat = (e) => {
+    const featName = e.target.value;
+    setChosenFeat(featName);
+    const featObj = feat.feat.find((f) => f.featName === featName);
+    setSelectedFeatData(featObj || null);
+    setAbilitySelections({});
+    const existingFeat = form.feat.find((f) => f.featName === featName);
+    if (featObj) {
+      const baseFeat = {
+        featName: featObj.featName,
+        notes: featObj.notes,
+        initiative: featObj.initiative ?? 0,
+        ac: featObj.ac ?? 0,
+        speed: featObj.speed ?? 0,
+        hpMaxBonus: featObj.hpMaxBonus ?? 0,
+        hpMaxBonusPerLevel: featObj.hpMaxBonusPerLevel ?? 0,
+      };
+      SKILLS.forEach(({ key }) => {
+        baseFeat[key] = featObj[key];
+      });
+      baseFeat.str = featObj.str ?? 0;
+      baseFeat.dex = featObj.dex ?? 0;
+      baseFeat.con = featObj.con ?? 0;
+      baseFeat.int = featObj.int ?? 0;
+      baseFeat.wis = featObj.wis ?? 0;
+      baseFeat.cha = featObj.cha ?? 0;
+      baseFeat.skills = {
+        ...(featObj.skills || {}),
+        ...(existingFeat?.skills || {}),
+      };
+      setSkillSelections(Object.keys(baseFeat.skills));
+      setAddFeat(baseFeat);
+    } else {
+      setSkillSelections([]);
+      setAddFeat(null);
+    }
   };
-  
-  function updateFeat(value) {
-    return setAddFeat((prev) => {
-      return { ...prev, ...value };
+
+  const handleAbilityChoice = (index, ability) => {
+    setAbilitySelections((prev) => {
+      const newSelections = { ...prev, [index]: ability };
+      const abilityBonus = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+      Object.entries(newSelections).forEach(([i, a]) => {
+        if (a) {
+          const option = selectedFeatData.abilityIncreaseOptions[i];
+          const amount = Array.isArray(option) ? 1 : option.amount ?? 1;
+          abilityBonus[a] += amount;
+        }
+      });
+      setAddFeat((prevFeat) => ({ ...prevFeat, ...abilityBonus }));
+      return newSelections;
     });
-  }
+  };
+
+  const handleSkillChoice = (e) => {
+    // Determine if the selected feat allows the user to pick proficiencies.
+    let selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+    if (selected.length > skillLimit) {
+      selected = selected.slice(0, skillLimit);
+    }
+    const skillsObj = selected.reduce((acc, key) => {
+      acc[key] = { proficient: true };
+      return acc;
+    }, {});
+    setSkillSelections(selected);
+    setAddFeat((prev) => {
+      const prevSkills = { ...(prev.skills || {}) };
+      const mergedSkills = { ...prevSkills, ...skillsObj };
+      Object.keys(mergedSkills).forEach((key) => {
+        if (!selected.includes(key)) {
+          delete mergedSkills[key];
+        }
+      });
+      return {
+        ...prev,
+        skills: mergedSkills,
+      };
+    });
+  };
+
   // ---------------------------------------Feats left-----------------------------------------------------
-    let featLength;
-  if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) { 
-    featLength = 0; 
-  } else {
-     featLength = form.feat.length 
-    }
-  let featPointsLeft = Math.floor((totalLevel / 3) - (featLength)) + 1;
-  
-    let showFeatBtn = "";
-    if (featPointsLeft === 0) {
-      showFeatBtn = "none";
-    }
-  
+  const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
+  const showFeatBtn = featPointsLeft > 0 ? "" : "none";
+
   // ----------------------------------------Fetch Feats-----------------------------------
   useEffect(() => {
     async function fetchFeats() {
       const response = await apiFetch(`/feats`);
-  
+
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
-        window.alert(message);
+        setNotification({ variant: 'danger', message });
         return;
       }
-  
+
       const record = await response.json();
       if (!record) {
-        window.alert(`Record not found`);
-        navigate("/");
+        setNotification({ variant: 'danger', message: 'Record not found' });
+        navigate(`/`);
         return;
       }
-      setFeat({feat: record});
+      setFeat({ feat: record });
     }
-    fetchFeats();   
+    fetchFeats();
     return;
-    
   }, [navigate]);
-   // Sends feat data to database for update
-   const splitFeatArr = (array, size) => {
-    let result = [];
-    for (let i = 0; i < array.length; i += size) {
-      let chunk = array.slice(i, i + size);
-      result.push(chunk);
-    }
-    return result;
-  };
-   let newFeat;
-   if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])) {
-    let newFeatArr = addFeat.feat.split(',');
-    const featArrSize = 32;
-    const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
-    newFeat = featArrChunks;
-   } else {
-    let newFeatArr = (form.feat + "," + addFeat.feat).split(',');
-    const featArrSize = 32;
-    const featArrChunks = splitFeatArr(newFeatArr, featArrSize);
-    newFeat = featArrChunks;
-   }
-   async function addFeatToDb(e){
+
+  async function addFeatToDb(e) {
     e.preventDefault();
+    if (!addFeat) return;
+    let updatedFeats;
+    if (addFeat.featName === 'Stat Increase') {
+      updatedFeats = [...form.feat, addFeat];
+    } else {
+      const existingIndex = form.feat.findIndex(
+        (f) => f.featName === addFeat.featName
+      );
+      if (existingIndex >= 0) {
+        updatedFeats = [...form.feat];
+        updatedFeats[existingIndex] = addFeat;
+      } else {
+        updatedFeats = [...form.feat, addFeat];
+      }
+    }
     await apiFetch(`/feats/update/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      feat: newFeat,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
-   navigate(0);
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        feat: updatedFeats,
+        skills: addFeat.skills || {},
+        featName: addFeat.featName,
+      }),
+    }).catch((error) => {
+      setNotification({ variant: 'danger', message: error.toString() });
+      return;
+    });
+    navigate(0);
   }
-   // This method will delete an feat
-   function deleteFeats(el) {
-    const index = form.feat.indexOf(el);
-    form.feat.splice(index, 1);
-    updateFeat(form.feat);
-    addDeleteFeatToDb();
-   }
-   let showDeleteFeatBtn = "";
-   if (JSON.stringify(form.feat) === JSON.stringify([["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]])){
+  // This method will delete a feat
+  function deleteFeats(index) {
+    const updatedFeats = form.feat.filter((_, i) => i !== index);
+    addDeleteFeatToDb(updatedFeats);
+  }
+  let showDeleteFeatBtn = "";
+  if (form.feat.length === 0) {
     showDeleteFeatBtn = "none";
-   }
-  async function addDeleteFeatToDb(){
-    let newFeatForm = form.feat;
-    if (JSON.stringify(form.feat) === JSON.stringify([])){
-      newFeatForm = [["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]];
-      await apiFetch(`/feats/update/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-         feat: newFeatForm,
-        }),
-      })
-      .catch(error => {
-        window.alert(error);
+  }
+  async function addDeleteFeatToDb(newFeatForm) {
+    await apiFetch(`/feats/update/${params.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        feat: newFeatForm,
+      }),
+    })
+      .catch((error) => {
+        setNotification({ variant: 'danger', message: error.toString() });
         return;
       });
-      window.alert("Feat Deleted")
-      navigate(0);
-    } else {
-    await apiFetch(`/feats/update/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      feat: newFeatForm,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
-   window.alert("Feat Deleted")
-   navigate(0);
-  }
+    setNotification({ variant: 'success', message: 'Feat Deleted' });
+    setTimeout(() => navigate(0), 1000);
   }
 
+  const abilityLabels = ['STR','DEX','CON','INT','WIS','CHA'];
+  const extraAbilityLabels = [
+    { label: 'Initiative', key: 'initiative' },
+    { label: 'AC', key: 'ac' },
+    { label: 'Speed', key: 'speed' },
+    { label: 'HP Max Bonus', key: 'hpMaxBonus' },
+    { label: 'HP Max Bonus/Level', key: 'hpMaxBonusPerLevel' },
+  ];
 
-return (
+  return (
     <div>
- {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
-  <Modal className="modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
+      {notification && (
+        <Alert variant={notification.variant} className="m-2">
+          {notification.message}
+        </Alert>
+      )}
+      {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
+      <Modal className="dnd-modal modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
         <div className="text-center">
-         <Card className="modern-card">
-           <Card.Header className="modal-header">
-             <Card.Title className="modal-title">Feats</Card.Title>
-           </Card.Header>
-           <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-             <div className="points-container" style={{ display: showFeatBtn }}>
-               <span className="points-label">Points Left:</span>
-               <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
-             </div>
-         <Table striped bordered hover size="sm" className="modern-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Notes</th>
-              <th>Skills</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-          {form.feat.map((el) => (  
-            <tr key={el[0]}>           
-              <td>{el[0]}</td>
-                <td style={{ display: showDeleteFeatBtn}}>
-                  <Button
-                    size="sm"
-                    className="action-btn fa-regular fa-eye"
-                    onClick={() => {
-                      handleShowFeatNotes();
-                      setModalFeatData(el);
-                    }}
-                  ></Button>
-                </td>
-              <td style={{ display: showDeleteFeatBtn}}>
-              {(() => {
-               const skillValues = [];
-
-                if (el[2] !== "0") skillValues.push("Appraise: " + el[2] + " ");
-                if (el[3] !== "0") skillValues.push("Balance: " + el[3] + " ");
-                if (el[4] !== "0") skillValues.push("Bluff: " + el[4] + " ");
-                if (el[5] !== "0") skillValues.push("Climb: " + el[5] + " ");
-                if (el[6] !== "0") skillValues.push("Concentration: " + el[6] + " ");
-                if (el[7] !== "0") skillValues.push("Decipher Script: " + el[7] + " ");
-                if (el[8] !== "0") skillValues.push("Diplomacy: " + el[8] + " ");
-                if (el[9] !== "0") skillValues.push("Disable Device: " + el[9] + " ");
-                if (el[10] !== "0") skillValues.push("Disguise: " + el[10] + " ");
-                if (el[11] !== "0") skillValues.push("Escape Artist: " + el[11] + " ");
-                if (el[12] !== "0") skillValues.push("Forgery: " + el[12] + " ");
-                if (el[13] !== "0") skillValues.push("Gather Info: " + el[13] + " ");
-                if (el[14] !== "0") skillValues.push("Handle Animal: " + el[14] + " ");
-                if (el[15] !== "0") skillValues.push("Heal: " + el[15] + " ");
-                if (el[16] !== "0") skillValues.push("Hide: " + el[16] + " ");
-                if (el[17] !== "0") skillValues.push("Intimidate: " + el[17] + " ");
-                if (el[18] !== "0") skillValues.push("Jump: " + el[18] + " ");
-                if (el[19] !== "0") skillValues.push("Listen: " + el[19] + " ");
-                if (el[20] !== "0") skillValues.push("Move Silently: " + el[20] + " ");
-                if (el[21] !== "0") skillValues.push("Open Lock: " + el[21] + " ");
-                if (el[22] !== "0") skillValues.push("Ride: " + el[22] + " ");
-                if (el[23] !== "0") skillValues.push("Search: " + el[23] + " ");
-                if (el[24] !== "0") skillValues.push("Sense Motive: " + el[24] + " ");
-                if (el[25] !== "0") skillValues.push("Sleight of Hand: " + el[25] + " ");
-                if (el[26] !== "0") skillValues.push("Spot: " + el[26] + " ");
-                if (el[27] !== "0") skillValues.push("Survival: " + el[27] + " ");
-                if (el[28] !== "0") skillValues.push("Swim: " + el[28] + " ");
-                if (el[29] !== "0") skillValues.push("Tumble: " + el[29] + " ");
-                if (el[30] !== "0") skillValues.push("Use Tech: " + el[30] + " ");
-                if (el[31] !== "0") skillValues.push("Use Rope: " + el[31] + " ");
-
-               return(    <div>
-                {skillValues.map((skill, index) => (
-                  <div key={index}>{skill}</div>
-                ))}
-              </div>);
-              })()}
-                
-              </td>
-                <td>
-                  <Button
-                    size="sm"
-                    style={{ display: showDeleteFeatBtn }}
-                    className="btn-danger action-btn fa-solid fa-trash"
-                    onClick={() => {
-                      deleteFeats(el);
-                    }}
-                  ></Button>
-                </td>
-            </tr>
-            ))}   
-          </tbody>
-        </Table>       
-    <Row>
-        <Col style={{display: showFeatBtn}}>
-          <Form onSubmit={addFeatToDb}>
-          <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-dark">Select Feat</Form.Label>
-        <Form.Select 
-        onChange={(e) => {updateFeat({ feat: e.target.value }); handleChosenFeatChange(e);}}
-        defaultValue=""
-         type="text">
-          <option value="" disabled>Select your feat</option>
-          {feat.feat.map((el) => (  
-          <option key={el.featName} value={[el.featName, el.notes, el.appraise, el.balance, el.bluff, el.climb, 
-          el.concentration, el.decipherScript, el.diplomacy, el.disableDevice, el.disguise, el.escapeArtist, 
-          el.forgery, el.gatherInfo, el.handleAnimal, el.heal, el.hide, el.intimidate, el.jump, el.listen, 
-          el.moveSilently, el.openLock, el.ride, el.search, el.senseMotive, el.sleightOfHand, el.spot, 
-          el.survival, el.swim, el.tumble, el.useTech, el.useRope]}>{el.featName}</option>
-          ))}
-          </Form.Select>
-        </Form.Group>
-          <Button disabled={!chosenFeat} className="action-btn" type="submit">Add</Button>
-            </Form>
-          </Col>
-        </Row>
-           </Card.Body>
-           <Card.Footer className="modal-footer">
-             <Button className="action-btn close-btn" onClick={handleCloseFeats}>Close</Button>
-           </Card.Footer>
-          </Card>
-        <Modal className="modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} size="lg" centered>
-          <Card className="modern-card text-center">
+          <Card className="modern-card">
             <Card.Header className="modal-header">
-              <Card.Title className="modal-title">{modalFeatData[0]}</Card.Title>
+              <Card.Title className="modal-title">Feats</Card.Title>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>{modalFeatData[1]}</Card.Body>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <div className="points-container" style={{ display: showFeatBtn }}>
+                <span className="points-label text-light">Points Left:</span>
+                <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
+              </div>
+              <Table striped bordered hover size="sm" className="modern-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Notes</th>
+                    <th>Skills</th>
+                    <th>Abilities</th>
+
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.feat.map((el, index) => (
+                    <tr key={`${el.featName}-${index}`}>
+                      <td>{el.featName}</td>
+                      <td style={{ display: showDeleteFeatBtn }}>
+                        <Button
+                          variant="link"
+                          onClick={() => {
+                            handleShowFeatNotes();
+                            setModalFeatData(el);
+                          }}
+                        >
+                          <i className="fa-solid fa-eye"></i>
+                        </Button>
+                      </td>
+                      <td style={{ display: showDeleteFeatBtn }}>
+                        {(() => {
+                          const skillValues = [];
+                          if (el.skills) {
+                            Object.keys(el.skills).forEach((key) => {
+                              const skill = ALL_SKILLS.find((s) => s.key === key);
+                              const label = skill ? skill.label : key;
+                              skillValues.push(`${label}: proficient`);
+                            });
+                          }
+                          SKILLS.forEach(({ label, key }) => {
+                            const val = el[key];
+                            if (val && val !== "0" && val !== "") {
+                              skillValues.push(`${label}: ${val} `);
+                            }
+                          });
+                          return (
+                            <div>
+                              {skillValues.map((skill, index) => (
+                                <div key={index}>{skill}</div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td
+                        style={{
+                          display: showDeleteFeatBtn,
+                          textAlign: "left",
+                          verticalAlign: "top",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {(() => {
+                          const abilityValues = [];
+                          abilityLabels.forEach((label) => {
+                            const prop = label.toLowerCase();
+                            const val = el[prop];
+                            if (val && val !== "0" && val !== "") {
+                              abilityValues.push(`${label}: ${val}`);
+                            }
+                          });
+                          extraAbilityLabels.forEach(({ label, key }) => {
+                            const val = el[key];
+                            if (val && val !== "0" && val !== "") {
+                              abilityValues.push(`${label}: ${val}`);
+                            }
+                          });
+                          return (
+                            <div>
+                              {abilityValues.map((ab, index) => (
+                                <div key={index}>{ab}</div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td>
+                        <Button
+                          size="sm"
+                          style={{ display: showDeleteFeatBtn }}
+                          className="btn-danger action-btn fa-solid fa-trash"
+                          onClick={() => {
+                            deleteFeats(index);
+                          }}
+                        ></Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              <Row>
+                <Col style={{ display: showFeatBtn }}>
+                  <Form onSubmit={addFeatToDb}>
+                    <Form.Group className="mb-3 mx-5">
+                      <Form.Label className="text-light">Select Feat</Form.Label>
+                      <div className="d-flex">
+                        <Form.Select
+                          onChange={handleSelectFeat}
+                          defaultValue=""
+                          type="text"
+                          style={{ maxHeight: '200px', overflowY: 'auto' }}
+                        >
+                          <option value="" disabled>
+                            Select your feat
+                          </option>
+                          {feat.feat.map((el) => (
+                            <option key={el.featName} value={el.featName}>
+                              {el.featName}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Button
+                          variant="link"
+                          disabled={!selectedFeatData}
+                          onClick={() => {
+                            setModalFeatData(selectedFeatData);
+                            handleShowFeatNotes();
+                          }}
+                        >
+                          <i className="fa-solid fa-eye"></i>
+                        </Button>
+                      </div>
+                    </Form.Group>
+
+                    {selectedFeatData?.abilityIncreaseOptions &&
+                      selectedFeatData.abilityIncreaseOptions.map((option, idx) => {
+                        const abilities = Array.isArray(option)
+                          ? option
+                          : option.abilities || [];
+                        return (
+                          <Form.Group className="mb-3 mx-5" key={idx}>
+                            <Form.Label className="text-light">Ability Increase</Form.Label>
+                            <Form.Select
+                              value={abilitySelections[idx] || ""}
+                              onChange={(e) => handleAbilityChoice(idx, e.target.value)}
+                              defaultValue=""
+                            >
+                              <option value="" disabled>
+                                Select ability
+                              </option>
+                              {abilities.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt.toUpperCase()}
+                                </option>
+                              ))}
+                            </Form.Select>
+                          </Form.Group>
+                        );
+                      })}
+
+                    {hasSkillChoice && (
+                      <Form.Group className="mb-3 mx-5">
+                        <Form.Label className="text-light">
+                          Skill/Tool Proficiencies
+                        </Form.Label>
+                        <Form.Select
+                          multiple
+                          value={skillSelections}
+                          onChange={handleSkillChoice}
+                        >
+                          {ALL_SKILLS.map(({ key, label }) => {
+                            const selected = skillSelections.includes(key);
+                            const alreadyProficient = existingProficiencies.has(key);
+                            const disabled =
+                              (!selected && skillSelections.length >= skillLimit) ||
+                              (!selected && alreadyProficient);
+                            return (
+                              <option key={key} value={key} disabled={disabled}>
+                                {label}
+                              </option>
+                            );
+                          })}
+                        </Form.Select>
+                        <Form.Text className="text-light">
+                          Select up to {skillLimit}
+                        </Form.Text>
+                        {skillSelections.length >= skillLimit && (
+                          <Form.Text className="text-danger">
+                            Maximum skill selections reached
+                          </Form.Text>
+                        )}
+                      </Form.Group>
+                    )}
+
+                    <Button
+                      disabled={
+                        !chosenFeat ||
+                        (selectedFeatData?.abilityIncreaseOptions &&
+                          Object.keys(abilitySelections).length !==
+                            selectedFeatData.abilityIncreaseOptions.length) ||
+                        (hasSkillChoice && skillSelections.length === 0)
+                      }
+                      className="action-btn" type="submit"
+                    >
+                      Add
+                    </Button>
+                  </Form>
+                </Col>
+              </Row>
+            </Card.Body>
             <Card.Footer className="modal-footer">
-              <Button className="action-btn close-btn" onClick={handleCloseFeatNotes}>Close</Button>
+              <Button className="action-btn close-btn" onClick={handleCloseFeats}>
+                Close
+              </Button>
             </Card.Footer>
           </Card>
-        </Modal>
-</div>
-</Modal>
-</div> 
-)
+          <Modal className="dnd-modal modern-modal" show={showFeatNotes} onHide={handleCloseFeatNotes} size="lg" centered>
+              <Card className="modern-card text-center">
+                <Card.Header className="modal-header">
+                  <Card.Title className="modal-title">{modalFeatData.featName}</Card.Title>
+                </Card.Header>
+                <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>{modalFeatData.notes}</Card.Body>
+                <Card.Footer className="modal-footer">
+                  <Button className="action-btn close-btn" onClick={handleCloseFeatNotes}>
+                    Close
+                  </Button>
+                </Card.Footer>
+              </Card>
+          </Modal>
+        </div>
+      </Modal>
+    </div>
+  );
 }

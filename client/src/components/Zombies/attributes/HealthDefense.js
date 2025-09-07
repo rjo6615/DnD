@@ -2,28 +2,39 @@ import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
-export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
+export default function HealthDefense({
+  form,
+  conMod,
+  dexMod,
+  ac = 0,
+  hpMaxBonus = 0,
+  hpMaxBonusPerLevel = 0,
+  initiative = 0,
+  speed = 0,
+}) {
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
-  // Saves Maffs
-  let fortSave = 0;
-  let reflexSave = 0;
-  let willSave = 0;
   let atkBonus = 0;
     
-  //Armor AC/MaxDex
-     let armorAcBonus= [];
-     let armorMaxDexBonus= [];
-     form.armor.map((el) => (  
-       armorAcBonus.push(el[1]) 
-     ))
-     let totalArmorAcBonus = armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0); 
-     form.armor.map((el) => (
-      armorMaxDexBonus.push(el[2]) 
-     ))
-     let filteredMaxDexArray = armorMaxDexBonus.filter(e => e !== '0')
-     let armorMaxDexMin = Math.min(...filteredMaxDexArray);
+  // Armor AC/MaxDex
+  const armorItems = form.armor || [];
+  const armorAcBonus = armorItems.map((item) => {
+    if (Array.isArray(item)) {
+      const value = Number(item[1] ?? 0);
+      return value > 10 ? value - 10 : value;
+    }
+    return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
+  });
+  const armorMaxDexBonus = armorItems.map((item) =>
+    Array.isArray(item) ? Number(item[2] ?? 0) : Number(item.maxDex ?? 0)
+  );
+  let totalArmorAcBonus =
+    armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
+    Number(ac);
+  let filteredMaxDexArray = armorMaxDexBonus.filter((e) => e !== 0);
+  let armorMaxDexMin = Math.min(...filteredMaxDexArray);
     
      let armorMaxDex;
      if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
@@ -33,33 +44,12 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
      }
     
   const occupations = form.occupation;
-  
+
   for (const occupation of occupations) {
     const level = parseInt(occupation.Level, 10);
-    const fortValue = parseInt(occupation.Fort, 10);
-    const reflexValue = parseInt(occupation.Reflex, 10);
-    const willValue = parseInt(occupation.Will, 10);
     const attackBonusValue = parseInt(occupation.atkBonus, 10);
-  
+
     if (!isNaN(level)) {
-      if (fortValue === 0) {
-        fortSave += Math.floor(level / 3);
-      } else if (fortValue === 1) {
-        fortSave += Math.floor((level / 2) + 2);
-      }
-  
-      if (reflexValue === 0) {
-        reflexSave += Math.floor(level / 3);
-      } else if (reflexValue === 1) {
-        reflexSave += Math.floor((level / 2) + 2);
-      }
-  
-      if (willValue === 0) {
-        willSave += Math.floor(level / 3);
-      } else if (willValue === 1) {
-        willSave += Math.floor((level / 2) + 2);
-      }
-  
       if (attackBonusValue === 0) {
         atkBonus += Math.floor(level / 2);
       } else if (attackBonusValue === 1) {
@@ -69,25 +59,40 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
       }
     }
   }
-  
+
+  const totalLevel = occupations.reduce(
+    (total, o) => total + Number(o.Level),
+    0
+  );
+  const profBonus = form.proficiencyBonus ?? proficiencyBonus(totalLevel);
+
   // Health
+  const maxHealth =
+    Number(form.health) +
+    Number(conMod * totalLevel) +
+    Number(hpMaxBonus) +
+    Number(hpMaxBonusPerLevel * totalLevel);
   const [health, setHealth] = useState(); // Initial health value
- // Sends tempHealth data to database for update
- async function tempHealthUpdate(offset){
-    await apiFetch(`/characters/update-temphealth/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      tempHealth: health + offset,
-     }),
-   })
-   .catch(error => {
-     window.alert(error);
-     return;
-   });
- }
+  const [error, setError] = useState(null); // Error message state
+
+  // Sends tempHealth data to database for update
+  async function tempHealthUpdate(offset) {
+    try {
+      await apiFetch(`/characters/update-temphealth/${params.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tempHealth: health + offset,
+        }),
+      });
+      setError(null);
+    } catch (error) {
+      console.error(error);
+      setError("Failed to update health.");
+    }
+  }
 
   useEffect(() => {
     const parsedValue = parseFloat(form.tempHealth);
@@ -99,7 +104,7 @@ export default function HealthDefense({form, totalLevel, conMod, dexMod }) {
 
   let offset;
   const increaseHealth = () => {
-    if (health === form.health + Number(conMod * totalLevel)){
+    if (health === maxHealth){
     } else {
     setHealth((prevHealth) => prevHealth + 1);
     offset = +1;
@@ -176,9 +181,9 @@ return (
     >
       <div
         style={{
-          width: `${(health / (form.health + Number(conMod * totalLevel))) * 100}%`,
+          width: `${(health / maxHealth) * 100}%`,
           height: "100%",
-          background: health > (form.health + Number(conMod * totalLevel)) * 0.5 ? "#2ecc71" : "#c0392b",
+          background: health > maxHealth * 0.5 ? "#2ecc71" : "#c0392b",
           transition: "width 0.3s ease-in-out",
         }}
       />
@@ -195,7 +200,7 @@ return (
           lineHeight: "24px",
         }}
       >
-        {health}/{form.health + Number(conMod * totalLevel)}
+        {health}/{maxHealth}
       </span>
     </div>
 
@@ -221,8 +226,13 @@ return (
       onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
     />
   </div>
+  {error && (
+    <div className="text-danger" style={{ marginTop: "8px" }}>
+      {error}
+    </div>
+  )}
 
-  {/* Stats + Saving Throws Section */}
+      {/* Stats Section */}
   <div
     style={{
       display: "flex",
@@ -236,19 +246,22 @@ return (
     }}
   >
     {/* Core Stats */}
-    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-      <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-      <div><strong>Attack Bonus:</strong> {atkBonus}</div>
-      <div><strong>Initiative:</strong> {dexMod}</div>
-    </div>
+<div style={{ color: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+  {/* First row */}
+  <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
+    <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+    <div><strong>Attack Bonus:</strong> {atkBonus}</div>
+    <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
+    <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
+  </div>
 
-    {/* Saving Throws */}
-    <div style={{ color: "#FFFFFF", display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-      <div><strong>Fort:</strong> {fortSave}</div>
-      <div><strong>Reflex:</strong> {reflexSave}</div>
-      <div><strong>Will:</strong> {willSave}</div>
-    </div>
+  {/* Second row */}
+  <div>
+    <strong>Proficiency Bonus:</strong> {profBonus}
   </div>
 </div>
-)
+      </div>
+    </div>
+  );
 }
+

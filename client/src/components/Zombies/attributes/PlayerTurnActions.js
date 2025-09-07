@@ -1,12 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
-export default function PlayerTurnActions ({ form, strMod, atkBonus, dexMod }) { 
+// Dice rolling helper used by calculateDamage and component actions
+function rollDice(numberOfDiceValue, sidesOfDiceValue) {
+  if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
+    return "Both the number of dice and sides must be greater than zero.";
+  }
+
+  const results = [];
+  for (let i = 0; i < numberOfDiceValue; i++) {
+    // Generate a random number between 1 and sidesOfDiceValue (inclusive)
+    const result = Math.floor(Math.random() * sidesOfDiceValue) + 1;
+    results.push(result);
+  }
+
+  return results;
+}
+
+export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
+  const cleanString = damageString.split(' ')[0];
+  const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+  if (!match) {
+    // eslint-disable-next-line no-console
+    console.error('Invalid damage string');
+    return null;
+  }
+
+  if (!match[2]) {
+    // Flat damage: ignore crit flag and simply add ability modifier once
+    const baseValue = parseInt(match[1], 10);
+    return baseValue + ability;
+  }
+
+  const numberOfDiceValue = parseInt(match[1], 10);
+  const sidesOfDiceValue = parseInt(match[2], 10);
+  const modifier = parseInt(match[3] || 0, 10);
+
+  // Roll the initial set of dice
+  const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+  let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
+
+  // On a critical hit, roll an additional set of dice and add to the total
+  if (crit) {
+    const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+    damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+  }
+
+  // Add numeric modifier and ability modifier once
+  return damageSum + modifier + ability;
+}
+
+const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
+
+  const FOOTER_HEIGHT = 80;
+  const damageRef = useRef(null);
+  const [damageHeight, setDamageHeight] = useState(0);
+
+  useEffect(() => {
+    if (damageRef.current) {
+      const style = getComputedStyle(damageRef.current);
+      const margins = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+      setDamageHeight(damageRef.current.offsetHeight + margins);
+    }
+  }, []);
 
 //--------------------------------------------Crit button toggle------------------------------------------------
 const [isGold, setIsGold] = useState(false);
@@ -19,60 +80,30 @@ const handleToggle = () => {
 const handleToggleAfterDamage = () => {
   setIsGold(false);
 };
-// --------------------------------Breaks down weapon damage into useable numbers--------------------------------
-let critMatch;
-let critValue;
-const handleWeaponsButtonCrit = (el) => {
-if (el[3].match(/\d{2}-\d{2}x\d+/)) {
-  critMatch = el[3].match(/(\d{2})-(\d{2})x(\d+)/);    
-  if (critMatch) {
-    const [, , , critTimes] = critMatch;  
-    const critTimesValue = parseInt(critTimes, 10);      
-    critValue = critTimesValue;
-  } else {
-    console.error("Invalid input string");
-  }
-} else if (el[3].match(/x\d+/)) {
-  critMatch = el[3].match(/x(\d+)/);   
-  if (critMatch) {
-    const [, critTimes] = critMatch;
-    const critTimesValue = parseInt(critTimes, 10);
-    critValue = critTimesValue;
-  } else {
-    console.error("Invalid input string");
-  }
-} 
-}
- let damageString;
- let match;
-const handleWeaponsButtonClick = (el) => {
-  if (el[4] === "0") {
-    damageString = el[2] + "+" + (Number(el[1]) + Number(strMod));
-    match = damageString.match(/(\d+)d(\d+)\+(\d+)/);
-  } else if (el[4] === "1") {
-    damageString = el[2] + "+" + (Number(el[1]) + Math.floor( Number((strMod * 1.5))));
-    match = damageString.match(/(\d+)d(\d+)\+(\d+)/);
-  } else if (el[4] === "2") {
-    damageString = el[2] + "+" + (Number(el[1]) + Number(0))
-    match = damageString.match(/(\d+)d(\d+)\+(\d+)/);  }
-  
-  if (match) {
-    const [, numberOfDice, sidesOfDice, constantValue] = match;
-    const numberOfDiceValue = parseInt(numberOfDice, 10);
-    const sidesOfDiceValue = parseInt(sidesOfDice, 10);
-    const constantValueValue = parseInt(constantValue, 10);
-    const diceRolls = rollDice(numberOfDiceValue, sidesOfDiceValue);
-    const damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);  
-    if (isGold) {
-      let damageValue = (damageSum * critValue) + constantValueValue;
-      updateDamageValueWithAnimation(damageValue);
-    } else {
-      let damageValue = damageSum + constantValueValue;
-      updateDamageValueWithAnimation(damageValue);
-    }
-  } else {
-    console.error("Invalid input string");
-  }
+  // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
+  const abilityForWeapon = (weapon) =>
+    weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
+
+  const getAttackBonus = (weapon) => atkBonus + abilityForWeapon(weapon);
+
+  const getDamageString = (weapon) => {
+    const ability = abilityForWeapon(weapon);
+    const dice = weapon.damage.split(' ')[0];
+    return `${dice}+${ability}`;
+  };
+
+  const handleWeaponAttack = (weapon) => {
+    const ability = abilityForWeapon(weapon);
+    const damageValue = calculateDamage(weapon.damage, ability, isGold);
+    if (damageValue === null) return;
+    updateDamageValueWithAnimation(damageValue);
+  };
+
+const handleSpellsButtonClick = (spell, crit = false) => {
+  if (!spell?.damage) return;
+  const damageValue = calculateDamage(spell.damage, 0, crit);
+  if (damageValue === null) return;
+  updateDamageValueWithAnimation(damageValue);
 };
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
@@ -82,20 +113,6 @@ const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(
 
 // Apply the calculated RGBA color to the element
 document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-function rollDice(numberOfDiceValue, sidesOfDiceValue) {
-  if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
-    return "Both the number of dice and sides must be greater than zero.";
-  }
-
-  let results = [];
-  for (let i = 0; i < numberOfDiceValue; i++) {
-    // Generate a random number between 1 and sidesOfDiceValue (inclusive)
-    let result = Math.floor(Math.random() * sidesOfDiceValue) + 1;
-    results.push(result);
-  }
-
-  return results;
-}
 
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
@@ -115,7 +132,21 @@ const updateDamageValueWithAnimation = (newValue) => {
   setDamageValue(newValue);
 };
 
+useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
+
 const [pulse, setPulse] = useState(false);
+
+// Allow other components to display values in the damage circle
+useEffect(() => {
+  const handler = (e) => {
+    const value = Number(e.detail);
+    if (!Number.isNaN(value)) {
+      updateDamageValueWithAnimation(value);
+    }
+  };
+  window.addEventListener('damage-roll', handler);
+  return () => window.removeEventListener('damage-roll', handler);
+}, []);
 
 useEffect(() => {
   if (!loading) {
@@ -193,137 +224,154 @@ const showSparklesEffect = () => {
 };
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
-    <div style={{ marginTop: "-40px", paddingBottom: "80px" }}>
-    <div className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''}`} id="damageAmount" style={{margin: "0 auto"}}>
-      <span id="damageValue" className={loading ? 'hidden' : ''}>
-        {damageValue}
-      </span>
-      <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-    </div>
-<div style={{ 
-  display: "flex", 
-  justifyContent: "center", 
-  alignItems: "center", 
-  height: "100%", 
-  marginTop: "20px"
-}}>
-  <div style={{ 
-    display: "flex", 
-    flexDirection: "column", 
-    alignItems: "center", 
-    gap: "12px" 
-  }}>
-    {/* Critical Hit Toggle (Above) */}
-    <button
-      onClick={handleToggle}
-      style={{
-        width: "48px",
-        height: "48px",
-        borderRadius: "50%",
-        border: isGold ? "2px solid #FFD700" : "2px solid #B0B0B0",
-        backgroundColor: "#1e1e1e",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        transition: "all 0.3s ease",
-        boxShadow: isGold ? "0 0 10px #FFD700" : "none",
-      }}
-      title={isGold ? "Critical Hit Enabled" : "Toggle Critical Hit"}
-    >
-      <i
-        className={`fa-solid ${isGold ? "fa-bolt" : "fa-bolt-lightning"}`}
+    <div>
+      <div
+        id="damageAmount"
+        ref={damageRef}
+        onClick={handleToggle}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
+        style={{ margin: "0 auto", cursor: "pointer" }}
+      >
+        <span id="damageValue" className={loading ? 'hidden' : ''}>
+          {damageValue}
+        </span>
+        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+      </div>
+      
+      <div
         style={{
-          color: isGold ? "#FFD700" : "#B0B0B0",
-          fontSize: "22px",
-          transition: "color 0.3s ease",
+          display: 'flex',
+          flexDirection: 'column',
+          height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight + damageHeight}px)`
         }}
-      ></i>
-    </button>
-
-    {/* Attack Button (Below) */}
-    <button
-      onClick={handleShowAttack}
-      style={{
-        width: "64px",
-        height: "64px",
-        backgroundImage: `url(${sword})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        border: "none",
-        borderRadius: "12px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.4)",
-        transition: "transform 0.2s ease",
-        cursor: "pointer",
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-      onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-      title="Attack"
-    />
-  </div>
-</div>
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+          {/* Attack Button */}
+          <button
+            onClick={handleShowAttack}
+            style={{
+              width: "64px",
+              height: "64px",
+              backgroundImage: `url(${sword})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              border: "none",
+              transition: "transform 0.2s ease",
+              cursor: "pointer",
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+            onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            title="Attack"
+          />
+        </div>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div className="content">
+            {showSparkles && (
+              <div className="sparkle"></div>
+            )}
+            {showSparkles1 && (
+              <div className="sparkle1"></div>
+            )}
+            <div onClick={handleRandomizeClick}
+    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
+      {faceElements}
+    </div>
+          </div>
+        </div>
+      </div>
 {/* Attack Modal */}
-      <Modal size="lg" className="modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
+
+      <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
         <Card className="modern-card">
           <Card.Header className="modal-header">
-            <Card.Title className="modal-title">Weapons</Card.Title>
+            <Card.Title className="modal-title">Attacks</Card.Title>
           </Card.Header>
           <Card.Body>
-            <Table className="modern-table" striped bordered hover responsive>
-              <thead>
-                <tr>
-                  <th>Weapon Name</th>
-                  <th>Attack Bonus</th>
-                  <th>Damage</th>
-                  <th>Critical</th>
-                  <th>Range</th>
-                  <th>Attack</th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.weapon.map((el) => (
-                  <tr key={el[0]}>
-                    <td>{el[0]}</td>
-                    <td>
-                      {(() => {
-                        if (el[4] === "0") {
-                          return Number(atkBonus) + Number(strMod) + Number(el[1]);
-                        } else if (el[4] === "1") {
-                          return Number(atkBonus) + Number(strMod) + Number(el[1]);
-                        } else if (el[4] === "2") {
-                          return Number(atkBonus) + Number(dexMod) + Number(el[1]);
-                        }
-                      })()}
-                    </td>
-                    <td>
-                      {el[2]}
-                      {(() => {
-                        if (el[4] === "0") {
-                          return "+" + (Number(el[1]) + Number(strMod));
-                        } else if (el[4] === "1") {
-                          return "+" + (Number(el[1]) + Math.floor(Number(strMod * 1.5)));
-                        } else if (el[4] === "2") {
-                          return "+" + (Number(el[1]) + Number(0));
-                        }
-                      })()}
-                    </td>
-                    <td>{el[3]}</td>
-                    <td>{el[5]}</td>
-                    <td>
-                      <Button
-                        onClick={() => {
-                          handleWeaponsButtonCrit(el);
-                          handleWeaponsButtonClick(el);
-                          handleCloseAttack();
-                        }}
-                        size="sm"
-                        className="action-btn fa-solid fa-plus"
-                      ></Button>
-                    </td>
+            <Card.Title className="modal-title">Weapons</Card.Title>
+              <Table className="modern-table" striped bordered hover responsive>
+                <thead>
+                  <tr>
+                    <th>Weapon Name</th>
+                    <th>Attack Bonus</th>
+                    <th>Damage</th>
+                    <th>Attack</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {Array.isArray(form.weapon) &&
+                    form.weapon.map((weapon) => (
+                      <tr key={weapon.name}>
+                        <td className="text-capitalize">{weapon.name}</td>
+                        <td>{getAttackBonus(weapon)}</td>
+                        <td>{getDamageString(weapon)}</td>
+                        <td>
+                          <Button
+                            onClick={() => {
+                              handleWeaponAttack(weapon);
+                              handleCloseAttack();
+                            }}
+                            variant="link"
+                            aria-label="roll"
+                          >
+                            <i className="fa-solid fa-dice-d20"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
+            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
+              <>
+                <Card.Title className="modal-title mt-4">Spells</Card.Title>
+                <Table className="modern-table" striped bordered hover responsive>
+                  <thead>
+                    <tr>
+                      <th>Spell Name</th>
+                      <th>Level</th>
+                      <th>Damage</th>
+                      <th>Casting Time</th>
+                      <th>Range</th>
+                      <th>Duration</th>
+                      <th>Attack</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.spells
+                      .filter((s) => s && s.damage)
+                      .map((spell, idx) => (
+                        <tr key={idx}>
+                          <td>{spell.name}</td>
+                          <td>{spell.level}</td>
+                          <td>{spell.damage}</td>
+                          <td>{spell.castingTime}</td>
+                          <td>{spell.range}</td>
+                          <td>{spell.duration}</td>
+                          <td>
+                            <Button
+                              onClick={() => {
+                                handleSpellsButtonClick(spell, isGold);
+                                handleCloseAttack();
+                              }} 
+                              variant="link"
+                              aria-label="roll"                 
+                            >
+                              <i className="fa-solid fa-dice-d20"></i>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </Table>
+              </>
+            )}
             </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>
@@ -332,19 +380,8 @@ const showSparklesEffect = () => {
             </Card.Footer>
         </Card>
       </Modal>
-      {/* --------------------------------------------------Dice Roller--------------------------------------------------------------- */}
-      <div className="content">
-    {showSparkles && (
-      <div className="sparkle"></div>
-    )}
-    {showSparkles1 && (
-      <div className="sparkle1"></div>
-    )}
-    <div onClick={handleRandomizeClick} 
-    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-      {faceElements}
     </div>
-</div>
-    </div>    
   );
-};
+});
+
+export default PlayerTurnActions;

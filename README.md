@@ -34,6 +34,18 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 |----------|-------------|
 | `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
 
+### Client Environment Variables
+
+When running the React client separately from the server, configure the API base URL by setting a `REACT_APP_API_URL` environment variable. It must point to the origin of the server so the client can reach the backend.
+
+For local development, create a `.env` file in the `client` directory with a value such as:
+
+```
+REACT_APP_API_URL=http://localhost:5000
+```
+
+Update the URL to match your server's address in other environments.
+
 
 ## API Error Format
 
@@ -46,6 +58,32 @@ All API errors are returned as JSON objects with a single `message` property. Fo
 ```
 
 Clients should rely on this structure when handling error responses.
+
+## Character Progression
+
+Characters gain feats instead of automatic ability score increases. Feats are earned at specific levels depending on class:
+
+- **All classes:** Levels 4, 8, 12, 16, and 19
+- **Fighter:** Additional feats at levels 6 and 14
+- **Rogue:** Additional feat at level 10
+
+Ability scores do not automatically increase at any level. To improve statistics, choose feats that grant ability bonuses.
+Most feats may only be selected once per character; however, the **Stat Increase** feat can be taken multiple times.
+
+## Feats Endpoint
+
+Use `GET /feats` to retrieve all available feats.
+
+Use `POST /feats/add` with a JSON body to create a new feat. Supported fields include:
+
+- `featName` (string, required)
+- `notes` (string, optional)
+- `abilityIncreaseOptions` (array of objects, optional) each with:
+  - `abilities` (array of strings)
+  - `amount` (integer)
+  - Example: `[{ "abilities": ["str", "con"], "amount": 1 }]`
+- Numeric bonuses such as ability scores (`str`, `dex`, `con`, `int`, `wis`, `cha`), `initiative`, `ac`, `speed`, `hpMaxBonus`, and `hpMaxBonusPerLevel`
+- Skill bonuses (`acrobatics`, `animalHandling`, `arcana`, `athletics`, `deception`, `history`, `insight`, `intimidation`, `investigation`, `medicine`, `nature`, `perception`, `performance`, `persuasion`, `religion`, `sleightOfHand`, `stealth`, `survival`)
 
 ## Character Feats Endpoint
 

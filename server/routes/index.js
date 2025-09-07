@@ -13,6 +13,14 @@ const characterHealth = require('./characters/health');
 const skills = require('./skills');
 const feats = require('./feats');
 const equipment = require('./equipment');
+const classes = require('./classes');
+const races = require('./races');
+const backgrounds = require('./backgrounds');
+const spells = require('./spells');
+const weapons = require('./weapons');
+const armor = require('./armor');
+const weaponProficiency = require('./weaponProficiency');
+const armorProficiency = require('./armorProficiency');
 
 routes.use(async (req, res, next) => {
   try {
@@ -26,6 +34,12 @@ routes.use(async (req, res, next) => {
 auth(routes);
 users(routes);
 campaigns(routes);
+classes(routes);
+races(routes);
+backgrounds(routes);
+spells(routes);
+weapons(routes);
+armor(routes);
 // Register occupations routes before generic ID-based routes to ensure
 // "/characters/occupations" is matched correctly.
 characterOccupations(routes);
@@ -35,5 +49,7 @@ characterHealth(routes);
 skills(routes);
 feats(routes);
 equipment(routes);
+weaponProficiency(routes);
+armorProficiency(routes);
 
 module.exports = routes;
