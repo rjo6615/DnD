@@ -220,6 +220,7 @@ export default function Skills({
     const result = d20 + bonus;
     const label = skill?.label || skillKey;
     notify(`${label}: d20 (${d20}) + bonus (${bonus}) = ${result}`, 'success');
+    handleCloseSkill?.();
   };
 
   const handleView = (skill) => {
