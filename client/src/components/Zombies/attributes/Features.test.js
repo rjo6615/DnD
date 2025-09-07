@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Features from './Features';
 
@@ -8,22 +8,24 @@ import apiFetch from '../../../utils/apiFetch';
 
 test('renders features and opens modal with description', async () => {
   apiFetch.mockImplementation((url) => {
-    if (url.includes('/2')) {
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({
-          features: [
-            {
-              name: 'Action Surge',
-              description: 'You can take one additional action.'
-            }
-          ]
-        })
-      });
+    const levelMatch = url.match(/features\/(\d+)/);
+    const level = levelMatch ? parseInt(levelMatch[1]) : 0;
+    let features = [];
+    if (level === 1) {
+      features = [
+        { name: 'Second Wind', description: 'Regain hit points.' }
+      ];
+    } else if (level === 2) {
+      features = [
+        {
+          name: 'Action Surge',
+          description: 'You can take one additional action.'
+        }
+      ];
     }
     return Promise.resolve({
       ok: true,
-      json: async () => ({ features: [] })
+      json: async () => ({ features })
     });
   });
 
@@ -36,12 +38,15 @@ test('renders features and opens modal with description', async () => {
     />
   );
 
+  expect(await screen.findByText('Second Wind')).toBeInTheDocument();
   expect(await screen.findByText('Action Surge')).toBeInTheDocument();
 
+  const actionSurgeButton = within(
+    (await screen.findByText('Action Surge')).closest('tr')
+  ).getByRole('button', { name: /view feature/i });
+
   await act(async () => {
-    await userEvent.click(
-      screen.getByRole('button', { name: /view feature/i })
-    );
+    await userEvent.click(actionSurgeButton);
   });
 
   expect(
