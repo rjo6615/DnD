@@ -37,7 +37,9 @@ const spellsData = {
 };
 
 test('filters spells by level', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
   render(
     <SpellSelector
       form={{
@@ -57,6 +59,7 @@ test('filters spells by level', async () => {
 test('saves selected spells', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
   const onChange = jest.fn();
   render(
@@ -74,8 +77,8 @@ test('saves selected spells', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
-  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
-  const lastCall = apiFetch.mock.calls[1];
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
+  const lastCall = apiFetch.mock.calls[2];
   expect(lastCall[0]).toBe('/characters/1/spells');
   expect(JSON.parse(lastCall[1].body)).toEqual({
     spells: [
@@ -88,7 +91,7 @@ test('saves selected spells', async () => {
         duration: 'Instantaneous',
       },
     ],
-    spellPoints: 1,
+    spellPoints: 13,
   });
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
@@ -102,7 +105,7 @@ test('saves selected spells', async () => {
           duration: 'Instantaneous',
         },
       ],
-      1
+      13
     )
   );
 });
@@ -110,6 +113,7 @@ test('saves selected spells', async () => {
 test('uses Occupation when Name is missing', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
   const onChange = jest.fn();
   render(
@@ -129,8 +133,8 @@ test('uses Occupation when Name is missing', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
-  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
-  const lastCall = apiFetch.mock.calls[1];
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
+  const lastCall = apiFetch.mock.calls[2];
   expect(JSON.parse(lastCall[1].body)).toEqual({
     spells: [
       {
@@ -142,7 +146,7 @@ test('uses Occupation when Name is missing', async () => {
         duration: 'Instantaneous',
       },
     ],
-    spellPoints: 1,
+    spellPoints: 13,
   });
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
@@ -156,13 +160,16 @@ test('uses Occupation when Name is missing', async () => {
           duration: 'Instantaneous',
         },
       ],
-      1
+      13
     )
   );
 });
 
 test('renders tabs for multiple classes', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
   render(
     <SpellSelector
       form={{
@@ -207,7 +214,9 @@ test('renders tabs for multiple classes', async () => {
 test.each(['Paladin', 'Ranger'])(
   '5th-level %s gains 2nd-level slots without cantrips',
   async (cls) => {
-    apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+    apiFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 4 }) });
     render(
       <SpellSelector
         form={{
@@ -226,7 +235,9 @@ test.each(['Paladin', 'Ranger'])(
 );
 
 test('full casters include level 0 options', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
   render(
     <SpellSelector
       form={{

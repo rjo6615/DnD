@@ -137,6 +137,7 @@ export default function SpellSelector({
   const [activeClass, setActiveClass] = useState(classesInfo[0]?.name || '');
   const [error, setError] = useState(null);
   const [viewSpell, setViewSpell] = useState(null);
+  const [spellsKnown, setSpellsKnown] = useState({});
 
   useEffect(() => {
     apiFetch('/spells')
@@ -156,6 +157,31 @@ export default function SpellSelector({
     setActiveClass(classesInfo[0]?.name || '');
   }, [initialLevels, classesInfo]);
 
+  useEffect(() => {
+    const fetchSpellsKnown = async () => {
+      const result = {};
+      await Promise.all(
+        classesInfo.map(async ({ name, level }) => {
+          try {
+            const res = await apiFetch(
+              `/classes/${name.toLowerCase()}/features/${level}`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              if (typeof data.spellsKnown === 'number') {
+                result[name] = data.spellsKnown;
+              }
+            }
+          } catch (err) {
+            setError(err.message);
+          }
+        })
+      );
+      setSpellsKnown(result);
+    };
+    fetchSpellsKnown();
+  }, [classesInfo]);
+
   function spellsForClass(cls) {
     return Object.values(allSpells).filter(
       (spell) =>
@@ -167,24 +193,24 @@ export default function SpellSelector({
   useEffect(() => {
     const newPoints = {};
     classesInfo.forEach(({ name, effectiveLevel }) => {
-      const slotRow = SLOT_TABLE[effectiveLevel] || [];
       const selectedLevel = Number(selectedLevels[name]);
-      const totalSlots =
+      const total =
         selectedLevel === 0
           ? CANTRIP_TABLE[effectiveLevel] || 0
-          : slotRow[selectedLevel] || 0;
+          : spellsKnown[name] ?? Infinity;
       const count = selectedSpells.reduce((sum, spellName) => {
         const info = Object.values(allSpells).find((s) => s.name === spellName);
         return info &&
-          info.level === selectedLevel &&
-          info.classes.includes(name)
+          info.classes.includes(name) &&
+          (selectedLevel === 0 ? info.level === 0 : info.level > 0)
           ? sum + 1
           : sum;
       }, 0);
-      newPoints[name] = Math.max(0, totalSlots - count);
+      newPoints[name] =
+        total === Infinity ? Infinity : Math.max(0, total - count);
     });
     setPointsLeft(newPoints);
-  }, [selectedLevels, selectedSpells, allSpells, classesInfo]);
+  }, [selectedLevels, selectedSpells, allSpells, classesInfo, spellsKnown]);
 
   function toggleSpell(name) {
     setSelectedSpells((prev) => {
@@ -199,21 +225,22 @@ export default function SpellSelector({
   async function saveSpells(spells = selectedSpells) {
     try {
       const currentPoints = classesInfo.reduce((sum, { name, effectiveLevel }) => {
-        const slotRow = SLOT_TABLE[effectiveLevel] || [];
         const selectedLevel = Number(selectedLevels[name]);
-        const totalSlots =
+        const total =
           selectedLevel === 0
             ? CANTRIP_TABLE[effectiveLevel] || 0
-            : slotRow[selectedLevel] || 0;
+            : spellsKnown[name] ?? Infinity;
         const count = spells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);
           return info &&
-            info.level === selectedLevel &&
-            info.classes.includes(name)
+            info.classes.includes(name) &&
+            (selectedLevel === 0 ? info.level === 0 : info.level > 0)
             ? acc + 1
             : acc;
         }, 0);
-        return sum + Math.max(0, totalSlots - count);
+        const remaining =
+          total === Infinity ? 0 : Math.max(0, total - count);
+        return sum + remaining;
       }, 0);
 
       const selectedSpellObjects = spells.map((name) => {
@@ -294,7 +321,9 @@ export default function SpellSelector({
                         Points Left:
                       </span>
                       <span className="points-value">
-                        {pointsLeft[cls] || 0}
+                        {pointsLeft[cls] === Infinity
+                          ? '∞'
+                          : pointsLeft[cls] || 0}
                       </span>
                     </div>
                     <Table
@@ -386,7 +415,9 @@ export default function SpellSelector({
                         Points Left:
                       </span>
                       <span className="points-value">
-                        {pointsLeft[name] || 0}
+                        {pointsLeft[name] === Infinity
+                          ? '∞'
+                          : pointsLeft[name] || 0}
                       </span>
                     </div>
                     <Table
