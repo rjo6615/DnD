@@ -143,9 +143,28 @@ useEffect(() => {
     if (!Number.isNaN(value)) {
       updateDamageValueWithAnimation(value);
     }
+    damageRef.current?.classList.remove('critical-active');
+    damageRef.current?.classList.remove('critical-failure');
   };
   window.addEventListener('damage-roll', handler);
   return () => window.removeEventListener('damage-roll', handler);
+}, []);
+
+useEffect(() => {
+  const critHandler = () => {
+    damageRef.current?.classList.add('critical-active');
+    damageRef.current?.classList.remove('critical-failure');
+  };
+  const fumbleHandler = () => {
+    damageRef.current?.classList.add('critical-failure');
+    damageRef.current?.classList.remove('critical-active');
+  };
+  window.addEventListener('critical-hit', critHandler);
+  window.addEventListener('critical-failure', fumbleHandler);
+  return () => {
+    window.removeEventListener('critical-hit', critHandler);
+    window.removeEventListener('critical-failure', fumbleHandler);
+  };
 }, []);
 
 useEffect(() => {
