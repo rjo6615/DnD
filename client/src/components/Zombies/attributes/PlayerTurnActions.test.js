@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, act, fireEvent } from '@testing-library/react';
 import PlayerTurnActions, { calculateDamage } from './PlayerTurnActions';
 
 describe('calculateDamage parser', () => {
@@ -80,5 +80,27 @@ describe('PlayerTurnActions critical events', () => {
     });
     expect(damage.classList.contains('critical-active')).toBe(false);
     expect(damage.classList.contains('critical-failure')).toBe(false);
+  });
+
+  test('crit toggle activates critical class', () => {
+    const { getByLabelText } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+
+    const damage = document.getElementById('damageAmount');
+    const critToggle = getByLabelText('Crit');
+
+    expect(damage.classList.contains('critical-active')).toBe(false);
+
+    act(() => {
+      fireEvent.click(critToggle);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
   });
 });
