@@ -139,6 +139,20 @@ export default function SpellSelector({
   const [viewSpell, setViewSpell] = useState(null);
   const [spellsKnown, setSpellsKnown] = useState({});
 
+  const chaMod = useMemo(() => {
+    const itemBonus = (form.item || []).reduce(
+      (sum, el) => sum + Number(el[7] || 0),
+      0
+    );
+    const featBonus = (form.feat || []).reduce(
+      (sum, el) => sum + Number(el.cha || 0),
+      0
+    );
+    const raceBonus = form.race?.abilities?.cha || 0;
+    const computed = (form.cha || 0) + itemBonus + featBonus + raceBonus;
+    return Math.floor((computed - 10) / 2);
+  }, [form.cha, form.item, form.feat, form.race]);
+
   useEffect(() => {
     apiFetch('/spells')
       .then((res) => res.json())
@@ -164,7 +178,7 @@ export default function SpellSelector({
         classesInfo.map(async ({ name, level }) => {
           try {
             const res = await apiFetch(
-              `/classes/${name.toLowerCase()}/features/${level}`
+              `/classes/${name.toLowerCase()}/features/${level}?chaMod=${chaMod}`
             );
             if (res.ok) {
               const data = await res.json();
@@ -180,7 +194,7 @@ export default function SpellSelector({
       setSpellsKnown(result);
     };
     fetchSpellsKnown();
-  }, [classesInfo]);
+  }, [classesInfo, chaMod]);
 
   function spellsForClass(cls) {
     return Object.values(allSpells).filter(
