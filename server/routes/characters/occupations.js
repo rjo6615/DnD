@@ -21,7 +21,7 @@ module.exports = (router) => {
           name: cls.name,
           hitDie: cls.hitDie,
           proficiencies: cls.proficiencies,
-          spellcasting: cls.spellcasting,
+          casterProgression: cls.casterProgression,
           skills,
         };
       });
