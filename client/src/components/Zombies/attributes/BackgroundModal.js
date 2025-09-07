@@ -8,6 +8,17 @@ export default function BackgroundModal({ show, onHide, background }) {
     .filter(([, value]) => value?.proficient)
     .map(([key]) => key);
 
+  const formatLabel = (text) =>
+    text
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .split(" ")
+      .map((word) =>
+        word.charAt(0) === "("
+          ? "(" + word.charAt(1).toUpperCase() + word.slice(2)
+          : word.charAt(0).toUpperCase() + word.slice(1)
+      )
+      .join(" ");
+
   const toolProficiencies = background.toolProficiencies || [];
 
   return (
@@ -26,7 +37,7 @@ export default function BackgroundModal({ show, onHide, background }) {
             {skillProficiencies.length ? (
               <ul className="centered-list">
                 {skillProficiencies.map((skill) => (
-                  <li key={skill}>{skill}</li>
+                  <li key={skill}>{formatLabel(skill)}</li>
                 ))}
               </ul>
             ) : (
@@ -36,7 +47,7 @@ export default function BackgroundModal({ show, onHide, background }) {
             {toolProficiencies.length ? (
               <ul className="centered-list">
                 {toolProficiencies.map((tool) => (
-                  <li key={tool}>{tool}</li>
+                  <li key={tool}>{formatLabel(tool)}</li>
                 ))}
               </ul>
             ) : (
