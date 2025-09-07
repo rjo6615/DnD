@@ -46,6 +46,7 @@ export default function ZombiesCharacterSheet() {
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
+  const [spellPointsLeft, setSpellPointsLeft] = useState(0);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -172,11 +173,7 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
-  if (!form) {
-    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
-  }
-
-  const itemBonus = (form.item || []).reduce(
+  const itemBonus = (form?.item || []).reduce(
     (acc, el) => ({
       str: acc.str + Number(el[2] || 0),
       dex: acc.dex + Number(el[3] || 0),
@@ -188,7 +185,7 @@ export default function ZombiesCharacterSheet() {
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
-  const featBonus = (form.feat || []).reduce(
+  const featBonus = (form?.feat || []).reduce(
     (acc, el) => ({
       str: acc.str + Number(el.str || 0),
       dex: acc.dex + Number(el.dex || 0),
@@ -201,12 +198,12 @@ export default function ZombiesCharacterSheet() {
   );
 
   const computedStats = {
-    str: form.str + itemBonus.str + featBonus.str + (form.race?.abilities?.str || 0),
-    dex: form.dex + itemBonus.dex + featBonus.dex + (form.race?.abilities?.dex || 0),
-    con: form.con + itemBonus.con + featBonus.con + (form.race?.abilities?.con || 0),
-    int: form.int + itemBonus.int + featBonus.int + (form.race?.abilities?.int || 0),
-    wis: form.wis + itemBonus.wis + featBonus.wis + (form.race?.abilities?.wis || 0),
-    cha: form.cha + itemBonus.cha + featBonus.cha + (form.race?.abilities?.cha || 0),
+    str: (form?.str || 0) + itemBonus.str + featBonus.str + (form?.race?.abilities?.str || 0),
+    dex: (form?.dex || 0) + itemBonus.dex + featBonus.dex + (form?.race?.abilities?.dex || 0),
+    con: (form?.con || 0) + itemBonus.con + featBonus.con + (form?.race?.abilities?.con || 0),
+    int: (form?.int || 0) + itemBonus.int + featBonus.int + (form?.race?.abilities?.int || 0),
+    wis: (form?.wis || 0) + itemBonus.wis + featBonus.wis + (form?.race?.abilities?.wis || 0),
+    cha: (form?.cha || 0) + itemBonus.cha + featBonus.cha + (form?.race?.abilities?.cha || 0),
   };
 
   const statMods = {
@@ -217,6 +214,62 @@ export default function ZombiesCharacterSheet() {
     wis: Math.floor((computedStats.wis - 10) / 2),
     cha: Math.floor((computedStats.cha - 10) / 2),
   };
+
+  const hasSpellcasting = (form?.occupation || []).some((cls) => {
+    const name = (cls.Name || cls.Occupation || '').toLowerCase();
+    const progression = SPELLCASTING_CLASSES[name];
+    const level = Number(cls.Level) || 0;
+    if (!progression) return false;
+    if (progression === 'full') return level >= 1;
+    if (progression === 'half') return level >= 2;
+    return false;
+  });
+
+  useEffect(() => {
+    async function calculateSpellPoints() {
+      if (!form) return;
+      if (typeof form.spellPoints === 'number') {
+        setSpellPointsLeft(form.spellPoints);
+        return;
+      }
+      if (!hasSpellcasting) {
+        setSpellPointsLeft(0);
+        return;
+      }
+      try {
+        const counts = await Promise.all(
+          (form.occupation || []).map(async (cls) => {
+            const name = (cls.Name || cls.Occupation || '').toLowerCase();
+            const level = Number(cls.Level) || 0;
+            const progression = SPELLCASTING_CLASSES[name];
+            if (!progression) return 0;
+            if (progression === 'half' && level < 2) return 0;
+            const abilityMod = ['cleric', 'druid'].includes(name)
+              ? statMods.wis
+              : statMods.cha;
+            const res = await apiFetch(
+              `/classes/${name}/features/${level}?abilityMod=${abilityMod}`
+            );
+            if (!res.ok) return 0;
+            const data = await res.json();
+            return typeof data.spellsKnown === 'number' ? data.spellsKnown : 0;
+          })
+        );
+        const totalAllowed = counts.reduce((sum, n) => sum + n, 0);
+        const learnedCount = (form.spells || []).length;
+        setSpellPointsLeft(Math.max(0, totalAllowed - learnedCount));
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setSpellPointsLeft(0);
+      }
+    }
+    calculateSpellPoints();
+  }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
+
+  if (!form) {
+    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
+  }
 
   const statNames = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
@@ -252,17 +305,8 @@ const featBonuses = (form.feat || []).reduce(
 
 const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
-const hasSpellcasting = (form.occupation || []).some((cls) => {
-  const name = (cls.Name || cls.Occupation || '').toLowerCase();
-  const progression = SPELLCASTING_CLASSES[name];
-  const level = Number(cls.Level) || 0;
-  if (!progression) return false;
-  if (progression === 'full') return level >= 1;
-  if (progression === 'half') return level >= 2;
-  return false;
-});
 const spellsGold =
-  hasSpellcasting && (form.spellPoints || 0) > 0 ? 'gold' : '#6C757D';
+  hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
 // ------------------------------------------Attack Bonus---------------------------------------------------
 let atkBonus = 0;
 const occupations = form.occupation;
@@ -405,7 +449,7 @@ return (
                 marginTop: '10px',
                 backgroundColor: spellsGold,
               }}
-              className={`mx-1 fas fa-hat-wizard ${(form.spellPoints || 0) > 0 ? 'points-glow' : ''}`}
+              className={`mx-1 fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
               variant="secondary"
             ></Button>
           )}
