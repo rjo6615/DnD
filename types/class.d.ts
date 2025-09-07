@@ -1,3 +1,10 @@
+export interface Feature {
+  /** Feature name */
+  name: string;
+  /** Detailed description of the feature */
+  description: string;
+}
+
 export interface Class {
   /**
    * Class name, e.g. "Wizard".
@@ -29,6 +36,10 @@ export interface Class {
    * Spell slot progression for the class.
    * 'full' for full casters, 'half' for half casters.
    * Undefined for non-spellcasting classes.
-   */
+  */
   casterProgression?: 'full' | 'half';
+  /**
+   * Features available to the class keyed by character level.
+   */
+  featuresByLevel?: Record<number, Feature[]>;
 }
