@@ -7,7 +7,9 @@
  * @typedef {{
  *   featuresByLevel: Record<number, Feature[]>,
  *   spellSlots?: Record<number, Record<number, number>>,
- *   spellsKnown?: Record<number, number>,
+ *   spellsKnown?:
+ *     | Record<number, number>
+ *     | ((level: number, chaMod: number) => number),
  *   pactMagic?: Record<number, Record<number, number>>
  * }} ClassFeatures
  * @type {Record<string, ClassFeatures>}
@@ -87,10 +89,13 @@ const pactMagic = {
  17: { 5: 4 },
  18: { 5: 4 },
  19: { 5: 4 },
- 20: { 5: 4 }
+  20: { 5: 4 }
 };
 
 // Spells known tables
+function paladinSpellsKnown(level, chaMod) {
+  return Math.max(1, Math.floor(level / 2) + chaMod);
+}
 const bardSpellsKnown = {
   1: 4,
   2: 5,
@@ -1464,7 +1469,8 @@ const classFeatures = {
   monk: { featuresByLevel: monkFeatures },
   paladin: {
     featuresByLevel: paladinFeatures,
-    spellSlots: halfCasterSlots
+    spellSlots: halfCasterSlots,
+    spellsKnown: paladinSpellsKnown
   },
   ranger: {
     featuresByLevel: rangerFeatures,
