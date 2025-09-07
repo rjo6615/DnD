@@ -320,6 +320,12 @@ $rotateX: -$angle;
   box-shadow: 0 0 10px #FFD700;
 }
 
+#damageAmount.critical-failure {
+  border: 2px solid #FF0000;
+  color: #FF0000;
+  box-shadow: 0 0 10px #FF0000;
+}
+
 #damageValue {
   padding-top: 5px;
   display: inline-block; /* Make the text an inline block */
