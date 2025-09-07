@@ -416,7 +416,7 @@ return (
               marginTop: "10px",
               backgroundColor: skillsGold,
             }}
-            className="mx-1 fas fa-book-open"
+            className={`mx-1 fas fa-book-open ${skillPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           ></Button>
           <Button
@@ -427,7 +427,7 @@ return (
               marginTop: "10px",
               backgroundColor: featsGold,
             }}
-            className="mx-1 fas fa-hand-fist"
+            className={`mx-1 fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           ></Button>
           <Button

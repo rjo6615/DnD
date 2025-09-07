@@ -121,3 +121,59 @@ test('warlock character renders spells button', async () => {
   const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
   expect(spellButton).toBeInTheDocument();
 });
+
+test('skills button includes points-glow when skill points available', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 1,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const skillButton = buttons.find((btn) => btn.classList.contains('fa-book-open'));
+  await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
+});
+
+test('feats button includes points-glow when feat points available', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 4 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const featButton = buttons.find((btn) => btn.classList.contains('fa-hand-fist'));
+  await waitFor(() => expect(featButton).toHaveClass('points-glow'));
+});
