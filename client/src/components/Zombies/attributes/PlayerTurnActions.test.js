@@ -41,7 +41,7 @@ describe('calculateDamage parser', () => {
 });
 
 describe('PlayerTurnActions critical events', () => {
-  test('critical events toggle classes on damageAmount', () => {
+  test('damage-roll event toggles classes on damageAmount', () => {
     render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
@@ -54,19 +54,29 @@ describe('PlayerTurnActions critical events', () => {
     const damage = document.getElementById('damageAmount');
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('critical-hit', { detail: 'critical' }));
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', {
+          detail: { value: 5, critical: true, fumble: false },
+        })
+      );
     });
     expect(damage.classList.contains('critical-active')).toBe(true);
     expect(damage.classList.contains('critical-failure')).toBe(false);
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('critical-failure', { detail: 'fumble' }));
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', {
+          detail: { value: 3, critical: false, fumble: true },
+        })
+      );
     });
     expect(damage.classList.contains('critical-active')).toBe(false);
     expect(damage.classList.contains('critical-failure')).toBe(true);
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('damage-roll', { detail: 5 }));
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', { detail: { value: 1 } })
+      );
     });
     expect(damage.classList.contains('critical-active')).toBe(false);
     expect(damage.classList.contains('critical-failure')).toBe(false);

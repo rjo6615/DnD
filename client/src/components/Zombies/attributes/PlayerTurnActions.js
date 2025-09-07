@@ -69,17 +69,9 @@ const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, he
     }
   }, []);
 
-//--------------------------------------------Crit button toggle------------------------------------------------
-const [isGold, setIsGold] = useState(false);
-
-// Function to handle toggle
-const handleToggle = () => {
-  setIsGold(prevState => !prevState);
-};
-
-const handleToggleAfterDamage = () => {
-  setIsGold(false);
-};
+//--------------------------------------------Critical status------------------------------------------------
+const [isCritical, setIsCritical] = useState(false);
+const [isFumble, setIsFumble] = useState(false);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon) =>
     weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
@@ -94,14 +86,14 @@ const handleToggleAfterDamage = () => {
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const damageValue = calculateDamage(weapon.damage, ability, isGold);
+    const damageValue = calculateDamage(weapon.damage, ability, isCritical);
     if (damageValue === null) return;
     updateDamageValueWithAnimation(damageValue);
   };
 
 const handleSpellsButtonClick = (spell, crit = false) => {
   if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit);
+  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
 };
@@ -121,7 +113,8 @@ useEffect(() => {
   if (loading) {
     const timer = setTimeout(() => {
       setLoading(false);
-      handleToggleAfterDamage();
+      setIsCritical(false);
+      setIsFumble(false);
     }, 1000); // 1 second delay
     return () => clearTimeout(timer);
   }
@@ -139,32 +132,16 @@ const [pulse, setPulse] = useState(false);
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const value = Number(e.detail);
-    if (!Number.isNaN(value)) {
-      updateDamageValueWithAnimation(value);
+    const { value, critical, fumble } = e.detail || {};
+    const num = Number(value);
+    if (!Number.isNaN(num)) {
+      updateDamageValueWithAnimation(num);
     }
-    damageRef.current?.classList.remove('critical-active');
-    damageRef.current?.classList.remove('critical-failure');
+    setIsCritical(!!critical);
+    setIsFumble(!!fumble);
   };
   window.addEventListener('damage-roll', handler);
   return () => window.removeEventListener('damage-roll', handler);
-}, []);
-
-useEffect(() => {
-  const critHandler = () => {
-    damageRef.current?.classList.add('critical-active');
-    damageRef.current?.classList.remove('critical-failure');
-  };
-  const fumbleHandler = () => {
-    damageRef.current?.classList.add('critical-failure');
-    damageRef.current?.classList.remove('critical-active');
-  };
-  window.addEventListener('critical-hit', critHandler);
-  window.addEventListener('critical-failure', fumbleHandler);
-  return () => {
-    window.removeEventListener('critical-hit', critHandler);
-    window.removeEventListener('critical-failure', fumbleHandler);
-  };
 }, []);
 
 useEffect(() => {
@@ -247,9 +224,8 @@ const showSparklesEffect = () => {
       <div
         id="damageAmount"
         ref={damageRef}
-        onClick={handleToggle}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
-        style={{ margin: "0 auto", cursor: "pointer" }}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
+        style={{ margin: "0 auto" }}
       >
         <span id="damageValue" className={loading ? 'hidden' : ''}>
           {damageValue}
@@ -376,7 +352,7 @@ const showSparklesEffect = () => {
                           <td>
                             <Button
                               onClick={() => {
-                                handleSpellsButtonClick(spell, isGold);
+                                handleSpellsButtonClick(spell);
                                 handleCloseAttack();
                               }} 
                               variant="link"
