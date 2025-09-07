@@ -240,7 +240,7 @@ const showSparklesEffect = () => {
           height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight + damageHeight}px)`
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
           {/* Attack Button */}
           <button
             onClick={handleShowAttack}
@@ -255,10 +255,23 @@ const showSparklesEffect = () => {
               cursor: "pointer",
               backgroundColor: 'transparent',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             title="Attack"
           />
+          {/* Critical hit toggle */}
+          <label style={{ marginLeft: '10px', display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={isCritical}
+              onChange={(e) => {
+                setIsCritical(e.target.checked);
+                if (e.target.checked) setIsFumble(false);
+              }}
+              aria-label="Crit"
+            />
+            <span style={{ marginLeft: '4px' }}>Crit</span>
+          </label>
         </div>
         <div
           style={{
