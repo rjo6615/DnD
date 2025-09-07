@@ -1,0 +1,57 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import ZombiesCharacterSheet from './ZombiesCharacterSheet';
+
+jest.mock('../../../utils/apiFetch');
+import apiFetch from '../../../utils/apiFetch';
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: () => ({ id: '1' }),
+}));
+
+jest.mock('../attributes/CharacterInfo', () => () => null);
+jest.mock('../attributes/Stats', () => () => null);
+jest.mock('../attributes/Skills', () => () => null);
+jest.mock('../attributes/Feats', () => () => null);
+jest.mock('../../Weapons/WeaponList', () => () => null);
+jest.mock('../attributes/PlayerTurnActions', () => {
+  const React = require('react');
+  return React.forwardRef(() => null);
+});
+jest.mock('../../Armor/ArmorList', () => () => null);
+jest.mock('../attributes/Items', () => () => null);
+jest.mock('../attributes/Help', () => () => null);
+jest.mock('../attributes/BackgroundModal', () => () => null);
+jest.mock('../attributes/Features', () => () => null);
+jest.mock('../attributes/SpellSelector', () => () => null);
+jest.mock('../attributes/HealthDefense', () => () => null);
+
+test('spells button includes points-glow when spell points available', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 1,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  expect(spellButton).toHaveClass('points-glow');
+});
