@@ -87,14 +87,15 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                         <td>{feat.name}</td>
                         <td>
                           <Button
-                            size="sm"
-                            className="action-btn fa-regular fa-eye"
                             aria-label="view feature"
+                            variant="link"
                             onClick={() => {
                               setModalFeature(feat);
                               setShowModal(true);
                             }}
-                          ></Button>
+                          >
+                            <i className="fa-solid fa-eye"></i>
+                          </Button>
                         </td>
                       </tr>
                     ))
