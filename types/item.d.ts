@@ -23,4 +23,8 @@ export interface Item {
    * Optional list of SRD properties, may be empty.
    */
   properties?: string[];
+  /**
+   * Whether the creature currently owns the item.
+   */
+  owned: boolean;
 }
