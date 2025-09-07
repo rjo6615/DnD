@@ -26,8 +26,10 @@ test('renders proficiency bonus based on total level', () => {
       hpMaxBonusPerLevel={0}
       initiative={0}
       speed={0}
+      spellAbilityMod={2}
     />
   );
+  expect(screen.getByText('Spell Save DC:').parentElement).toHaveTextContent('13');
   expect(screen.getByText('Proficiency Bonus:').parentElement).toHaveTextContent('3');
 });
 
@@ -43,7 +45,9 @@ test('uses provided proficiency bonus when supplied', () => {
       hpMaxBonusPerLevel={0}
       initiative={0}
       speed={0}
+      spellAbilityMod={2}
     />
   );
+  expect(screen.getByText('Spell Save DC:').parentElement).toHaveTextContent('14');
   expect(screen.getByText('Proficiency Bonus:').parentElement).toHaveTextContent('4');
 });
