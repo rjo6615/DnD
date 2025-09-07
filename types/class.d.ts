@@ -26,7 +26,9 @@ export interface Class {
     };
   };
   /**
-   * Whether the class grants spellcasting at 1st level.
+   * Spell slot progression for the class.
+   * 'full' for full casters, 'half' for half casters.
+   * Undefined for non-spellcasting classes.
    */
-  spellcasting: boolean;
+  casterProgression?: 'full' | 'half';
 }

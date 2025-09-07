@@ -18,7 +18,6 @@ const classes = {
         options: ['animalHandling', 'athletics', 'intimidation', 'nature', 'perception', 'survival'],
       },
     },
-    spellcasting: false,
   },
   bard: {
     name: 'Bard',
@@ -52,7 +51,7 @@ const classes = {
         ],
       },
     },
-    spellcasting: true,
+    casterProgression: 'full',
   },
   cleric: {
     name: 'Cleric',
@@ -67,7 +66,7 @@ const classes = {
         options: ['history', 'insight', 'medicine', 'persuasion', 'religion'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'full',
   },
   druid: {
     name: 'Druid',
@@ -82,7 +81,7 @@ const classes = {
         options: ['arcana', 'animalHandling', 'insight', 'medicine', 'nature', 'perception', 'religion', 'survival'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'full',
   },
   fighter: {
     name: 'Fighter',
@@ -97,7 +96,6 @@ const classes = {
         options: ['acrobatics', 'animalHandling', 'athletics', 'history', 'insight', 'intimidation', 'perception', 'survival'],
       },
     },
-    spellcasting: false,
   },
   monk: {
     name: 'Monk',
@@ -112,7 +110,6 @@ const classes = {
         options: ['acrobatics', 'athletics', 'history', 'insight', 'religion', 'stealth'],
       },
     },
-    spellcasting: false,
   },
   paladin: {
     name: 'Paladin',
@@ -127,7 +124,7 @@ const classes = {
         options: ['athletics', 'insight', 'intimidation', 'medicine', 'persuasion', 'religion'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'half',
   },
   ranger: {
     name: 'Ranger',
@@ -142,7 +139,7 @@ const classes = {
         options: ['animalHandling', 'athletics', 'insight', 'investigation', 'nature', 'perception', 'stealth', 'survival'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'half',
   },
   rogue: {
     name: 'Rogue',
@@ -157,7 +154,6 @@ const classes = {
         options: ['acrobatics', 'athletics', 'deception', 'insight', 'intimidation', 'investigation', 'perception', 'performance', 'persuasion', 'sleightOfHand', 'stealth'],
       },
     },
-    spellcasting: false,
   },
   sorcerer: {
     name: 'Sorcerer',
@@ -172,7 +168,7 @@ const classes = {
         options: ['arcana', 'deception', 'insight', 'intimidation', 'persuasion', 'religion'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'full',
   },
   warlock: {
     name: 'Warlock',
@@ -187,7 +183,7 @@ const classes = {
         options: ['arcana', 'deception', 'history', 'intimidation', 'investigation', 'nature', 'religion'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'full',
   },
   wizard: {
     name: 'Wizard',
@@ -202,7 +198,7 @@ const classes = {
         options: ['arcana', 'history', 'insight', 'investigation', 'medicine', 'religion'],
       },
     },
-    spellcasting: true,
+    casterProgression: 'full',
   },
 };
 
