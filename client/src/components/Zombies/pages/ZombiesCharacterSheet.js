@@ -295,7 +295,16 @@ export default function ZombiesCharacterSheet() {
     Object.entries(form.skills || {}).filter(
       ([key, s]) => s.proficient && !form.race?.skills?.[key]?.proficient
     ).length;
-  const skillsGold = skillPointsLeft > 0 ? 'gold' : '#6C757D';
+  const expertisePointsLeft =
+    (form.expertisePoints || 0) -
+    Object.entries(form.skills || {}).filter(
+      ([key, s]) =>
+        s.expertise &&
+        !form.race?.skills?.[key]?.expertise &&
+        !form.background?.skills?.[key]?.expertise
+    ).length;
+  const skillsGold =
+    skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'gold' : '#6C757D';
 
 // ---------------------------------------Feats and bonuses----------------------------------------------
 const featBonuses = (form.feat || []).reduce(
@@ -427,7 +436,9 @@ return (
               marginTop: "10px",
               backgroundColor: skillsGold,
             }}
-            className={`footer-btn mx-1 fas fa-book-open ${skillPointsLeft > 0 ? 'points-glow' : ''}`}
+            className={`footer-btn mx-1 fas fa-book-open ${
+              skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
+            }`}
             variant="secondary"
           ></Button>
           <Button
