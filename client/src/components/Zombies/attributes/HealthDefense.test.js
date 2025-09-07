@@ -15,7 +15,24 @@ const baseForm = {
   speed: 30,
 };
 
-test('renders proficiency bonus based on total level', () => {
+test('renders only proficiency bonus when no spellcasting', () => {
+  render(
+    <HealthDefense
+      form={baseForm}
+      conMod={0}
+      dexMod={0}
+      ac={0}
+      hpMaxBonus={0}
+      hpMaxBonusPerLevel={0}
+      initiative={0}
+      speed={0}
+    />
+  );
+  expect(screen.queryByText('Spell Save DC:')).toBeNull();
+  expect(screen.getByText('Proficiency Bonus:').parentElement).toHaveTextContent('3');
+});
+
+test('renders spell save dc and proficiency bonus when spellAbilityMod provided', () => {
   render(
     <HealthDefense
       form={baseForm}

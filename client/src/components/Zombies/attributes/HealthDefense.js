@@ -13,7 +13,7 @@ export default function HealthDefense({
   hpMaxBonusPerLevel = 0,
   initiative = 0,
   speed = 0,
-  spellAbilityMod = 0,
+  spellAbilityMod,
 }) {
   const params = useParams();
 //-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
@@ -66,7 +66,8 @@ export default function HealthDefense({
     0
   );
   const profBonus = form.proficiencyBonus ?? proficiencyBonus(totalLevel);
-  const spellSaveDC = 8 + profBonus + spellAbilityMod;
+  const spellSaveDC =
+    spellAbilityMod != null ? 8 + profBonus + spellAbilityMod : null;
 
   // Health
   const maxHealth =
@@ -259,7 +260,9 @@ return (
 
   {/* Second row */}
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-    <div><strong>Spell Save DC:</strong> {spellSaveDC}</div>
+    {spellSaveDC != null && (
+      <div><strong>Spell Save DC:</strong> {spellSaveDC}</div>
+    )}
     <div><strong>Proficiency Bonus:</strong> {profBonus}</div>
   </div>
 </div>
