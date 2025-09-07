@@ -243,7 +243,15 @@ const featBonuses = (form.feat || []).reduce(
 
 const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
-const spellsGold = (form.spellPoints || 0) > 0 ? "gold" : "#6C757D";
+const hasSpellcasting = (form.occupation || []).some((cls) => {
+  const progression = cls.casterProgression || 'none';
+  const level = Number(cls.Level) || 0;
+  if (progression === 'full') return level >= 1;
+  if (progression === 'half') return level >= 2;
+  return false;
+});
+const spellsGold =
+  hasSpellcasting && (form.spellPoints || 0) > 0 ? 'gold' : '#6C757D';
 // ------------------------------------------Attack Bonus---------------------------------------------------
 let atkBonus = 0;
 const occupations = form.occupation;
@@ -377,17 +385,19 @@ return (
             className="mx-1 fas fa-star"
             variant="secondary"
           ></Button>
-                    <Button
-            onClick={handleShowSpells}
-            style={{
-              color: "black",
-              padding: "8px",
-              marginTop: "10px",
-              backgroundColor: spellsGold,
-            }}
-            className="mx-1 fas fa-hat-wizard"
-            variant="secondary"
-          ></Button>
+          {hasSpellcasting && (
+            <Button
+              onClick={handleShowSpells}
+              style={{
+                color: 'black',
+                padding: '8px',
+                marginTop: '10px',
+                backgroundColor: spellsGold,
+              }}
+              className="mx-1 fas fa-hat-wizard"
+              variant="secondary"
+            ></Button>
+          )}
           <Button
             onClick={handleShowWeapons}
             style={{
@@ -508,14 +518,16 @@ return (
       showItems={showItems}
       handleCloseItems={handleCloseItems}
     />
-    <SpellSelector
-      form={form}
-      show={showSpells}
-      handleClose={handleCloseSpells}
-      onSpellsChange={(spells, spellPoints) =>
-        setForm((prev) => ({ ...prev, spells, spellPoints }))
-      }
-    />
+    {hasSpellcasting && (
+      <SpellSelector
+        form={form}
+        show={showSpells}
+        handleClose={handleCloseSpells}
+        onSpellsChange={(spells, spellPoints) =>
+          setForm((prev) => ({ ...prev, spells, spellPoints }))
+        }
+      />
+    )}
     <Help
       form={form}
       showHelpModal={showHelpModal}
