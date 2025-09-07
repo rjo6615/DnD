@@ -20,7 +20,7 @@ jest.mock('../attributes/PlayerTurnActions', () => {
   return React.forwardRef(() => null);
 });
 jest.mock('../../Armor/ArmorList', () => () => null);
-jest.mock('../attributes/Items', () => () => null);
+jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
 jest.mock('../attributes/Features', () => () => null);

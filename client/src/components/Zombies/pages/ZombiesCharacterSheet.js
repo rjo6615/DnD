@@ -12,7 +12,7 @@ import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
 import ArmorList from "../../Armor/ArmorList";
-import Items from "../attributes/Items";
+import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
@@ -104,6 +104,7 @@ export default function ZombiesCharacterSheet() {
           feat: feats,
           weapon: data.weapon || [],
           armor: data.armor || [],
+          items: data.items || [],
         });
       } catch (error) {
         console.error(error);
@@ -165,6 +166,23 @@ export default function ZombiesCharacterSheet() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ armor }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
+  );
+
+  const handleItemsChange = useCallback(
+    async (items) => {
+      setForm((prev) => ({ ...prev, items }));
+      try {
+        await apiFetch(`/equipment/update-item/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item: items }),
         });
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -585,11 +603,26 @@ return (
           </Button>
         </div>
       </Modal>
-    <Items
-      form={form}
-      showItems={showItems}
-      handleCloseItems={handleCloseItems}
-    />
+      <Modal
+        className="dnd-modal modern-modal"
+        show={showItems}
+        onHide={handleCloseItems}
+        size="lg"
+        centered
+      >
+        <ItemList
+          campaign={form.campaign}
+          initialItems={form.items}
+          onChange={handleItemsChange}
+          characterId={characterId}
+          show={showItems}
+        />
+        <div className="modal-footer">
+          <Button className="action-btn close-btn" onClick={handleCloseItems}>
+            Close
+          </Button>
+        </div>
+      </Modal>
     {hasSpellcasting && (
       <SpellSelector
         form={form}
