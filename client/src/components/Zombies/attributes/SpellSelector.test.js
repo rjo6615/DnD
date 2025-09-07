@@ -205,7 +205,7 @@ test('renders tabs for multiple classes', async () => {
 });
 
 test.each(['Paladin', 'Ranger'])(
-  '5th-level %s gains 2nd-level slots',
+  '5th-level %s gains 2nd-level slots without cantrips',
   async (cls) => {
     apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
     render(
@@ -221,8 +221,26 @@ test.each(['Paladin', 'Ranger'])(
     const select = await screen.findByLabelText('Level');
     const options = Array.from(select.options).map((o) => o.value);
     expect(options).toContain('2');
+    expect(options).not.toContain('0');
   }
 );
+
+test('full casters include level 0 options', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  const select = await screen.findByLabelText('Level');
+  const options = Array.from(select.options).map((o) => o.value);
+  expect(options).toContain('0');
+});
 
 test('level 1 half-caster has no spell slots', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
