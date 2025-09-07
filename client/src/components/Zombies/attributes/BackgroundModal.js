@@ -24,7 +24,7 @@ export default function BackgroundModal({ show, onHide, background }) {
             <br />
             <p><strong>Skill Proficiencies:</strong></p>
             {skillProficiencies.length ? (
-              <ul>
+              <ul className="centered-list">
                 {skillProficiencies.map((skill) => (
                   <li key={skill}>{skill}</li>
                 ))}
@@ -34,7 +34,7 @@ export default function BackgroundModal({ show, onHide, background }) {
             )}
             <p><strong>Tool Proficiencies:</strong></p>
             {toolProficiencies.length ? (
-              <ul>
+              <ul className="centered-list">
                 {toolProficiencies.map((tool) => (
                   <li key={tool}>{tool}</li>
                 ))}
