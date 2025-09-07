@@ -405,52 +405,48 @@ return (
         >
           <Button
             onClick={handleShowCharacterInfo}
-            style={{ color: "black", padding: "8px", marginTop: "10px" }}
-            className="mx-1 fas fa-image-portrait"
+            style={{ color: "black", marginTop: "10px" }}
+            className="footer-btn mx-1 fas fa-image-portrait"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowStats}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
             }}
-            className="mx-1 fas fa-scroll"
+            className="footer-btn mx-1 fas fa-scroll"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowSkill}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: skillsGold,
             }}
-            className={`mx-1 fas fa-book-open ${skillPointsLeft > 0 ? 'points-glow' : ''}`}
+            className={`footer-btn mx-1 fas fa-book-open ${skillPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowFeats}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: featsGold,
             }}
-            className={`mx-1 fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
+            className={`footer-btn mx-1 fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowFeatures}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-star"
+            className="footer-btn mx-1 fas fa-star"
             variant="secondary"
           ></Button>
           {hasSpellcasting && (
@@ -458,11 +454,10 @@ return (
               onClick={handleShowSpells}
               style={{
                 color: 'black',
-                padding: '8px',
                 marginTop: '10px',
                 backgroundColor: spellsGold,
               }}
-              className={`mx-1 fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+              className={`footer-btn mx-1 fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
               variant="secondary"
             ></Button>
           )}
@@ -470,39 +465,36 @@ return (
             onClick={handleShowWeapons}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-wand-sparkles"
+            className="footer-btn mx-1 fas fa-wand-sparkles"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowArmor}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-shield"
+            className="footer-btn mx-1 fas fa-shield"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowItems}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-briefcase"
+            className="footer-btn mx-1 fas fa-briefcase"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowHelpModal}
-            style={{ color: "white", padding: "8px", marginTop: "10px" }}
-            className="mx-1 fas fa-info"
+            style={{ color: "white", marginTop: "10px" }}
+            className="footer-btn mx-1 fas fa-info"
             variant="primary"
           ></Button>
         </Nav>
