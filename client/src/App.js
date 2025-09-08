@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiFetch from './utils/apiFetch';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar/Navbar";
-// import Footer from "./components/Footer/Footer";
+import Footer from "./components/Footer/Footer";
 import Zombies from "./components/Zombies/pages/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/pages/ZombiesCharacterSheet";
 import ZombiesCharacterSelect from "./components/Zombies/pages/ZombiesCharacterSelect";
@@ -49,6 +49,7 @@ function App() {
 function AppRoutes({ user }) {
   const location = useLocation();
   const hideNavbarRoutes = []; // Add routes here to hide the navbar when needed
+  const [spellSlots, setSpellSlots] = useState({});
 
   return (
     <>
@@ -65,11 +66,11 @@ function AppRoutes({ user }) {
         <Route path="/armor" element={<ArmorList characterId={user?._id} strength={20} />} />
         <Route path="/armor/:name" element={<ArmorDetail />} />
         <Route path="/zombies-character-select/:campaign" element={<ZombiesCharacterSelect />} />
-        <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet />} />
+        <Route path="/zombies-character-sheet/:id" element={<ZombiesCharacterSheet setSpellSlots={setSpellSlots} />} />
         <Route path="/zombies-dm/:campaign" element={<ZombiesDM />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {/* <Footer /> */}
+      <Footer spellSlots={spellSlots} />
     </>
   );
 }
