@@ -2,35 +2,15 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
+import {
+  SLOT_TABLE,
+  getEffectiveCasterLevel,
+} from '../../../utils/spellSlots';
 
 /**
  * Modal component allowing users to select spells for their character.
  * Spells are fetched from the server and filtered by class and level.
  */
-// Full-caster spell slot table indexed by class level then spell level
-const SLOT_TABLE = {
-  0: Array(10).fill(0),
-  1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
-  2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
-  3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
-  4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
-  5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
-  6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
-  7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
-  8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
-  9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
-  10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
-  11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
-  12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
-  13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
-  14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
-  15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
-  16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
-  17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
-  18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
-  19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
-  20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
-};
 
 // Number of cantrips known by class level
 const CANTRIP_TABLE = {
@@ -81,14 +61,10 @@ export default function SpellSelector({
         const name = o.Name || o.Occupation;
         const level = Number(o.Level) || 0;
         const casterProgression = o.casterProgression || o.CasterProgression || 'full';
-        const effectiveLevel =
-          casterProgression === 'half'
-            ? level < 2
-              ? 0
-              : Math.ceil(level / 2)
-            : casterProgression === 'full'
-            ? level
-            : 0;
+        const effectiveLevel = getEffectiveCasterLevel({
+          level,
+          casterProgression,
+        });
         return { name, level, casterProgression, effectiveLevel };
       })
       .filter((o) => o.effectiveLevel >= 1);

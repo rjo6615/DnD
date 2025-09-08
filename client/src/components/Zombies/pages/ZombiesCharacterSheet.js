@@ -19,10 +19,11 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import { getSpellSlots } from '../../../utils/spellSlots';
 
 const HEADER_PADDING = 16;
 
-export default function ZombiesCharacterSheet() {
+export default function ZombiesCharacterSheet({ setSpellSlots = () => {} }) {
   const params = useParams();
   const characterId = params.id; 
   const [form, setForm] = useState(null);
@@ -56,6 +57,10 @@ export default function ZombiesCharacterSheet() {
       setHeaderHeight(headerRef.current.offsetHeight + navHeight + HEADER_PADDING);
     }
   }, [form, navHeight]);
+
+  useEffect(() => {
+    setSpellSlots(getSpellSlots(form?.occupation || []));
+  }, [form?.occupation, setSpellSlots]);
 
   useEffect(() => {
     async function fetchCharacterData(id) {

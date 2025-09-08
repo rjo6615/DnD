@@ -145,6 +145,28 @@ label {
   background-color: #a00000; /* Darker red color on hover */
 }
 
+.footer-slot-tabs {
+  position: fixed;
+  bottom: 56px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  font-family: 'Raleway, sans-serif';
+  z-index: 1030;
+}
+
+.footer-slot-tab {
+  background-color: var(--bs-dark);
+  color: var(--bs-light);
+  padding: 0.25rem 0.5rem;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  border: 1px solid var(--bs-light);
+  font-weight: 600;
+}
+
 // Dice Roller----------------------------------------------------------------------------------------------
 $transitionDuration: 0.5s;
 $animationDuration:  3s;
