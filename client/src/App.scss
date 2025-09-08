@@ -70,20 +70,16 @@
 }
 
 .spell-slot .slot-boxes {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  right: 2px;
-  bottom: 2px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  z-index: 0;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
+  gap: 2px;
+  justify-content: center;
 }
 
 .spell-slot .slot-small {
-  width: 100%;
-  height: 100%;
+  width: 10px;
+  height: 10px;
   box-sizing: border-box;
   border: 1px solid #fff;
 }
@@ -99,6 +95,7 @@
 
 .spell-slot .slot-inactive {
   background: rgba(255, 255, 255, 0.1);
+  cursor: default;
 }
 
 .text-center {
