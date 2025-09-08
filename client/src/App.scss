@@ -145,6 +145,35 @@ label {
   background-color: #a00000; /* Darker red color on hover */
 }
 
+// Spell slot tabs
+.spell-slot-tabs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.spell-slot-tab {
+  padding: 2px 6px;
+  margin: 0 2px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  text-align: center;
+  background-color: #e9ecef;
+  color: #000;
+}
+
+.spell-slot-tab.available {
+  background-color: #198754;
+  color: #fff;
+}
+
+.spell-slot-tab.zero {
+  background-color: #6c757d;
+  color: #fff;
+}
+
 // Dice Roller----------------------------------------------------------------------------------------------
 $transitionDuration: 0.5s;
 $animationDuration:  3s;
