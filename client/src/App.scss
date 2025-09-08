@@ -41,7 +41,7 @@
 
 .spell-slot-container {
   position: fixed;
-  bottom: 60px;
+  bottom: 100px;
   left: 0;
   right: 0;
   display: flex;
@@ -68,8 +68,9 @@
 }
 
 .spell-slot .slot-boxes {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
   gap: 2px;
   justify-content: center;
 }
@@ -77,16 +78,23 @@
 .spell-slot .slot-small {
   width: 10px;
   height: 10px;
+  box-sizing: border-box;
   border: 1px solid #fff;
   cursor: pointer;
 }
 
-.spell-slot .slot-filled {
-  background: #fff;
+.spell-slot .slot-active {
+  background: #007bff;
+  box-shadow: 0 0 5px #007bff, 0 0 10px #007bff;
 }
 
 .spell-slot .slot-used {
   background: transparent;
+}
+
+.spell-slot .slot-inactive {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: default;
 }
 
 .text-center {
