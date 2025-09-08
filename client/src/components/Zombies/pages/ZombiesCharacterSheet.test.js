@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
 jest.mock('../../../utils/apiFetch');
@@ -231,7 +231,6 @@ test('all footer buttons have footer-btn class', async () => {
   });
 
   render(<ZombiesCharacterSheet />);
-  const nav = await screen.findByRole('navigation');
-  const buttons = within(nav).getAllByRole('button');
+  const buttons = await screen.findAllByRole('button');
   buttons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });

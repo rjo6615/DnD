@@ -19,8 +19,6 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
-import SpellSlotTabs from '../attributes/SpellSlotTabs';
-import { getSpellSlots } from '../../../utils/spellSlots';
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -50,9 +48,6 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
-  const [spellSlots, setSpellSlots] = useState([]);
-  const [pactSlots, setPactSlots] = useState(null);
-  const [selectedLevel, setSelectedLevel] = useState(null);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -118,17 +113,6 @@ export default function ZombiesCharacterSheet() {
 
     fetchCharacterData(characterId);
   }, [characterId]);
-
-  useEffect(() => {
-    if (!form || !form.occupation) {
-      setSpellSlots([]);
-      setPactSlots(null);
-      return;
-    }
-    const { spellSlots: slots, pactSlots } = getSpellSlots(form.occupation);
-    setSpellSlots(slots);
-    setPactSlots(pactSlots);
-  }, [form?.occupation]);
 
   const handleShowCharacterInfo = () => setShowCharacterInfo(true);
   const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
@@ -436,12 +420,6 @@ return (
       strMod={statMods.str}
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
-    />
-    <SpellSlotTabs
-      spellSlots={spellSlots}
-      pactSlots={pactSlots}
-      selectedLevel={selectedLevel}
-      onLevelFilter={setSelectedLevel}
     />
     <Navbar
       fixed="bottom"
