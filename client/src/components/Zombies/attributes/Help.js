@@ -99,6 +99,9 @@ return(
                   </thead>
                 </Table>
               </div>
+              <p className="mt-2 small text-light">
+                © 2023 Copyright: <a href="https://github.com/rjo6615/DnD" className="text-light fw-bold">DnD</a>
+              </p>
             </Card.Body>
             <Card.Footer className="modal-footer justify-content-between">
               <Button className="action-btn btn-danger" onClick={handleShowDeleteCharacter}>Delete Character</Button>
