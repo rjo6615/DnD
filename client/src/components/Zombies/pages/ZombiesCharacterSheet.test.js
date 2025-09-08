@@ -234,3 +234,61 @@ test('all footer buttons have footer-btn class', async () => {
   const buttons = await screen.findAllByRole('button');
   buttons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });
+
+test('renders spell slot tabs for caster', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [{ Name: 'Wizard', Level: 3 }],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+      }),
+    })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+
+  render(<ZombiesCharacterSheet />);
+
+  const total = await screen.findByTestId('slot-total');
+  expect(total).toHaveTextContent('Total 6');
+  expect(screen.getByTestId('slot-level-1')).toHaveTextContent('1:4');
+  expect(screen.getByTestId('slot-level-2')).toHaveTextContent('2:2');
+});
+
+test('non-caster does not render spell slot tabs', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 3 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(screen.queryByTestId('spell-slot-tabs')).toBeNull());
+});
