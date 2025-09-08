@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
@@ -19,7 +19,6 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
-import SpellSlotTabs from "../attributes/SpellSlotTabs";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -49,10 +48,6 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
-  const [spellSlots, setSpellSlots] = useState([]);
-  const [pactSlots, setPactSlots] = useState(null);
-  const [selectedSpellLevel, setSelectedSpellLevel] = useState(null);
-  const [bottomNavHeight, setBottomNavHeight] = useState(0);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -64,13 +59,6 @@ export default function ZombiesCharacterSheet() {
     const nav = document.querySelector('.navbar.fixed-top');
     if (nav) {
       setNavHeight(nav.offsetHeight);
-    }
-  }, []);
-
-  useEffect(() => {
-    const bottomNav = document.querySelector('.navbar.fixed-bottom');
-    if (bottomNav) {
-      setBottomNavHeight(bottomNav.offsetHeight);
     }
   }, []);
 
@@ -269,20 +257,17 @@ export default function ZombiesCharacterSheet() {
   const spellAbilityMod = hasSpellcasting ? statMods[spellAbilityKey] : null;
 
   useEffect(() => {
-    async function calculateSpellResources() {
+    async function calculateSpellPoints() {
       if (!form) return;
-      if (!hasSpellcasting) {
-        setSpellPointsLeft(0);
-        setSpellSlots([]);
-        setPactSlots(null);
-        return;
-      }
       if (typeof form.spellPoints === 'number') {
         setSpellPointsLeft(form.spellPoints);
+        return;
+      }
+      if (!hasSpellcasting) {
+        setSpellPointsLeft(0);
+        return;
       }
       try {
-        const slotMap = {};
-        let pact = null;
         const counts = await Promise.all(
           (form.occupation || []).map(async (cls) => {
             const name = (cls.Name || cls.Occupation || '').toLowerCase();
@@ -298,56 +283,20 @@ export default function ZombiesCharacterSheet() {
             );
             if (!res.ok) return 0;
             const data = await res.json();
-            if (data.spellSlots) {
-              Object.entries(data.spellSlots).forEach(([lvl, total]) => {
-                slotMap[lvl] = Math.max(slotMap[lvl] || 0, total);
-              });
-            }
-            if (data.pactMagic) {
-              const [lvl, total] = Object.entries(data.pactMagic)[0];
-              pact = { level: Number(lvl), total, remaining: total };
-            }
             return typeof data.spellsKnown === 'number' ? data.spellsKnown : 0;
           })
         );
-        if (typeof form.spellPoints !== 'number') {
-          const totalAllowed = counts.reduce((sum, n) => sum + n, 0);
-          const learnedCount = (form.spells || []).length;
-          setSpellPointsLeft(Math.max(0, totalAllowed - learnedCount));
-        }
-        const slotsArr = Object.entries(slotMap)
-          .map(([lvl, total]) => ({
-            level: Number(lvl),
-            total,
-            remaining: total,
-          }))
-          .sort((a, b) => a.level - b.level);
-        setSpellSlots(slotsArr);
-        setPactSlots(pact);
-        if (slotsArr.length && selectedSpellLevel == null) {
-          setSelectedSpellLevel(slotsArr[0].level);
-        }
+        const totalAllowed = counts.reduce((sum, n) => sum + n, 0);
+        const learnedCount = (form.spells || []).length;
+        setSpellPointsLeft(Math.max(0, totalAllowed - learnedCount));
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
         setSpellPointsLeft(0);
-        setSpellSlots([]);
-        setPactSlots(null);
       }
     }
-    calculateSpellResources();
+    calculateSpellPoints();
   }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
-
-  const filteredForm = useMemo(() => {
-    if (!form) return form;
-    if (selectedSpellLevel == null) return form;
-    return {
-      ...form,
-      spells: (form.spells || []).filter(
-        (s) => s.level === selectedSpellLevel
-      ),
-    };
-  }, [form, selectedSpellLevel]);
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
@@ -465,32 +414,13 @@ return (
       />
     </div>
     <PlayerTurnActions
-      form={filteredForm}
+      form={form}
       atkBonus={atkBonus}
       dexMod={statMods.dex}
       strMod={statMods.str}
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
-    {hasSpellcasting && spellSlots.length > 0 && (
-      <div
-        style={{
-          position: 'fixed',
-          bottom: bottomNavHeight,
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <SpellSlotTabs
-          spellSlots={spellSlots}
-          pactSlots={pactSlots}
-          selectedLevel={selectedSpellLevel}
-          onLevelFilter={setSelectedSpellLevel}
-        />
-      </div>
-    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
