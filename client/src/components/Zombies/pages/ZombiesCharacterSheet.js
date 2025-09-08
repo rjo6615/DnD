@@ -17,6 +17,7 @@ import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
+import SpellSlotTabs from "../attributes/SpellSlotTabs";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 
@@ -317,16 +318,18 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
-    <Navbar
-      fixed="bottom"
-      data-bs-theme="dark"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-    >
-      <Container style={{ backgroundColor: 'transparent' }}>
-        <Nav
-          className="me-auto mx-auto"
-          style={{ backgroundColor: 'transparent' }}
-        >
+    <div className="bottom-nav-wrapper">
+      <SpellSlotTabs form={form} />
+      <Navbar
+        fixed="bottom"
+        data-bs-theme="dark"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      >
+        <Container style={{ backgroundColor: 'transparent' }}>
+          <Nav
+            className="me-auto mx-auto"
+            style={{ backgroundColor: 'transparent' }}
+          >
           <Button
             onClick={handleShowCharacterInfo}
             style={{ color: "black", padding: "8px", marginTop: "10px" }}
@@ -427,9 +430,10 @@ return (
             className="mx-1 fas fa-info"
             variant="primary"
           ></Button>
-        </Nav>
-      </Container>
-    </Navbar>
+          </Nav>
+        </Container>
+      </Navbar>
+    </div>
     <CharacterInfo
       form={form}
       show={showCharacterInfo}
