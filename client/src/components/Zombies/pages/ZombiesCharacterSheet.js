@@ -19,7 +19,6 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
-import SpellSlotTabs from "../attributes/SpellSlotTabs";
 
 const HEADER_PADDING = 16;
 
@@ -321,9 +320,8 @@ return (
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', position: 'relative' }}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <SpellSlotTabs form={form} />
       <Container style={{ backgroundColor: 'transparent' }}>
         <Nav
           className="me-auto mx-auto"
