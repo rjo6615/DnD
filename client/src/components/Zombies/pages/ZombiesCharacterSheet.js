@@ -19,6 +19,7 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import SpellSlots from "../attributes/SpellSlots";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -421,6 +422,7 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
+    {hasSpellcasting && form && <SpellSlots form={form} />}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
