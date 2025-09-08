@@ -68,25 +68,29 @@
 }
 
 .spell-slot .slot-boxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
   justify-content: center;
 }
 
 .spell-slot .slot-small {
-  width: 10px;
-  height: 10px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   border: 1px solid #fff;
-  cursor: pointer;
 }
 
-.spell-slot .slot-filled {
-  background: #fff;
+.spell-slot .slot-active {
+  background: #007bff;
 }
 
 .spell-slot .slot-used {
   background: transparent;
+}
+
+.spell-slot .slot-inactive {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .text-center {
