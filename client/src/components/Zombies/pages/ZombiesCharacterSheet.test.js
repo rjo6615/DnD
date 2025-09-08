@@ -26,9 +26,11 @@ jest.mock('../attributes/BackgroundModal', () => () => null);
 jest.mock('../attributes/Features', () => () => null);
 jest.mock('../attributes/SpellSelector', () => () => null);
 jest.mock('../attributes/HealthDefense', () => () => null);
+jest.mock('../attributes/SpellSlotTabs', () => () => null);
 
 beforeEach(() => {
   apiFetch.mockReset();
+  apiFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
 });
 
 test('spells button includes points-glow when spell points available', async () => {
