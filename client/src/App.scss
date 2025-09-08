@@ -41,7 +41,7 @@
 
 .spell-slot-container {
   position: fixed;
-  bottom: 100px;
+  bottom: 70px;
   left: 0;
   right: 0;
   display: flex;
@@ -52,24 +52,24 @@
 
 .spell-slot {
   position: relative;
-  width: 48px;
+  width: 28px;
   height: 48px;
-  border: 2px solid #fff;
-  background: rgba(0, 0, 0, 0.7);
   color: #fff;
   padding: 2px;
 }
 
 .spell-slot .slot-level {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  font-size: 0.75rem;
+  top: -2px;               /* push it near the top */
+  left: 50%;              /* move to the horizontal center */
+  transform: translateX(-50%); /* center offset */
+  font-size: 1.2rem;      /* adjust size if needed */
   z-index: 1;
   pointer-events: none;
 }
 
 .spell-slot .slot-boxes {
+  padding-top: 20px;
   display: grid;
   grid-template-columns: repeat(2, 10px);
   grid-template-rows: repeat(2, 10px);
