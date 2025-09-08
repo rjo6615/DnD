@@ -19,18 +19,10 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import SpellSlotTabs from "../attributes/SpellSlotTabs";
+import { SPELLCASTING_CLASSES } from "../attributes/spellUtils";
 
 const HEADER_PADDING = 16;
-const SPELLCASTING_CLASSES = {
-  bard: 'full',
-  cleric: 'full',
-  druid: 'full',
-  sorcerer: 'full',
-  wizard: 'full',
-  warlock: 'full',
-  paladin: 'half',
-  ranger: 'half',
-};
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -48,25 +40,31 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
+  const [spellSlotsUsed, setSpellSlotsUsed] = useState({});
 
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const [navHeight, setNavHeight] = useState(0);
+  const [topNavHeight, setTopNavHeight] = useState(0);
+  const [bottomNavHeight, setBottomNavHeight] = useState(0);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
     if (nav) {
-      setNavHeight(nav.offsetHeight);
+      setTopNavHeight(nav.offsetHeight);
+    }
+    const footer = document.querySelector('.navbar.fixed-bottom');
+    if (footer) {
+      setBottomNavHeight(footer.offsetHeight);
     }
   }, []);
 
   useEffect(() => {
     if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight + navHeight + HEADER_PADDING);
+      setHeaderHeight(headerRef.current.offsetHeight + topNavHeight + HEADER_PADDING);
     }
-  }, [form, navHeight]);
+  }, [form, topNavHeight]);
 
   useEffect(() => {
     async function fetchCharacterData(id) {
@@ -377,7 +375,7 @@ return (
       overflow: "hidden",
       backgroundSize: "cover",
       backgroundRepeat: "no-repeat",
-      paddingTop: navHeight + HEADER_PADDING,
+      paddingTop: topNavHeight + HEADER_PADDING,
     }}
   >
     <div ref={headerRef}>
@@ -421,6 +419,14 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
+    {hasSpellcasting && (
+      <SpellSlotTabs
+        occupation={form?.occupation}
+        usedSlots={spellSlotsUsed}
+        setUsedSlots={setSpellSlotsUsed}
+        footerHeight={bottomNavHeight}
+      />
+    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
