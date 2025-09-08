@@ -145,6 +145,39 @@ label {
   background-color: #a00000; /* Darker red color on hover */
 }
 
+.spell-slot-tabs {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  font-family: 'Raleway', sans-serif;
+}
+
+.spell-slot-tab {
+  background-color: var(--bs-secondary);
+  border: 1px solid var(--bs-dark);
+  padding: 0.25rem;
+  border-radius: 0.25rem 0.25rem 0 0;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.spell-slot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--bs-light);
+  margin: 2px;
+}
+
+.spell-slot.available {
+  background-color: var(--bs-primary);
+}
+
 // Dice Roller----------------------------------------------------------------------------------------------
 $transitionDuration: 0.5s;
 $animationDuration:  3s;

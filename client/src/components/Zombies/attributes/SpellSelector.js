@@ -8,7 +8,7 @@ import { useParams } from 'react-router-dom';
  * Spells are fetched from the server and filtered by class and level.
  */
 // Full-caster spell slot table indexed by class level then spell level
-const SLOT_TABLE = {
+export const SLOT_TABLE = {
   0: Array(10).fill(0),
   1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
   2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
