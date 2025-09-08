@@ -69,17 +69,9 @@ const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, he
     }
   }, []);
 
-//--------------------------------------------Crit button toggle------------------------------------------------
-const [isGold, setIsGold] = useState(false);
-
-// Function to handle toggle
-const handleToggle = () => {
-  setIsGold(prevState => !prevState);
-};
-
-const handleToggleAfterDamage = () => {
-  setIsGold(false);
-};
+//--------------------------------------------Critical status------------------------------------------------
+const [isCritical, setIsCritical] = useState(false);
+const [isFumble, setIsFumble] = useState(false);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon) =>
     weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
@@ -94,16 +86,21 @@ const handleToggleAfterDamage = () => {
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const damageValue = calculateDamage(weapon.damage, ability, isGold);
+    const damageValue = calculateDamage(weapon.damage, ability, isCritical);
     if (damageValue === null) return;
     updateDamageValueWithAnimation(damageValue);
   };
 
 const handleSpellsButtonClick = (spell, crit = false) => {
   if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit);
+  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
+};
+
+const handleDamageClick = () => {
+  setIsCritical((prev) => !prev);
+  setIsFumble(false);
 };
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
@@ -121,7 +118,6 @@ useEffect(() => {
   if (loading) {
     const timer = setTimeout(() => {
       setLoading(false);
-      handleToggleAfterDamage();
     }, 1000); // 1 second delay
     return () => clearTimeout(timer);
   }
@@ -129,20 +125,24 @@ useEffect(() => {
 
 const updateDamageValueWithAnimation = (newValue) => {
   setLoading(true);
+  setPulseClass('');
   setDamageValue(newValue);
 };
 
 useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
 
-const [pulse, setPulse] = useState(false);
+const [pulseClass, setPulseClass] = useState('');
 
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const value = Number(e.detail);
-    if (!Number.isNaN(value)) {
-      updateDamageValueWithAnimation(value);
+    const { value, critical, fumble } = e.detail || {};
+    const num = Number(value);
+    if (!Number.isNaN(num)) {
+      updateDamageValueWithAnimation(num);
     }
+    setIsCritical(!!critical && !fumble);
+    setIsFumble(!!fumble);
   };
   window.addEventListener('damage-roll', handler);
   return () => window.removeEventListener('damage-roll', handler);
@@ -150,9 +150,14 @@ useEffect(() => {
 
 useEffect(() => {
   if (!loading) {
-    setPulse(true);
-    const timer = setTimeout(() => setPulse(false), 2000); // Remove the pulse class after the animation
-    return () => clearTimeout(timer); // Cleanup the timer on unmount or when loading changes
+    const cls = isCritical ? 'pulse-gold' : isFumble ? 'pulse-red' : 'pulse';
+    setPulseClass(cls);
+    const timer = setTimeout(() => {
+      setPulseClass('');
+      setIsCritical(false);
+      setIsFumble(false);
+    }, 2000);
+    return () => clearTimeout(timer);
   }
 }, [loading]);
 //-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
@@ -228,9 +233,9 @@ const showSparklesEffect = () => {
       <div
         id="damageAmount"
         ref={damageRef}
-        onClick={handleToggle}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulse ? 'pulse' : ''} ${isGold ? 'critical-active' : ''}`}
-        style={{ margin: "0 auto", cursor: "pointer" }}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
+        style={{ margin: "0 auto" }}
+        onClick={handleDamageClick}
       >
         <span id="damageValue" className={loading ? 'hidden' : ''}>
           {damageValue}
@@ -245,7 +250,7 @@ const showSparklesEffect = () => {
           height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight + damageHeight}px)`
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
           {/* Attack Button */}
           <button
             onClick={handleShowAttack}
@@ -260,8 +265,8 @@ const showSparklesEffect = () => {
               cursor: "pointer",
               backgroundColor: 'transparent',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             title="Attack"
           />
         </div>
@@ -357,7 +362,7 @@ const showSparklesEffect = () => {
                           <td>
                             <Button
                               onClick={() => {
-                                handleSpellsButtonClick(spell, isGold);
+                                handleSpellsButtonClick(spell);
                                 handleCloseAttack();
                               }} 
                               variant="link"

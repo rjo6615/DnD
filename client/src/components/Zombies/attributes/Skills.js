@@ -7,6 +7,17 @@ import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 
+export function rollSkill(bonus = 0) {
+  const d20 = Math.floor(Math.random() * 20) + 1;
+  if (d20 === 20) {
+    window.dispatchEvent(new CustomEvent('critical-hit', { detail: 'critical' }));
+  } else if (d20 === 1) {
+    window.dispatchEvent(new CustomEvent('critical-failure', { detail: 'fumble' }));
+  }
+  const result = d20 + bonus;
+  return { result, d20 };
+}
+
 export default function Skills({
   form,
   showSkill,
@@ -195,7 +206,7 @@ export default function Skills({
 
   const toggleExpertise = (skill) => {
     const current = skills[skill] || { proficient: false, expertise: false };
-    if (!current.proficient) return;
+    if (!(current.proficient || lockedProficiencies.has(skill))) return;
     if (!selectableExpertise.has(skill)) return;
     if (!current.expertise && expertisePointsLeft <= 0) return;
     const updated = {
@@ -206,7 +217,6 @@ export default function Skills({
   };
 
   const handleRoll = (skillKey, ability, proficient, expertise) => {
-    const d20 = Math.floor(Math.random() * 20) + 1;
     const skill = SKILLS.find((s) => s.key === skillKey);
     const armorPenalty = skill?.armorPenalty || 0;
     const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
@@ -217,8 +227,12 @@ export default function Skills({
       itemTotals[skillKey] +
       featTotals[skillKey] +
       raceTotals[skillKey];
-    const result = d20 + bonus;
-    window.dispatchEvent(new CustomEvent('damage-roll', { detail: result }));
+    const { result, d20 } = rollSkill(bonus);
+    window.dispatchEvent(
+      new CustomEvent('damage-roll', {
+        detail: { value: result, critical: d20 === 20, fumble: d20 === 1 },
+      })
+    );
 
     handleCloseSkill?.();
   };
@@ -284,7 +298,9 @@ export default function Skills({
                   const penalty = armorPenalty
                     ? armorPenalty * totalCheckPenalty
                     : 0;
-                  const multiplier = expertise ? 2 : proficient ? 1 : 0;
+                  const isProficient =
+                    proficient || lockedProficiencies.has(key);
+                  const multiplier = expertise ? 2 : isProficient ? 1 : 0;
                   const total =
                     modMap[ability] +
                     profBonus * multiplier +
@@ -324,7 +340,7 @@ export default function Skills({
                           type="checkbox"
                           checked={expertise}
                           disabled={
-                            !proficient ||
+                            !isProficient ||
                             !selectableExpertise.has(key) ||
                             lockedExpertise.has(key) ||
                             (!expertise && expertisePointsLeft <= 0)
@@ -335,7 +351,7 @@ export default function Skills({
                       <td>
                         <Button
                           onClick={() =>
-                            handleRoll(key, ability, proficient, expertise)
+                            handleRoll(key, ability, isProficient, expertise)
                           }
                           variant="link"
                           aria-label="roll"

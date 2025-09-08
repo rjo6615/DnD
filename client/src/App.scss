@@ -320,6 +320,12 @@ $rotateX: -$angle;
   box-shadow: 0 0 10px #FFD700;
 }
 
+#damageAmount.critical-failure {
+  border: 2px solid #FF0000;
+  color: #FF0000;
+  box-shadow: 0 0 10px #FF0000;
+}
+
 #damageValue {
   padding-top: 5px;
   display: inline-block; /* Make the text an inline block */
@@ -928,12 +934,69 @@ h1 {
   }
 }
 
+@keyframes pulseGold {
+  0% {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(255, 215, 0, 0.4);
+    transform: scale(1.1);
+  }
+  100% {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseRed {
+  0% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.4);
+    transform: scale(1.1);
+  }
+  100% {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1);
+  }
+}
+
 #damageAmount {
   transition: background-color 0.5s ease, transform 0.5s ease;
 }
 
 .pulse {
   animation: pulseOnce 2s 1; /* Run the animation once over 2 seconds */
+}
+
+.pulse-gold {
+  animation: pulseGold 2s 1;
+  box-shadow: 0 0 10px #FFD700;
+}
+
+.pulse-red {
+  animation: pulseRed 2s 1;
+  box-shadow: 0 0 10px #FF0000;
+}
+
+@keyframes pointsGlow {
+  0% {
+    box-shadow: 0 0 6px #FFD700;
+  }
+  50% {
+    box-shadow: 0 0 12px #FFD700;
+  }
+  100% {
+    box-shadow: 0 0 6px #FFD700;
+  }
+}
+
+.points-glow {
+  animation: pointsGlow 2s infinite;
+  box-shadow: 0 0 6px #FFD700;
 }
 
 .hidden {
@@ -1090,4 +1153,12 @@ h1 {
 .footer-transparent {
   background-color: rgba(0, 0, 0, 0.5) !important;
   color: #fff;
+}
+
+.footer-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

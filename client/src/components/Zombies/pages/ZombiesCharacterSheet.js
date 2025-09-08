@@ -12,7 +12,7 @@ import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions from "../attributes/PlayerTurnActions";
 import ArmorList from "../../Armor/ArmorList";
-import Items from "../attributes/Items";
+import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
@@ -21,6 +21,16 @@ import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 
 const HEADER_PADDING = 16;
+const SPELLCASTING_CLASSES = {
+  bard: 'full',
+  cleric: 'full',
+  druid: 'full',
+  sorcerer: 'full',
+  wizard: 'full',
+  warlock: 'full',
+  paladin: 'half',
+  ranger: 'half',
+};
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -37,6 +47,7 @@ export default function ZombiesCharacterSheet() {
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
+  const [spellPointsLeft, setSpellPointsLeft] = useState(0);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -93,6 +104,7 @@ export default function ZombiesCharacterSheet() {
           feat: feats,
           weapon: data.weapon || [],
           armor: data.armor || [],
+          items: data.items || [],
         });
       } catch (error) {
         console.error(error);
@@ -163,11 +175,24 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
-  if (!form) {
-    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
-  }
+  const handleItemsChange = useCallback(
+    async (items) => {
+      setForm((prev) => ({ ...prev, items }));
+      try {
+        await apiFetch(`/equipment/update-item/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item: items }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
+  );
 
-  const itemBonus = (form.item || []).reduce(
+  const itemBonus = (form?.item || []).reduce(
     (acc, el) => ({
       str: acc.str + Number(el[2] || 0),
       dex: acc.dex + Number(el[3] || 0),
@@ -179,7 +204,7 @@ export default function ZombiesCharacterSheet() {
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
-  const featBonus = (form.feat || []).reduce(
+  const featBonus = (form?.feat || []).reduce(
     (acc, el) => ({
       str: acc.str + Number(el.str || 0),
       dex: acc.dex + Number(el.dex || 0),
@@ -192,12 +217,12 @@ export default function ZombiesCharacterSheet() {
   );
 
   const computedStats = {
-    str: form.str + itemBonus.str + featBonus.str + (form.race?.abilities?.str || 0),
-    dex: form.dex + itemBonus.dex + featBonus.dex + (form.race?.abilities?.dex || 0),
-    con: form.con + itemBonus.con + featBonus.con + (form.race?.abilities?.con || 0),
-    int: form.int + itemBonus.int + featBonus.int + (form.race?.abilities?.int || 0),
-    wis: form.wis + itemBonus.wis + featBonus.wis + (form.race?.abilities?.wis || 0),
-    cha: form.cha + itemBonus.cha + featBonus.cha + (form.race?.abilities?.cha || 0),
+    str: (form?.str || 0) + itemBonus.str + featBonus.str + (form?.race?.abilities?.str || 0),
+    dex: (form?.dex || 0) + itemBonus.dex + featBonus.dex + (form?.race?.abilities?.dex || 0),
+    con: (form?.con || 0) + itemBonus.con + featBonus.con + (form?.race?.abilities?.con || 0),
+    int: (form?.int || 0) + itemBonus.int + featBonus.int + (form?.race?.abilities?.int || 0),
+    wis: (form?.wis || 0) + itemBonus.wis + featBonus.wis + (form?.race?.abilities?.wis || 0),
+    cha: (form?.cha || 0) + itemBonus.cha + featBonus.cha + (form?.race?.abilities?.cha || 0),
   };
 
   const statMods = {
@@ -208,6 +233,74 @@ export default function ZombiesCharacterSheet() {
     wis: Math.floor((computedStats.wis - 10) / 2),
     cha: Math.floor((computedStats.cha - 10) / 2),
   };
+
+  const SPELLCASTING_ABILITIES = {
+    cleric: 'wis',
+    druid: 'wis',
+    wizard: 'int',
+  };
+  const spellcastingClass = (form?.occupation || [])
+    .map((cls) => (cls.Name || cls.Occupation || '').toLowerCase())
+    .find((name) => SPELLCASTING_CLASSES[name]);
+  const spellAbilityKey =
+    spellcastingClass && (SPELLCASTING_ABILITIES[spellcastingClass] || 'cha');
+  const hasSpellcasting = (form?.occupation || []).some((cls) => {
+    const name = (cls.Name || cls.Occupation || '').toLowerCase();
+    const progression = SPELLCASTING_CLASSES[name];
+    const level = Number(cls.Level) || 0;
+    if (!progression) return false;
+    if (progression === 'full') return level >= 1;
+    if (progression === 'half') return level >= 2;
+    return false;
+  });
+
+  const spellAbilityMod = hasSpellcasting ? statMods[spellAbilityKey] : null;
+
+  useEffect(() => {
+    async function calculateSpellPoints() {
+      if (!form) return;
+      if (typeof form.spellPoints === 'number') {
+        setSpellPointsLeft(form.spellPoints);
+        return;
+      }
+      if (!hasSpellcasting) {
+        setSpellPointsLeft(0);
+        return;
+      }
+      try {
+        const counts = await Promise.all(
+          (form.occupation || []).map(async (cls) => {
+            const name = (cls.Name || cls.Occupation || '').toLowerCase();
+            const level = Number(cls.Level) || 0;
+            const progression = SPELLCASTING_CLASSES[name];
+            if (!progression) return 0;
+            if (progression === 'half' && level < 2) return 0;
+            const abilityMod = ['cleric', 'druid'].includes(name)
+              ? statMods.wis
+              : statMods.cha;
+            const res = await apiFetch(
+              `/classes/${name}/features/${level}?abilityMod=${abilityMod}`
+            );
+            if (!res.ok) return 0;
+            const data = await res.json();
+            return typeof data.spellsKnown === 'number' ? data.spellsKnown : 0;
+          })
+        );
+        const totalAllowed = counts.reduce((sum, n) => sum + n, 0);
+        const learnedCount = (form.spells || []).length;
+        setSpellPointsLeft(Math.max(0, totalAllowed - learnedCount));
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setSpellPointsLeft(0);
+      }
+    }
+    calculateSpellPoints();
+  }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
+
+  if (!form) {
+    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
+  }
 
   const statNames = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
@@ -220,7 +313,16 @@ export default function ZombiesCharacterSheet() {
     Object.entries(form.skills || {}).filter(
       ([key, s]) => s.proficient && !form.race?.skills?.[key]?.proficient
     ).length;
-  const skillsGold = skillPointsLeft > 0 ? 'gold' : '#6C757D';
+  const expertisePointsLeft =
+    (form.expertisePoints || 0) -
+    Object.entries(form.skills || {}).filter(
+      ([key, s]) =>
+        s.expertise &&
+        !form.race?.skills?.[key]?.expertise &&
+        !form.background?.skills?.[key]?.expertise
+    ).length;
+  const skillsGold =
+    skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'gold' : '#6C757D';
 
 // ---------------------------------------Feats and bonuses----------------------------------------------
 const featBonuses = (form.feat || []).reduce(
@@ -243,7 +345,8 @@ const featBonuses = (form.feat || []).reduce(
 
 const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
-const spellsGold = (form.spellPoints || 0) > 0 ? "gold" : "#6C757D";
+const spellsGold =
+  hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
 // ------------------------------------------Attack Bonus---------------------------------------------------
 let atkBonus = 0;
 const occupations = form.occupation;
@@ -307,6 +410,7 @@ return (
         ac={featBonuses.ac}
         hpMaxBonus={featBonuses.hpMaxBonus}
         hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+        {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
     <PlayerTurnActions
@@ -329,102 +433,98 @@ return (
         >
           <Button
             onClick={handleShowCharacterInfo}
-            style={{ color: "black", padding: "8px", marginTop: "10px" }}
-            className="mx-1 fas fa-image-portrait"
+            style={{ color: "black", marginTop: "10px" }}
+            className="footer-btn mx-1 fas fa-image-portrait"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowStats}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
             }}
-            className="mx-1 fas fa-scroll"
+            className="footer-btn mx-1 fas fa-scroll"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowSkill}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: skillsGold,
             }}
-            className="mx-1 fas fa-book-open"
+            className={`footer-btn mx-1 fas fa-book-open ${
+              skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
+            }`}
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowFeats}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: featsGold,
             }}
-            className="mx-1 fas fa-hand-fist"
+            className={`footer-btn mx-1 fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowFeatures}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-star"
+            className="footer-btn mx-1 fas fa-star"
             variant="secondary"
           ></Button>
-                    <Button
-            onClick={handleShowSpells}
-            style={{
-              color: "black",
-              padding: "8px",
-              marginTop: "10px",
-              backgroundColor: spellsGold,
-            }}
-            className="mx-1 fas fa-hat-wizard"
-            variant="secondary"
-          ></Button>
+          {hasSpellcasting && (
+            <Button
+              onClick={handleShowSpells}
+              style={{
+                color: 'black',
+                marginTop: '10px',
+                backgroundColor: spellsGold,
+              }}
+              className={`footer-btn mx-1 fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+              variant="secondary"
+            ></Button>
+          )}
           <Button
             onClick={handleShowWeapons}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-wand-sparkles"
+            className="footer-btn mx-1 fas fa-wand-sparkles"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowArmor}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-shield"
+            className="footer-btn mx-1 fas fa-shield"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowItems}
             style={{
               color: "black",
-              padding: "8px",
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="mx-1 fas fa-briefcase"
+            className="footer-btn mx-1 fas fa-briefcase"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowHelpModal}
-            style={{ color: "white", padding: "8px", marginTop: "10px" }}
-            className="mx-1 fas fa-info"
+            style={{ color: "white", marginTop: "10px" }}
+            className="footer-btn mx-1 fas fa-info"
             variant="primary"
           ></Button>
         </Nav>
@@ -503,19 +603,36 @@ return (
           </Button>
         </div>
       </Modal>
-    <Items
-      form={form}
-      showItems={showItems}
-      handleCloseItems={handleCloseItems}
-    />
-    <SpellSelector
-      form={form}
-      show={showSpells}
-      handleClose={handleCloseSpells}
-      onSpellsChange={(spells, spellPoints) =>
-        setForm((prev) => ({ ...prev, spells, spellPoints }))
-      }
-    />
+      <Modal
+        className="dnd-modal modern-modal"
+        show={showItems}
+        onHide={handleCloseItems}
+        size="lg"
+        centered
+      >
+        <ItemList
+          campaign={form.campaign}
+          initialItems={form.items}
+          onChange={handleItemsChange}
+          characterId={characterId}
+          show={showItems}
+        />
+        <div className="modal-footer">
+          <Button className="action-btn close-btn" onClick={handleCloseItems}>
+            Close
+          </Button>
+        </div>
+      </Modal>
+    {hasSpellcasting && (
+      <SpellSelector
+        form={form}
+        show={showSpells}
+        handleClose={handleCloseSpells}
+        onSpellsChange={(spells, spellPoints) =>
+          setForm((prev) => ({ ...prev, spells, spellPoints }))
+        }
+      />
+    )}
     <Help
       form={form}
       showHelpModal={showHelpModal}

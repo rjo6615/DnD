@@ -19,6 +19,7 @@ const backgrounds = require('./backgrounds');
 const spells = require('./spells');
 const weapons = require('./weapons');
 const armor = require('./armor');
+const items = require('./items');
 const weaponProficiency = require('./weaponProficiency');
 const armorProficiency = require('./armorProficiency');
 
@@ -40,6 +41,7 @@ backgrounds(routes);
 spells(routes);
 weapons(routes);
 armor(routes);
+items(routes);
 // Register occupations routes before generic ID-based routes to ensure
 // "/characters/occupations" is matched correctly.
 characterOccupations(routes);

@@ -61,6 +61,7 @@ export default function CharacterInfo({ form, show, handleClose, onShowBackgroun
                   <Button
                     onClick={onShowBackground}
                     variant="link"
+                    aria-label="Show Background"
                   >
                     <i className="fa-solid fa-eye"></i>
                   </Button>

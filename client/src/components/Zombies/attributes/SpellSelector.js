@@ -57,6 +57,17 @@ const CANTRIP_TABLE = {
   20: 5,
 };
 
+const SPELLCASTING_CLASSES = {
+  bard: 'full',
+  cleric: 'full',
+  druid: 'full',
+  sorcerer: 'full',
+  warlock: 'full',
+  wizard: 'full',
+  paladin: 'half',
+  ranger: 'half',
+};
+
 export default function SpellSelector({
   form,
   show,
@@ -65,10 +76,14 @@ export default function SpellSelector({
 }) {
   const params = useParams();
 
-  const getAvailableLevels = useCallback((effectiveLevel) => {
+  const getAvailableLevels = useCallback((effectiveLevel, casterProgression) => {
     const slotRow = SLOT_TABLE[effectiveLevel] || [];
     const options = [];
-    if ((CANTRIP_TABLE[effectiveLevel] || 0) > 0) options.push(0);
+    if (
+      casterProgression === 'full' &&
+      (CANTRIP_TABLE[effectiveLevel] || 0) > 0
+    )
+      options.push(0);
     slotRow.forEach((slots, lvl) => {
       if (lvl > 0 && slots > 0) options.push(lvl);
     });
@@ -80,15 +95,14 @@ export default function SpellSelector({
       .map((o) => {
         const name = o.Name || o.Occupation;
         const level = Number(o.Level) || 0;
-        const casterProgression = o.casterProgression || o.CasterProgression || 'full';
-        const effectiveLevel =
-          casterProgression === 'half'
-            ? level < 2
-              ? 0
-              : Math.ceil(level / 2)
-            : casterProgression === 'full'
-            ? level
-            : 0;
+        const key = (name || '').toLowerCase();
+        const casterProgression = SPELLCASTING_CLASSES[key] || 'none';
+        let effectiveLevel = 0;
+        if (casterProgression === 'full') {
+          effectiveLevel = level;
+        } else if (casterProgression === 'half') {
+          effectiveLevel = level === 1 ? 0 : Math.ceil(level / 2);
+        }
         return { name, level, casterProgression, effectiveLevel };
       })
       .filter((o) => o.effectiveLevel >= 1);
@@ -96,8 +110,8 @@ export default function SpellSelector({
 
   const levelOptions = useMemo(
     () =>
-      classesInfo.reduce((acc, { name, effectiveLevel }) => {
-        acc[name] = getAvailableLevels(effectiveLevel);
+      classesInfo.reduce((acc, { name, effectiveLevel, casterProgression }) => {
+        acc[name] = getAvailableLevels(effectiveLevel, casterProgression);
         return acc;
       }, {}),
     [classesInfo, getAvailableLevels]
@@ -124,6 +138,35 @@ export default function SpellSelector({
   const [activeClass, setActiveClass] = useState(classesInfo[0]?.name || '');
   const [error, setError] = useState(null);
   const [viewSpell, setViewSpell] = useState(null);
+  const [spellsKnown, setSpellsKnown] = useState({});
+
+  const chaMod = useMemo(() => {
+    const itemBonus = (form.item || []).reduce(
+      (sum, el) => sum + Number(el[7] || 0),
+      0
+    );
+    const featBonus = (form.feat || []).reduce(
+      (sum, el) => sum + Number(el.cha || 0),
+      0
+    );
+    const raceBonus = form.race?.abilities?.cha || 0;
+    const computed = (form.cha || 0) + itemBonus + featBonus + raceBonus;
+    return Math.floor((computed - 10) / 2);
+  }, [form.cha, form.item, form.feat, form.race]);
+
+  const wisMod = useMemo(() => {
+    const itemBonus = (form.item || []).reduce(
+      (sum, el) => sum + Number(el[6] || 0),
+      0
+    );
+    const featBonus = (form.feat || []).reduce(
+      (sum, el) => sum + Number(el.wis || 0),
+      0
+    );
+    const raceBonus = form.race?.abilities?.wis || 0;
+    const computed = (form.wis || 0) + itemBonus + featBonus + raceBonus;
+    return Math.floor((computed - 10) / 2);
+  }, [form.wis, form.item, form.feat, form.race]);
 
   useEffect(() => {
     apiFetch('/spells')
@@ -143,6 +186,33 @@ export default function SpellSelector({
     setActiveClass(classesInfo[0]?.name || '');
   }, [initialLevels, classesInfo]);
 
+  useEffect(() => {
+    const fetchSpellsKnown = async () => {
+      const result = {};
+      await Promise.all(
+        classesInfo.map(async ({ name, level }) => {
+          try {
+            const abilityMod =
+              ['cleric', 'druid'].includes(name.toLowerCase()) ? wisMod : chaMod;
+            const res = await apiFetch(
+              `/classes/${name.toLowerCase()}/features/${level}?abilityMod=${abilityMod}`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              if (typeof data.spellsKnown === 'number') {
+                result[name] = data.spellsKnown;
+              }
+            }
+          } catch (err) {
+            setError(err.message);
+          }
+        })
+      );
+      setSpellsKnown(result);
+    };
+    fetchSpellsKnown();
+  }, [classesInfo, chaMod, wisMod]);
+
   function spellsForClass(cls) {
     return Object.values(allSpells).filter(
       (spell) =>
@@ -154,24 +224,24 @@ export default function SpellSelector({
   useEffect(() => {
     const newPoints = {};
     classesInfo.forEach(({ name, effectiveLevel }) => {
-      const slotRow = SLOT_TABLE[effectiveLevel] || [];
       const selectedLevel = Number(selectedLevels[name]);
-      const totalSlots =
+      const total =
         selectedLevel === 0
           ? CANTRIP_TABLE[effectiveLevel] || 0
-          : slotRow[selectedLevel] || 0;
+          : spellsKnown[name] ?? Infinity;
       const count = selectedSpells.reduce((sum, spellName) => {
         const info = Object.values(allSpells).find((s) => s.name === spellName);
         return info &&
-          info.level === selectedLevel &&
-          info.classes.includes(name)
+          info.classes.includes(name) &&
+          (selectedLevel === 0 ? info.level === 0 : info.level > 0)
           ? sum + 1
           : sum;
       }, 0);
-      newPoints[name] = Math.max(0, totalSlots - count);
+      newPoints[name] =
+        total === Infinity ? Infinity : Math.max(0, total - count);
     });
     setPointsLeft(newPoints);
-  }, [selectedLevels, selectedSpells, allSpells, classesInfo]);
+  }, [selectedLevels, selectedSpells, allSpells, classesInfo, spellsKnown]);
 
   function toggleSpell(name) {
     setSelectedSpells((prev) => {
@@ -186,21 +256,22 @@ export default function SpellSelector({
   async function saveSpells(spells = selectedSpells) {
     try {
       const currentPoints = classesInfo.reduce((sum, { name, effectiveLevel }) => {
-        const slotRow = SLOT_TABLE[effectiveLevel] || [];
         const selectedLevel = Number(selectedLevels[name]);
-        const totalSlots =
+        const total =
           selectedLevel === 0
             ? CANTRIP_TABLE[effectiveLevel] || 0
-            : slotRow[selectedLevel] || 0;
+            : spellsKnown[name] ?? Infinity;
         const count = spells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);
           return info &&
-            info.level === selectedLevel &&
-            info.classes.includes(name)
+            info.classes.includes(name) &&
+            (selectedLevel === 0 ? info.level === 0 : info.level > 0)
             ? acc + 1
             : acc;
         }, 0);
-        return sum + Math.max(0, totalSlots - count);
+        const remaining =
+          total === Infinity ? 0 : Math.max(0, total - count);
+        return sum + remaining;
       }, 0);
 
       const selectedSpellObjects = spells.map((name) => {
@@ -246,7 +317,9 @@ export default function SpellSelector({
           </Card.Header>
           <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
             {error && <div className="text-danger mb-2">{error}</div>}
-            {classesInfo.length === 1 ? (
+            {classesInfo.length === 0 ? (
+              <div className="text-light">No spellcasting classes available.</div>
+            ) : classesInfo.length === 1 ? (
               (() => {
                 const cls = classesInfo[0].name;
                 return (
@@ -279,7 +352,9 @@ export default function SpellSelector({
                         Points Left:
                       </span>
                       <span className="points-value">
-                        {pointsLeft[cls] || 0}
+                        {pointsLeft[cls] === Infinity
+                          ? '∞'
+                          : pointsLeft[cls] || 0}
                       </span>
                     </div>
                     <Table
@@ -371,7 +446,9 @@ export default function SpellSelector({
                         Points Left:
                       </span>
                       <span className="points-value">
-                        {pointsLeft[name] || 0}
+                        {pointsLeft[name] === Infinity
+                          ? '∞'
+                          : pointsLeft[name] || 0}
                       </span>
                     </div>
                     <Table

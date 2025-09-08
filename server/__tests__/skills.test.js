@@ -142,5 +142,68 @@ describe('Skills routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.expertise).toBe(true);
   });
+
+  test('multiclassing into Rogue/Bard increases expertise slots', async () => {
+    const charDoc = {
+      occupation: [{ Level: 3, Occupation: 'Bard', skills: {}, proficiencyPoints: 0 }],
+      skills: { stealth: { proficient: true, expertise: false } },
+      feat: [],
+      race: {},
+      background: {},
+      health: 10,
+      dex: 13,
+    };
+
+    const findOne = jest
+      .fn()
+      .mockImplementation(() => Promise.resolve({ ...charDoc }));
+    const updateOne = jest.fn().mockImplementation((id, update) => {
+      Object.entries(update.$set || {}).forEach(([key, value]) => {
+        charDoc[key] = value;
+      });
+      return Promise.resolve();
+    });
+    const findOneAndUpdate = jest
+      .fn()
+      .mockImplementation((id, update) => {
+        if (update.$set) {
+          Object.entries(update.$set).forEach(([key, value]) => {
+            if (key.startsWith('skills.')) {
+              const skillKey = key.split('.')[1];
+              charDoc.skills[skillKey] = value;
+            } else {
+              charDoc[key] = value;
+            }
+          });
+        }
+        if (update.$unset) {
+          Object.keys(update.$unset).forEach((key) => {
+            if (key.startsWith('skills.')) {
+              const skillKey = key.split('.')[1];
+              delete charDoc.skills[skillKey];
+            } else {
+              delete charDoc[key];
+            }
+          });
+        }
+        return Promise.resolve({ value: { ...charDoc } });
+      });
+
+    dbo.mockResolvedValue({
+      collection: () => ({ findOne, updateOne, findOneAndUpdate }),
+    });
+
+    let res = await request(app)
+      .post('/characters/multiclass/507f1f77bcf86cd799439011')
+      .send({ newOccupation: 'Rogue' });
+    expect(res.status).toBe(200);
+    expect(res.body.expertisePoints).toBe(4);
+
+    res = await request(app)
+      .put('/skills/update-skills/507f1f77bcf86cd799439011')
+      .send({ skill: 'stealth', proficient: true, expertise: true });
+    expect(res.status).toBe(200);
+    expect(res.body.expertise).toBe(true);
+  });
 });
 

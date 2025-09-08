@@ -17,7 +17,13 @@ module.exports = (router) => {
     const level = Number(req.params.level);
     const features = cls.featuresByLevel?.[level];
     const spellSlots = cls.spellSlots?.[level];
-    const spellsKnown = cls.spellsKnown?.[level];
+    let spellsKnown;
+    if (typeof cls.spellsKnown === 'function') {
+      const abilityMod = Number(req.query.abilityMod) || 0;
+      spellsKnown = cls.spellsKnown(level, abilityMod);
+    } else {
+      spellsKnown = cls.spellsKnown?.[level];
+    }
     const pactMagic = cls.pactMagic?.[level];
     if (!features && !spellSlots && spellsKnown == null && !pactMagic) {
       return res.status(404).json({ message: 'Level not found' });

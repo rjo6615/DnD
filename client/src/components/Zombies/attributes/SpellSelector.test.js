@@ -34,13 +34,33 @@ const spellsData = {
     description: '',
     classes: ['Cleric'],
   },
+  'faerie-fire': {
+    name: 'Faerie Fire',
+    level: 1,
+    school: 'Evocation',
+    castingTime: '1 action',
+    range: '60 feet',
+    components: [],
+    duration: 'Concentration, up to 1 minute',
+    description: '',
+    classes: ['Druid'],
+  },
 };
 
+beforeEach(() => {
+  apiFetch.mockReset();
+});
+
 test('filters spells by level', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
   render(
     <SpellSelector
-      form={{ occupation: [{ Name: 'Wizard', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
       show={true}
       handleClose={() => {}}
     />
@@ -54,11 +74,15 @@ test('filters spells by level', async () => {
 test('saves selected spells', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
   const onChange = jest.fn();
   render(
     <SpellSelector
-      form={{ occupation: [{ Name: 'Wizard', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
       show={true}
       handleClose={() => {}}
       onSpellsChange={onChange}
@@ -68,8 +92,8 @@ test('saves selected spells', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
-  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
-  const lastCall = apiFetch.mock.calls[1];
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
+  const lastCall = apiFetch.mock.calls[2];
   expect(lastCall[0]).toBe('/characters/1/spells');
   expect(JSON.parse(lastCall[1].body)).toEqual({
     spells: [
@@ -82,7 +106,7 @@ test('saves selected spells', async () => {
         duration: 'Instantaneous',
       },
     ],
-    spellPoints: 1,
+    spellPoints: 13,
   });
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
@@ -96,7 +120,7 @@ test('saves selected spells', async () => {
           duration: 'Instantaneous',
         },
       ],
-      1
+      13
     )
   );
 });
@@ -104,11 +128,17 @@ test('saves selected spells', async () => {
 test('uses Occupation when Name is missing', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
   const onChange = jest.fn();
   render(
     <SpellSelector
-      form={{ occupation: [{ Occupation: 'Wizard', Level: 5 }], spells: [] }}
+      form={{
+        occupation: [
+          { Occupation: 'Wizard', Level: 5, casterProgression: 'full' },
+        ],
+        spells: [],
+      }}
       show={true}
       handleClose={() => {}}
       onSpellsChange={onChange}
@@ -118,8 +148,8 @@ test('uses Occupation when Name is missing', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
-  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
-  const lastCall = apiFetch.mock.calls[1];
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
+  const lastCall = apiFetch.mock.calls[2];
   expect(JSON.parse(lastCall[1].body)).toEqual({
     spells: [
       {
@@ -131,7 +161,7 @@ test('uses Occupation when Name is missing', async () => {
         duration: 'Instantaneous',
       },
     ],
-    spellPoints: 1,
+    spellPoints: 13,
   });
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
@@ -145,19 +175,22 @@ test('uses Occupation when Name is missing', async () => {
           duration: 'Instantaneous',
         },
       ],
-      1
+      13
     )
   );
 });
 
 test('renders tabs for multiple classes', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
   render(
     <SpellSelector
       form={{
         occupation: [
-          { Name: 'Wizard', Level: 5 },
-          { Name: 'Cleric', Level: 5 },
+          { Name: 'Wizard', Level: 5, casterProgression: 'full' },
+          { Name: 'Cleric', Level: 5, casterProgression: 'full' },
         ],
         spells: [],
       }}
@@ -194,9 +227,11 @@ test('renders tabs for multiple classes', async () => {
 });
 
 test.each(['Paladin', 'Ranger'])(
-  '5th-level %s gains 2nd-level slots',
+  '5th-level %s gains 2nd-level slots without cantrips',
   async (cls) => {
-    apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
+    apiFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 4 }) });
     render(
       <SpellSelector
         form={{
@@ -210,8 +245,28 @@ test.each(['Paladin', 'Ranger'])(
     const select = await screen.findByLabelText('Level');
     const options = Array.from(select.options).map((o) => o.value);
     expect(options).toContain('2');
+    expect(options).not.toContain('0');
   }
 );
+
+test('full casters include level 0 options', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  const select = await screen.findByLabelText('Level');
+  const options = Array.from(select.options).map((o) => o.value);
+  expect(options).toContain('0');
+});
 
 test('level 1 half-caster has no spell slots', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => spellsData });
@@ -228,4 +283,88 @@ test('level 1 half-caster has no spell slots', async () => {
   await waitFor(() => {
     expect(screen.queryByLabelText('Level')).toBeNull();
   });
+  expect(
+    screen.getByText(/no spellcasting classes available/i)
+  ).toBeInTheDocument();
+});
+
+test('cleric spells known uses wisdom modifier', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 5 }) });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Cleric', Level: 3, casterProgression: 'full' }],
+        wis: 14,
+        cha: 10,
+        spells: [],
+        item: [],
+        feat: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
+  expect(apiFetch.mock.calls[1][0]).toBe(
+    '/classes/cleric/features/3?abilityMod=2'
+  );
+  const label = await screen.findByText('Points Left:');
+  await waitFor(() => expect(label.nextSibling).toHaveTextContent('5'));
+});
+
+test('druid spells known uses wisdom modifier', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 4 }) });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Druid', Level: 2, casterProgression: 'full' }],
+        wis: 14,
+        cha: 10,
+        spells: [],
+        item: [],
+        feat: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
+  expect(apiFetch.mock.calls[1][0]).toBe(
+    '/classes/druid/features/2?abilityMod=2'
+  );
+  const label = await screen.findByText('Points Left:');
+  await waitFor(() => expect(label.nextSibling).toHaveTextContent('4'));
+});
+
+test('warlock is treated as a spellcasting class using charisma', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 5 }) });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Warlock', Level: 3, casterProgression: 'full' }],
+        cha: 14,
+        wis: 10,
+        spells: [],
+        item: [],
+        feat: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+    />
+  );
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
+  expect(apiFetch.mock.calls[1][0]).toBe(
+    '/classes/warlock/features/3?abilityMod=2'
+  );
+  const select = await screen.findByLabelText('Level');
+  const options = Array.from(select.options).map((o) => o.value);
+  expect(options).toContain('0');
+  const label = await screen.findByText('Points Left:');
+  await waitFor(() => expect(label.nextSibling).toHaveTextContent('5'));
 });

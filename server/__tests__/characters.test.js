@@ -508,13 +508,13 @@ describe('Character routes', () => {
 
   test('add item success', async () => {
     dbo.mockResolvedValue({
-      collection: () => ({ insertOne: async () => ({ acknowledged: true }) })
+      collection: () => ({ insertOne: async () => ({ insertedId: '507f1f77bcf86cd799439011' }) })
     });
     const res = await request(app)
-      .post('/equipment/item/add')
-      .send({ campaign: 'Camp1', itemName: 'Potion' });
+      .post('/equipment/items')
+      .send({ campaign: 'Camp1', name: 'Potion', category: 'gear', weight: 1, cost: '5 gp' });
     expect(res.status).toBe(200);
-    expect(res.body.acknowledged).toBe(true);
+    expect(res.body._id).toBeDefined();
   });
 
   test('add item failure', async () => {
@@ -522,8 +522,8 @@ describe('Character routes', () => {
       collection: () => ({ insertOne: async () => { throw new Error('db error'); } })
     });
     const res = await request(app)
-      .post('/equipment/item/add')
-      .send({ campaign: 'Camp1', itemName: 'Potion' });
+      .post('/equipment/items')
+      .send({ campaign: 'Camp1', name: 'Potion', category: 'gear', weight: 1, cost: '5 gp' });
     expect(res.status).toBe(500);
   });
 
