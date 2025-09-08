@@ -19,7 +19,6 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
-import SpellSlotTabs from "../attributes/SpellSlotTabs";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -49,9 +48,6 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
-  const [spellSlots, setSpellSlots] = useState([]);
-  const [pactSlots, setPactSlots] = useState(null);
-  const [selectedSpellLevel, setSelectedSpellLevel] = useState(null);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -261,120 +257,46 @@ export default function ZombiesCharacterSheet() {
   const spellAbilityMod = hasSpellcasting ? statMods[spellAbilityKey] : null;
 
   useEffect(() => {
-    let isMounted = true;
-    async function fetchSpellData() {
+    async function calculateSpellPoints() {
       if (!form) return;
+      if (typeof form.spellPoints === 'number') {
+        setSpellPointsLeft(form.spellPoints);
+        return;
+      }
       if (!hasSpellcasting) {
-        if (isMounted) {
-          setSpellPointsLeft(0);
-          setSpellSlots([]);
-          setPactSlots(null);
-        }
+        setSpellPointsLeft(0);
         return;
       }
       try {
-        const results = await Promise.all(
+        const counts = await Promise.all(
           (form.occupation || []).map(async (cls) => {
             const name = (cls.Name || cls.Occupation || '').toLowerCase();
             const level = Number(cls.Level) || 0;
             const progression = SPELLCASTING_CLASSES[name];
-            if (!progression) return { spellsKnown: 0, slots: {}, pact: null };
-            if (progression === 'half' && level < 2)
-              return { spellsKnown: 0, slots: {}, pact: null };
+            if (!progression) return 0;
+            if (progression === 'half' && level < 2) return 0;
             const abilityMod = ['cleric', 'druid'].includes(name)
               ? statMods.wis
               : statMods.cha;
-            try {
-              const res = await apiFetch(
-                `/classes/${name}/features/${level}?abilityMod=${abilityMod}`
-              );
-              if (!res || !res.ok) {
-                return { spellsKnown: 0, slots: {}, pact: null };
-              }
-              const data = await res.json();
-              return {
-                spellsKnown:
-                  typeof data.spellsKnown === 'number' ? data.spellsKnown : 0,
-                slots: data.spellSlots || {},
-                pact: data.pactMagic || null,
-              };
-            } catch (e) {
-              return { spellsKnown: 0, slots: {}, pact: null };
-            }
+            const res = await apiFetch(
+              `/classes/${name}/features/${level}?abilityMod=${abilityMod}`
+            );
+            if (!res.ok) return 0;
+            const data = await res.json();
+            return typeof data.spellsKnown === 'number' ? data.spellsKnown : 0;
           })
         );
-
-        const totalAllowed = results.reduce(
-          (sum, r) => sum + (r.spellsKnown || 0),
-          0
-        );
+        const totalAllowed = counts.reduce((sum, n) => sum + n, 0);
         const learnedCount = (form.spells || []).length;
-        if (isMounted) {
-          setSpellPointsLeft(
-            typeof form.spellPoints === 'number'
-              ? form.spellPoints
-              : Math.max(0, totalAllowed - learnedCount)
-          );
-        }
-
-        const totals = {};
-        let pact = null;
-        results.forEach(({ slots, pact: pactMagic }) => {
-          Object.entries(slots || {}).forEach(([lvl, total]) => {
-            const levelNum = Number(lvl);
-            if (!totals[levelNum]) {
-              totals[levelNum] = { level: levelNum, total: 0, remaining: 0 };
-            }
-            totals[levelNum].total += total;
-            totals[levelNum].remaining += total;
-          });
-          if (pactMagic) {
-            const [pactLevel, pactTotal] = Object.entries(pactMagic)[0] || [];
-            if (pactLevel) {
-              pact = {
-                level: Number(pactLevel),
-                total: pactTotal,
-                remaining: pactTotal,
-              };
-            }
-          }
-        });
-        if (isMounted) {
-          const slotArr = Object.values(totals).sort(
-            (a, b) => a.level - b.level
-          );
-          setSpellSlots(slotArr);
-          setPactSlots(pact);
-          if (slotArr.length > 0) {
-            setSelectedSpellLevel((prev) => {
-              if (prev != null && slotArr.some((s) => s.level === prev)) {
-                return prev;
-              }
-              return slotArr[0].level;
-            });
-          } else {
-            setSelectedSpellLevel(null);
-          }
-        }
+        setSpellPointsLeft(Math.max(0, totalAllowed - learnedCount));
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
-        if (isMounted) {
-          setSpellPointsLeft(0);
-          setSpellSlots([]);
-          setPactSlots(null);
-        }
+        setSpellPointsLeft(0);
       }
     }
-    fetchSpellData();
-    const handleRest = () => fetchSpellData();
-    const restEvents = ['short-rest', 'long-rest', 'shortRest', 'longRest'];
-    restEvents.forEach((e) => window.addEventListener(e, handleRest));
-    return () => {
-      isMounted = false;
-      restEvents.forEach((e) => window.removeEventListener(e, handleRest));
-    };
-  }, [form?.occupation, form?.spells, hasSpellcasting, statMods.cha, statMods.wis]);
+    calculateSpellPoints();
+  }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
 
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
@@ -499,14 +421,6 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
-    {hasSpellcasting && (
-      <SpellSlotTabs
-        spellSlots={spellSlots}
-        pactSlots={pactSlots}
-        selectedLevel={selectedSpellLevel}
-        onLevelFilter={setSelectedSpellLevel}
-      />
-    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
