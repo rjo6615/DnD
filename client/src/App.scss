@@ -3,6 +3,77 @@
 @import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 
+.spell-slot-tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  scrollbar-width: none;
+}
+
+.spell-slot-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.spell-slot-tabs.fade-left::before,
+.spell-slot-tabs.fade-right::after {
+  content: '';
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  width: 1rem;
+  pointer-events: none;
+}
+
+.spell-slot-tabs.fade-left::before {
+  left: 0;
+  background: linear-gradient(to right, white, transparent);
+}
+
+.spell-slot-tabs.fade-right::after {
+  right: 0;
+  background: linear-gradient(to left, white, transparent);
+}
+
+.spell-slot-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 9999px;
+  background-color: #fff;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  color: var(--bs-dark);
+}
+
+.spell-slot-tab.active {
+  background-color: var(--bs-primary);
+  color: #fff;
+}
+
+.spell-slot-tab.dimmed {
+  opacity: 0.5;
+}
+
+.spell-slot-tab .pips {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.spell-slot-tab .pip {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.4;
+}
+
+.spell-slot-tab .pip.filled {
+  background-color: currentColor;
+  opacity: 1;
+}
+
 .weapon-checkbox .form-check-input:checked {
   background-color: var(--bs-primary);
   border-color: var(--bs-primary);
