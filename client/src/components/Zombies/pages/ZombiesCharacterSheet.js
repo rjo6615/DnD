@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
@@ -19,6 +19,7 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import SpellSlotTabs from "../attributes/SpellSlotTabs";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -30,6 +31,53 @@ const SPELLCASTING_CLASSES = {
   warlock: 'full',
   paladin: 'half',
   ranger: 'half',
+};
+
+const SLOT_TABLE = {
+  0: Array(10).fill(0),
+  1: [0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+  2: [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  3: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
+  4: [0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  5: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
+  6: [0, 4, 3, 3, 0, 0, 0, 0, 0, 0],
+  7: [0, 4, 3, 3, 1, 0, 0, 0, 0, 0],
+  8: [0, 4, 3, 3, 2, 0, 0, 0, 0, 0],
+  9: [0, 4, 3, 3, 3, 1, 0, 0, 0, 0],
+  10: [0, 4, 3, 3, 3, 2, 0, 0, 0, 0],
+  11: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+  12: [0, 4, 3, 3, 3, 2, 1, 0, 0, 0],
+  13: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+  14: [0, 4, 3, 3, 3, 2, 1, 1, 0, 0],
+  15: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+  16: [0, 4, 3, 3, 3, 2, 1, 1, 1, 0],
+  17: [0, 4, 3, 3, 3, 2, 1, 1, 1, 1],
+  18: [0, 4, 3, 3, 3, 3, 1, 1, 1, 1],
+  19: [0, 4, 3, 3, 3, 3, 2, 1, 1, 1],
+  20: [0, 4, 3, 3, 3, 3, 2, 2, 1, 1],
+};
+
+const PACT_SLOT_TABLE = {
+  1: { level: 1, total: 1 },
+  2: { level: 1, total: 2 },
+  3: { level: 2, total: 2 },
+  4: { level: 2, total: 2 },
+  5: { level: 3, total: 2 },
+  6: { level: 3, total: 2 },
+  7: { level: 4, total: 2 },
+  8: { level: 4, total: 2 },
+  9: { level: 5, total: 2 },
+  10: { level: 5, total: 2 },
+  11: { level: 5, total: 3 },
+  12: { level: 5, total: 3 },
+  13: { level: 5, total: 3 },
+  14: { level: 5, total: 3 },
+  15: { level: 5, total: 3 },
+  16: { level: 5, total: 3 },
+  17: { level: 5, total: 4 },
+  18: { level: 5, total: 4 },
+  19: { level: 5, total: 4 },
+  20: { level: 5, total: 4 },
 };
 
 export default function ZombiesCharacterSheet() {
@@ -48,6 +96,8 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
+  const [selectedSlotLevel, setSelectedSlotLevel] = useState(null);
+  const [bottomNavHeight, setBottomNavHeight] = useState(0);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -59,6 +109,13 @@ export default function ZombiesCharacterSheet() {
     const nav = document.querySelector('.navbar.fixed-top');
     if (nav) {
       setNavHeight(nav.offsetHeight);
+    }
+  }, []);
+
+  useEffect(() => {
+    const nav = document.querySelector('.navbar.fixed-bottom');
+    if (nav) {
+      setBottomNavHeight(nav.offsetHeight);
     }
   }, []);
 
@@ -298,6 +355,32 @@ export default function ZombiesCharacterSheet() {
     calculateSpellPoints();
   }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
 
+  const spellSlots = useMemo(() => {
+    if (!form) return [];
+    const totalCasterLevel = (form.occupation || []).reduce((sum, cls) => {
+      const name = (cls.Name || cls.Occupation || '').toLowerCase();
+      if (name === 'warlock') return sum;
+      const progression = SPELLCASTING_CLASSES[name];
+      const level = Number(cls.Level) || 0;
+      if (progression === 'full') return sum + level;
+      if (progression === 'half') return sum + Math.ceil(level / 2);
+      return sum;
+    }, 0);
+    const row = SLOT_TABLE[totalCasterLevel] || [];
+    return row
+      .map((total, lvl) => ({ level: lvl, total, remaining: total }))
+      .filter((s) => s.level > 0 && s.total > 0);
+  }, [form]);
+
+  const pactSlots = useMemo(() => {
+    const warlock = (form?.occupation || []).find(
+      (cls) => (cls.Name || cls.Occupation || '').toLowerCase() === 'warlock'
+    );
+    if (!warlock) return null;
+    const entry = PACT_SLOT_TABLE[Number(warlock.Level) || 0];
+    return entry ? { ...entry, remaining: entry.total } : null;
+  }, [form]);
+
   if (!form) {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
   }
@@ -421,6 +504,24 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
+    {(spellSlots.length > 0 || pactSlots) && (
+      <div
+        style={{
+          position: 'fixed',
+          bottom: bottomNavHeight + 8,
+          left: 0,
+          right: 0,
+          zIndex: 1030,
+        }}
+      >
+        <SpellSlotTabs
+          spellSlots={spellSlots}
+          pactSlots={pactSlots}
+          selectedLevel={selectedSlotLevel}
+          onLevelFilter={setSelectedSlotLevel}
+        />
+      </div>
+    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
