@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Tab } from 'react-bootstrap';
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 
 const SPELLCASTING_CLASSES = {
@@ -15,8 +14,7 @@ const SPELLCASTING_CLASSES = {
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
 export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCount = 0 }) {
-  const [usedRegular, setUsedRegular] = useState({});
-  const [usedWarlock, setUsedWarlock] = useState({});
+  const [used, setUsed] = useState({});
 
   const occupations = form.occupation || [];
   let casterLevel = 0;
@@ -39,82 +37,59 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
 
   const slotData = fullCasterSlots[casterLevel] || {};
   const warlockData = pactMagic[warlockLevel] || {};
+  const combined = { ...slotData };
+  Object.entries(warlockData).forEach(([lvl, cnt]) => {
+    combined[lvl] = (combined[lvl] || 0) + cnt;
+  });
 
   useEffect(() => {
-    setUsedRegular({});
-    setUsedWarlock({});
+    setUsed({});
   }, [longRestCount]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    setUsedWarlock({});
+    setUsed((prev) => {
+      const updated = { ...prev };
+      Object.keys(warlockData).forEach((lvl) => {
+        delete updated[lvl];
+      });
+      return updated;
+    });
   }, [shortRestCount]);
 
-  const toggleRegular = (lvl, idx) => {
-    setUsedRegular((prev) => {
+  const toggleSlot = (lvl, idx) => {
+    setUsed((prev) => {
       const levelState = { ...(prev[lvl] || {}) };
       levelState[idx] = !levelState[idx];
       return { ...prev, [lvl]: levelState };
     });
   };
 
-  const toggleWarlock = (lvl, idx) => {
-    setUsedWarlock((prev) => {
-      const levelState = { ...(prev[lvl] || {}) };
-      levelState[idx] = !levelState[idx];
-      return { ...prev, [lvl]: levelState };
-    });
-  };
-  const regularLevels = Object.keys(slotData)
-    .map(Number)
-    .sort((a, b) => a - b);
-  const warlockLevels = Object.keys(warlockData)
-    .map(Number)
-    .sort((a, b) => a - b);
-  if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
+  const levels = Object.keys(combined).map(Number).sort((a, b) => a - b);
+  if (levels.length === 0) return null;
 
-  const renderSlots = (data, usedState, toggle) => {
-    return Object.keys(data)
-      .map(Number)
-      .sort((a, b) => a - b)
-      .map((lvl) => {
-        const count = data[lvl];
+  return (
+    <div className="spell-slot-container">
+      {levels.map((lvl) => {
+        const count = combined[lvl];
         return (
           <div key={lvl} className="spell-slot">
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
               {Array.from({ length: count }).map((_, i) => {
-                const isUsed = usedState[lvl]?.[i];
+                const isUsed = used[lvl]?.[i];
                 return (
                   <div
                     key={i}
                     className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
-                    onClick={() => toggle(lvl, i)}
+                    onClick={() => toggleSlot(lvl, i)}
                   />
                 );
               })}
             </div>
           </div>
         );
-      });
-  };
-
-  const defaultKey = regularLevels.length ? 'spells' : 'pact';
-
-  return (
-    <div className="spell-slot-container">
-      <Tabs defaultActiveKey={defaultKey} id="spell-slot-tabs">
-        {regularLevels.length > 0 && (
-          <Tab eventKey="spells" title="Spell Slots">
-            {renderSlots(slotData, usedRegular, toggleRegular)}
-          </Tab>
-        )}
-        {warlockLevels.length > 0 && (
-          <Tab eventKey="pact" title="Pact Magic">
-            {renderSlots(warlockData, usedWarlock, toggleWarlock)}
-          </Tab>
-        )}
-      </Tabs>
+      })}
     </div>
   );
 }
