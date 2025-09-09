@@ -10,7 +10,9 @@ import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import WeaponList from "../../Weapons/WeaponList";
-import PlayerTurnActions from "../attributes/PlayerTurnActions";
+import PlayerTurnActions, {
+  calculateDamage,
+} from "../attributes/PlayerTurnActions";
 import ArmorList from "../../Armor/ArmorList";
 import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
@@ -168,56 +170,69 @@ export default function ZombiesCharacterSheet() {
     setShortRestCount((c) => c + 1);
   };
 
-  const handleCastSpell = useCallback((typeOrLevel, lvl, idx) => {
-    if (typeof lvl === 'undefined') {
-      const level = typeOrLevel;
-      const occupations = form?.occupation || [];
-      let casterLevel = 0;
-      let warlockLevel = 0;
-      occupations.forEach((occ) => {
-        const name = (occ.Name || occ.Occupation || '').toLowerCase();
-        const levelNum = Number(occ.Level) || 0;
-        if (name === 'warlock') {
-          warlockLevel += levelNum;
-          return;
-        }
-        const progression = SPELLCASTING_CLASSES[name];
-        if (progression === 'full') {
-          casterLevel += levelNum;
-        } else if (progression === 'half') {
-          casterLevel += levelNum === 1 ? 0 : Math.ceil(levelNum / 2);
-        }
-      });
-      const slotData = fullCasterSlots[casterLevel] || {};
-      const warlockData = pactMagic[warlockLevel] || {};
-      const tryConsume = (type, data) => {
-        const count = data[level];
-        if (!count) return false;
-        const key = `${type}-${level}`;
-        setUsedSlots((prev) => {
-          const levelState = { ...(prev[key] || {}) };
-          for (let i = 0; i < count; i += 1) {
-            if (!levelState[i]) {
-              levelState[i] = true;
-              return { ...prev, [key]: levelState };
-            }
+  const handleCastSpell = useCallback(
+    (arg, lvl, idx) => {
+      const consumeSlot = (level) => {
+        const occupations = form?.occupation || [];
+        let casterLevel = 0;
+        let warlockLevel = 0;
+        occupations.forEach((occ) => {
+          const name = (occ.Name || occ.Occupation || '').toLowerCase();
+          const levelNum = Number(occ.Level) || 0;
+          if (name === 'warlock') {
+            warlockLevel += levelNum;
+            return;
           }
-          return prev;
+          const progression = SPELLCASTING_CLASSES[name];
+          if (progression === 'full') {
+            casterLevel += levelNum;
+          } else if (progression === 'half') {
+            casterLevel += levelNum === 1 ? 0 : Math.ceil(levelNum / 2);
+          }
         });
-        return true;
+        const slotData = fullCasterSlots[casterLevel] || {};
+        const warlockData = pactMagic[warlockLevel] || {};
+        const tryConsume = (type, data) => {
+          const count = data[level];
+          if (!count) return false;
+          const key = `${type}-${level}`;
+          setUsedSlots((prev) => {
+            const levelState = { ...(prev[key] || {}) };
+            for (let i = 0; i < count; i += 1) {
+              if (!levelState[i]) {
+                levelState[i] = true;
+                return { ...prev, [key]: levelState };
+              }
+            }
+            return prev;
+          });
+          return true;
+        };
+        if (tryConsume('regular', slotData)) return;
+        tryConsume('warlock', warlockData);
       };
-      if (tryConsume('regular', slotData)) return;
-      tryConsume('warlock', warlockData);
-      return;
-    }
-    const type = typeOrLevel;
-    const key = `${type}-${lvl}`;
-    setUsedSlots((prev) => {
-      const levelState = { ...(prev[key] || {}) };
-      levelState[idx] = !levelState[idx];
-      return { ...prev, [key]: levelState };
-    });
-  }, [form]);
+
+      if (typeof arg === 'object') {
+        const { level, damage } = arg;
+        consumeSlot(level);
+        const result = damage ? calculateDamage(damage) : 'Spell Cast';
+        playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        return;
+      }
+      if (typeof lvl === 'undefined') {
+        consumeSlot(arg);
+        return;
+      }
+      const type = arg;
+      const key = `${type}-${lvl}`;
+      setUsedSlots((prev) => {
+        const levelState = { ...(prev[key] || {}) };
+        levelState[idx] = !levelState[idx];
+        return { ...prev, [key]: levelState };
+      });
+    },
+    [form]
+  );
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
