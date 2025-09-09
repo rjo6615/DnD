@@ -6,6 +6,7 @@ import React, {
   useMemo,
 } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
+import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -59,7 +60,15 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
 
 const PlayerTurnActions = React.forwardRef(
   (
-    { form, strMod, atkBonus, dexMod, headerHeight = 0, onCastSpell },
+    {
+      form,
+      strMod,
+      atkBonus,
+      dexMod,
+      headerHeight = 0,
+      onCastSpell,
+      availableSlots = {},
+    },
     ref
   ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
@@ -101,13 +110,36 @@ const [isFumble, setIsFumble] = useState(false);
     updateDamageValueWithAnimation(damageValue);
   };
 
-const handleSpellsButtonClick = (spell, crit = false) => {
-  if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
-  if (damageValue === null) return;
-  updateDamageValueWithAnimation(damageValue);
-  onCastSpell?.(spell.level);
-};
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
+
+  const applyUpcast = (spell, level, crit) => {
+    let dmg = spell.damage;
+    const diff = level - (spell.level || 0);
+    if (diff > 0 && spell.higherLevels) {
+      const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
+      const baseMatch = (spell.damage || '').match(/(\d+)d(\d+)([+-]\d+)?/);
+      if (incMatch && baseMatch && incMatch[2] === baseMatch[2]) {
+        const extra = diff * parseInt(incMatch[1], 10);
+        const total = parseInt(baseMatch[1], 10) + extra;
+        dmg = `${total}d${baseMatch[2]}${baseMatch[3] || ''}`;
+      }
+    }
+    const value = calculateDamage(dmg, 0, crit || isCritical);
+    if (value === null) return;
+    updateDamageValueWithAnimation(value);
+    onCastSpell?.(level);
+  };
+
+  const handleSpellsButtonClick = (spell, crit = false) => {
+    if (!spell?.damage) return;
+    if (spell.higherLevels) {
+      setPendingSpell({ spell, crit: crit || isCritical });
+      setShowUpcast(true);
+      return;
+    }
+    applyUpcast(spell, spell.level, crit || isCritical);
+  };
 
 const handleDamageClick = () => {
   setIsCritical((prev) => !prev);
@@ -418,6 +450,19 @@ const showSparklesEffect = () => {
             </Card.Footer>
         </Card>
       </Modal>
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => setShowUpcast(false)}
+        baseLevel={pendingSpell?.spell?.level}
+        slots={availableSlots}
+        onSelect={(lvl) => {
+          if (pendingSpell) {
+            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit);
+            setPendingSpell(null);
+          }
+          setShowUpcast(false);
+        }}
+      />
     </div>
   );
 });
