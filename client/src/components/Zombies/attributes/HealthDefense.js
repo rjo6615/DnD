@@ -75,7 +75,7 @@ export default function HealthDefense({
     Number(conMod * totalLevel) +
     Number(hpMaxBonus) +
     Number(hpMaxBonusPerLevel * totalLevel);
-  const [health, setHealth] = useState(); // Initial health value
+  const [health, setHealth] = useState(Number(form.tempHealth) || 0); // Initial health value
   const [error, setError] = useState(null); // Error message state
 
   // Sends tempHealth data to database for update
@@ -126,9 +126,11 @@ export default function HealthDefense({
 
   const handleBarChange = (e) => {
     const newHealth = Number(e.target.value);
-    const offset = newHealth - health;
+    const offset = newHealth - (health ?? 0);
     setHealth(newHealth);
-    tempHealthUpdate(offset);
+    if (!Number.isNaN(offset)) {
+      tempHealthUpdate(offset);
+    }
   };
 
 return (
