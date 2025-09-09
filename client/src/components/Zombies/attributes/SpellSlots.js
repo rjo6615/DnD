@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 
 const SPELLCASTING_CLASSES = {
@@ -13,7 +13,7 @@ const SPELLCASTING_CLASSES = {
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
-export default function SpellSlots({ form = {} }) {
+export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCount = 0 }) {
   const [used, setUsed] = useState({});
 
   const occupations = form.occupation || [];
@@ -42,6 +42,21 @@ export default function SpellSlots({ form = {} }) {
     combined[lvl] = (combined[lvl] || 0) + cnt;
   });
 
+  useEffect(() => {
+    setUsed({});
+  }, [longRestCount]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setUsed((prev) => {
+      const updated = { ...prev };
+      Object.keys(warlockData).forEach((lvl) => {
+        delete updated[lvl];
+      });
+      return updated;
+    });
+  }, [shortRestCount]);
+
   const toggleSlot = (lvl, idx) => {
     setUsed((prev) => {
       const levelState = { ...(prev[lvl] || {}) };
@@ -61,14 +76,13 @@ export default function SpellSlots({ form = {} }) {
           <div key={lvl} className="spell-slot">
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
-              {Array.from({ length: 4 }).map((_, i) => {
-                const isActive = i < count;
+              {Array.from({ length: count }).map((_, i) => {
                 const isUsed = used[lvl]?.[i];
                 return (
                   <div
                     key={i}
-                    className={`slot-small ${isActive ? (isUsed ? 'slot-used' : 'slot-active') : 'slot-inactive'}`}
-                    onClick={isActive ? () => toggleSlot(lvl, i) : undefined}
+                    className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
+                    onClick={() => toggleSlot(lvl, i)}
                   />
                 );
               })}

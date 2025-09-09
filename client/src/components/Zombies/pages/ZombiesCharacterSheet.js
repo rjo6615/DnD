@@ -49,6 +49,8 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
+  const [longRestCount, setLongRestCount] = useState(0);
+  const [shortRestCount, setShortRestCount] = useState(0);
 
   const playerTurnActionsRef = useRef(null);
 
@@ -140,6 +142,14 @@ export default function ZombiesCharacterSheet() {
 
   const handleRollResult = (result) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+  };
+
+  const handleLongRest = () => {
+    setLongRestCount((c) => c + 1);
+  };
+
+  const handleShortRest = () => {
+    setShortRestCount((c) => c + 1);
   };
 
   const handleWeaponsChange = useCallback(
@@ -422,7 +432,13 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
     />
-    {hasSpellcasting && form && <SpellSlots form={form} />}
+    {hasSpellcasting && form && (
+      <SpellSlots
+        form={form}
+        longRestCount={longRestCount}
+        shortRestCount={shortRestCount}
+      />
+    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
@@ -537,6 +553,8 @@ return (
       show={showCharacterInfo}
       handleClose={handleCloseCharacterInfo}
       onShowBackground={handleShowBackground}
+      onLongRest={handleLongRest}
+      onShortRest={handleShortRest}
     />
     <Skills
       form={form}
