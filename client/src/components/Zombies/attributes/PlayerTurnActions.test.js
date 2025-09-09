@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act, fireEvent } from '@testing-library/react';
+import { render, act, fireEvent, screen } from '@testing-library/react';
 import PlayerTurnActions, { calculateDamage } from './PlayerTurnActions';
 
 describe('calculateDamage parser', () => {
@@ -121,5 +121,39 @@ describe('PlayerTurnActions critical events', () => {
     });
 
     expect(damage.classList.contains('critical-active')).toBe(false);
+  });
+});
+
+describe('PlayerTurnActions spell casting', () => {
+  test('invokes onCastSpell when a spell is rolled', async () => {
+    const onCastSpell = jest.fn();
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+        onCastSpell={onCastSpell}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+
+    expect(onCastSpell).toHaveBeenCalledWith(spell.level);
   });
 });

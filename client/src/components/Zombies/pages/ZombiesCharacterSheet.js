@@ -513,6 +513,7 @@ return (
       strMod={statMods.str}
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
+      onCastSpell={handleCastSpell}
     />
     {hasSpellcasting && form && (
       <SpellSlots
