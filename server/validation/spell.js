@@ -22,7 +22,14 @@ function isSpell(spell) {
     typeof spell.description === 'string' &&
     Array.isArray(spell.classes) &&
     spell.classes.every(c => typeof c === 'string') &&
-    (spell.higherLevels === undefined || typeof spell.higherLevels === 'string')
+    (spell.higherLevels === undefined || typeof spell.higherLevels === 'string') &&
+    (spell.scaling === undefined ||
+      (
+        typeof spell.scaling === 'object' &&
+        [5, 11, 17].every(l =>
+          spell.scaling[l] === undefined || typeof spell.scaling[l] === 'string'
+        )
+      ))
   );
 }
 
