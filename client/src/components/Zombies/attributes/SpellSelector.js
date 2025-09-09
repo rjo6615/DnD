@@ -73,6 +73,7 @@ export default function SpellSelector({
   show,
   handleClose,
   onSpellsChange,
+  onCastSpell,
 }) {
   const params = useParams();
 
@@ -373,6 +374,7 @@ export default function SpellSelector({
                           <th>Range</th>
                           <th>Duration</th>
                           <th></th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -401,6 +403,14 @@ export default function SpellSelector({
                                 onClick={() => setViewSpell(spell)}
                               >
                                 <i className="fa-solid fa-eye"></i>
+                              </Button>
+                            </td>
+                            <td>
+                              <Button
+                                variant="link"
+                                onClick={() => onCastSpell && onCastSpell(spell.level)}
+                              >
+                                <i className="fa-solid fa-wand-sparkles"></i>
                               </Button>
                             </td>
                           </tr>
@@ -467,6 +477,7 @@ export default function SpellSelector({
                           <th>Range</th>
                           <th>Duration</th>
                           <th></th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -495,6 +506,14 @@ export default function SpellSelector({
                                 onClick={() => setViewSpell(spell)}
                               >
                                 <i className="fa-solid fa-eye"></i>
+                              </Button>
+                            </td>
+                            <td>
+                              <Button
+                                variant="link"
+                                onClick={() => onCastSpell && onCastSpell(spell.level)}
+                              >
+                                <i className="fa-solid fa-wand-sparkles"></i>
                               </Button>
                             </td>
                           </tr>
