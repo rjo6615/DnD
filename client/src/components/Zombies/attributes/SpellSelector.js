@@ -159,18 +159,23 @@ export default function SpellSelector({
 
   const handleUpcastSelect = (level) => {
     if (!pendingSpell) return;
-    let dmg = pendingSpell.damage;
     const diff = level - (pendingSpell.level || 0);
+    let extra;
     if (diff > 0 && pendingSpell.higherLevels) {
       const incMatch = pendingSpell.higherLevels.match(/(\d+)d(\d+)/);
-      const baseMatch = (pendingSpell.damage || '').match(/(\d+)d(\d+)([+-]\d+)?/);
-      if (incMatch && baseMatch && incMatch[2] === baseMatch[2]) {
-        const extra = diff * parseInt(incMatch[1], 10);
-        const total = parseInt(baseMatch[1], 10) + extra;
-        dmg = `${total}d${baseMatch[2]}${baseMatch[3] || ''}`;
+      if (incMatch) {
+        extra = {
+          count: parseInt(incMatch[1], 10),
+          sides: parseInt(incMatch[2], 10),
+        };
       }
     }
-    onCastSpell?.({ level, damage: dmg });
+    onCastSpell?.({
+      level,
+      damage: pendingSpell.damage,
+      extraDice: extra,
+      levelsAbove: diff > 0 ? diff : 0,
+    });
     setShowUpcast(false);
     setPendingSpell(null);
     handleClose();

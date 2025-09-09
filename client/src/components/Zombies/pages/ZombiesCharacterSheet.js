@@ -213,9 +213,23 @@ export default function ZombiesCharacterSheet() {
       };
 
       if (typeof arg === 'object') {
-        const { level, damage } = arg;
+        const { level, damage, extraDice, levelsAbove } = arg;
         consumeSlot(level);
-        const result = damage ? calculateDamage(damage) : 'Spell Cast';
+        let result;
+        if (typeof damage === 'number') {
+          result = damage;
+        } else {
+          result = damage
+            ? calculateDamage(
+                damage,
+                0,
+                false,
+                undefined,
+                extraDice,
+                levelsAbove
+              )
+            : 'Spell Cast';
+        }
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
         return;
       }
