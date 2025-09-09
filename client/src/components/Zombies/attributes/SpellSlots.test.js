@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import SpellSlots from './SpellSlots';
 import { fullCasterSlots } from '../../../utils/spellSlots';
 
@@ -32,14 +32,14 @@ test('short rest clears only warlock slots', () => {
       { Name: 'Wizard', Level: 3 },
     ],
   };
-  const { container, rerender } = render(<SpellSlots form={form} />);
-  const warlockSlot = container.querySelector('.warlock-slot .slot-small');
-  const wizardSlot = container.querySelector('.regular-slot .slot-small');
+  const { rerender } = render(<SpellSlots form={form} />);
+  const warlockSlot = screen.getByText('III').parentElement.querySelector('.slot-small');
+  const wizardSlot = screen.getByText('I').parentElement.querySelector('.slot-small');
   fireEvent.click(warlockSlot);
   fireEvent.click(wizardSlot);
   expect(warlockSlot).toHaveClass('slot-used');
   expect(wizardSlot).toHaveClass('slot-used');
   rerender(<SpellSlots form={form} shortRestCount={1} />);
-  expect(container.querySelector('.warlock-slot .slot-small')).not.toHaveClass('slot-used');
-  expect(container.querySelector('.regular-slot .slot-small')).toHaveClass('slot-used');
+  expect(screen.getByText('III').parentElement.querySelector('.slot-small')).not.toHaveClass('slot-used');
+  expect(screen.getByText('I').parentElement.querySelector('.slot-small')).toHaveClass('slot-used');
 });
