@@ -11,6 +11,20 @@ function extractHigherLevels(description = '') {
 const manualHigherLevels = {
   'burning-hands': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
   'cure-wounds': 'When you cast this spell using a spell slot of 2nd level or higher, the healing increases by 1d8 for each slot level above 1st.',
+  'guiding-bolt': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
+  'hellish-rebuke': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st.',
+  'inflict-wounds': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st.',
+  'magic-missile': 'When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.',
+  'acid-arrow': 'When you cast this spell using a spell slot of 3rd level or higher, the initial damage increases by 1d4 for each slot level above 2nd, and the damage at the end of the target\'s next turn increases by 1d4 for each slot level above 2nd.',
+  'scorching-ray': 'When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd.',
+  'shatter': 'When you cast this spell using a spell slot of 3rd level or higher, the damage increases by 1d8 for each slot level above 2nd.',
+  'fireball': 'When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.',
+  'lightning-bolt': 'When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.',
+  'vampiric-touch': 'When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.',
+  'ice-storm': 'When you cast this spell using a spell slot of 5th level or higher, the bludgeoning damage increases by 1d8 for each slot level above 4th.',
+  'stone-shape': 'When you cast this spell using a spell slot of 5th level or higher, you can target one additional 5-foot cube for each slot level above 4th.',
+  'flame-strike': 'When you cast this spell using a spell slot of 6th level or higher, the fire damage increases by 1d6 for each slot level above 5th.',
+  'disintegrate': 'When you cast this spell using a spell slot of 7th level or higher, the damage increases by 3d6 for each slot level above 6th.',
 };
 
 Object.values(spells).forEach(spell => {
