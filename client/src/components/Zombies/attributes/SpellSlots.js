@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 
 const SPELLCASTING_CLASSES = {
@@ -13,7 +13,7 @@ const SPELLCASTING_CLASSES = {
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
-export default function SpellSlots({ form = {} }) {
+export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCount = 0 }) {
   const [used, setUsed] = useState({});
 
   const occupations = form.occupation || [];
@@ -41,6 +41,21 @@ export default function SpellSlots({ form = {} }) {
   Object.entries(warlockData).forEach(([lvl, cnt]) => {
     combined[lvl] = (combined[lvl] || 0) + cnt;
   });
+
+  useEffect(() => {
+    setUsed({});
+  }, [longRestCount]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setUsed((prev) => {
+      const updated = { ...prev };
+      Object.keys(warlockData).forEach((lvl) => {
+        delete updated[lvl];
+      });
+      return updated;
+    });
+  }, [shortRestCount]);
 
   const toggleSlot = (lvl, idx) => {
     setUsed((prev) => {
