@@ -88,3 +88,44 @@ test('allows health adjustment by dragging the bar', () => {
   fireEvent.change(slider, { target: { value: '7' } });
   expect(screen.getByText('7/10')).toBeInTheDocument();
 });
+
+test('places range input above fill bar and label', () => {
+  render(
+    <HealthDefense
+      form={baseForm}
+      conMod={0}
+      dexMod={0}
+      ac={0}
+      hpMaxBonus={0}
+      hpMaxBonusPerLevel={0}
+      initiative={0}
+      speed={0}
+    />
+  );
+  const slider = screen.getByRole('slider');
+  const fill = slider.nextSibling;
+  const label = fill.nextSibling;
+  expect(slider).toHaveStyle('z-index: 1');
+  expect(fill).toHaveStyle('pointer-events: none');
+  expect(label).toHaveStyle('pointer-events: none');
+});
+
+test('updates health when slider is dragged', () => {
+  render(
+    <HealthDefense
+      form={baseForm}
+      conMod={0}
+      dexMod={0}
+      ac={0}
+      hpMaxBonus={0}
+      hpMaxBonusPerLevel={0}
+      initiative={0}
+      speed={0}
+    />
+  );
+  const slider = screen.getByRole('slider');
+  fireEvent.mouseDown(slider);
+  fireEvent.change(slider, { target: { value: '8' } });
+  fireEvent.mouseUp(slider);
+  expect(screen.getByText('8/10')).toBeInTheDocument();
+});
