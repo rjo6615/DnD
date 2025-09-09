@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
@@ -51,7 +57,11 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   return damageSum + modifier + ability;
 }
 
-const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
+const PlayerTurnActions = React.forwardRef(
+  (
+    { form, strMod, atkBonus, dexMod, headerHeight = 0, onCastSpell },
+    ref
+  ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
@@ -96,12 +106,32 @@ const handleSpellsButtonClick = (spell, crit = false) => {
   const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
+  onCastSpell?.(spell.level);
 };
 
 const handleDamageClick = () => {
   setIsCritical((prev) => !prev);
   setIsFumble(false);
 };
+
+// Spells may come from different caster types (e.g., Wizard, Cleric). Before
+// rendering the spell table, group spells by caster type and sort each group by
+// level so they display in a predictable order.
+const sortedSpells = useMemo(() => {
+  if (!Array.isArray(form.spells)) return [];
+  const groups = (form.spells || []).reduce((acc, spell) => {
+    if (!spell) return acc;
+    const caster = spell.casterType || spell.caster || 'Unknown';
+    if (!acc[caster]) acc[caster] = [];
+    acc[caster].push(spell);
+    return acc;
+  }, {});
+  return Object.keys(groups)
+    .sort()
+    .flatMap((caster) =>
+      groups[caster].sort((a, b) => (a.level || 0) - (b.level || 0))
+    );
+}, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const opacity = 0.85;
@@ -237,7 +267,10 @@ const showSparklesEffect = () => {
         style={{ margin: "0 auto" }}
         onClick={handleDamageClick}
       >
-        <span id="damageValue" className={loading ? 'hidden' : ''}>
+        <span
+          id="damageValue"
+          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+        >
           {damageValue}
         </span>
         <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
@@ -349,7 +382,7 @@ const showSparklesEffect = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {form.spells
+                    {sortedSpells
                       .filter((s) => s && s.damage)
                       .map((spell, idx) => (
                         <tr key={idx}>
