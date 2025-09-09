@@ -1,8 +1,7 @@
 /**
  * D&D 5e SRD Spells (generated)
  * Source: SRD 5.1 (CC-BY 4.0 — © Wizards of the Coast)
- * Bulk data: 5e-database (if available) or dnd5eapi.co (fallback)
- * Generated: 2025-09-04T00:40:56.393Z
+ * Generated: 2025-09-09T21:58:37.499Z
  */
 /** @typedef {import('../../types/spell').Spell} Spell */
 /** @type {Record<string, Spell>} */
@@ -619,7 +618,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st."
   },
   "chain-lightning": {
     "name": "Chain Lightning",
@@ -1242,7 +1242,8 @@ const spells = {
       "Druid",
       "Paladin",
       "Ranger"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the healing increases by 1d8 for each slot level above 1st."
   },
   "darkness": {
     "name": "Darkness",

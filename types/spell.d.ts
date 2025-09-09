@@ -8,4 +8,8 @@ export interface Spell {
   duration: string;
   description: string;
   classes: string[];
+  /**
+   * Additional effects when the spell is cast using a higher-level slot.
+   */
+  higherLevels?: string;
 }
