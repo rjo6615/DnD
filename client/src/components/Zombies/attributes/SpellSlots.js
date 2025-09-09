@@ -62,9 +62,9 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
     });
   };
 
-  const regularLevels = Object.keys(slotData).map(Number).sort((a, b) => a - b);
-  const warlockLevels = Object.keys(warlockData).map(Number).sort((a, b) => a - b);
-  if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
+  const hasRegularSlots = Object.keys(slotData).length > 0;
+  const hasWarlockSlots = Object.keys(warlockData).length > 0;
+  if (!hasRegularSlots && !hasWarlockSlots) return null;
 
   const renderGroup = (data, type) =>
     Object.keys(data)
@@ -93,8 +93,10 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
 
   return (
     <div style={{ display: 'flex' }}>
-      <div className="spell-slot-container">{renderGroup(slotData, 'regular')}</div>
-      {warlockLevels.length > 0 && (
+      {hasRegularSlots && (
+        <div className="spell-slot-container">{renderGroup(slotData, 'regular')}</div>
+      )}
+      {hasWarlockSlots && (
         <div className="spell-slot-container warlock-slot">
           {renderGroup(warlockData, 'warlock')}
         </div>
