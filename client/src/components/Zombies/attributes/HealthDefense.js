@@ -75,7 +75,7 @@ export default function HealthDefense({
     Number(conMod * totalLevel) +
     Number(hpMaxBonus) +
     Number(hpMaxBonusPerLevel * totalLevel);
-  const [health, setHealth] = useState(); // Initial health value
+  const [health, setHealth] = useState(Number(form.tempHealth) || 0); // Initial health value
   const [error, setError] = useState(null); // Error message state
 
   // Sends tempHealth data to database for update
@@ -121,6 +121,15 @@ export default function HealthDefense({
     setHealth((prevHealth) => prevHealth - 1);
     offset = -1;
     tempHealthUpdate(offset);
+    }
+  };
+
+  const handleBarChange = (e) => {
+    const newHealth = Number(e.target.value);
+    const offset = newHealth - (health ?? 0);
+    setHealth(newHealth);
+    if (!Number.isNaN(offset)) {
+      tempHealthUpdate(offset);
     }
   };
 
@@ -182,12 +191,30 @@ return (
         flexShrink: 0
       }}
     >
+      <input
+        type="range"
+        min="-10"
+        max={maxHealth}
+        value={health ?? 0}
+        onChange={handleBarChange}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0,
+          cursor: "pointer",
+          zIndex: 1,
+        }}
+      />
       <div
         style={{
           width: `${(health / maxHealth) * 100}%`,
           height: "100%",
           background: health > maxHealth * 0.5 ? "#2ecc71" : "#c0392b",
           transition: "width 0.3s ease-in-out",
+          pointerEvents: "none",
         }}
       />
       <span
@@ -201,6 +228,7 @@ return (
           fontWeight: 600,
           color: "#222",
           lineHeight: "24px",
+          pointerEvents: "none",
         }}
       >
         {health}/{maxHealth}

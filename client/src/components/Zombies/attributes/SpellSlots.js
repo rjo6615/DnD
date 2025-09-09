@@ -37,10 +37,6 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
 
   const slotData = fullCasterSlots[casterLevel] || {};
   const warlockData = pactMagic[warlockLevel] || {};
-  const combined = { ...slotData };
-  Object.entries(warlockData).forEach(([lvl, cnt]) => {
-    combined[lvl] = (combined[lvl] || 0) + cnt;
-  });
 
   useEffect(() => {
     setUsed({});
@@ -51,45 +47,59 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
     setUsed((prev) => {
       const updated = { ...prev };
       Object.keys(warlockData).forEach((lvl) => {
-        delete updated[lvl];
+        delete updated[`warlock-${lvl}`];
       });
       return updated;
     });
   }, [shortRestCount]);
 
-  const toggleSlot = (lvl, idx) => {
+  const toggleSlot = (type, lvl, idx) => {
+    const key = `${type}-${lvl}`;
     setUsed((prev) => {
-      const levelState = { ...(prev[lvl] || {}) };
+      const levelState = { ...(prev[key] || {}) };
       levelState[idx] = !levelState[idx];
-      return { ...prev, [lvl]: levelState };
+      return { ...prev, [key]: levelState };
     });
   };
 
-  const levels = Object.keys(combined).map(Number).sort((a, b) => a - b);
-  if (levels.length === 0) return null;
+  const regularLevels = Object.keys(slotData).map(Number).sort((a, b) => a - b);
+  const warlockLevels = Object.keys(warlockData).map(Number).sort((a, b) => a - b);
+  if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
 
-  return (
-    <div className="spell-slot-container">
-      {levels.map((lvl) => {
-        const count = combined[lvl];
+  const renderGroup = (data, type) =>
+    Object.keys(data)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((lvl) => {
+        const count = data[lvl];
         return (
-          <div key={lvl} className="spell-slot">
+          <div
+            key={`${type}-${lvl}`}
+            className={`spell-slot ${type === 'warlock' ? 'warlock-slot' : ''}`}
+          >
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
               {Array.from({ length: count }).map((_, i) => {
-                const isUsed = used[lvl]?.[i];
+                const isUsed = used[`${type}-${lvl}`]?.[i];
                 return (
                   <div
                     key={i}
                     className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
-                    onClick={() => toggleSlot(lvl, i)}
+                    onClick={() => toggleSlot(type, lvl, i)}
                   />
                 );
               })}
             </div>
           </div>
         );
-      })}
+      });
+
+  return (
+    <div style={{ display: 'flex' }}>
+      <div className="spell-slot-container">
+        {renderGroup(slotData, 'regular')}
+        {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
+      </div>
     </div>
   );
 }

@@ -89,6 +89,11 @@
   box-shadow: 0 0 5px #007bff, 0 0 10px #007bff;
 }
 
+.warlock-slot .slot-active {
+  background: #800080;
+  box-shadow: 0 0 5px #800080, 0 0 10px #800080;
+}
+
 .spell-slot .slot-used {
   background: transparent;
 }
