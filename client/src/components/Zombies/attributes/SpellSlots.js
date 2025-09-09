@@ -92,12 +92,10 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
       });
 
   return (
-    <div style={{ display: 'flex' }}>
-      <div className="spell-slot-container">{renderGroup(slotData, 'regular')}</div>
+    <div className="spell-slot-container">
+      <div>{renderGroup(slotData, 'regular')}</div>
       {warlockLevels.length > 0 && (
-        <div className="spell-slot-container warlock-slot">
-          {renderGroup(warlockData, 'warlock')}
-        </div>
+        <div className="warlock-slot">{renderGroup(warlockData, 'warlock')}</div>
       )}
     </div>
   );
