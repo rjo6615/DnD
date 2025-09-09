@@ -10,6 +10,7 @@ import { Modal, Button, Form } from 'react-bootstrap';
  * @param {number} props.baseLevel - Minimum level of the spell.
  * @param {Object} props.slots - Mapping of slot level => remaining slot count.
  * @param {function} props.onSelect - Callback invoked with the chosen level.
+ * @param {string} [props.higherLevels] - Description of benefits when upcasting.
  */
 export default function UpcastModal({
   show,
@@ -17,6 +18,7 @@ export default function UpcastModal({
   baseLevel = 1,
   slots = {},
   onSelect,
+  higherLevels,
 }) {
   const availableLevels = Object.keys(slots)
     .map(Number)
@@ -40,6 +42,9 @@ export default function UpcastModal({
         <Modal.Title>Cast at Level</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        {higherLevels && (
+          <p className="text-muted mb-2">{higherLevels}</p>
+        )}
         {availableLevels.length > 0 ? (
           <Form.Select
             aria-label="Slot Level"

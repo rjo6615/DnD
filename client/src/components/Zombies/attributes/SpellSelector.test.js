@@ -45,6 +45,20 @@ const spellsData = {
     description: '',
     classes: ['Druid'],
   },
+  'burning-hands': {
+    name: 'Burning Hands',
+    level: 1,
+    school: 'Evocation',
+    castingTime: '1 action',
+    range: 'Self',
+    components: [],
+    duration: 'Instantaneous',
+    description: '',
+    damage: '3d6',
+    higherLevels:
+      'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
+    classes: ['Sorcerer'],
+  },
 };
 
 beforeEach(() => {
@@ -211,6 +225,66 @@ test('uses Occupation when Name is missing', async () => {
       13
     )
   );
+});
+
+test('modal appears for spells with higherLevels', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Sorcerer', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      availableSlots={{ 1: 1, 2: 1 }}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
+  const row = await screen.findByText('Burning Hands');
+  const rowEl = row.closest('tr');
+  await userEvent.click(within(rowEl).getByRole('checkbox'));
+  const castBtn = within(rowEl).getAllByRole('button')[1];
+  await userEvent.click(castBtn);
+  expect(await screen.findByText('Cast at Level')).toBeInTheDocument();
+});
+
+test('upcasting consumes higher slot and reports extra damage', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  const onCast = jest.fn();
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Sorcerer', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      onCastSpell={onCast}
+      availableSlots={{ 1: 1, 2: 1, 3: 1 }}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
+  const row = await screen.findByText('Burning Hands');
+  const rowEl = row.closest('tr');
+  await userEvent.click(within(rowEl).getByRole('checkbox'));
+  const castBtn = within(rowEl).getAllByRole('button')[1];
+  await userEvent.click(castBtn);
+  const select = await screen.findByLabelText('Slot Level');
+  await userEvent.selectOptions(select, '3');
+  await userEvent.click(screen.getByRole('button', { name: 'Cast' }));
+  expect(onCast).toHaveBeenCalledWith({
+    level: 3,
+    damage: '3d6',
+    extraDice: { count: 1, sides: 6 },
+    levelsAbove: 2,
+  });
 });
 
 test('renders tabs for multiple classes', async () => {

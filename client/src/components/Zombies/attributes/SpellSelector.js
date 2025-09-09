@@ -657,6 +657,7 @@ export default function SpellSelector({
         }}
         baseLevel={pendingSpell?.level}
         slots={availableSlots}
+        higherLevels={pendingSpell?.higherLevels}
         onSelect={handleUpcastSelect}
       />
     </>
