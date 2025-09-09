@@ -124,6 +124,13 @@ export default function HealthDefense({
     }
   };
 
+  const handleBarChange = (e) => {
+    const newHealth = Number(e.target.value);
+    const offset = newHealth - health;
+    setHealth(newHealth);
+    tempHealthUpdate(offset);
+  };
+
 return (
 <div
   style={{
@@ -182,6 +189,22 @@ return (
         flexShrink: 0
       }}
     >
+      <input
+        type="range"
+        min="-10"
+        max={maxHealth}
+        value={health ?? 0}
+        onChange={handleBarChange}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0,
+          cursor: "pointer",
+        }}
+      />
       <div
         style={{
           width: `${(health / maxHealth) * 100}%`,
