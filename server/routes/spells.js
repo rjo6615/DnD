@@ -8,11 +8,21 @@ function extractDamage(description = '') {
   return match ? match[1].replace(/\s+/g, '') : undefined;
 }
 
+// Extract "At Higher Levels" text if present
+function extractHigherLevels(description = '') {
+  const match = description.match(/At Higher Levels?[:.]\s*([^]*)/i);
+  return match ? match[1].trim() : undefined;
+}
+
 // Augment spells with a `damage` field when possible
 Object.values(spells).forEach((spell) => {
   if (!spell.damage) {
     const dmg = extractDamage(spell.description);
     if (dmg) spell.damage = dmg;
+  }
+  if (!spell.higherLevels) {
+    const upcast = extractHigherLevels(spell.description);
+    if (upcast) spell.higherLevels = upcast;
   }
 });
 

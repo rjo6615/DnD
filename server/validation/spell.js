@@ -21,7 +21,8 @@ function isSpell(spell) {
     typeof spell.duration === 'string' &&
     typeof spell.description === 'string' &&
     Array.isArray(spell.classes) &&
-    spell.classes.every(c => typeof c === 'string')
+    spell.classes.every(c => typeof c === 'string') &&
+    (spell.higherLevels === undefined || typeof spell.higherLevels === 'string')
   );
 }
 
