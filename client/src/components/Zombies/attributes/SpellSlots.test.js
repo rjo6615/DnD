@@ -33,13 +33,17 @@ test('short rest clears only warlock slots', () => {
     ],
   };
   const { rerender } = render(<SpellSlots form={form} />);
+  fireEvent.click(screen.getByRole('tab', { name: /pact magic/i }));
   const warlockSlot = screen.getByText('III').parentElement.querySelector('.slot-small');
-  const wizardSlot = screen.getByText('I').parentElement.querySelector('.slot-small');
   fireEvent.click(warlockSlot);
+  fireEvent.click(screen.getByRole('tab', { name: /spell slots/i }));
+  const wizardSlot = screen.getByText('I').parentElement.querySelector('.slot-small');
   fireEvent.click(wizardSlot);
   expect(warlockSlot).toHaveClass('slot-used');
   expect(wizardSlot).toHaveClass('slot-used');
   rerender(<SpellSlots form={form} shortRestCount={1} />);
+  fireEvent.click(screen.getByRole('tab', { name: /pact magic/i }));
   expect(screen.getByText('III').parentElement.querySelector('.slot-small')).not.toHaveClass('slot-used');
+  fireEvent.click(screen.getByRole('tab', { name: /spell slots/i }));
   expect(screen.getByText('I').parentElement.querySelector('.slot-small')).toHaveClass('slot-used');
 });
