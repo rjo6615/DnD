@@ -203,6 +203,7 @@ return (
           height: "100%",
           opacity: 0,
           cursor: "pointer",
+          zIndex: 1,
         }}
       />
       <div
@@ -211,6 +212,7 @@ return (
           height: "100%",
           background: health > maxHealth * 0.5 ? "#2ecc71" : "#c0392b",
           transition: "width 0.3s ease-in-out",
+          pointerEvents: "none",
         }}
       />
       <span
@@ -224,6 +226,7 @@ return (
           fontWeight: 600,
           color: "#222",
           lineHeight: "24px",
+          pointerEvents: "none",
         }}
       >
         {health}/{maxHealth}
