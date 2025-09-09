@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
+import UpcastModal from './UpcastModal';
 
 /**
  * Modal component allowing users to select spells for their character.
@@ -74,6 +75,7 @@ export default function SpellSelector({
   handleClose,
   onSpellsChange,
   onCastSpell,
+  availableSlots = {},
 }) {
   const params = useParams();
 
@@ -152,6 +154,27 @@ export default function SpellSelector({
   const [error, setError] = useState(null);
   const [viewSpell, setViewSpell] = useState(null);
   const [spellsKnown, setSpellsKnown] = useState({});
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
+
+  const handleUpcastSelect = (level) => {
+    if (!pendingSpell) return;
+    let dmg = pendingSpell.damage;
+    const diff = level - (pendingSpell.level || 0);
+    if (diff > 0 && pendingSpell.higherLevels) {
+      const incMatch = pendingSpell.higherLevels.match(/(\d+)d(\d+)/);
+      const baseMatch = (pendingSpell.damage || '').match(/(\d+)d(\d+)([+-]\d+)?/);
+      if (incMatch && baseMatch && incMatch[2] === baseMatch[2]) {
+        const extra = diff * parseInt(incMatch[1], 10);
+        const total = parseInt(baseMatch[1], 10) + extra;
+        dmg = `${total}d${baseMatch[2]}${baseMatch[3] || ''}`;
+      }
+    }
+    onCastSpell?.({ level, damage: dmg });
+    setShowUpcast(false);
+    setPendingSpell(null);
+    handleClose();
+  };
 
   const chaMod = useMemo(() => {
     const itemBonus = (form.item || []).reduce(
@@ -443,11 +466,16 @@ export default function SpellSelector({
                                   disabled={!isSelected}
                                   className={!isSelected ? 'text-secondary' : ''}
                                   onClick={() => {
-                                    onCastSpell?.({
-                                      level: spell.level,
-                                      damage: spell.damage,
-                                    });
-                                    handleClose();
+                                    if (spell.higherLevels) {
+                                      setPendingSpell(spell);
+                                      setShowUpcast(true);
+                                    } else {
+                                      onCastSpell?.({
+                                        level: spell.level,
+                                        damage: spell.damage,
+                                      });
+                                      handleClose();
+                                    }
                                   }}
                                 >
                                   <i className="fa-solid fa-wand-sparkles" />
@@ -556,11 +584,16 @@ export default function SpellSelector({
                                   disabled={!isSelected}
                                   className={!isSelected ? 'text-secondary' : ''}
                                   onClick={() => {
-                                    onCastSpell?.({
-                                      level: spell.level,
-                                      damage: spell.damage,
-                                    });
-                                    handleClose();
+                                    if (spell.higherLevels) {
+                                      setPendingSpell(spell);
+                                      setShowUpcast(true);
+                                    } else {
+                                      onCastSpell?.({
+                                        level: spell.level,
+                                        damage: spell.damage,
+                                      });
+                                      handleClose();
+                                    }
                                   }}
                                 >
                                   <i className="fa-solid fa-wand-sparkles" />
@@ -611,6 +644,16 @@ export default function SpellSelector({
           </Card.Footer>
         </Card>
       </Modal>
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => {
+          setShowUpcast(false);
+          setPendingSpell(null);
+        }}
+        baseLevel={pendingSpell?.level}
+        slots={availableSlots}
+        onSelect={handleUpcastSelect}
+      />
     </>
   );
 }
