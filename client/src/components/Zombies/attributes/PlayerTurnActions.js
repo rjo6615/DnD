@@ -51,7 +51,11 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   return damageSum + modifier + ability;
 }
 
-const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
+const PlayerTurnActions = React.forwardRef(
+  (
+    { form, strMod, atkBonus, dexMod, headerHeight = 0, onCastSpell },
+    ref
+  ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
@@ -96,6 +100,7 @@ const handleSpellsButtonClick = (spell, crit = false) => {
   const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
+  onCastSpell?.(spell.level);
 };
 
 const handleDamageClick = () => {
