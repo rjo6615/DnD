@@ -71,6 +71,30 @@ test('filters spells by level', async () => {
   expect(screen.queryByText('Cure Wounds')).toBeNull();
 });
 
+test('cast button calls onCastSpell with spell level', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  const onCast = jest.fn();
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      onCastSpell={onCast}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
+  const row = await screen.findByText('Fireball');
+  const castBtn = within(row.closest('tr')).getAllByRole('button')[1];
+  await userEvent.click(castBtn);
+  expect(onCast).toHaveBeenCalledWith(3);
+});
+
 test('saves selected spells', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })

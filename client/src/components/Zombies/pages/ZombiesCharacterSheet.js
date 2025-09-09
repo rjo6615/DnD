@@ -20,6 +20,7 @@ import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
+import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -51,12 +52,27 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
+  const [usedSlots, setUsedSlots] = useState({});
 
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
+
+  useEffect(() => {
+    setUsedSlots({});
+  }, [longRestCount]);
+
+  useEffect(() => {
+    setUsedSlots((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((key) => {
+        if (key.startsWith('warlock-')) delete updated[key];
+      });
+      return updated;
+    });
+  }, [shortRestCount]);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -151,6 +167,57 @@ export default function ZombiesCharacterSheet() {
   const handleShortRest = () => {
     setShortRestCount((c) => c + 1);
   };
+
+  const handleCastSpell = useCallback((typeOrLevel, lvl, idx) => {
+    if (typeof lvl === 'undefined') {
+      const level = typeOrLevel;
+      const occupations = form?.occupation || [];
+      let casterLevel = 0;
+      let warlockLevel = 0;
+      occupations.forEach((occ) => {
+        const name = (occ.Name || occ.Occupation || '').toLowerCase();
+        const levelNum = Number(occ.Level) || 0;
+        if (name === 'warlock') {
+          warlockLevel += levelNum;
+          return;
+        }
+        const progression = SPELLCASTING_CLASSES[name];
+        if (progression === 'full') {
+          casterLevel += levelNum;
+        } else if (progression === 'half') {
+          casterLevel += levelNum === 1 ? 0 : Math.ceil(levelNum / 2);
+        }
+      });
+      const slotData = fullCasterSlots[casterLevel] || {};
+      const warlockData = pactMagic[warlockLevel] || {};
+      const tryConsume = (type, data) => {
+        const count = data[level];
+        if (!count) return false;
+        const key = `${type}-${level}`;
+        setUsedSlots((prev) => {
+          const levelState = { ...(prev[key] || {}) };
+          for (let i = 0; i < count; i += 1) {
+            if (!levelState[i]) {
+              levelState[i] = true;
+              return { ...prev, [key]: levelState };
+            }
+          }
+          return prev;
+        });
+        return true;
+      };
+      if (tryConsume('regular', slotData)) return;
+      tryConsume('warlock', warlockData);
+      return;
+    }
+    const type = typeOrLevel;
+    const key = `${type}-${lvl}`;
+    setUsedSlots((prev) => {
+      const levelState = { ...(prev[key] || {}) };
+      levelState[idx] = !levelState[idx];
+      return { ...prev, [key]: levelState };
+    });
+  }, [form]);
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -435,8 +502,8 @@ return (
     {hasSpellcasting && form && (
       <SpellSlots
         form={form}
-        longRestCount={longRestCount}
-        shortRestCount={shortRestCount}
+        used={usedSlots}
+        onToggleSlot={handleCastSpell}
       />
     )}
     <Navbar
@@ -651,6 +718,7 @@ return (
         onSpellsChange={(spells, spellPoints) =>
           setForm((prev) => ({ ...prev, spells, spellPoints }))
         }
+        onCastSpell={handleCastSpell}
       />
     )}
     <Help
