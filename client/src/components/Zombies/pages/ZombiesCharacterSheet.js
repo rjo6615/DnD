@@ -172,7 +172,7 @@ export default function ZombiesCharacterSheet() {
 
   const handleCastSpell = useCallback(
     (arg, lvl, idx) => {
-      const consumeSlot = (level) => {
+      const consumeSlot = (level, preferredType) => {
         const occupations = form?.occupation || [];
         let casterLevel = 0;
         let warlockLevel = 0;
@@ -208,13 +208,24 @@ export default function ZombiesCharacterSheet() {
           });
           return true;
         };
+        if (preferredType === 'warlock') {
+          if (tryConsume('warlock', warlockData)) return;
+          tryConsume('regular', slotData);
+          return;
+        }
+        if (preferredType === 'regular') {
+          if (tryConsume('regular', slotData)) return;
+          tryConsume('warlock', warlockData);
+          return;
+        }
         if (tryConsume('regular', slotData)) return;
         tryConsume('warlock', warlockData);
       };
 
       if (typeof arg === 'object') {
-        const { level, damage, extraDice, levelsAbove } = arg;
-        consumeSlot(level);
+        const { level, damage, extraDice, levelsAbove, slotLevel, slotType } = arg;
+        const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
+        consumeSlot(castLevel, slotType);
         let result;
         if (typeof damage === 'number') {
           result = damage;
@@ -235,6 +246,10 @@ export default function ZombiesCharacterSheet() {
       }
       if (typeof lvl === 'undefined') {
         consumeSlot(arg);
+        return;
+      }
+      if (typeof idx === 'undefined') {
+        consumeSlot(lvl, arg);
         return;
       }
       const type = arg;

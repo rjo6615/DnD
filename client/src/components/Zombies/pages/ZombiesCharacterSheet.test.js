@@ -335,3 +335,45 @@ test('handleCastSpell outputs calculated damage', async () => {
   );
   expect(mockUpdateDamage).toHaveBeenCalled();
 });
+
+test('consumes higher-level slot when upcasting', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 3 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+
+  // Open the spell selector so the mocked onCastSpell is set
+  const buttons = await screen.findAllByRole('button');
+  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  await userEvent.click(spellButton);
+  expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
+
+  const groupBefore = container.querySelector('[data-slot-type="regular"][data-slot-level="2"]');
+  expect(groupBefore.querySelectorAll('.slot-used')).toHaveLength(0);
+
+  mockOnCastSpell.current({ level: 2 });
+  mockHandleClose.current();
+  await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
+
+  const groupAfter = container.querySelector('[data-slot-type="regular"][data-slot-level="2"]');
+  expect(groupAfter.querySelectorAll('.slot-used')).toHaveLength(1);
+});
