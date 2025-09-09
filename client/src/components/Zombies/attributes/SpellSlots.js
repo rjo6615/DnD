@@ -61,14 +61,13 @@ export default function SpellSlots({ form = {} }) {
           <div key={lvl} className="spell-slot">
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
-              {Array.from({ length: 4 }).map((_, i) => {
-                const isActive = i < count;
+              {Array.from({ length: count }).map((_, i) => {
                 const isUsed = used[lvl]?.[i];
                 return (
                   <div
                     key={i}
-                    className={`slot-small ${isActive ? (isUsed ? 'slot-used' : 'slot-active') : 'slot-inactive'}`}
-                    onClick={isActive ? () => toggleSlot(lvl, i) : undefined}
+                    className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
+                    onClick={() => toggleSlot(lvl, i)}
                   />
                 );
               })}
