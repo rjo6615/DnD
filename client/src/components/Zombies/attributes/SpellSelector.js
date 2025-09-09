@@ -135,6 +135,18 @@ export default function SpellSelector({
   const [selectedSpells, setSelectedSpells] = useState(
     (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
   );
+  // Track which class or caster each selected spell belongs to so it can be
+  // persisted along with the spell. This is needed for grouping in
+  // PlayerTurnActions.
+  const [spellCasters, setSpellCasters] = useState(
+    (form.spells || []).reduce((acc, s) => {
+      if (s && typeof s !== 'string') {
+        const caster = s.casterType || s.caster;
+        if (caster) acc[s.name] = caster;
+      }
+      return acc;
+    }, {})
+  );
   const [pointsLeft, setPointsLeft] = useState({});
   const [activeClass, setActiveClass] = useState(classesInfo[0]?.name || '');
   const [error, setError] = useState(null);
@@ -179,6 +191,15 @@ export default function SpellSelector({
   useEffect(() => {
     setSelectedSpells(
       (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
+    );
+    setSpellCasters(
+      (form.spells || []).reduce((acc, s) => {
+        if (s && typeof s !== 'string') {
+          const caster = s.casterType || s.caster;
+          if (caster) acc[s.name] = caster;
+        }
+        return acc;
+      }, {})
     );
   }, [form.spells]);
 
@@ -244,17 +265,26 @@ export default function SpellSelector({
     setPointsLeft(newPoints);
   }, [selectedLevels, selectedSpells, allSpells, classesInfo, spellsKnown]);
 
-  function toggleSpell(name) {
-    setSelectedSpells((prev) => {
-      const updated = prev.includes(name)
-        ? prev.filter((s) => s !== name)
-        : [...prev, name];
-      saveSpells(updated);
-      return updated;
-    });
+  function toggleSpell(name, caster) {
+    const isSelected = selectedSpells.includes(name);
+    const updatedSpells = isSelected
+      ? selectedSpells.filter((s) => s !== name)
+      : [...selectedSpells, name];
+    const updatedCasters = { ...spellCasters };
+    if (isSelected) {
+      delete updatedCasters[name];
+    } else {
+      updatedCasters[name] = caster;
+    }
+    setSelectedSpells(updatedSpells);
+    setSpellCasters(updatedCasters);
+    saveSpells(updatedSpells, updatedCasters);
   }
 
-  async function saveSpells(spells = selectedSpells) {
+  async function saveSpells(
+    spells = selectedSpells,
+    casters = spellCasters
+  ) {
     try {
       const currentPoints = classesInfo.reduce((sum, { name, effectiveLevel }) => {
         const selectedLevel = Number(selectedLevels[name]);
@@ -284,6 +314,7 @@ export default function SpellSelector({
           castingTime: info.castingTime || '',
           range: info.range || '',
           duration: info.duration || '',
+          casterType: casters[name] || info.classes?.[0] || '',
         };
       });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
@@ -390,7 +421,7 @@ export default function SpellSelector({
                                   disabled={
                                     !isSelected && (pointsLeft[cls] || 0) <= 0
                                   }
-                                  onChange={() => toggleSpell(spell.name)}
+                                  onChange={() => toggleSpell(spell.name, cls)}
                                 />
                               </td>
                               <td>{spell.name}</td>
@@ -503,7 +534,7 @@ export default function SpellSelector({
                                   disabled={
                                     !isSelected && (pointsLeft[name] || 0) <= 0
                                   }
-                                  onChange={() => toggleSpell(spell.name)}
+                                  onChange={() => toggleSpell(spell.name, name)}
                                 />
                               </td>
                               <td>{spell.name}</td>
