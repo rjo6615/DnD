@@ -396,6 +396,11 @@ $rotateX: -$angle;
   animation: rollAnimation 0.5s ease-in-out; /* Apply animation */
 }
 
+#damageValue.spell-cast-label {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
 /* Prevent the animation on initial load */
 #damageAmount:not(:hover) #damageValue {
   animation: none;

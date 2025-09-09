@@ -237,7 +237,10 @@ const showSparklesEffect = () => {
         style={{ margin: "0 auto" }}
         onClick={handleDamageClick}
       >
-        <span id="damageValue" className={loading ? 'hidden' : ''}>
+        <span
+          id="damageValue"
+          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+        >
           {damageValue}
         </span>
         <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
