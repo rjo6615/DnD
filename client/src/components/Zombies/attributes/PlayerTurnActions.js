@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
 
@@ -107,6 +113,25 @@ const handleDamageClick = () => {
   setIsCritical((prev) => !prev);
   setIsFumble(false);
 };
+
+// Spells may come from different caster types (e.g., Wizard, Cleric). Before
+// rendering the spell table, group spells by caster type and sort each group by
+// level so they display in a predictable order.
+const sortedSpells = useMemo(() => {
+  if (!Array.isArray(form.spells)) return [];
+  const groups = (form.spells || []).reduce((acc, spell) => {
+    if (!spell) return acc;
+    const caster = spell.casterType || spell.caster || 'Unknown';
+    if (!acc[caster]) acc[caster] = [];
+    acc[caster].push(spell);
+    return acc;
+  }, {});
+  return Object.keys(groups)
+    .sort()
+    .flatMap((caster) =>
+      groups[caster].sort((a, b) => (a.level || 0) - (b.level || 0))
+    );
+}, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const opacity = 0.85;
@@ -357,7 +382,7 @@ const showSparklesEffect = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {form.spells
+                    {sortedSpells
                       .filter((s) => s && s.damage)
                       .map((spell, idx) => (
                         <tr key={idx}>
