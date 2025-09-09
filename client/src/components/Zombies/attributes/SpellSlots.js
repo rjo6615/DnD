@@ -73,7 +73,10 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
       .map((lvl) => {
         const count = data[lvl];
         return (
-          <div key={lvl} className="spell-slot">
+          <div
+            key={`${type}-${lvl}`}
+            className={`spell-slot ${type === 'warlock' ? 'warlock-slot' : ''}`}
+          >
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
               {Array.from({ length: count }).map((_, i) => {
@@ -93,12 +96,10 @@ export default function SpellSlots({ form = {}, longRestCount = 0, shortRestCoun
 
   return (
     <div style={{ display: 'flex' }}>
-      <div className="spell-slot-container">{renderGroup(slotData, 'regular')}</div>
-      {warlockLevels.length > 0 && (
-        <div className="spell-slot-container warlock-slot">
-          {renderGroup(warlockData, 'warlock')}
-        </div>
-      )}
+      <div className="spell-slot-container">
+        {renderGroup(slotData, 'regular')}
+        {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
+      </div>
     </div>
   );
 }

@@ -43,3 +43,24 @@ test('short rest clears only warlock slots', () => {
   expect(screen.getByText('III').parentElement.querySelector('.slot-small')).not.toHaveClass('slot-used');
   expect(screen.getByText('I').parentElement.querySelector('.slot-small')).toHaveClass('slot-used');
 });
+
+test('warlock slots render after regular slots and have purple styling', () => {
+  const form = {
+    occupation: [
+      { Name: 'Wizard', Level: 3 },
+      { Name: 'Warlock', Level: 3 },
+    ],
+  };
+  const { container } = render(<SpellSlots form={form} />);
+  const groups = Array.from(container.querySelectorAll('.spell-slot-container .spell-slot'));
+  const firstWarlockIndex = groups.findIndex((g) => g.classList.contains('warlock-slot'));
+  expect(firstWarlockIndex).toBeGreaterThan(0);
+  groups.slice(firstWarlockIndex).forEach((g) => {
+    expect(g).toHaveClass('warlock-slot');
+  });
+  const style = document.createElement('style');
+  style.innerHTML = '.warlock-slot .slot-active { background: #800080; }';
+  document.head.appendChild(style);
+  const warlockActive = container.querySelector('.warlock-slot .slot-active');
+  expect(getComputedStyle(warlockActive).backgroundColor).toBe('rgb(128, 0, 128)');
+});
