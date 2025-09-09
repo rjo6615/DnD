@@ -25,7 +25,14 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
-export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
+export function calculateDamage(
+  damageString,
+  ability = 0,
+  crit = false,
+  roll = rollDice,
+  extraDice,
+  levelsAbove = 0
+) {
   const cleanString = damageString.split(' ')[0];
   const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
   if (!match) {
@@ -48,10 +55,22 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
   let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
 
+  // Roll any extra dice from upcasting
+  if (extraDice && levelsAbove > 0) {
+    const totalExtra = extraDice.count * levelsAbove;
+    const extraRolls = roll(totalExtra, extraDice.sides);
+    damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+  }
+
   // On a critical hit, roll an additional set of dice and add to the total
   if (crit) {
     const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
     damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+    if (extraDice && levelsAbove > 0) {
+      const totalExtra = extraDice.count * levelsAbove;
+      const critExtra = roll(totalExtra, extraDice.sides);
+      damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+    }
   }
 
   // Add numeric modifier and ability modifier once
@@ -114,18 +133,25 @@ const [isFumble, setIsFumble] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
 
   const applyUpcast = (spell, level, crit) => {
-    let dmg = spell.damage;
     const diff = level - (spell.level || 0);
+    let extra;
     if (diff > 0 && spell.higherLevels) {
       const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
-      const baseMatch = (spell.damage || '').match(/(\d+)d(\d+)([+-]\d+)?/);
-      if (incMatch && baseMatch && incMatch[2] === baseMatch[2]) {
-        const extra = diff * parseInt(incMatch[1], 10);
-        const total = parseInt(baseMatch[1], 10) + extra;
-        dmg = `${total}d${baseMatch[2]}${baseMatch[3] || ''}`;
+      if (incMatch) {
+        extra = {
+          count: parseInt(incMatch[1], 10),
+          sides: parseInt(incMatch[2], 10),
+        };
       }
     }
-    const value = calculateDamage(dmg, 0, crit || isCritical);
+    const value = calculateDamage(
+      spell.damage,
+      0,
+      crit || isCritical,
+      rollDice,
+      extra,
+      diff > 0 ? diff : 0
+    );
     if (value === null) return;
     updateDamageValueWithAnimation(value);
     onCastSpell?.(level);

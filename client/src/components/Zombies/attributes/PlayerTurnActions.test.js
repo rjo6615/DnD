@@ -38,6 +38,16 @@ describe('calculateDamage parser', () => {
   test('flat damage ignores crit flag', () => {
     expect(calculateDamage('100', 0, true, fixedRoll)).toBe(100);
   });
+
+  test('adds extra dice for levels above', () => {
+    const extra = { count: 1, sides: 4 };
+    expect(calculateDamage('1d4', 0, false, fixedRoll, extra, 2)).toBe(3);
+  });
+
+  test('doubles extra dice on a critical hit', () => {
+    const extra = { count: 1, sides: 4 };
+    expect(calculateDamage('1d4', 0, true, fixedRoll, extra, 2)).toBe(6);
+  });
 });
 
 describe('PlayerTurnActions critical events', () => {

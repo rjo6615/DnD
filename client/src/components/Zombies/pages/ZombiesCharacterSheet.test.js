@@ -325,6 +325,13 @@ test('handleCastSpell outputs calculated damage', async () => {
   mockOnCastSpell.current({ level: 1, damage: '1d4' });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockCalcDamage).toHaveBeenCalledWith('1d4');
+  expect(mockCalcDamage).toHaveBeenCalledWith(
+    '1d4',
+    0,
+    false,
+    undefined,
+    undefined,
+    undefined
+  );
   expect(mockUpdateDamage).toHaveBeenCalled();
 });
