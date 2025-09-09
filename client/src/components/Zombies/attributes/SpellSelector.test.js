@@ -71,6 +71,35 @@ test('filters spells by level', async () => {
   expect(screen.queryByText('Cure Wounds')).toBeNull();
 });
 
+test('cast button disabled until spell checked and then calls onCastSpell', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  const onCast = jest.fn();
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      onCastSpell={onCast}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
+  const row = await screen.findByText('Fireball');
+  const rowEl = row.closest('tr');
+  const castBtn = within(rowEl).getAllByRole('button')[1];
+  expect(castBtn).toBeDisabled();
+  const checkbox = within(rowEl).getByRole('checkbox');
+  await userEvent.click(checkbox);
+  expect(castBtn).not.toBeDisabled();
+  await userEvent.click(castBtn);
+  expect(onCast).toHaveBeenCalledWith({ level: 3, damage: undefined });
+});
+
 test('saves selected spells', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
@@ -104,6 +133,7 @@ test('saves selected spells', async () => {
         castingTime: '1 action',
         range: '150 feet',
         duration: 'Instantaneous',
+        casterType: 'Wizard',
       },
     ],
     spellPoints: 13,
@@ -118,6 +148,7 @@ test('saves selected spells', async () => {
           castingTime: '1 action',
           range: '150 feet',
           duration: 'Instantaneous',
+          casterType: 'Wizard',
         },
       ],
       13
@@ -159,6 +190,7 @@ test('uses Occupation when Name is missing', async () => {
         castingTime: '1 action',
         range: '150 feet',
         duration: 'Instantaneous',
+        casterType: 'Wizard',
       },
     ],
     spellPoints: 13,
@@ -173,6 +205,7 @@ test('uses Occupation when Name is missing', async () => {
           castingTime: '1 action',
           range: '150 feet',
           duration: 'Instantaneous',
+          casterType: 'Wizard',
         },
       ],
       13

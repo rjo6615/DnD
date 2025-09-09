@@ -110,6 +110,70 @@
   text-align: center;
 }
 
+.spell-slot-container {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  z-index: 1030;
+}
+
+.spell-slot {
+  position: relative;
+  width: 28px;
+  height: 48px;
+  color: #fff;
+  padding: 2px;
+}
+
+.spell-slot .slot-level {
+  position: absolute;
+  top: -2px;               /* push it near the top */
+  left: 50%;              /* move to the horizontal center */
+  transform: translateX(-50%); /* center offset */
+  font-size: 1.2rem;      /* adjust size if needed */
+  z-index: 1;
+  pointer-events: none;
+}
+
+.spell-slot .slot-boxes {
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
+  gap: 2px;
+  justify-content: center;
+}
+
+.spell-slot .slot-small {
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid #fff;
+}
+
+.spell-slot .slot-active {
+  background: #007bff;
+  box-shadow: 0 0 5px #007bff, 0 0 10px #007bff;
+}
+
+.warlock-slot .slot-active {
+  background: #800080;
+  box-shadow: 0 0 5px #800080, 0 0 10px #800080;
+}
+
+.spell-slot .slot-used {
+  background: transparent;
+}
+
+.spell-slot .slot-inactive {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
 .text-center {
   text-align: center;
 }
@@ -401,6 +465,11 @@ $rotateX: -$angle;
   padding-top: 5px;
   display: inline-block; /* Make the text an inline block */
   animation: rollAnimation 0.5s ease-in-out; /* Apply animation */
+}
+
+#damageValue.spell-cast-label {
+  font-size: 10px;
+  line-height: 1.2;
 }
 
 /* Prevent the animation on initial load */

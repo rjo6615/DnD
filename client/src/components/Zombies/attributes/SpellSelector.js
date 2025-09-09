@@ -73,6 +73,7 @@ export default function SpellSelector({
   show,
   handleClose,
   onSpellsChange,
+  onCastSpell,
 }) {
   const params = useParams();
 
@@ -134,6 +135,18 @@ export default function SpellSelector({
   const [selectedSpells, setSelectedSpells] = useState(
     (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
   );
+  // Track which class or caster each selected spell belongs to so it can be
+  // persisted along with the spell. This is needed for grouping in
+  // PlayerTurnActions.
+  const [spellCasters, setSpellCasters] = useState(
+    (form.spells || []).reduce((acc, s) => {
+      if (s && typeof s !== 'string') {
+        const caster = s.casterType || s.caster;
+        if (caster) acc[s.name] = caster;
+      }
+      return acc;
+    }, {})
+  );
   const [pointsLeft, setPointsLeft] = useState({});
   const [activeClass, setActiveClass] = useState(classesInfo[0]?.name || '');
   const [error, setError] = useState(null);
@@ -178,6 +191,15 @@ export default function SpellSelector({
   useEffect(() => {
     setSelectedSpells(
       (form.spells || []).map((s) => (typeof s === 'string' ? s : s.name))
+    );
+    setSpellCasters(
+      (form.spells || []).reduce((acc, s) => {
+        if (s && typeof s !== 'string') {
+          const caster = s.casterType || s.caster;
+          if (caster) acc[s.name] = caster;
+        }
+        return acc;
+      }, {})
     );
   }, [form.spells]);
 
@@ -243,17 +265,26 @@ export default function SpellSelector({
     setPointsLeft(newPoints);
   }, [selectedLevels, selectedSpells, allSpells, classesInfo, spellsKnown]);
 
-  function toggleSpell(name) {
-    setSelectedSpells((prev) => {
-      const updated = prev.includes(name)
-        ? prev.filter((s) => s !== name)
-        : [...prev, name];
-      saveSpells(updated);
-      return updated;
-    });
+  function toggleSpell(name, caster) {
+    const isSelected = selectedSpells.includes(name);
+    const updatedSpells = isSelected
+      ? selectedSpells.filter((s) => s !== name)
+      : [...selectedSpells, name];
+    const updatedCasters = { ...spellCasters };
+    if (isSelected) {
+      delete updatedCasters[name];
+    } else {
+      updatedCasters[name] = caster;
+    }
+    setSelectedSpells(updatedSpells);
+    setSpellCasters(updatedCasters);
+    saveSpells(updatedSpells, updatedCasters);
   }
 
-  async function saveSpells(spells = selectedSpells) {
+  async function saveSpells(
+    spells = selectedSpells,
+    casters = spellCasters
+  ) {
     try {
       const currentPoints = classesInfo.reduce((sum, { name, effectiveLevel }) => {
         const selectedLevel = Number(selectedLevels[name]);
@@ -283,6 +314,7 @@ export default function SpellSelector({
           castingTime: info.castingTime || '',
           range: info.range || '',
           duration: info.duration || '',
+          casterType: casters[name] || info.classes?.[0] || '',
         };
       });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
@@ -373,38 +405,57 @@ export default function SpellSelector({
                           <th>Range</th>
                           <th>Duration</th>
                           <th></th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {spellsForClass(cls).map((spell) => (
-                          <tr key={spell.name}>
-                            <td>
-                              <Form.Check
-                                id={`spell-${spell.name}`}
-                                type="checkbox"
-                                checked={selectedSpells.includes(spell.name)}
-                                disabled={
-                                  !selectedSpells.includes(spell.name) &&
-                                  (pointsLeft[cls] || 0) <= 0
-                                }
-                                onChange={() => toggleSpell(spell.name)}
-                              />
-                            </td>
-                            <td>{spell.name}</td>
-                            <td>{spell.school}</td>
-                            <td>{spell.castingTime}</td>
-                            <td>{spell.range}</td>
-                            <td>{spell.duration}</td>
-                            <td>
-                              <Button
-                                variant="link"
-                                onClick={() => setViewSpell(spell)}
-                              >
-                                <i className="fa-solid fa-eye"></i>
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
+                        {spellsForClass(cls).map((spell) => {
+                          const isSelected = selectedSpells.includes(spell.name);
+                          return (
+                            <tr key={spell.name}>
+                              <td>
+                                <Form.Check
+                                  id={`spell-${spell.name}`}
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={
+                                    !isSelected && (pointsLeft[cls] || 0) <= 0
+                                  }
+                                  onChange={() => toggleSpell(spell.name, cls)}
+                                />
+                              </td>
+                              <td>{spell.name}</td>
+                              <td>{spell.school}</td>
+                              <td>{spell.castingTime}</td>
+                              <td>{spell.range}</td>
+                              <td>{spell.duration}</td>
+                              <td>
+                                <Button
+                                  variant="link"
+                                  onClick={() => setViewSpell(spell)}
+                                >
+                                  <i className="fa-solid fa-eye"></i>
+                                </Button>
+                              </td>
+                              <td>
+                                <Button
+                                  variant="link"
+                                  disabled={!isSelected}
+                                  className={!isSelected ? 'text-secondary' : ''}
+                                  onClick={() => {
+                                    onCastSpell?.({
+                                      level: spell.level,
+                                      damage: spell.damage,
+                                    });
+                                    handleClose();
+                                  }}
+                                >
+                                  <i className="fa-solid fa-wand-sparkles" />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </Table>
                   </>
@@ -467,38 +518,57 @@ export default function SpellSelector({
                           <th>Range</th>
                           <th>Duration</th>
                           <th></th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {spellsForClass(name).map((spell) => (
-                          <tr key={spell.name}>
-                            <td>
-                              <Form.Check
-                                id={`spell-${spell.name}`}
-                                type="checkbox"
-                                checked={selectedSpells.includes(spell.name)}
-                                disabled={
-                                  !selectedSpells.includes(spell.name) &&
-                                  (pointsLeft[name] || 0) <= 0
-                                }
-                                onChange={() => toggleSpell(spell.name)}
-                              />
-                            </td>
-                            <td>{spell.name}</td>
-                            <td>{spell.school}</td>
-                            <td>{spell.castingTime}</td>
-                            <td>{spell.range}</td>
-                            <td>{spell.duration}</td>
-                            <td>
-                              <Button
-                                variant="link"
-                                onClick={() => setViewSpell(spell)}
-                              >
-                                <i className="fa-solid fa-eye"></i>
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
+                        {spellsForClass(name).map((spell) => {
+                          const isSelected = selectedSpells.includes(spell.name);
+                          return (
+                            <tr key={spell.name}>
+                              <td>
+                                <Form.Check
+                                  id={`spell-${spell.name}`}
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={
+                                    !isSelected && (pointsLeft[name] || 0) <= 0
+                                  }
+                                  onChange={() => toggleSpell(spell.name, name)}
+                                />
+                              </td>
+                              <td>{spell.name}</td>
+                              <td>{spell.school}</td>
+                              <td>{spell.castingTime}</td>
+                              <td>{spell.range}</td>
+                              <td>{spell.duration}</td>
+                              <td>
+                                <Button
+                                  variant="link"
+                                  onClick={() => setViewSpell(spell)}
+                                >
+                                  <i className="fa-solid fa-eye"></i>
+                                </Button>
+                              </td>
+                              <td>
+                                <Button
+                                  variant="link"
+                                  disabled={!isSelected}
+                                  className={!isSelected ? 'text-secondary' : ''}
+                                  onClick={() => {
+                                    onCastSpell?.({
+                                      level: spell.level,
+                                      damage: spell.damage,
+                                    });
+                                    handleClose();
+                                  }}
+                                >
+                                  <i className="fa-solid fa-wand-sparkles" />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </Table>
                   </Tab>

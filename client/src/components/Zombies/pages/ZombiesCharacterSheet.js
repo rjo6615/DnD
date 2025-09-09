@@ -10,7 +10,9 @@ import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import WeaponList from "../../Weapons/WeaponList";
-import PlayerTurnActions from "../attributes/PlayerTurnActions";
+import PlayerTurnActions, {
+  calculateDamage,
+} from "../attributes/PlayerTurnActions";
 import ArmorList from "../../Armor/ArmorList";
 import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
@@ -19,6 +21,8 @@ import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import SpellSlots from "../attributes/SpellSlots";
+import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -48,12 +52,29 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
+  const [longRestCount, setLongRestCount] = useState(0);
+  const [shortRestCount, setShortRestCount] = useState(0);
+  const [usedSlots, setUsedSlots] = useState({});
 
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
+
+  useEffect(() => {
+    setUsedSlots({});
+  }, [longRestCount]);
+
+  useEffect(() => {
+    setUsedSlots((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((key) => {
+        if (key.startsWith('warlock-')) delete updated[key];
+      });
+      return updated;
+    });
+  }, [shortRestCount]);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -140,6 +161,78 @@ export default function ZombiesCharacterSheet() {
   const handleRollResult = (result) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
   };
+
+  const handleLongRest = () => {
+    setLongRestCount((c) => c + 1);
+  };
+
+  const handleShortRest = () => {
+    setShortRestCount((c) => c + 1);
+  };
+
+  const handleCastSpell = useCallback(
+    (arg, lvl, idx) => {
+      const consumeSlot = (level) => {
+        const occupations = form?.occupation || [];
+        let casterLevel = 0;
+        let warlockLevel = 0;
+        occupations.forEach((occ) => {
+          const name = (occ.Name || occ.Occupation || '').toLowerCase();
+          const levelNum = Number(occ.Level) || 0;
+          if (name === 'warlock') {
+            warlockLevel += levelNum;
+            return;
+          }
+          const progression = SPELLCASTING_CLASSES[name];
+          if (progression === 'full') {
+            casterLevel += levelNum;
+          } else if (progression === 'half') {
+            casterLevel += levelNum === 1 ? 0 : Math.ceil(levelNum / 2);
+          }
+        });
+        const slotData = fullCasterSlots[casterLevel] || {};
+        const warlockData = pactMagic[warlockLevel] || {};
+        const tryConsume = (type, data) => {
+          const count = data[level];
+          if (!count) return false;
+          const key = `${type}-${level}`;
+          setUsedSlots((prev) => {
+            const levelState = { ...(prev[key] || {}) };
+            for (let i = 0; i < count; i += 1) {
+              if (!levelState[i]) {
+                levelState[i] = true;
+                return { ...prev, [key]: levelState };
+              }
+            }
+            return prev;
+          });
+          return true;
+        };
+        if (tryConsume('regular', slotData)) return;
+        tryConsume('warlock', warlockData);
+      };
+
+      if (typeof arg === 'object') {
+        const { level, damage } = arg;
+        consumeSlot(level);
+        const result = damage ? calculateDamage(damage) : 'Spell Cast';
+        playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        return;
+      }
+      if (typeof lvl === 'undefined') {
+        consumeSlot(arg);
+        return;
+      }
+      const type = arg;
+      const key = `${type}-${lvl}`;
+      setUsedSlots((prev) => {
+        const levelState = { ...(prev[key] || {}) };
+        levelState[idx] = !levelState[idx];
+        return { ...prev, [key]: levelState };
+      });
+    },
+    [form]
+  );
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -420,7 +513,15 @@ return (
       strMod={statMods.str}
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
+      onCastSpell={handleCastSpell}
     />
+    {hasSpellcasting && form && (
+      <SpellSlots
+        form={form}
+        used={usedSlots}
+        onToggleSlot={handleCastSpell}
+      />
+    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
@@ -535,6 +636,8 @@ return (
       show={showCharacterInfo}
       handleClose={handleCloseCharacterInfo}
       onShowBackground={handleShowBackground}
+      onLongRest={handleLongRest}
+      onShortRest={handleShortRest}
     />
     <Skills
       form={form}
@@ -631,6 +734,7 @@ return (
         onSpellsChange={(spells, spellPoints) =>
           setForm((prev) => ({ ...prev, spells, spellPoints }))
         }
+        onCastSpell={handleCastSpell}
       />
     )}
     <Help
