@@ -7,6 +7,17 @@ function extractHigherLevels(description = '') {
   return match ? match[1].trim() : undefined;
 }
 
+function extractScaling(description = '') {
+  const level5 = description.match(/5th level \(([^)]+)\)/i);
+  const level11 = description.match(/11th level \(([^)]+)\)/i);
+  const level17 = description.match(/17th level \(([^)]+)\)/i);
+  const scaling = {};
+  if (level5) scaling[5] = level5[1].replace(/\s+/g, '');
+  if (level11) scaling[11] = level11[1].replace(/\s+/g, '');
+  if (level17) scaling[17] = level17[1].replace(/\s+/g, '');
+  return Object.keys(scaling).length ? scaling : undefined;
+}
+
 // Manual overrides for spells whose descriptions are missing higher-level text
 const manualHigherLevels = {
   'burning-hands': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
@@ -35,6 +46,10 @@ Object.values(spells).forEach(spell => {
     } else if (manualHigherLevels[spell.name.toLowerCase().replace(/\s+/g, '-')]) {
       spell.higherLevels = manualHigherLevels[spell.name.toLowerCase().replace(/\s+/g, '-')];
     }
+  }
+  if (spell.level === 0 && !spell.scaling) {
+    const scaling = extractScaling(spell.description);
+    if (scaling) spell.scaling = scaling;
   }
 });
 

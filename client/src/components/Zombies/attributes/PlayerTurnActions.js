@@ -132,6 +132,14 @@ const [isFumble, setIsFumble] = useState(false);
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
 
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce((total, el) => total + Number(el.Level), 0)
+        : 0,
+    [form.occupation]
+  );
+
   const applyUpcast = (spell, level, crit) => {
     const diff = level - (spell.level || 0);
     let extra;
@@ -143,6 +151,11 @@ const [isFumble, setIsFumble] = useState(false);
           sides: parseInt(incMatch[2], 10),
         };
       }
+    }
+    if (spell.scaling) {
+      if (totalLevel >= 17 && spell.scaling[17]) spell.damage = spell.scaling[17];
+      else if (totalLevel >= 11 && spell.scaling[11]) spell.damage = spell.scaling[11];
+      else if (totalLevel >= 5 && spell.scaling[5]) spell.damage = spell.scaling[5];
     }
     const value = calculateDamage(
       spell.damage,

@@ -14,6 +14,17 @@ function extractHigherLevels(description = '') {
   return match ? match[1].trim() : undefined;
 }
 
+function extractScaling(description = '') {
+  const level5 = description.match(/5th level \(([^)]+)\)/i);
+  const level11 = description.match(/11th level \(([^)]+)\)/i);
+  const level17 = description.match(/17th level \(([^)]+)\)/i);
+  const scaling = {};
+  if (level5) scaling[5] = level5[1].replace(/\s+/g, '');
+  if (level11) scaling[11] = level11[1].replace(/\s+/g, '');
+  if (level17) scaling[17] = level17[1].replace(/\s+/g, '');
+  return Object.keys(scaling).length ? scaling : undefined;
+}
+
 // Augment spells with a `damage` field when possible
 Object.values(spells).forEach((spell) => {
   if (!spell.damage) {
@@ -23,6 +34,10 @@ Object.values(spells).forEach((spell) => {
   if (!spell.higherLevels) {
     const upcast = extractHigherLevels(spell.description);
     if (upcast) spell.higherLevels = upcast;
+  }
+  if (spell.level === 0 && !spell.scaling) {
+    const scaling = extractScaling(spell.description);
+    if (scaling) spell.scaling = scaling;
   }
 });
 
