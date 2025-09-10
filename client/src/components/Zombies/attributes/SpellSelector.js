@@ -75,7 +75,7 @@ export default function SpellSelector({
   handleClose,
   onSpellsChange,
   onCastSpell,
-  availableSlots = {},
+  availableSlots = { regular: {}, warlock: {} },
 }) {
   const params = useParams();
 
@@ -184,7 +184,7 @@ export default function SpellSelector({
     [totalLevel]
   );
 
-  const handleUpcastSelect = (level) => {
+  const handleUpcastSelect = (level, slotType) => {
     if (!pendingSpell) return;
     const diff = level - (pendingSpell.level || 0);
     let extra;
@@ -203,6 +203,7 @@ export default function SpellSelector({
       damage,
       extraDice: extra,
       levelsAbove: diff > 0 ? diff : 0,
+      slotType,
     });
     setShowUpcast(false);
     setPendingSpell(null);

@@ -284,20 +284,24 @@ export default function ZombiesCharacterSheet() {
     });
     const slotData = fullCasterSlots[casterLevel] || {};
     const warlockData = pactMagic[warlockLevel] || {};
-    const remaining = {};
+
+    const regular = {};
     Object.entries(slotData).forEach(([lvl, count]) => {
       const used = Object.values(usedSlots[`regular-${lvl}`] || {}).filter(Boolean)
         .length;
       const left = count - used;
-      if (left > 0) remaining[lvl] = left;
+      if (left > 0) regular[lvl] = left;
     });
+
+    const warlock = {};
     Object.entries(warlockData).forEach(([lvl, count]) => {
       const used = Object.values(usedSlots[`warlock-${lvl}`] || {}).filter(Boolean)
         .length;
       const left = count - used;
-      if (left > 0) remaining[lvl] = (remaining[lvl] || 0) + left;
+      if (left > 0) warlock[lvl] = left;
     });
-    return remaining;
+
+    return { regular, warlock };
   }, [form, usedSlots]);
 
   const handleWeaponsChange = useCallback(

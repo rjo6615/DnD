@@ -86,7 +86,7 @@ const PlayerTurnActions = React.forwardRef(
       dexMod,
       headerHeight = 0,
       onCastSpell,
-      availableSlots = {},
+      availableSlots = { regular: {}, warlock: {} },
     },
     ref
   ) => {
@@ -140,7 +140,7 @@ const [isFumble, setIsFumble] = useState(false);
     [form.occupation]
   );
 
-  const applyUpcast = (spell, level, crit) => {
+  const applyUpcast = (spell, level, crit, slotType) => {
     const diff = level - (spell.level || 0);
     let extra;
     if (diff > 0 && spell.higherLevels) {
@@ -167,7 +167,8 @@ const [isFumble, setIsFumble] = useState(false);
     );
     if (value === null) return;
     updateDamageValueWithAnimation(value);
-    onCastSpell?.(level);
+    if (slotType) onCastSpell?.(slotType, level);
+    else onCastSpell?.(level);
   };
 
   const handleSpellsButtonClick = (spell, crit = false) => {
@@ -494,9 +495,9 @@ const showSparklesEffect = () => {
         onHide={() => setShowUpcast(false)}
         baseLevel={pendingSpell?.spell?.level}
         slots={availableSlots}
-        onSelect={(lvl) => {
+        onSelect={(lvl, type) => {
           if (pendingSpell) {
-            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit);
+            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit, type);
             setPendingSpell(null);
           }
           setShowUpcast(false);

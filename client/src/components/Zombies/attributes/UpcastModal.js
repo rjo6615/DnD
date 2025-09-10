@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button } from 'react-bootstrap';
 
 /**
  * Modal allowing the user to choose a spell slot level to cast a spell at.
@@ -8,31 +8,44 @@ import { Modal, Button, Form } from 'react-bootstrap';
  * @param {boolean} props.show - Whether the modal is visible.
  * @param {function} props.onHide - Callback when the modal is closed.
  * @param {number} props.baseLevel - Minimum level of the spell.
- * @param {Object} props.slots - Mapping of slot level => remaining slot count.
- * @param {function} props.onSelect - Callback invoked with the chosen level.
+ * @param {Object} props.slots - Mapping of { regular: {level: count}, warlock: {level: count} }.
+ * @param {function} props.onSelect - Callback invoked with the chosen level and slot type.
  * @param {string} [props.higherLevels] - Description of benefits when upcasting.
  */
 export default function UpcastModal({
   show,
   onHide,
   baseLevel = 1,
-  slots = {},
+  slots = { regular: {}, warlock: {} },
   onSelect,
   higherLevels,
 }) {
-  const availableLevels = Object.keys(slots)
+  const regularLevels = Object.keys(slots.regular || {})
     .map(Number)
-    .filter((lvl) => lvl >= baseLevel && slots[lvl] > 0)
+    .filter((lvl) => lvl >= baseLevel && slots.regular[lvl] > 0)
+    .sort((a, b) => a - b);
+  const warlockLevels = Object.keys(slots.warlock || {})
+    .map(Number)
+    .filter((lvl) => lvl >= baseLevel && slots.warlock[lvl] > 0)
     .sort((a, b) => a - b);
 
-  const [level, setLevel] = useState(availableLevels[0] || baseLevel);
+  const firstRegular = regularLevels[0];
+  const firstWarlock = warlockLevels[0];
+  const initial =
+    typeof firstRegular === 'number'
+      ? { level: firstRegular, type: 'regular' }
+      : typeof firstWarlock === 'number'
+      ? { level: firstWarlock, type: 'warlock' }
+      : { level: null, type: null };
+
+  const [selection, setSelection] = useState(initial);
 
   useEffect(() => {
-    if (availableLevels.length > 0) setLevel(availableLevels[0]);
-  }, [availableLevels.join(','), show]);
+    setSelection(initial);
+  }, [initial.level, initial.type, show]);
 
   const handleConfirm = () => {
-    if (onSelect) onSelect(level);
+    if (onSelect && selection.level) onSelect(selection.level, selection.type);
     if (onHide) onHide();
   };
 
@@ -45,17 +58,43 @@ export default function UpcastModal({
         {higherLevels && (
           <p className="text-muted mb-2">{higherLevels}</p>
         )}
-        {availableLevels.length > 0 ? (
-          <Form.Select
-            aria-label="Slot Level"
-            value={level}
-            onChange={(e) => setLevel(Number(e.target.value))}
-          >
-            {availableLevels.map((lvl) => (
-              <option key={lvl} value={lvl}>{`Level ${lvl}`}</option>
+        {regularLevels.length > 0 && (
+          <div className="mb-2 d-flex flex-wrap gap-2">
+            {regularLevels.map((lvl) => (
+              <Button
+                key={`regular-${lvl}`}
+                className={`upcast-slot regular${
+                  selection.type === 'regular' && selection.level === lvl
+                    ? ' active'
+                    : ''
+                }`}
+                style={{ boxShadow: '0 0 10px #007bff' }}
+                onClick={() => setSelection({ level: lvl, type: 'regular' })}
+              >
+                {`Level ${lvl}`}
+              </Button>
             ))}
-          </Form.Select>
-        ) : (
+          </div>
+        )}
+        {warlockLevels.length > 0 && (
+          <div className="d-flex flex-wrap gap-2">
+            {warlockLevels.map((lvl) => (
+              <Button
+                key={`warlock-${lvl}`}
+                className={`upcast-slot warlock${
+                  selection.type === 'warlock' && selection.level === lvl
+                    ? ' active'
+                    : ''
+                }`}
+                style={{ boxShadow: '0 0 10px #800080' }}
+                onClick={() => setSelection({ level: lvl, type: 'warlock' })}
+              >
+                {`Level ${lvl}`}
+              </Button>
+            ))}
+          </div>
+        )}
+        {regularLevels.length === 0 && warlockLevels.length === 0 && (
           <p>No spell slots of this level available.</p>
         )}
       </Modal.Body>
@@ -66,7 +105,7 @@ export default function UpcastModal({
         <Button
           variant="primary"
           onClick={handleConfirm}
-          disabled={availableLevels.length === 0}
+          disabled={!selection.level}
         >
           Cast
         </Button>
