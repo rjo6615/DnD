@@ -263,12 +263,13 @@ useEffect(() => {
   }
 }, [loading]);
 //-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
-const [sides] = useState(20);
-const [initialSide] = useState(1);
+const [diceType, setDiceType] = useState('d20');
 const [timeoutId, setTimeoutId] = useState(null);
-const [animationDuration] = useState('3000ms');
 const [activeFace, setActiveFace] = useState(null);
 const [rolling, setRolling] = useState(false);
+const sides = diceType === 'd4' ? 4 : 20;
+const animationDuration = diceType === 'd4' ? '3000ms' : '3000ms';
+const initialSide = 1;
 const face = Math.floor(Math.random() * sides) + initialSide;
 
 const randomFace = () => {
@@ -280,7 +281,7 @@ const rollTo = (face) => {
   setActiveFace(face);
   setRolling(false);
 
-  if (face === 20 || face === 1) {
+  if (face === sides || face === 1) {
     showSparklesEffect({ x: 100 / 2, y: 100 / 2 });
     setTimeout(() => {
       showSparklesEffect();
@@ -307,7 +308,7 @@ useEffect(() => {
 }, [timeoutId]);
 
 const faceElements = [];
-for (let i = 1; i <= 20; i++) {
+for (let i = 1; i <= sides; i++) {
   faceElements.push(
     <figure className={`face face-${i}`} key={i}></figure>
   );
@@ -317,7 +318,7 @@ const [showSparkles1, setShowSparkles1] = useState(false);
 
 // Create a function to display sparkles
 const showSparklesEffect = () => {
-  if (face === 20) {
+  if (face === sides) {
     setShowSparkles(true);
     setTimeout(() => {
       setShowSparkles(false);
@@ -328,6 +329,13 @@ const showSparklesEffect = () => {
       setShowSparkles1(false);
     }, 2000);
   }
+};
+
+const toggleDiceType = () => {
+  clearTimeout(timeoutId);
+  setRolling(false);
+  setActiveFace(null);
+  setDiceType((prev) => (prev === 'd20' ? 'd4' : 'd20'));
 };
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
@@ -374,6 +382,14 @@ const showSparklesEffect = () => {
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             title="Attack"
           />
+          <Button
+            variant="link"
+            onClick={toggleDiceType}
+            aria-label="toggle-dice"
+            style={{ marginLeft: '10px' }}
+          >
+            <i className={`fa-solid ${diceType === 'd20' ? 'fa-dice-d4' : 'fa-dice-d20'}`}></i>
+          </Button>
         </div>
         <div
           style={{
@@ -383,17 +399,20 @@ const showSparklesEffect = () => {
             justifyContent: 'center'
           }}
         >
-          <div className="content">
+          <div className={diceType === 'd4' ? 'content-d4' : 'content'}>
             {showSparkles && (
               <div className="sparkle"></div>
             )}
             {showSparkles1 && (
               <div className="sparkle1"></div>
             )}
-            <div onClick={handleRandomizeClick}
-    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-      {faceElements}
-    </div>
+            <div
+              onClick={handleRandomizeClick}
+              className={`die die-${diceType} ${rolling ? 'rolling' : ''}`}
+              data-face={activeFace}
+            >
+              {faceElements}
+            </div>
           </div>
         </div>
       </div>
