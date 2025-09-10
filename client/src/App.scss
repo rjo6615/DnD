@@ -202,17 +202,24 @@
   cursor: pointer;
 }
 
-.bonus-slot { overflow: visible; }
 
 .bonus-slot .bonus-triangle {
+  position: relative;
   width: 20px;
   height: 20px;
   margin: 20px auto 0;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
   background: #ffc107;
-  border: 1px solid #fff;
   box-shadow: 0 0 5px #ffa500, 0 0 10px #ffa500;
   cursor: pointer;
+}
+
+.bonus-slot .bonus-triangle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: inherit;
+  border: 1px solid #fff;
 }
 
 .action-circle.slot-used {
