@@ -80,3 +80,31 @@ test('warlock slots render after regular slots and have purple styling', () => {
     'rgb(128, 0, 128)'
   );
 });
+
+test('action and bonus markers toggle and reflect usage', () => {
+  const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
+  const onToggle = jest.fn();
+  const { container, rerender } = render(
+    <SpellSlots form={form} used={{}} onToggleSlot={onToggle} />
+  );
+
+  const action = container.querySelector('.action-circle');
+  fireEvent.click(action);
+  expect(onToggle).toHaveBeenNthCalledWith(1, 'action');
+  rerender(
+    <SpellSlots form={form} used={{ action: true }} onToggleSlot={onToggle} />
+  );
+  expect(container.querySelector('.action-circle')).toHaveClass('slot-used');
+
+  const bonus = container.querySelector('.bonus-triangle');
+  fireEvent.click(bonus);
+  expect(onToggle).toHaveBeenNthCalledWith(2, 'bonus');
+  rerender(
+    <SpellSlots
+      form={form}
+      used={{ action: true, bonus: true }}
+      onToggleSlot={onToggle}
+    />
+  );
+  expect(container.querySelector('.bonus-triangle')).toHaveClass('slot-used');
+});

@@ -199,6 +199,7 @@
   border-radius: 50%;
   background: #28a745;
   box-shadow: 0 0 5px #28a745, 0 0 10px #28a745;
+  cursor: pointer;
 }
 
 .bonus-slot { overflow: visible; }
@@ -209,6 +210,17 @@
   border-right: 10px solid transparent;
   border-bottom: 20px solid #ffc107;
   filter: drop-shadow(0 0 5px #ffa500) drop-shadow(0 0 10px #ffa500);
+  cursor: pointer;
+}
+
+.action-circle.slot-used {
+  background: transparent;
+  box-shadow: none;
+}
+
+.bonus-triangle.slot-used {
+  border-bottom-color: transparent;
+  filter: none;
 }
 
 .text-center {
