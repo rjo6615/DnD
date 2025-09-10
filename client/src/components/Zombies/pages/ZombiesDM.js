@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Button, Col, Form, Row, Container, Table, Card, Alert } from "react-bootstrap";
+import { Button, Col, Form, Row, Container, Table, Card, Alert, Spinner } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
@@ -167,7 +167,8 @@ const [form2, setForm2] = useState({
   });
 
   const [weaponPrompt, setWeaponPrompt] = useState("");
-  
+  const [loading, setLoading] = useState(false);
+
   const [show2, setShow2] = useState(false);
   const [isCreatingWeapon, setIsCreatingWeapon] = useState(false);
   const handleClose2 = () => {
@@ -219,6 +220,7 @@ const [form2, setForm2] = useState({
   }
 
   async function generateWeapon() {
+    setLoading(true);
     try {
       const response = await openai.responses.parse({
         model: "gpt-4o-2024-08-06",
@@ -246,6 +248,8 @@ const [form2, setForm2] = useState({
       });
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate weapon' });
+    } finally {
+      setLoading(false);
     }
   }
   
@@ -644,8 +648,10 @@ const [form2, setForm2] = useState({
                <Button
                 className="mb-3"
                 variant="outline-primary"
-                onClick={(e) => { e.preventDefault(); generateWeapon(); }}>
-                Generate with AI
+                onClick={(e) => { e.preventDefault(); generateWeapon(); }}
+                disabled={loading}
+               >
+                {loading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : "Generate with AI"}
                </Button>
 
                <Form.Label className="text-light">Name</Form.Label>
