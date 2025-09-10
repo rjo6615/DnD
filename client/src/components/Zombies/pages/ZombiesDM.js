@@ -15,16 +15,6 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
-const WeaponSchema = z.object({
-  name: z.string(),
-  type: z.string().optional(),
-  category: z.string().optional(),
-  damage: z.string(),
-  properties: z.array(z.string()).optional(),
-  weight: z.string().optional(),
-  cost: z.string().optional(),
-});
-
 export default function ZombiesDM() {
   const user = useUser();
 
@@ -222,6 +212,21 @@ const [form2, setForm2] = useState({
   async function generateWeapon() {
     setLoading(true);
     try {
+      if (!weaponOptions.types.length || !weaponOptions.categories.length) {
+        setStatus({ type: 'danger', message: 'Weapon options not loaded' });
+        return;
+      }
+
+      const WeaponSchema = z.object({
+        name: z.string(),
+        type: z.enum(weaponOptions.types),
+        category: z.enum(weaponOptions.categories),
+        damage: z.string(),
+        properties: z.array(z.string()).optional(),
+        weight: z.string().optional(),
+        cost: z.string().optional(),
+      });
+
       const response = await openai.responses.parse({
         model: "gpt-4o-2024-08-06",
         input: [
@@ -232,11 +237,15 @@ const [form2, setForm2] = useState({
           format: zodTextFormat(WeaponSchema, "weapon"),
         },
       });
-      const weapon = response.output?.[0]?.content?.[0]?.parsed;
-      if (!weapon) {
-        setStatus({ type: 'danger', message: 'Failed to generate weapon' });
+
+      const weaponData = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = WeaponSchema.safeParse(weaponData);
+      if (!parsed.success) {
+        setStatus({ type: 'danger', message: parsed.error.message || 'Failed to parse weapon' });
         return;
       }
+      const weapon = parsed.data;
+
       updateForm2({
         name: weapon.name || "",
         type: weapon.type || "",
