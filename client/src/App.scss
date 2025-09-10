@@ -79,14 +79,14 @@
   border-color: var(--bs-primary);
 }
 
-.upcast-slot.regular {
-  box-shadow: 0 0 10px #007bff;
-  border: 1px solid #007bff;
+.upcast-slot {
+  cursor: pointer;
 }
 
-.upcast-slot.warlock {
-  box-shadow: 0 0 10px #800080;
-  border: 1px solid #800080;
+.upcast-slot.selected {
+  outline: 2px solid #ffc107;
+  outline-offset: 2px;
+  transform: scale(1.1);
 }
 
 .skill-checkbox .form-check-input {

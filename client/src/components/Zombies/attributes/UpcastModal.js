@@ -63,36 +63,44 @@ export default function UpcastModal({
         {regularLevels.length > 0 && (
           <div className="mb-2 d-flex flex-wrap gap-2 justify-content-center">
             {regularLevels.map((lvl) => (
-              <Button
+              <div
                 key={`regular-${lvl}`}
-                className={`upcast-slot regular${
+                className={`spell-slot upcast-slot${
                   selection.type === 'regular' && selection.level === lvl
-                    ? ' active'
+                    ? ' selected'
                     : ''
                 }`}
-                style={{ boxShadow: '0 0 10px #007bff' }}
                 onClick={() => setSelection({ level: lvl, type: 'regular' })}
               >
-                {toRoman(lvl)}
-              </Button>
+                <div className="slot-level">{toRoman(lvl)}</div>
+                <div className="slot-boxes">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="slot-small slot-active" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
         {warlockLevels.length > 0 && (
           <div className="d-flex flex-wrap gap-2 justify-content-center">
             {warlockLevels.map((lvl) => (
-              <Button
+              <div
                 key={`warlock-${lvl}`}
-                className={`upcast-slot warlock${
+                className={`spell-slot upcast-slot warlock-slot${
                   selection.type === 'warlock' && selection.level === lvl
-                    ? ' active'
+                    ? ' selected'
                     : ''
                 }`}
-                style={{ boxShadow: '0 0 10px #800080' }}
                 onClick={() => setSelection({ level: lvl, type: 'warlock' })}
               >
-                {toRoman(lvl)}
-              </Button>
+                <div className="slot-level">{toRoman(lvl)}</div>
+                <div className="slot-boxes">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="slot-small slot-active" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
