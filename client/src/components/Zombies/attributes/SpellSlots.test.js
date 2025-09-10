@@ -9,7 +9,9 @@ test('renders only the available number of slots', () => {
   const { container } = render(<SpellSlots form={form} used={{}} />);
 
   const expected = fullCasterSlots[casterLevel];
-  const slotBoxDivs = container.querySelectorAll('.slot-boxes');
+  const slotBoxDivs = Array.from(
+    container.querySelectorAll('.spell-slot-container .spell-slot .slot-boxes')
+  ).filter((div) => !div.parentElement.classList.contains('action-slot'));
   Object.values(expected).forEach((count, idx) => {
     expect(slotBoxDivs[idx].querySelectorAll('.slot-small').length).toBe(count);
   });
@@ -32,6 +34,15 @@ test('reflects used slots from props and toggles via callback', () => {
     />
   );
   expect(container.querySelector('.slot-small')).toHaveClass('slot-used');
+});
+
+test('renders action slot before regular slots', () => {
+  const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
+  const { container } = render(<SpellSlots form={form} used={{}} />);
+  const first = container.querySelector('.spell-slot-container').firstChild;
+  expect(first).toHaveClass('action-slot');
+  expect(first.querySelector('.slot-level').textContent).toBe('A');
+  expect(first.querySelector('.action-circle')).toBeTruthy();
 });
 
 test('warlock slots render after regular slots and have purple styling', () => {

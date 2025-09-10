@@ -75,6 +75,12 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
   return (
     <div style={{ display: 'flex' }}>
       <div className="spell-slot-container">
+        <div className="spell-slot action-slot">
+          <div className="slot-level">A</div>
+          <div className="slot-boxes">
+            <div className="action-circle" />
+          </div>
+        </div>
         {renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
       </div>
