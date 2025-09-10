@@ -13,7 +13,13 @@ const SPELLCASTING_CLASSES = {
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
-export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
+export default function SpellSlots({
+  form = {},
+  used = {},
+  onToggleSlot,
+  actionCount = 1,
+  bonusCount = 1,
+}) {
 
   const occupations = form.occupation || [];
   let casterLevel = 0;
@@ -78,18 +84,36 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
-            <div
-              className={`action-circle ${used.action ? 'slot-used' : 'slot-active'}`}
-              onClick={() => onToggleSlot && onToggleSlot('action')}
-            />
+            {Array.from({ length: actionCount }).map((_, i) => {
+              const isUsed = used.action?.[i];
+              return (
+                <div
+                  key={i}
+                  className={`slot-small action-circle ${
+                    isUsed ? 'slot-used' : 'slot-active'
+                  }`}
+                  onClick={() => onToggleSlot && onToggleSlot('action', i)}
+                />
+              );
+            })}
           </div>
         </div>
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
-          <div
-            className={`bonus-triangle ${used.bonus ? 'slot-used' : 'slot-active'}`}
-            onClick={() => onToggleSlot && onToggleSlot('bonus')}
-          />
+          <div className="slot-boxes">
+            {Array.from({ length: bonusCount }).map((_, i) => {
+              const isUsed = used.bonus?.[i];
+              return (
+                <div
+                  key={i}
+                  className={`slot-small bonus-triangle ${
+                    isUsed ? 'slot-used' : 'slot-active'
+                  }`}
+                  onClick={() => onToggleSlot && onToggleSlot('bonus', i)}
+                />
+              );
+            })}
+          </div>
         </div>
         {renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
