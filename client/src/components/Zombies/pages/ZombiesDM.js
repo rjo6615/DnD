@@ -6,24 +6,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
-import OpenAI from "openai";
-import { z } from "zod";
-import { zodTextFormat } from "openai/helpers/zod";
-
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
-
-const WeaponSchema = z.object({
-  name: z.string(),
-  type: z.string().optional(),
-  category: z.string().optional(),
-  damage: z.string(),
-  properties: z.array(z.string()).optional(),
-  weight: z.string().optional(),
-  cost: z.string().optional(),
-});
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -165,8 +147,6 @@ const [form2, setForm2] = useState({
     weight: "",
     cost: "",
   });
-
-  const [weaponPrompt, setWeaponPrompt] = useState("");
   
   const [show2, setShow2] = useState(false);
   const [isCreatingWeapon, setIsCreatingWeapon] = useState(false);
@@ -216,33 +196,6 @@ const [form2, setForm2] = useState({
     return setForm2((prev) => {
       return { ...prev, ...value };
     });
-  }
-
-  async function generateWeapon() {
-    try {
-      const response = await openai.responses.parse({
-        model: "gpt-4o-2024-08-06",
-        input: [
-          { role: "system", content: "Create a Dungeons and Dragons weapon." },
-          { role: "user", content: weaponPrompt },
-        ],
-        text: {
-          format: zodTextFormat(WeaponSchema, "weapon"),
-        },
-      });
-      const weapon = response.output_parsed;
-      updateForm2({
-        name: weapon.name || "",
-        type: weapon.type || "",
-        category: weapon.category || "",
-        damage: weapon.damage || "",
-        properties: weapon.properties || [],
-        weight: weapon.weight || "",
-        cost: weapon.cost || "",
-      });
-    } catch (err) {
-      setStatus({ type: 'danger', message: err.message || 'Failed to generate weapon' });
-    }
   }
   
   async function onSubmit2(e) {
@@ -629,20 +582,6 @@ const [form2, setForm2] = useState({
             {isCreatingWeapon ? (
               <Form onSubmit={onSubmit2} className="px-5">
                <Form.Group className="mb-3 pt-3" >
-
-               <Form.Label className="text-light">Weapon Prompt</Form.Label>
-               <Form.Control
-                className="mb-2"
-                value={weaponPrompt}
-                onChange={(e) => setWeaponPrompt(e.target.value)}
-                type="text"
-                placeholder="Describe a weapon" />
-               <Button
-                className="mb-3"
-                variant="outline-primary"
-                onClick={(e) => { e.preventDefault(); generateWeapon(); }}>
-                Generate with AI
-               </Button>
 
                <Form.Label className="text-light">Name</Form.Label>
                <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
