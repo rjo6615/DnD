@@ -78,18 +78,28 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
-            <div
-              className={`action-circle ${used.action ? 'slot-used' : 'slot-active'}`}
-              onClick={() => onToggleSlot && onToggleSlot('action')}
-            />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                data-slot-index={i}
+                className={`action-circle ${used.action?.[i] ? 'slot-used' : 'slot-active'}`}
+                onClick={() => onToggleSlot && onToggleSlot('action', i)}
+              />
+            ))}
           </div>
         </div>
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
-          <div
-            className={`bonus-circle ${used.bonus ? 'slot-used' : 'slot-active'}`}
-            onClick={() => onToggleSlot && onToggleSlot('bonus')}
-          />
+          <div className="slot-boxes">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                data-slot-index={i}
+                className={`bonus-circle ${used.bonus?.[i] ? 'slot-used' : 'slot-active'}`}
+                onClick={() => onToggleSlot && onToggleSlot('bonus', i)}
+              />
+            ))}
+          </div>
         </div>
         {renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}

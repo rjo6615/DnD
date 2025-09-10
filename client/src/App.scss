@@ -186,9 +186,13 @@
   cursor: default;
 }
 
-.action-slot .slot-boxes {
+.action-slot .slot-boxes,
+.bonus-slot .slot-boxes {
   padding-top: 20px;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 20px);
+  grid-template-rows: repeat(2, 20px);
+  gap: 2px;
   justify-content: center;
 }
 
@@ -208,7 +212,6 @@
   width: 20px;
   height: 20px;
   border: 1px solid #fff;
-  margin: 20px auto 0;
   border-radius: 50%;
   background: #ffa500;
   box-shadow: 0 0 5px #ffa500, 0 0 10px #ffa500;
