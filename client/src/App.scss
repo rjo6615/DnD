@@ -84,8 +84,9 @@
 }
 
 .upcast-slot.selected {
-  outline: 2px solid #ffc107;
-  outline-offset: 2px;
+  background-color: #808080;
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 10px #FFD700;
   transform: scale(1.1);
 }
 
