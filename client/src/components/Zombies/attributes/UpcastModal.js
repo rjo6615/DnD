@@ -11,14 +11,16 @@ const toRoman = (n) => ['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1]
  * @param {function} props.onHide - Callback when the modal is closed.
  * @param {number} props.baseLevel - Minimum level of the spell.
  * @param {Object} props.slots - Mapping of { regular: {level: count}, warlock: {level: count} }.
+ * @param {Object} [props.used] - Mapping of used slots keyed by `${type}-${level}`.
  * @param {function} props.onSelect - Callback invoked with the chosen level and slot type.
- * @param {string} [props.higherLevels] - Description of benefits when upcasting.
+  * @param {string} [props.higherLevels] - Description of benefits when upcasting.
  */
 export default function UpcastModal({
   show,
   onHide,
   baseLevel = 1,
   slots = { regular: {}, warlock: {} },
+  used = {},
   onSelect,
   higherLevels,
 }) {
@@ -62,46 +64,68 @@ export default function UpcastModal({
         )}
         {regularLevels.length > 0 && (
           <div className="mb-2 d-flex flex-wrap gap-2 justify-content-center">
-            {regularLevels.map((lvl) => (
-              <div
-                key={`regular-${lvl}`}
-                className={`spell-slot upcast-slot${
-                  selection.type === 'regular' && selection.level === lvl
-                    ? ' selected'
-                    : ''
-                }`}
-                onClick={() => setSelection({ level: lvl, type: 'regular' })}
-              >
-                <div className="slot-level">{toRoman(lvl)}</div>
-                <div className="slot-boxes">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="slot-small slot-active" />
-                  ))}
+            {regularLevels.map((lvl) => {
+              const key = `regular-${lvl}`;
+              const usedSlots = used[key] || {};
+              const usedCount = Object.values(usedSlots).filter(Boolean).length;
+              const total = (slots.regular?.[lvl] || 0) + usedCount;
+              return (
+                <div
+                  key={key}
+                  className={`spell-slot upcast-slot${
+                    selection.type === 'regular' && selection.level === lvl
+                      ? ' selected'
+                      : ''
+                  }`}
+                  onClick={() => setSelection({ level: lvl, type: 'regular' })}
+                >
+                  <div className="slot-level">{toRoman(lvl)}</div>
+                  <div className="slot-boxes">
+                    {Array.from({ length: total }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`slot-small ${
+                          usedSlots[i] ? 'slot-used' : 'slot-active'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {warlockLevels.length > 0 && (
           <div className="d-flex flex-wrap gap-2 justify-content-center">
-            {warlockLevels.map((lvl) => (
-              <div
-                key={`warlock-${lvl}`}
-                className={`spell-slot upcast-slot warlock-slot${
-                  selection.type === 'warlock' && selection.level === lvl
-                    ? ' selected'
-                    : ''
-                }`}
-                onClick={() => setSelection({ level: lvl, type: 'warlock' })}
-              >
-                <div className="slot-level">{toRoman(lvl)}</div>
-                <div className="slot-boxes">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="slot-small slot-active" />
-                  ))}
+            {warlockLevels.map((lvl) => {
+              const key = `warlock-${lvl}`;
+              const usedSlots = used[key] || {};
+              const usedCount = Object.values(usedSlots).filter(Boolean).length;
+              const total = (slots.warlock?.[lvl] || 0) + usedCount;
+              return (
+                <div
+                  key={key}
+                  className={`spell-slot upcast-slot warlock-slot${
+                    selection.type === 'warlock' && selection.level === lvl
+                      ? ' selected'
+                      : ''
+                  }`}
+                  onClick={() => setSelection({ level: lvl, type: 'warlock' })}
+                >
+                  <div className="slot-level">{toRoman(lvl)}</div>
+                  <div className="slot-boxes">
+                    {Array.from({ length: total }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`slot-small ${
+                          usedSlots[i] ? 'slot-used' : 'slot-active'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {regularLevels.length === 0 && warlockLevels.length === 0 && (
