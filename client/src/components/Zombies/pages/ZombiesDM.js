@@ -645,7 +645,7 @@ const [form2, setForm2] = useState({
                </Button>
 
                <Form.Label className="text-light">Name</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
+               <Form.Control className="mb-2" value={form2.name} onChange={(e) => updateForm2({ name: e.target.value })}
                 type="text" placeholder="Enter weapon name" />
 
                <Form.Label className="text-light">Type</Form.Label>
@@ -673,7 +673,7 @@ const [form2, setForm2] = useState({
               </Form.Select>
 
                <Form.Label className="text-light">Damage</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
+               <Form.Control className="mb-2" value={form2.damage} onChange={(e) => updateForm2({ damage: e.target.value })}
                 type="text" placeholder="Enter damage" />
 
                <Form.Label className="text-light">Properties</Form.Label>
@@ -692,11 +692,11 @@ const [form2, setForm2] = useState({
               </Form.Select>
 
                <Form.Label className="text-light">Weight</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ weight: e.target.value })}
+               <Form.Control className="mb-2" value={form2.weight} onChange={(e) => updateForm2({ weight: e.target.value })}
                 type="text" placeholder="Enter weight" />
 
                <Form.Label className="text-light">Cost</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ cost: e.target.value })}
+               <Form.Control className="mb-2" value={form2.cost} onChange={(e) => updateForm2({ cost: e.target.value })}
                 type="text" placeholder="Enter cost" />
 
             </Form.Group>
