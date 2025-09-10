@@ -11,7 +11,11 @@ test('renders only the available number of slots', () => {
   const expected = fullCasterSlots[casterLevel];
   const slotBoxDivs = Array.from(
     container.querySelectorAll('.spell-slot-container .spell-slot .slot-boxes')
-  ).filter((div) => !div.parentElement.classList.contains('action-slot'));
+  ).filter(
+    (div) =>
+      !div.parentElement.classList.contains('action-slot') &&
+      !div.parentElement.classList.contains('bonus-slot')
+  );
   Object.values(expected).forEach((count, idx) => {
     expect(slotBoxDivs[idx].querySelectorAll('.slot-small').length).toBe(count);
   });
@@ -36,13 +40,18 @@ test('reflects used slots from props and toggles via callback', () => {
   expect(container.querySelector('.slot-small')).toHaveClass('slot-used');
 });
 
-test('renders action slot before regular slots', () => {
+test('renders action and bonus slots before regular slots', () => {
   const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
   const { container } = render(<SpellSlots form={form} used={{}} />);
-  const first = container.querySelector('.spell-slot-container').firstChild;
+  const slotContainer = container.querySelector('.spell-slot-container');
+  const first = slotContainer.children[0];
+  const second = slotContainer.children[1];
   expect(first).toHaveClass('action-slot');
   expect(first.querySelector('.slot-level').textContent).toBe('A');
   expect(first.querySelector('.action-circle')).toBeTruthy();
+  expect(second).toHaveClass('bonus-slot');
+  expect(second.querySelector('.slot-level').textContent).toBe('B');
+  expect(second.querySelector('.bonus-triangle')).toBeTruthy();
 });
 
 test('warlock slots render after regular slots and have purple styling', () => {
@@ -59,7 +68,7 @@ test('warlock slots render after regular slots and have purple styling', () => {
   const firstWarlockIndex = groups.findIndex((g) =>
     g.classList.contains('warlock-slot')
   );
-  expect(firstWarlockIndex).toBeGreaterThan(0);
+  expect(firstWarlockIndex).toBeGreaterThan(2);
   groups.slice(firstWarlockIndex).forEach((g) => {
     expect(g).toHaveClass('warlock-slot');
   });
