@@ -104,6 +104,7 @@ test('saves selected spells', async () => {
         castingTime: '1 action',
         range: '150 feet',
         duration: 'Instantaneous',
+        classes: ['Wizard'],
       },
     ],
     spellPoints: 13,
@@ -118,6 +119,7 @@ test('saves selected spells', async () => {
           castingTime: '1 action',
           range: '150 feet',
           duration: 'Instantaneous',
+          classes: ['Wizard'],
         },
       ],
       13
@@ -159,6 +161,7 @@ test('uses Occupation when Name is missing', async () => {
         castingTime: '1 action',
         range: '150 feet',
         duration: 'Instantaneous',
+        classes: ['Wizard'],
       },
     ],
     spellPoints: 13,
@@ -173,6 +176,7 @@ test('uses Occupation when Name is missing', async () => {
           castingTime: '1 action',
           range: '150 feet',
           duration: 'Instantaneous',
+          classes: ['Wizard'],
         },
       ],
       13

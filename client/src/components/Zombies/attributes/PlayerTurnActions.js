@@ -51,6 +51,19 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   return damageSum + modifier + ability;
 }
 
+export function scaleCantripDamage(damageString, classLevel) {
+  const match = damageString.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+  if (!match) return damageString;
+  const diceCount = parseInt(match[1], 10);
+  const sides = match[2];
+  const modifier = match[3] || '';
+  let multiplier = 1;
+  if (classLevel >= 17) multiplier = 4;
+  else if (classLevel >= 11) multiplier = 3;
+  else if (classLevel >= 5) multiplier = 2;
+  return `${diceCount * multiplier}d${sides}${modifier}`;
+}
+
 const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
@@ -84,6 +97,25 @@ const [isFumble, setIsFumble] = useState(false);
     return `${dice}+${ability}`;
   };
 
+  const getClassLevel = (name) => {
+    const occ = Array.isArray(form.occupation)
+      ? form.occupation.find(
+          (o) => (o.Name || o.Occupation)?.toLowerCase() === name.toLowerCase()
+        )
+      : null;
+    return Number(occ?.Level || 0);
+  };
+
+  const getSpellDamage = (spell) => {
+    if (!spell?.damage) return '';
+    if (spell.level !== 0) return spell.damage;
+    const clsLevel = (spell.classes || []).reduce((max, cls) => {
+      const lvl = getClassLevel(cls);
+      return lvl > max ? lvl : max;
+    }, 0);
+    return scaleCantripDamage(spell.damage, clsLevel);
+  };
+
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
     const damageValue = calculateDamage(weapon.damage, ability, isCritical);
@@ -92,8 +124,9 @@ const [isFumble, setIsFumble] = useState(false);
   };
 
 const handleSpellsButtonClick = (spell, crit = false) => {
-  if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
+  const dmgString = getSpellDamage(spell);
+  if (!dmgString) return;
+  const damageValue = calculateDamage(dmgString, 0, crit || isCritical);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
 };
@@ -355,7 +388,7 @@ const showSparklesEffect = () => {
                         <tr key={idx}>
                           <td>{spell.name}</td>
                           <td>{spell.level}</td>
-                          <td>{spell.damage}</td>
+                          <td>{getSpellDamage(spell)}</td>
                           <td>{spell.castingTime}</td>
                           <td>{spell.range}</td>
                           <td>{spell.duration}</td>

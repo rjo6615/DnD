@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, act, fireEvent } from '@testing-library/react';
-import PlayerTurnActions, { calculateDamage } from './PlayerTurnActions';
+import { render, act, fireEvent, screen } from '@testing-library/react';
+import PlayerTurnActions, { calculateDamage, scaleCantripDamage } from './PlayerTurnActions';
 
 describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
@@ -38,6 +38,47 @@ describe('calculateDamage parser', () => {
   test('flat damage ignores crit flag', () => {
     expect(calculateDamage('100', 0, true, fixedRoll)).toBe(100);
   });
+});
+
+describe('scaleCantripDamage', () => {
+  test('scales damage dice by class level', () => {
+    expect(scaleCantripDamage('1d8', 1)).toBe('1d8');
+    expect(scaleCantripDamage('1d8', 5)).toBe('2d8');
+    expect(scaleCantripDamage('1d8', 11)).toBe('3d8');
+    expect(scaleCantripDamage('1d8', 17)).toBe('4d8');
+  });
+});
+
+test('cantrip damage uses class level for scaling in table', async () => {
+  render(
+    <PlayerTurnActions
+      form={{
+        diceColor: '#000000',
+        weapon: [],
+        spells: [
+          {
+            name: 'Fire Bolt',
+            level: 0,
+            damage: '1d10',
+            castingTime: '1 action',
+            range: '120 ft',
+            duration: 'Instantaneous',
+            classes: ['Wizard'],
+          },
+        ],
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      strMod={0}
+      atkBonus={0}
+      dexMod={0}
+    />
+  );
+
+  act(() => {
+    fireEvent.click(screen.getByTitle('Attack'));
+  });
+
+  expect(await screen.findByText('2d10')).toBeInTheDocument();
 });
 
 describe('PlayerTurnActions critical events', () => {

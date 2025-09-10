@@ -453,6 +453,7 @@ module.exports = (router) => {
       body('spells.*.castingTime').optional().isString(),
       body('spells.*.range').optional().isString(),
       body('spells.*.duration').optional().isString(),
+      body('spells.*.classes').optional().isArray(),
       body('spellPoints').optional().isInt().toInt(),
     ],
     handleValidationErrors,
