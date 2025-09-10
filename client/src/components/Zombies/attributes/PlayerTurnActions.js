@@ -333,21 +333,30 @@ const showSparklesEffect = () => {
   return (
     <div>
       <div
-        id="damageAmount"
-        ref={damageRef}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
-        style={{ margin: "0 auto" }}
-        onClick={handleDamageClick}
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '10px'
+        }}
       >
-        <span
-          id="damageValue"
-          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+        <div
+          id="damageAmount"
+          ref={damageRef}
+          className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
+          onClick={handleDamageClick}
         >
-          {damageValue}
-        </span>
-        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+          <span
+            id="damageValue"
+            className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+          >
+            {damageValue}
+          </span>
+          <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+        </div>
+        <div className="bonus-action-slot" aria-label="bonus action">B</div>
       </div>
-      
+
       <div
         style={{
           display: 'flex',

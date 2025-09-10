@@ -22,6 +22,8 @@ Example gif is listed below:
 
 ![Example](./client/public/images/Gif-for-Dnd.gif)
 
+During a player's turn, the interface provides an Attack button and a **Bonus Action** slot labeled "B" next to the damage display for quick access to bonus actions.
+
 ## Deployment
 
 Run `npm run build` to generate the production build of the client. The `npm start` script runs this build step before launching the server so deployments always serve the latest assets from `client/build`.

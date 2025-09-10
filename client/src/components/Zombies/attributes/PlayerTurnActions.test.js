@@ -1,5 +1,7 @@
 import React from 'react';
 import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
+import fs from 'fs';
+import path from 'path';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
 
 const { calculateDamage } = PlayerTurnActionsModule;
@@ -280,5 +282,24 @@ describe('cantrip scaling', () => {
   test('uses 4d10 at level 17', async () => {
     const value = await renderAndCast(17);
     expect(value).toBe('4');
+  });
+});
+
+describe('PlayerTurnActions bonus action slot', () => {
+  test('renders bonus action slot with triangle', () => {
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+
+    const bonus = screen.getByText('B');
+    expect(bonus).toBeInTheDocument();
+    const cssPath = path.resolve(__dirname, '../../../App.scss');
+    const cssContent = fs.readFileSync(cssPath, 'utf8');
+    expect(cssContent.includes('.bonus-action-slot::after')).toBe(true);
   });
 });

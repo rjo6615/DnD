@@ -476,6 +476,42 @@ $rotateX: -$angle;
   background-size: 70px;
 }
 
+.bonus-action-slot {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #228B22;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 0 6px orange;
+  animation: orangeGlow 2s ease-in-out infinite;
+  transform: rotate(-20deg);
+}
+
+.bonus-action-slot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 10px solid orange;
+}
+
+@keyframes orangeGlow {
+  0% { box-shadow: 0 0 6px orange; }
+  50% { box-shadow: 0 0 12px orange; }
+  100% { box-shadow: 0 0 6px orange; }
+}
+
 #damageAmount.critical-active {
   border: 2px solid #FFD700;
   color: #FFD700;
