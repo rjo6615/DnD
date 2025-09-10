@@ -262,17 +262,16 @@ useEffect(() => {
     return () => clearTimeout(timer);
   }
 }, [loading]);
-//-------------------------------------------Dice Roller-----------------------------------------------
-const [dieType, setDieType] = useState('d20');
-const sides = dieType === 'd4' ? 4 : 20;
-const initialSide = 1;
+//-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
+const [sides] = useState(20);
+const [initialSide] = useState(1);
 const [timeoutId, setTimeoutId] = useState(null);
 const [animationDuration] = useState('3000ms');
 const [activeFace, setActiveFace] = useState(null);
 const [rolling, setRolling] = useState(false);
+const face = Math.floor(Math.random() * sides) + initialSide;
 
 const randomFace = () => {
-  const face = Math.floor(Math.random() * sides) + initialSide;
   return face === activeFace ? randomFace() : face;
 };
 
@@ -280,57 +279,50 @@ const rollTo = (face) => {
   clearTimeout(timeoutId);
   setActiveFace(face);
   setRolling(false);
-  if (face === sides || face === 1) {
-    showSparklesEffect(face);
+
+  if (face === 20 || face === 1) {
+    showSparklesEffect({ x: 100 / 2, y: 100 / 2 });
     setTimeout(() => {
-      showSparklesEffect(face);
+      showSparklesEffect();
     }, 5000);
   }
 };
 
 const handleRandomizeClick = (e) => {
-  e.preventDefault();
+  e.preventDefault(); // Prevent page refresh
   setRolling(true);
   clearTimeout(timeoutId);
+
   const newTimeoutId = setTimeout(() => {
     setRolling(false);
     rollTo(randomFace());
   }, parseInt(animationDuration, 10));
+
   setTimeoutId(newTimeoutId);
 };
 
 useEffect(() => {
+  // Cleanup effect
   return () => clearTimeout(timeoutId);
 }, [timeoutId]);
 
-const renderDieFaces = (sides) => {
-  const faces = [];
-  for (let i = 1; i <= sides; i++) {
-    faces.push(<figure className={`face face-${i}`} key={i}></figure>);
-  }
-  return faces;
-};
-
-const changeDie = (type) => {
-  if (rolling) {
-    clearTimeout(timeoutId);
-  }
-  setRolling(false);
-  setActiveFace(null);
-  setDieType(type);
-};
-
+const faceElements = [];
+for (let i = 1; i <= 20; i++) {
+  faceElements.push(
+    <figure className={`face face-${i}`} key={i}></figure>
+  );
+}
 const [showSparkles, setShowSparkles] = useState(false);
 const [showSparkles1, setShowSparkles1] = useState(false);
 
 // Create a function to display sparkles
-const showSparklesEffect = (faceValue) => {
-  if (faceValue === sides) {
+const showSparklesEffect = () => {
+  if (face === 20) {
     setShowSparkles(true);
     setTimeout(() => {
       setShowSparkles(false);
     }, 2000);
-  } else if (faceValue === 1) {
+  } else if (face === 1) {
     setShowSparkles1(true);
     setTimeout(() => {
       setShowSparkles1(false);
@@ -391,20 +383,17 @@ const showSparklesEffect = (faceValue) => {
             justifyContent: 'center'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <button aria-label="previous die" onClick={() => changeDie('d4')}>&lt;</button>
-            <div className="content">
-              {showSparkles && <div className="sparkle"></div>}
-              {showSparkles1 && <div className="sparkle1"></div>}
-              <div
-                onClick={handleRandomizeClick}
-                className={`die ${dieType} ${rolling ? 'rolling' : ''}`}
-                data-face={activeFace}
-              >
-                {renderDieFaces(sides)}
-              </div>
-            </div>
-            <button aria-label="next die" onClick={() => changeDie('d20')}>&gt;</button>
+          <div className="content">
+            {showSparkles && (
+              <div className="sparkle"></div>
+            )}
+            {showSparkles1 && (
+              <div className="sparkle1"></div>
+            )}
+            <div onClick={handleRandomizeClick}
+    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
+      {faceElements}
+    </div>
           </div>
         </div>
       </div>
