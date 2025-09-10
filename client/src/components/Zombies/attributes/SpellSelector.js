@@ -79,6 +79,17 @@ export default function SpellSelector({
 }) {
   const params = useParams();
 
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce(
+            (total, el) => total + Number(el.Level),
+            0
+          )
+        : 0,
+    [form.occupation]
+  );
+
   const getAvailableLevels = useCallback((effectiveLevel, casterProgression) => {
     const slotRow = SLOT_TABLE[effectiveLevel] || [];
     const options = [];
@@ -157,6 +168,22 @@ export default function SpellSelector({
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
 
+  const getScaledDamage = useCallback(
+    (spell) => {
+      let dmg = spell.damage;
+      if (spell.scaling) {
+        const tiers = Object.keys(spell.scaling)
+          .map(Number)
+          .sort((a, b) => a - b);
+        tiers.forEach((tier) => {
+          if (totalLevel >= tier) dmg = spell.scaling[tier];
+        });
+      }
+      return dmg;
+    },
+    [totalLevel]
+  );
+
   const handleUpcastSelect = (level) => {
     if (!pendingSpell) return;
     const diff = level - (pendingSpell.level || 0);
@@ -170,9 +197,10 @@ export default function SpellSelector({
         };
       }
     }
+    const damage = getScaledDamage(pendingSpell);
     onCastSpell?.({
       level,
-      damage: pendingSpell.damage,
+      damage,
       extraDice: extra,
       levelsAbove: diff > 0 ? diff : 0,
     });
@@ -477,9 +505,10 @@ export default function SpellSelector({
                                       setPendingSpell(spell);
                                       setShowUpcast(true);
                                     } else {
+                                      const damage = getScaledDamage(spell);
                                       onCastSpell?.({
                                         level: spell.level,
-                                        damage: spell.damage,
+                                        damage,
                                       });
                                       handleClose();
                                     }
@@ -595,9 +624,10 @@ export default function SpellSelector({
                                       setPendingSpell(spell);
                                       setShowUpcast(true);
                                     } else {
+                                      const damage = getScaledDamage(spell);
                                       onCastSpell?.({
                                         level: spell.level,
-                                        damage: spell.damage,
+                                        damage,
                                       });
                                       handleClose();
                                     }
