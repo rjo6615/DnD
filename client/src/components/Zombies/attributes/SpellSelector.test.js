@@ -57,7 +57,21 @@ const spellsData = {
     damage: '3d6',
     higherLevels:
       'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
+    scaling: { 5: '4d6', 11: '5d6', 17: '6d6' },
     classes: ['Sorcerer'],
+  },
+  'fire-bolt': {
+    name: 'Fire Bolt',
+    level: 0,
+    school: 'Evocation',
+    castingTime: '1 action',
+    range: '120 feet',
+    components: [],
+    duration: 'Instantaneous',
+    description: '',
+    damage: '1d10',
+    scaling: { 5: '2d10', 11: '3d10', 17: '4d10' },
+    classes: ['Wizard'],
   },
 };
 
@@ -123,7 +137,7 @@ test('saves selected spells', async () => {
   render(
     <SpellSelector
       form={{
-        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        occupation: [{ Name: 'Sorcerer', Level: 5, casterProgression: 'full' }],
         spells: [],
       }}
       show={true}
@@ -132,7 +146,7 @@ test('saves selected spells', async () => {
     />
   );
   await screen.findByLabelText('Level');
-  await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
   const checkbox = (await screen.findAllByRole('checkbox'))[0];
   await userEvent.click(checkbox);
   await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
@@ -141,13 +155,16 @@ test('saves selected spells', async () => {
   expect(JSON.parse(lastCall[1].body)).toEqual({
     spells: [
       {
-        name: 'Fireball',
-        level: 3,
-        damage: '',
+        name: 'Burning Hands',
+        level: 1,
+        damage: '3d6',
         castingTime: '1 action',
-        range: '150 feet',
+        range: 'Self',
         duration: 'Instantaneous',
-        casterType: 'Wizard',
+        casterType: 'Sorcerer',
+        higherLevels:
+          'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
+        scaling: { 5: '4d6', 11: '5d6', 17: '6d6' },
       },
     ],
     spellPoints: 13,
@@ -156,13 +173,16 @@ test('saves selected spells', async () => {
     expect(onChange).toHaveBeenCalledWith(
       [
         {
-          name: 'Fireball',
-          level: 3,
-          damage: '',
+          name: 'Burning Hands',
+          level: 1,
+          damage: '3d6',
           castingTime: '1 action',
-          range: '150 feet',
+          range: 'Self',
           duration: 'Instantaneous',
-          casterType: 'Wizard',
+          casterType: 'Sorcerer',
+          higherLevels:
+            'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.',
+          scaling: { 5: '4d6', 11: '5d6', 17: '6d6' },
         },
       ],
       13
@@ -220,9 +240,69 @@ test('uses Occupation when Name is missing', async () => {
           range: '150 feet',
           duration: 'Instantaneous',
           casterType: 'Wizard',
+          higherLevels: undefined,
+          scaling: undefined,
         },
       ],
       13
+    )
+  );
+});
+
+test('saves cantrip with scaling data', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+  const onChange = jest.fn();
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Wizard', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      onSpellsChange={onChange}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '0');
+  const checkbox = (await screen.findAllByRole('checkbox'))[0];
+  await userEvent.click(checkbox);
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
+  const lastCall = apiFetch.mock.calls[2];
+  expect(JSON.parse(lastCall[1].body)).toEqual({
+    spells: [
+      {
+        name: 'Fire Bolt',
+        level: 0,
+        damage: '1d10',
+        castingTime: '1 action',
+        range: '120 feet',
+        duration: 'Instantaneous',
+        casterType: 'Wizard',
+        scaling: { 5: '2d10', 11: '3d10', 17: '4d10' },
+      },
+    ],
+    spellPoints: 3,
+  });
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [
+        {
+          name: 'Fire Bolt',
+          level: 0,
+          damage: '1d10',
+          castingTime: '1 action',
+          range: '120 feet',
+          duration: 'Instantaneous',
+          casterType: 'Wizard',
+          higherLevels: undefined,
+          scaling: { 5: '2d10', 11: '3d10', 17: '4d10' },
+        },
+      ],
+      3
     )
   );
 });

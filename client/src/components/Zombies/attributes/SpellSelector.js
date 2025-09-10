@@ -343,6 +343,8 @@ export default function SpellSelector({
           range: info.range || '',
           duration: info.duration || '',
           casterType: casters[name] || info.classes?.[0] || '',
+          higherLevels: info.higherLevels,
+          scaling: info.scaling,
         };
       });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
