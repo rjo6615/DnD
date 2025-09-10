@@ -202,13 +202,12 @@
 }
 
 .bonus-slot .bonus-triangle {
-  width: 0;
-  height: 0;
+  width: 20px;
+  height: 20px;
   margin: 20px auto 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 20px solid #ffc107;
-  box-shadow: 0 0 5px #ffc107, 0 0 10px #ffc107;
+  background: #ffc107;
+  clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  filter: drop-shadow(0 0 5px #ffc107) drop-shadow(0 0 10px #ffc107);
 }
 
 .text-center {
