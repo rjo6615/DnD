@@ -128,6 +128,37 @@ test('cast button disabled until spell checked and then calls onCastSpell', asyn
   expect(onCast).toHaveBeenCalledWith({ level: 3, damage: undefined });
 });
 
+test.each([
+  [1, '1d10'],
+  [5, '2d10'],
+  [11, '3d10'],
+  [17, '4d10'],
+])('cantrip damage scales with total level %i', async (lvl, dmg) => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  const onCast = jest.fn();
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Wizard', Level: lvl, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      onCastSpell={onCast}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '0');
+  const row = await screen.findByText('Fire Bolt');
+  const rowEl = row.closest('tr');
+  await userEvent.click(within(rowEl).getByRole('checkbox'));
+  const castBtn = within(rowEl).getAllByRole('button')[1];
+  await userEvent.click(castBtn);
+  expect(onCast).toHaveBeenCalledWith({ level: 0, damage: dmg });
+});
+
 test('saves selected spells', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
@@ -361,7 +392,7 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Cast' }));
   expect(onCast).toHaveBeenCalledWith({
     level: 3,
-    damage: '3d6',
+    damage: '4d6',
     extraDice: { count: 1, sides: 6 },
     levelsAbove: 2,
   });
