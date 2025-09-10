@@ -213,6 +213,11 @@
   cursor: pointer;
 }
 
+.bonus-slot .slot-active {
+  background: transparent;
+  box-shadow: none;
+}
+
 .action-circle.slot-used {
   background: transparent;
   box-shadow: none;
