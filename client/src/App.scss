@@ -205,13 +205,11 @@
 .bonus-slot { overflow: visible; }
 
 .bonus-slot .bonus-triangle {
-  width: 20px;
-  height: 20px;
-  margin: 20px auto 0;
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  background: #ffc107;
-  border: 1px solid #fff;
-  box-shadow: 0 0 5px #ffa500, 0 0 10px #ffa500;
+  width: 0; height: 0; margin: 20px auto 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 20px solid #ffc107;
+  filter: drop-shadow(0 0 5px #ffa500) drop-shadow(0 0 10px #ffa500);
   cursor: pointer;
 }
 
@@ -221,8 +219,8 @@
 }
 
 .bonus-triangle.slot-used {
-  background: transparent;
-  box-shadow: none;
+  border-bottom-color: transparent;
+  filter: none;
 }
 
 .text-center {
