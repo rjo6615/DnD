@@ -56,8 +56,11 @@ test('fetches items and toggles ownership', async () => {
 });
 
 test('shows error message when item fetch fails', async () => {
+  const err = new Error('500 Server Error');
+  err.status = 500;
+  err.statusText = 'Server Error';
   apiFetch
-    .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error' })
+    .mockRejectedValueOnce(err)
     .mockResolvedValueOnce({ ok: true, json: async () => [] });
 
   render(<ItemList campaign="Camp1" />);

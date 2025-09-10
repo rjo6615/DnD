@@ -413,7 +413,7 @@ test('pass-turn event resets action and bonus usage', async () => {
   window.dispatchEvent(new Event('pass-turn'));
 
   await waitFor(() => {
-    expect(action).toHaveClass('slot-active');
-    expect(bonus).toHaveClass('slot-active');
+    expect(action).not.toHaveClass('slot-used');
+    expect(bonus).not.toHaveClass('slot-used');
   });
 });
