@@ -190,15 +190,15 @@
 .bonus-slot .slot-boxes {
   padding-top: 20px;
   display: grid;
-  grid-template-columns: repeat(2, 20px);
-  grid-template-rows: repeat(2, 20px);
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
   gap: 2px;
   justify-content: center;
 }
 
 .action-slot .action-circle {
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
   border: 1px solid #fff;
   border-radius: 50%;
   background: #28a745;
@@ -209,8 +209,8 @@
 .bonus-slot { overflow: visible; }
 
 .bonus-slot .bonus-circle {
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
   border: 1px solid #fff;
   border-radius: 50%;
   background: #ffa500;
