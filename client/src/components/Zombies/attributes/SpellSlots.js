@@ -87,7 +87,7 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
           <div
-            className={`bonus-circle ${used.bonus ? 'slot-used' : 'slot-active'}`}
+            className={`bonus-triangle ${used.bonus ? 'slot-used' : 'slot-active'}`}
             onClick={() => onToggleSlot && onToggleSlot('bonus')}
           />
         </div>
