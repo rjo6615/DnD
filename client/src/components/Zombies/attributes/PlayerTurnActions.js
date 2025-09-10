@@ -445,6 +445,7 @@ const showSparklesEffect = () => {
                   <thead>
                     <tr>
                       <th>Spell Name</th>
+                      <th>Class</th>
                       <th>Level</th>
                       <th>Damage</th>
                       <th>Casting Time</th>
@@ -459,6 +460,7 @@ const showSparklesEffect = () => {
                       .map((spell, idx) => (
                         <tr key={idx}>
                           <td>{spell.name}</td>
+                          <td>{spell.casterType || spell.caster || 'Unknown'}</td>
                           <td>{spell.level}</td>
                           <td>{spell.damage}</td>
                           <td>{spell.castingTime}</td>
