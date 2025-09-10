@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 jest.mock('../../../utils/apiFetch');
@@ -376,4 +376,44 @@ test('consumes higher-level slot when upcasting', async () => {
 
   const groupAfter = container.querySelector('[data-slot-type="regular"][data-slot-level="2"]');
   expect(groupAfter.querySelectorAll('.slot-used')).toHaveLength(1);
+});
+
+test('pass-turn event resets action and bonus usage', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  const action = container.querySelector('.action-circle');
+  const bonus = container.querySelector('.bonus-triangle');
+  fireEvent.click(action);
+  fireEvent.click(bonus);
+  expect(action).toHaveClass('slot-used');
+  expect(bonus).toHaveClass('slot-used');
+
+  window.dispatchEvent(new Event('pass-turn'));
+
+  await waitFor(() => {
+    expect(action).toHaveClass('slot-active');
+    expect(bonus).toHaveClass('slot-active');
+  });
 });

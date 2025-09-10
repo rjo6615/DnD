@@ -78,12 +78,18 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
-            <div className="action-circle" />
+            <div
+              className={`action-circle ${used.action ? 'slot-used' : 'slot-active'}`}
+              onClick={() => onToggleSlot && onToggleSlot('action')}
+            />
           </div>
         </div>
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
-          <div className="bonus-triangle" />
+          <div
+            className={`bonus-triangle ${used.bonus ? 'slot-used' : 'slot-active'}`}
+            onClick={() => onToggleSlot && onToggleSlot('bonus')}
+          />
         </div>
         {renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}

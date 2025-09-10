@@ -13,7 +13,7 @@ function NavbarComponent() {
   };
 
   const handlePass = () => {
-    // Placeholder for future pass-turn logic
+    window.dispatchEvent(new Event('pass-turn'));
   };
 
   return (

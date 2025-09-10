@@ -54,7 +54,7 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
-  const [usedSlots, setUsedSlots] = useState({});
+  const [usedSlots, setUsedSlots] = useState({ action: false, bonus: false });
 
   const playerTurnActionsRef = useRef(null);
 
@@ -63,18 +63,25 @@ export default function ZombiesCharacterSheet() {
   const [navHeight, setNavHeight] = useState(0);
 
   useEffect(() => {
-    setUsedSlots({});
+    setUsedSlots({ action: false, bonus: false });
   }, [longRestCount]);
 
   useEffect(() => {
     setUsedSlots((prev) => {
-      const updated = { ...prev };
+      const updated = { action: false, bonus: false, ...prev };
       Object.keys(updated).forEach((key) => {
         if (key.startsWith('warlock-')) delete updated[key];
       });
       return updated;
     });
   }, [shortRestCount]);
+
+  useEffect(() => {
+    const handler = () =>
+      setUsedSlots((prev) => ({ ...prev, action: false, bonus: false }));
+    window.addEventListener('pass-turn', handler);
+    return () => window.removeEventListener('pass-turn', handler);
+  }, []);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -172,6 +179,10 @@ export default function ZombiesCharacterSheet() {
 
   const handleCastSpell = useCallback(
     (arg, lvl, idx) => {
+      if (arg === 'action' || arg === 'bonus') {
+        setUsedSlots((prev) => ({ ...prev, [arg]: !prev[arg] }));
+        return;
+      }
       const consumeSlot = (level, preferredType) => {
         const occupations = form?.occupation || [];
         let casterLevel = 0;
