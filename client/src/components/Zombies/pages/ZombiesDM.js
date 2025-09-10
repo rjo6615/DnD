@@ -230,7 +230,11 @@ const [form2, setForm2] = useState({
           format: zodTextFormat(WeaponSchema, "weapon"),
         },
       });
-      const weapon = response.output_parsed;
+      const weapon = response.output?.[0]?.content?.[0]?.parsed;
+      if (!weapon) {
+        setStatus({ type: 'danger', message: 'Failed to generate weapon' });
+        return;
+      }
       updateForm2({
         name: weapon.name || "",
         type: weapon.type || "",
