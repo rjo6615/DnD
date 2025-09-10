@@ -52,6 +52,21 @@ describe('calculateDamage parser', () => {
   });
 });
 
+describe('PlayerTurnActions layout', () => {
+  test('renders bonus action indicator', () => {
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+
+    expect(document.querySelector('.bonus-action-indicator')).toBeInTheDocument();
+  });
+});
+
 describe('PlayerTurnActions critical events', () => {
   test('damage-roll event toggles classes on damageAmount', () => {
     jest.useFakeTimers();

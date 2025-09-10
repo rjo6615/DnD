@@ -374,6 +374,7 @@ const showSparklesEffect = () => {
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             title="Attack"
           />
+          <div className="bonus-action-indicator"></div>
         </div>
         <div
           style={{
