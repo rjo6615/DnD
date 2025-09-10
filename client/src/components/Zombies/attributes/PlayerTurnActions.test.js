@@ -1,6 +1,8 @@
 import React from 'react';
-import { render, act, fireEvent, screen, within } from '@testing-library/react';
-import PlayerTurnActions, { calculateDamage } from './PlayerTurnActions';
+import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
+import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+
+const { calculateDamage } = PlayerTurnActionsModule;
 
 describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
@@ -37,6 +39,16 @@ describe('calculateDamage parser', () => {
 
   test('flat damage ignores crit flag', () => {
     expect(calculateDamage('100', 0, true, fixedRoll)).toBe(100);
+  });
+
+  test('adds extra dice for levels above', () => {
+    const extra = { count: 1, sides: 4 };
+    expect(calculateDamage('1d4', 0, false, fixedRoll, extra, 2)).toBe(3);
+  });
+
+  test('doubles extra dice on a critical hit', () => {
+    const extra = { count: 1, sides: 4 };
+    expect(calculateDamage('1d4', 0, true, fixedRoll, extra, 2)).toBe(6);
   });
 });
 
@@ -208,5 +220,65 @@ describe('PlayerTurnActions spell casting', () => {
       (row) => within(row).getAllByRole('cell')[0].textContent
     );
     expect(names).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
+  });
+});
+
+describe('cantrip scaling', () => {
+  const baseSpell = {
+    name: 'Fire Bolt',
+    level: 0,
+    damage: '1d10',
+    scaling: { 5: '2d10', 11: '3d10', 17: '4d10' },
+    castingTime: '1 action',
+    range: '120 feet',
+    duration: 'Instantaneous',
+    casterType: 'Wizard',
+  };
+
+  const renderAndCast = async (lvl) => {
+    const orig = Math.random;
+    Math.random = () => 0; // always roll minimum = 1
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          weapon: [],
+          spells: [{ ...baseSpell }],
+          occupation: [{ Level: lvl }],
+        }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    const text = document.getElementById('damageValue').textContent;
+    Math.random = orig;
+    return text;
+  };
+
+  test('uses 2d10 at level 5', async () => {
+    const value = await renderAndCast(5);
+    expect(value).toBe('2');
+  });
+
+  test('uses 3d10 at level 11', async () => {
+    const value = await renderAndCast(11);
+    expect(value).toBe('3');
+  });
+
+  test('uses 4d10 at level 17', async () => {
+    const value = await renderAndCast(17);
+    expect(value).toBe('4');
   });
 });

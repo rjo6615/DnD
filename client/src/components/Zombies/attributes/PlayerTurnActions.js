@@ -6,6 +6,7 @@ import React, {
   useMemo,
 } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
+import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -24,7 +25,14 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
-export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
+export function calculateDamage(
+  damageString,
+  ability = 0,
+  crit = false,
+  roll = rollDice,
+  extraDice,
+  levelsAbove = 0
+) {
   const cleanString = damageString.split(' ')[0];
   const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
   if (!match) {
@@ -47,10 +55,22 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
   let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
 
+  // Roll any extra dice from upcasting
+  if (extraDice && levelsAbove > 0) {
+    const totalExtra = extraDice.count * levelsAbove;
+    const extraRolls = roll(totalExtra, extraDice.sides);
+    damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+  }
+
   // On a critical hit, roll an additional set of dice and add to the total
   if (crit) {
     const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
     damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+    if (extraDice && levelsAbove > 0) {
+      const totalExtra = extraDice.count * levelsAbove;
+      const critExtra = roll(totalExtra, extraDice.sides);
+      damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+    }
   }
 
   // Add numeric modifier and ability modifier once
@@ -59,7 +79,15 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
 
 const PlayerTurnActions = React.forwardRef(
   (
-    { form, strMod, atkBonus, dexMod, headerHeight = 0, onCastSpell },
+    {
+      form,
+      strMod,
+      atkBonus,
+      dexMod,
+      headerHeight = 0,
+      onCastSpell,
+      availableSlots = { regular: {}, warlock: {} },
+    },
     ref
   ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
@@ -101,13 +129,57 @@ const [isFumble, setIsFumble] = useState(false);
     updateDamageValueWithAnimation(damageValue);
   };
 
-const handleSpellsButtonClick = (spell, crit = false) => {
-  if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
-  if (damageValue === null) return;
-  updateDamageValueWithAnimation(damageValue);
-  onCastSpell?.(spell.level);
-};
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
+
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce((total, el) => total + Number(el.Level), 0)
+        : 0,
+    [form.occupation]
+  );
+
+  const applyUpcast = (spell, level, crit, slotType) => {
+    const diff = level - (spell.level || 0);
+    let extra;
+    if (diff > 0 && spell.higherLevels) {
+      const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
+      if (incMatch) {
+        extra = {
+          count: parseInt(incMatch[1], 10),
+          sides: parseInt(incMatch[2], 10),
+        };
+      }
+    }
+    if (spell.scaling) {
+      if (totalLevel >= 17 && spell.scaling[17]) spell.damage = spell.scaling[17];
+      else if (totalLevel >= 11 && spell.scaling[11]) spell.damage = spell.scaling[11];
+      else if (totalLevel >= 5 && spell.scaling[5]) spell.damage = spell.scaling[5];
+    }
+    const value = calculateDamage(
+      spell.damage,
+      0,
+      crit || isCritical,
+      rollDice,
+      extra,
+      diff > 0 ? diff : 0
+    );
+    if (value === null) return;
+    updateDamageValueWithAnimation(value);
+    if (slotType) onCastSpell?.(slotType, level);
+    else onCastSpell?.(level);
+  };
+
+  const handleSpellsButtonClick = (spell, crit = false) => {
+    if (!spell?.damage) return;
+    if (spell.higherLevels) {
+      setPendingSpell({ spell, crit: crit || isCritical });
+      setShowUpcast(true);
+      return;
+    }
+    applyUpcast(spell, spell.level, crit || isCritical);
+  };
 
 const handleDamageClick = () => {
   setIsCritical((prev) => !prev);
@@ -418,6 +490,19 @@ const showSparklesEffect = () => {
             </Card.Footer>
         </Card>
       </Modal>
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => setShowUpcast(false)}
+        baseLevel={pendingSpell?.spell?.level}
+        slots={availableSlots}
+        onSelect={(lvl, type) => {
+          if (pendingSpell) {
+            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit, type);
+            setPendingSpell(null);
+          }
+          setShowUpcast(false);
+        }}
+      />
     </div>
   );
 });

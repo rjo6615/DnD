@@ -51,6 +51,8 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
           <div
             key={`${type}-${lvl}`}
             className={`spell-slot ${type === 'warlock' ? 'warlock-slot' : ''}`}
+            data-slot-type={type}
+            data-slot-level={lvl}
           >
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
@@ -59,6 +61,7 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
                 return (
                   <div
                     key={i}
+                    data-slot-index={i}
                     className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
                     onClick={() => onToggleSlot && onToggleSlot(type, lvl, i)}
                   />

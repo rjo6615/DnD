@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
+import UpcastModal from './UpcastModal';
 
 /**
  * Modal component allowing users to select spells for their character.
@@ -74,8 +75,20 @@ export default function SpellSelector({
   handleClose,
   onSpellsChange,
   onCastSpell,
+  availableSlots = { regular: {}, warlock: {} },
 }) {
   const params = useParams();
+
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce(
+            (total, el) => total + Number(el.Level),
+            0
+          )
+        : 0,
+    [form.occupation]
+  );
 
   const getAvailableLevels = useCallback((effectiveLevel, casterProgression) => {
     const slotRow = SLOT_TABLE[effectiveLevel] || [];
@@ -152,6 +165,50 @@ export default function SpellSelector({
   const [error, setError] = useState(null);
   const [viewSpell, setViewSpell] = useState(null);
   const [spellsKnown, setSpellsKnown] = useState({});
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
+
+  const getScaledDamage = useCallback(
+    (spell) => {
+      let dmg = spell.damage;
+      if (spell.scaling) {
+        const tiers = Object.keys(spell.scaling)
+          .map(Number)
+          .sort((a, b) => a - b);
+        tiers.forEach((tier) => {
+          if (totalLevel >= tier) dmg = spell.scaling[tier];
+        });
+      }
+      return dmg;
+    },
+    [totalLevel]
+  );
+
+  const handleUpcastSelect = (level, slotType) => {
+    if (!pendingSpell) return;
+    const diff = level - (pendingSpell.level || 0);
+    let extra;
+    if (diff > 0 && pendingSpell.higherLevels) {
+      const incMatch = pendingSpell.higherLevels.match(/(\d+)d(\d+)/);
+      if (incMatch) {
+        extra = {
+          count: parseInt(incMatch[1], 10),
+          sides: parseInt(incMatch[2], 10),
+        };
+      }
+    }
+    const damage = getScaledDamage(pendingSpell);
+    onCastSpell?.({
+      level,
+      damage,
+      extraDice: extra,
+      levelsAbove: diff > 0 ? diff : 0,
+      slotType,
+    });
+    setShowUpcast(false);
+    setPendingSpell(null);
+    handleClose();
+  };
 
   const chaMod = useMemo(() => {
     const itemBonus = (form.item || []).reduce(
@@ -315,6 +372,8 @@ export default function SpellSelector({
           range: info.range || '',
           duration: info.duration || '',
           casterType: casters[name] || info.classes?.[0] || '',
+          higherLevels: info.higherLevels,
+          scaling: info.scaling,
         };
       });
       const res = await apiFetch(`/characters/${params.id}/spells`, {
@@ -443,11 +502,17 @@ export default function SpellSelector({
                                   disabled={!isSelected}
                                   className={!isSelected ? 'text-secondary' : ''}
                                   onClick={() => {
-                                    onCastSpell?.({
-                                      level: spell.level,
-                                      damage: spell.damage,
-                                    });
-                                    handleClose();
+                                    if (spell.higherLevels) {
+                                      setPendingSpell(spell);
+                                      setShowUpcast(true);
+                                    } else {
+                                      const damage = getScaledDamage(spell);
+                                      onCastSpell?.({
+                                        level: spell.level,
+                                        damage,
+                                      });
+                                      handleClose();
+                                    }
                                   }}
                                 >
                                   <i className="fa-solid fa-wand-sparkles" />
@@ -556,11 +621,17 @@ export default function SpellSelector({
                                   disabled={!isSelected}
                                   className={!isSelected ? 'text-secondary' : ''}
                                   onClick={() => {
-                                    onCastSpell?.({
-                                      level: spell.level,
-                                      damage: spell.damage,
-                                    });
-                                    handleClose();
+                                    if (spell.higherLevels) {
+                                      setPendingSpell(spell);
+                                      setShowUpcast(true);
+                                    } else {
+                                      const damage = getScaledDamage(spell);
+                                      onCastSpell?.({
+                                        level: spell.level,
+                                        damage,
+                                      });
+                                      handleClose();
+                                    }
                                   }}
                                 >
                                   <i className="fa-solid fa-wand-sparkles" />
@@ -611,6 +682,17 @@ export default function SpellSelector({
           </Card.Footer>
         </Card>
       </Modal>
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => {
+          setShowUpcast(false);
+          setPendingSpell(null);
+        }}
+        baseLevel={pendingSpell?.level}
+        slots={availableSlots}
+        higherLevels={pendingSpell?.higherLevels}
+        onSelect={handleUpcastSelect}
+      />
     </>
   );
 }

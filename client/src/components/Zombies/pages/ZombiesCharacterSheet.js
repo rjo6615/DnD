@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
@@ -172,7 +172,7 @@ export default function ZombiesCharacterSheet() {
 
   const handleCastSpell = useCallback(
     (arg, lvl, idx) => {
-      const consumeSlot = (level) => {
+      const consumeSlot = (level, preferredType) => {
         const occupations = form?.occupation || [];
         let casterLevel = 0;
         let warlockLevel = 0;
@@ -208,19 +208,48 @@ export default function ZombiesCharacterSheet() {
           });
           return true;
         };
+        if (preferredType === 'warlock') {
+          if (tryConsume('warlock', warlockData)) return;
+          tryConsume('regular', slotData);
+          return;
+        }
+        if (preferredType === 'regular') {
+          if (tryConsume('regular', slotData)) return;
+          tryConsume('warlock', warlockData);
+          return;
+        }
         if (tryConsume('regular', slotData)) return;
         tryConsume('warlock', warlockData);
       };
 
       if (typeof arg === 'object') {
-        const { level, damage } = arg;
-        consumeSlot(level);
-        const result = damage ? calculateDamage(damage) : 'Spell Cast';
+        const { level, damage, extraDice, levelsAbove, slotLevel, slotType } = arg;
+        const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
+        consumeSlot(castLevel, slotType);
+        let result;
+        if (typeof damage === 'number') {
+          result = damage;
+        } else {
+          result = damage
+            ? calculateDamage(
+                damage,
+                0,
+                false,
+                undefined,
+                extraDice,
+                levelsAbove
+              )
+            : 'Spell Cast';
+        }
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
         return;
       }
       if (typeof lvl === 'undefined') {
         consumeSlot(arg);
+        return;
+      }
+      if (typeof idx === 'undefined') {
+        consumeSlot(lvl, arg);
         return;
       }
       const type = arg;
@@ -233,6 +262,47 @@ export default function ZombiesCharacterSheet() {
     },
     [form]
   );
+
+  const availableSlots = useMemo(() => {
+    if (!form) return {};
+    const occupations = form.occupation || [];
+    let casterLevel = 0;
+    let warlockLevel = 0;
+    occupations.forEach((occ) => {
+      const name = (occ.Name || occ.Occupation || '').toLowerCase();
+      const level = Number(occ.Level) || 0;
+      if (name === 'warlock') {
+        warlockLevel += level;
+        return;
+      }
+      const progression = SPELLCASTING_CLASSES[name];
+      if (progression === 'full') {
+        casterLevel += level;
+      } else if (progression === 'half') {
+        casterLevel += level === 1 ? 0 : Math.ceil(level / 2);
+      }
+    });
+    const slotData = fullCasterSlots[casterLevel] || {};
+    const warlockData = pactMagic[warlockLevel] || {};
+
+    const regular = {};
+    Object.entries(slotData).forEach(([lvl, count]) => {
+      const used = Object.values(usedSlots[`regular-${lvl}`] || {}).filter(Boolean)
+        .length;
+      const left = count - used;
+      if (left > 0) regular[lvl] = left;
+    });
+
+    const warlock = {};
+    Object.entries(warlockData).forEach(([lvl, count]) => {
+      const used = Object.values(usedSlots[`warlock-${lvl}`] || {}).filter(Boolean)
+        .length;
+      const left = count - used;
+      if (left > 0) warlock[lvl] = left;
+    });
+
+    return { regular, warlock };
+  }, [form, usedSlots]);
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -514,6 +584,7 @@ return (
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
       onCastSpell={handleCastSpell}
+      availableSlots={availableSlots}
     />
     {hasSpellcasting && form && (
       <SpellSlots
@@ -735,6 +806,7 @@ return (
           setForm((prev) => ({ ...prev, spells, spellPoints }))
         }
         onCastSpell={handleCastSpell}
+        availableSlots={availableSlots}
       />
     )}
     <Help
