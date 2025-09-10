@@ -223,8 +223,8 @@ const [form2, setForm2] = useState({
         category: z.enum(weaponOptions.categories),
         damage: z.string(),
         properties: z.array(z.string()).optional(),
-        weight: z.string().optional(),
-        cost: z.string().optional(),
+        weight: z.number().optional(),
+        cost: z.number().optional(),
       });
 
       const response = await openai.responses.parse({
@@ -269,6 +269,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb2(){
     const weightNumber = form2.weight === "" ? undefined : Number(form2.weight);
+    const costNumber = form2.cost === "" ? undefined : Number(form2.cost);
     const newWeapon = {
       campaign: currentCampaign,
       name: form2.name,
@@ -277,7 +278,7 @@ const [form2, setForm2] = useState({
       damage: form2.damage,
       properties: form2.properties,
       weight: weightNumber,
-      cost: form2.cost,
+      cost: costNumber,
     };
     Object.keys(newWeapon).forEach((key) => {
       if (newWeapon[key] === "" || newWeapon[key] === undefined) {
@@ -710,13 +711,27 @@ const [form2, setForm2] = useState({
                 ))}
               </Form.Select>
 
-               <Form.Label className="text-light">Weight</Form.Label>
-               <Form.Control className="mb-2" value={form2.weight} onChange={(e) => updateForm2({ weight: e.target.value })}
-                type="text" placeholder="Enter weight" />
+              <Form.Label className="text-light">Weight</Form.Label>
+               <Form.Control
+                className="mb-2"
+                value={form2.weight}
+                onChange={(e) =>
+                  updateForm2({ weight: e.target.value === "" ? "" : Number(e.target.value) })
+                }
+                type="number"
+                placeholder="Enter weight"
+              />
 
                <Form.Label className="text-light">Cost</Form.Label>
-               <Form.Control className="mb-2" value={form2.cost} onChange={(e) => updateForm2({ cost: e.target.value })}
-                type="text" placeholder="Enter cost" />
+               <Form.Control
+                className="mb-2"
+                value={form2.cost}
+                onChange={(e) =>
+                  updateForm2({ cost: e.target.value === "" ? "" : Number(e.target.value) })
+                }
+                type="number"
+                placeholder="Enter cost"
+              />
 
             </Form.Group>
              <div className="text-center">
