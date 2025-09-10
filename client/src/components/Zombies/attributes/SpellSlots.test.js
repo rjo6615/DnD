@@ -51,7 +51,7 @@ test('renders action and bonus slots before regular slots', () => {
   expect(first.querySelector('.action-circle')).toBeTruthy();
   expect(second).toHaveClass('bonus-slot');
   expect(second.querySelector('.slot-level').textContent).toBe('B');
-  expect(second.querySelector('.bonus-triangle')).toBeTruthy();
+  expect(second.querySelector('.bonus-circle')).toBeTruthy();
 });
 
 test('warlock slots render after regular slots and have purple styling', () => {
@@ -96,7 +96,7 @@ test('action and bonus markers toggle and reflect usage', () => {
   );
   expect(container.querySelector('.action-circle')).toHaveClass('slot-used');
 
-  const bonus = container.querySelector('.bonus-triangle');
+  const bonus = container.querySelector('.bonus-circle');
   fireEvent.click(bonus);
   expect(onToggle).toHaveBeenNthCalledWith(2, 'bonus');
   rerender(
@@ -106,5 +106,5 @@ test('action and bonus markers toggle and reflect usage', () => {
       onToggleSlot={onToggle}
     />
   );
-  expect(container.querySelector('.bonus-triangle')).toHaveClass('slot-used');
+  expect(container.querySelector('.bonus-circle')).toHaveClass('slot-used');
 });

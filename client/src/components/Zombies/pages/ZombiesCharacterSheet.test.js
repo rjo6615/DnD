@@ -404,7 +404,7 @@ test('pass-turn event resets action and bonus usage', async () => {
   const { container } = render(<ZombiesCharacterSheet />);
   await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
   const action = container.querySelector('.action-circle');
-  const bonus = container.querySelector('.bonus-triangle');
+  const bonus = container.querySelector('.bonus-circle');
   fireEvent.click(action);
   fireEvent.click(bonus);
   expect(action).toHaveClass('slot-used');
