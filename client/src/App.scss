@@ -427,78 +427,6 @@ $rotateX: -$angle;
   }
 }
 
-@mixin dice-size-d4($containerWidth) {
-  $containerHeight: $containerWidth;
-  $faceWidth: calc(#{$containerWidth} * 0.5);
-  $faceHeight: calc(#{$faceWidth} * 0.86);
-  $translateZ: calc(#{$faceWidth} * 0.5);
-
-  .content-d4 {
-    margin: 0 auto;
-    position: relative;
-    width: $containerWidth;
-    height: $containerHeight;
-    perspective: 1500px;
-  }
-
-  .die-d4 {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    transition: transform $transitionDuration ease-out;
-    cursor: pointer;
-
-    &.rolling {
-      animation: roll-d4 $animationDuration linear;
-    }
-
-    .face {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      margin-left: calc(#{$faceWidth} * -0.5);
-      margin-top: calc(#{$faceHeight} * -1);
-      border-left: calc(#{$faceWidth} * 0.5) solid transparent;
-      border-right: calc(#{$faceWidth} * 0.5) solid transparent;
-      border-bottom: $faceHeight solid $color;
-      width: 0;
-      height: 0;
-      transform-style: preserve-3d;
-      backface-visibility: hidden;
-
-      counter-increment: steps 1;
-
-      &:before {
-        content: counter(steps);
-        position: absolute;
-        top: calc(#{$faceHeight} * -0.75);
-        left: calc(#{$faceWidth} * -0.5);
-        color: #fff;
-        text-shadow: 1px 1px 3px #000;
-        font-size: calc(#{$faceHeight} * 0.5);
-        text-align: center;
-        line-height: $faceHeight;
-        width: $faceWidth;
-        height: $faceHeight;
-      }
-    }
-
-    .face:nth-child(1) {
-      transform: rotateY(0deg) rotateX(60deg) translateZ($translateZ);
-    }
-    .face:nth-child(2) {
-      transform: rotateY(120deg) rotateX(60deg) translateZ($translateZ);
-    }
-    .face:nth-child(3) {
-      transform: rotateY(240deg) rotateX(60deg) translateZ($translateZ);
-    }
-    .face:nth-child(4) {
-      transform: rotateX(-60deg) translateY($faceHeight);
-    }
-  }
-}
-
 @keyframes roll {
   10% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) }
   30% { transform: rotateX(120deg) rotateY(240deg) rotateZ(0deg) translateX(40px) translateY(40px) }
@@ -507,20 +435,10 @@ $rotateX: -$angle;
   90% { transform: rotateX(480deg) rotateY(960deg) rotateZ(0deg) }
 }
 
-@keyframes roll-d4 {
-  10% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) }
-  30% { transform: rotateX(120deg) rotateY(240deg) rotateZ(0deg) translateX(20px) translateY(20px) }
-  50% { transform: rotateX(240deg) rotateY(480deg) rotateZ(0deg) translateX(-20px) translateY(-20px) }
-  70% { transform: rotateX(360deg) rotateY(720deg) rotateZ(0deg) }
-  90% { transform: rotateX(480deg) rotateY(960deg) rotateZ(0deg) }
-}
-
 @include dice-size(min(25vw, 120px));
-@include dice-size-d4(min(15vw, 60px));
 
 @media (max-height: 600px) {
   @include dice-size(min(20vw, 100px));
-  @include dice-size-d4(min(12vw, 50px));
 }
 
 // Damage display-------------------------------------------------------
