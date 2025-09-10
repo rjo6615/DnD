@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
+const toRoman = (n) => ['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1] || n;
+
 /**
  * Modal allowing the user to choose a spell slot level to cast a spell at.
  *
@@ -59,7 +61,7 @@ export default function UpcastModal({
           <p className="text-muted mb-2">{higherLevels}</p>
         )}
         {regularLevels.length > 0 && (
-          <div className="mb-2 d-flex flex-wrap gap-2">
+          <div className="mb-2 d-flex flex-wrap gap-2 justify-content-center">
             {regularLevels.map((lvl) => (
               <Button
                 key={`regular-${lvl}`}
@@ -71,13 +73,13 @@ export default function UpcastModal({
                 style={{ boxShadow: '0 0 10px #007bff' }}
                 onClick={() => setSelection({ level: lvl, type: 'regular' })}
               >
-                {`Level ${lvl}`}
+                {toRoman(lvl)}
               </Button>
             ))}
           </div>
         )}
         {warlockLevels.length > 0 && (
-          <div className="d-flex flex-wrap gap-2">
+          <div className="d-flex flex-wrap gap-2 justify-content-center">
             {warlockLevels.map((lvl) => (
               <Button
                 key={`warlock-${lvl}`}
@@ -89,7 +91,7 @@ export default function UpcastModal({
                 style={{ boxShadow: '0 0 10px #800080' }}
                 onClick={() => setSelection({ level: lvl, type: 'warlock' })}
               >
-                {`Level ${lvl}`}
+                {toRoman(lvl)}
               </Button>
             ))}
           </div>
