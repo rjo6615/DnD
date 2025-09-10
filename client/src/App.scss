@@ -186,6 +186,21 @@
   cursor: default;
 }
 
+.action-slot .slot-boxes {
+  padding-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.action-slot .action-circle {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #28a745;
+  box-shadow: 0 0 5px #28a745, 0 0 10px #28a745;
+}
+
 .text-center {
   text-align: center;
 }
