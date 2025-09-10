@@ -221,6 +221,42 @@ test('saves selected spells', async () => {
   );
 });
 
+test('UpcastModal returns warlock slot type', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ spellsKnown: 14 }) });
+  const onCast = jest.fn();
+  render(
+    <SpellSelector
+      form={{
+        occupation: [{ Name: 'Sorcerer', Level: 5, casterProgression: 'full' }],
+        spells: [],
+      }}
+      show={true}
+      handleClose={() => {}}
+      onCastSpell={onCast}
+      availableSlots={{ regular: { 1: 1 }, warlock: { 2: 1 } }}
+    />
+  );
+  await screen.findByLabelText('Level');
+  await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
+  const row = await screen.findByText('Burning Hands');
+  const rowEl = row.closest('tr');
+  await userEvent.click(within(rowEl).getByRole('checkbox'));
+  const castBtn = within(rowEl).getAllByRole('button')[1];
+  await userEvent.click(castBtn);
+  const warlockBtn = await screen.findByText('Level 2');
+  expect(warlockBtn).toHaveClass('warlock');
+  expect(warlockBtn).toHaveStyle('box-shadow: 0 0 10px #800080');
+  await userEvent.click(warlockBtn);
+  await userEvent.click(screen.getByText('Cast'));
+  await waitFor(() =>
+    expect(onCast).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 2, slotType: 'warlock' })
+    )
+  );
+});
+
 test('uses Occupation when Name is missing', async () => {
   apiFetch
     .mockResolvedValueOnce({ ok: true, json: async () => spellsData })
@@ -377,7 +413,7 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
       show={true}
       handleClose={() => {}}
       onCastSpell={onCast}
-      availableSlots={{ 1: 1, 2: 1, 3: 1 }}
+      availableSlots={{ regular: { 1: 1, 2: 1, 3: 1 }, warlock: {} }}
     />
   );
   await screen.findByLabelText('Level');
@@ -387,14 +423,15 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
   await userEvent.click(within(rowEl).getByRole('checkbox'));
   const castBtn = within(rowEl).getAllByRole('button')[1];
   await userEvent.click(castBtn);
-  const select = await screen.findByLabelText('Slot Level');
-  await userEvent.selectOptions(select, '3');
+  const lvl3Btn = await screen.findByText('Level 3');
+  await userEvent.click(lvl3Btn);
   await userEvent.click(screen.getByRole('button', { name: 'Cast' }));
   expect(onCast).toHaveBeenCalledWith({
     level: 3,
     damage: '4d6',
     extraDice: { count: 1, sides: 6 },
     levelsAbove: 2,
+    slotType: 'regular',
   });
 });
 

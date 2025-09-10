@@ -79,6 +79,16 @@
   border-color: var(--bs-primary);
 }
 
+.upcast-slot.regular {
+  box-shadow: 0 0 10px #007bff;
+  border: 1px solid #007bff;
+}
+
+.upcast-slot.warlock {
+  box-shadow: 0 0 10px #800080;
+  border: 1px solid #800080;
+}
+
 .skill-checkbox .form-check-input {
   width: 1.25rem;
   height: 1.25rem;
