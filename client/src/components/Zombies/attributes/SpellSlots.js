@@ -55,7 +55,6 @@ export default function SpellSlots({
   const warlockLevels = Object.keys(warlockData)
     .map(Number)
     .sort((a, b) => a - b);
-  if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
 
   const renderGroup = (data, type) =>
     Object.keys(data)
@@ -135,7 +134,7 @@ export default function SpellSlots({
             })}
           </div>
         </div>
-        {renderGroup(slotData, 'regular')}
+        {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
       </div>
     </div>
