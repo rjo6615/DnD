@@ -91,6 +91,17 @@ test('warlock slots render after regular slots and have purple styling', () => {
   );
 });
 
+test('renders action and bonus slots without spell slots', () => {
+  const form = { occupation: [{ Name: 'Fighter', Level: 1 }] };
+  const { container } = render(<SpellSlots form={form} used={{}} />);
+  const groups = container.querySelectorAll(
+    '.spell-slot-container .spell-slot'
+  );
+  expect(groups.length).toBe(2);
+  expect(groups[0]).toHaveClass('action-slot');
+  expect(groups[1]).toHaveClass('bonus-slot');
+});
+
   test('action and bonus markers toggle and reflect states', () => {
     const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
     const onToggle = jest.fn();
