@@ -17,12 +17,24 @@ export interface Item {
   weight: number;
   /**
    * Cost as a string, e.g. "5 gp".
-   */
+  */
   cost: string;
   /**
    * Optional list of SRD properties, may be empty.
    */
   properties?: string[];
+  /**
+   * Optional notes or description for custom items.
+   */
+  notes?: string;
+  /**
+   * Ability score modifiers granted by the item.
+   */
+  stats?: Record<string, number>;
+  /**
+   * Skill modifiers granted by the item.
+   */
+  skills?: Record<string, number>;
   /**
    * Whether the creature currently owns the item.
    */

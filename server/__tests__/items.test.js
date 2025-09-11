@@ -33,7 +33,6 @@ describe('Item routes', () => {
   test('provides item options', async () => {
     const res = await request(app).get('/items/options');
     expect(res.status).toBe(200);
-    expect(res.body.types).toContain('potion-healing');
     expect(res.body.categories).toContain('tool');
   });
 

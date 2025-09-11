@@ -252,6 +252,9 @@ module.exports = (router) => {
       body('category').trim().notEmpty().withMessage('category is required'),
       body('weight').isFloat().withMessage('weight must be a number').toFloat(),
       body('cost').trim().notEmpty().withMessage('cost is required'),
+      body('notes').optional().trim(),
+      body('stats').optional().isObject(),
+      body('skills').optional().isObject(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -274,6 +277,9 @@ module.exports = (router) => {
       body('category').optional().trim().notEmpty(),
       body('weight').optional().isFloat().toFloat(),
       body('cost').optional().trim().notEmpty(),
+      body('notes').optional().trim(),
+      body('stats').optional().isObject(),
+      body('skills').optional().isObject(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
