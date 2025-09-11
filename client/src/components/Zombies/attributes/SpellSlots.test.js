@@ -40,19 +40,29 @@ test('reflects used slots from props and toggles via callback', () => {
   expect(container.querySelector('.slot-small')).toHaveClass('slot-used');
 });
 
-test('renders action and bonus slots before regular slots', () => {
-  const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
-  const { container } = render(<SpellSlots form={form} used={{}} />);
-  const slotContainer = container.querySelector('.spell-slot-container');
-  const first = slotContainer.children[0];
-  const second = slotContainer.children[1];
-  expect(first).toHaveClass('action-slot');
-  expect(first.querySelector('.slot-level').textContent).toBe('A');
-  expect(first.querySelector('.action-circle')).toBeTruthy();
-  expect(second).toHaveClass('bonus-slot');
-  expect(second.querySelector('.slot-level').textContent).toBe('B');
-  expect(second.querySelector('.bonus-triangle')).toBeTruthy();
-});
+  test('renders action and bonus slots before regular slots', () => {
+    const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
+    const style = document.createElement('style');
+    style.innerHTML =
+      '.action-slot .slot-boxes, .bonus-slot .slot-boxes { display: grid; }';
+    document.head.appendChild(style);
+    const { container } = render(
+      <SpellSlots form={form} used={{}} actionCount={4} bonusCount={4} />
+    );
+    const slotContainer = container.querySelector('.spell-slot-container');
+    const first = slotContainer.children[0];
+    const second = slotContainer.children[1];
+    expect(first).toHaveClass('action-slot');
+    expect(first.querySelector('.slot-level').textContent).toBe('A');
+    const actionBoxes = first.querySelector('.slot-boxes');
+    expect(getComputedStyle(actionBoxes).display).toBe('grid');
+    expect(actionBoxes.querySelectorAll('.action-circle').length).toBe(4);
+    expect(second).toHaveClass('bonus-slot');
+    expect(second.querySelector('.slot-level').textContent).toBe('B');
+    const bonusBoxes = second.querySelector('.slot-boxes');
+    expect(getComputedStyle(bonusBoxes).display).toBe('grid');
+    expect(bonusBoxes.querySelectorAll('.bonus-circle').length).toBe(4);
+  });
 
 test('warlock slots render after regular slots and have purple styling', () => {
   const form = {
@@ -81,30 +91,83 @@ test('warlock slots render after regular slots and have purple styling', () => {
   );
 });
 
-test('action and bonus markers toggle and reflect usage', () => {
-  const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
-  const onToggle = jest.fn();
-  const { container, rerender } = render(
-    <SpellSlots form={form} used={{}} onToggleSlot={onToggle} />
+test('renders action and bonus slots without spell slots', () => {
+  const form = { occupation: [{ Name: 'Fighter', Level: 1 }] };
+  const { container } = render(<SpellSlots form={form} used={{}} />);
+  const groups = container.querySelectorAll(
+    '.spell-slot-container .spell-slot'
   );
-
-  const action = container.querySelector('.action-circle');
-  fireEvent.click(action);
-  expect(onToggle).toHaveBeenNthCalledWith(1, 'action');
-  rerender(
-    <SpellSlots form={form} used={{ action: true }} onToggleSlot={onToggle} />
-  );
-  expect(container.querySelector('.action-circle')).toHaveClass('slot-used');
-
-  const bonus = container.querySelector('.bonus-triangle');
-  fireEvent.click(bonus);
-  expect(onToggle).toHaveBeenNthCalledWith(2, 'bonus');
-  rerender(
-    <SpellSlots
-      form={form}
-      used={{ action: true, bonus: true }}
-      onToggleSlot={onToggle}
-    />
-  );
-  expect(container.querySelector('.bonus-triangle')).toHaveClass('slot-used');
+  expect(groups.length).toBe(2);
+  expect(groups[0]).toHaveClass('action-slot');
+  expect(groups[1]).toHaveClass('bonus-slot');
 });
+
+test('includes action and bonus slots with default circle counts for non-casters', () => {
+  const form = { occupation: [{ Name: 'Fighter', Level: 1 }] };
+  const { container } = render(<SpellSlots form={form} used={{}} />);
+  const actionSlot = container.querySelector('.action-slot');
+  const bonusSlot = container.querySelector('.bonus-slot');
+  expect(actionSlot).toBeTruthy();
+  expect(bonusSlot).toBeTruthy();
+  expect(actionSlot.querySelectorAll('.action-circle').length).toBe(1);
+  expect(bonusSlot.querySelectorAll('.bonus-circle').length).toBe(1);
+});
+
+  test('action and bonus markers toggle and reflect states', () => {
+    const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
+    const onToggle = jest.fn();
+    const { container, rerender } = render(
+      <SpellSlots
+        form={form}
+        used={{}}
+        actionCount={4}
+        bonusCount={4}
+        onToggleSlot={onToggle}
+      />
+    );
+
+    const actionCircles = container.querySelectorAll('.action-circle');
+    actionCircles.forEach((circle, i) => {
+      expect(circle).toHaveClass('slot-active');
+      fireEvent.click(circle);
+      expect(onToggle).toHaveBeenNthCalledWith(i + 1, 'action', i, 4);
+    });
+    rerender(
+      <SpellSlots
+        form={form}
+        used={{ action: { 0: 'used', 1: 'inactive', 2: 'active', 3: 'inactive' } }}
+        actionCount={4}
+        bonusCount={4}
+        onToggleSlot={onToggle}
+      />
+    );
+    const updatedAction = container.querySelectorAll('.action-circle');
+    expect(updatedAction[0]).toHaveClass('slot-used');
+    expect(updatedAction[1]).toHaveClass('slot-active');
+    expect(updatedAction[2]).toHaveClass('slot-active');
+    expect(updatedAction[3]).toHaveClass('slot-active');
+
+    const bonusCircles = container.querySelectorAll('.bonus-circle');
+    bonusCircles.forEach((circle, i) => {
+      expect(circle).toHaveClass('slot-active');
+      fireEvent.click(circle);
+      expect(onToggle).toHaveBeenNthCalledWith(4 + i + 1, 'bonus', i, 4);
+    });
+    rerender(
+      <SpellSlots
+        form={form}
+        used={{
+          action: { 0: 'used', 1: 'inactive', 2: 'active', 3: 'inactive' },
+          bonus: { 0: 'inactive', 1: 'used', 2: 'active', 3: 'inactive' },
+        }}
+        actionCount={4}
+        bonusCount={4}
+        onToggleSlot={onToggle}
+      />
+    );
+    const updatedBonus = container.querySelectorAll('.bonus-circle');
+    expect(updatedBonus[0]).toHaveClass('slot-active');
+    expect(updatedBonus[1]).toHaveClass('slot-used');
+    expect(updatedBonus[2]).toHaveClass('slot-active');
+    expect(updatedBonus[3]).toHaveClass('slot-active');
+  });

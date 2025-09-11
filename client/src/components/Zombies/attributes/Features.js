@@ -68,39 +68,46 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                     <th>Class</th>
                     <th>Level</th>
                     <th>Feature</th>
+                    <th>Use</th>
                     <th>View</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="4" className="text-center">
+                      <td colSpan={5} className="text-center">
                         <Spinner animation="border" size="sm" role="status" />
                       </td>
                     </tr>
                   ) : features.length > 0 ? (
-                    features.map((feat, idx) => (
-                      <tr key={`${feat.class}-${feat.level}-${idx}`}>
-                        <td>{feat.class}</td>
-                        <td>{feat.level}</td>
-                        <td>{feat.name}</td>
-                        <td>
-                          <Button
-                            aria-label="view feature"
-                            variant="link"
-                            onClick={() => {
-                              setModalFeature(feat);
-                              setShowModal(true);
-                            }}
-                          >
-                            <i className="fa-solid fa-eye"></i>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
+                    features.map((feat, idx) => {
+                      const featKey = `${feat.class}-${feat.level}-${idx}`;
+                      return (
+                        <tr key={featKey}>
+                          <td>{feat.class}</td>
+                          <td>{feat.level}</td>
+                          <td>{feat.name}</td>
+                          <td>
+                            <Button aria-label="use feature">Use</Button>
+                          </td>
+                          <td>
+                            <Button
+                              aria-label="view feature"
+                              variant="link"
+                              onClick={() => {
+                                setModalFeature(feat);
+                                setShowModal(true);
+                              }}
+                            >
+                              <i className="fa-solid fa-eye"></i>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : !error ? (
                     <tr>
-                      <td colSpan="4" className="text-center">
+                      <td colSpan={5} className="text-center">
                         No features found
                       </td>
                     </tr>

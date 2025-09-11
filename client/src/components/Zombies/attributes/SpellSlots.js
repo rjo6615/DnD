@@ -13,7 +13,13 @@ const SPELLCASTING_CLASSES = {
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
-export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
+export default function SpellSlots({
+  form = {},
+  used = {},
+  onToggleSlot,
+  actionCount: propActionCount,
+  bonusCount: propBonusCount,
+}) {
 
   const occupations = form.occupation || [];
   let casterLevel = 0;
@@ -37,9 +43,18 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
   const slotData = fullCasterSlots[casterLevel] || {};
   const warlockData = pactMagic[warlockLevel] || {};
 
-  const regularLevels = Object.keys(slotData).map(Number).sort((a, b) => a - b);
-  const warlockLevels = Object.keys(warlockData).map(Number).sort((a, b) => a - b);
-  if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
+  const features = form.features || {};
+  const actionCount =
+    propActionCount ?? features.actionCount ?? 1;
+  const bonusCount =
+    propBonusCount ?? features.bonusCount ?? 1;
+
+  const regularLevels = Object.keys(slotData)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const warlockLevels = Object.keys(warlockData)
+    .map(Number)
+    .sort((a, b) => a - b);
 
   const renderGroup = (data, type) =>
     Object.keys(data)
@@ -57,12 +72,18 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
               {Array.from({ length: count }).map((_, i) => {
-                const isUsed = used[`${type}-${lvl}`]?.[i];
+                const state = used[`${type}-${lvl}`]?.[i];
+                const cls =
+                  state === 'used' || state === true
+                    ? 'slot-used'
+                    : state === 'inactive'
+                    ? 'slot-inactive'
+                    : 'slot-active';
                 return (
                   <div
                     key={i}
                     data-slot-index={i}
-                    className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
+                    className={`slot-small ${cls}`}
                     onClick={() => onToggleSlot && onToggleSlot(type, lvl, i)}
                   />
                 );
@@ -78,20 +99,42 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
-            <div
-              className={`action-circle ${used.action ? 'slot-used' : 'slot-active'}`}
-              onClick={() => onToggleSlot && onToggleSlot('action')}
-            />
+            {Array.from({ length: actionCount }).map((_, i) => {
+              const state = used.action?.[i];
+              const cls = state === 'used' ? 'slot-used' : 'slot-active';
+              return (
+                <div
+                  key={i}
+                  data-slot-index={i}
+                  className={`action-circle ${cls}`}
+                  onClick={() =>
+                    onToggleSlot && onToggleSlot('action', i, actionCount)
+                  }
+                />
+              );
+            })}
           </div>
         </div>
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
-          <div
-            className={`bonus-triangle ${used.bonus ? 'slot-used' : 'slot-active'}`}
-            onClick={() => onToggleSlot && onToggleSlot('bonus')}
-          />
+          <div className="slot-boxes">
+            {Array.from({ length: bonusCount }).map((_, i) => {
+              const state = used.bonus?.[i];
+              const cls = state === 'used' ? 'slot-used' : 'slot-active';
+              return (
+                <div
+                  key={i}
+                  data-slot-index={i}
+                  className={`bonus-circle ${cls}`}
+                  onClick={() =>
+                    onToggleSlot && onToggleSlot('bonus', i, bonusCount)
+                  }
+                />
+              );
+            })}
+          </div>
         </div>
-        {renderGroup(slotData, 'regular')}
+        {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
       </div>
     </div>

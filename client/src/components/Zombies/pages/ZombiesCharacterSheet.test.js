@@ -147,6 +147,34 @@ test('warlock character renders spells button', async () => {
   expect(spellButton).toBeInTheDocument();
 });
 
+test('renders SpellSlots for non-spellcasting characters', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() =>
+    expect(container.querySelector('.spell-slot-container')).toBeInTheDocument()
+  );
+});
+
 test('skills button includes points-glow when skill points available', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
@@ -202,6 +230,55 @@ test('skills button includes points-glow when expertise points available', async
   const buttons = await screen.findAllByRole('button');
   const skillButton = buttons.find((btn) => btn.classList.contains('fa-book-open'));
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
+});
+
+test('casting spells consumes action and bonus circles based on casting time', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+
+  const buttons = await screen.findAllByRole('button');
+  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+
+  await userEvent.click(spellButton);
+  expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
+
+  const actionCircle = container.querySelector('.action-circle');
+  const bonusCircle = container.querySelector('.bonus-circle');
+
+  mockOnCastSpell.current({ level: 1, castingTime: '1 action' });
+  mockHandleClose.current();
+  await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
+  expect(actionCircle).toHaveClass('slot-used');
+  expect(bonusCircle).toHaveClass('slot-active');
+
+  await userEvent.click(spellButton);
+  expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
+  mockOnCastSpell.current({ level: 1, castingTime: '1 bonus action' });
+  mockHandleClose.current();
+  await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
+  expect(actionCircle).toHaveClass('slot-used');
+  expect(bonusCircle).toHaveClass('slot-used');
 });
 
 test('feats button includes points-glow when feat points available', async () => {
@@ -404,7 +481,7 @@ test('pass-turn event resets action and bonus usage', async () => {
   const { container } = render(<ZombiesCharacterSheet />);
   await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
   const action = container.querySelector('.action-circle');
-  const bonus = container.querySelector('.bonus-triangle');
+  const bonus = container.querySelector('.bonus-circle');
   fireEvent.click(action);
   fireEvent.click(bonus);
   expect(action).toHaveClass('slot-used');
@@ -416,4 +493,47 @@ test('pass-turn event resets action and bonus usage', async () => {
     expect(action).toHaveClass('slot-active');
     expect(bonus).toHaveClass('slot-active');
   });
+});
+
+test('action and bonus markers cycle through states', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  const action = container.querySelector('.action-circle');
+  const bonus = container.querySelector('.bonus-circle');
+
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-used');
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-active');
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-used');
+
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-used');
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-active');
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-used');
 });

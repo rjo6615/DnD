@@ -186,15 +186,19 @@
   cursor: default;
 }
 
-.action-slot .slot-boxes {
+.action-slot .slot-boxes,
+.bonus-slot .slot-boxes {
   padding-top: 20px;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
+  gap: 2px;
   justify-content: center;
 }
 
 .action-slot .action-circle {
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
   border: 1px solid #fff;
   border-radius: 50%;
   background: #28a745;
@@ -204,18 +208,14 @@
 
 .bonus-slot { overflow: visible; }
 
-.bonus-slot .bonus-triangle {
-  width: 0; height: 0; margin: 20px auto 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 20px solid #ffc107;
-  filter: drop-shadow(0 0 5px #ffa500) drop-shadow(0 0 10px #ffa500);
+.bonus-slot .bonus-circle {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #ffa500;
+  box-shadow: 0 0 5px #ffa500, 0 0 10px #ffa500;
   cursor: pointer;
-}
-
-.bonus-slot .slot-active {
-  background: transparent;
-  box-shadow: none;
 }
 
 .action-circle.slot-used {
@@ -223,9 +223,9 @@
   box-shadow: none;
 }
 
-.bonus-triangle.slot-used {
-  border-bottom-color: transparent;
-  filter: none;
+.bonus-circle.slot-used {
+  background: transparent;
+  box-shadow: none;
 }
 
 .text-center {
