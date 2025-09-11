@@ -19,8 +19,15 @@ afterEach(() => {
 });
 
 test('fetches items and toggles ownership', async () => {
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
-  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
+  apiFetch.mockImplementation((url) => {
+    if (url === '/items') {
+      return Promise.resolve({ ok: true, json: async () => itemsData });
+    }
+    if (url === '/equipment/items/Camp1') {
+      return Promise.resolve({ ok: true, json: async () => customData });
+    }
+    return Promise.resolve({ ok: false, status: 500, statusText: 'Server Error' });
+  });
   const onChange = jest.fn();
 
   render(
@@ -56,9 +63,19 @@ test('fetches items and toggles ownership', async () => {
 });
 
 test('shows error message when item fetch fails', async () => {
-  apiFetch
-    .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error' })
-    .mockResolvedValueOnce({ ok: true, json: async () => [] });
+  apiFetch.mockImplementation((url) => {
+    if (url === '/items') {
+      return Promise.resolve({
+        ok: false,
+        status: 500,
+        statusText: 'Server Error',
+      });
+    }
+    if (url === '/equipment/items/Camp1') {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+    return Promise.resolve({ ok: false, status: 500, statusText: 'Server Error' });
+  });
 
   render(<ItemList campaign="Camp1" />);
 
