@@ -19,6 +19,7 @@ try {
 }
 const { types: weaponTypes, categories: weaponCategories } = require('../data/weapons');
 const { types: armorTypes, categories: armorCategories } = require('../data/armor');
+const { types: itemTypes, categories: itemCategories } = require('../data/items');
 
 module.exports = (router) => {
   const aiRouter = express.Router();
@@ -103,6 +104,48 @@ module.exports = (router) => {
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
       const parsed = ArmorSchema.safeParse(data);
+      if (!parsed.success) {
+        return res.status(500).json({ message: parsed.error.message });
+      }
+      return res.json(parsed.data);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  aiRouter.post('/item', async (req, res) => {
+    const { prompt } = req.body || {};
+    if (!prompt) {
+      return res.status(400).json({ message: 'Prompt is required' });
+    }
+    if (!OpenAI || !z || !zodTextFormat) {
+      return res.status(500).json({ message: 'OpenAI not configured' });
+    }
+
+    const ItemSchema = z.object({
+      name: z.string(),
+      type: z.enum(itemTypes),
+      category: z.enum(itemCategories),
+      weight: z.number().optional(),
+      cost: z.string().optional(),
+      properties: z.array(z.string()).optional(),
+    });
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const response = await openai.responses.parse({
+        model: 'gpt-4o-2024-08-06',
+        input: [
+          { role: 'system', content: 'Create a Dungeons and Dragons item.' },
+          { role: 'user', content: prompt },
+        ],
+        text: {
+          format: zodTextFormat(ItemSchema, 'item'),
+        },
+      });
+
+      const data = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = ItemSchema.safeParse(data);
       if (!parsed.success) {
         return res.status(500).json({ message: parsed.error.message });
       }
