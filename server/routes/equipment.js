@@ -62,7 +62,8 @@ module.exports = (router) => {
       body('damage').trim().notEmpty().withMessage('damage is required'),
       body('properties').optional().isArray(),
       body('weight').optional().isFloat().toFloat(),
-      body('cost').optional().isString().trim(),
+      // Accept numeric cost values
+      body('cost').optional().isFloat().toFloat(),
     ],
     handleValidationErrors,
     async (req, response, next) => {

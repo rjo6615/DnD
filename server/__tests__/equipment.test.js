@@ -42,7 +42,7 @@ describe('Equipment routes', () => {
         damage: '1d8',
         properties: ['versatile'],
         weight: 6,
-        cost: '10 gp',
+        cost: 10,
       };
       dbo.mockResolvedValue({
         collection: () => ({ insertOne: async () => ({ insertedId }) })

@@ -245,9 +245,9 @@ test('UpcastModal returns warlock slot type', async () => {
   await userEvent.click(within(rowEl).getByRole('checkbox'));
   const castBtn = within(rowEl).getAllByRole('button')[1];
   await userEvent.click(castBtn);
-  const warlockBtn = await screen.findByText('Level 2');
-  expect(warlockBtn).toHaveClass('warlock');
-  expect(warlockBtn).toHaveStyle('box-shadow: 0 0 10px #800080');
+  const warlockLvl = await screen.findByText('II');
+  const warlockBtn = warlockLvl.parentElement;
+  expect(warlockBtn).toHaveClass('warlock-slot');
   await userEvent.click(warlockBtn);
   await userEvent.click(screen.getByText('Cast'));
   await waitFor(() =>
@@ -423,8 +423,8 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
   await userEvent.click(within(rowEl).getByRole('checkbox'));
   const castBtn = within(rowEl).getAllByRole('button')[1];
   await userEvent.click(castBtn);
-  const lvl3Btn = await screen.findByText('Level 3');
-  await userEvent.click(lvl3Btn);
+  const lvl3 = await screen.findByText('III');
+  await userEvent.click(lvl3.parentElement);
   await userEvent.click(screen.getByRole('button', { name: 'Cast' }));
   expect(onCast).toHaveBeenCalledWith({
     level: 3,

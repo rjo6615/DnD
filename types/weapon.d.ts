@@ -24,9 +24,9 @@ export interface Weapon {
    */
   weight: number;
   /**
-   * Cost as a string, e.g. "15 gp".
+   * Cost value in gold pieces.
    */
-  cost: string;
+  cost: number;
   /**
    * Whether the creature currently owns the weapon.
    */
