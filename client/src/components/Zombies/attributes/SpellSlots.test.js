@@ -102,6 +102,17 @@ test('renders action and bonus slots without spell slots', () => {
   expect(groups[1]).toHaveClass('bonus-slot');
 });
 
+test('includes action and bonus slots with default circle counts for non-casters', () => {
+  const form = { occupation: [{ Name: 'Fighter', Level: 1 }] };
+  const { container } = render(<SpellSlots form={form} used={{}} />);
+  const actionSlot = container.querySelector('.action-slot');
+  const bonusSlot = container.querySelector('.bonus-slot');
+  expect(actionSlot).toBeTruthy();
+  expect(bonusSlot).toBeTruthy();
+  expect(actionSlot.querySelectorAll('.action-circle').length).toBe(1);
+  expect(bonusSlot.querySelectorAll('.bonus-circle').length).toBe(1);
+});
+
   test('action and bonus markers toggle and reflect states', () => {
     const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
     const onToggle = jest.fn();
