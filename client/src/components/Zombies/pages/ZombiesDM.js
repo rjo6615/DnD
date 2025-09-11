@@ -912,13 +912,31 @@ const [form2, setForm2] = useState({
           </Form.Select>
 
           <Form.Label className="text-light">AC Bonus</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })} type="text" placeholder="Enter AC Bonus" />
+          <Form.Control
+            className="mb-2"
+            value={form3.armorBonus}
+            onChange={(e) => updateForm3({ armorBonus: e.target.value })}
+            type="text"
+            placeholder="Enter AC Bonus"
+          />
 
           <Form.Label className="text-light">Max Dex Bonus</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
+          <Form.Control
+            className="mb-2"
+            value={form3.maxDex}
+            onChange={(e) => updateForm3({ maxDex: e.target.value })}
+            type="text"
+            placeholder="Enter Max Dex Bonus"
+          />
 
           <Form.Label className="text-light">Strength Requirement</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ strength: e.target.value })} type="text" placeholder="Enter Strength Requirement" />
+          <Form.Control
+            className="mb-2"
+            value={form3.strength}
+            onChange={(e) => updateForm3({ strength: e.target.value })}
+            type="text"
+            placeholder="Enter Strength Requirement"
+          />
 
           <Form.Label className="text-light">Stealth</Form.Label>
           <Form.Select className="mb-2" value={form3.stealth} onChange={(e) => updateForm3({ stealth: e.target.value })}>
@@ -928,10 +946,22 @@ const [form2, setForm2] = useState({
           </Form.Select>
 
           <Form.Label className="text-light">Weight</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ weight: e.target.value })} type="text" placeholder="Enter Weight" />
+          <Form.Control
+            className="mb-2"
+            value={form3.weight}
+            onChange={(e) => updateForm3({ weight: e.target.value })}
+            type="text"
+            placeholder="Enter Weight"
+          />
 
           <Form.Label className="text-light">Cost</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ cost: e.target.value })} type="text" placeholder="Enter Cost" />
+          <Form.Control
+            className="mb-2"
+            value={form3.cost}
+            onChange={(e) => updateForm3({ cost: e.target.value })}
+            type="text"
+            placeholder="Enter Cost"
+          />
         </Form.Group>
         <div className="text-center">
           <Button variant="primary" type="submit">
