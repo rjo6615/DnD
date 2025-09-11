@@ -159,6 +159,9 @@ const [form2, setForm2] = useState({
   const [weaponPrompt, setWeaponPrompt] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [armorPrompt, setArmorPrompt] = useState("");
+  const [armorLoading, setArmorLoading] = useState(false);
+
   const [show2, setShow2] = useState(false);
   const [isCreatingWeapon, setIsCreatingWeapon] = useState(false);
   const handleClose2 = () => {
@@ -399,6 +402,64 @@ const [form2, setForm2] = useState({
       fetchArmorOptions();
     }
   }, [show3, currentCampaign, fetchArmor, fetchArmorOptions]);
+
+  async function generateArmor() {
+    setArmorLoading(true);
+    try {
+      if (!armorOptions.types.length || !armorOptions.categories.length) {
+        setStatus({ type: 'danger', message: 'Armor options not loaded' });
+        return;
+      }
+
+      const ArmorSchema = z.object({
+        name: z.string(),
+        type: z.enum(armorOptions.types),
+        category: z.enum(armorOptions.categories),
+        armorBonus: z.number().optional(),
+        acBonus: z.number().optional(),
+        maxDex: z.number().optional(),
+        strength: z.number().optional(),
+        stealth: z.string().optional(),
+        weight: z.number().optional(),
+        cost: z.number().optional(),
+      });
+
+      const response = await openai.responses.parse({
+        model: "gpt-4o-2024-08-06",
+        input: [
+          { role: "system", content: "Create a Dungeons and Dragons armor." },
+          { role: "user", content: armorPrompt },
+        ],
+        text: {
+          format: zodTextFormat(ArmorSchema, "armor"),
+        },
+      });
+
+      const armorData = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = ArmorSchema.safeParse(armorData);
+      if (!parsed.success) {
+        setStatus({ type: 'danger', message: parsed.error.message || 'Failed to parse armor' });
+        return;
+      }
+      const armor = parsed.data;
+
+      updateForm3({
+        armorName: armor.name || "",
+        type: armor.type || "",
+        category: armor.category || "",
+        armorBonus: armor.armorBonus ?? armor.acBonus ?? "",
+        maxDex: armor.maxDex ?? "",
+        strength: armor.strength ?? "",
+        stealth: armor.stealth ?? "",
+        weight: armor.weight ?? "",
+        cost: armor.cost ?? "",
+      });
+    } catch (err) {
+      setStatus({ type: 'danger', message: err.message || 'Failed to generate armor' });
+    } finally {
+      setArmorLoading(false);
+    }
+  }
   
   async function onSubmit3(e) {
     e.preventDefault();   
@@ -803,6 +864,28 @@ const [form2, setForm2] = useState({
     {isCreatingArmor ? (
       <Form onSubmit={onSubmit3} className="px-5">
         <Form.Group className="mb-3 pt-3">
+
+          <Form.Label className="text-light">Armor Prompt</Form.Label>
+          <Form.Control
+            className="mb-2"
+            value={armorPrompt}
+            onChange={(e) => setArmorPrompt(e.target.value)}
+            type="text"
+            placeholder="Describe armor"
+          />
+          <Button
+            className="mb-3"
+            variant="outline-primary"
+            onClick={(e) => { e.preventDefault(); generateArmor(); }}
+            disabled={armorLoading}
+          >
+            {armorLoading ? (
+              <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+            ) : (
+              "Generate Armor"
+            )}
+          </Button>
+
           <Form.Label className="text-light">Name</Form.Label>
           <Form.Control
             className="mb-2"
