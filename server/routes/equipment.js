@@ -5,6 +5,18 @@ const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const { armors: armorData } = require('../data/armor');
 
+const validateBonusObject = (value) => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('must be an object');
+  }
+  for (const v of Object.values(value)) {
+    if (typeof v !== 'number') {
+      throw new Error('values must be numbers');
+    }
+  }
+  return true;
+};
+
 module.exports = (router) => {
   const equipmentRouter = express.Router();
 
@@ -252,6 +264,9 @@ module.exports = (router) => {
       body('category').trim().notEmpty().withMessage('category is required'),
       body('weight').isFloat().withMessage('weight must be a number').toFloat(),
       body('cost').trim().notEmpty().withMessage('cost is required'),
+      body('notes').optional().trim(),
+      body('statBonuses').optional().custom(validateBonusObject),
+      body('skillBonuses').optional().custom(validateBonusObject),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -274,6 +289,9 @@ module.exports = (router) => {
       body('category').optional().trim().notEmpty(),
       body('weight').optional().isFloat().toFloat(),
       body('cost').optional().trim().notEmpty(),
+      body('notes').optional().trim(),
+      body('statBonuses').optional().custom(validateBonusObject),
+      body('skillBonuses').optional().custom(validateBonusObject),
     ],
     handleValidationErrors,
     async (req, res, next) => {
