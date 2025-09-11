@@ -276,6 +276,8 @@ export default function ZombiesCharacterSheet() {
           slotLevel,
           slotType,
           castingTime,
+          name,
+          spellName: altName,
         } = arg;
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
@@ -298,7 +300,8 @@ export default function ZombiesCharacterSheet() {
               ? calc
               : { total: calc };
         } else {
-          result = { total: 'Spell Cast' };
+          const spellLabel = name || altName;
+          result = { total: spellLabel || 'Spell Cast' };
         }
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(
           result.total,

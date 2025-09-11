@@ -337,7 +337,7 @@ test('all footer buttons have footer-btn class', async () => {
   buttons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });
 
-test('handleCastSpell closes modal and outputs "Spell Cast"', async () => {
+test('handleCastSpell closes modal and outputs spell name', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
@@ -365,10 +365,10 @@ test('handleCastSpell closes modal and outputs "Spell Cast"', async () => {
   const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
   await userEvent.click(spellButton);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
-  mockOnCastSpell.current({ level: 1 });
+  mockOnCastSpell.current({ level: 1, name: 'Mage Hand' });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockUpdateDamage).toHaveBeenCalledWith('Spell Cast', undefined);
+  expect(mockUpdateDamage).toHaveBeenCalledWith('Mage Hand', undefined);
 });
 
 test('handleCastSpell outputs calculated damage', async () => {
