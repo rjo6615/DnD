@@ -42,6 +42,10 @@ test('reflects used slots from props and toggles via callback', () => {
 
   test('renders action and bonus slots before regular slots', () => {
     const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
+    const style = document.createElement('style');
+    style.innerHTML =
+      '.action-slot .slot-boxes, .bonus-slot .slot-boxes { display: grid; }';
+    document.head.appendChild(style);
     const { container } = render(<SpellSlots form={form} used={{}} />);
     const slotContainer = container.querySelector('.spell-slot-container');
     const first = slotContainer.children[0];
@@ -85,7 +89,7 @@ test('warlock slots render after regular slots and have purple styling', () => {
   );
 });
 
-  test('action and bonus markers toggle and reflect usage', () => {
+  test('action and bonus markers toggle and reflect states', () => {
     const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
     const onToggle = jest.fn();
     const { container, rerender } = render(
@@ -94,22 +98,26 @@ test('warlock slots render after regular slots and have purple styling', () => {
 
     const actionCircles = container.querySelectorAll('.action-circle');
     actionCircles.forEach((circle, i) => {
+      expect(circle).toHaveClass('slot-active');
       fireEvent.click(circle);
       expect(onToggle).toHaveBeenNthCalledWith(i + 1, 'action', i);
     });
     rerender(
       <SpellSlots
         form={form}
-        used={{ action: { 0: true, 1: true, 2: true, 3: true } }}
+        used={{ action: { 0: 'used', 1: 'inactive', 2: 'active', 3: 'inactive' } }}
         onToggleSlot={onToggle}
       />
     );
-    container
-      .querySelectorAll('.action-circle')
-      .forEach((c) => expect(c).toHaveClass('slot-used'));
+    const updatedAction = container.querySelectorAll('.action-circle');
+    expect(updatedAction[0]).toHaveClass('slot-used');
+    expect(updatedAction[1]).toHaveClass('slot-inactive');
+    expect(updatedAction[2]).toHaveClass('slot-active');
+    expect(updatedAction[3]).toHaveClass('slot-inactive');
 
     const bonusCircles = container.querySelectorAll('.bonus-circle');
     bonusCircles.forEach((circle, i) => {
+      expect(circle).toHaveClass('slot-active');
       fireEvent.click(circle);
       expect(onToggle).toHaveBeenNthCalledWith(4 + i + 1, 'bonus', i);
     });
@@ -117,13 +125,15 @@ test('warlock slots render after regular slots and have purple styling', () => {
       <SpellSlots
         form={form}
         used={{
-          action: { 0: true, 1: true, 2: true, 3: true },
-          bonus: { 0: true, 1: true, 2: true, 3: true },
+          action: { 0: 'used', 1: 'inactive', 2: 'active', 3: 'inactive' },
+          bonus: { 0: 'inactive', 1: 'used', 2: 'active', 3: 'inactive' },
         }}
         onToggleSlot={onToggle}
       />
     );
-    container
-      .querySelectorAll('.bonus-circle')
-      .forEach((c) => expect(c).toHaveClass('slot-used'));
+    const updatedBonus = container.querySelectorAll('.bonus-circle');
+    expect(updatedBonus[0]).toHaveClass('slot-inactive');
+    expect(updatedBonus[1]).toHaveClass('slot-used');
+    expect(updatedBonus[2]).toHaveClass('slot-active');
+    expect(updatedBonus[3]).toHaveClass('slot-inactive');
   });

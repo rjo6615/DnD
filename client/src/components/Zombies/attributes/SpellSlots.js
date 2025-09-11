@@ -57,12 +57,18 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
             <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
             <div className="slot-boxes">
               {Array.from({ length: count }).map((_, i) => {
-                const isUsed = used[`${type}-${lvl}`]?.[i];
+                const state = used[`${type}-${lvl}`]?.[i];
+                const cls =
+                  state === 'used' || state === true
+                    ? 'slot-used'
+                    : state === 'inactive'
+                    ? 'slot-inactive'
+                    : 'slot-active';
                 return (
                   <div
                     key={i}
                     data-slot-index={i}
-                    className={`slot-small ${isUsed ? 'slot-used' : 'slot-active'}`}
+                    className={`slot-small ${cls}`}
                     onClick={() => onToggleSlot && onToggleSlot(type, lvl, i)}
                   />
                 );
@@ -78,27 +84,45 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                data-slot-index={i}
-                className={`action-circle ${used.action?.[i] ? 'slot-used' : 'slot-active'}`}
-                onClick={() => onToggleSlot && onToggleSlot('action', i)}
-              />
-            ))}
+            {Array.from({ length: 4 }).map((_, i) => {
+              const state = used.action?.[i];
+              const cls =
+                state === 'used'
+                  ? 'slot-used'
+                  : state === 'inactive'
+                  ? 'slot-inactive'
+                  : 'slot-active';
+              return (
+                <div
+                  key={i}
+                  data-slot-index={i}
+                  className={`action-circle ${cls}`}
+                  onClick={() => onToggleSlot && onToggleSlot('action', i)}
+                />
+              );
+            })}
           </div>
         </div>
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
           <div className="slot-boxes">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                data-slot-index={i}
-                className={`bonus-circle ${used.bonus?.[i] ? 'slot-used' : 'slot-active'}`}
-                onClick={() => onToggleSlot && onToggleSlot('bonus', i)}
-              />
-            ))}
+            {Array.from({ length: 4 }).map((_, i) => {
+              const state = used.bonus?.[i];
+              const cls =
+                state === 'used'
+                  ? 'slot-used'
+                  : state === 'inactive'
+                  ? 'slot-inactive'
+                  : 'slot-active';
+              return (
+                <div
+                  key={i}
+                  data-slot-index={i}
+                  className={`bonus-circle ${cls}`}
+                  onClick={() => onToggleSlot && onToggleSlot('bonus', i)}
+                />
+              );
+            })}
           </div>
         </div>
         {renderGroup(slotData, 'regular')}

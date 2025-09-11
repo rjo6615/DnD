@@ -417,3 +417,46 @@ test('pass-turn event resets action and bonus usage', async () => {
     expect(bonus).toHaveClass('slot-active');
   });
 });
+
+test('action and bonus markers cycle through states', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  const action = container.querySelector('.action-circle');
+  const bonus = container.querySelector('.bonus-circle');
+
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-used');
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-inactive');
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-active');
+
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-used');
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-inactive');
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-active');
+});

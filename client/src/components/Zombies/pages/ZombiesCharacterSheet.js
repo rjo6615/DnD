@@ -54,7 +54,16 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
-  const [usedSlots, setUsedSlots] = useState({ action: false, bonus: false });
+  const initCircleState = () => ({
+    0: 'active',
+    1: 'active',
+    2: 'active',
+    3: 'active',
+  });
+  const [usedSlots, setUsedSlots] = useState({
+    action: initCircleState(),
+    bonus: initCircleState(),
+  });
 
   const playerTurnActionsRef = useRef(null);
 
@@ -63,12 +72,12 @@ export default function ZombiesCharacterSheet() {
   const [navHeight, setNavHeight] = useState(0);
 
   useEffect(() => {
-    setUsedSlots({ action: false, bonus: false });
+    setUsedSlots({ action: initCircleState(), bonus: initCircleState() });
   }, [longRestCount]);
 
   useEffect(() => {
     setUsedSlots((prev) => {
-      const updated = { action: false, bonus: false, ...prev };
+      const updated = { ...prev, action: initCircleState(), bonus: initCircleState() };
       Object.keys(updated).forEach((key) => {
         if (key.startsWith('warlock-')) delete updated[key];
       });
@@ -78,7 +87,11 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     const handler = () =>
-      setUsedSlots((prev) => ({ ...prev, action: false, bonus: false }));
+      setUsedSlots((prev) => ({
+        ...prev,
+        action: initCircleState(),
+        bonus: initCircleState(),
+      }));
     window.addEventListener('pass-turn', handler);
     return () => window.removeEventListener('pass-turn', handler);
   }, []);
@@ -180,7 +193,15 @@ export default function ZombiesCharacterSheet() {
   const handleCastSpell = useCallback(
     (arg, lvl, idx) => {
       if (arg === 'action' || arg === 'bonus') {
-        setUsedSlots((prev) => ({ ...prev, [arg]: !prev[arg] }));
+        const index = lvl;
+        setUsedSlots((prev) => {
+          const currentState = prev[arg] || initCircleState();
+          const nextState = { ...currentState };
+          const cur = currentState[index] || 'active';
+          nextState[index] =
+            cur === 'active' ? 'used' : cur === 'used' ? 'inactive' : 'active';
+          return { ...prev, [arg]: nextState };
+        });
         return;
       }
       const consumeSlot = (level, preferredType) => {
@@ -271,7 +292,7 @@ export default function ZombiesCharacterSheet() {
         return { ...prev, [key]: levelState };
       });
     },
-    [form]
+    [form, initCircleState]
   );
 
   const availableSlots = useMemo(() => {
