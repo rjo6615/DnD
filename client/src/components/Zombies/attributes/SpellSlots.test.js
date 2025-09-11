@@ -40,17 +40,6 @@ test('reflects used slots from props and toggles via callback', () => {
   expect(container.querySelector('.slot-small')).toHaveClass('slot-used');
 });
 
-test('renders action and bonus markers even without spell slots', () => {
-  const form = { occupation: [{ Name: 'Fighter', Level: 1 }] };
-  const { container } = render(<SpellSlots form={form} used={{}} />);
-  expect(container.querySelector('.action-slot')).toBeInTheDocument();
-  expect(container.querySelector('.bonus-slot')).toBeInTheDocument();
-  const otherSlots = container.querySelectorAll(
-    '.spell-slot-container .spell-slot:not(.action-slot):not(.bonus-slot)'
-  );
-  expect(otherSlots.length).toBe(0);
-});
-
   test('renders action and bonus slots before regular slots', () => {
     const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
     const style = document.createElement('style');

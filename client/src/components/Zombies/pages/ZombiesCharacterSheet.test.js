@@ -509,33 +509,3 @@ test('action and bonus markers cycle through states', async () => {
   fireEvent.click(bonus);
   expect(bonus).toHaveClass('slot-used');
 });
-
-test('renders action and bonus slots for non-spellcasters', async () => {
-  apiFetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({
-      occupation: [{ Name: 'Fighter', Level: 1 }],
-      spells: [],
-      spellPoints: 0,
-      str: 10,
-      dex: 10,
-      con: 10,
-      int: 10,
-      wis: 10,
-      cha: 10,
-      startStatTotal: 60,
-      proficiencyPoints: 0,
-      skills: {},
-      item: [],
-      feat: [],
-      weapon: [],
-      armor: [],
-    }),
-  });
-
-  const { container } = render(<ZombiesCharacterSheet />);
-  await waitFor(() =>
-    expect(container.querySelector('.action-circle')).toBeTruthy()
-  );
-  expect(container.querySelector('.bonus-circle')).toBeTruthy();
-});
