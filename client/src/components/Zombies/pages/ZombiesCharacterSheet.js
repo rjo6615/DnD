@@ -196,8 +196,11 @@ export default function ZombiesCharacterSheet() {
   const handleShowBackground = () => setShowBackground(true);
   const handleCloseBackground = () => setShowBackground(false);
 
-  const handleRollResult = (result) => {
-    playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+  const handleRollResult = (result, breakdown) => {
+    playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+      result,
+      breakdown
+    );
   };
 
   const handleLongRest = () => {
@@ -280,20 +283,27 @@ export default function ZombiesCharacterSheet() {
         else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
         if (typeof damage === 'number') {
-          result = damage;
+          result = { total: damage };
+        } else if (damage) {
+          const calc = calculateDamage(
+            damage,
+            0,
+            false,
+            undefined,
+            extraDice,
+            levelsAbove
+          );
+          result =
+            calc && typeof calc === 'object'
+              ? calc
+              : { total: calc };
         } else {
-          result = damage
-            ? calculateDamage(
-                damage,
-                0,
-                false,
-                undefined,
-                extraDice,
-                levelsAbove
-              )
-            : 'Spell Cast';
+          result = { total: 'Spell Cast' };
         }
-        playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+          result.total,
+          result.breakdown
+        );
         return;
       }
       if (typeof lvl === 'undefined') {

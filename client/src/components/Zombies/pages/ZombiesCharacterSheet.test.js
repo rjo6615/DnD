@@ -20,7 +20,7 @@ var mockCalcDamage;
 jest.mock('../attributes/PlayerTurnActions', () => {
   const React = require('react');
   mockUpdateDamage = jest.fn();
-  mockCalcDamage = jest.fn(() => 7);
+  mockCalcDamage = jest.fn(() => ({ total: 7, breakdown: '' }));
   return {
     __esModule: true,
     default: React.forwardRef((props, ref) => {
@@ -368,7 +368,7 @@ test('handleCastSpell closes modal and outputs "Spell Cast"', async () => {
   mockOnCastSpell.current({ level: 1 });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockUpdateDamage).toHaveBeenCalledWith('Spell Cast');
+  expect(mockUpdateDamage).toHaveBeenCalledWith('Spell Cast', undefined);
 });
 
 test('handleCastSpell outputs calculated damage', async () => {

@@ -87,9 +87,8 @@ export function calculateDamage(
     results.push({ value: damageSum + modifier + ability, type });
   }
 
-  return results.length === 1
-    ? results[0].value
-    : formatDamageRolls(results);
+  const total = results.reduce((sum, r) => sum + r.value, 0);
+  return { total, breakdown: formatDamageRolls(results) };
 }
 
 const PlayerTurnActions = React.forwardRef(
@@ -145,9 +144,9 @@ const [isFumble, setIsFumble] = useState(false);
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const damageValue = calculateDamage(weapon.damage, ability, isCritical);
-    if (damageValue === null) return;
-    updateDamageValueWithAnimation(damageValue);
+    const result = calculateDamage(weapon.damage, ability, isCritical);
+    if (!result) return;
+    updateDamageValueWithAnimation(result.total, result.breakdown);
   };
 
   const [showUpcast, setShowUpcast] = useState(false);
@@ -186,8 +185,8 @@ const [isFumble, setIsFumble] = useState(false);
       extra,
       diff > 0 ? diff : 0
     );
-    if (value === null) return;
-    updateDamageValueWithAnimation(value);
+    if (!value) return;
+    updateDamageValueWithAnimation(value.total, value.breakdown);
     onCastSpell?.({ level, slotType, castingTime: spell.castingTime });
   };
 
@@ -235,6 +234,8 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
+const [damageLog, setDamageLog] = useState([]);
+const [showLog, setShowLog] = useState(false);
 
 useEffect(() => {
   if (loading) {
@@ -245,10 +246,16 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (newValue) => {
+const updateDamageValueWithAnimation = (newValue, breakdown) => {
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
+  if (newValue !== undefined) {
+    setDamageLog((prev) => {
+      const entry = { total: newValue, breakdown };
+      return [entry, ...prev].slice(0, 10);
+    });
+  }
 };
 
 useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
@@ -258,11 +265,8 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const { value, critical, fumble } = e.detail || {};
-    const num = Number(value);
-    if (!Number.isNaN(num)) {
-      updateDamageValueWithAnimation(num);
-    }
+    const { value, breakdown, critical, fumble } = e.detail || {};
+    updateDamageValueWithAnimation(value, breakdown);
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
@@ -367,7 +371,31 @@ const showSparklesEffect = () => {
         </span>
         <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
       </div>
-      
+
+      <Button
+        variant="secondary"
+        style={{ display: 'block', margin: '10px auto' }}
+        onClick={() => setShowLog(true)}
+      >
+        Damage Log
+      </Button>
+
+      <Modal centered show={showLog} onHide={() => setShowLog(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Damage Log</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <ul className="list-unstyled mb-0">
+            {damageLog.map((entry, idx) => (
+              <li key={idx}>
+                {entry.total}
+                {entry.breakdown ? ` (${entry.breakdown})` : ''}
+              </li>
+            ))}
+          </ul>
+        </Modal.Body>
+      </Modal>
+
       <div
         style={{
           display: 'flex',
