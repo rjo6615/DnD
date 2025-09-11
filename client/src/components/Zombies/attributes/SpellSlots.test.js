@@ -46,7 +46,9 @@ test('reflects used slots from props and toggles via callback', () => {
     style.innerHTML =
       '.action-slot .slot-boxes, .bonus-slot .slot-boxes { display: grid; }';
     document.head.appendChild(style);
-    const { container } = render(<SpellSlots form={form} used={{}} />);
+    const { container } = render(
+      <SpellSlots form={form} used={{}} actionCount={4} bonusCount={4} />
+    );
     const slotContainer = container.querySelector('.spell-slot-container');
     const first = slotContainer.children[0];
     const second = slotContainer.children[1];
@@ -93,19 +95,27 @@ test('warlock slots render after regular slots and have purple styling', () => {
     const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
     const onToggle = jest.fn();
     const { container, rerender } = render(
-      <SpellSlots form={form} used={{}} onToggleSlot={onToggle} />
+      <SpellSlots
+        form={form}
+        used={{}}
+        actionCount={4}
+        bonusCount={4}
+        onToggleSlot={onToggle}
+      />
     );
 
     const actionCircles = container.querySelectorAll('.action-circle');
     actionCircles.forEach((circle, i) => {
       expect(circle).toHaveClass('slot-active');
       fireEvent.click(circle);
-      expect(onToggle).toHaveBeenNthCalledWith(i + 1, 'action', i);
+      expect(onToggle).toHaveBeenNthCalledWith(i + 1, 'action', i, 4);
     });
     rerender(
       <SpellSlots
         form={form}
         used={{ action: { 0: 'used', 1: 'inactive', 2: 'active', 3: 'inactive' } }}
+        actionCount={4}
+        bonusCount={4}
         onToggleSlot={onToggle}
       />
     );
@@ -119,7 +129,7 @@ test('warlock slots render after regular slots and have purple styling', () => {
     bonusCircles.forEach((circle, i) => {
       expect(circle).toHaveClass('slot-active');
       fireEvent.click(circle);
-      expect(onToggle).toHaveBeenNthCalledWith(4 + i + 1, 'bonus', i);
+      expect(onToggle).toHaveBeenNthCalledWith(4 + i + 1, 'bonus', i, 4);
     });
     rerender(
       <SpellSlots
@@ -128,6 +138,8 @@ test('warlock slots render after regular slots and have purple styling', () => {
           action: { 0: 'used', 1: 'inactive', 2: 'active', 3: 'inactive' },
           bonus: { 0: 'inactive', 1: 'used', 2: 'active', 3: 'inactive' },
         }}
+        actionCount={4}
+        bonusCount={4}
         onToggleSlot={onToggle}
       />
     );

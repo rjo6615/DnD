@@ -13,7 +13,13 @@ const SPELLCASTING_CLASSES = {
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
-export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
+export default function SpellSlots({
+  form = {},
+  used = {},
+  onToggleSlot,
+  actionCount: propActionCount,
+  bonusCount: propBonusCount,
+}) {
 
   const occupations = form.occupation || [];
   let casterLevel = 0;
@@ -37,8 +43,18 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
   const slotData = fullCasterSlots[casterLevel] || {};
   const warlockData = pactMagic[warlockLevel] || {};
 
-  const regularLevels = Object.keys(slotData).map(Number).sort((a, b) => a - b);
-  const warlockLevels = Object.keys(warlockData).map(Number).sort((a, b) => a - b);
+  const features = form.features || {};
+  const actionCount =
+    propActionCount ?? features.actionCount ?? 1;
+  const bonusCount =
+    propBonusCount ?? features.bonusCount ?? 1;
+
+  const regularLevels = Object.keys(slotData)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const warlockLevels = Object.keys(warlockData)
+    .map(Number)
+    .sort((a, b) => a - b);
   if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
 
   const renderGroup = (data, type) =>
@@ -84,7 +100,7 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
-            {Array.from({ length: 4 }).map((_, i) => {
+            {Array.from({ length: actionCount }).map((_, i) => {
               const state = used.action?.[i];
               const cls = state === 'used' ? 'slot-used' : 'slot-active';
               return (
@@ -92,7 +108,9 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
                   key={i}
                   data-slot-index={i}
                   className={`action-circle ${cls}`}
-                  onClick={() => onToggleSlot && onToggleSlot('action', i)}
+                  onClick={() =>
+                    onToggleSlot && onToggleSlot('action', i, actionCount)
+                  }
                 />
               );
             })}
@@ -101,7 +119,7 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
         <div className="spell-slot bonus-slot">
           <div className="slot-level">B</div>
           <div className="slot-boxes">
-            {Array.from({ length: 4 }).map((_, i) => {
+            {Array.from({ length: bonusCount }).map((_, i) => {
               const state = used.bonus?.[i];
               const cls = state === 'used' ? 'slot-used' : 'slot-active';
               return (
@@ -109,7 +127,9 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
                   key={i}
                   data-slot-index={i}
                   className={`bonus-circle ${cls}`}
-                  onClick={() => onToggleSlot && onToggleSlot('bonus', i)}
+                  onClick={() =>
+                    onToggleSlot && onToggleSlot('bonus', i, bonusCount)
+                  }
                 />
               );
             })}
