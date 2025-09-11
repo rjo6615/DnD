@@ -419,9 +419,9 @@ const [form2, setForm2] = useState({
         acBonus: z.number().optional(),
         maxDex: z.number().optional(),
         strength: z.number().optional(),
-        stealth: z.string().optional(),
+        stealth: z.boolean().optional(),
         weight: z.number().optional(),
-        cost: z.number().optional(),
+        cost: z.string().optional(),
       });
 
       const response = await openai.responses.parse({
@@ -450,9 +450,9 @@ const [form2, setForm2] = useState({
         armorBonus: armor.armorBonus ?? armor.acBonus ?? "",
         maxDex: armor.maxDex ?? "",
         strength: armor.strength ?? "",
-        stealth: armor.stealth ?? "",
+        stealth: armor.stealth !== undefined ? String(armor.stealth) : "",
         weight: armor.weight ?? "",
-        cost: armor.cost ?? "",
+        cost: armor.cost !== undefined ? String(armor.cost) : "",
       });
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate armor' });
@@ -473,7 +473,7 @@ const [form2, setForm2] = useState({
         .filter(([_, v]) => v !== "")
         .map(([key, value]) => [
           key,
-          numericFields.includes(key) ? Number(value) : value,
+          numericFields.includes(key) ? Number(value) : key === "cost" ? String(value) : value,
         ])
     );
     await apiFetch("/equipment/armor/add", {
