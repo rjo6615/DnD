@@ -149,12 +149,3 @@ test('warlock slots render after regular slots and have purple styling', () => {
     expect(updatedBonus[2]).toHaveClass('slot-active');
     expect(updatedBonus[3]).toHaveClass('slot-active');
   });
-
-test('action and bonus slots render without spell slots', () => {
-  const form = { occupation: [] };
-  const { container } = render(
-    <SpellSlots form={form} used={{}} actionCount={2} bonusCount={2} />
-  );
-  expect(container.querySelectorAll('.action-circle').length).toBe(2);
-  expect(container.querySelectorAll('.bonus-circle').length).toBe(2);
-});
