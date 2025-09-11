@@ -49,50 +49,45 @@ export default function SpellSlots({
   const bonusCount =
     propBonusCount ?? features.bonusCount ?? 1;
 
-  const regularLevels = Object.keys(slotData)
-    .map(Number)
-    .sort((a, b) => a - b);
-  const warlockLevels = Object.keys(warlockData)
-    .map(Number)
-    .sort((a, b) => a - b);
-  if (regularLevels.length === 0 && warlockLevels.length === 0) return null;
-
-  const renderGroup = (data, type) =>
-    Object.keys(data)
+  const renderGroup = (data, type) => {
+    const levels = Object.keys(data)
       .map(Number)
-      .sort((a, b) => a - b)
-      .map((lvl) => {
-        const count = data[lvl];
-        return (
-          <div
-            key={`${type}-${lvl}`}
-            className={`spell-slot ${type === 'warlock' ? 'warlock-slot' : ''}`}
-            data-slot-type={type}
-            data-slot-level={lvl}
-          >
-            <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
-            <div className="slot-boxes">
-              {Array.from({ length: count }).map((_, i) => {
-                const state = used[`${type}-${lvl}`]?.[i];
-                const cls =
-                  state === 'used' || state === true
-                    ? 'slot-used'
-                    : state === 'inactive'
-                    ? 'slot-inactive'
-                    : 'slot-active';
-                return (
-                  <div
-                    key={i}
-                    data-slot-index={i}
-                    className={`slot-small ${cls}`}
-                    onClick={() => onToggleSlot && onToggleSlot(type, lvl, i)}
-                  />
-                );
-              })}
-            </div>
+      .sort((a, b) => a - b);
+    if (levels.length === 0) return null;
+
+    return levels.map((lvl) => {
+      const count = data[lvl];
+      return (
+        <div
+          key={`${type}-${lvl}`}
+          className={`spell-slot ${type === 'warlock' ? 'warlock-slot' : ''}`}
+          data-slot-type={type}
+          data-slot-level={lvl}
+        >
+          <div className="slot-level">{ROMAN[lvl - 1] || lvl}</div>
+          <div className="slot-boxes">
+            {Array.from({ length: count }).map((_, i) => {
+              const state = used[`${type}-${lvl}`]?.[i];
+              const cls =
+                state === 'used' || state === true
+                  ? 'slot-used'
+                  : state === 'inactive'
+                  ? 'slot-inactive'
+                  : 'slot-active';
+              return (
+                <div
+                  key={i}
+                  data-slot-index={i}
+                  className={`slot-small ${cls}`}
+                  onClick={() => onToggleSlot && onToggleSlot(type, lvl, i)}
+                />
+              );
+            })}
           </div>
-        );
-      });
+        </div>
+      );
+    });
+  };
 
   return (
     <div style={{ display: 'flex' }}>
@@ -136,7 +131,7 @@ export default function SpellSlots({
           </div>
         </div>
         {renderGroup(slotData, 'regular')}
-        {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
+        {renderGroup(warlockData, 'warlock')}
       </div>
     </div>
   );
