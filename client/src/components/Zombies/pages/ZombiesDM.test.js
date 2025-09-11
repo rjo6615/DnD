@@ -4,9 +4,6 @@ import userEvent from '@testing-library/user-event';
 import apiFetch from '../../../utils/apiFetch';
 import useUser from '../../../hooks/useUser';
 import ZombiesDM from './ZombiesDM';
-import { mockParse } from 'openai';
-
-jest.mock('openai');
 jest.mock('../../../utils/apiFetch');
 jest.mock('../../../hooks/useUser');
 jest.mock('react-router-dom', () => ({
@@ -18,7 +15,6 @@ jest.mock('react-router-dom', () => ({
 describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
-    mockParse.mockReset();
     useUser.mockReturnValue({ username: 'dm' });
   });
 
@@ -35,31 +31,21 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/armor/options':
           return Promise.resolve({ ok: true, json: async () => ({ types: ['Light'], categories: ['Shield'] }) });
+        case '/ai/armor':
+          return Promise.resolve({ ok: true, json: async () => ({
+            name: 'AI Armor',
+            type: 'Light',
+            category: 'Shield',
+            armorBonus: 2,
+            maxDex: 4,
+            strength: 10,
+            stealth: false,
+            weight: 20,
+            cost: 100,
+          }) });
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
-    });
-
-    mockParse.mockResolvedValue({
-      output: [
-        {
-          content: [
-            {
-              parsed: {
-                name: 'AI Armor',
-                type: 'Light',
-                category: 'Shield',
-                armorBonus: 2,
-                maxDex: 4,
-                strength: 10,
-                stealth: false,
-                weight: 20,
-                cost: '100',
-              },
-            },
-          ],
-        },
-      ],
     });
 
     render(<ZombiesDM />);
