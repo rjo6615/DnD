@@ -204,6 +204,55 @@ test('skills button includes points-glow when expertise points available', async
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
 });
 
+test('casting spells consumes action and bonus circles based on casting time', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+
+  const buttons = await screen.findAllByRole('button');
+  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+
+  await userEvent.click(spellButton);
+  expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
+
+  const actionCircle = container.querySelector('.action-circle');
+  const bonusCircle = container.querySelector('.bonus-circle');
+
+  mockOnCastSpell.current({ level: 1, castingTime: '1 action' });
+  mockHandleClose.current();
+  await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
+  expect(actionCircle).toHaveClass('slot-used');
+  expect(bonusCircle).toHaveClass('slot-active');
+
+  await userEvent.click(spellButton);
+  expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
+  mockOnCastSpell.current({ level: 1, castingTime: '1 bonus action' });
+  mockHandleClose.current();
+  await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
+  expect(actionCircle).toHaveClass('slot-used');
+  expect(bonusCircle).toHaveClass('slot-used');
+});
+
 test('feats button includes points-glow when feat points available', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,

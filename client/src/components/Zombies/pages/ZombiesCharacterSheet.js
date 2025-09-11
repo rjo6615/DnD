@@ -65,6 +65,24 @@ export default function ZombiesCharacterSheet() {
     bonus: initCircleState(),
   });
 
+  const consumeCircle = useCallback(
+    (type, index) => {
+      setUsedSlots((prev) => {
+        const currentState = prev[type] || initCircleState();
+        const nextState = { ...currentState };
+        if (typeof index === 'number') {
+          const cur = currentState[index] || 'active';
+          nextState[index] = cur === 'active' ? 'used' : 'active';
+        } else {
+          const first = Object.keys(nextState).find((key) => nextState[key] === 'active');
+          if (typeof first !== 'undefined') nextState[first] = 'used';
+        }
+        return { ...prev, [type]: nextState };
+      });
+    },
+    [initCircleState]
+  );
+
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
@@ -193,14 +211,7 @@ export default function ZombiesCharacterSheet() {
   const handleCastSpell = useCallback(
     (arg, lvl, idx) => {
       if (arg === 'action' || arg === 'bonus') {
-        const index = lvl;
-        setUsedSlots((prev) => {
-          const currentState = prev[arg] || initCircleState();
-          const nextState = { ...currentState };
-          const cur = currentState[index] || 'active';
-          nextState[index] = cur === 'active' ? 'used' : 'active';
-          return { ...prev, [arg]: nextState };
-        });
+        consumeCircle(arg, lvl);
         return;
       }
       const consumeSlot = (level, preferredType) => {
@@ -254,9 +265,19 @@ export default function ZombiesCharacterSheet() {
       };
 
       if (typeof arg === 'object') {
-        const { level, damage, extraDice, levelsAbove, slotLevel, slotType } = arg;
+        const {
+          level,
+          damage,
+          extraDice,
+          levelsAbove,
+          slotLevel,
+          slotType,
+          castingTime,
+        } = arg;
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
+        if (castingTime?.includes('1 action')) consumeCircle('action');
+        else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
         if (typeof damage === 'number') {
           result = damage;
@@ -291,7 +312,7 @@ export default function ZombiesCharacterSheet() {
         return { ...prev, [key]: levelState };
       });
     },
-    [form, initCircleState]
+    [form, consumeCircle]
   );
 
   const availableSlots = useMemo(() => {

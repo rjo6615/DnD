@@ -167,7 +167,95 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(rollButton);
     });
 
-    expect(onCastSpell).toHaveBeenCalledWith(spell.level);
+    expect(onCastSpell).toHaveBeenCalledWith({
+      level: spell.level,
+      slotType: undefined,
+      castingTime: spell.castingTime,
+    });
+  });
+
+  test('consumes action circle for 1 action spells', async () => {
+    const state = {
+      action: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+      bonus: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+    };
+    const onCastSpell = ({ castingTime }) => {
+      if (castingTime?.includes('1 action')) {
+        const idx = Object.keys(state.action).find(
+          (k) => state.action[k] === 'active'
+        );
+        if (idx !== undefined) state.action[idx] = 'used';
+      }
+    };
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+        onCastSpell={onCastSpell}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    expect(state.action[0]).toBe('used');
+    expect(state.bonus[0]).toBe('active');
+  });
+
+  test('consumes bonus circle for 1 bonus action spells', async () => {
+    const state = {
+      action: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+      bonus: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+    };
+    const onCastSpell = ({ castingTime }) => {
+      if (castingTime?.includes('1 bonus action')) {
+        const idx = Object.keys(state.bonus).find(
+          (k) => state.bonus[k] === 'active'
+        );
+        if (idx !== undefined) state.bonus[idx] = 'used';
+      }
+    };
+    const spell = {
+      name: 'Flame Blade',
+      level: 2,
+      damage: '3d6 fire',
+      castingTime: '1 bonus action',
+      range: 'Self',
+      duration: 'Concentration',
+      casterType: 'Druid',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+        onCastSpell={onCastSpell}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    expect(state.bonus[0]).toBe('used');
+    expect(state.action[0]).toBe('active');
   });
 
   test('spells are grouped by casterType and sorted by level', async () => {
