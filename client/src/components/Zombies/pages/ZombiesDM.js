@@ -448,7 +448,7 @@ const [form2, setForm2] = useState({
         type: armor.type || "",
         category: armor.category || "",
         armorBonus: armor.armorBonus ?? armor.acBonus ?? "",
-        maxDex: armor.maxDex ?? "",
+        maxDex: armor.maxDex !== undefined ? String(armor.maxDex) : "",
         strength: armor.strength ?? "",
         stealth: armor.stealth !== undefined ? String(armor.stealth) : "",
         weight: armor.weight ?? "",
