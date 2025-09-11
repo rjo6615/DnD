@@ -49,8 +49,15 @@ export default function SpellSlots({
   const bonusCount =
     propBonusCount ?? features.bonusCount ?? 1;
 
-  const renderGroup = (data, type) => {
-    const levels = Object.keys(data)
+  const regularLevels = Object.keys(slotData)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const warlockLevels = Object.keys(warlockData)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const renderGroup = (data, type) =>
+    Object.keys(data)
       .map(Number)
       .sort((a, b) => a - b);
     if (levels.length === 0) return null;
@@ -130,8 +137,9 @@ export default function SpellSlots({
             })}
           </div>
         </div>
-        {renderGroup(slotData, 'regular')}
-        {renderGroup(warlockData, 'warlock')}
+        {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
+        {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
+
       </div>
     </div>
   );
