@@ -20,6 +20,18 @@ export interface Item {
    */
   properties?: string[];
   /**
+   * Optional notes about the item.
+   */
+  notes?: string;
+  /**
+   * Ability score bonuses granted by the item.
+   */
+  statBonuses?: Record<string, number>;
+  /**
+   * Skill bonuses granted by the item.
+   */
+  skillBonuses?: Record<string, number>;
+  /**
    * Whether the creature currently owns the item.
    */
   owned: boolean;

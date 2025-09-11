@@ -5,6 +5,8 @@ import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
+import { STATS } from '../statSchema';
+import { SKILLS } from '../skillSchema';
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -501,6 +503,9 @@ const [form2, setForm2] = useState({
     category: "",
     weight: "",
     cost: "",
+    notes: "",
+    statBonuses: {},
+    skillBonuses: {},
   });
 
   const [itemPrompt, setItemPrompt] = useState("");
@@ -585,18 +590,23 @@ const [form2, setForm2] = useState({
 
   async function sendToDb4() {
     const weightNumber = form4.weight === "" ? undefined : Number(form4.weight);
+    const normalizeBonuses = (obj) => {
+      const entries = Object.entries(obj || {}).filter(([, v]) => v !== '' && v !== undefined);
+      if (!entries.length) return undefined;
+      return Object.fromEntries(entries.map(([k, v]) => [k, Number(v)]));
+    };
+    const statBonuses = normalizeBonuses(form4.statBonuses);
+    const skillBonuses = normalizeBonuses(form4.skillBonuses);
     const newItem = {
       campaign: currentCampaign,
       name: form4.name,
       category: form4.category,
       weight: weightNumber,
       cost: form4.cost,
+      ...(form4.notes && { notes: form4.notes }),
+      ...(statBonuses && { statBonuses }),
+      ...(skillBonuses && { skillBonuses }),
     };
-    Object.keys(newItem).forEach((key) => {
-      if (newItem[key] === "" || newItem[key] === undefined) {
-        delete newItem[key];
-      }
-    });
     try {
       const response = await apiFetch('/equipment/items', {
         method: 'POST',
@@ -622,6 +632,9 @@ const [form2, setForm2] = useState({
         category: "",
         weight: "",
         cost: "",
+        notes: "",
+        statBonuses: {},
+        skillBonuses: {},
       });
       handleClose4();
       fetchItems();
@@ -1142,6 +1155,53 @@ const [form2, setForm2] = useState({
                     type="text"
                     placeholder="Enter cost"
                   />
+
+                  <Form.Label className="text-light">Notes</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={form4.notes}
+                    onChange={(e) => updateForm4({ notes: e.target.value })}
+                    type="text"
+                    placeholder="Enter notes"
+                  />
+
+                  <Form.Label className="text-light">Stat Bonuses</Form.Label>
+                  {STATS.map(({ key, label }) => (
+                    <Form.Control
+                      key={key}
+                      className="mb-2"
+                      type="number"
+                      placeholder={label}
+                      value={form4.statBonuses[key] ?? ''}
+                      onChange={(e) =>
+                        updateForm4({
+                          statBonuses: {
+                            ...form4.statBonuses,
+                            [key]: e.target.value === '' ? '' : Number(e.target.value)
+                          }
+                        })
+                      }
+                    />
+                  ))}
+
+                  <Form.Label className="text-light">Skill Bonuses</Form.Label>
+                  {SKILLS.map(({ key, label }) => (
+                    <Form.Control
+                      key={key}
+                      className="mb-2"
+                      type="number"
+                      placeholder={label}
+                      value={form4.skillBonuses[key] ?? ''}
+                      onChange={(e) =>
+                        updateForm4({
+                          skillBonuses: {
+                            ...form4.skillBonuses,
+                            [key]: e.target.value === '' ? '' : Number(e.target.value)
+                          }
+                        })
+                      }
+                    />
+                  ))}
 
                 </Form.Group>
                 <div className="text-center">
