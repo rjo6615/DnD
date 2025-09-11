@@ -724,7 +724,7 @@ const [form2, setForm2] = useState({
                >
                 {loading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : "Generate with AI"}
                </Button>
-
+               <br></br>
                <Form.Label className="text-light">Name</Form.Label>
                <Form.Control className="mb-2" value={form2.name} onChange={(e) => updateForm2({ name: e.target.value })}
                 type="text" placeholder="Enter weapon name" />
@@ -885,7 +885,7 @@ const [form2, setForm2] = useState({
               "Generate Armor"
             )}
           </Button>
-
+          <br></br>
           <Form.Label className="text-light">Name</Form.Label>
           <Form.Control
             className="mb-2"
