@@ -147,6 +147,34 @@ test('warlock character renders spells button', async () => {
   expect(spellButton).toBeInTheDocument();
 });
 
+test('renders SpellSlots for non-spellcasting characters', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() =>
+    expect(container.querySelector('.spell-slot-container')).toBeInTheDocument()
+  );
+});
+
 test('skills button includes points-glow when skill points available', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,

@@ -638,7 +638,7 @@ return (
       onCastSpell={handleCastSpell}
       availableSlots={availableSlots}
     />
-    {hasSpellcasting && form && (
+    {form && (
       <SpellSlots
         form={form}
         used={usedSlots}

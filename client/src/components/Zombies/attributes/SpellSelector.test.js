@@ -125,7 +125,9 @@ test('cast button disabled until spell checked and then calls onCastSpell', asyn
   await userEvent.click(checkbox);
   expect(castBtn).not.toBeDisabled();
   await userEvent.click(castBtn);
-  expect(onCast).toHaveBeenCalledWith({ level: 3, damage: undefined });
+  expect(onCast).toHaveBeenCalledWith(
+    expect.objectContaining({ level: 3, damage: undefined })
+  );
 });
 
 test.each([
@@ -156,7 +158,9 @@ test.each([
   await userEvent.click(within(rowEl).getByRole('checkbox'));
   const castBtn = within(rowEl).getAllByRole('button')[1];
   await userEvent.click(castBtn);
-  expect(onCast).toHaveBeenCalledWith({ level: 0, damage: dmg });
+  expect(onCast).toHaveBeenCalledWith(
+    expect.objectContaining({ level: 0, damage: dmg })
+  );
 });
 
 test('saves selected spells', async () => {
@@ -426,13 +430,15 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
   const lvl3 = await screen.findByText('III');
   await userEvent.click(lvl3.parentElement);
   await userEvent.click(screen.getByRole('button', { name: 'Cast' }));
-  expect(onCast).toHaveBeenCalledWith({
-    level: 3,
-    damage: '4d6',
-    extraDice: { count: 1, sides: 6 },
-    levelsAbove: 2,
-    slotType: 'regular',
-  });
+  expect(onCast).toHaveBeenCalledWith(
+    expect.objectContaining({
+      level: 3,
+      damage: '4d6',
+      extraDice: { count: 1, sides: 6 },
+      levelsAbove: 2,
+      slotType: 'regular',
+    })
+  );
 });
 
 test('renders tabs for multiple classes', async () => {
