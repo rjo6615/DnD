@@ -50,6 +50,37 @@ describe('calculateDamage parser', () => {
     const extra = { count: 1, sides: 4 };
     expect(calculateDamage('1d4', 0, true, fixedRoll, extra, 2)).toBe(6);
   });
+
+  test('handles multi-type damage and returns breakdown string', () => {
+    expect(
+      calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
+    ).toBe('3 cold + 3 slashing');
+  });
+});
+
+describe('PlayerTurnActions weapon damage display', () => {
+  test('getDamageString applies ability to each component', () => {
+    const weapon = {
+      name: 'Frost Brand',
+      damage: '1d4 cold + 1d6 slashing',
+      category: 'melee',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const row = screen.getByText('Frost Brand').closest('tr');
+    expect(
+      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
+    ).toBeInTheDocument();
+  });
 });
 
 describe('PlayerTurnActions critical events', () => {

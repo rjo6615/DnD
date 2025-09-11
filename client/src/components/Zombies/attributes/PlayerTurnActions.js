@@ -25,6 +25,12 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
+function formatDamageRolls(rolls) {
+  return rolls
+    .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
+    .join(' + ');
+}
+
 export function calculateDamage(
   damageString,
   ability = 0,
@@ -33,48 +39,57 @@ export function calculateDamage(
   extraDice,
   levelsAbove = 0
 ) {
-  const cleanString = damageString.split(' ')[0];
-  const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
-  if (!match) {
-    // eslint-disable-next-line no-console
-    console.error('Invalid damage string');
-    return null;
-  }
-
-  if (!match[2]) {
-    // Flat damage: ignore crit flag and simply add ability modifier once
-    const baseValue = parseInt(match[1], 10);
-    return baseValue + ability;
-  }
-
-  const numberOfDiceValue = parseInt(match[1], 10);
-  const sidesOfDiceValue = parseInt(match[2], 10);
-  const modifier = parseInt(match[3] || 0, 10);
-
-  // Roll the initial set of dice
-  const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
-  let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
-
-  // Roll any extra dice from upcasting
-  if (extraDice && levelsAbove > 0) {
-    const totalExtra = extraDice.count * levelsAbove;
-    const extraRolls = roll(totalExtra, extraDice.sides);
-    damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
-  }
-
-  // On a critical hit, roll an additional set of dice and add to the total
-  if (crit) {
-    const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
-    damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
-    if (extraDice && levelsAbove > 0) {
-      const totalExtra = extraDice.count * levelsAbove;
-      const critExtra = roll(totalExtra, extraDice.sides);
-      damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+  const parts = damageString.split(/\s+\+\s+/);
+  const results = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    const [token, ...rest] = part.split(' ');
+    const match = token.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+    if (!match) {
+      // eslint-disable-next-line no-console
+      console.error('Invalid damage string');
+      return null;
     }
+
+    const type = rest.join(' ').trim();
+
+    if (!match[2]) {
+      const baseValue = parseInt(match[1], 10) + ability;
+      results.push({ value: baseValue, type });
+      continue;
+    }
+
+    const numberOfDiceValue = parseInt(match[1], 10);
+    const sidesOfDiceValue = parseInt(match[2], 10);
+    const modifier = parseInt(match[3] || 0, 10);
+
+    let damageSum = roll(numberOfDiceValue, sidesOfDiceValue).reduce(
+      (partialSum, a) => partialSum + a,
+      0
+    );
+
+    if (extraDice && levelsAbove > 0 && i === 0) {
+      const totalExtra = extraDice.count * levelsAbove;
+      const extraRolls = roll(totalExtra, extraDice.sides);
+      damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+    }
+
+    if (crit) {
+      const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+      damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+      if (extraDice && levelsAbove > 0 && i === 0) {
+        const totalExtra = extraDice.count * levelsAbove;
+        const critExtra = roll(totalExtra, extraDice.sides);
+        damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+      }
+    }
+
+    results.push({ value: damageSum + modifier + ability, type });
   }
 
-  // Add numeric modifier and ability modifier once
-  return damageSum + modifier + ability;
+  return results.length === 1
+    ? results[0].value
+    : formatDamageRolls(results);
 }
 
 const PlayerTurnActions = React.forwardRef(
@@ -118,8 +133,14 @@ const [isFumble, setIsFumble] = useState(false);
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const dice = weapon.damage.split(' ')[0];
-    return `${dice}+${ability}`;
+    return weapon.damage
+      .split(/\s+\+\s+/)
+      .map((part) => {
+        const [token, ...rest] = part.trim().split(' ');
+        const type = rest.join(' ').trim();
+        return `${token}+${ability}${type ? ` ${type}` : ''}`;
+      })
+      .join(' + ');
   };
 
   const handleWeaponAttack = (weapon) => {
