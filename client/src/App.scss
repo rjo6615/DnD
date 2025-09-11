@@ -218,6 +218,13 @@
   cursor: pointer;
 }
 
+.action-circle.slot-inactive,
+.bonus-circle.slot-inactive {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  cursor: default;
+}
+
 .action-circle.slot-used {
   background: transparent;
   box-shadow: none;
