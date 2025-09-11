@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Button, Col, Form, Row, Container, Table, Card, Alert } from "react-bootstrap";
+import { Button, Col, Form, Row, Container, Table, Card, Alert, Spinner } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
+import OpenAI from "openai";
+import { z } from "zod";
+import { zodTextFormat } from "openai/helpers/zod";
+
+const openai = new OpenAI({
+  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
+});
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -147,7 +155,13 @@ const [form2, setForm2] = useState({
     weight: "",
     cost: "",
   });
-  
+
+  const [weaponPrompt, setWeaponPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [armorPrompt, setArmorPrompt] = useState("");
+  const [armorLoading, setArmorLoading] = useState(false);
+
   const [show2, setShow2] = useState(false);
   const [isCreatingWeapon, setIsCreatingWeapon] = useState(false);
   const handleClose2 = () => {
@@ -197,6 +211,59 @@ const [form2, setForm2] = useState({
       return { ...prev, ...value };
     });
   }
+
+  async function generateWeapon() {
+    setLoading(true);
+    try {
+      if (!weaponOptions.types.length || !weaponOptions.categories.length) {
+        setStatus({ type: 'danger', message: 'Weapon options not loaded' });
+        return;
+      }
+
+      const WeaponSchema = z.object({
+        name: z.string(),
+        type: z.enum(weaponOptions.types),
+        category: z.enum(weaponOptions.categories),
+        damage: z.string(),
+        properties: z.array(z.string()).optional(),
+        weight: z.number().optional(),
+        cost: z.number().optional(),
+      });
+
+      const response = await openai.responses.parse({
+        model: "gpt-4o-2024-08-06",
+        input: [
+          { role: "system", content: "Create a Dungeons and Dragons weapon." },
+          { role: "user", content: weaponPrompt },
+        ],
+        text: {
+          format: zodTextFormat(WeaponSchema, "weapon"),
+        },
+      });
+
+      const weaponData = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = WeaponSchema.safeParse(weaponData);
+      if (!parsed.success) {
+        setStatus({ type: 'danger', message: parsed.error.message || 'Failed to parse weapon' });
+        return;
+      }
+      const weapon = parsed.data;
+
+      updateForm2({
+        name: weapon.name || "",
+        type: weapon.type || "",
+        category: weapon.category || "",
+        damage: weapon.damage || "",
+        properties: weapon.properties || [],
+        weight: weapon.weight || "",
+        cost: weapon.cost || "",
+      });
+    } catch (err) {
+      setStatus({ type: 'danger', message: err.message || 'Failed to generate weapon' });
+    } finally {
+      setLoading(false);
+    }
+  }
   
   async function onSubmit2(e) {
     e.preventDefault();   
@@ -205,6 +272,7 @@ const [form2, setForm2] = useState({
   
   async function sendToDb2(){
     const weightNumber = form2.weight === "" ? undefined : Number(form2.weight);
+    const costNumber = form2.cost === "" ? undefined : Number(form2.cost);
     const newWeapon = {
       campaign: currentCampaign,
       name: form2.name,
@@ -213,7 +281,7 @@ const [form2, setForm2] = useState({
       damage: form2.damage,
       properties: form2.properties,
       weight: weightNumber,
-      cost: form2.cost,
+      cost: costNumber,
     };
     Object.keys(newWeapon).forEach((key) => {
       if (newWeapon[key] === "" || newWeapon[key] === undefined) {
@@ -334,6 +402,64 @@ const [form2, setForm2] = useState({
       fetchArmorOptions();
     }
   }, [show3, currentCampaign, fetchArmor, fetchArmorOptions]);
+
+  async function generateArmor() {
+    setArmorLoading(true);
+    try {
+      if (!armorOptions.types.length || !armorOptions.categories.length) {
+        setStatus({ type: 'danger', message: 'Armor options not loaded' });
+        return;
+      }
+
+      const ArmorSchema = z.object({
+        name: z.string(),
+        type: z.enum(armorOptions.types),
+        category: z.enum(armorOptions.categories),
+        armorBonus: z.number().optional(),
+        acBonus: z.number().optional(),
+        maxDex: z.number().optional(),
+        strength: z.number().optional(),
+        stealth: z.boolean().optional(),
+        weight: z.number().optional(),
+        cost: z.string().optional(),
+      });
+
+      const response = await openai.responses.parse({
+        model: "gpt-4o-2024-08-06",
+        input: [
+          { role: "system", content: "Create a Dungeons and Dragons armor." },
+          { role: "user", content: armorPrompt },
+        ],
+        text: {
+          format: zodTextFormat(ArmorSchema, "armor"),
+        },
+      });
+
+      const armorData = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = ArmorSchema.safeParse(armorData);
+      if (!parsed.success) {
+        setStatus({ type: 'danger', message: parsed.error.message || 'Failed to parse armor' });
+        return;
+      }
+      const armor = parsed.data;
+
+      updateForm3({
+        armorName: armor.name || "",
+        type: armor.type || "",
+        category: armor.category || "",
+        armorBonus: armor.armorBonus ?? armor.acBonus ?? "",
+        maxDex: armor.maxDex !== undefined ? String(armor.maxDex) : "",
+        strength: armor.strength ?? "",
+        stealth: armor.stealth !== undefined ? String(armor.stealth) : "",
+        weight: armor.weight ?? "",
+        cost: armor.cost !== undefined ? String(armor.cost) : "",
+      });
+    } catch (err) {
+      setStatus({ type: 'danger', message: err.message || 'Failed to generate armor' });
+    } finally {
+      setArmorLoading(false);
+    }
+  }
   
   async function onSubmit3(e) {
     e.preventDefault();   
@@ -347,7 +473,7 @@ const [form2, setForm2] = useState({
         .filter(([_, v]) => v !== "")
         .map(([key, value]) => [
           key,
-          numericFields.includes(key) ? Number(value) : value,
+          numericFields.includes(key) ? Number(value) : key === "cost" ? String(value) : value,
         ])
     );
     await apiFetch("/equipment/armor/add", {
@@ -583,8 +709,24 @@ const [form2, setForm2] = useState({
               <Form onSubmit={onSubmit2} className="px-5">
                <Form.Group className="mb-3 pt-3" >
 
+               <Form.Label className="text-light">Weapon Prompt</Form.Label>
+               <Form.Control
+                className="mb-2"
+                value={weaponPrompt}
+                onChange={(e) => setWeaponPrompt(e.target.value)}
+                type="text"
+                placeholder="Describe a weapon" />
+               <Button
+                className="mb-3"
+                variant="outline-primary"
+                onClick={(e) => { e.preventDefault(); generateWeapon(); }}
+                disabled={loading}
+               >
+                {loading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : "Generate with AI"}
+               </Button>
+
                <Form.Label className="text-light">Name</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ name: e.target.value })}
+               <Form.Control className="mb-2" value={form2.name} onChange={(e) => updateForm2({ name: e.target.value })}
                 type="text" placeholder="Enter weapon name" />
 
                <Form.Label className="text-light">Type</Form.Label>
@@ -612,7 +754,7 @@ const [form2, setForm2] = useState({
               </Form.Select>
 
                <Form.Label className="text-light">Damage</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ damage: e.target.value })}
+               <Form.Control className="mb-2" value={form2.damage} onChange={(e) => updateForm2({ damage: e.target.value })}
                 type="text" placeholder="Enter damage" />
 
                <Form.Label className="text-light">Properties</Form.Label>
@@ -630,13 +772,27 @@ const [form2, setForm2] = useState({
                 ))}
               </Form.Select>
 
-               <Form.Label className="text-light">Weight</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ weight: e.target.value })}
-                type="text" placeholder="Enter weight" />
+              <Form.Label className="text-light">Weight</Form.Label>
+               <Form.Control
+                className="mb-2"
+                value={form2.weight}
+                onChange={(e) =>
+                  updateForm2({ weight: e.target.value === "" ? "" : Number(e.target.value) })
+                }
+                type="number"
+                placeholder="Enter weight"
+              />
 
                <Form.Label className="text-light">Cost</Form.Label>
-               <Form.Control className="mb-2" onChange={(e) => updateForm2({ cost: e.target.value })}
-                type="text" placeholder="Enter cost" />
+               <Form.Control
+                className="mb-2"
+                value={form2.cost}
+                onChange={(e) =>
+                  updateForm2({ cost: e.target.value === "" ? "" : Number(e.target.value) })
+                }
+                type="number"
+                placeholder="Enter cost"
+              />
 
             </Form.Group>
              <div className="text-center">
@@ -708,6 +864,28 @@ const [form2, setForm2] = useState({
     {isCreatingArmor ? (
       <Form onSubmit={onSubmit3} className="px-5">
         <Form.Group className="mb-3 pt-3">
+
+          <Form.Label className="text-light">Armor Prompt</Form.Label>
+          <Form.Control
+            className="mb-2"
+            value={armorPrompt}
+            onChange={(e) => setArmorPrompt(e.target.value)}
+            type="text"
+            placeholder="Describe armor"
+          />
+          <Button
+            className="mb-3"
+            variant="outline-primary"
+            onClick={(e) => { e.preventDefault(); generateArmor(); }}
+            disabled={armorLoading}
+          >
+            {armorLoading ? (
+              <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+            ) : (
+              "Generate Armor"
+            )}
+          </Button>
+
           <Form.Label className="text-light">Name</Form.Label>
           <Form.Control
             className="mb-2"
@@ -734,13 +912,31 @@ const [form2, setForm2] = useState({
           </Form.Select>
 
           <Form.Label className="text-light">AC Bonus</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ armorBonus: e.target.value })} type="text" placeholder="Enter AC Bonus" />
+          <Form.Control
+            className="mb-2"
+            value={form3.armorBonus}
+            onChange={(e) => updateForm3({ armorBonus: e.target.value })}
+            type="text"
+            placeholder="Enter AC Bonus"
+          />
 
           <Form.Label className="text-light">Max Dex Bonus</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ maxDex: e.target.value })} type="text" placeholder="Enter Max Dex Bonus" />
+          <Form.Control
+            className="mb-2"
+            value={form3.maxDex}
+            onChange={(e) => updateForm3({ maxDex: e.target.value })}
+            type="text"
+            placeholder="Enter Max Dex Bonus"
+          />
 
           <Form.Label className="text-light">Strength Requirement</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ strength: e.target.value })} type="text" placeholder="Enter Strength Requirement" />
+          <Form.Control
+            className="mb-2"
+            value={form3.strength}
+            onChange={(e) => updateForm3({ strength: e.target.value })}
+            type="text"
+            placeholder="Enter Strength Requirement"
+          />
 
           <Form.Label className="text-light">Stealth</Form.Label>
           <Form.Select className="mb-2" value={form3.stealth} onChange={(e) => updateForm3({ stealth: e.target.value })}>
@@ -750,10 +946,22 @@ const [form2, setForm2] = useState({
           </Form.Select>
 
           <Form.Label className="text-light">Weight</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ weight: e.target.value })} type="text" placeholder="Enter Weight" />
+          <Form.Control
+            className="mb-2"
+            value={form3.weight}
+            onChange={(e) => updateForm3({ weight: e.target.value })}
+            type="text"
+            placeholder="Enter Weight"
+          />
 
           <Form.Label className="text-light">Cost</Form.Label>
-          <Form.Control className="mb-2" onChange={(e) => updateForm3({ cost: e.target.value })} type="text" placeholder="Enter Cost" />
+          <Form.Control
+            className="mb-2"
+            value={form3.cost}
+            onChange={(e) => updateForm3({ cost: e.target.value })}
+            type="text"
+            placeholder="Enter Cost"
+          />
         </Form.Group>
         <div className="text-center">
           <Button variant="primary" type="submit">
