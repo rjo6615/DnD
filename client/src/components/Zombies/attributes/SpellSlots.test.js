@@ -111,9 +111,9 @@ test('warlock slots render after regular slots and have purple styling', () => {
     );
     const updatedAction = container.querySelectorAll('.action-circle');
     expect(updatedAction[0]).toHaveClass('slot-used');
-    expect(updatedAction[1]).toHaveClass('slot-inactive');
+    expect(updatedAction[1]).toHaveClass('slot-active');
     expect(updatedAction[2]).toHaveClass('slot-active');
-    expect(updatedAction[3]).toHaveClass('slot-inactive');
+    expect(updatedAction[3]).toHaveClass('slot-active');
 
     const bonusCircles = container.querySelectorAll('.bonus-circle');
     bonusCircles.forEach((circle, i) => {
@@ -132,8 +132,8 @@ test('warlock slots render after regular slots and have purple styling', () => {
       />
     );
     const updatedBonus = container.querySelectorAll('.bonus-circle');
-    expect(updatedBonus[0]).toHaveClass('slot-inactive');
+    expect(updatedBonus[0]).toHaveClass('slot-active');
     expect(updatedBonus[1]).toHaveClass('slot-used');
     expect(updatedBonus[2]).toHaveClass('slot-active');
-    expect(updatedBonus[3]).toHaveClass('slot-inactive');
+    expect(updatedBonus[3]).toHaveClass('slot-active');
   });

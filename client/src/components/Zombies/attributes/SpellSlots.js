@@ -86,12 +86,7 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
           <div className="slot-boxes">
             {Array.from({ length: 4 }).map((_, i) => {
               const state = used.action?.[i];
-              const cls =
-                state === 'used'
-                  ? 'slot-used'
-                  : state === 'inactive'
-                  ? 'slot-inactive'
-                  : 'slot-active';
+              const cls = state === 'used' ? 'slot-used' : 'slot-active';
               return (
                 <div
                   key={i}
@@ -108,12 +103,7 @@ export default function SpellSlots({ form = {}, used = {}, onToggleSlot }) {
           <div className="slot-boxes">
             {Array.from({ length: 4 }).map((_, i) => {
               const state = used.bonus?.[i];
-              const cls =
-                state === 'used'
-                  ? 'slot-used'
-                  : state === 'inactive'
-                  ? 'slot-inactive'
-                  : 'slot-active';
+              const cls = state === 'used' ? 'slot-used' : 'slot-active';
               return (
                 <div
                   key={i}

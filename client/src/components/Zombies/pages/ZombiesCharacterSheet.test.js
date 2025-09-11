@@ -449,14 +449,14 @@ test('action and bonus markers cycle through states', async () => {
   fireEvent.click(action);
   expect(action).toHaveClass('slot-used');
   fireEvent.click(action);
-  expect(action).toHaveClass('slot-inactive');
-  fireEvent.click(action);
   expect(action).toHaveClass('slot-active');
+  fireEvent.click(action);
+  expect(action).toHaveClass('slot-used');
 
   fireEvent.click(bonus);
   expect(bonus).toHaveClass('slot-used');
   fireEvent.click(bonus);
-  expect(bonus).toHaveClass('slot-inactive');
-  fireEvent.click(bonus);
   expect(bonus).toHaveClass('slot-active');
+  fireEvent.click(bonus);
+  expect(bonus).toHaveClass('slot-used');
 });

@@ -198,8 +198,7 @@ export default function ZombiesCharacterSheet() {
           const currentState = prev[arg] || initCircleState();
           const nextState = { ...currentState };
           const cur = currentState[index] || 'active';
-          nextState[index] =
-            cur === 'active' ? 'used' : cur === 'used' ? 'inactive' : 'active';
+          nextState[index] = cur === 'active' ? 'used' : 'active';
           return { ...prev, [arg]: nextState };
         });
         return;
