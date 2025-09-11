@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act, within } from '@testing-library/react';
+import { render, screen, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Features from './Features';
 
@@ -47,17 +47,6 @@ test('renders features and opens modal with description', async () => {
   expect(useButtons).toHaveLength(2);
 
   const actionSurgeRow = (await screen.findByText('Action Surge')).closest('tr');
-  const actionSurgeUseButton = within(actionSurgeRow).getByRole('button', {
-    name: /use feature/i
-  });
-
-  await act(async () => {
-    await userEvent.click(actionSurgeUseButton);
-  });
-
-  expect(actionSurgeUseButton).toBeDisabled();
-  expect(actionSurgeUseButton).toHaveTextContent(/used/i);
-
   const actionSurgeButton = within(actionSurgeRow).getByRole('button', {
     name: /view feature/i
   });

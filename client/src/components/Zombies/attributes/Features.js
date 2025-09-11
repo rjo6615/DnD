@@ -9,7 +9,6 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [usedFeatures, setUsedFeatures] = useState({});
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -83,25 +82,13 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                   ) : features.length > 0 ? (
                     features.map((feat, idx) => {
                       const featKey = `${feat.class}-${feat.level}-${idx}`;
-                      const used = usedFeatures[featKey];
                       return (
                         <tr key={featKey}>
                           <td>{feat.class}</td>
                           <td>{feat.level}</td>
                           <td>{feat.name}</td>
                           <td>
-                            <Button
-                              aria-label="use feature"
-                              onClick={() =>
-                                setUsedFeatures((prev) => ({
-                                  ...prev,
-                                  [featKey]: true
-                                }))
-                              }
-                              disabled={used}
-                            >
-                              {used ? 'Used' : 'Use'}
-                            </Button>
+                            <Button aria-label="use feature">Use</Button>
                           </td>
                           <td>
                             <Button
