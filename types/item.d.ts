@@ -4,10 +4,6 @@ export interface Item {
    */
   name: string;
   /**
-   * Canonical item key used for lookup.
-   */
-  type?: string;
-  /**
    * Item category such as "adventuring gear", "tool", or "mount".
    */
   category: string;
