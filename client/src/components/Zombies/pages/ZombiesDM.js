@@ -5,7 +5,6 @@ import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
-import { SKILLS } from "../skillSchema";
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -482,63 +481,172 @@ const [form2, setForm2] = useState({
     }
   }
   
-  //------------------------------------Items-------------------------------------------------------------------------------
+//------------------------------------Items------------------------------------------------------------
   const [show4, setShow4] = useState(false);
-  const handleClose4 = () => setShow4(false);
+  const [isCreatingItem, setIsCreatingItem] = useState(false);
+  const handleClose4 = () => {
+    setShow4(false);
+    setIsCreatingItem(false);
+  };
   const handleShow4 = () => setShow4(true);
-  
-   const skillDefaults = Object.fromEntries(SKILLS.map(({ key }) => [key, "0"]));
-   const [form4, setForm4] = useState({
-    campaign: currentCampaign,
-    itemName: "",
-    notes: "",
-    str: "0",
-    dex: "0",
-    con: "0",
-    int: "0",
-    wis: "0",
-    cha: "0",
-    ...skillDefaults,
+
+  const [items, setItems] = useState([]);
+  const [itemOptions, setItemOptions] = useState({
+    types: [],
+    categories: [],
   });
-  
+
+  const [form4, setForm4] = useState({
+    campaign: currentCampaign,
+    name: "",
+    type: "",
+    category: "",
+    weight: "",
+    cost: "",
+  });
+
+  const [itemPrompt, setItemPrompt] = useState("");
+  const [itemLoading, setItemLoading] = useState(false);
+
   function updateForm4(value) {
     return setForm4((prev) => {
       return { ...prev, ...value };
     });
   }
-  
-  async function onSubmit4(e) {
-    e.preventDefault();   
-     sendToDb4();
+
+  const fetchItems = useCallback(async () => {
+    const response = await apiFetch(`/equipment/items/${currentCampaign}`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setItems(data);
+  }, [currentCampaign]);
+
+  const fetchItemOptions = useCallback(async () => {
+    const response = await apiFetch('/items/options');
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setItemOptions(data);
+  }, []);
+
+  useEffect(() => {
+    if (show4) {
+      fetchItems();
+      fetchItemOptions();
+    }
+  }, [show4, currentCampaign, fetchItems, fetchItemOptions]);
+
+  async function generateItem() {
+    setItemLoading(true);
+    try {
+      if (!itemOptions.types.length || !itemOptions.categories.length) {
+        setStatus({ type: 'danger', message: 'Item options not loaded' });
+        return;
+      }
+      const response = await apiFetch('/ai/item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: itemPrompt }),
+      });
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      const item = await response.json();
+      updateForm4({
+        name: item.name || '',
+        type: item.type || '',
+        category: item.category || '',
+        weight: item.weight ?? '',
+        cost: item.cost ?? '',
+      });
+    } catch (err) {
+      setStatus({ type: 'danger', message: err.message || 'Failed to generate item' });
+    } finally {
+      setItemLoading(false);
+    }
   }
-  
-  async function sendToDb4(){
-    const newItem = { ...form4 };
-    await apiFetch("/equipment/item/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newItem),
-    })
-   .catch(error => {
-     setStatus({ type: 'danger', message: error.toString() });
-     return;
-   });
-  
-   const skillReset = Object.fromEntries(SKILLS.map(({ key }) => [key, ""]));
-   setForm4({
-    itemName: "",
-    notes: "",
-    str: "",
-    dex: "",
-    con: "",
-    int: "",
-    wis: "",
-    cha: "",
-    ...skillReset,
-  });
-   navigate(0);
+
+  async function onSubmit4(e) {
+    e.preventDefault();
+    sendToDb4();
+  }
+
+  async function sendToDb4() {
+    const weightNumber = form4.weight === "" ? undefined : Number(form4.weight);
+    const newItem = {
+      campaign: currentCampaign,
+      name: form4.name,
+      type: form4.type,
+      category: form4.category,
+      weight: weightNumber,
+      cost: form4.cost,
+    };
+    Object.keys(newItem).forEach((key) => {
+      if (newItem[key] === "" || newItem[key] === undefined) {
+        delete newItem[key];
+      }
+    });
+    try {
+      const response = await apiFetch('/equipment/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newItem),
+      });
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || errorData?.error || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      setForm4({
+        campaign: currentCampaign,
+        name: "",
+        type: "",
+        category: "",
+        weight: "",
+        cost: "",
+      });
+      handleClose4();
+      fetchItems();
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
+
+  async function deleteItem(id) {
+    try {
+      const response = await apiFetch(`/equipment/items/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      setItems((prev) => prev.filter((i) => i._id !== id));
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
   }
   
 
@@ -977,74 +1085,135 @@ const [form2, setForm2] = useState({
   </div>
   </Modal>
   {/* -----------------------------------------Item Modal--------------------------------------------- */}
-  <Modal className="dnd-modal" size="lg" centered show={show4} onHide={handleClose4}>
-       <div className="text-center">
-        <Card className="dnd-background">
-            <Card.Title>Create Item</Card.Title>
-          <Card.Body>   
+  <Modal className="dnd-modal modern-modal" size="lg" centered show={show4} onHide={handleClose4}>
+    <div className="text-center">
+      <Card className="modern-card">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">{isCreatingItem ? "Create Item" : "Items"}</Card.Title>
+        </Card.Header>
+        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
           <div className="text-center">
-        <Form onSubmit={onSubmit4} className="px-5">
-        <Form.Group className="mb-3 pt-3" >
-  
-         <Form.Label className="text-light">Item Name</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ itemName: e.target.value })}
-          type="text" placeholder="Enter Item name" /> 
-  
-         <Form.Label className="text-light">Notes</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ notes: e.target.value })}
-          type="text" placeholder="Enter Notes" />
-  
-         <Form.Label className="text-light">Strength</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ str: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Strength" />  
-  
-         <Form.Label className="text-light">Dexterity</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ dex: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Dexterity" />
-  
-         <Form.Label className="text-light">Constitution</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ con: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Constitution" />   
-  
-         <Form.Label className="text-light">Intellect</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ int: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Intellect" />  
-  
-         <Form.Label className="text-light">Wisdom</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ wis: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Wisdom" />  
-  
-         <Form.Label className="text-light">Charisma</Form.Label>
-         <Form.Control className="mb-2" onChange={(e) => updateForm4({ cha: e.target.value === "" ? 0 : e.target.value, })}
-          type="text" placeholder="Enter Charisma" />
+            {isCreatingItem ? (
+              <Form onSubmit={onSubmit4} className="px-5">
+                <Form.Group className="mb-3 pt-3" >
+                  <Form.Label className="text-light">Item Prompt</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={itemPrompt}
+                    onChange={(e) => setItemPrompt(e.target.value)}
+                    type="text"
+                    placeholder="Describe an item" />
+                  <Button
+                    className="mb-3"
+                    variant="outline-primary"
+                    onClick={(e) => { e.preventDefault(); generateItem(); }}
+                    disabled={itemLoading}
+                  >
+                    {itemLoading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : "Generate with AI"}
+                  </Button>
+                  <br></br>
+                  <Form.Label className="text-light">Name</Form.Label>
+                  <Form.Control className="mb-2" value={form4.name} onChange={(e) => updateForm4({ name: e.target.value })}
+                    type="text" placeholder="Enter item name" />
 
-         {SKILLS.map(({ key, label }) => (
-           <React.Fragment key={key}>
-             <Form.Label className="text-light">{label}</Form.Label>
-             <Form.Control
-               className="mb-2"
-               onChange={(e) => updateForm4({ [key]: e.target.value === "" ? 0 : e.target.value })}
-               type="text"
-               placeholder={`Enter ${label}`}
-             />
-           </React.Fragment>
-         ))}
-  
-       </Form.Group>
-       <div className="text-center">
-       <Button variant="primary" onClick={handleClose4} type="submit">
-              Create
-            </Button>
-            <Button className="ms-4" variant="secondary" onClick={handleClose4}>
-              Close
-            </Button>
-            </div>
-       </Form>
-       </div>
-       </Card.Body> 
-       </Card>
-       </div>       
-        </Modal>
+                  <Form.Label className="text-light">Type</Form.Label>
+                  <Form.Select
+                    className="mb-2"
+                    value={form4.type}
+                    onChange={(e) => updateForm4({ type: e.target.value })}
+                  >
+                    <option value="">Select type</option>
+                    {itemOptions.types.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </Form.Select>
+
+                  <Form.Label className="text-light">Category</Form.Label>
+                  <Form.Select
+                    className="mb-2"
+                    value={form4.category}
+                    onChange={(e) => updateForm4({ category: e.target.value })}
+                  >
+                    <option value="">Select category</option>
+                    {itemOptions.categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Form.Select>
+
+                  <Form.Label className="text-light">Weight</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={form4.weight}
+                    onChange={(e) =>
+                      updateForm4({ weight: e.target.value === "" ? "" : Number(e.target.value) })
+                    }
+                    type="number"
+                    placeholder="Enter weight"
+                  />
+
+                  <Form.Label className="text-light">Cost</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={form4.cost}
+                    onChange={(e) => updateForm4({ cost: e.target.value })}
+                    type="text"
+                    placeholder="Enter cost"
+                  />
+
+                </Form.Group>
+                <div className="text-center">
+                  <Button variant="primary" type="submit">
+                    Create
+                  </Button>
+                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingItem(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </Form>
+            ) : (
+              <>
+                <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Category</th>
+                      <th>Weight</th>
+                      <th>Cost</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((i) => (
+                      <tr key={i._id}>
+                        <td>{i.name}</td>
+                        <td>{i.type}</td>
+                        <td>{i.category}</td>
+                        <td>{i.weight}</td>
+                        <td>{i.cost}</td>
+                        <td>
+                          <Button
+                            className="btn-danger action-btn fa-solid fa-trash"
+                            onClick={() => deleteItem(i._id)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                <Button variant="primary" onClick={() => setIsCreatingItem(true)}>
+                  Create Item
+                </Button>
+                <Button className="ms-4" variant="secondary" onClick={handleClose4}>
+                  Close
+                </Button>
+              </>
+            )}
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  </Modal>
       </div>
     )
 }
