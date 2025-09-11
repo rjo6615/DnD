@@ -356,29 +356,34 @@ const showSparklesEffect = () => {
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div>
-      <div
-        id="damageAmount"
-        ref={damageRef}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
-        style={{ margin: "0 auto" }}
-        onClick={handleDamageClick}
-      >
-        <span
-          id="damageValue"
-          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
-        >
-          {damageValue}
-        </span>
-        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-      </div>
-
-      <Button
-        variant="secondary"
-        style={{ display: 'block', margin: '10px auto' }}
-        onClick={() => setShowLog(true)}
-      >
-        Damage Log
-      </Button>
+<Button
+  style={{
+    display: 'block',
+    margin: '15px auto',
+    padding: '4px 12px',
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    color: '#fff',
+    background: 'linear-gradient(145deg, #001affff, #5260ffff)',
+    border: '2px solid #ffd700',
+    borderRadius: '8px',
+    boxShadow: '0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 215, 0, 0.5)',
+    textShadow: '1px 1px 2px #000',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  }}
+  onMouseOver={(e) => {
+    e.target.style.background = 'linear-gradient(145deg, #001affff, #5260ffff)';
+    e.target.style.boxShadow = '0 0 16px rgba(255, 215, 0, 0.9), inset 0 0 8px rgba(178, 34, 34, 0.6)';
+  }}
+  onMouseOut={(e) => {
+    e.target.style.background = 'linear-gradient(145deg, #5260ffff, #001affff)';
+    e.target.style.boxShadow = '0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 215, 0, 0.5)';
+  }}
+  onClick={() => setShowLog(true)}
+>
+  ⚔️ Log
+</Button>
 
       <Modal centered show={showLog} onHide={() => setShowLog(false)}>
         <Modal.Header closeButton>
@@ -395,6 +400,21 @@ const showSparklesEffect = () => {
           </ul>
         </Modal.Body>
       </Modal>
+      <div
+        id="damageAmount"
+        ref={damageRef}
+        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
+        style={{ margin: "0 auto" }}
+        onClick={handleDamageClick}
+      >
+        <span
+          id="damageValue"
+          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+        >
+          {damageValue}
+        </span>
+        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+      </div>
 
       <div
         style={{
