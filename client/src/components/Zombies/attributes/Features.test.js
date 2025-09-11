@@ -41,9 +41,26 @@ test('renders features and opens modal with description', async () => {
   expect(await screen.findByText('Second Wind')).toBeInTheDocument();
   expect(await screen.findByText('Action Surge')).toBeInTheDocument();
 
-  const actionSurgeButton = within(
-    (await screen.findByText('Action Surge')).closest('tr')
-  ).getByRole('button', { name: /view feature/i });
+  const useButtons = await screen.findAllByRole('button', {
+    name: /use feature/i
+  });
+  expect(useButtons).toHaveLength(2);
+
+  const actionSurgeRow = (await screen.findByText('Action Surge')).closest('tr');
+  const actionSurgeUseButton = within(actionSurgeRow).getByRole('button', {
+    name: /use feature/i
+  });
+
+  await act(async () => {
+    await userEvent.click(actionSurgeUseButton);
+  });
+
+  expect(actionSurgeUseButton).toBeDisabled();
+  expect(actionSurgeUseButton).toHaveTextContent(/used/i);
+
+  const actionSurgeButton = within(actionSurgeRow).getByRole('button', {
+    name: /view feature/i
+  });
 
   await act(async () => {
     await userEvent.click(actionSurgeButton);
