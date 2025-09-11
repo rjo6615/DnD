@@ -19,7 +19,7 @@ try {
 }
 const { types: weaponTypes, categories: weaponCategories } = require('../data/weapons');
 const { types: armorTypes, categories: armorCategories } = require('../data/armor');
-const { types: itemTypes, categories: itemCategories } = require('../data/items');
+const { categories: itemCategories } = require('../data/items');
 
 module.exports = (router) => {
   const aiRouter = express.Router();
@@ -124,7 +124,6 @@ module.exports = (router) => {
 
     const ItemSchema = z.object({
       name: z.string(),
-      type: z.enum(itemTypes),
       category: z.enum(itemCategories),
       weight: z.number().optional(),
       cost: z.string().optional(),

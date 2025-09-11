@@ -492,14 +492,12 @@ const [form2, setForm2] = useState({
 
   const [items, setItems] = useState([]);
   const [itemOptions, setItemOptions] = useState({
-    types: [],
     categories: [],
   });
 
   const [form4, setForm4] = useState({
     campaign: currentCampaign,
     name: "",
-    type: "",
     category: "",
     weight: "",
     cost: "",
@@ -546,7 +544,7 @@ const [form2, setForm2] = useState({
   async function generateItem() {
     setItemLoading(true);
     try {
-      if (!itemOptions.types.length || !itemOptions.categories.length) {
+      if (!itemOptions.categories.length) {
         setStatus({ type: 'danger', message: 'Item options not loaded' });
         return;
       }
@@ -569,7 +567,6 @@ const [form2, setForm2] = useState({
       const item = await response.json();
       updateForm4({
         name: item.name || '',
-        type: item.type || '',
         category: item.category || '',
         weight: item.weight ?? '',
         cost: item.cost ?? '',
@@ -591,7 +588,6 @@ const [form2, setForm2] = useState({
     const newItem = {
       campaign: currentCampaign,
       name: form4.name,
-      type: form4.type,
       category: form4.category,
       weight: weightNumber,
       cost: form4.cost,
@@ -623,7 +619,6 @@ const [form2, setForm2] = useState({
       setForm4({
         campaign: currentCampaign,
         name: "",
-        type: "",
         category: "",
         weight: "",
         cost: "",
@@ -1116,18 +1111,6 @@ const [form2, setForm2] = useState({
                   <Form.Control className="mb-2" value={form4.name} onChange={(e) => updateForm4({ name: e.target.value })}
                     type="text" placeholder="Enter item name" />
 
-                  <Form.Label className="text-light">Type</Form.Label>
-                  <Form.Select
-                    className="mb-2"
-                    value={form4.type}
-                    onChange={(e) => updateForm4({ type: e.target.value })}
-                  >
-                    <option value="">Select type</option>
-                    {itemOptions.types.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </Form.Select>
-
                   <Form.Label className="text-light">Category</Form.Label>
                   <Form.Select
                     className="mb-2"
@@ -1176,7 +1159,6 @@ const [form2, setForm2] = useState({
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Type</th>
                       <th>Category</th>
                       <th>Weight</th>
                       <th>Cost</th>
@@ -1187,7 +1169,6 @@ const [form2, setForm2] = useState({
                     {items.map((i) => (
                       <tr key={i._id}>
                         <td>{i.name}</td>
-                        <td>{i.type}</td>
                         <td>{i.category}</td>
                         <td>{i.weight}</td>
                         <td>{i.cost}</td>

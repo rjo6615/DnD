@@ -55,7 +55,6 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
               acc[key] = {
                 name: key,
                 displayName: it.name,
-                type: it.type,
                 category: it.category || 'custom',
                 weight: it.weight ?? '',
                 cost: it.cost ?? '',
@@ -108,12 +107,11 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
     if (typeof onChange === 'function') {
       const ownedItems = Object.values(nextItems)
         .filter((i) => i.owned)
-        .map(({ name, category, weight, cost, type }) => ({
+        .map(({ name, category, weight, cost }) => ({
           name,
           category,
           weight,
           cost,
-          type,
         }));
       onChange(ownedItems);
     }
