@@ -187,7 +187,12 @@ const [isFumble, setIsFumble] = useState(false);
     );
     if (!value) return;
     updateDamageValueWithAnimation(value.total, value.breakdown);
-    onCastSpell?.({ level, slotType, castingTime: spell.castingTime });
+    onCastSpell?.({
+      level,
+      slotType,
+      castingTime: spell.castingTime,
+      name: spell.name,
+    });
   };
 
   const handleSpellsButtonClick = (spell, crit = false) => {

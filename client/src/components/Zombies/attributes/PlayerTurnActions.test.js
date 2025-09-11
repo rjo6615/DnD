@@ -114,7 +114,7 @@ describe('PlayerTurnActions damage log', () => {
     expect(document.getElementById('damageValue').textContent).toBe('6');
 
     act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Damage Log' }));
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
     });
     const modal = await screen.findByRole('dialog');
     expect(
@@ -124,9 +124,10 @@ describe('PlayerTurnActions damage log', () => {
   });
 
   test('handles multi-type damage and returns breakdown string', () => {
+    const fixedRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toBe('3 cold + 3 slashing');
+    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
   });
 });
 
@@ -270,11 +271,14 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(rollButton);
     });
 
-    expect(onCastSpell).toHaveBeenCalledWith({
-      level: spell.level,
-      slotType: undefined,
-      castingTime: spell.castingTime,
-    });
+    expect(onCastSpell).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: spell.level,
+        slotType: undefined,
+        castingTime: spell.castingTime,
+        name: spell.name,
+      })
+    );
   });
 
   test('consumes action circle for 1 action spells', async () => {
