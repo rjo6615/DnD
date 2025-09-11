@@ -6,14 +6,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
-import OpenAI from "openai";
-import { z } from "zod";
-import { zodTextFormat } from "openai/helpers/zod";
-
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -219,44 +211,31 @@ const [form2, setForm2] = useState({
         setStatus({ type: 'danger', message: 'Weapon options not loaded' });
         return;
       }
-
-      const WeaponSchema = z.object({
-        name: z.string(),
-        type: z.enum(weaponOptions.types),
-        category: z.enum(weaponOptions.categories),
-        damage: z.string(),
-        properties: z.array(z.string()).optional(),
-        weight: z.number().optional(),
-        cost: z.number().optional(),
+      const response = await apiFetch('/ai/weapon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: weaponPrompt }),
       });
-
-      const response = await openai.responses.parse({
-        model: "gpt-4o-2024-08-06",
-        input: [
-          { role: "system", content: "Create a Dungeons and Dragons weapon." },
-          { role: "user", content: weaponPrompt },
-        ],
-        text: {
-          format: zodTextFormat(WeaponSchema, "weapon"),
-        },
-      });
-
-      const weaponData = response.output?.[0]?.content?.[0]?.parsed;
-      const parsed = WeaponSchema.safeParse(weaponData);
-      if (!parsed.success) {
-        setStatus({ type: 'danger', message: parsed.error.message || 'Failed to parse weapon' });
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
         return;
       }
-      const weapon = parsed.data;
-
+      const weapon = await response.json();
       updateForm2({
-        name: weapon.name || "",
-        type: weapon.type || "",
-        category: weapon.category || "",
-        damage: weapon.damage || "",
+        name: weapon.name || '',
+        type: weapon.type || '',
+        category: weapon.category || '',
+        damage: weapon.damage || '',
         properties: weapon.properties || [],
-        weight: weapon.weight || "",
-        cost: weapon.cost || "",
+        weight: weapon.weight ?? '',
+        cost: weapon.cost ?? '',
       });
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate weapon' });
@@ -410,49 +389,33 @@ const [form2, setForm2] = useState({
         setStatus({ type: 'danger', message: 'Armor options not loaded' });
         return;
       }
-
-      const ArmorSchema = z.object({
-        name: z.string(),
-        type: z.enum(armorOptions.types),
-        category: z.enum(armorOptions.categories),
-        armorBonus: z.number().optional(),
-        acBonus: z.number().optional(),
-        maxDex: z.number().optional(),
-        strength: z.number().optional(),
-        stealth: z.boolean().optional(),
-        weight: z.number().optional(),
-        cost: z.string().optional(),
+      const response = await apiFetch('/ai/armor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: armorPrompt }),
       });
-
-      const response = await openai.responses.parse({
-        model: "gpt-4o-2024-08-06",
-        input: [
-          { role: "system", content: "Create a Dungeons and Dragons armor." },
-          { role: "user", content: armorPrompt },
-        ],
-        text: {
-          format: zodTextFormat(ArmorSchema, "armor"),
-        },
-      });
-
-      const armorData = response.output?.[0]?.content?.[0]?.parsed;
-      const parsed = ArmorSchema.safeParse(armorData);
-      if (!parsed.success) {
-        setStatus({ type: 'danger', message: parsed.error.message || 'Failed to parse armor' });
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
         return;
       }
-      const armor = parsed.data;
-
+      const armor = await response.json();
       updateForm3({
-        armorName: armor.name || "",
-        type: armor.type || "",
-        category: armor.category || "",
-        armorBonus: armor.armorBonus ?? armor.acBonus ?? "",
-        maxDex: armor.maxDex !== undefined ? String(armor.maxDex) : "",
-        strength: armor.strength ?? "",
-        stealth: armor.stealth !== undefined ? String(armor.stealth) : "",
-        weight: armor.weight ?? "",
-        cost: armor.cost !== undefined ? String(armor.cost) : "",
+        armorName: armor.name || '',
+        type: armor.type || '',
+        category: armor.category || '',
+        armorBonus: armor.armorBonus ?? armor.acBonus ?? '',
+        maxDex: armor.maxDex !== undefined ? String(armor.maxDex) : '',
+        strength: armor.strength ?? '',
+        stealth: armor.stealth !== undefined ? String(armor.stealth) : '',
+        weight: armor.weight ?? '',
+        cost: armor.cost !== undefined ? String(armor.cost) : '',
       });
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate armor' });
