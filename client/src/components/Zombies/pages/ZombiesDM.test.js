@@ -88,5 +88,6 @@ describe('ZombiesDM AI generation', () => {
     expect(screen.getByDisplayValue('Shield')).toBeInTheDocument();
     expect(screen.getByLabelText('Stealth')).toHaveValue('false');
     expect(screen.getByLabelText('Cost')).toHaveValue('100');
+    expect(screen.getByLabelText('Max Dex Bonus')).toHaveValue('4');
   });
 });
