@@ -562,7 +562,7 @@ const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
-  return (
+return (
   <div
     className="text-center"
     style={{
@@ -609,15 +609,15 @@ const spellsGold =
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
-      <PlayerTurnActions
-        form={form}
-        dexMod={statMods.dex}
-        strMod={statMods.str}
-        headerHeight={headerHeight}
-        ref={playerTurnActionsRef}
-        onCastSpell={handleCastSpell}
-        availableSlots={availableSlots}
-      />
+    <PlayerTurnActions
+      form={form}
+      dexMod={statMods.dex}
+      strMod={statMods.str}
+      headerHeight={headerHeight}
+      ref={playerTurnActionsRef}
+      onCastSpell={handleCastSpell}
+      availableSlots={availableSlots}
+    />
     {form && (
       <SpellSlots
         form={form}
