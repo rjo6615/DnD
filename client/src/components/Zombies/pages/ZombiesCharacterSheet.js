@@ -562,26 +562,7 @@ const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
-// ------------------------------------------Attack Bonus---------------------------------------------------
-let atkBonus = 0;
-const occupations = form.occupation;
-
-for (const occupation of occupations) {
-  const level = parseInt(occupation.Level, 10);
-  const attackBonusValue = parseInt(occupation.atkBonus, 10);
-
-  if (!isNaN(level)) {
-    if (attackBonusValue === 0) {
-      atkBonus += Math.floor(level / 2);
-    } else if (attackBonusValue === 1) {
-      atkBonus += Math.floor(level * 0.75);
-    } else if (attackBonusValue === 2) {
-      atkBonus += level;
-    }
-  }
-}
-
-return (
+  return (
   <div
     className="text-center"
     style={{
@@ -628,16 +609,15 @@ return (
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
-    <PlayerTurnActions
-      form={form}
-      atkBonus={atkBonus}
-      dexMod={statMods.dex}
-      strMod={statMods.str}
-      headerHeight={headerHeight}
-      ref={playerTurnActionsRef}
-      onCastSpell={handleCastSpell}
-      availableSlots={availableSlots}
-    />
+      <PlayerTurnActions
+        form={form}
+        dexMod={statMods.dex}
+        strMod={statMods.str}
+        headerHeight={headerHeight}
+        ref={playerTurnActionsRef}
+        onCastSpell={handleCastSpell}
+        availableSlots={availableSlots}
+      />
     {form && (
       <SpellSlots
         form={form}
