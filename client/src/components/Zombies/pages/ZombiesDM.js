@@ -8,6 +8,18 @@ import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 
+const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
+  acc[label.toLowerCase()] = key;
+  acc[key.toLowerCase()] = key;
+  return acc;
+}, {});
+
+const SKILL_LOOKUP = SKILLS.reduce((acc, { key, label }) => {
+  acc[label.toLowerCase()] = key;
+  acc[key.toLowerCase()] = key;
+  return acc;
+}, {});
+
 export default function ZombiesDM() {
   const user = useUser();
 
@@ -570,13 +582,21 @@ const [form2, setForm2] = useState({
         return;
       }
       const item = await response.json();
+      const normalizeBonuses = (bonuses, lookup) => {
+        const result = {};
+        for (const [k, v] of Object.entries(bonuses || {})) {
+          const key = lookup[k.toLowerCase()] || k;
+          result[key] = v;
+        }
+        return result;
+      };
       updateForm4({
         name: item.name || '',
         category: item.category || '',
         weight: item.weight ?? '',
         cost: item.cost ?? '',
-        statBonuses: item.statBonuses || {},
-        skillBonuses: item.skillBonuses || {},
+        statBonuses: normalizeBonuses(item.statBonuses, STAT_LOOKUP),
+        skillBonuses: normalizeBonuses(item.skillBonuses, SKILL_LOOKUP),
       });
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate item' });
