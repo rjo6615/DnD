@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 jest.mock('../../../utils/apiFetch');
@@ -17,6 +17,7 @@ jest.mock('../attributes/Feats', () => () => null);
 jest.mock('../../Weapons/WeaponList', () => () => null);
 var mockUpdateDamage;
 var mockCalcDamage;
+const mockOnEffectsChange = { current: null };
 jest.mock('../attributes/PlayerTurnActions', () => {
   const React = require('react');
   mockUpdateDamage = jest.fn();
@@ -27,6 +28,7 @@ jest.mock('../attributes/PlayerTurnActions', () => {
       React.useImperativeHandle(ref, () => ({
         updateDamageValueWithAnimation: mockUpdateDamage,
       }));
+      mockOnEffectsChange.current = props.onEffectsChange;
       return null;
     }),
     calculateDamage: mockCalcDamage,
@@ -54,6 +56,7 @@ beforeEach(() => {
   mockCalcDamage.mockClear();
   mockOnCastSpell.current = null;
   mockHandleClose.current = null;
+  mockOnEffectsChange.current = null;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -279,6 +282,36 @@ test('casting spells consumes action and bonus circles based on casting time', a
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
   expect(actionCircle).toHaveClass('slot-used');
   expect(bonusCircle).toHaveClass('slot-used');
+});
+
+test('adds extra action circle when Haste effect active', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  expect(container.querySelectorAll('.action-circle').length).toBe(1);
+  act(() => {
+    mockOnEffectsChange.current?.([{ name: 'Haste', icon: 'haste.png', remaining: 10 }]);
+  });
+  expect(container.querySelectorAll('.action-circle').length).toBe(2);
 });
 
 test('feats button includes points-glow when feat points available', async () => {

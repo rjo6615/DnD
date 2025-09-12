@@ -164,9 +164,11 @@ useEffect(() => {
     setActiveEffects((prev) =>
       prev
         .map((e) =>
-          e.name === 'Haste' ? { ...e, passes: (e.passes || 0) + 1 } : e
+          e.name === 'Haste'
+            ? { ...e, remaining: (e.remaining || 0) - 1 }
+            : e
         )
-        .filter((e) => e.name !== 'Haste' || e.passes < 10)
+        .filter((e) => e.name !== 'Haste' || e.remaining > 0)
     );
   };
   window.addEventListener('pass-turn', handlePass);
@@ -217,7 +219,7 @@ useEffect(() => {
     }
     applyUpcast(spell, spell.level, crit || isCritical);
     if (spell.name === 'Haste') {
-      setActiveEffects((prev) => [...prev, { name: 'Haste', icon: hasteIcon, passes: 0 }]);
+      setActiveEffects((prev) => [...prev, { name: 'Haste', icon: hasteIcon, remaining: 10 }]);
     }
   };
 

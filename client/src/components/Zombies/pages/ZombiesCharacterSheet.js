@@ -70,8 +70,20 @@ export default function ZombiesCharacterSheet() {
   });
 
   useEffect(() => {
-    setActionCount(baseActionCount);
-  }, [baseActionCount]);
+    const hasteActive = activeEffects.some((e) => e.name === 'Haste');
+    const desired = baseActionCount + (hasteActive ? 1 : 0);
+    setActionCount(desired);
+    setUsedSlots((used) => {
+      const action = { ...used.action };
+      for (let i = 0; i < desired; i++) {
+        if (!(i in action)) action[i] = 'active';
+      }
+      Object.keys(action).forEach((key) => {
+        if (Number(key) >= desired) delete action[key];
+      });
+      return { ...used, action };
+    });
+  }, [baseActionCount, activeEffects]);
 
   const consumeCircle = useCallback(
     (type, index) => {
@@ -131,11 +143,12 @@ export default function ZombiesCharacterSheet() {
         action: initCircleState(),
         bonus: initCircleState(),
       }));
-      setActionCount(baseActionCount);
+      const hasteActive = activeEffects.some((e) => e.name === 'Haste');
+      setActionCount(baseActionCount + (hasteActive ? 1 : 0));
     };
     window.addEventListener('pass-turn', handler);
     return () => window.removeEventListener('pass-turn', handler);
-  }, [baseActionCount]);
+  }, [baseActionCount, activeEffects]);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -634,7 +647,7 @@ return (
     </div>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <Button
-        style={{ borderColor: 'gray', marginBottom: '8px' }}
+        style={{ borderColor: 'gray', marginBottom: '8px', marginTop: '-30px' }}
         className="bg-secondary"
         onClick={() => window.dispatchEvent(new Event('pass-turn'))}
       >
