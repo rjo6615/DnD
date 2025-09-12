@@ -16,9 +16,7 @@ export default function HealthDefense({
   spellAbilityMod,
 }) {
   const params = useParams();
-//-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
-  let atkBonus = 0;
-    
+//-----------------------Health/Defense------------------------------
   // Armor AC/MaxDex
   const armorItems = form.armor || [];
   const armorAcBonus = armorItems.map((item) => {
@@ -45,21 +43,6 @@ export default function HealthDefense({
      }
     
   const occupations = form.occupation;
-
-  for (const occupation of occupations) {
-    const level = parseInt(occupation.Level, 10);
-    const attackBonusValue = parseInt(occupation.atkBonus, 10);
-
-    if (!isNaN(level)) {
-      if (attackBonusValue === 0) {
-        atkBonus += Math.floor(level / 2);
-      } else if (attackBonusValue === 1) {
-        atkBonus += Math.floor(level * 0.75);
-      } else if (attackBonusValue === 2) {
-        atkBonus += level;
-      }
-    }
-  }
 
   const totalLevel = occupations.reduce(
     (total, o) => total + Number(o.Level),
@@ -281,7 +264,6 @@ return (
   {/* First row */}
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
     <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-    <div><strong>Attack Bonus:</strong> {atkBonus}</div>
     <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
     <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
   </div>
