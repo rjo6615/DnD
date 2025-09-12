@@ -21,59 +21,6 @@ const { types: weaponTypes, categories: weaponCategories } = require('../data/we
 const { types: armorTypes, categories: armorCategories } = require('../data/armor');
 const { categories: itemCategories } = require('../data/items');
 
-// Parse bonuses mentioned directly in the prompt
-function extractBonuses(prompt = '') {
-  const abilityMap = {
-    strength: 'str',
-    dexterity: 'dex',
-    constitution: 'con',
-    intelligence: 'int',
-    wisdom: 'wis',
-    charisma: 'cha',
-  };
-
-  const skillMap = {
-    'acrobatics': 'acrobatics',
-    'animal handling': 'animalHandling',
-    'arcana': 'arcana',
-    'athletics': 'athletics',
-    'deception': 'deception',
-    'history': 'history',
-    'insight': 'insight',
-    'intimidation': 'intimidation',
-    'investigation': 'investigation',
-    'medicine': 'medicine',
-    'nature': 'nature',
-    'perception': 'perception',
-    'performance': 'performance',
-    'persuasion': 'persuasion',
-    'religion': 'religion',
-    'sleight of hand': 'sleightOfHand',
-    'stealth': 'stealth',
-    'survival': 'survival',
-  };
-
-  const lower = String(prompt).toLowerCase();
-  const statBonuses = {};
-  const skillBonuses = {};
-
-  const parseMap = (map, target) => {
-    for (const [name, key] of Object.entries(map)) {
-      const re1 = new RegExp(`\\b${name}\\b\\s*\\+\\s*(\\d+)`);
-      const re2 = new RegExp(`\\+\\s*(\\d+)\\s*(?:to\\s*)?\\b${name}\\b`);
-      let match = lower.match(re1) || lower.match(re2);
-      if (match) {
-        target[key] = parseInt(match[1], 10);
-      }
-    }
-  };
-
-  parseMap(abilityMap, statBonuses);
-  parseMap(skillMap, skillBonuses);
-
-  return { statBonuses, skillBonuses };
-}
-
 module.exports = (router) => {
   const aiRouter = express.Router();
 
@@ -174,8 +121,6 @@ module.exports = (router) => {
     if (!OpenAI || !z || !zodTextFormat) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
-    const { statBonuses: promptStatBonuses, skillBonuses: promptSkillBonuses } =
-      extractBonuses(prompt);
 
     const ItemSchema = z.object({
       name: z.string(),
@@ -195,7 +140,7 @@ module.exports = (router) => {
           {
             role: 'system',
             content:
-              'Create a Dungeons and Dragons item. If the user describes bonuses to abilities (Strength, Dexterity, etc.) or skills (Stealth, Acrobatics, etc.), you MUST include them in "statBonuses" or "skillBonuses" with canonical keys and numeric values.',
+              'Create a Dungeons and Dragons item. Only include "statBonuses" or "skillBonuses" if the prompt explicitly suggests mechanical bonuses; otherwise omit these fields.',
           },
           { role: 'user', content: prompt },
         ],
@@ -209,22 +154,7 @@ module.exports = (router) => {
       if (!parsed.success) {
         return res.status(500).json({ message: parsed.error.message });
       }
-      const item = { ...parsed.data };
-      const statBonuses = {
-        ...(parsed.data.statBonuses || {}),
-        ...promptStatBonuses,
-      };
-      const skillBonuses = {
-        ...(parsed.data.skillBonuses || {}),
-        ...promptSkillBonuses,
-      };
-      if (Object.keys(statBonuses).length) {
-        item.statBonuses = statBonuses;
-      }
-      if (Object.keys(skillBonuses).length) {
-        item.skillBonuses = skillBonuses;
-      }
-      return res.json(item);
+      return res.json(parsed.data);
     } catch (err) {
       return res.status(500).json({ message: err.message });
     }

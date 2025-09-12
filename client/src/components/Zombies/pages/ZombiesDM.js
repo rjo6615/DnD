@@ -590,14 +590,19 @@ const [form2, setForm2] = useState({
         }
         return result;
       };
-      updateForm4({
+      const updates = {
         name: item.name || '',
         category: item.category || '',
         weight: item.weight ?? '',
         cost: item.cost ?? '',
-        statBonuses: normalizeBonuses(item.statBonuses, STAT_LOOKUP),
-        skillBonuses: normalizeBonuses(item.skillBonuses, SKILL_LOOKUP),
-      });
+      };
+      if (item.statBonuses) {
+        updates.statBonuses = normalizeBonuses(item.statBonuses, STAT_LOOKUP);
+      }
+      if (item.skillBonuses) {
+        updates.skillBonuses = normalizeBonuses(item.skillBonuses, SKILL_LOOKUP);
+      }
+      updateForm4(updates);
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate item' });
     } finally {
