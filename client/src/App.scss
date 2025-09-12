@@ -360,6 +360,7 @@ $rotateX: -$angle;
   .content {
     margin: 0 auto;
     position: relative;
+    top: -30px;
     width: $containerWidth;
     height: $containerHeight;
     perspective: 1500px;
