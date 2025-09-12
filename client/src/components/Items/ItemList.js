@@ -58,6 +58,9 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
                 category: it.category || 'custom',
                 weight: it.weight ?? '',
                 cost: it.cost ?? '',
+                statBonuses: it.statBonuses || {},
+                skillBonuses: it.skillBonuses || {},
+                ...(it.notes ? { notes: it.notes } : {}),
               };
               return acc;
             }, {})
@@ -107,12 +110,29 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
     if (typeof onChange === 'function') {
       const ownedItems = Object.values(nextItems)
         .filter((i) => i.owned)
-        .map(({ name, category, weight, cost }) => ({
-          name,
-          category,
-          weight,
-          cost,
-        }));
+        .map(
+          ({
+            name,
+            category,
+            weight,
+            cost,
+            statBonuses,
+            skillBonuses,
+            notes,
+          }) => {
+            const itemObj = { name, category, weight, cost };
+            if (statBonuses && Object.keys(statBonuses).length) {
+              itemObj.statBonuses = statBonuses;
+            }
+            if (skillBonuses && Object.keys(skillBonuses).length) {
+              itemObj.skillBonuses = skillBonuses;
+            }
+            if (notes) {
+              itemObj.notes = notes;
+            }
+            return itemObj;
+          }
+        );
       onChange(ownedItems);
     }
   };
