@@ -8,6 +8,7 @@ import React, {
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -82,7 +83,6 @@ const PlayerTurnActions = React.forwardRef(
     {
       form,
       strMod,
-      atkBonus,
       dexMod,
       headerHeight = 0,
       onCastSpell,
@@ -114,7 +114,21 @@ const [isFumble, setIsFumble] = useState(false);
   const abilityForWeapon = (weapon) =>
     weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
 
-  const getAttackBonus = (weapon) => atkBonus + abilityForWeapon(weapon);
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce((total, el) => total + Number(el.Level), 0)
+        : 0,
+    [form.occupation]
+  );
+
+  const profBonus =
+    form.proficiencyBonus ?? proficiencyBonus(totalLevel);
+
+  const getAttackBonus = (weapon) =>
+    profBonus +
+    abilityForWeapon(weapon) +
+    Number(weapon.attackBonus || weapon.bonus || 0);
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
@@ -131,14 +145,6 @@ const [isFumble, setIsFumble] = useState(false);
 
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
-
-  const totalLevel = useMemo(
-    () =>
-      Array.isArray(form.occupation)
-        ? form.occupation.reduce((total, el) => total + Number(el.Level), 0)
-        : 0,
-    [form.occupation]
-  );
 
   const applyUpcast = (spell, level, crit, slotType) => {
     const diff = level - (spell.level || 0);
