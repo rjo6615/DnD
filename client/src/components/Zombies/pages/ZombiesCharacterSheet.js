@@ -54,6 +54,8 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
+  const baseActionCount = form?.features?.actionCount ?? 1;
+  const [actionCount, setActionCount] = useState(baseActionCount);
   const initCircleState = () => ({
     0: 'active',
     1: 'active',
@@ -64,6 +66,10 @@ export default function ZombiesCharacterSheet() {
     action: initCircleState(),
     bonus: initCircleState(),
   });
+
+  useEffect(() => {
+    setActionCount(baseActionCount);
+  }, [baseActionCount]);
 
   const consumeCircle = useCallback(
     (type, index) => {
@@ -83,6 +89,17 @@ export default function ZombiesCharacterSheet() {
     [initCircleState]
   );
 
+  const handleActionSurge = useCallback(() => {
+    setActionCount((prev) => {
+      const next = prev + 1;
+      setUsedSlots((used) => ({
+        ...used,
+        action: { ...used.action, [next - 1]: 'active' },
+      }));
+      return next;
+    });
+  }, []);
+
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
@@ -91,7 +108,8 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     setUsedSlots({ action: initCircleState(), bonus: initCircleState() });
-  }, [longRestCount]);
+    setActionCount(baseActionCount);
+  }, [longRestCount, baseActionCount]);
 
   useEffect(() => {
     setUsedSlots((prev) => {
@@ -101,18 +119,21 @@ export default function ZombiesCharacterSheet() {
       });
       return updated;
     });
-  }, [shortRestCount]);
+    setActionCount(baseActionCount);
+  }, [shortRestCount, baseActionCount]);
 
   useEffect(() => {
-    const handler = () =>
+    const handler = () => {
       setUsedSlots((prev) => ({
         ...prev,
         action: initCircleState(),
         bonus: initCircleState(),
       }));
+      setActionCount(baseActionCount);
+    };
     window.addEventListener('pass-turn', handler);
     return () => window.removeEventListener('pass-turn', handler);
-  }, []);
+  }, [baseActionCount]);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -623,6 +644,10 @@ return (
         form={form}
         used={usedSlots}
         onToggleSlot={handleCastSpell}
+        actionCount={actionCount}
+        longRestCount={longRestCount}
+        shortRestCount={shortRestCount}
+        onActionSurge={handleActionSurge}
       />
     )}
     <Navbar
@@ -767,6 +792,10 @@ return (
       form={form}
       showFeatures={showFeatures}
       handleCloseFeatures={handleCloseFeatures}
+      onActionSurge={handleActionSurge}
+      longRestCount={longRestCount}
+      shortRestCount={shortRestCount}
+      actionCount={actionCount}
     />
       <Modal
         className="dnd-modal modern-modal"
