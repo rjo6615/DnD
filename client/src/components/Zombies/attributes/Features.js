@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Card, Table, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
+import actionSurgeIcon from '../../../images/action-surge-icon.png';
 
 export default function Features({ form, showFeatures, handleCloseFeatures }) {
   const [features, setFeatures] = useState([]);
@@ -88,8 +89,18 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                           <td>{feat.level}</td>
                           <td>{feat.name}</td>
                           <td>
-                            <Button aria-label="use feature">Use</Button>
-                          </td>
+                            {feat.name && feat.name.includes('Action Surge') ? (
+                              <Button aria-label="use feature">
+                                <img
+                                  src={actionSurgeIcon}
+                                  alt="Action Surge"
+                                  width={24}
+                                  height={24}
+                                />
+                              </Button>
+                            ) : (
+                              <Button aria-label="use feature">Use</Button>
+                            )}                          </td>
                           <td>
                             <Button
                               aria-label="view feature"
