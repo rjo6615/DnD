@@ -168,6 +168,7 @@ describe('PlayerTurnActions spell casting', () => {
       level: spell.level,
       slotType: undefined,
       castingTime: spell.castingTime,
+      name: spell.name,
     });
   });
 

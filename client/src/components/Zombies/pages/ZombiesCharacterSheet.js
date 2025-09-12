@@ -24,6 +24,7 @@ import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
+import hasteIcon from "../../../images/spell-haste-icon.png";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -68,6 +69,27 @@ export default function ZombiesCharacterSheet() {
     action: initCircleState(),
     bonus: initCircleState(),
   });
+
+  useEffect(() => {
+    const handlePass = () => {
+      setActiveEffects((prev) =>
+        prev
+          .map((e) =>
+            e.name === 'Haste'
+              ? { ...e, remaining: (e.remaining || 0) - 1 }
+              : e
+          )
+          .filter((e) => e.name !== 'Haste' || e.remaining > 0)
+      );
+    };
+    window.addEventListener('pass-turn', handlePass);
+    return () => window.removeEventListener('pass-turn', handlePass);
+  }, []);
+
+  useEffect(() => {
+    // Clear effects on rest
+    setActiveEffects([]);
+  }, [longRestCount, shortRestCount]);
 
   useEffect(() => {
     const hasteActive = activeEffects.some((e) => e.name === 'Haste');
@@ -309,6 +331,7 @@ export default function ZombiesCharacterSheet() {
           slotLevel,
           slotType,
           castingTime,
+          name,
         } = arg;
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
@@ -330,6 +353,12 @@ export default function ZombiesCharacterSheet() {
             : 'Spell Cast';
         }
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        if (name === 'Haste') {
+          setActiveEffects((prev) => [
+            ...prev,
+            { name: 'Haste', icon: hasteIcon, remaining: 10 },
+          ]);
+        }
         return;
       }
       if (typeof lvl === 'undefined') {
@@ -665,7 +694,6 @@ return (
       availableSlots={availableSlots}
       longRestCount={longRestCount}
       shortRestCount={shortRestCount}
-      onEffectsChange={setActiveEffects}
     />
     {form && (
       <SpellSlots

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import hasteIcon from '../../../images/spell-haste-icon.png';
 
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
@@ -17,7 +18,6 @@ jest.mock('../attributes/Feats', () => () => null);
 jest.mock('../../Weapons/WeaponList', () => () => null);
 var mockUpdateDamage;
 var mockCalcDamage;
-const mockOnEffectsChange = { current: null };
 jest.mock('../attributes/PlayerTurnActions', () => {
   const React = require('react');
   mockUpdateDamage = jest.fn();
@@ -28,7 +28,6 @@ jest.mock('../attributes/PlayerTurnActions', () => {
       React.useImperativeHandle(ref, () => ({
         updateDamageValueWithAnimation: mockUpdateDamage,
       }));
-      mockOnEffectsChange.current = props.onEffectsChange;
       return null;
     }),
     calculateDamage: mockCalcDamage,
@@ -56,7 +55,6 @@ beforeEach(() => {
   mockCalcDamage.mockClear();
   mockOnCastSpell.current = null;
   mockHandleClose.current = null;
-  mockOnEffectsChange.current = null;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -284,7 +282,7 @@ test('casting spells consumes action and bonus circles based on casting time', a
   expect(bonusCircle).toHaveClass('slot-used');
 });
 
-test('adds extra action circle when Haste effect active', async () => {
+test('casting Haste adds status icon and extra action circle', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
@@ -309,9 +307,17 @@ test('adds extra action circle when Haste effect active', async () => {
   await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
   expect(container.querySelectorAll('.action-circle').length).toBe(1);
   act(() => {
-    mockOnEffectsChange.current?.([{ name: 'Haste', icon: 'haste.png', remaining: 10 }]);
+    mockOnCastSpell.current?.({
+      name: 'Haste',
+      level: 3,
+      castingTime: '1 action',
+    });
   });
-  expect(container.querySelectorAll('.action-circle').length).toBe(2);
+  await waitFor(() =>
+    expect(container.querySelectorAll('.action-circle').length).toBe(2)
+  );
+  const icon = screen.getByAltText('Haste');
+  expect(icon).toHaveAttribute('src', hasteIcon);
 });
 
 test('feats button includes points-glow when feat points available', async () => {

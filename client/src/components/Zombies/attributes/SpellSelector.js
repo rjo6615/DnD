@@ -205,6 +205,7 @@ export default function SpellSelector({
       levelsAbove: diff > 0 ? diff : 0,
       slotType,
       castingTime: pendingSpell.castingTime,
+      name: pendingSpell.name,
     });
     setShowUpcast(false);
     setPendingSpell(null);
@@ -512,6 +513,7 @@ export default function SpellSelector({
                                         level: spell.level,
                                         damage,
                                         castingTime: spell.castingTime,
+                                        name: spell.name,
                                       });
                                       handleClose();
                                     }
@@ -632,6 +634,7 @@ export default function SpellSelector({
                                         level: spell.level,
                                         damage,
                                         castingTime: spell.castingTime,
+                                        name: spell.name,
                                       });
                                       handleClose();
                                     }
