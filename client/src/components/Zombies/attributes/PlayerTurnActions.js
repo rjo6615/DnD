@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
 import sword from "../../../images/sword.png";
+import StatusEffectBar from './StatusEffectBar';
+import spellHasteIcon from "../../../images/spellHasteIcon.svg";
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -60,6 +62,10 @@ const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, he
   const FOOTER_HEIGHT = 80;
   const damageRef = useRef(null);
   const [damageHeight, setDamageHeight] = useState(0);
+  const [activeEffects, setActiveEffects] = useState([]);
+
+  const removeEffect = (id) =>
+    setActiveEffects((effects) => effects.filter((e) => e.id !== id));
 
   useEffect(() => {
     if (damageRef.current) {
@@ -96,6 +102,10 @@ const handleSpellsButtonClick = (spell, crit = false) => {
   const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
   if (damageValue === null) return;
   updateDamageValueWithAnimation(damageValue);
+  if (spell.name === 'Haste') {
+    setActiveEffects((prev) => [...prev, { id: 'haste', icon: spellHasteIcon }]);
+    setTimeout(() => removeEffect('haste'), 60000);
+  }
 };
 
 const handleDamageClick = () => {
@@ -251,6 +261,7 @@ const showSparklesEffect = () => {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
+          <StatusEffectBar effects={activeEffects} />
           {/* Attack Button */}
           <button
             onClick={handleShowAttack}
