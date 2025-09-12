@@ -9,42 +9,65 @@ const express = require('express');
 jest.mock('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 
-const fs = require('fs');
-const path = require('path');
+jest.mock('openai', () => {
+  class OpenAI {
+    constructor() {
+      this.responses = { parse: (...a) => OpenAI.__parse(...a) };
+    }
+  }
+  OpenAI.__parse = jest.fn();
+  return OpenAI;
+});
+jest.mock('openai/helpers/zod', () => ({ zodTextFormat: () => ({}) }));
 
-const openaiDir = path.join(__dirname, '../node_modules/openai');
-const helperDir = path.join(openaiDir, 'helpers');
-fs.mkdirSync(helperDir, { recursive: true });
-fs.writeFileSync(
-  path.join(openaiDir, 'index.js'),
-  `class OpenAI { constructor(){ this.responses={ parse:(...a)=>OpenAI.__parse(...a) }; } }
-OpenAI.__parse = () => ({});
-module.exports = OpenAI;`
-);
-fs.writeFileSync(
-  path.join(helperDir, 'zod.js'),
-  'module.exports = { zodTextFormat: () => ({}) };'
-);
-
-const zodDir = path.join(__dirname, '../node_modules/zod');
-fs.mkdirSync(zodDir, { recursive: true });
-fs.writeFileSync(
-  path.join(zodDir, 'index.js'),
-  `function makeSchema(check){return {check,optional(){return makeSchema(v=>v===undefined||check(v));}}}
-const z={
-  string:()=>makeSchema(v=>typeof v==='string'),
-  number:()=>makeSchema(v=>typeof v==='number'),
-  boolean:()=>makeSchema(v=>typeof v==='boolean'),
-  enum:vals=>makeSchema(v=>vals.includes(v)),
-  array:s=>makeSchema(v=>Array.isArray(v)&&v.every(s.check)),
-  record:s=>makeSchema(v=>v&&typeof v==='object'&&Object.values(v).every(s.check)),
-  object:shape=>({safeParse:d=>{for(const k in shape){if(!shape[k].check(d[k]))return{success:false,error:{message:'Invalid'}};}return{success:true,data:d};}})
-};
-module.exports={z};`
-);
+jest.mock('zod', () => {
+  function makeSchema(check) {
+    return {
+      check,
+      optional() {
+        return makeSchema((v) => v === undefined || check(v));
+      },
+    };
+  }
+  const z = {
+    string: () => makeSchema((v) => typeof v === 'string'),
+    number: () => makeSchema((v) => typeof v === 'number'),
+    boolean: () => makeSchema((v) => typeof v === 'boolean'),
+    enum: (vals) => makeSchema((v) => vals.includes(v)),
+    array: (s) => makeSchema((v) => Array.isArray(v) && v.every(s.check)),
+    object: (shape) => {
+      const schema = makeSchema((v) => v && typeof v === 'object');
+      schema.safeParse = (d) => {
+        for (const k in shape) {
+          if (!shape[k].check(d[k])) {
+            return { success: false, error: { message: 'Invalid' } };
+          }
+        }
+        return { success: true, data: d };
+      };
+      schema.catchall = (s) => {
+        const cs = makeSchema(
+          (v) => v && typeof v === 'object' && Object.values(v).every(s.check)
+        );
+        cs.safeParse = (d) => {
+          for (const val of Object.values(d || {})) {
+            if (!s.check(val)) {
+              return { success: false, error: { message: 'Invalid' } };
+            }
+          }
+          return { success: true, data: d };
+        };
+        cs.catchall = () => cs;
+        return cs;
+      };
+      return schema;
+    },
+  };
+  return { z };
+});
 
 const OpenAI = require('openai');
-const mockParse = OpenAI.__parse = jest.fn();
+const mockParse = OpenAI.__parse;
 
 const routes = require('../routes');
 
@@ -84,6 +107,30 @@ describe('AI item route', () => {
     expect(res.status).toBe(200);
     expect(res.body.statBonuses).toEqual({ str: 2 });
     expect(res.body.skillBonuses).toEqual({ acrobatics: 3 });
+  });
+
+  test('extracts bonuses from prompt when AI omits them', async () => {
+    mockParse.mockResolvedValue({
+      output: [
+        {
+          content: [
+            {
+              parsed: {
+                name: 'Ring',
+                category: 'adventuring gear',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/item')
+      .send({ prompt: 'ring that grants +2 Strength and +1 Stealth' });
+    expect(res.status).toBe(200);
+    expect(res.body.statBonuses).toEqual({ str: 2 });
+    expect(res.body.skillBonuses).toEqual({ stealth: 1 });
   });
 
   test('validates incorrect bonus data', async () => {
