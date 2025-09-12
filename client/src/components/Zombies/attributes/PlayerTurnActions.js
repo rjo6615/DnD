@@ -9,6 +9,7 @@ import { Button, Modal, Card, Table } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import hasteIcon from "../../../images/spell-haste-icon.png";
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -87,6 +88,9 @@ const PlayerTurnActions = React.forwardRef(
       headerHeight = 0,
       onCastSpell,
       availableSlots = { regular: {}, warlock: {} },
+      longRestCount = 0,
+      shortRestCount = 0,
+      onEffectsChange,
     },
     ref
   ) => {
@@ -143,8 +147,38 @@ const [isFumble, setIsFumble] = useState(false);
     updateDamageValueWithAnimation(damageValue);
   };
 
-  const [showUpcast, setShowUpcast] = useState(false);
-  const [pendingSpell, setPendingSpell] = useState(null);
+const [showUpcast, setShowUpcast] = useState(false);
+const [pendingSpell, setPendingSpell] = useState(null);
+
+// Track active status effects
+const [activeEffects, setActiveEffects] = useState([]);
+const removeEffect = (name) =>
+  setActiveEffects((prev) => prev.filter((e) => e.name !== name));
+
+useEffect(() => {
+  onEffectsChange?.(activeEffects);
+}, [activeEffects, onEffectsChange]);
+
+useEffect(() => {
+  const handlePass = () => {
+    setActiveEffects((prev) =>
+      prev
+        .map((e) =>
+          e.name === 'Haste'
+            ? { ...e, remaining: (e.remaining || 0) - 1 }
+            : e
+        )
+        .filter((e) => e.name !== 'Haste' || e.remaining > 0)
+    );
+  };
+  window.addEventListener('pass-turn', handlePass);
+  return () => window.removeEventListener('pass-turn', handlePass);
+}, []);
+
+useEffect(() => {
+  // Clear effects on rest
+  setActiveEffects([]);
+}, [longRestCount, shortRestCount]);
 
   const applyUpcast = (spell, level, crit, slotType) => {
     const diff = level - (spell.level || 0);
@@ -184,6 +218,9 @@ const [isFumble, setIsFumble] = useState(false);
       return;
     }
     applyUpcast(spell, spell.level, crit || isCritical);
+    if (spell.name === 'Haste') {
+      setActiveEffects((prev) => [...prev, { name: 'Haste', icon: hasteIcon, remaining: 10 }]);
+    }
   };
 
 const handleDamageClick = () => {
