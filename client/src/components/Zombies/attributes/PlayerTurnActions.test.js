@@ -275,10 +275,51 @@ describe('PlayerTurnActions spell casting', () => {
       expect.objectContaining({
         level: spell.level,
         slotType: undefined,
+        damage: expect.any(Number),
         castingTime: spell.castingTime,
         name: spell.name,
       })
     );
+  });
+
+  test('damaging spells display rolled damage instead of spell name', async () => {
+    const orig = Math.random;
+    Math.random = () => 0.5;
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    const el = document.getElementById('damageValue');
+    expect(el.classList.contains('spell-cast-label')).toBe(false);
+    expect(el.textContent).not.toBe(spell.name);
+    Math.random = orig;
   });
 
   test('consumes action circle for 1 action spells', async () => {

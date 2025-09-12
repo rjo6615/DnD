@@ -190,6 +190,7 @@ const [isFumble, setIsFumble] = useState(false);
     onCastSpell?.({
       level,
       slotType,
+      damage: value.total,
       castingTime: spell.castingTime,
       name: spell.name,
     });
