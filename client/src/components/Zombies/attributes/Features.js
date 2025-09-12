@@ -94,17 +94,22 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                           <td>{feat.name}</td>
                           <td>
                             {feat.name && feat.name.includes('Action Surge') ? (
-                              <Button aria-label="use feature">
+                              <Button
+                                aria-label="use feature"
+                                variant="link"
+                                className="p-0 border-0"
+                              >
                                 <img
                                   src={actionSurgeIcon}
                                   alt="Action Surge"
-                                  width={24}
-                                  height={24}
+                                  width={36}
+                                  height={36}
                                 />
                               </Button>
                             ) : (
                               <Button aria-label="use feature">Use</Button>
-                            )}                          </td>
+                            )}
+                          </td>
                           <td>
                             <Button
                               aria-label="view feature"
