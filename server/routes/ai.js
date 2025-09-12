@@ -128,8 +128,8 @@ module.exports = (router) => {
       weight: z.number().optional(),
       cost: z.string().optional(),
       properties: z.array(z.string()).optional(),
-      statBonuses: z.record(z.number()).optional(),
-      skillBonuses: z.record(z.number()).optional(),
+      statBonuses: z.object({}).catchall(z.number()).optional(),
+      skillBonuses: z.object({}).catchall(z.number()).optional(),
     });
 
     try {
