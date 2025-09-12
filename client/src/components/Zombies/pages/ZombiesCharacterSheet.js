@@ -163,7 +163,7 @@ export default function ZombiesCharacterSheet() {
           feat: feats,
           weapon: data.weapon || [],
           armor: data.armor || [],
-          items: data.items || [],
+          item: data.item || [],
         });
       } catch (error) {
         console.error(error);
@@ -405,7 +405,7 @@ export default function ZombiesCharacterSheet() {
 
   const handleItemsChange = useCallback(
     async (items) => {
-      setForm((prev) => ({ ...prev, items }));
+      setForm((prev) => ({ ...prev, item: items }));
       try {
         await apiFetch(`/equipment/update-item/${characterId}`, {
           method: 'PUT',
@@ -851,7 +851,7 @@ return (
       >
         <ItemList
           campaign={form.campaign}
-          initialItems={form.items}
+          initialItems={form.item}
           onChange={handleItemsChange}
           characterId={characterId}
           show={showItems}
