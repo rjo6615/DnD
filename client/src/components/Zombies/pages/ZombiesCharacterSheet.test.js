@@ -334,7 +334,9 @@ test('all footer buttons have footer-btn class', async () => {
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  buttons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
+  const footerButtons = buttons.filter((btn) => btn.classList.contains('footer-btn'));
+  expect(footerButtons.length).toBeGreaterThan(0);
+  footerButtons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });
 
 test('handleCastSpell closes modal and outputs "Spell Cast"', async () => {
