@@ -36,7 +36,11 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
         console.error(err);
         setError('Unable to load class features');
       } finally {
-        allFeatures.sort((a, b) => (a.level || 0) - (b.level || 0));
+        allFeatures.sort(
+          (a, b) =>
+            (a.class || '').localeCompare(b.class || '') ||
+            (a.level || 0) - (b.level || 0)
+        );
         setFeatures(allFeatures);
         setLoading(false);
       }
