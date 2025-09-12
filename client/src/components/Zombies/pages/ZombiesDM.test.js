@@ -129,4 +129,57 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(screen.getByPlaceholderText('Strength')).toHaveValue(2));
     expect(screen.getByPlaceholderText('Acrobatics')).toHaveValue(3);
   });
+
+  test('normalizes AI bonuses with full names', async () => {
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/equipment/items/Camp1':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/items/options':
+          return Promise.resolve({ ok: true, json: async () => ({ categories: ['adventuring gear'] }) });
+        case '/ai/item':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              name: 'AI Item',
+              category: 'adventuring gear',
+              statBonuses: { Strength: 2 },
+              skillBonuses: { Stealth: 3 },
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+
+    const openModalBtn = screen.getAllByText('Create Item')[0];
+    await userEvent.click(openModalBtn);
+
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/items/options'));
+
+    const modal = await screen.findByRole('dialog');
+    const insideCreateBtn = within(modal).getByText('Create Item');
+    await userEvent.click(insideCreateBtn);
+
+    await screen.findByRole('option', { name: 'adventuring gear' });
+
+    const promptInput = await screen.findByPlaceholderText('Describe an item');
+    await userEvent.type(promptInput, 'test item');
+
+    const generateBtn = screen.getByRole('button', { name: /Generate with AI/i });
+    await userEvent.click(generateBtn);
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Strength')).toHaveValue(2));
+    expect(screen.getByPlaceholderText('Stealth')).toHaveValue(3);
+  });
 });
