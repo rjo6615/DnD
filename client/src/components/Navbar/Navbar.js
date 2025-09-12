@@ -12,10 +12,6 @@ function NavbarComponent() {
     window.location.assign("/");
   };
 
-  const handlePass = () => {
-    window.dispatchEvent(new Event('pass-turn'));
-  };
-
   return (
     <Navbar
       fixed="top"
@@ -38,15 +34,6 @@ function NavbarComponent() {
         <Nav className="ml-auto">
           {/* <Nav.Link as={Link} to="/spells">Spells</Nav.Link> */}
           {/* <Nav.Link as={Link} to="/weapons">Weapons</Nav.Link> */}
-          <Nav.Link>
-            <Button
-              style={{ borderColor: "gray" }}
-              className="bg-secondary me-2"
-              onClick={handlePass}
-            >
-              Pass
-            </Button>
-          </Nav.Link>
           <Nav.Link>
             <Button
               style={{ borderColor: "gray" }}

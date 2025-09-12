@@ -19,6 +19,7 @@ import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
+import StatusEffectBar from "../attributes/StatusEffectBar";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
@@ -54,6 +55,7 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
+  const [activeEffects, setActiveEffects] = useState([]);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
   const initCircleState = () => ({
@@ -630,6 +632,16 @@ return (
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Button
+        style={{ borderColor: 'gray', marginBottom: '8px' }}
+        className="bg-secondary"
+        onClick={() => window.dispatchEvent(new Event('pass-turn'))}
+      >
+        Pass
+      </Button>
+      <StatusEffectBar effects={activeEffects} />
+    </div>
     <PlayerTurnActions
       form={form}
       dexMod={statMods.dex}
@@ -638,6 +650,9 @@ return (
       ref={playerTurnActionsRef}
       onCastSpell={handleCastSpell}
       availableSlots={availableSlots}
+      longRestCount={longRestCount}
+      shortRestCount={shortRestCount}
+      onEffectsChange={setActiveEffects}
     />
     {form && (
       <SpellSlots
