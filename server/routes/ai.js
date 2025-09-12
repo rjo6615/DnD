@@ -128,6 +128,8 @@ module.exports = (router) => {
       weight: z.number().optional(),
       cost: z.string().optional(),
       properties: z.array(z.string()).optional(),
+      statBonuses: z.record(z.number()).optional(),
+      skillBonuses: z.record(z.number()).optional(),
     });
 
     try {
@@ -135,7 +137,11 @@ module.exports = (router) => {
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
-          { role: 'system', content: 'Create a Dungeons and Dragons item.' },
+          {
+            role: 'system',
+            content:
+              'Create a Dungeons and Dragons item. If the item grants bonuses to abilities or skills, include "statBonuses" and "skillBonuses" as objects mapping names to numeric bonuses.',
+          },
           { role: 'user', content: prompt },
         ],
         text: {
@@ -148,7 +154,12 @@ module.exports = (router) => {
       if (!parsed.success) {
         return res.status(500).json({ message: parsed.error.message });
       }
-      return res.json(parsed.data);
+      const item = {
+        ...parsed.data,
+        ...(parsed.data.statBonuses && { statBonuses: parsed.data.statBonuses }),
+        ...(parsed.data.skillBonuses && { skillBonuses: parsed.data.skillBonuses }),
+      };
+      return res.json(item);
     } catch (err) {
       return res.status(500).json({ message: err.message });
     }

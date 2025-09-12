@@ -575,6 +575,8 @@ const [form2, setForm2] = useState({
         category: item.category || '',
         weight: item.weight ?? '',
         cost: item.cost ?? '',
+        statBonuses: item.statBonuses || {},
+        skillBonuses: item.skillBonuses || {},
       });
     } catch (err) {
       setStatus({ type: 'danger', message: err.message || 'Failed to generate item' });
