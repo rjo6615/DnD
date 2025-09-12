@@ -60,7 +60,6 @@ describe('PlayerTurnActions critical events', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
       />
     );
@@ -113,7 +112,6 @@ describe('PlayerTurnActions critical events', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
       />
     );
@@ -152,7 +150,6 @@ describe('PlayerTurnActions spell casting', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
         onCastSpell={onCastSpell}
       />
@@ -200,7 +197,6 @@ describe('PlayerTurnActions spell casting', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
         onCastSpell={onCastSpell}
       />
@@ -242,7 +238,6 @@ describe('PlayerTurnActions spell casting', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
         onCastSpell={onCastSpell}
       />
@@ -292,7 +287,6 @@ describe('PlayerTurnActions spell casting', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
       />
     );
@@ -335,7 +329,6 @@ describe('cantrip scaling', () => {
           occupation: [{ Level: lvl }],
         }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
       />
     );
