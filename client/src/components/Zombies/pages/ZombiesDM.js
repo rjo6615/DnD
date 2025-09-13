@@ -14,9 +14,19 @@ const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
+const STAT_LABELS = STATS.reduce((acc, { key, label }) => {
+  acc[key] = label;
+  return acc;
+}, {});
+
 const SKILL_LOOKUP = SKILLS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
   acc[key.toLowerCase()] = key;
+  return acc;
+}, {});
+
+const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
+  acc[key] = label;
   return acc;
 }, {});
 
@@ -522,6 +532,15 @@ const [form2, setForm2] = useState({
 
   const [itemPrompt, setItemPrompt] = useState("");
   const [itemLoading, setItemLoading] = useState(false);
+  const [showItemNotes, setShowItemNotes] = useState(false);
+  const [currentItemNote, setCurrentItemNote] = useState('');
+
+  const openItemNote = (note) => {
+    setCurrentItemNote(note);
+    setShowItemNotes(true);
+  };
+
+  const closeItemNote = () => setShowItemNotes(false);
 
   function updateForm4(value) {
     return setForm4((prev) => {
@@ -683,6 +702,11 @@ const [form2, setForm2] = useState({
       setStatus({ type: 'danger', message: error.toString() });
     }
   }
+
+  const renderBonuses = (bonuses, labels) =>
+    Object.entries(bonuses || {})
+      .map(([k, v]) => `${labels[k] || k}: ${v}`)
+      .join(', ');
   
 
 // -----------------------------------Display-----------------------------------------------------------------------------
@@ -1249,6 +1273,9 @@ const [form2, setForm2] = useState({
                       <th>Category</th>
                       <th>Weight</th>
                       <th>Cost</th>
+                      <th>Notes</th>
+                      <th>Stat Bonuses</th>
+                      <th>Skill Bonuses</th>
                       <th>Delete</th>
                     </tr>
                   </thead>
@@ -1259,6 +1286,15 @@ const [form2, setForm2] = useState({
                         <td>{i.category}</td>
                         <td>{i.weight}</td>
                         <td>{i.cost}</td>
+                        <td>
+                          {i.notes && (
+                            <Button variant="link" className="p-0" onClick={() => openItemNote(i.notes)}>
+                              View
+                            </Button>
+                          )}
+                        </td>
+                        <td>{renderBonuses(i.statBonuses, STAT_LABELS)}</td>
+                        <td>{renderBonuses(i.skillBonuses, SKILL_LABELS)}</td>
                         <td>
                           <Button
                             className="btn-danger action-btn fa-solid fa-trash"
@@ -1281,6 +1317,14 @@ const [form2, setForm2] = useState({
         </Card.Body>
       </Card>
     </div>
+  </Modal>
+  <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
+    <Card className="dnd-background">
+      <Card.Header>
+        <Card.Title>Notes</Card.Title>
+      </Card.Header>
+      <Card.Body>{currentItemNote}</Card.Body>
+    </Card>
   </Modal>
       </div>
     )
