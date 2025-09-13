@@ -55,6 +55,13 @@ jest.mock(
           }
           return { success: true, data: d };
         };
+        schema.partial = () => {
+          const newShape = {};
+          for (const k in shape) {
+            newShape[k] = shape[k].optional();
+          }
+          return z.object(newShape);
+        };
         schema.catchall = (s) => {
           const cs = makeSchema(
             (v) => v && typeof v === 'object' && Object.values(v).every(s.check)
@@ -122,7 +129,7 @@ describe('AI item route', () => {
     expect(mockParse.mock.calls[0][0].text.format.name).toBe('item');
   });
 
-  test('extracts bonuses from prompt when AI omits them', async () => {
+  test('returns item without bonuses when AI omits them', async () => {
     mockParse.mockResolvedValue({
       output: [
         {
@@ -142,8 +149,8 @@ describe('AI item route', () => {
       .post('/ai/item')
       .send({ prompt: 'ring that grants +2 Strength and +1 Stealth' });
     expect(res.status).toBe(200);
-    expect(res.body.statBonuses).toEqual({ str: 2 });
-    expect(res.body.skillBonuses).toEqual({ stealth: 1 });
+    expect(res.body.statBonuses).toBeUndefined();
+    expect(res.body.skillBonuses).toBeUndefined();
     expect(mockParse.mock.calls[0][0].text.format.name).toBe('item');
   });
 
