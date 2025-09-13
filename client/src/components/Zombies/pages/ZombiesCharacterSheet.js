@@ -688,11 +688,32 @@ return (
     </div>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <Button
-        style={{ borderColor: 'gray', marginBottom: '8px', marginTop: '-30px' }}
-        className="bg-secondary"
+       style={{
+          display: 'block',
+          margin: '15px auto',
+          padding: '4px 12px',
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          color: '#fff',
+          background: 'transparent',
+          borderRadius: '8px',
+          textShadow: '1px 1px 2px #000',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          border: 'none',
+        }}
+        onMouseOver={(e) => {
+          e.target.style.background = 'none';
+          e.target.style.boxShadow = '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.background = 'transparent';
+          e.target.style.boxShadow = 'none';
+          e.target.style.border = 'none';
+        }}
         onClick={() => window.dispatchEvent(new Event('pass-turn'))}
       >
-        Pass
+        Pass 🡆
       </Button>
       <StatusEffectBar effects={activeEffects} />
     </div>
