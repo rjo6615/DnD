@@ -713,7 +713,7 @@ return (
         }}
         onClick={() => window.dispatchEvent(new Event('pass-turn'))}
       >
-        Pass 🡆
+        Pass ➔
       </Button>
       <StatusEffectBar effects={activeEffects} />
     </div>
