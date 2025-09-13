@@ -133,6 +133,13 @@
   z-index: 1030;
 }
 
+@media (max-width: 768px) {
+  .spell-slot-container {
+    position: static;
+    margin-bottom: 4rem;
+  }
+}
+
 .spell-slot {
   position: relative;
   width: 28px;
