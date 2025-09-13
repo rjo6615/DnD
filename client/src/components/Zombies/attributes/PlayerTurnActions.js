@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
+import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -18,7 +26,14 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
-export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
+export function calculateDamage(
+  damageString,
+  ability = 0,
+  crit = false,
+  roll = rollDice,
+  extraDice,
+  levelsAbove = 0
+) {
   const cleanString = damageString.split(' ')[0];
   const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
   if (!match) {
@@ -41,17 +56,42 @@ export function calculateDamage(damageString, ability = 0, crit = false, roll = 
   const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
   let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
 
+  // Roll any extra dice from upcasting
+  if (extraDice && levelsAbove > 0) {
+    const totalExtra = extraDice.count * levelsAbove;
+    const extraRolls = roll(totalExtra, extraDice.sides);
+    damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+  }
+
   // On a critical hit, roll an additional set of dice and add to the total
   if (crit) {
     const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
     damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+    if (extraDice && levelsAbove > 0) {
+      const totalExtra = extraDice.count * levelsAbove;
+      const critExtra = roll(totalExtra, extraDice.sides);
+      damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+    }
   }
 
   // Add numeric modifier and ability modifier once
   return damageSum + modifier + ability;
 }
 
-const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
+const PlayerTurnActions = React.forwardRef(
+  (
+    {
+      form,
+      strMod,
+      dexMod,
+      headerHeight = 0,
+      onCastSpell,
+      availableSlots = { regular: {}, warlock: {} },
+      longRestCount = 0,
+      shortRestCount = 0,
+    },
+    ref
+  ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
@@ -76,7 +116,21 @@ const [isFumble, setIsFumble] = useState(false);
   const abilityForWeapon = (weapon) =>
     weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
 
-  const getAttackBonus = (weapon) => atkBonus + abilityForWeapon(weapon);
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce((total, el) => total + Number(el.Level), 0)
+        : 0,
+    [form.occupation]
+  );
+
+  const profBonus =
+    form.proficiencyBonus ?? proficiencyBonus(totalLevel);
+
+  const getAttackBonus = (weapon) =>
+    profBonus +
+    abilityForWeapon(weapon) +
+    Number(weapon.attackBonus || weapon.bonus || 0);
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
@@ -91,17 +145,72 @@ const [isFumble, setIsFumble] = useState(false);
     updateDamageValueWithAnimation(damageValue);
   };
 
-const handleSpellsButtonClick = (spell, crit = false) => {
-  if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
-  if (damageValue === null) return;
-  updateDamageValueWithAnimation(damageValue);
-};
+const [showUpcast, setShowUpcast] = useState(false);
+const [pendingSpell, setPendingSpell] = useState(null);
+
+  const applyUpcast = (spell, level, crit, slotType) => {
+    const diff = level - (spell.level || 0);
+    let extra;
+    if (diff > 0 && spell.higherLevels) {
+      const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
+      if (incMatch) {
+        extra = {
+          count: parseInt(incMatch[1], 10),
+          sides: parseInt(incMatch[2], 10),
+        };
+      }
+    }
+    if (spell.scaling) {
+      if (totalLevel >= 17 && spell.scaling[17]) spell.damage = spell.scaling[17];
+      else if (totalLevel >= 11 && spell.scaling[11]) spell.damage = spell.scaling[11];
+      else if (totalLevel >= 5 && spell.scaling[5]) spell.damage = spell.scaling[5];
+    }
+    const value = calculateDamage(
+      spell.damage,
+      0,
+      crit || isCritical,
+      rollDice,
+      extra,
+      diff > 0 ? diff : 0
+    );
+    if (value === null) return;
+    updateDamageValueWithAnimation(value);
+    onCastSpell?.({ level, slotType, castingTime: spell.castingTime, name: spell.name });
+  };
+
+  const handleSpellsButtonClick = (spell, crit = false) => {
+    if (!spell?.damage) return;
+    if (spell.higherLevels) {
+      setPendingSpell({ spell, crit: crit || isCritical });
+      setShowUpcast(true);
+      return;
+    }
+    applyUpcast(spell, spell.level, crit || isCritical);
+  };
 
 const handleDamageClick = () => {
   setIsCritical((prev) => !prev);
   setIsFumble(false);
 };
+
+// Spells may come from different caster types (e.g., Wizard, Cleric). Before
+// rendering the spell table, group spells by caster type and sort each group by
+// level so they display in a predictable order.
+const sortedSpells = useMemo(() => {
+  if (!Array.isArray(form.spells)) return [];
+  const groups = (form.spells || []).reduce((acc, spell) => {
+    if (!spell) return acc;
+    const caster = spell.casterType || spell.caster || 'Unknown';
+    if (!acc[caster]) acc[caster] = [];
+    acc[caster].push(spell);
+    return acc;
+  }, {});
+  return Object.keys(groups)
+    .sort()
+    .flatMap((caster) =>
+      groups[caster].sort((a, b) => (a.level || 0) - (b.level || 0))
+    );
+}, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const opacity = 0.85;
@@ -237,7 +346,10 @@ const showSparklesEffect = () => {
         style={{ margin: "0 auto" }}
         onClick={handleDamageClick}
       >
-        <span id="damageValue" className={loading ? 'hidden' : ''}>
+        <span
+          id="damageValue"
+          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+        >
           {damageValue}
         </span>
         <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
@@ -340,6 +452,7 @@ const showSparklesEffect = () => {
                   <thead>
                     <tr>
                       <th>Spell Name</th>
+                      <th>Class</th>
                       <th>Level</th>
                       <th>Damage</th>
                       <th>Casting Time</th>
@@ -349,11 +462,12 @@ const showSparklesEffect = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {form.spells
+                    {sortedSpells
                       .filter((s) => s && s.damage)
                       .map((spell, idx) => (
                         <tr key={idx}>
                           <td>{spell.name}</td>
+                          <td>{spell.casterType || spell.caster || 'Unknown'}</td>
                           <td>{spell.level}</td>
                           <td>{spell.damage}</td>
                           <td>{spell.castingTime}</td>
@@ -385,6 +499,19 @@ const showSparklesEffect = () => {
             </Card.Footer>
         </Card>
       </Modal>
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => setShowUpcast(false)}
+        baseLevel={pendingSpell?.spell?.level}
+        slots={availableSlots}
+        onSelect={(lvl, type) => {
+          if (pendingSpell) {
+            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit, type);
+            setPendingSpell(null);
+          }
+          setShowUpcast(false);
+        }}
+      />
     </div>
   );
 });

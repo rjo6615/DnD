@@ -1,6 +1,8 @@
 import React from 'react';
-import { render, act, fireEvent } from '@testing-library/react';
-import PlayerTurnActions, { calculateDamage } from './PlayerTurnActions';
+import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
+import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+
+const { calculateDamage } = PlayerTurnActionsModule;
 
 describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
@@ -38,6 +40,16 @@ describe('calculateDamage parser', () => {
   test('flat damage ignores crit flag', () => {
     expect(calculateDamage('100', 0, true, fixedRoll)).toBe(100);
   });
+
+  test('adds extra dice for levels above', () => {
+    const extra = { count: 1, sides: 4 };
+    expect(calculateDamage('1d4', 0, false, fixedRoll, extra, 2)).toBe(3);
+  });
+
+  test('doubles extra dice on a critical hit', () => {
+    const extra = { count: 1, sides: 4 };
+    expect(calculateDamage('1d4', 0, true, fixedRoll, extra, 2)).toBe(6);
+  });
 });
 
 describe('PlayerTurnActions critical events', () => {
@@ -48,7 +60,6 @@ describe('PlayerTurnActions critical events', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
       />
     );
@@ -101,7 +112,6 @@ describe('PlayerTurnActions critical events', () => {
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [] }}
         strMod={0}
-        atkBonus={0}
         dexMod={0}
       />
     );
@@ -121,5 +131,236 @@ describe('PlayerTurnActions critical events', () => {
     });
 
     expect(damage.classList.contains('critical-active')).toBe(false);
+  });
+});
+
+describe('PlayerTurnActions spell casting', () => {
+  test('invokes onCastSpell when a spell is rolled', async () => {
+    const onCastSpell = jest.fn();
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+        onCastSpell={onCastSpell}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+
+    expect(onCastSpell).toHaveBeenCalledWith({
+      level: spell.level,
+      slotType: undefined,
+      castingTime: spell.castingTime,
+      name: spell.name,
+    });
+  });
+
+  test('consumes action circle for 1 action spells', async () => {
+    const state = {
+      action: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+      bonus: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+    };
+    const onCastSpell = ({ castingTime }) => {
+      if (castingTime?.includes('1 action')) {
+        const idx = Object.keys(state.action).find(
+          (k) => state.action[k] === 'active'
+        );
+        if (idx !== undefined) state.action[idx] = 'used';
+      }
+    };
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+        onCastSpell={onCastSpell}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    expect(state.action[0]).toBe('used');
+    expect(state.bonus[0]).toBe('active');
+  });
+
+  test('consumes bonus circle for 1 bonus action spells', async () => {
+    const state = {
+      action: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+      bonus: { 0: 'active', 1: 'active', 2: 'active', 3: 'active' },
+    };
+    const onCastSpell = ({ castingTime }) => {
+      if (castingTime?.includes('1 bonus action')) {
+        const idx = Object.keys(state.bonus).find(
+          (k) => state.bonus[k] === 'active'
+        );
+        if (idx !== undefined) state.bonus[idx] = 'used';
+      }
+    };
+    const spell = {
+      name: 'Flame Blade',
+      level: 2,
+      damage: '3d6 fire',
+      castingTime: '1 bonus action',
+      range: 'Self',
+      duration: 'Concentration',
+      casterType: 'Druid',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+        onCastSpell={onCastSpell}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    expect(state.bonus[0]).toBe('used');
+    expect(state.action[0]).toBe('active');
+  });
+
+  test('spells are grouped by casterType and sorted by level', async () => {
+    const spells = [
+      {
+        name: 'Fireball',
+        level: 3,
+        damage: '8d6 fire',
+        castingTime: '1 action',
+        range: '150 feet',
+        duration: 'Instantaneous',
+        casterType: 'Wizard',
+      },
+      {
+        name: 'Cure Wounds',
+        level: 1,
+        damage: '1d8',
+        castingTime: '1 action',
+        range: 'Touch',
+        duration: 'Instantaneous',
+        casterType: 'Cleric',
+      },
+      {
+        name: 'Magic Missile',
+        level: 1,
+        damage: '1d4',
+        castingTime: '1 action',
+        range: '120 feet',
+        duration: 'Instantaneous',
+        casterType: 'Wizard',
+      },
+    ];
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const header = await screen.findByText('Spell Name');
+    const table = header.closest('table');
+    const rows = within(table).getAllByRole('row').slice(1);
+    const names = rows.map(
+      (row) => within(row).getAllByRole('cell')[0].textContent
+    );
+    expect(names).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
+  });
+});
+
+describe('cantrip scaling', () => {
+  const baseSpell = {
+    name: 'Fire Bolt',
+    level: 0,
+    damage: '1d10',
+    scaling: { 5: '2d10', 11: '3d10', 17: '4d10' },
+    castingTime: '1 action',
+    range: '120 feet',
+    duration: 'Instantaneous',
+    casterType: 'Wizard',
+  };
+
+  const renderAndCast = async (lvl) => {
+    const orig = Math.random;
+    Math.random = () => 0; // always roll minimum = 1
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          weapon: [],
+          spells: [{ ...baseSpell }],
+          occupation: [{ Level: lvl }],
+        }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    const text = document.getElementById('damageValue').textContent;
+    Math.random = orig;
+    return text;
+  };
+
+  test('uses 2d10 at level 5', async () => {
+    const value = await renderAndCast(5);
+    expect(value).toBe('2');
+  });
+
+  test('uses 3d10 at level 11', async () => {
+    const value = await renderAndCast(11);
+    expect(value).toBe('3');
+  });
+
+  test('uses 4d10 at level 17', async () => {
+    const value = await renderAndCast(17);
+    expect(value).toBe('4');
   });
 });

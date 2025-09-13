@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
@@ -10,15 +10,21 @@ import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import WeaponList from "../../Weapons/WeaponList";
-import PlayerTurnActions from "../attributes/PlayerTurnActions";
+import PlayerTurnActions, {
+  calculateDamage,
+} from "../attributes/PlayerTurnActions";
 import ArmorList from "../../Armor/ArmorList";
 import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
+import StatusEffectBar from "../attributes/StatusEffectBar";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
+import SpellSlots from "../attributes/SpellSlots";
+import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
+import hasteIcon from "../../../images/spell-haste-icon.png";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -48,12 +54,123 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
+  const [longRestCount, setLongRestCount] = useState(0);
+  const [shortRestCount, setShortRestCount] = useState(0);
+  const [activeEffects, setActiveEffects] = useState([]);
+  const baseActionCount = form?.features?.actionCount ?? 1;
+  const [actionCount, setActionCount] = useState(baseActionCount);
+  const initCircleState = () => ({
+    0: 'active',
+    1: 'active',
+    2: 'active',
+    3: 'active',
+  });
+  const [usedSlots, setUsedSlots] = useState({
+    action: initCircleState(),
+    bonus: initCircleState(),
+  });
+
+  useEffect(() => {
+    const handlePass = () => {
+      setActiveEffects((prev) =>
+        prev
+          .map((e) =>
+            e.name === 'Haste'
+              ? { ...e, remaining: (e.remaining || 0) - 1 }
+              : e
+          )
+          .filter((e) => e.name !== 'Haste' || e.remaining > 0)
+      );
+    };
+    window.addEventListener('pass-turn', handlePass);
+    return () => window.removeEventListener('pass-turn', handlePass);
+  }, []);
+
+  useEffect(() => {
+    // Clear effects on rest
+    setActiveEffects([]);
+  }, [longRestCount, shortRestCount]);
+
+  useEffect(() => {
+    const hasteActive = activeEffects.some((e) => e.name === 'Haste');
+    const desired = baseActionCount + (hasteActive ? 1 : 0);
+    setActionCount(desired);
+    setUsedSlots((used) => {
+      const action = { ...used.action };
+      for (let i = 0; i < desired; i++) {
+        if (!(i in action)) action[i] = 'active';
+      }
+      Object.keys(action).forEach((key) => {
+        if (Number(key) >= desired) delete action[key];
+      });
+      return { ...used, action };
+    });
+  }, [baseActionCount, activeEffects]);
+
+  const consumeCircle = useCallback(
+    (type, index) => {
+      setUsedSlots((prev) => {
+        const currentState = prev[type] || initCircleState();
+        const nextState = { ...currentState };
+        if (typeof index === 'number') {
+          const cur = currentState[index] || 'active';
+          nextState[index] = cur === 'active' ? 'used' : 'active';
+        } else {
+          const first = Object.keys(nextState).find((key) => nextState[key] === 'active');
+          if (typeof first !== 'undefined') nextState[first] = 'used';
+        }
+        return { ...prev, [type]: nextState };
+      });
+    },
+    [initCircleState]
+  );
+
+  const handleActionSurge = useCallback(() => {
+    setActionCount((prev) => {
+      const next = prev + 1;
+      setUsedSlots((used) => ({
+        ...used,
+        action: { ...used.action, [next - 1]: 'active' },
+      }));
+      return next;
+    });
+  }, []);
 
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
+
+  useEffect(() => {
+    setUsedSlots({ action: initCircleState(), bonus: initCircleState() });
+    setActionCount(baseActionCount);
+  }, [longRestCount, baseActionCount]);
+
+  useEffect(() => {
+    setUsedSlots((prev) => {
+      const updated = { ...prev, action: initCircleState(), bonus: initCircleState() };
+      Object.keys(updated).forEach((key) => {
+        if (key.startsWith('warlock-')) delete updated[key];
+      });
+      return updated;
+    });
+    setActionCount(baseActionCount);
+  }, [shortRestCount, baseActionCount]);
+
+  useEffect(() => {
+    const handler = () => {
+      setUsedSlots((prev) => ({
+        ...prev,
+        action: initCircleState(),
+        bonus: initCircleState(),
+      }));
+      const hasteActive = activeEffects.some((e) => e.name === 'Haste');
+      setActionCount(baseActionCount + (hasteActive ? 1 : 0));
+    };
+    window.addEventListener('pass-turn', handler);
+    return () => window.removeEventListener('pass-turn', handler);
+  }, [baseActionCount, activeEffects]);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -140,6 +257,169 @@ export default function ZombiesCharacterSheet() {
   const handleRollResult = (result) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
   };
+
+  const handleLongRest = () => {
+    setLongRestCount((c) => c + 1);
+  };
+
+  const handleShortRest = () => {
+    setShortRestCount((c) => c + 1);
+  };
+
+  const handleCastSpell = useCallback(
+    (arg, lvl, idx) => {
+      if (arg === 'action' || arg === 'bonus') {
+        consumeCircle(arg, lvl);
+        return;
+      }
+      const consumeSlot = (level, preferredType) => {
+        const occupations = form?.occupation || [];
+        let casterLevel = 0;
+        let warlockLevel = 0;
+        occupations.forEach((occ) => {
+          const name = (occ.Name || occ.Occupation || '').toLowerCase();
+          const levelNum = Number(occ.Level) || 0;
+          if (name === 'warlock') {
+            warlockLevel += levelNum;
+            return;
+          }
+          const progression = SPELLCASTING_CLASSES[name];
+          if (progression === 'full') {
+            casterLevel += levelNum;
+          } else if (progression === 'half') {
+            casterLevel += levelNum === 1 ? 0 : Math.ceil(levelNum / 2);
+          }
+        });
+        const slotData = fullCasterSlots[casterLevel] || {};
+        const warlockData = pactMagic[warlockLevel] || {};
+        const tryConsume = (type, data) => {
+          const count = data[level];
+          if (!count) return false;
+          const key = `${type}-${level}`;
+          setUsedSlots((prev) => {
+            const levelState = { ...(prev[key] || {}) };
+            for (let i = 0; i < count; i += 1) {
+              if (!levelState[i]) {
+                levelState[i] = true;
+                return { ...prev, [key]: levelState };
+              }
+            }
+            return prev;
+          });
+          return true;
+        };
+        if (preferredType === 'warlock') {
+          if (tryConsume('warlock', warlockData)) return;
+          tryConsume('regular', slotData);
+          return;
+        }
+        if (preferredType === 'regular') {
+          if (tryConsume('regular', slotData)) return;
+          tryConsume('warlock', warlockData);
+          return;
+        }
+        if (tryConsume('regular', slotData)) return;
+        tryConsume('warlock', warlockData);
+      };
+
+      if (typeof arg === 'object') {
+        const {
+          level,
+          damage,
+          extraDice,
+          levelsAbove,
+          slotLevel,
+          slotType,
+          castingTime,
+          name,
+        } = arg;
+        const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
+        consumeSlot(castLevel, slotType);
+        if (castingTime?.includes('1 action')) consumeCircle('action');
+        else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
+        let result;
+        if (typeof damage === 'number') {
+          result = damage;
+        } else {
+          result = damage
+            ? calculateDamage(
+                damage,
+                0,
+                false,
+                undefined,
+                extraDice,
+                levelsAbove
+              )
+            : 'Spell Cast';
+        }
+        playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        if (name === 'Haste') {
+          setActiveEffects((prev) => [
+            ...prev,
+            { name: 'Haste', icon: hasteIcon, remaining: 10 },
+          ]);
+        }
+        return;
+      }
+      if (typeof lvl === 'undefined') {
+        consumeSlot(arg);
+        return;
+      }
+      if (typeof idx === 'undefined') {
+        consumeSlot(lvl, arg);
+        return;
+      }
+      const type = arg;
+      const key = `${type}-${lvl}`;
+      setUsedSlots((prev) => {
+        const levelState = { ...(prev[key] || {}) };
+        levelState[idx] = !levelState[idx];
+        return { ...prev, [key]: levelState };
+      });
+    },
+    [form, consumeCircle]
+  );
+
+  const availableSlots = useMemo(() => {
+    if (!form) return {};
+    const occupations = form.occupation || [];
+    let casterLevel = 0;
+    let warlockLevel = 0;
+    occupations.forEach((occ) => {
+      const name = (occ.Name || occ.Occupation || '').toLowerCase();
+      const level = Number(occ.Level) || 0;
+      if (name === 'warlock') {
+        warlockLevel += level;
+        return;
+      }
+      const progression = SPELLCASTING_CLASSES[name];
+      if (progression === 'full') {
+        casterLevel += level;
+      } else if (progression === 'half') {
+        casterLevel += level === 1 ? 0 : Math.ceil(level / 2);
+      }
+    });
+    const slotData = fullCasterSlots[casterLevel] || {};
+    const warlockData = pactMagic[warlockLevel] || {};
+
+    const regular = {};
+    Object.entries(slotData).forEach(([lvl, count]) => {
+      const used = Object.values(usedSlots[`regular-${lvl}`] || {}).filter(Boolean)
+        .length;
+      const left = count - used;
+      if (left > 0) regular[lvl] = left;
+    });
+
+    const warlock = {};
+    Object.entries(warlockData).forEach(([lvl, count]) => {
+      const used = Object.values(usedSlots[`warlock-${lvl}`] || {}).filter(Boolean)
+        .length;
+      const left = count - used;
+      if (left > 0) warlock[lvl] = left;
+    });
+
+    return { regular, warlock };
+  }, [form, usedSlots]);
 
   const handleWeaponsChange = useCallback(
     async (weapons) => {
@@ -347,25 +627,6 @@ const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
-// ------------------------------------------Attack Bonus---------------------------------------------------
-let atkBonus = 0;
-const occupations = form.occupation;
-
-for (const occupation of occupations) {
-  const level = parseInt(occupation.Level, 10);
-  const attackBonusValue = parseInt(occupation.atkBonus, 10);
-
-  if (!isNaN(level)) {
-    if (attackBonusValue === 0) {
-      atkBonus += Math.floor(level / 2);
-    } else if (attackBonusValue === 1) {
-      atkBonus += Math.floor(level * 0.75);
-    } else if (attackBonusValue === 2) {
-      atkBonus += level;
-    }
-  }
-}
-
 return (
   <div
     className="text-center"
@@ -413,14 +674,38 @@ return (
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Button
+        style={{ borderColor: 'gray', marginBottom: '8px', marginTop: '-30px' }}
+        className="bg-secondary"
+        onClick={() => window.dispatchEvent(new Event('pass-turn'))}
+      >
+        Pass
+      </Button>
+      <StatusEffectBar effects={activeEffects} />
+    </div>
     <PlayerTurnActions
       form={form}
-      atkBonus={atkBonus}
       dexMod={statMods.dex}
       strMod={statMods.str}
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
+      onCastSpell={handleCastSpell}
+      availableSlots={availableSlots}
+      longRestCount={longRestCount}
+      shortRestCount={shortRestCount}
     />
+    {form && (
+      <SpellSlots
+        form={form}
+        used={usedSlots}
+        onToggleSlot={handleCastSpell}
+        actionCount={actionCount}
+        longRestCount={longRestCount}
+        shortRestCount={shortRestCount}
+        onActionSurge={handleActionSurge}
+      />
+    )}
     <Navbar
       fixed="bottom"
       data-bs-theme="dark"
@@ -535,6 +820,8 @@ return (
       show={showCharacterInfo}
       handleClose={handleCloseCharacterInfo}
       onShowBackground={handleShowBackground}
+      onLongRest={handleLongRest}
+      onShortRest={handleShortRest}
     />
     <Skills
       form={form}
@@ -561,6 +848,10 @@ return (
       form={form}
       showFeatures={showFeatures}
       handleCloseFeatures={handleCloseFeatures}
+      onActionSurge={handleActionSurge}
+      longRestCount={longRestCount}
+      shortRestCount={shortRestCount}
+      actionCount={actionCount}
     />
       <Modal
         className="dnd-modal modern-modal"
@@ -631,6 +922,8 @@ return (
         onSpellsChange={(spells, spellPoints) =>
           setForm((prev) => ({ ...prev, spells, spellPoints }))
         }
+        onCastSpell={handleCastSpell}
+        availableSlots={availableSlots}
       />
     )}
     <Help

@@ -3,9 +3,92 @@
 @import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 
+.spell-slot-tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  scrollbar-width: none;
+}
+
+.spell-slot-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.spell-slot-tabs.fade-left::before,
+.spell-slot-tabs.fade-right::after {
+  content: '';
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  width: 1rem;
+  pointer-events: none;
+}
+
+.spell-slot-tabs.fade-left::before {
+  left: 0;
+  background: linear-gradient(to right, white, transparent);
+}
+
+.spell-slot-tabs.fade-right::after {
+  right: 0;
+  background: linear-gradient(to left, white, transparent);
+}
+
+.spell-slot-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 9999px;
+  background-color: #fff;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  color: var(--bs-dark);
+}
+
+.spell-slot-tab.active {
+  background-color: var(--bs-primary);
+  color: #fff;
+}
+
+.spell-slot-tab.dimmed {
+  opacity: 0.5;
+}
+
+.spell-slot-tab .pips {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.spell-slot-tab .pip {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.4;
+}
+
+.spell-slot-tab .pip.filled {
+  background-color: currentColor;
+  opacity: 1;
+}
+
 .weapon-checkbox .form-check-input:checked {
   background-color: var(--bs-primary);
   border-color: var(--bs-primary);
+}
+
+.upcast-slot {
+  cursor: pointer;
+  background-color: #808080;
+}
+
+.upcast-slot.selected {
+  background-color: #808080;
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 10px #FFD700;
+  transform: scale(1.1);
 }
 
 .skill-checkbox .form-check-input {
@@ -37,6 +120,112 @@
 
 .App {
   text-align: center;
+}
+
+.spell-slot-container {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  z-index: 1030;
+}
+
+.spell-slot {
+  position: relative;
+  width: 28px;
+  height: 48px;
+  color: #fff;
+  padding: 2px;
+}
+
+.spell-slot .slot-level {
+  position: absolute;
+  top: -2px;               /* push it near the top */
+  left: 50%;              /* move to the horizontal center */
+  transform: translateX(-50%); /* center offset */
+  font-size: 1.2rem;      /* adjust size if needed */
+  z-index: 1;
+  pointer-events: none;
+}
+
+.spell-slot .slot-boxes {
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
+  gap: 2px;
+  justify-content: center;
+}
+
+.spell-slot .slot-small {
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid #fff;
+}
+
+.spell-slot .slot-active {
+  background: #007bff;
+  box-shadow: 0 0 5px #007bff, 0 0 10px #007bff;
+}
+
+.warlock-slot .slot-active {
+  background: #800080;
+  box-shadow: 0 0 5px #800080, 0 0 10px #800080;
+}
+
+.spell-slot .slot-used {
+  background: transparent;
+}
+
+.spell-slot .slot-inactive {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
+.action-slot .slot-boxes,
+.bonus-slot .slot-boxes {
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
+  gap: 2px;
+  justify-content: center;
+}
+
+.action-slot .action-circle {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #28a745;
+  box-shadow: 0 0 5px #28a745, 0 0 10px #28a745;
+  cursor: pointer;
+}
+
+.bonus-slot { overflow: visible; }
+
+.bonus-slot .bonus-circle {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #ffa500;
+  box-shadow: 0 0 5px #ffa500, 0 0 10px #ffa500;
+  cursor: pointer;
+}
+
+.action-circle.slot-used {
+  background: transparent;
+  box-shadow: none;
+}
+
+.bonus-circle.slot-used {
+  background: transparent;
+  box-shadow: none;
 }
 
 .text-center {
@@ -171,6 +360,7 @@ $rotateX: -$angle;
   .content {
     margin: 0 auto;
     position: relative;
+    top: -30px;
     width: $containerWidth;
     height: $containerHeight;
     perspective: 1500px;
@@ -330,6 +520,11 @@ $rotateX: -$angle;
   padding-top: 5px;
   display: inline-block; /* Make the text an inline block */
   animation: rollAnimation 0.5s ease-in-out; /* Apply animation */
+}
+
+#damageValue.spell-cast-label {
+  font-size: 10px;
+  line-height: 1.2;
 }
 
 /* Prevent the animation on initial load */
