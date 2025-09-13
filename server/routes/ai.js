@@ -52,7 +52,7 @@ module.exports = (router) => {
           { role: 'system', content: 'Create a Dungeons and Dragons weapon.' },
           { role: 'user', content: prompt },
         ],
-        response_format: zodResponseFormat(WeaponSchema, 'weapon'),
+        text: { format: zodResponseFormat(WeaponSchema, 'weapon') },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -96,7 +96,7 @@ module.exports = (router) => {
           { role: 'system', content: 'Create a Dungeons and Dragons armor.' },
           { role: 'user', content: prompt },
         ],
-        response_format: zodResponseFormat(ArmorSchema, 'armor'),
+        text: { format: zodResponseFormat(ArmorSchema, 'armor') },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -141,7 +141,7 @@ module.exports = (router) => {
           },
           { role: 'user', content: prompt },
         ],
-        response_format: zodResponseFormat(ItemSchema, 'item'),
+        text: { format: zodResponseFormat(ItemSchema, 'item') },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
