@@ -119,6 +119,7 @@ describe('AI item route', () => {
     expect(res.status).toBe(200);
     expect(res.body.statBonuses).toEqual({ str: 2 });
     expect(res.body.skillBonuses).toEqual({ acrobatics: 3 });
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('item');
   });
 
   test('extracts bonuses from prompt when AI omits them', async () => {
@@ -143,6 +144,7 @@ describe('AI item route', () => {
     expect(res.status).toBe(200);
     expect(res.body.statBonuses).toEqual({ str: 2 });
     expect(res.body.skillBonuses).toEqual({ stealth: 1 });
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('item');
   });
 
   test('validates incorrect bonus data', async () => {
@@ -165,6 +167,7 @@ describe('AI item route', () => {
     const res = await request(app).post('/ai/item').send({ prompt: 'bad item' });
     expect(res.status).toBe(500);
     expect(res.body.message).toBeDefined();
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('item');
   });
 });
 

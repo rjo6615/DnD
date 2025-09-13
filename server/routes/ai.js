@@ -46,13 +46,14 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const format = zodResponseFormat(WeaponSchema);
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           { role: 'system', content: 'Create a Dungeons and Dragons weapon.' },
           { role: 'user', content: prompt },
         ],
-        text: { format: zodResponseFormat(WeaponSchema, 'weapon') },
+        text: { format: { name: 'weapon', ...format } },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -90,13 +91,14 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const format = zodResponseFormat(ArmorSchema);
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           { role: 'system', content: 'Create a Dungeons and Dragons armor.' },
           { role: 'user', content: prompt },
         ],
-        text: { format: zodResponseFormat(ArmorSchema, 'armor') },
+        text: { format: { name: 'armor', ...format } },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -131,6 +133,7 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const format = zodResponseFormat(ItemSchema);
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
@@ -141,7 +144,7 @@ module.exports = (router) => {
           },
           { role: 'user', content: prompt },
         ],
-        text: { format: zodResponseFormat(ItemSchema, 'item') },
+        text: { format: { name: 'item', ...format } },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
