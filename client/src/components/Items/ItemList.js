@@ -106,7 +106,9 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
       } catch (err) {
         console.error('Failed to load items:', err?.message, err?.status);
         setItems({});
-        setError(err);
+        const { status = 0, statusText = '', message = err?.message || 'Unknown error' } =
+          err || {};
+        setError({ status, statusText, message });
       }
     }
 
@@ -165,7 +167,11 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
       </Card.Header>
       <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
         {error && (
-          <Alert variant="danger">{`Failed to load items: ${error.status} ${error.statusText}`}</Alert>
+          <Alert variant="danger">
+            {`Failed to load items: ${
+              error.message || `${error.status} ${error.statusText}`
+            }`}
+          </Alert>
         )}
         {unknownItems.length > 0 && (
           <Alert variant="warning">
