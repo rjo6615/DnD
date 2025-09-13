@@ -24,7 +24,7 @@ jest.mock(
 );
 jest.mock(
   'openai/helpers/zod',
-  () => ({ zodResponseFormat: () => ({}) }),
+  () => ({ zodResponseFormat: () => ({ json_schema: { schema: {} } }) }),
   { virtual: true }
 );
 
