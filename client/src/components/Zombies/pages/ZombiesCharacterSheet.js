@@ -752,7 +752,7 @@ return (
           <Button
             onClick={handleShowCharacterInfo}
             style={{ color: "black", marginTop: "10px" }}
-            className="footer-btn mx-1 fas fa-image-portrait"
+            className="footer-btn fas fa-image-portrait"
             variant="secondary"
           ></Button>
           <Button
@@ -762,7 +762,7 @@ return (
               marginTop: "10px",
               backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
             }}
-            className="footer-btn mx-1 fas fa-scroll"
+            className="footer-btn fas fa-scroll"
             variant="secondary"
           ></Button>
           <Button
@@ -772,7 +772,7 @@ return (
               marginTop: "10px",
               backgroundColor: skillsGold,
             }}
-            className={`footer-btn mx-1 fas fa-book-open ${
+            className={`footer-btn fas fa-book-open ${
               skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
             }`}
             variant="secondary"
@@ -784,7 +784,7 @@ return (
               marginTop: "10px",
               backgroundColor: featsGold,
             }}
-            className={`footer-btn mx-1 fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
+            className={`footer-btn fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           ></Button>
           <Button
@@ -794,7 +794,7 @@ return (
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn mx-1 fas fa-star"
+            className="footer-btn fas fa-star"
             variant="secondary"
           ></Button>
           {hasSpellcasting && (
@@ -805,7 +805,7 @@ return (
                 marginTop: '10px',
                 backgroundColor: spellsGold,
               }}
-              className={`footer-btn mx-1 fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+              className={`footer-btn fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
               variant="secondary"
             ></Button>
           )}
@@ -816,7 +816,7 @@ return (
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn mx-1 fas fa-wand-sparkles"
+            className="footer-btn fas fa-wand-sparkles"
             variant="secondary"
           ></Button>
           <Button
@@ -826,7 +826,7 @@ return (
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn mx-1 fas fa-shield"
+            className="footer-btn fas fa-shield"
             variant="secondary"
           ></Button>
           <Button
@@ -836,13 +836,13 @@ return (
               marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn mx-1 fas fa-briefcase"
+            className="footer-btn fas fa-briefcase"
             variant="secondary"
           ></Button>
           <Button
             onClick={handleShowHelpModal}
             style={{ color: "white", marginTop: "10px" }}
-            className="footer-btn mx-1 fas fa-info"
+            className="footer-btn fas fa-info"
             variant="primary"
           ></Button>
         </Nav>
