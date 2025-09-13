@@ -24,7 +24,9 @@
     "winston": "^3.10.0",
     "helmet": "^7.0.0",
     "express-rate-limit": "^6.7.0",
-    "csurf": "^1.11.0"
+    "csurf": "^1.11.0",
+    "openai": "^4.0.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "jest": "^29.7.0",
