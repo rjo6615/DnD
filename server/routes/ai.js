@@ -138,6 +138,7 @@ module.exports = (router) => {
       const { json_schema, ...rest } = zodResponseFormat(ItemSchema);
       const format = { name: 'item', schema: json_schema.schema, ...rest };
       const skillsList = skillNames.join(', ');
+
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
