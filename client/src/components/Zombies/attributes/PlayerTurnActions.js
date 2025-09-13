@@ -1,7 +1,6 @@
 import React, {
   useState,
   useEffect,
-  useRef,
   useImperativeHandle,
   useMemo,
 } from 'react';
@@ -98,7 +97,6 @@ const PlayerTurnActions = React.forwardRef(
       form,
       strMod,
       dexMod,
-      headerHeight = 0,
       onCastSpell,
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
@@ -111,17 +109,7 @@ const PlayerTurnActions = React.forwardRef(
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
 
-  const damageRef = useRef(null);
-  const [damageHeight, setDamageHeight] = useState(0);
   const [footerHeight, setFooterHeight] = useState(0);
-
-  useEffect(() => {
-    if (damageRef.current) {
-      const style = getComputedStyle(damageRef.current);
-      const margins = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-      setDamageHeight(damageRef.current.offsetHeight + margins);
-    }
-  }, []);
 
   useEffect(() => {
     const updateFooterHeight = () => {
@@ -427,34 +415,36 @@ const showSparklesEffect = () => {
           </ul>
         </Modal.Body>
       </Modal>
-      <div
-        id="damageAmount"
-        ref={damageRef}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
-        style={{ margin: "0 auto" }}
-        onClick={handleDamageClick}
-      >
-        <span
-          id="damageValue"
-          className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div
+          id="damageAmount"
+          className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
+          style={{ margin: "0 auto" }}
+          onClick={handleDamageClick}
         >
-          {damageValue}
-        </span>
-        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-      </div>
+          <span
+            id="damageValue"
+            className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
+          >
+            {damageValue}
+          </span>
+          <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+        </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: `calc(100vh - ${footerHeight + headerHeight + damageHeight}px)`
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
-          {/* Attack Button */}
-          <button
-            onClick={handleShowAttack}
-            style={{
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            overflowY: 'auto',
+            paddingBottom: `${footerHeight}px`
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
+            {/* Attack Button */}
+            <button
+              onClick={handleShowAttack}
+              style={{
               width: "64px",
               height: "64px",
               backgroundImage: `url(${sword})`,
@@ -601,6 +591,7 @@ const showSparklesEffect = () => {
         }}
       />
     </div>
+  </div>
   );
 });
 
