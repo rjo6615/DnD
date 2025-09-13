@@ -361,7 +361,10 @@ export default function ZombiesCharacterSheet() {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };
         }
-        playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+          result?.total,
+          result?.breakdown
+        );
         if (name === 'Haste') {
           setActiveEffects((prev) => [
             ...prev,
