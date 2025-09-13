@@ -171,15 +171,13 @@ const items = {
   warship: { name: "Warship", category: "water vehicle", weight: 0, cost: "25000 gp" },
 };
 
-// Default the type of each item to its key for canonical mapping
-for (const [key, item] of Object.entries(items)) {
-  item.type = item.type || key;
+// Default the properties list for each item
+for (const item of Object.values(items)) {
   item.properties = item.properties || [];
 }
 // Derive canonical option lists for client consumption
-const types = Object.keys(items);
 const categories = [
   ...new Set(Object.values(items).map((i) => i.category)),
 ];
 
-module.exports = { items, types, categories };
+module.exports = { items, categories };

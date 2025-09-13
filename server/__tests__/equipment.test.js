@@ -333,10 +333,15 @@ describe('Equipment routes', () => {
           name: 'Potion of healing',
           category: 'adventuring gear',
           weight: 0.5,
-          cost: '50 gp'
+          cost: '50 gp',
+          notes: 'heals slightly',
+          statBonuses: { str: 1 },
+          skillBonuses: { acrobatics: 2 }
         });
       expect(res.status).toBe(200);
       expect(res.body._id).toBeDefined();
+      expect(res.body.statBonuses.str).toBe(1);
+      expect(res.body.skillBonuses.acrobatics).toBe(2);
     });
 
     test('numeric validation failure', async () => {
@@ -358,12 +363,20 @@ describe('Equipment routes', () => {
     test('get items success', async () => {
       dbo.mockResolvedValue({
         collection: () => ({
-          find: () => ({ toArray: async () => [{ name: 'Potion of healing' }] })
+          find: () => ({
+            toArray: async () => [{
+              name: 'Potion of healing',
+              statBonuses: { str: 1 },
+              skillBonuses: { acrobatics: 2 }
+            }]
+          })
         })
       });
       const res = await request(app).get('/equipment/items/Camp1');
       expect(res.status).toBe(200);
       expect(res.body[0].name).toBe('Potion of healing');
+      expect(res.body[0].statBonuses.str).toBe(1);
+      expect(res.body[0].skillBonuses.acrobatics).toBe(2);
     });
 
     test('get items failure', async () => {
@@ -450,7 +463,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: ['potion-healing'] });
+        .send({ item: [{ name: 'potion-healing' }] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Item updated');
     });
@@ -461,7 +474,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: ['potion-healing'] });
+        .send({ item: [{ name: 'potion-healing' }] });
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Item not found');
     });
@@ -470,7 +483,7 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .put('/equipment/update-item/123')
-        .send({ item: ['potion-healing'] });
+        .send({ item: [{ name: 'potion-healing' }] });
       expect(res.status).toBe(400);
     });
 
@@ -479,6 +492,14 @@ describe('Equipment routes', () => {
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: 'potion-healing' });
+      expect(res.status).toBe(400);
+    });
+
+    test('update item invalid structure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: ['potion-healing'] });
       expect(res.status).toBe(400);
     });
   });
