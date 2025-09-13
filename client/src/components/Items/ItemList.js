@@ -85,7 +85,13 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
           : {};
 
         const ownedSet = new Set(
-          initialItems.map((i) => (i.name || i).toLowerCase())
+          initialItems
+            .map((i) => {
+              if (typeof i === 'string') return i;
+              if (Array.isArray(i)) return i[0];
+              return i.name || '';
+            })
+            .map((n) => n.toLowerCase())
         );
         const all = { ...phb, ...customMap };
         const keys = Object.keys(all);
