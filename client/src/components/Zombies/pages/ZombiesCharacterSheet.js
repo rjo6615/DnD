@@ -19,10 +19,12 @@ import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
+import StatusEffectBar from "../attributes/StatusEffectBar";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
+import hasteIcon from "../../../images/spell-haste-icon.png";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -54,6 +56,9 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
+  const [activeEffects, setActiveEffects] = useState([]);
+  const baseActionCount = form?.features?.actionCount ?? 1;
+  const [actionCount, setActionCount] = useState(baseActionCount);
   const initCircleState = () => ({
     0: 'active',
     1: 'active',
@@ -64,6 +69,43 @@ export default function ZombiesCharacterSheet() {
     action: initCircleState(),
     bonus: initCircleState(),
   });
+
+  useEffect(() => {
+    const handlePass = () => {
+      setActiveEffects((prev) =>
+        prev
+          .map((e) =>
+            e.name === 'Haste'
+              ? { ...e, remaining: (e.remaining || 0) - 1 }
+              : e
+          )
+          .filter((e) => e.name !== 'Haste' || e.remaining > 0)
+      );
+    };
+    window.addEventListener('pass-turn', handlePass);
+    return () => window.removeEventListener('pass-turn', handlePass);
+  }, []);
+
+  useEffect(() => {
+    // Clear effects on rest
+    setActiveEffects([]);
+  }, [longRestCount, shortRestCount]);
+
+  useEffect(() => {
+    const hasteActive = activeEffects.some((e) => e.name === 'Haste');
+    const desired = baseActionCount + (hasteActive ? 1 : 0);
+    setActionCount(desired);
+    setUsedSlots((used) => {
+      const action = { ...used.action };
+      for (let i = 0; i < desired; i++) {
+        if (!(i in action)) action[i] = 'active';
+      }
+      Object.keys(action).forEach((key) => {
+        if (Number(key) >= desired) delete action[key];
+      });
+      return { ...used, action };
+    });
+  }, [baseActionCount, activeEffects]);
 
   const consumeCircle = useCallback(
     (type, index) => {
@@ -83,6 +125,17 @@ export default function ZombiesCharacterSheet() {
     [initCircleState]
   );
 
+  const handleActionSurge = useCallback(() => {
+    setActionCount((prev) => {
+      const next = prev + 1;
+      setUsedSlots((used) => ({
+        ...used,
+        action: { ...used.action, [next - 1]: 'active' },
+      }));
+      return next;
+    });
+  }, []);
+
   const playerTurnActionsRef = useRef(null);
 
   const headerRef = useRef(null);
@@ -91,7 +144,8 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     setUsedSlots({ action: initCircleState(), bonus: initCircleState() });
-  }, [longRestCount]);
+    setActionCount(baseActionCount);
+  }, [longRestCount, baseActionCount]);
 
   useEffect(() => {
     setUsedSlots((prev) => {
@@ -101,18 +155,22 @@ export default function ZombiesCharacterSheet() {
       });
       return updated;
     });
-  }, [shortRestCount]);
+    setActionCount(baseActionCount);
+  }, [shortRestCount, baseActionCount]);
 
   useEffect(() => {
-    const handler = () =>
+    const handler = () => {
       setUsedSlots((prev) => ({
         ...prev,
         action: initCircleState(),
         bonus: initCircleState(),
       }));
+      const hasteActive = activeEffects.some((e) => e.name === 'Haste');
+      setActionCount(baseActionCount + (hasteActive ? 1 : 0));
+    };
     window.addEventListener('pass-turn', handler);
     return () => window.removeEventListener('pass-turn', handler);
-  }, []);
+  }, [baseActionCount, activeEffects]);
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
@@ -273,6 +331,7 @@ export default function ZombiesCharacterSheet() {
           slotLevel,
           slotType,
           castingTime,
+          name,
         } = arg;
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
@@ -294,6 +353,12 @@ export default function ZombiesCharacterSheet() {
             : 'Spell Cast';
         }
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
+        if (name === 'Haste') {
+          setActiveEffects((prev) => [
+            ...prev,
+            { name: 'Haste', icon: hasteIcon, remaining: 10 },
+          ]);
+        }
         return;
       }
       if (typeof lvl === 'undefined') {
@@ -562,25 +627,6 @@ const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
-// ------------------------------------------Attack Bonus---------------------------------------------------
-let atkBonus = 0;
-const occupations = form.occupation;
-
-for (const occupation of occupations) {
-  const level = parseInt(occupation.Level, 10);
-  const attackBonusValue = parseInt(occupation.atkBonus, 10);
-
-  if (!isNaN(level)) {
-    if (attackBonusValue === 0) {
-      atkBonus += Math.floor(level / 2);
-    } else if (attackBonusValue === 1) {
-      atkBonus += Math.floor(level * 0.75);
-    } else if (attackBonusValue === 2) {
-      atkBonus += level;
-    }
-  }
-}
-
 return (
   <div
     className="text-center"
@@ -628,21 +674,36 @@ return (
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Button
+        style={{ borderColor: 'gray', marginBottom: '8px', marginTop: '-30px' }}
+        className="bg-secondary"
+        onClick={() => window.dispatchEvent(new Event('pass-turn'))}
+      >
+        Pass
+      </Button>
+      <StatusEffectBar effects={activeEffects} />
+    </div>
     <PlayerTurnActions
       form={form}
-      atkBonus={atkBonus}
       dexMod={statMods.dex}
       strMod={statMods.str}
       headerHeight={headerHeight}
       ref={playerTurnActionsRef}
       onCastSpell={handleCastSpell}
       availableSlots={availableSlots}
+      longRestCount={longRestCount}
+      shortRestCount={shortRestCount}
     />
     {form && (
       <SpellSlots
         form={form}
         used={usedSlots}
         onToggleSlot={handleCastSpell}
+        actionCount={actionCount}
+        longRestCount={longRestCount}
+        shortRestCount={shortRestCount}
+        onActionSurge={handleActionSurge}
       />
     )}
     <Navbar
@@ -787,6 +848,10 @@ return (
       form={form}
       showFeatures={showFeatures}
       handleCloseFeatures={handleCloseFeatures}
+      onActionSurge={handleActionSurge}
+      longRestCount={longRestCount}
+      shortRestCount={shortRestCount}
+      actionCount={actionCount}
     />
       <Modal
         className="dnd-modal modern-modal"

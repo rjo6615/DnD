@@ -2,13 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Card, Table, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
+import actionSurgeIcon from '../../../images/action-surge-icon.png';
 
-export default function Features({ form, showFeatures, handleCloseFeatures }) {
+export default function Features({
+  form,
+  showFeatures,
+  handleCloseFeatures,
+  onActionSurge,
+  longRestCount,
+  shortRestCount,
+}) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [surgeUsed, setSurgeUsed] = useState(false);
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -36,13 +45,21 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
         console.error(err);
         setError('Unable to load class features');
       } finally {
-        allFeatures.sort((a, b) => (a.level || 0) - (b.level || 0));
+        allFeatures.sort(
+          (a, b) =>
+            (a.class || '').localeCompare(b.class || '') ||
+            (a.level || 0) - (b.level || 0)
+        );
         setFeatures(allFeatures);
         setLoading(false);
       }
     }
     fetchFeatures();
   }, [form.occupation, showFeatures]);
+
+  useEffect(() => {
+    setSurgeUsed(false);
+  }, [longRestCount, shortRestCount]);
 
   return (
     <>
@@ -88,7 +105,31 @@ export default function Features({ form, showFeatures, handleCloseFeatures }) {
                           <td>{feat.level}</td>
                           <td>{feat.name}</td>
                           <td>
-                            <Button aria-label="use feature">Use</Button>
+                            {feat.name && feat.name.includes('Action Surge') ? (
+                              <Button
+                                aria-label="use feature"
+                                variant="link"
+                                className={`p-0 border-0 ${
+                                  surgeUsed ? 'opacity-50' : ''
+                                }`}
+                                onClick={() => {
+                                  if (!surgeUsed) {
+                                    onActionSurge?.();
+                                    setSurgeUsed(true);
+                                  }
+                                }}
+                                disabled={surgeUsed}
+                              >
+                                <img
+                                  src={actionSurgeIcon}
+                                  alt="Action Surge"
+                                  width={36}
+                                  height={36}
+                                />
+                              </Button>
+                            ) : (
+                              <Button aria-label="use feature">Use</Button>
+                            )}
                           </td>
                           <td>
                             <Button

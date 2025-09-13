@@ -126,7 +126,7 @@ test('cast button disabled until spell checked and then calls onCastSpell', asyn
   expect(castBtn).not.toBeDisabled();
   await userEvent.click(castBtn);
   expect(onCast).toHaveBeenCalledWith(
-    expect.objectContaining({ level: 3, damage: undefined })
+    expect.objectContaining({ level: 3, damage: undefined, name: 'Fireball' })
   );
 });
 
@@ -159,7 +159,7 @@ test.each([
   const castBtn = within(rowEl).getAllByRole('button')[1];
   await userEvent.click(castBtn);
   expect(onCast).toHaveBeenCalledWith(
-    expect.objectContaining({ level: 0, damage: dmg })
+    expect.objectContaining({ level: 0, damage: dmg, name: 'Fire Bolt' })
   );
 });
 
@@ -256,7 +256,7 @@ test('UpcastModal returns warlock slot type', async () => {
   await userEvent.click(screen.getByText('Cast'));
   await waitFor(() =>
     expect(onCast).toHaveBeenCalledWith(
-      expect.objectContaining({ level: 2, slotType: 'warlock' })
+      expect.objectContaining({ level: 2, slotType: 'warlock', name: 'Burning Hands' })
     )
   );
 });
@@ -437,6 +437,7 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
       extraDice: { count: 1, sides: 6 },
       levelsAbove: 2,
       slotType: 'regular',
+      name: 'Burning Hands',
     })
   );
 });
