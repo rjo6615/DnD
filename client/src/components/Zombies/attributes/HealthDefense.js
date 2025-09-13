@@ -16,6 +16,8 @@ export default function HealthDefense({
   spellAbilityMod,
 }) {
   const params = useParams();
+  const isLargeScreen =
+    typeof window !== 'undefined' && window.innerWidth >= 768;
 //-----------------------Health/Defense------------------------------
   // Armor AC/MaxDex
   const armorItems = form.armor || [];
@@ -123,7 +125,7 @@ return (
     flexDirection: "column", // <-- vertical stacking
     alignItems: "center",
     gap: "32px",
-    marginBottom: "80px",
+    marginBottom: isLargeScreen ? "80px" : "1rem",
     padding: "0 16px",
     maxWidth: "100%",
   }}
