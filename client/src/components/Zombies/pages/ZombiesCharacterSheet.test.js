@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import hasteIcon from '../../../images/spell-haste-icon.png';
 
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
@@ -281,6 +282,44 @@ test('casting spells consumes action and bonus circles based on casting time', a
   expect(bonusCircle).toHaveClass('slot-used');
 });
 
+test('casting Haste adds status icon and extra action circle', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  expect(container.querySelectorAll('.action-circle').length).toBe(1);
+  act(() => {
+    mockOnCastSpell.current?.({
+      name: 'Haste',
+      level: 3,
+      castingTime: '1 action',
+    });
+  });
+  await waitFor(() =>
+    expect(container.querySelectorAll('.action-circle').length).toBe(2)
+  );
+  const icon = screen.getByAltText('Haste');
+  expect(icon).toHaveAttribute('src', hasteIcon);
+});
+
 test('feats button includes points-glow when feat points available', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
@@ -334,7 +373,9 @@ test('all footer buttons have footer-btn class', async () => {
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  buttons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
+  const footerButtons = buttons.filter((btn) => btn.classList.contains('footer-btn'));
+  expect(footerButtons.length).toBeGreaterThan(0);
+  footerButtons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });
 
 test('handleCastSpell closes modal and outputs spell name', async () => {

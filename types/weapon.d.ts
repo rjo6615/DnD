@@ -28,6 +28,10 @@ export interface Weapon {
    */
   cost: number;
   /**
+   * Additional attack bonus provided by the weapon.
+   */
+  attackBonus?: number;
+  /**
    * Whether the creature currently owns the weapon.
    */
   owned: boolean;
