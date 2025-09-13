@@ -124,20 +124,13 @@
 
 .spell-slot-container {
   position: fixed;
-  bottom: 70px;
+  bottom: 60px;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
   gap: 0.5rem;
   z-index: 1030;
-}
-
-@media (max-width: 768px) {
-  .spell-slot-container {
-    position: static;
-    margin-bottom: 4rem;
-  }
 }
 
 .spell-slot {
