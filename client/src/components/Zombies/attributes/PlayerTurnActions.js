@@ -26,12 +26,6 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
-function formatDamageRolls(rolls) {
-  return rolls
-    .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
-    .join(' + ');
-}
-
 export function calculateDamage(
   damageString,
   ability = 0,
@@ -40,56 +34,48 @@ export function calculateDamage(
   extraDice,
   levelsAbove = 0
 ) {
-  const parts = damageString.split(/\s+\+\s+/);
-  const results = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i].trim();
-    const [token, ...rest] = part.split(' ');
-    const match = token.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
-    if (!match) {
-      // eslint-disable-next-line no-console
-      console.error('Invalid damage string');
-      return null;
-    }
-
-    const type = rest.join(' ').trim();
-
-    if (!match[2]) {
-      const baseValue = parseInt(match[1], 10) + ability;
-      results.push({ value: baseValue, type });
-      continue;
-    }
-
-    const numberOfDiceValue = parseInt(match[1], 10);
-    const sidesOfDiceValue = parseInt(match[2], 10);
-    const modifier = parseInt(match[3] || 0, 10);
-
-    let damageSum = roll(numberOfDiceValue, sidesOfDiceValue).reduce(
-      (partialSum, a) => partialSum + a,
-      0
-    );
-
-    if (extraDice && levelsAbove > 0 && i === 0) {
-      const totalExtra = extraDice.count * levelsAbove;
-      const extraRolls = roll(totalExtra, extraDice.sides);
-      damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
-    }
-
-    if (crit) {
-      const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
-      damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
-      if (extraDice && levelsAbove > 0 && i === 0) {
-        const totalExtra = extraDice.count * levelsAbove;
-        const critExtra = roll(totalExtra, extraDice.sides);
-        damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
-      }
-    }
-
-    results.push({ value: damageSum + modifier + ability, type });
+  const cleanString = damageString.split(' ')[0];
+  const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+  if (!match) {
+    // eslint-disable-next-line no-console
+    console.error('Invalid damage string');
+    return null;
   }
 
-  const total = results.reduce((sum, r) => sum + r.value, 0);
-  return { total, breakdown: formatDamageRolls(results) };
+  if (!match[2]) {
+    // Flat damage: ignore crit flag and simply add ability modifier once
+    const baseValue = parseInt(match[1], 10);
+    return baseValue + ability;
+  }
+
+  const numberOfDiceValue = parseInt(match[1], 10);
+  const sidesOfDiceValue = parseInt(match[2], 10);
+  const modifier = parseInt(match[3] || 0, 10);
+
+  // Roll the initial set of dice
+  const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+  let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
+
+  // Roll any extra dice from upcasting
+  if (extraDice && levelsAbove > 0) {
+    const totalExtra = extraDice.count * levelsAbove;
+    const extraRolls = roll(totalExtra, extraDice.sides);
+    damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+  }
+
+  // On a critical hit, roll an additional set of dice and add to the total
+  if (crit) {
+    const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+    damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+    if (extraDice && levelsAbove > 0) {
+      const totalExtra = extraDice.count * levelsAbove;
+      const critExtra = roll(totalExtra, extraDice.sides);
+      damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+    }
+  }
+
+  // Add numeric modifier and ability modifier once
+  return damageSum + modifier + ability;
 }
 
 const PlayerTurnActions = React.forwardRef(
@@ -148,21 +134,15 @@ const [isFumble, setIsFumble] = useState(false);
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    return weapon.damage
-      .split(/\s+\+\s+/)
-      .map((part) => {
-        const [token, ...rest] = part.trim().split(' ');
-        const type = rest.join(' ').trim();
-        return `${token}+${ability}${type ? ` ${type}` : ''}`;
-      })
-      .join(' + ');
+    const dice = weapon.damage.split(' ')[0];
+    return `${dice}+${ability}`;
   };
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const result = calculateDamage(weapon.damage, ability, isCritical);
-    if (!result) return;
-    updateDamageValueWithAnimation(result.total, result.breakdown);
+    const damageValue = calculateDamage(weapon.damage, ability, isCritical);
+    if (damageValue === null) return;
+    updateDamageValueWithAnimation(damageValue);
   };
 
 const [showUpcast, setShowUpcast] = useState(false);
@@ -193,15 +173,9 @@ const [pendingSpell, setPendingSpell] = useState(null);
       extra,
       diff > 0 ? diff : 0
     );
-    if (!value) return;
-    updateDamageValueWithAnimation(value.total, value.breakdown);
-    onCastSpell?.({
-      level,
-      slotType,
-      damage: value.total,
-      castingTime: spell.castingTime,
-      name: spell.name,
-    });
+    if (value === null) return;
+    updateDamageValueWithAnimation(value);
+    onCastSpell?.({ level, slotType, castingTime: spell.castingTime, name: spell.name });
   };
 
   const handleSpellsButtonClick = (spell, crit = false) => {
@@ -248,8 +222,6 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
-const [damageLog, setDamageLog] = useState([]);
-const [showLog, setShowLog] = useState(false);
 
 useEffect(() => {
   if (loading) {
@@ -260,16 +232,10 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (newValue, breakdown) => {
+const updateDamageValueWithAnimation = (newValue) => {
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
-  if (newValue !== undefined) {
-    setDamageLog((prev) => {
-      const entry = { total: newValue, breakdown };
-      return [entry, ...prev].slice(0, 10);
-    });
-  }
 };
 
 useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
@@ -279,8 +245,11 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const { value, breakdown, critical, fumble } = e.detail || {};
-    updateDamageValueWithAnimation(value, breakdown);
+    const { value, critical, fumble } = e.detail || {};
+    const num = Number(value);
+    if (!Number.isNaN(num)) {
+      updateDamageValueWithAnimation(num);
+    }
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
@@ -370,50 +339,6 @@ const showSparklesEffect = () => {
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
     <div>
-<Button
-  style={{
-    display: 'block',
-    margin: '15px auto',
-    padding: '4px 12px',
-    fontSize: '1.1rem',
-    fontWeight: 'bold',
-    color: '#fff',
-    background: 'transparent',
-    borderRadius: '8px',
-    textShadow: '1px 1px 2px #000',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    border: 'none',
-  }}
-  onMouseOver={(e) => {
-    e.target.style.background = 'none';
-    e.target.style.boxShadow = '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
-  }}
-  onMouseOut={(e) => {
-    e.target.style.background = 'transparent';
-    e.target.style.boxShadow = 'none';
-    e.target.style.border = 'none';
-  }}
-  onClick={() => setShowLog(true)}
->
-  ⚔️ Log
-</Button>
-
-      <Modal centered show={showLog} onHide={() => setShowLog(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Damage Log</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <ul className="list-unstyled mb-0">
-            {damageLog.map((entry, idx) => (
-              <li key={idx}>
-                {entry.total}
-                {entry.breakdown ? ` (${entry.breakdown})` : ''}
-              </li>
-            ))}
-          </ul>
-        </Modal.Body>
-      </Modal>
       <div
         id="damageAmount"
         ref={damageRef}
@@ -429,7 +354,7 @@ const showSparklesEffect = () => {
         </span>
         <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
       </div>
-
+      
       <div
         style={{
           display: 'flex',
