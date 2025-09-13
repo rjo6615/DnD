@@ -111,9 +111,9 @@ const PlayerTurnActions = React.forwardRef(
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
 
-  const FOOTER_HEIGHT = 80;
   const damageRef = useRef(null);
   const [damageHeight, setDamageHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
 
   useEffect(() => {
     if (damageRef.current) {
@@ -121,6 +121,19 @@ const PlayerTurnActions = React.forwardRef(
       const margins = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
       setDamageHeight(damageRef.current.offsetHeight + margins);
     }
+  }, []);
+
+  useEffect(() => {
+    const updateFooterHeight = () => {
+      const slots = document.querySelector('.spell-slot-container');
+      const navbar = document.querySelector('.navbar.fixed-bottom');
+      const slotsHeight = slots ? slots.offsetHeight : 0;
+      const navbarHeight = navbar ? navbar.offsetHeight : 0;
+      setFooterHeight(slotsHeight + navbarHeight);
+    };
+    updateFooterHeight();
+    window.addEventListener('resize', updateFooterHeight);
+    return () => window.removeEventListener('resize', updateFooterHeight);
   }, []);
 
 //--------------------------------------------Critical status------------------------------------------------
@@ -434,7 +447,7 @@ const showSparklesEffect = () => {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight + damageHeight}px)`
+          height: `calc(100vh - ${footerHeight + headerHeight + damageHeight}px)`
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
