@@ -434,6 +434,8 @@ const showSparklesEffect = () => {
         >
           ⚔️ Log
         </Button>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
         <div
           id="damageAmount"
           className={`${loading ? 'loading' : ''} ${pulseClass} ${
