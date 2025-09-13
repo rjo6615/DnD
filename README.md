@@ -33,11 +33,10 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 | Variable | Description |
 |----------|-------------|
 | `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
-| `OPENAI_API_KEY` | API key used by the server to access OpenAI for item generation. |
 
 ### Client Environment Variables
 
-When running the React client separately from the server, configure the API base URL by setting a `REACT_APP_API_URL` environment variable. It must point to the origin of the server so the client can reach the backend. No OpenAI key is required on the client.
+When running the React client separately from the server, configure the API base URL by setting a `REACT_APP_API_URL` environment variable. It must point to the origin of the server so the client can reach the backend.
 
 For local development, create a `.env` file in the `client` directory with a value such as:
 
