@@ -11,15 +11,16 @@ try {
 } catch {
   z = null;
 }
-let zodTextFormat;
+let zodResponseFormat;
 try {
-  ({ zodTextFormat } = require('openai/helpers/zod'));
+  ({ zodResponseFormat } = require('openai/helpers/zod'));
 } catch {
-  zodTextFormat = null;
+  zodResponseFormat = null;
 }
 const { types: weaponTypes, categories: weaponCategories } = require('../data/weapons');
 const { types: armorTypes, categories: armorCategories } = require('../data/armor');
 const { categories: itemCategories } = require('../data/items');
+const { skillNames } = require('./fieldConstants');
 
 module.exports = (router) => {
   const aiRouter = express.Router();
@@ -29,7 +30,7 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodTextFormat) {
+    if (!OpenAI || !z || !zodResponseFormat) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
@@ -51,9 +52,7 @@ module.exports = (router) => {
           { role: 'system', content: 'Create a Dungeons and Dragons weapon.' },
           { role: 'user', content: prompt },
         ],
-        text: {
-          format: zodTextFormat(WeaponSchema, 'weapon'),
-        },
+        response_format: zodResponseFormat(WeaponSchema, 'weapon'),
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -72,7 +71,7 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodTextFormat) {
+    if (!OpenAI || !z || !zodResponseFormat) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
@@ -97,9 +96,7 @@ module.exports = (router) => {
           { role: 'system', content: 'Create a Dungeons and Dragons armor.' },
           { role: 'user', content: prompt },
         ],
-        text: {
-          format: zodTextFormat(ArmorSchema, 'armor'),
-        },
+        response_format: zodResponseFormat(ArmorSchema, 'armor'),
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -118,7 +115,7 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodTextFormat) {
+    if (!OpenAI || !z || !zodResponseFormat) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
@@ -144,9 +141,7 @@ module.exports = (router) => {
           },
           { role: 'user', content: prompt },
         ],
-        text: {
-          format: zodTextFormat(ItemSchema, 'item'),
-        },
+        response_format: zodResponseFormat(ItemSchema, 'item'),
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -154,7 +149,43 @@ module.exports = (router) => {
       if (!parsed.success) {
         return res.status(500).json({ message: parsed.error.message });
       }
-      return res.json(parsed.data);
+      let item = parsed.data;
+      const needsStats = !item.statBonuses || Object.keys(item.statBonuses).length === 0;
+      const needsSkills = !item.skillBonuses || Object.keys(item.skillBonuses).length === 0;
+      if (needsStats || needsSkills) {
+        const statMap = {
+          strength: 'str',
+          dexterity: 'dex',
+          constitution: 'con',
+          intelligence: 'int',
+          wisdom: 'wis',
+          charisma: 'cha',
+        };
+        const skillMap = skillNames.reduce((acc, skill) => {
+          acc[skill.toLowerCase()] = skill;
+          return acc;
+        }, {});
+        const statBonuses = { ...item.statBonuses };
+        const skillBonuses = { ...item.skillBonuses };
+        const regex = /\+(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*?)(?=(?:\s+and\b|\s+\+|$))/gi;
+        let match;
+        while ((match = regex.exec(prompt))) {
+          const value = Number(match[1]);
+          const name = match[2].toLowerCase().replace(/\s+/g, '');
+          if (needsStats && statMap[name]) {
+            statBonuses[statMap[name]] = value;
+          } else if (needsSkills && skillMap[name]) {
+            skillBonuses[skillMap[name]] = value;
+          }
+        }
+        if (needsStats && Object.keys(statBonuses).length) {
+          item.statBonuses = statBonuses;
+        }
+        if (needsSkills && Object.keys(skillBonuses).length) {
+          item.skillBonuses = skillBonuses;
+        }
+      }
+      return res.json(item);
     } catch (err) {
       return res.status(500).json({ message: err.message });
     }

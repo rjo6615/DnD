@@ -9,62 +9,74 @@ const express = require('express');
 jest.mock('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 
-jest.mock('openai', () => {
-  class OpenAI {
-    constructor() {
-      this.responses = { parse: (...a) => OpenAI.__parse(...a) };
+jest.mock(
+  'openai',
+  () => {
+    class OpenAI {
+      constructor() {
+        this.responses = { parse: (...a) => OpenAI.__parse(...a) };
+      }
     }
-  }
-  OpenAI.__parse = jest.fn();
-  return OpenAI;
-});
-jest.mock('openai/helpers/zod', () => ({ zodTextFormat: () => ({}) }));
+    OpenAI.__parse = jest.fn();
+    return OpenAI;
+  },
+  { virtual: true }
+);
+jest.mock(
+  'openai/helpers/zod',
+  () => ({ zodResponseFormat: () => ({}) }),
+  { virtual: true }
+);
 
-jest.mock('zod', () => {
-  function makeSchema(check) {
-    return {
-      check,
-      optional() {
-        return makeSchema((v) => v === undefined || check(v));
-      },
-    };
-  }
-  const z = {
-    string: () => makeSchema((v) => typeof v === 'string'),
-    number: () => makeSchema((v) => typeof v === 'number'),
-    boolean: () => makeSchema((v) => typeof v === 'boolean'),
-    enum: (vals) => makeSchema((v) => vals.includes(v)),
-    array: (s) => makeSchema((v) => Array.isArray(v) && v.every(s.check)),
-    object: (shape) => {
-      const schema = makeSchema((v) => v && typeof v === 'object');
-      schema.safeParse = (d) => {
-        for (const k in shape) {
-          if (!shape[k].check(d[k])) {
-            return { success: false, error: { message: 'Invalid' } };
-          }
-        }
-        return { success: true, data: d };
+jest.mock(
+  'zod',
+  () => {
+    function makeSchema(check) {
+      return {
+        check,
+        optional() {
+          return makeSchema((v) => v === undefined || check(v));
+        },
       };
-      schema.catchall = (s) => {
-        const cs = makeSchema(
-          (v) => v && typeof v === 'object' && Object.values(v).every(s.check)
-        );
-        cs.safeParse = (d) => {
-          for (const val of Object.values(d || {})) {
-            if (!s.check(val)) {
+    }
+    const z = {
+      string: () => makeSchema((v) => typeof v === 'string'),
+      number: () => makeSchema((v) => typeof v === 'number'),
+      boolean: () => makeSchema((v) => typeof v === 'boolean'),
+      enum: (vals) => makeSchema((v) => vals.includes(v)),
+      array: (s) => makeSchema((v) => Array.isArray(v) && v.every(s.check)),
+      object: (shape) => {
+        const schema = makeSchema((v) => v && typeof v === 'object');
+        schema.safeParse = (d) => {
+          for (const k in shape) {
+            if (!shape[k].check(d[k])) {
               return { success: false, error: { message: 'Invalid' } };
             }
           }
           return { success: true, data: d };
         };
-        cs.catchall = () => cs;
-        return cs;
-      };
-      return schema;
-    },
-  };
-  return { z };
-});
+        schema.catchall = (s) => {
+          const cs = makeSchema(
+            (v) => v && typeof v === 'object' && Object.values(v).every(s.check)
+          );
+          cs.safeParse = (d) => {
+            for (const val of Object.values(d || {})) {
+              if (!s.check(val)) {
+                return { success: false, error: { message: 'Invalid' } };
+              }
+            }
+            return { success: true, data: d };
+          };
+          cs.catchall = () => cs;
+          return cs;
+        };
+        return schema;
+      },
+    };
+    return { z };
+  },
+  { virtual: true }
+);
 
 const OpenAI = require('openai');
 const mockParse = OpenAI.__parse;
