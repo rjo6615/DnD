@@ -1,6 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Form, Alert } from 'react-bootstrap';
+import { Card, Table, Form, Alert, Button, Modal } from 'react-bootstrap';
 import apiFetch from '../../utils/apiFetch';
+import { STATS } from '../Zombies/statSchema';
+import { SKILLS } from '../Zombies/skillSchema';
+
+const STAT_LABELS = STATS.reduce((acc, { key, label }) => {
+  acc[key] = label;
+  return acc;
+}, {});
+
+const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
+  acc[key] = label;
+  return acc;
+}, {});
+
+const renderBonuses = (bonuses, labels) =>
+  Object.entries(bonuses || {})
+    .map(([k, v]) => `${labels[k] || k}: ${v}`)
+    .join(', ');
 
 /** @typedef {import('../../../../types/item').Item} Item */
 
@@ -19,6 +36,7 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
     useState/** @type {Record<string, Item & { owned?: boolean, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownItems, setUnknownItems] = useState([]);
+  const [notesItem, setNotesItem] = useState(null);
 
   useEffect(() => {
     if (!show) return;
@@ -137,6 +155,9 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
     }
   };
 
+  const handleCloseNotes = () => setNotesItem(null);
+  const handleShowNotes = (item) => () => setNotesItem(item);
+
   return (
     <Card className="modern-card">
       <Card.Header className="modal-header">
@@ -156,8 +177,12 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
             <tr>
               <th>Owned</th>
               <th>Name</th>
+              <th>Category</th>
               <th>Weight</th>
               <th>Cost</th>
+              <th>Notes</th>
+              <th>Stat Bonuses</th>
+              <th>Skill Bonuses</th>
             </tr>
           </thead>
           <tbody>
@@ -173,13 +198,29 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
                   />
                 </td>
                 <td>{item.displayName || item.name}</td>
+                <td>{item.category}</td>
                 <td>{item.weight}</td>
                 <td>{item.cost}</td>
+                <td>
+                  {item.notes && (
+                    <Button variant="link" size="sm" onClick={handleShowNotes(item)}>
+                      View
+                    </Button>
+                  )}
+                </td>
+                <td>{renderBonuses(item.statBonuses, STAT_LABELS)}</td>
+                <td>{renderBonuses(item.skillBonuses, SKILL_LABELS)}</td>
               </tr>
             ))}
           </tbody>
         </Table>
       </Card.Body>
+      <Modal show={!!notesItem} onHide={handleCloseNotes} size="sm">
+        <Modal.Header closeButton>
+          <Modal.Title>{notesItem?.displayName || notesItem?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>{notesItem?.notes}</Modal.Body>
+      </Modal>
     </Card>
   );
 }
