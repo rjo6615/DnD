@@ -370,21 +370,21 @@ const showSparklesEffect = () => {
     fontSize: '1.1rem',
     fontWeight: 'bold',
     color: '#fff',
-    background: 'linear-gradient(145deg, #001affff, #5260ffff)',
-    border: '2px solid #ffd700',
+    background: 'transparent',
     borderRadius: '8px',
-    boxShadow: '0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 215, 0, 0.5)',
     textShadow: '1px 1px 2px #000',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
+    border: 'none',
   }}
   onMouseOver={(e) => {
-    e.target.style.background = 'linear-gradient(145deg, #001affff, #5260ffff)';
-    e.target.style.boxShadow = '0 0 16px rgba(255, 215, 0, 0.9), inset 0 0 8px rgba(178, 34, 34, 0.6)';
+    e.target.style.background = 'none';
+    e.target.style.boxShadow = '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
   }}
   onMouseOut={(e) => {
-    e.target.style.background = 'linear-gradient(145deg, #5260ffff, #001affff)';
-    e.target.style.boxShadow = '0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 215, 0, 0.5)';
+    e.target.style.background = 'transparent';
+    e.target.style.boxShadow = 'none';
+    e.target.style.border = 'none';
   }}
   onClick={() => setShowLog(true)}
 >
