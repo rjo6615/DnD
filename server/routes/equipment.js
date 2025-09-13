@@ -337,7 +337,17 @@ module.exports = (router) => {
 
   // This section will update items on a character.
   equipmentRouter.route('/update-item/:id').put(
-    [body('item').isArray().withMessage('item must be an array')],
+    [
+      body('item').isArray().withMessage('item must be an array'),
+      body('item.*').isObject().withMessage('each item must be an object'),
+      body('item.*.name').trim().notEmpty().withMessage('name is required'),
+      body('item.*.category').optional().isString().trim(),
+      body('item.*.weight').optional({ checkFalsy: true }).isFloat().toFloat(),
+      body('item.*.cost').optional().isString().trim(),
+      body('item.*.notes').optional().isString().trim(),
+      body('item.*.statBonuses').optional().custom(validateBonusObject),
+      body('item.*.skillBonuses').optional().custom(validateBonusObject),
+    ],
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
@@ -345,7 +355,7 @@ module.exports = (router) => {
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
-      const { item } = matchedData(req, { locations: ['body'] });
+      const { item } = matchedData(req, { locations: ['body'], includeOptionals: true });
       try {
         const result = await db_connect.collection('Characters').updateOne(id, {
           $set: { item },

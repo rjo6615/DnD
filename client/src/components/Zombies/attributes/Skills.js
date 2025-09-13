@@ -131,34 +131,11 @@ export default function Skills({
     cha: chaMod,
   };
 
-  const legacySkillIndex = {
-    acrobatics: 8,
-    animalHandling: 9,
-    arcana: 10,
-    athletics: 11,
-    deception: 12,
-    history: 13,
-    insight: 14,
-    intimidation: 15,
-    investigation: 16,
-    medicine: 17,
-    nature: 18,
-    perception: 19,
-    performance: 20,
-    persuasion: 21,
-    religion: 22,
-    sleightOfHand: 23,
-    stealth: 24,
-    survival: 25,
-  };
-
   const itemTotals = SKILLS.reduce((acc, { key }) => {
-    acc[key] = (form.item || []).reduce((sum, el) => {
-      if (Array.isArray(el)) {
-        return sum + Number(el[legacySkillIndex[key]] || 0);
-      }
-      return sum + Number(el.skillBonuses?.[key] || 0);
-    }, 0);
+    acc[key] = (form.item || []).reduce(
+      (sum, el) => sum + Number(el.skillBonuses?.[key] || 0),
+      0
+    );
     return acc;
   }, {});
 
