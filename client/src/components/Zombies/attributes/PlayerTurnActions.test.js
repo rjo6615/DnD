@@ -8,23 +8,23 @@ describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
 
   test('handles 10d4', () => {
-    expect(calculateDamage('10d4', 0, false, fixedRoll)).toBe(10);
+    expect(calculateDamage('10d4', 0, false, fixedRoll).total).toBe(10);
   });
 
   test('handles 10d4+1', () => {
-    expect(calculateDamage('10d4+1', 0, false, fixedRoll)).toBe(11);
+    expect(calculateDamage('10d4+1', 0, false, fixedRoll).total).toBe(11);
   });
 
   test('handles 1d8 slashing', () => {
-    expect(calculateDamage('1d8 slashing', 0, false, fixedRoll)).toBe(1);
+    expect(calculateDamage('1d8 slashing', 0, false, fixedRoll).total).toBe(1);
   });
 
   test('handles 2d6 fire', () => {
-    expect(calculateDamage('2d6 fire', 0, false, fixedRoll)).toBe(2);
+    expect(calculateDamage('2d6 fire', 0, false, fixedRoll).total).toBe(2);
   });
 
   test('handles flat damage 100', () => {
-    expect(calculateDamage('100', 0, false, fixedRoll)).toBe(100);
+    expect(calculateDamage('100', 0, false, fixedRoll).total).toBe(100);
   });
 
   test('crit rolls extra dice but adds modifiers once', () => {
@@ -33,22 +33,126 @@ describe('calculateDamage parser', () => {
       calls++;
       return Array(count).fill(1);
     };
-    expect(calculateDamage('1d4+2', 4, true, critRoll)).toBe(8);
+    expect(calculateDamage('1d4+2', 4, true, critRoll).total).toBe(8);
     expect(calls).toBe(2);
   });
 
   test('flat damage ignores crit flag', () => {
-    expect(calculateDamage('100', 0, true, fixedRoll)).toBe(100);
+    expect(calculateDamage('100', 0, true, fixedRoll).total).toBe(100);
   });
 
   test('adds extra dice for levels above', () => {
     const extra = { count: 1, sides: 4 };
-    expect(calculateDamage('1d4', 0, false, fixedRoll, extra, 2)).toBe(3);
+    expect(calculateDamage('1d4', 0, false, fixedRoll, extra, 2).total).toBe(3);
   });
 
   test('doubles extra dice on a critical hit', () => {
     const extra = { count: 1, sides: 4 };
-    expect(calculateDamage('1d4', 0, true, fixedRoll, extra, 2)).toBe(6);
+    expect(calculateDamage('1d4', 0, true, fixedRoll, extra, 2).total).toBe(6);
+  });
+
+  test('handles multi-type damage and returns breakdown string', () => {
+    expect(
+      calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
+    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
+  });
+});
+
+describe('PlayerTurnActions weapon damage display', () => {
+  test('getDamageString applies ability to each component', () => {
+    const weapon = {
+      name: 'Frost Brand',
+      damage: '1d4 cold + 1d6 slashing',
+      category: 'melee',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const row = screen.getByText('Frost Brand').closest('tr');
+    expect(
+      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
+    ).toBeInTheDocument();
+  });
+});
+
+describe('PlayerTurnActions damage log', () => {
+  test('multi-type weapon logs breakdown and shows total', async () => {
+    const weapon = {
+      name: 'Frost Brand',
+      damage: '1d4 cold + 1d6 slashing',
+      category: 'melee',
+    };
+    const orig = Math.random;
+    Math.random = () => 0; // deterministic rolls
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    expect(document.getElementById('damageValue').textContent).toBe('6');
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+    expect(
+      within(modal).getByText('6 (3 cold + 3 slashing)')
+    ).toBeInTheDocument();
+    Math.random = orig;
+  });
+
+  test('handles multi-type damage and returns breakdown string', () => {
+    const fixedRoll = (count, sides) => Array(count).fill(1);
+    expect(
+      calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
+    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
+  });
+});
+
+describe('PlayerTurnActions weapon damage display', () => {
+  test('getDamageString applies ability to each component', () => {
+    const weapon = {
+      name: 'Frost Brand',
+      damage: '1d4 cold + 1d6 slashing',
+      category: 'melee',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const row = screen.getByText('Frost Brand').closest('tr');
+    expect(
+      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
+    ).toBeInTheDocument();
   });
 });
 
@@ -164,12 +268,55 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(rollButton);
     });
 
-    expect(onCastSpell).toHaveBeenCalledWith({
-      level: spell.level,
-      slotType: undefined,
-      castingTime: spell.castingTime,
-      name: spell.name,
+    expect(onCastSpell).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: spell.level,
+        slotType: undefined,
+        damage: expect.any(Number),
+        castingTime: spell.castingTime,
+        name: spell.name,
+      })
+    );
+  });
+
+  test('damaging spells display rolled damage instead of spell name', async () => {
+    const orig = Math.random;
+    Math.random = () => 0.5;
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
     });
+
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    const el = document.getElementById('damageValue');
+    expect(el.classList.contains('spell-cast-label')).toBe(false);
+    expect(el.textContent).not.toBe(spell.name);
+    Math.random = orig;
   });
 
   test('consumes action circle for 1 action spells', async () => {
