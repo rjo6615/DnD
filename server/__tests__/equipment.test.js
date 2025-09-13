@@ -463,7 +463,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: ['potion-healing'] });
+        .send({ item: [{ name: 'potion-healing' }] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Item updated');
     });
@@ -474,7 +474,7 @@ describe('Equipment routes', () => {
       });
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
-        .send({ item: ['potion-healing'] });
+        .send({ item: [{ name: 'potion-healing' }] });
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Item not found');
     });
@@ -483,7 +483,7 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .put('/equipment/update-item/123')
-        .send({ item: ['potion-healing'] });
+        .send({ item: [{ name: 'potion-healing' }] });
       expect(res.status).toBe(400);
     });
 
@@ -492,6 +492,14 @@ describe('Equipment routes', () => {
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: 'potion-healing' });
+      expect(res.status).toBe(400);
+    });
+
+    test('update item invalid structure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: ['potion-healing'] });
       expect(res.status).toBe(400);
     });
   });

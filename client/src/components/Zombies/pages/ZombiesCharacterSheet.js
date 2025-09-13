@@ -422,12 +422,12 @@ export default function ZombiesCharacterSheet() {
 
   const itemBonus = (form?.item || []).reduce(
     (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str ?? el[2] ?? 0),
-      dex: acc.dex + Number(el.statBonuses?.dex ?? el[3] ?? 0),
-      con: acc.con + Number(el.statBonuses?.con ?? el[4] ?? 0),
-      int: acc.int + Number(el.statBonuses?.int ?? el[5] ?? 0),
-      wis: acc.wis + Number(el.statBonuses?.wis ?? el[6] ?? 0),
-      cha: acc.cha + Number(el.statBonuses?.cha ?? el[7] ?? 0),
+      str: acc.str + Number(el.statBonuses?.str || 0),
+      dex: acc.dex + Number(el.statBonuses?.dex || 0),
+      con: acc.con + Number(el.statBonuses?.con || 0),
+      int: acc.int + Number(el.statBonuses?.int || 0),
+      wis: acc.wis + Number(el.statBonuses?.wis || 0),
+      cha: acc.cha + Number(el.statBonuses?.cha || 0),
     }),
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
