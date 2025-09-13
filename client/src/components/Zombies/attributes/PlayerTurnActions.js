@@ -98,6 +98,7 @@ const PlayerTurnActions = React.forwardRef(
       strMod,
       dexMod,
       onCastSpell,
+      onPassTurn = () => {},
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
@@ -370,36 +371,90 @@ const showSparklesEffect = () => {
 };
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
-    <div>
-<Button
-  style={{
-    display: 'block',
-    margin: '15px auto',
-    padding: '4px 12px',
-    fontSize: '1.1rem',
-    fontWeight: 'bold',
-    color: '#fff',
-    background: 'transparent',
-    borderRadius: '8px',
-    textShadow: '1px 1px 2px #000',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    border: 'none',
-  }}
-  onMouseOver={(e) => {
-    e.target.style.background = 'none';
-    e.target.style.boxShadow = '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
-  }}
-  onMouseOut={(e) => {
-    e.target.style.background = 'transparent';
-    e.target.style.boxShadow = 'none';
-    e.target.style.border = 'none';
-  }}
-  onClick={() => setShowLog(true)}
->
-  ⚔️ Log
-</Button>
-
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <Button
+          style={{
+            padding: '4px 12px',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            color: '#fff',
+            background: 'transparent',
+            borderRadius: '8px',
+            textShadow: '1px 1px 2px #000',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            border: 'none',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'none';
+            e.target.style.boxShadow =
+              '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'transparent';
+            e.target.style.boxShadow = 'none';
+            e.target.style.border = 'none';
+          }}
+          onClick={onPassTurn}
+        >
+          Pass ➔
+        </Button>
+        <Button
+          style={{
+            padding: '4px 12px',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            color: '#fff',
+            background: 'transparent',
+            borderRadius: '8px',
+            textShadow: '1px 1px 2px #000',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            border: 'none',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'none';
+            e.target.style.boxShadow =
+              '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'transparent';
+            e.target.style.boxShadow = 'none';
+            e.target.style.border = 'none';
+          }}
+          onClick={() => setShowLog(true)}
+        >
+          ⚔️ Log
+        </Button>
+        <div
+          id="damageAmount"
+          className={`${loading ? 'loading' : ''} ${pulseClass} ${
+            isCritical ? 'critical-active' : ''
+          } ${isFumble ? 'critical-failure' : ''}`}
+          onClick={handleDamageClick}
+        >
+          <span
+            id="damageValue"
+            className={`${loading ? 'hidden' : ''} ${
+              typeof damageValue === 'string' ? 'spell-cast-label' : ''
+            }`}
+          >
+            {damageValue}
+          </span>
+          <div
+            id="loadingSpinner"
+            className={`spinner ${loading ? '' : 'hidden'}`}
+          ></div>
+        </div>
+      </div>
       <Modal centered show={showLog} onHide={() => setShowLog(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Damage Log</Modal.Title>
@@ -415,31 +470,15 @@ const showSparklesEffect = () => {
           </ul>
         </Modal.Body>
       </Modal>
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div
-          id="damageAmount"
-          className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
-          style={{ margin: "0 auto" }}
-          onClick={handleDamageClick}
-        >
-          <span
-            id="damageValue"
-            className={`${loading ? 'hidden' : ''} ${typeof damageValue === 'string' ? 'spell-cast-label' : ''}`}
-          >
-            {damageValue}
-          </span>
-          <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            overflowY: 'auto',
-            paddingBottom: `${footerHeight}px`
-          }}
-        >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflowY: 'auto',
+          paddingBottom: `${footerHeight}px`,
+        }}
+      >
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
             {/* Attack Button */}
             <button
@@ -591,7 +630,6 @@ const showSparklesEffect = () => {
         }}
       />
     </div>
-  </div>
   );
 });
 
