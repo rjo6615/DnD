@@ -46,14 +46,15 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const format = zodResponseFormat(WeaponSchema);
+      const { json_schema, ...rest } = zodResponseFormat(WeaponSchema);
+      const format = { name: 'weapon', schema: json_schema.schema, ...rest };
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           { role: 'system', content: 'Create a Dungeons and Dragons weapon.' },
           { role: 'user', content: prompt },
         ],
-        text: { format: { name: 'weapon', ...format } },
+        text: { format },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -91,14 +92,15 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const format = zodResponseFormat(ArmorSchema);
+      const { json_schema, ...rest } = zodResponseFormat(ArmorSchema);
+      const format = { name: 'armor', schema: json_schema.schema, ...rest };
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           { role: 'system', content: 'Create a Dungeons and Dragons armor.' },
           { role: 'user', content: prompt },
         ],
-        text: { format: { name: 'armor', ...format } },
+        text: { format },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -133,18 +135,19 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const format = zodResponseFormat(ItemSchema);
+      const { json_schema, ...rest } = zodResponseFormat(ItemSchema);
+      const format = { name: 'item', schema: json_schema.schema, ...rest };
+      const skillsList = skillNames.join(', ');
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           {
             role: 'system',
-            content:
-              'Create a Dungeons and Dragons item. Only include "statBonuses" or "skillBonuses" if the prompt explicitly suggests mechanical bonuses; otherwise omit these fields.',
+            content: `Create a Dungeons and Dragons item. Include "statBonuses" or "skillBonuses" only if the prompt suggests bonuses to ability scores (str, dex, con, int, wis, cha) or skills (${skillsList}); otherwise omit these fields.`,
           },
           { role: 'user', content: prompt },
         ],
-        text: { format: { name: 'item', ...format } },
+        text: { format },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -152,43 +155,7 @@ module.exports = (router) => {
       if (!parsed.success) {
         return res.status(500).json({ message: parsed.error.message });
       }
-      let item = parsed.data;
-      const needsStats = !item.statBonuses || Object.keys(item.statBonuses).length === 0;
-      const needsSkills = !item.skillBonuses || Object.keys(item.skillBonuses).length === 0;
-      if (needsStats || needsSkills) {
-        const statMap = {
-          strength: 'str',
-          dexterity: 'dex',
-          constitution: 'con',
-          intelligence: 'int',
-          wisdom: 'wis',
-          charisma: 'cha',
-        };
-        const skillMap = skillNames.reduce((acc, skill) => {
-          acc[skill.toLowerCase()] = skill;
-          return acc;
-        }, {});
-        const statBonuses = { ...item.statBonuses };
-        const skillBonuses = { ...item.skillBonuses };
-        const regex = /\+(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*?)(?=(?:\s+and\b|\s+\+|$))/gi;
-        let match;
-        while ((match = regex.exec(prompt))) {
-          const value = Number(match[1]);
-          const name = match[2].toLowerCase().replace(/\s+/g, '');
-          if (needsStats && statMap[name]) {
-            statBonuses[statMap[name]] = value;
-          } else if (needsSkills && skillMap[name]) {
-            skillBonuses[skillMap[name]] = value;
-          }
-        }
-        if (needsStats && Object.keys(statBonuses).length) {
-          item.statBonuses = statBonuses;
-        }
-        if (needsSkills && Object.keys(skillBonuses).length) {
-          item.skillBonuses = skillBonuses;
-        }
-      }
-      return res.json(item);
+      return res.json(parsed.data);
     } catch (err) {
       return res.status(500).json({ message: err.message });
     }
