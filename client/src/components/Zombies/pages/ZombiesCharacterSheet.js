@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
@@ -891,14 +892,18 @@ return (
         onHide={handleCloseWeapons}
         size="lg"
         centered
+        scrollable
+        fullscreen="sm-down"
       >
-        <WeaponList
-          campaign={form.campaign}
-          initialWeapons={form.weapon}
-          onChange={handleWeaponsChange}
-          characterId={characterId}
-          show={showWeapons}
-        />
+        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <WeaponList
+            campaign={form.campaign}
+            initialWeapons={form.weapon}
+            onChange={handleWeaponsChange}
+            characterId={characterId}
+            show={showWeapons}
+          />
+        </Modal.Body>
         <div className="modal-footer">
           <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
             Close
@@ -911,15 +916,19 @@ return (
         onHide={handleCloseArmor}
         size="lg"
         centered
+        scrollable
+        fullscreen="sm-down"
       >
-        <ArmorList
-          campaign={form.campaign}
-          initialArmor={form.armor}
-          onChange={handleArmorChange}
-          characterId={characterId}
-          show={showArmor}
-          strength={computedStats.str}
-        />
+        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <ArmorList
+            campaign={form.campaign}
+            initialArmor={form.armor}
+            onChange={handleArmorChange}
+            characterId={characterId}
+            show={showArmor}
+            strength={computedStats.str}
+          />
+        </Modal.Body>
         <div className="modal-footer">
           <Button className="action-btn close-btn" onClick={handleCloseArmor}>
             Close
@@ -932,14 +941,18 @@ return (
         onHide={handleCloseItems}
         size="lg"
         centered
+        scrollable
+        fullscreen="sm-down"
       >
-        <ItemList
-          campaign={form.campaign}
-          initialItems={form.item}
-          onChange={handleItemsChange}
-          characterId={characterId}
-          show={showItems}
-        />
+        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <ItemList
+            campaign={form.campaign}
+            initialItems={form.item}
+            onChange={handleItemsChange}
+            characterId={characterId}
+            show={showItems}
+          />
+        </Modal.Body>
         <div className="modal-footer">
           <Button className="action-btn close-btn" onClick={handleCloseItems}>
             Close
