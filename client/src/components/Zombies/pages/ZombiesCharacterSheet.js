@@ -751,7 +751,7 @@ return (
         >
           <Button
             onClick={handleShowCharacterInfo}
-            style={{ color: "black", marginTop: "10px" }}
+            style={{ color: "black" }}
             className="footer-btn fas fa-image-portrait"
             variant="secondary"
           ></Button>
@@ -759,7 +759,6 @@ return (
             onClick={handleShowStats}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
             }}
             className="footer-btn fas fa-scroll"
@@ -769,7 +768,6 @@ return (
             onClick={handleShowSkill}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: skillsGold,
             }}
             className={`footer-btn fas fa-book-open ${
@@ -781,7 +779,6 @@ return (
             onClick={handleShowFeats}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: featsGold,
             }}
             className={`footer-btn fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
@@ -791,7 +788,6 @@ return (
             onClick={handleShowFeatures}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
             className="footer-btn fas fa-star"
@@ -802,7 +798,6 @@ return (
               onClick={handleShowSpells}
               style={{
                 color: 'black',
-                marginTop: '10px',
                 backgroundColor: spellsGold,
               }}
               className={`footer-btn fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
@@ -813,7 +808,6 @@ return (
             onClick={handleShowWeapons}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
             className="footer-btn fas fa-wand-sparkles"
@@ -823,7 +817,6 @@ return (
             onClick={handleShowArmor}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
             className="footer-btn fas fa-shield"
@@ -833,7 +826,6 @@ return (
             onClick={handleShowItems}
             style={{
               color: "black",
-              marginTop: "10px",
               backgroundColor: "#6C757D",
             }}
             className="footer-btn fas fa-briefcase"
@@ -841,7 +833,7 @@ return (
           ></Button>
           <Button
             onClick={handleShowHelpModal}
-            style={{ color: "white", marginTop: "10px" }}
+            style={{ color: "white" }}
             className="footer-btn fas fa-info"
             variant="primary"
           ></Button>
