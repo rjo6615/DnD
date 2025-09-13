@@ -94,7 +94,7 @@ export default function SpellSlots({
       });
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: 'flex', flexShrink: 0 }}>
       <div className="spell-slot-container">
         <div className="spell-slot action-slot">
           <div className="slot-level">A</div>

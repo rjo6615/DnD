@@ -646,11 +646,13 @@ return (
     style={{
       fontFamily: 'Raleway, sans-serif',
       backgroundImage: `url(${loginbg})`,
-      minHeight: "100vh",
-      overflowY: "auto",
+      height: "100vh",
+      overflow: "hidden",
       backgroundSize: "cover",
       backgroundRepeat: "no-repeat",
       paddingTop: navHeight + HEADER_PADDING,
+      display: 'flex',
+      flexDirection: 'column',
     }}
   >
     <div ref={headerRef}>
@@ -686,12 +688,27 @@ return (
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Button
-       style={{
-          display: 'block',
-          margin: '15px auto',
-          padding: '4px 12px',
+    <div
+      style={{
+        height: `calc(100vh - ${headerHeight}px)`,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Button
+         style={{
+            display: 'block',
+            margin: '15px auto',
+            padding: '4px 12px',
           fontSize: '1.1rem',
           fontWeight: 'bold',
           color: '#fff',
@@ -715,19 +732,19 @@ return (
       >
         Pass ➔
       </Button>
-      <StatusEffectBar effects={activeEffects} />
+        <StatusEffectBar effects={activeEffects} />
+      </div>
+      <PlayerTurnActions
+        form={form}
+        dexMod={statMods.dex}
+        strMod={statMods.str}
+        ref={playerTurnActionsRef}
+        onCastSpell={handleCastSpell}
+        availableSlots={availableSlots}
+        longRestCount={longRestCount}
+        shortRestCount={shortRestCount}
+      />
     </div>
-    <PlayerTurnActions
-      form={form}
-      dexMod={statMods.dex}
-      strMod={statMods.str}
-      headerHeight={headerHeight}
-      ref={playerTurnActionsRef}
-      onCastSpell={handleCastSpell}
-      availableSlots={availableSlots}
-      longRestCount={longRestCount}
-      shortRestCount={shortRestCount}
-    />
     {form && (
       <SpellSlots
         form={form}
