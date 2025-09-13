@@ -22,7 +22,6 @@ const armor = require('./armor');
 const items = require('./items');
 const weaponProficiency = require('./weaponProficiency');
 const armorProficiency = require('./armorProficiency');
-const ai = require('./ai');
 
 routes.use(async (req, res, next) => {
   try {
@@ -43,7 +42,6 @@ spells(routes);
 weapons(routes);
 armor(routes);
 items(routes);
-ai(routes);
 // Register occupations routes before generic ID-based routes to ensure
 // "/characters/occupations" is matched correctly.
 characterOccupations(routes);

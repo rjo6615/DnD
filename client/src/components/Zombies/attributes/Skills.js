@@ -131,9 +131,9 @@ export default function Skills({
     cha: chaMod,
   };
 
-  const itemTotals = SKILLS.reduce((acc, { key }) => {
-    acc[key] = (form.item || []).reduce(
-      (sum, el) => sum + Number(el.skillBonuses?.[key] || 0),
+  const itemTotals = SKILLS.reduce((acc, { key, itemBonusIndex }) => {
+    acc[key] = form.item.reduce(
+      (sum, el) => sum + Number(el[itemBonusIndex] || 0),
       0
     );
     return acc;

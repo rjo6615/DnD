@@ -221,7 +221,7 @@ export default function ZombiesCharacterSheet() {
           feat: feats,
           weapon: data.weapon || [],
           armor: data.armor || [],
-          item: data.item || [],
+          items: data.items || [],
         });
       } catch (error) {
         console.error(error);
@@ -254,11 +254,8 @@ export default function ZombiesCharacterSheet() {
   const handleShowBackground = () => setShowBackground(true);
   const handleCloseBackground = () => setShowBackground(false);
 
-  const handleRollResult = (result, breakdown) => {
-    playerTurnActionsRef.current?.updateDamageValueWithAnimation(
-      result,
-      breakdown
-    );
+  const handleRollResult = (result) => {
+    playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
   };
 
   const handleLongRest = () => {
@@ -335,7 +332,6 @@ export default function ZombiesCharacterSheet() {
           slotType,
           castingTime,
           name,
-          spellName: altName,
         } = arg;
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
@@ -343,23 +339,18 @@ export default function ZombiesCharacterSheet() {
         else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
         if (typeof damage === 'number') {
-          result = { total: damage };
-        } else if (damage) {
-          const calc = calculateDamage(
-            damage,
-            0,
-            false,
-            undefined,
-            extraDice,
-            levelsAbove
-          );
-          result =
-            calc && typeof calc === 'object'
-              ? calc
-              : { total: calc };
+          result = damage;
         } else {
-          const spellLabel = name || altName;
-          result = { total: spellLabel || 'Spell Cast' };
+          result = damage
+            ? calculateDamage(
+                damage,
+                0,
+                false,
+                undefined,
+                extraDice,
+                levelsAbove
+              )
+            : 'Spell Cast';
         }
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(result);
         if (name === 'Haste') {
@@ -466,7 +457,7 @@ export default function ZombiesCharacterSheet() {
 
   const handleItemsChange = useCallback(
     async (items) => {
-      setForm((prev) => ({ ...prev, item: items }));
+      setForm((prev) => ({ ...prev, items }));
       try {
         await apiFetch(`/equipment/update-item/${characterId}`, {
           method: 'PUT',
@@ -483,12 +474,12 @@ export default function ZombiesCharacterSheet() {
 
   const itemBonus = (form?.item || []).reduce(
     (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str || 0),
-      dex: acc.dex + Number(el.statBonuses?.dex || 0),
-      con: acc.con + Number(el.statBonuses?.con || 0),
-      int: acc.int + Number(el.statBonuses?.int || 0),
-      wis: acc.wis + Number(el.statBonuses?.wis || 0),
-      cha: acc.cha + Number(el.statBonuses?.cha || 0),
+      str: acc.str + Number(el[2] || 0),
+      dex: acc.dex + Number(el[3] || 0),
+      con: acc.con + Number(el[4] || 0),
+      int: acc.int + Number(el[5] || 0),
+      wis: acc.wis + Number(el[6] || 0),
+      cha: acc.cha + Number(el[7] || 0),
     }),
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
@@ -912,7 +903,7 @@ return (
       >
         <ItemList
           campaign={form.campaign}
-          initialItems={form.item}
+          initialItems={form.items}
           onChange={handleItemsChange}
           characterId={characterId}
           show={showItems}

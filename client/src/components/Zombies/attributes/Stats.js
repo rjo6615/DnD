@@ -18,12 +18,12 @@ export default function Stats({ form, showStats, handleCloseStats }) {
 
   const totalItemBonus = (form.item || []).reduce(
     (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str || 0),
-      dex: acc.dex + Number(el.statBonuses?.dex || 0),
-      con: acc.con + Number(el.statBonuses?.con || 0),
-      int: acc.int + Number(el.statBonuses?.int || 0),
-      wis: acc.wis + Number(el.statBonuses?.wis || 0),
-      cha: acc.cha + Number(el.statBonuses?.cha || 0),
+      str: acc.str + Number(el[2] || 0),
+      dex: acc.dex + Number(el[3] || 0),
+      con: acc.con + Number(el[4] || 0),
+      int: acc.int + Number(el[5] || 0),
+      wis: acc.wis + Number(el[6] || 0),
+      cha: acc.cha + Number(el[7] || 0),
     }),
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );

@@ -21,7 +21,7 @@ var mockCalcDamage;
 jest.mock('../attributes/PlayerTurnActions', () => {
   const React = require('react');
   mockUpdateDamage = jest.fn();
-  mockCalcDamage = jest.fn(() => ({ total: 7, breakdown: '' }));
+  mockCalcDamage = jest.fn(() => 7);
   return {
     __esModule: true,
     default: React.forwardRef((props, ref) => {
@@ -378,7 +378,7 @@ test('all footer buttons have footer-btn class', async () => {
   footerButtons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });
 
-test('handleCastSpell closes modal and outputs spell name', async () => {
+test('handleCastSpell closes modal and outputs "Spell Cast"', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
@@ -406,10 +406,10 @@ test('handleCastSpell closes modal and outputs spell name', async () => {
   const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
   await userEvent.click(spellButton);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
-  mockOnCastSpell.current({ level: 1, name: 'Mage Hand' });
+  mockOnCastSpell.current({ level: 1 });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockUpdateDamage).toHaveBeenCalledWith('Mage Hand', undefined);
+  expect(mockUpdateDamage).toHaveBeenCalledWith('Spell Cast');
 });
 
 test('handleCastSpell outputs calculated damage', async () => {

@@ -214,7 +214,7 @@ export default function SpellSelector({
 
   const chaMod = useMemo(() => {
     const itemBonus = (form.item || []).reduce(
-      (sum, el) => sum + Number(el.statBonuses?.cha || 0),
+      (sum, el) => sum + Number(el[7] || 0),
       0
     );
     const featBonus = (form.feat || []).reduce(
@@ -228,7 +228,7 @@ export default function SpellSelector({
 
   const wisMod = useMemo(() => {
     const itemBonus = (form.item || []).reduce(
-      (sum, el) => sum + Number(el.statBonuses?.wis || 0),
+      (sum, el) => sum + Number(el[6] || 0),
       0
     );
     const featBonus = (form.feat || []).reduce(
