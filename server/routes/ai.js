@@ -46,14 +46,15 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const format = zodResponseFormat(WeaponSchema);
+      const { json_schema, ...rest } = zodResponseFormat(WeaponSchema);
+      const format = { name: 'weapon', schema: json_schema.schema, ...rest };
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           { role: 'system', content: 'Create a Dungeons and Dragons weapon.' },
           { role: 'user', content: prompt },
         ],
-        text: { format: { name: 'weapon', ...format } },
+        text: { format },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -91,14 +92,15 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const format = zodResponseFormat(ArmorSchema);
+      const { json_schema, ...rest } = zodResponseFormat(ArmorSchema);
+      const format = { name: 'armor', schema: json_schema.schema, ...rest };
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
           { role: 'system', content: 'Create a Dungeons and Dragons armor.' },
           { role: 'user', content: prompt },
         ],
-        text: { format: { name: 'armor', ...format } },
+        text: { format },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
@@ -133,7 +135,8 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const format = zodResponseFormat(ItemSchema);
+      const { json_schema, ...rest } = zodResponseFormat(ItemSchema);
+      const format = { name: 'item', schema: json_schema.schema, ...rest };
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
@@ -144,7 +147,7 @@ module.exports = (router) => {
           },
           { role: 'user', content: prompt },
         ],
-        text: { format: { name: 'item', ...format } },
+        text: { format },
       });
 
       const data = response.output?.[0]?.content?.[0]?.parsed;
