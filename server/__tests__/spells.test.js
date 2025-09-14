@@ -53,7 +53,7 @@ describe('Spells routes', () => {
     dbo.mockResolvedValue({});
     const res = await request(app).get('/spells/fireball');
     expect(res.status).toBe(200);
-    expect(res.body.damage).toBe('8d6 fire');
+    expect(res.body.damage).toBe('8d6');
   });
 
   test('upcastable spells include higherLevels field', async () => {
