@@ -620,7 +620,9 @@ const showSparklesEffect = () => {
                           <td>{spell.name}</td>
                           <td>{spell.casterType || spell.caster || 'Unknown'}</td>
                           <td>{spell.level}</td>
-                          <td>{formatDamageSegments(spell.damage)}</td>
+                          <td>
+                            {formatDamageSegments(`${spell.damage} ${spell.damageType ?? ''}`.trim())}
+                          </td>
                           <td>{spell.castingTime}</td>
                           <td>{spell.range}</td>
                           <td>{spell.duration}</td>
