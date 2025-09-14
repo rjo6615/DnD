@@ -118,8 +118,8 @@ describe('PlayerTurnActions damage log', () => {
     });
     const modal = await screen.findByRole('dialog');
     expect(
-      within(modal).getByText('6 (3 cold + 3 slashing)')
-    ).toBeInTheDocument();
+      within(modal).getByRole('listitem')
+    ).toHaveTextContent('6 (3 cold + 3 slashing)');
     Math.random = orig;
   });
 
