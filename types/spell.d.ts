@@ -9,6 +9,14 @@ export interface Spell {
   description: string;
   classes: string[];
   /**
+   * Parsed damage string including dice and type (e.g., "8d6 fire").
+   */
+  damage?: string;
+  /**
+   * Damage type parsed from the description (e.g., "fire").
+   */
+  damageType?: string;
+  /**
    * Additional effects when the spell is cast using a higher-level slot.
    */
   higherLevels?: string;
