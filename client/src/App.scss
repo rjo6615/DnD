@@ -85,6 +85,11 @@
   background-color: #fff;
 }
 
+.weapon-card .form-check-label {
+  font-size: 0.9rem;
+  color: var(--bs-body-color);
+}
+
 .upcast-slot {
   cursor: pointer;
   background-color: #808080;
