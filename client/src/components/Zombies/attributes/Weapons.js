@@ -132,7 +132,7 @@ return(
             <Col key={el[0]}>
               <Card className="weapon-card h-100">
                 <Card.Body>
-                  <Card.Title>{el[0]}</Card.Title>
+                  <Card.Title as="h6">{el[0]}</Card.Title>
                   <Card.Text>Category: {el[1]}</Card.Text>
                   <Card.Text>Damage: {el[2]}</Card.Text>
                   <Card.Text>Properties: {el[3]}</Card.Text>
