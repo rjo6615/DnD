@@ -148,16 +148,27 @@ const [isFumble, setIsFumble] = useState(false);
     abilityForWeapon(weapon) +
     Number(weapon.attackBonus || weapon.bonus || 0);
 
-  const getDamageString = (weapon) => {
-    const ability = abilityForWeapon(weapon);
-    return weapon.damage
+  const formatDamageSegments = (damage, ability) =>
+    damage
       .split(/\s+\+\s+/)
-      .map((part) => {
+      .map((part, i, arr) => {
         const [token, ...rest] = part.trim().split(' ');
         const type = rest.join(' ').trim();
-        return `${token}+${ability}${type ? ` ${type}` : ''}`;
-      })
-      .join(' + ');
+        return (
+          <React.Fragment key={i}>
+            <span className={type ? `damage-${type}` : ''}>
+              {token}
+              {ability !== undefined ? `+${ability}` : ''}
+              {type ? ` ${type}` : ''}
+            </span>
+            {i < arr.length - 1 ? ' + ' : ''}
+          </React.Fragment>
+        );
+      });
+
+  const getDamageString = (weapon) => {
+    const ability = abilityForWeapon(weapon);
+    return formatDamageSegments(weapon.damage, ability);
   };
 
   const handleWeaponAttack = (weapon) => {
@@ -610,7 +621,7 @@ const showSparklesEffect = () => {
                           <td>{spell.name}</td>
                           <td>{spell.casterType || spell.caster || 'Unknown'}</td>
                           <td>{spell.level}</td>
-                          <td>{spell.damage}</td>
+                          <td>{formatDamageSegments(spell.damage)}</td>
                           <td>{spell.castingTime}</td>
                           <td>{spell.range}</td>
                           <td>{spell.duration}</td>
