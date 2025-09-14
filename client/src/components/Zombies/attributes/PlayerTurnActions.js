@@ -4,7 +4,7 @@ import React, {
   useImperativeHandle,
   useMemo,
 } from 'react';
-import { Button, Modal, Card, Table, Row, Col } from "react-bootstrap";
+import { Button, Modal, Card, Table } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -90,24 +90,6 @@ export function calculateDamage(
   const total = results.reduce((sum, r) => sum + r.value, 0);
   return { total, breakdown: formatDamageRolls(results) };
 }
-
-const WeaponAttackCard = ({ weapon, attackBonus, damage, onAttack }) => (
-  <Card className="attack-card h-100">
-    <Card.Body className="d-flex flex-column">
-      <Card.Title className="text-capitalize">{weapon.name}</Card.Title>
-      <Card.Text>Attack Bonus: {attackBonus}</Card.Text>
-      <Card.Text>Damage: {damage}</Card.Text>
-      <Button
-        className="mt-auto attack-btn w-100"
-        onClick={onAttack}
-        variant="primary"
-        aria-label="roll"
-      >
-        <i className="fa-solid fa-dice-d20"></i>
-      </Button>
-    </Card.Body>
-  </Card>
-);
 
 const PlayerTurnActions = React.forwardRef(
   (
@@ -550,22 +532,38 @@ const showSparklesEffect = () => {
           </Card.Header>
           <Card.Body>
             <Card.Title className="modal-title">Weapons</Card.Title>
-            <Row xs={1} sm={2} md={3} className="g-3">
-              {Array.isArray(form.weapon) &&
-                form.weapon.map((weapon) => (
-                  <Col key={weapon.name}>
-                    <WeaponAttackCard
-                      weapon={weapon}
-                      attackBonus={getAttackBonus(weapon)}
-                      damage={getDamageString(weapon)}
-                      onAttack={() => {
-                        handleWeaponAttack(weapon);
-                        handleCloseAttack();
-                      }}
-                    />
-                  </Col>
-                ))}
-            </Row>
+              <Table className="modern-table" striped bordered hover responsive>
+                <thead>
+                  <tr>
+                    <th>Weapon Name</th>
+                    <th>Attack Bonus</th>
+                    <th>Damage</th>
+                    <th>Attack</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(form.weapon) &&
+                    form.weapon.map((weapon) => (
+                      <tr key={weapon.name}>
+                        <td className="text-capitalize">{weapon.name}</td>
+                        <td>{getAttackBonus(weapon)}</td>
+                        <td>{getDamageString(weapon)}</td>
+                        <td>
+                          <Button
+                            onClick={() => {
+                              handleWeaponAttack(weapon);
+                              handleCloseAttack();
+                            }}
+                            variant="link"
+                            aria-label="roll"
+                          >
+                            <i className="fa-solid fa-dice-d20"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
             {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
               <>
                 <Card.Title className="modal-title mt-4">Spells</Card.Title>
