@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Weapons({form, showWeapons, handleCloseWeapons}) {
@@ -127,41 +127,32 @@ return(
             {notification.message}
           </Alert>
         )}
-          <Table striped bordered hover size="sm" className="modern-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Damage</th>
-                <th>Properties</th>
-                <th>Weight</th>
-                <th>Cost</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {form.weapon.map((el) => (
-                <tr key={el[0]}>
-                  <td>{el[0]}</td>
-                  <td>{el[1]}</td>
-                  <td>{el[2]}</td>
-                  <td>{el[3]}</td>
-                  <td>{el[4]}</td>
-                  <td>{el[5]}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      className="btn-danger action-btn fa-solid fa-trash"
-                      hidden={!showDeleteBtn}
-                      onClick={() => {
-                        deleteWeapons(el);
-                      }}
-                    ></Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+        <Row className="row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+          {form.weapon.map((el) => (
+            <Col key={el[0]}>
+              <Card className="weapon-card h-100">
+                <Card.Body>
+                  <Card.Title>{el[0]}</Card.Title>
+                  <Card.Text>Category: {el[1]}</Card.Text>
+                  <Card.Text>Damage: {el[2]}</Card.Text>
+                  <Card.Text>Properties: {el[3]}</Card.Text>
+                  <Card.Text>Weight: {el[4]}</Card.Text>
+                  <Card.Text>Cost: {el[5]}</Card.Text>
+                </Card.Body>
+                <Card.Footer>
+                  <Button
+                    size="sm"
+                    className="btn-danger action-btn fa-solid fa-trash"
+                    hidden={!showDeleteBtn}
+                    onClick={() => {
+                      deleteWeapons(el);
+                    }}
+                  ></Button>
+                </Card.Footer>
+              </Card>
+            </Col>
+          ))}
+        </Row>
         <Row>
           <Col>
             <Form onSubmit={addWeaponToDb}>
