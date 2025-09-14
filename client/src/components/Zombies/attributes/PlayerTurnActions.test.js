@@ -76,9 +76,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
+    const card = screen.getByText('Frost Brand').closest('.card');
     expect(
-      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
+      within(card).getByText('1d4+2 cold + 1d6+2 slashing', { exact: false })
     ).toBeInTheDocument();
   });
 });
@@ -149,9 +149,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
+    const card = screen.getByText('Frost Brand').closest('.card');
     expect(
-      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
+      within(card).getByText('1d4+2 cold + 1d6+2 slashing', { exact: false })
     ).toBeInTheDocument();
   });
 });

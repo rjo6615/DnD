@@ -256,6 +256,16 @@
   }
 }
 
+.attack-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.attack-card .attack-btn {
+  width: 100%;
+}
+
 .App-header {
   background-color: #282c34;
   min-height: 100vh;
