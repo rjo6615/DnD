@@ -468,25 +468,24 @@ const showSparklesEffect = () => {
                 <li key={idx} className="roll-separator" />
               ) : (
                 <li key={idx}>
-                  {entry.total}
+                  <div>{entry.total}</div>
                   {entry.breakdown && (
-                    <span>
-                      {' ('}
-                      {entry.breakdown.split(' + ').map((segment, i, arr) => {
+                    <div>
+                      {entry.breakdown.split(' + ').map((segment, i) => {
                         const match = segment.match(/(\d+)(?:\s+(\w+))?/);
                         const value = match ? match[1] : segment;
                         const type = match ? match[2] : '';
                         return (
-                          <React.Fragment key={i}>
+                          <div key={i}>
+                            -{' '}
                             <span className={type ? `damage-${type}` : ''}>
-                              {value}{type ? ` ${type}` : ''}
+                              {value}
+                              {type ? ` ${type}` : ''}
                             </span>
-                            {i < arr.length - 1 ? ' + ' : ''}
-                          </React.Fragment>
+                          </div>
                         );
                       })}
-                      {')'}
-                    </span>
+                    </div>
                   )}
                 </li>
               )
