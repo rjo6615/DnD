@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
 
@@ -120,6 +121,59 @@ describe('PlayerTurnActions damage log', () => {
     expect(
       within(modal).getByRole('listitem')
     ).toHaveTextContent('6 (3 cold + 3 slashing)');
+    Math.random = orig;
+  });
+
+  test('damage log segments use damage type colors', async () => {
+    const weapon = {
+      name: 'Elemental Blade',
+      damage: '1d4 cold + 1d4 fire + 1d4 lightning',
+      category: 'melee',
+    };
+    const orig = Math.random;
+    Math.random = () => 0;
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+
+    const cold = within(modal).getByText('3 cold');
+    expect(
+      cold.style.color === damageTypeColors.cold ||
+        cold.classList.contains('damage-cold')
+    ).toBe(true);
+
+    const fire = within(modal).getByText('3 fire');
+    expect(
+      fire.style.color === damageTypeColors.fire ||
+        fire.classList.contains('damage-fire')
+    ).toBe(true);
+
+    const lightning = within(modal).getByText('3 lightning');
+    expect(
+      lightning.style.color === damageTypeColors.lightning ||
+        lightning.classList.contains('damage-lightning')
+    ).toBe(true);
     Math.random = orig;
   });
 
