@@ -1353,6 +1353,9 @@ h1 {
 .footer-btn {
   width: 40px;
   height: 40px;
+  padding: 0;
+  box-sizing: border-box;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1364,6 +1367,9 @@ h1 {
   .footer-btn {
     width: 30px;
     height: 30px;
+    padding: 0;
+    box-sizing: border-box;
+    line-height: 1;
     margin: 0 2px;
     margin-top: 10px;
     font-size: 0.9rem;
