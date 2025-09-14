@@ -2,30 +2,10 @@ const express = require('express');
 const spells = require('../data/spells');
 const classSpellLists = require('../data/classSpellLists');
 
-// Extract damage dice and type (e.g., "8d6 fire") from spell descriptions
-const DAMAGE_TYPES = [
-  'acid',
-  'bludgeoning',
-  'cold',
-  'fire',
-  'force',
-  'lightning',
-  'necrotic',
-  'piercing',
-  'poison',
-  'psychic',
-  'radiant',
-  'slashing',
-  'thunder',
-];
-
+// Extract a basic damage dice string (e.g., "8d6" or "1d8+2") from spell descriptions
 function extractDamage(description = '') {
-  const match = description.match(/(\d+d\d+(?:\s*[+\-]\s*\d+)?)\s+(\w+)\s+damage/i);
-  if (!match) return undefined;
-  const dice = match[1].replace(/\s+/g, '');
-  const type = match[2].toLowerCase();
-  if (!DAMAGE_TYPES.includes(type)) return undefined;
-  return { dice, type };
+  const match = description.match(/(\d+d\d+(?:\s*[+\-]\s*\d+)?)[^\n]*damage/i);
+  return match ? match[1].replace(/\s+/g, '') : undefined;
 }
 
 // Extract "At Higher Levels" text if present
@@ -49,10 +29,7 @@ function extractScaling(description = '') {
 Object.values(spells).forEach((spell) => {
   if (!spell.damage) {
     const dmg = extractDamage(spell.description);
-    if (dmg) {
-      spell.damage = `${dmg.dice} ${dmg.type}`;
-      spell.damageType = dmg.type;
-    }
+    if (dmg) spell.damage = dmg;
   }
   if (!spell.higherLevels) {
     const upcast = extractHigherLevels(spell.description);
