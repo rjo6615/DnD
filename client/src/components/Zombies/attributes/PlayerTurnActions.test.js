@@ -121,7 +121,13 @@ describe('PlayerTurnActions damage log', () => {
     const items = within(modal)
       .getAllByRole('listitem')
       .filter((li) => !li.classList.contains('roll-separator'));
-    expect(items[0]).toHaveTextContent('6 (3 cold + 3 slashing)');
+    const item = items[0];
+    const [totalLine, breakdownDiv] = item.querySelectorAll('div');
+    expect(totalLine).toHaveTextContent('6');
+    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
+      (d) => d.textContent.trim()
+    );
+    expect(breakdownLines).toEqual(['- 3 cold', '- 3 slashing']);
     Math.random = orig;
   });
 
