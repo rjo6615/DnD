@@ -74,6 +74,21 @@ test('renders all weapons regardless of allowed list', async () => {
   expect(await screen.findByLabelText('Dagger')).toBeInTheDocument();
 });
 
+test('displays a category icon for each weapon', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+  });
+
+  render(<WeaponList campaign="Camp1" characterId="char1" />);
+
+  const simpleIcons = await screen.findAllByTitle('simple melee');
+  expect(simpleIcons.length).toBeGreaterThanOrEqual(2);
+  expect(await screen.findByTitle('martial melee')).toBeInTheDocument();
+});
+
 test('marks weapon proficiency', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce(
@@ -92,10 +107,10 @@ test('marks weapon proficiency', async () => {
   const daggerRow = await screen.findByText('Dagger');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
 
-  const daggerTr = daggerRow.closest('tr');
-  const clubTr = screen.getByText('Club').closest('tr');
-  const daggerProf = within(daggerTr).getByLabelText('Dagger proficiency');
-  const clubProf = within(clubTr).getByLabelText('Club proficiency');
+  const daggerCard = daggerRow.closest('.card');
+  const clubCard = screen.getByText('Club').closest('.card');
+  const daggerProf = within(daggerCard).getByLabelText('Dagger proficiency');
+  const clubProf = within(clubCard).getByLabelText('Club proficiency');
   expect(daggerProf).toBeChecked();
   expect(daggerProf).not.toBeDisabled();
   expect(clubProf).not.toBeChecked();
@@ -115,8 +130,8 @@ test('granted proficiencies render checked and disabled', async () => {
   render(<WeaponList characterId="char1" />);
 
   const daggerRow = await screen.findByText('Dagger');
-  const daggerTr = daggerRow.closest('tr');
-  const daggerProf = within(daggerTr).getByLabelText('Dagger proficiency');
+  const daggerCard = daggerRow.closest('.card');
+  const daggerProf = within(daggerCard).getByLabelText('Dagger proficiency');
   expect(daggerProf).toBeChecked();
   expect(daggerProf).toBeDisabled();
 });
@@ -138,8 +153,8 @@ test('toggling a non-proficient weapon allows checking and unchecking', async ()
   render(<WeaponList characterId="char1" />);
 
   const clubRow = await screen.findByText('Club');
-  const clubTr = clubRow.closest('tr');
-  const clubProf = within(clubTr).getByLabelText('Club proficiency');
+  const clubCard = clubRow.closest('.card');
+  const clubProf = within(clubCard).getByLabelText('Club proficiency');
 
   expect(clubProf).not.toBeChecked();
   await userEvent.click(clubProf);
@@ -183,23 +198,23 @@ test('reloads proficiency data when character changes', async () => {
   const clubRow1 = await screen.findByText('Club');
   const daggerRow1 = await screen.findByText('Dagger');
   expect(
-    within(clubRow1.closest('tr')).getByLabelText('Club proficiency')
+    within(clubRow1.closest('.card')).getByLabelText('Club proficiency')
   ).toBeChecked();
   expect(
-    within(daggerRow1.closest('tr')).getByLabelText('Dagger proficiency')
+    within(daggerRow1.closest('.card')).getByLabelText('Dagger proficiency')
   ).not.toBeChecked();
 
   rerender(<WeaponList characterId="char2" />);
   await waitFor(() =>
     expect(
-      within(screen.getByText('Club').closest('tr')).getByLabelText(
+      within(screen.getByText('Club').closest('.card')).getByLabelText(
         'Club proficiency'
       )
     ).not.toBeChecked()
   );
   await waitFor(() =>
     expect(
-      within(screen.getByText('Dagger').closest('tr')).getByLabelText(
+      within(screen.getByText('Dagger').closest('.card')).getByLabelText(
         'Dagger proficiency'
       )
     ).toBeChecked()
