@@ -1,8 +1,7 @@
 /**
  * D&D 5e SRD Spells (generated)
  * Source: SRD 5.1 (CC-BY 4.0 — © Wizards of the Coast)
- * Bulk data: 5e-database (if available) or dnd5eapi.co (fallback)
- * Generated: 2025-09-04T00:40:56.393Z
+ * Generated: 2025-09-09T23:11:25.719Z
  */
 /** @typedef {import('../../types/spell').Spell} Spell */
 /** @type {Record<string, Spell>} */
@@ -127,7 +126,8 @@ const spells = {
     "description": "A shimmering green arrow streaks toward a target within range and bursts in a spray of acid. Make a ranged spell attack against the target. On a hit, the target takes 4d4 acid damage immediately and 2d4 acid damage at the end of its next turn. On a miss, the arrow splashes the target with acid for half as much of the initial damage and no damage at the end of its next turn.",
     "classes": [
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 3rd level or higher, the initial damage increases by 1d4 for each slot level above 2nd, and the damage at the end of the target's next turn increases by 1d4 for each slot level above 2nd."
   },
   "animal-messenger": {
     "name": "Animal Messenger",
@@ -619,7 +619,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st."
   },
   "chain-lightning": {
     "name": "Chain Lightning",
@@ -1242,7 +1243,8 @@ const spells = {
       "Druid",
       "Paladin",
       "Ranger"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the healing increases by 1d8 for each slot level above 1st."
   },
   "darkness": {
     "name": "Darkness",
@@ -1484,7 +1486,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 7th level or higher, the damage increases by 3d6 for each slot level above 6th."
   },
   "disguise-self": {
     "name": "Disguise Self",
@@ -2141,7 +2144,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd."
   },
   "flaming-sphere": {
     "name": "Flaming Sphere",
@@ -2176,7 +2180,8 @@ const spells = {
     "description": "A vertical column of divine fire roars down from the heavens in a location you specify. Each creature in a 10-foot-radius, 40-foot-high cylinder centered on a point within range must make a dexterity saving throw. A creature takes 4d6 fire damage and 4d6 radiant damage on a failed save, or half as much damage on a successful one.",
     "classes": [
       "Cleric"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 6th level or higher, the fire damage increases by 1d6 for each slot level above 5th."
   },
   "floating-disk": {
     "name": "Floating Disk",
@@ -2625,7 +2630,8 @@ const spells = {
     "description": "A flash of light streaks toward a creature of your choice within range. Make a ranged spell attack against the target. On a hit, the target takes 4d6 radiant damage, and the next attack roll made against this target before the end of your next turn has advantage, thanks to the mystical dim light glittering on the target until then.",
     "classes": [
       "Cleric"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st."
   },
   "guards-and-wards": {
     "name": "Guards and Wards",
@@ -2748,7 +2754,8 @@ const spells = {
     "description": "You point your finger, and the creature that damaged you is momentarily surrounded by hellish flames. The creature must make a dexterity saving throw. It takes 2d10 fire damage on a failed save, or half as much damage on a successful one.",
     "classes": [
       "Warlock"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st."
   },
   "heroes-feast": {
     "name": "Heroes' Feast",
@@ -2962,7 +2969,8 @@ const spells = {
     "description": "Make a melee spell attack against a creature you can reach. On a hit, the target takes 3d10 necrotic damage.",
     "classes": [
       "Cleric"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st."
   },
   "illusory-script": {
     "name": "Illusory Script",
@@ -2999,7 +3007,8 @@ const spells = {
       "Druid",
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 5th level or higher, the bludgeoning damage increases by 1d8 for each slot level above 4th."
   },
   "incendiary-cloud": {
     "name": "Incendiary Cloud",
@@ -3320,7 +3329,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd."
   },
   "mage-armor": {
     "name": "Mage Armor",
@@ -3355,7 +3365,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st."
   },
   "mage-hand": {
     "name": "Mage Hand",
@@ -4513,7 +4524,8 @@ const spells = {
     "classes": [
       "Sorcerer",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd."
   },
   "see-invisibility": {
     "name": "See Invisibility",
@@ -4662,7 +4674,8 @@ const spells = {
       "Sorcerer",
       "Warlock",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 3rd level or higher, the damage increases by 1d8 for each slot level above 2nd."
   },
   "shield": {
     "name": "Shield",
@@ -5019,7 +5032,8 @@ const spells = {
       "Cleric",
       "Druid",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 5th level or higher, you can target one additional 5-foot cube for each slot level above 4th."
   },
   "stoneskin": {
     "name": "Stoneskin",
@@ -5414,7 +5428,8 @@ const spells = {
     "classes": [
       "Warlock",
       "Wizard"
-    ]
+    ],
+    "higherLevels": "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd."
   },
   "vicious-mockery": {
     "name": "Vicious Mockery",

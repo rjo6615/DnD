@@ -39,3 +39,13 @@ test('logout calls endpoint and redirects', async () => {
   expect(window.location.assign).toHaveBeenCalledWith('/');
 });
 
+test('does not render pass button', () => {
+  render(
+    <MemoryRouter>
+      <Navbar />
+    </MemoryRouter>
+  );
+
+  expect(screen.queryByRole('button', { name: /pass/i })).toBeNull();
+});
+

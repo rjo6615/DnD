@@ -3,7 +3,14 @@ import { Card, Table, Modal, Button } from "react-bootstrap";
 import levelup from "../../../images/levelup.png";
 import LevelUp from "./LevelUp"; // Import LevelUp component
 
-export default function CharacterInfo({ form, show, handleClose, onShowBackground }) {
+export default function CharacterInfo({
+  form,
+  show,
+  handleClose,
+  onShowBackground,
+  onLongRest = () => {},
+  onShortRest = () => {},
+}) {
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
 
@@ -91,10 +98,32 @@ export default function CharacterInfo({ form, show, handleClose, onShowBackgroun
           </Table>
         </Card.Body>
         <Card.Footer className="modal-footer">
-          <Button className="action-btn" variant="secondary" onClick={handleShowLevelUpModal}>
+          <Button
+            className="action-btn"
+            variant="secondary"
+            onClick={handleShowLevelUpModal}
+          >
             <img src={levelup} alt="Level Up" height="24" />
           </Button>
-          <Button className="action-btn close-btn" variant="primary" onClick={handleClose}>
+          <Button
+            className="action-btn"
+            variant="secondary"
+            onClick={onLongRest}
+          >
+            Long Rest
+          </Button>
+          <Button
+            className="action-btn"
+            variant="secondary"
+            onClick={onShortRest}
+          >
+            Short Rest
+          </Button>
+          <Button
+            className="action-btn close-btn"
+            variant="primary"
+            onClick={handleClose}
+          >
             Close
           </Button>
         </Card.Footer>

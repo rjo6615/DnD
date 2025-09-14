@@ -13,7 +13,7 @@ test('clicking view shows description and breakdown', async () => {
     cha: 0,
     race: { abilities: { str: 2 } },
     feat: [{ str: 1 }],
-    item: [[0, 0, 1, 0, 0, 0, 0, 0]],
+    item: [{ statBonuses: { str: 1 } }],
     occupation: [{ str: 1 }],
   };
 

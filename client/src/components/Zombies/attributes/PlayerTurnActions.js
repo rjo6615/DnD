@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import { Button, Modal, Card, Table } from "react-bootstrap";
+import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -18,55 +25,104 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
-export function calculateDamage(damageString, ability = 0, crit = false, roll = rollDice) {
-  const cleanString = damageString.split(' ')[0];
-  const match = cleanString.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
-  if (!match) {
-    // eslint-disable-next-line no-console
-    console.error('Invalid damage string');
-    return null;
-  }
-
-  if (!match[2]) {
-    // Flat damage: ignore crit flag and simply add ability modifier once
-    const baseValue = parseInt(match[1], 10);
-    return baseValue + ability;
-  }
-
-  const numberOfDiceValue = parseInt(match[1], 10);
-  const sidesOfDiceValue = parseInt(match[2], 10);
-  const modifier = parseInt(match[3] || 0, 10);
-
-  // Roll the initial set of dice
-  const diceRolls = roll(numberOfDiceValue, sidesOfDiceValue);
-  let damageSum = diceRolls.reduce((partialSum, a) => partialSum + a, 0);
-
-  // On a critical hit, roll an additional set of dice and add to the total
-  if (crit) {
-    const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
-    damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
-  }
-
-  // Add numeric modifier and ability modifier once
-  return damageSum + modifier + ability;
+function formatDamageRolls(rolls) {
+  return rolls
+    .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
+    .join(' + ');
 }
 
-const PlayerTurnActions = React.forwardRef(({ form, strMod, atkBonus, dexMod, headerHeight = 0 }, ref) => {
+export function calculateDamage(
+  damageString,
+  ability = 0,
+  crit = false,
+  roll = rollDice,
+  extraDice,
+  levelsAbove = 0
+) {
+  const parts = damageString.split(/\s+\+\s+/);
+  const results = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    const [token, ...rest] = part.split(' ');
+    const match = token.match(/^(\d+)(?:d(\d+)([+-]\d+)?)?$/);
+    if (!match) {
+      // eslint-disable-next-line no-console
+      console.error('Invalid damage string');
+      return null;
+    }
+
+    const type = rest.join(' ').trim();
+
+    if (!match[2]) {
+      const baseValue = parseInt(match[1], 10) + ability;
+      results.push({ value: baseValue, type });
+      continue;
+    }
+
+    const numberOfDiceValue = parseInt(match[1], 10);
+    const sidesOfDiceValue = parseInt(match[2], 10);
+    const modifier = parseInt(match[3] || 0, 10);
+
+    let damageSum = roll(numberOfDiceValue, sidesOfDiceValue).reduce(
+      (partialSum, a) => partialSum + a,
+      0
+    );
+
+    if (extraDice && levelsAbove > 0 && i === 0) {
+      const totalExtra = extraDice.count * levelsAbove;
+      const extraRolls = roll(totalExtra, extraDice.sides);
+      damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+    }
+
+    if (crit) {
+      const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+      damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+      if (extraDice && levelsAbove > 0 && i === 0) {
+        const totalExtra = extraDice.count * levelsAbove;
+        const critExtra = roll(totalExtra, extraDice.sides);
+        damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+      }
+    }
+
+    results.push({ value: damageSum + modifier + ability, type });
+  }
+
+  const total = results.reduce((sum, r) => sum + r.value, 0);
+  return { total, breakdown: formatDamageRolls(results) };
+}
+
+const PlayerTurnActions = React.forwardRef(
+  (
+    {
+      form,
+      strMod,
+      dexMod,
+      onCastSpell,
+      onPassTurn = () => {},
+      availableSlots = { regular: {}, warlock: {} },
+      longRestCount = 0,
+      shortRestCount = 0,
+    },
+    ref
+  ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
 
-  const FOOTER_HEIGHT = 80;
-  const damageRef = useRef(null);
-  const [damageHeight, setDamageHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
 
   useEffect(() => {
-    if (damageRef.current) {
-      const style = getComputedStyle(damageRef.current);
-      const margins = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-      setDamageHeight(damageRef.current.offsetHeight + margins);
-    }
+    const updateFooterHeight = () => {
+      const slots = document.querySelector('.spell-slot-container');
+      const navbar = document.querySelector('.navbar.fixed-bottom');
+      const slotsHeight = slots ? slots.offsetHeight : 0;
+      const navbarHeight = navbar ? navbar.offsetHeight : 0;
+      setFooterHeight(slotsHeight + navbarHeight);
+    };
+    updateFooterHeight();
+    window.addEventListener('resize', updateFooterHeight);
+    return () => window.removeEventListener('resize', updateFooterHeight);
   }, []);
 
 //--------------------------------------------Critical status------------------------------------------------
@@ -76,32 +132,113 @@ const [isFumble, setIsFumble] = useState(false);
   const abilityForWeapon = (weapon) =>
     weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
 
-  const getAttackBonus = (weapon) => atkBonus + abilityForWeapon(weapon);
+  const totalLevel = useMemo(
+    () =>
+      Array.isArray(form.occupation)
+        ? form.occupation.reduce((total, el) => total + Number(el.Level), 0)
+        : 0,
+    [form.occupation]
+  );
+
+  const profBonus =
+    form.proficiencyBonus ?? proficiencyBonus(totalLevel);
+
+  const getAttackBonus = (weapon) =>
+    profBonus +
+    abilityForWeapon(weapon) +
+    Number(weapon.attackBonus || weapon.bonus || 0);
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const dice = weapon.damage.split(' ')[0];
-    return `${dice}+${ability}`;
+    return weapon.damage
+      .split(/\s+\+\s+/)
+      .map((part) => {
+        const [token, ...rest] = part.trim().split(' ');
+        const type = rest.join(' ').trim();
+        return `${token}+${ability}${type ? ` ${type}` : ''}`;
+      })
+      .join(' + ');
   };
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    const damageValue = calculateDamage(weapon.damage, ability, isCritical);
-    if (damageValue === null) return;
-    updateDamageValueWithAnimation(damageValue);
+    const result = calculateDamage(weapon.damage, ability, isCritical);
+    if (!result) return;
+    updateDamageValueWithAnimation(result.total, result.breakdown);
   };
 
-const handleSpellsButtonClick = (spell, crit = false) => {
-  if (!spell?.damage) return;
-  const damageValue = calculateDamage(spell.damage, 0, crit || isCritical);
-  if (damageValue === null) return;
-  updateDamageValueWithAnimation(damageValue);
-};
+const [showUpcast, setShowUpcast] = useState(false);
+const [pendingSpell, setPendingSpell] = useState(null);
+
+  const applyUpcast = (spell, level, crit, slotType) => {
+    const diff = level - (spell.level || 0);
+    let extra;
+    if (diff > 0 && spell.higherLevels) {
+      const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
+      if (incMatch) {
+        extra = {
+          count: parseInt(incMatch[1], 10),
+          sides: parseInt(incMatch[2], 10),
+        };
+      }
+    }
+    if (spell.scaling) {
+      if (totalLevel >= 17 && spell.scaling[17]) spell.damage = spell.scaling[17];
+      else if (totalLevel >= 11 && spell.scaling[11]) spell.damage = spell.scaling[11];
+      else if (totalLevel >= 5 && spell.scaling[5]) spell.damage = spell.scaling[5];
+    }
+    const value = calculateDamage(
+      spell.damage,
+      0,
+      crit || isCritical,
+      rollDice,
+      extra,
+      diff > 0 ? diff : 0
+    );
+    if (!value) return;
+    updateDamageValueWithAnimation(value.total, value.breakdown);
+    onCastSpell?.({
+      level,
+      slotType,
+      damage: value.total,
+      castingTime: spell.castingTime,
+      name: spell.name,
+    });
+  };
+
+  const handleSpellsButtonClick = (spell, crit = false) => {
+    if (!spell?.damage) return;
+    if (spell.higherLevels) {
+      setPendingSpell({ spell, crit: crit || isCritical });
+      setShowUpcast(true);
+      return;
+    }
+    applyUpcast(spell, spell.level, crit || isCritical);
+  };
 
 const handleDamageClick = () => {
   setIsCritical((prev) => !prev);
   setIsFumble(false);
 };
+
+// Spells may come from different caster types (e.g., Wizard, Cleric). Before
+// rendering the spell table, group spells by caster type and sort each group by
+// level so they display in a predictable order.
+const sortedSpells = useMemo(() => {
+  if (!Array.isArray(form.spells)) return [];
+  const groups = (form.spells || []).reduce((acc, spell) => {
+    if (!spell) return acc;
+    const caster = spell.casterType || spell.caster || 'Unknown';
+    if (!acc[caster]) acc[caster] = [];
+    acc[caster].push(spell);
+    return acc;
+  }, {});
+  return Object.keys(groups)
+    .sort()
+    .flatMap((caster) =>
+      groups[caster].sort((a, b) => (a.level || 0) - (b.level || 0))
+    );
+}, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const opacity = 0.85;
@@ -113,6 +250,8 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
 
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
+const [damageLog, setDamageLog] = useState([]);
+const [showLog, setShowLog] = useState(false);
 
 useEffect(() => {
   if (loading) {
@@ -123,10 +262,16 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (newValue) => {
+const updateDamageValueWithAnimation = (newValue, breakdown) => {
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
+  if (newValue !== undefined) {
+    setDamageLog((prev) => {
+      const entry = { total: newValue, breakdown };
+      return [entry, ...prev].slice(0, 10);
+    });
+  }
 };
 
 useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
@@ -136,11 +281,8 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const { value, critical, fumble } = e.detail || {};
-    const num = Number(value);
-    if (!Number.isNaN(num)) {
-      updateDamageValueWithAnimation(num);
-    }
+    const { value, breakdown, critical, fumble } = e.detail || {};
+    updateDamageValueWithAnimation(value, breakdown);
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
@@ -229,32 +371,121 @@ const showSparklesEffect = () => {
 };
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
-        id="damageAmount"
-        ref={damageRef}
-        className={`mt-3 ${loading ? 'loading' : ''} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${isFumble ? 'critical-failure' : ''}`}
-        style={{ margin: "0 auto" }}
-        onClick={handleDamageClick}
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '8px',
+        }}
       >
-        <span id="damageValue" className={loading ? 'hidden' : ''}>
-          {damageValue}
-        </span>
-        <div id="loadingSpinner" className={`spinner ${loading ? '' : 'hidden'}`}></div>
+        <Button
+          style={{
+            padding: '4px 12px',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            color: '#fff',
+            background: 'transparent',
+            borderRadius: '8px',
+            textShadow: '1px 1px 2px #000',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            border: 'none',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'none';
+            e.target.style.boxShadow =
+              '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'transparent';
+            e.target.style.boxShadow = 'none';
+            e.target.style.border = 'none';
+          }}
+          onClick={onPassTurn}
+        >
+          Pass ➔
+        </Button>
+        <Button
+          style={{
+            padding: '4px 12px',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            color: '#fff',
+            background: 'transparent',
+            borderRadius: '8px',
+            textShadow: '1px 1px 2px #000',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            border: 'none',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'none';
+            e.target.style.boxShadow =
+              '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'transparent';
+            e.target.style.boxShadow = 'none';
+            e.target.style.border = 'none';
+          }}
+          onClick={() => setShowLog(true)}
+        >
+          ⚔️ Log
+        </Button>
       </div>
-      
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+        <div
+          id="damageAmount"
+          className={`${loading ? 'loading' : ''} ${pulseClass} ${
+            isCritical ? 'critical-active' : ''
+          } ${isFumble ? 'critical-failure' : ''}`}
+          onClick={handleDamageClick}
+        >
+          <span
+            id="damageValue"
+            className={`${loading ? 'hidden' : ''} ${
+              typeof damageValue === 'string' ? 'spell-cast-label' : ''
+            }`}
+          >
+            {damageValue}
+          </span>
+          <div
+            id="loadingSpinner"
+            className={`spinner ${loading ? '' : 'hidden'}`}
+          ></div>
+        </div>
+      </div>
+      <Modal centered show={showLog} onHide={() => setShowLog(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Damage Log</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <ul className="list-unstyled mb-0">
+            {damageLog.map((entry, idx) => (
+              <li key={idx}>
+                {entry.total}
+                {entry.breakdown ? ` (${entry.breakdown})` : ''}
+              </li>
+            ))}
+          </ul>
+        </Modal.Body>
+      </Modal>
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: `calc(100vh - ${FOOTER_HEIGHT + headerHeight + damageHeight}px)`
+          flex: 1,
+          overflowY: 'auto',
+          paddingBottom: `${footerHeight}px`,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
-          {/* Attack Button */}
-          <button
-            onClick={handleShowAttack}
-            style={{
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
+            {/* Attack Button */}
+            <button
+              onClick={handleShowAttack}
+              style={{
               width: "64px",
               height: "64px",
               backgroundImage: `url(${sword})`,
@@ -340,6 +571,7 @@ const showSparklesEffect = () => {
                   <thead>
                     <tr>
                       <th>Spell Name</th>
+                      <th>Class</th>
                       <th>Level</th>
                       <th>Damage</th>
                       <th>Casting Time</th>
@@ -349,11 +581,12 @@ const showSparklesEffect = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {form.spells
+                    {sortedSpells
                       .filter((s) => s && s.damage)
                       .map((spell, idx) => (
                         <tr key={idx}>
                           <td>{spell.name}</td>
+                          <td>{spell.casterType || spell.caster || 'Unknown'}</td>
                           <td>{spell.level}</td>
                           <td>{spell.damage}</td>
                           <td>{spell.castingTime}</td>
@@ -385,6 +618,19 @@ const showSparklesEffect = () => {
             </Card.Footer>
         </Card>
       </Modal>
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => setShowUpcast(false)}
+        baseLevel={pendingSpell?.spell?.level}
+        slots={availableSlots}
+        onSelect={(lvl, type) => {
+          if (pendingSpell) {
+            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit, type);
+            setPendingSpell(null);
+          }
+          setShowUpcast(false);
+        }}
+      />
     </div>
   );
 });
