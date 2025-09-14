@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Form, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Alert } from 'react-bootstrap';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
@@ -214,35 +214,33 @@ function WeaponList({
             Unrecognized weapons from server: {unknownWeapons.join(', ')}
           </Alert>
         )}
-        <Table striped bordered hover size="sm" className="modern-table">
-          <thead>
-            <tr>
-              <th>Owned</th>
-              <th>Proficient</th>
-              <th>Name</th>
-              <th>Damage</th>
-              <th>Category</th>
-              <th>Properties</th>
-              <th>Weight</th>
-              <th>Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(weapons).map(([key, weapon]) => (
-              <tr key={key}>
-                <td>
+        <Row className="row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+          {Object.entries(weapons).map(([key, weapon]) => (
+            <Col key={key}>
+              <Card className="weapon-card h-100">
+                <Card.Body>
+                  <Card.Title>{weapon.displayName || weapon.name}</Card.Title>
+                  <Card.Text>Damage: {weapon.damage}</Card.Text>
+                  <Card.Text>Category: {weapon.category}</Card.Text>
+                  <Card.Text>
+                    Properties: {weapon.properties.join(', ') || 'No properties'}
+                  </Card.Text>
+                  <Card.Text>Weight: {weapon.weight}</Card.Text>
+                  <Card.Text>Cost: {weapon.cost}</Card.Text>
+                </Card.Body>
+                <Card.Footer className="d-flex justify-content-between">
                   <Form.Check
                     type="checkbox"
                     className="weapon-checkbox"
+                    label="Owned"
                     checked={weapon.owned}
                     onChange={handleOwnedToggle(key)}
                     aria-label={weapon.displayName || weapon.name}
                   />
-                </td>
-                <td>
                   <Form.Check
                     type="checkbox"
                     className="weapon-checkbox"
+                    label="Proficient"
                     checked={weapon.proficient}
                     disabled={weapon.granted || weapon.pending}
                     onChange={handleToggle(key)}
@@ -253,17 +251,11 @@ function WeaponList({
                         : undefined
                     }
                   />
-                </td>
-                <td>{weapon.displayName || weapon.name}</td>
-                <td>{weapon.damage}</td>
-                <td>{weapon.category}</td>
-                <td>{weapon.properties.join(', ') || 'No properties'}</td>
-                <td>{weapon.weight}</td>
-                <td>{weapon.cost}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+                </Card.Footer>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       </Card.Body>
     </Card>
   );
