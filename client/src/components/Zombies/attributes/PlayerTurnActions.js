@@ -8,7 +8,6 @@ import { Button, Modal, Card, Table } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
-import damageTypeColors from '../../../utils/damageTypeColors';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -476,7 +475,7 @@ const showSparklesEffect = () => {
                       const type = match ? match[2] : '';
                       return (
                         <React.Fragment key={i}>
-                          <span style={{ color: damageTypeColors[type] }}>
+                          <span className={type ? `damage-${type}` : ''}>
                             {value}{type ? ` ${type}` : ''}
                           </span>
                           {i < arr.length - 1 ? ' + ' : ''}
