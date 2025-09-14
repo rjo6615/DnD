@@ -90,6 +90,12 @@
   color: var(--bs-body-color);
 }
 
+@media (max-width: 576px) {
+  .weapon-card {
+    font-size: 0.75rem;
+  }
+}
+
 .upcast-slot {
   cursor: pointer;
   background-color: #808080;
