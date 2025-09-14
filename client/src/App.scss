@@ -1381,3 +1381,8 @@ h1 {
 .damage-necrotic { color: #4B0082; }
 .damage-radiant { color: #FFFF99; }
 .damage-psychic { color: #BA55D3; }
+
+.roll-separator {
+  border-top: 1px solid #ccc;
+  margin: 0.25rem 0;
+}

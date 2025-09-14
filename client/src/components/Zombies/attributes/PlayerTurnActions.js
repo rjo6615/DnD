@@ -269,7 +269,7 @@ const updateDamageValueWithAnimation = (newValue, breakdown) => {
   if (newValue !== undefined) {
     setDamageLog((prev) => {
       const entry = { total: newValue, breakdown };
-      return [entry, ...prev].slice(0, 10);
+      return [entry, { divider: true }, ...prev].slice(0, 10);
     });
   }
 };
@@ -463,30 +463,34 @@ const showSparklesEffect = () => {
         </Modal.Header>
         <Modal.Body>
           <ul className="list-unstyled mb-0">
-            {damageLog.map((entry, idx) => (
-              <li key={idx}>
-                {entry.total}
-                {entry.breakdown && (
-                  <span>
-                    {' ('}
-                    {entry.breakdown.split(' + ').map((segment, i, arr) => {
-                      const match = segment.match(/(\d+)(?:\s+(\w+))?/);
-                      const value = match ? match[1] : segment;
-                      const type = match ? match[2] : '';
-                      return (
-                        <React.Fragment key={i}>
-                          <span className={type ? `damage-${type}` : ''}>
-                            {value}{type ? ` ${type}` : ''}
-                          </span>
-                          {i < arr.length - 1 ? ' + ' : ''}
-                        </React.Fragment>
-                      );
-                    })}
-                    {')'}
-                  </span>
-                )}
-              </li>
-            ))}
+            {damageLog.map((entry, idx) =>
+              entry.divider ? (
+                <li key={idx} className="roll-separator" />
+              ) : (
+                <li key={idx}>
+                  {entry.total}
+                  {entry.breakdown && (
+                    <span>
+                      {' ('}
+                      {entry.breakdown.split(' + ').map((segment, i, arr) => {
+                        const match = segment.match(/(\d+)(?:\s+(\w+))?/);
+                        const value = match ? match[1] : segment;
+                        const type = match ? match[2] : '';
+                        return (
+                          <React.Fragment key={i}>
+                            <span className={type ? `damage-${type}` : ''}>
+                              {value}{type ? ` ${type}` : ''}
+                            </span>
+                            {i < arr.length - 1 ? ' + ' : ''}
+                          </React.Fragment>
+                        );
+                      })}
+                      {')'}
+                    </span>
+                  )}
+                </li>
+              )
+            )}
           </ul>
         </Modal.Body>
       </Modal>
