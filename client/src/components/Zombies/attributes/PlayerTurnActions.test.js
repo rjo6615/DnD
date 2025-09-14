@@ -118,9 +118,10 @@ describe('PlayerTurnActions damage log', () => {
       fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
     });
     const modal = await screen.findByRole('dialog');
-    expect(
-      within(modal).getByRole('listitem')
-    ).toHaveTextContent('6 (3 cold + 3 slashing)');
+    const items = within(modal)
+      .getAllByRole('listitem')
+      .filter((li) => !li.classList.contains('roll-separator'));
+    expect(items[0]).toHaveTextContent('6 (3 cold + 3 slashing)');
     Math.random = orig;
   });
 
