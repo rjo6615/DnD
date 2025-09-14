@@ -745,7 +745,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-image-portrait fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-image-portrait" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowStats}
@@ -756,7 +756,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-scroll fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-scroll" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowSkill}
@@ -769,7 +769,7 @@ return (
             }`}
             variant="secondary"
           >
-            <i className="fas fa-book-open fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-book-open" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowFeats}
@@ -780,7 +780,7 @@ return (
             className={`footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
           >
-            <i className="fas fa-hand-fist fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-hand-fist" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowFeatures}
@@ -791,7 +791,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-star fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-star" aria-hidden="true"></i>
           </Button>
           {hasSpellcasting && (
             <Button
@@ -803,7 +803,7 @@ return (
               className={`footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
               variant="secondary"
             >
-              <i className="fas fa-hat-wizard fa-fw" aria-hidden="true"></i>
+              <i className="fas fa-hat-wizard" aria-hidden="true"></i>
             </Button>
           )}
           <Button
@@ -815,7 +815,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-wand-sparkles fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-wand-sparkles" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowArmor}
@@ -826,7 +826,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-shield fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-shield" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowItems}
@@ -837,7 +837,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-briefcase fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-briefcase" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowHelpModal}
@@ -845,7 +845,7 @@ return (
             className="footer-btn"
             variant="primary"
           >
-            <i className="fas fa-info fa-fw" aria-hidden="true"></i>
+            <i className="fas fa-info" aria-hidden="true"></i>
           </Button>
         </Nav>
       </Container>
