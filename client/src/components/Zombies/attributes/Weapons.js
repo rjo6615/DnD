@@ -127,7 +127,7 @@ return(
             {notification.message}
           </Alert>
         )}
-        <Row className="row-cols-2 row-cols-md-3 g-3">
+        <Row className="row-cols-3 g-2">
           {form.weapon.map((el) => (
             <Col key={el[0]}>
               <Card className="weapon-card h-100">
