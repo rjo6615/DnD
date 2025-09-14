@@ -742,47 +742,57 @@ return (
           <Button
             onClick={handleShowCharacterInfo}
             style={{ color: "black" }}
-            className="footer-btn fas fa-image-portrait"
+            className="footer-btn"
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-image-portrait fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowStats}
             style={{
               color: "black",
               backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
             }}
-            className="footer-btn fas fa-scroll"
+            className="footer-btn"
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-scroll fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowSkill}
             style={{
               color: "black",
               backgroundColor: skillsGold,
             }}
-            className={`footer-btn fas fa-book-open ${
+            className={`footer-btn ${
               skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
             }`}
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-book-open fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowFeats}
             style={{
               color: "black",
               backgroundColor: featsGold,
             }}
-            className={`footer-btn fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
+            className={`footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`}
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-hand-fist fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowFeatures}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn fas fa-star"
+            className="footer-btn"
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-star fa-fw" aria-hidden="true"></i>
+          </Button>
           {hasSpellcasting && (
             <Button
               onClick={handleShowSpells}
@@ -790,9 +800,11 @@ return (
                 color: 'black',
                 backgroundColor: spellsGold,
               }}
-              className={`footer-btn fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+              className={`footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
               variant="secondary"
-            ></Button>
+            >
+              <i className="fas fa-hat-wizard fa-fw" aria-hidden="true"></i>
+            </Button>
           )}
           <Button
             onClick={handleShowWeapons}
@@ -800,33 +812,41 @@ return (
               color: "black",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn fas fa-wand-sparkles"
+            className="footer-btn"
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-wand-sparkles fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowArmor}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn fas fa-shield"
+            className="footer-btn"
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-shield fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowItems}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn fas fa-briefcase"
+            className="footer-btn"
             variant="secondary"
-          ></Button>
+          >
+            <i className="fas fa-briefcase fa-fw" aria-hidden="true"></i>
+          </Button>
           <Button
             onClick={handleShowHelpModal}
             style={{ color: "white" }}
-            className="footer-btn fas fa-info"
+            className="footer-btn"
             variant="primary"
-          ></Button>
+          >
+            <i className="fas fa-info fa-fw" aria-hidden="true"></i>
+          </Button>
         </Nav>
       </Container>
     </Navbar>

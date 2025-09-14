@@ -82,7 +82,7 @@ test('spells button includes points-glow when spell points available', async () 
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
 });
 
@@ -115,7 +115,7 @@ test('spells button glows when spellPoints absent but spells remain', async () =
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
 });
 
@@ -144,7 +144,7 @@ test('warlock character renders spells button', async () => {
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   expect(spellButton).toBeInTheDocument();
 });
 
@@ -200,7 +200,7 @@ test('skills button includes points-glow when skill points available', async () 
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const skillButton = buttons.find((btn) => btn.classList.contains('fa-book-open'));
+  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
 });
 
@@ -229,7 +229,7 @@ test('skills button includes points-glow when expertise points available', async
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const skillButton = buttons.find((btn) => btn.classList.contains('fa-book-open'));
+  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
 });
 
@@ -259,7 +259,7 @@ test('casting spells consumes action and bonus circles based on casting time', a
   const { container } = render(<ZombiesCharacterSheet />);
 
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
 
   await userEvent.click(spellButton);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
@@ -344,7 +344,7 @@ test('feats button includes points-glow when feat points available', async () =>
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const featButton = buttons.find((btn) => btn.classList.contains('fa-hand-fist'));
+  const featButton = buttons.find((btn) => btn.querySelector('.fa-hand-fist'));
   await waitFor(() => expect(featButton).toHaveClass('points-glow'));
 });
 
@@ -403,7 +403,7 @@ test('handleCastSpell closes modal and outputs spell name', async () => {
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await userEvent.click(spellButton);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
   mockOnCastSpell.current({ level: 1, name: 'Mage Hand' });
@@ -437,7 +437,7 @@ test('handleCastSpell outputs calculated damage', async () => {
 
   render(<ZombiesCharacterSheet />);
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await userEvent.click(spellButton);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
   mockOnCastSpell.current({ level: 1, damage: '1d4' });
@@ -481,7 +481,7 @@ test('consumes higher-level slot when upcasting', async () => {
 
   // Open the spell selector so the mocked onCastSpell is set
   const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.classList.contains('fa-hat-wizard'));
+  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await userEvent.click(spellButton);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
 
