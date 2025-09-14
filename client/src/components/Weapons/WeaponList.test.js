@@ -74,6 +74,21 @@ test('renders all weapons regardless of allowed list', async () => {
   expect(await screen.findByLabelText('Dagger')).toBeInTheDocument();
 });
 
+test('displays a category icon for each weapon', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+  });
+
+  render(<WeaponList campaign="Camp1" characterId="char1" />);
+
+  const simpleIcons = await screen.findAllByTitle('simple melee');
+  expect(simpleIcons.length).toBeGreaterThanOrEqual(2);
+  expect(await screen.findByTitle('martial melee')).toBeInTheDocument();
+});
+
 test('marks weapon proficiency', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce(
