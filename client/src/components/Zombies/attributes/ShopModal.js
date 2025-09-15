@@ -393,8 +393,9 @@ export default function ShopModal({
               <div className="ms-auto d-flex align-items-center gap-3 text-nowrap">
                 <span>PP {pp} • GP {gp} • SP {sp} • CP {cp}</span>
                 <Button
-                  variant="link"
-                  className="position-relative p-0"
+                  variant="outline-secondary"
+                  className="shop-cart-btn position-relative"
+                  aria-label="View cart"
                   onClick={() => setShowCart(true)}
                 >
                   <FaShoppingCart size={20} />

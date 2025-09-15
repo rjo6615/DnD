@@ -1334,6 +1334,30 @@ h1 {
   width: 100%;
 }
 
+.shop-cart-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: inherit;
+}
+
+.shop-cart-btn svg {
+  color: currentColor;
+}
+
+.modern-card .shop-cart-btn {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.modern-card .shop-cart-btn:hover,
+.modern-card .shop-cart-btn:focus {
+  color: #000;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
 /* Points Section */
 .points-container {
   display: flex;
