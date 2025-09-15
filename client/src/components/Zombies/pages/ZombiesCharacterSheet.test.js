@@ -38,7 +38,11 @@ jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
 jest.mock('../attributes/Features', () => () => null);
-jest.mock('../attributes/ShopModal', () => () => null);
+const mockShopModalProps = { current: null };
+jest.mock('../attributes/ShopModal', () => (props) => {
+  mockShopModalProps.current = props;
+  return null;
+});
 const mockOnCastSpell = { current: null };
 const mockHandleClose = { current: null };
 jest.mock('../attributes/SpellSelector', () => (props) => {
@@ -56,6 +60,7 @@ beforeEach(() => {
   mockCalcDamage.mockClear();
   mockOnCastSpell.current = null;
   mockHandleClose.current = null;
+  mockShopModalProps.current = null;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -377,6 +382,81 @@ test('all footer buttons have footer-btn class', async () => {
   const footerButtons = buttons.filter((btn) => btn.classList.contains('footer-btn'));
   expect(footerButtons.length).toBeGreaterThan(0);
   footerButtons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
+});
+
+test('weapon, armor, and item buttons open ShopModal with correct tab', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const weaponButton = buttons.find((btn) =>
+    btn.querySelector('.fa-wand-sparkles')
+  );
+  const armorButton = buttons.find((btn) => btn.querySelector('.fa-shield'));
+  const itemButton = buttons.find((btn) => btn.querySelector('.fa-briefcase'));
+
+  await act(async () => {
+    await userEvent.click(weaponButton);
+  });
+  await waitFor(() =>
+    expect(mockShopModalProps.current).toMatchObject({
+      show: true,
+      activeTab: 'weapons',
+    })
+  );
+
+  act(() => {
+    mockShopModalProps.current?.onHide?.();
+  });
+  await waitFor(() =>
+    expect(mockShopModalProps.current).toMatchObject({ show: false })
+  );
+
+  await act(async () => {
+    await userEvent.click(armorButton);
+  });
+  await waitFor(() =>
+    expect(mockShopModalProps.current).toMatchObject({
+      show: true,
+      activeTab: 'armor',
+    })
+  );
+
+  act(() => {
+    mockShopModalProps.current?.onHide?.();
+  });
+  await waitFor(() =>
+    expect(mockShopModalProps.current).toMatchObject({ show: false })
+  );
+
+  await act(async () => {
+    await userEvent.click(itemButton);
+  });
+  await waitFor(() =>
+    expect(mockShopModalProps.current).toMatchObject({
+      show: true,
+      activeTab: 'items',
+    })
+  );
 });
 
 test('handleCastSpell closes modal and outputs spell name', async () => {
