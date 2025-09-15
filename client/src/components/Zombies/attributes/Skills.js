@@ -230,7 +230,12 @@ export default function Skills({
     const { result, d20 } = rollSkill(bonus);
     window.dispatchEvent(
       new CustomEvent('damage-roll', {
-        detail: { value: result, critical: d20 === 20, fumble: d20 === 1 },
+        detail: {
+          value: result,
+          source: skill?.name,
+          critical: d20 === 20,
+          fumble: d20 === 1,
+        },
       })
     );
 

@@ -149,7 +149,7 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('6');
+    expect(totalLine).toHaveTextContent('Frost Brand (6)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -207,6 +207,53 @@ describe('PlayerTurnActions damage log', () => {
       lightning.style.color === damageTypeColors.lightning ||
         lightning.classList.contains('damage-lightning')
     ).toBe(true);
+    Math.random = orig;
+  });
+
+  test('damaging spell logs name and breakdown', async () => {
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    const orig = Math.random;
+    Math.random = () => 0; // deterministic roll
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+    const items = within(modal)
+      .getAllByRole('listitem')
+      .filter((li) => !li.classList.contains('roll-separator'));
+    const item = items[0];
+    const [totalLine, breakdownDiv] = item.querySelectorAll('div');
+    expect(totalLine).toHaveTextContent('Fire Bolt (1)');
+    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
+      (d) => d.textContent.trim()
+    );
+    expect(breakdownLines).toEqual(['- 1 fire']);
     Math.random = orig;
   });
 
