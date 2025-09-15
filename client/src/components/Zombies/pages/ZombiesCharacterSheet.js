@@ -873,6 +873,12 @@ return (
       onWeaponsChange={handleWeaponsChange}
       onArmorChange={handleArmorChange}
       onItemsChange={handleItemsChange}
+      currency={{
+        cp: form?.cp ?? 0,
+        sp: form?.sp ?? 0,
+        gp: form?.gp ?? 0,
+        pp: form?.pp ?? 0,
+      }}
     />
     {hasSpellcasting && (
       <SpellSelector

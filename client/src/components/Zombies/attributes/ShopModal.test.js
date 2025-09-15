@@ -54,6 +54,7 @@ jest.mock('../../Items/ItemList', () => {
 import ShopModal from './ShopModal';
 
 const defaultForm = { weapon: [], armor: [], item: [], campaign: 'alpha' };
+const defaultCurrency = { cp: 1, sp: 2, gp: 3, pp: 4 };
 
 const renderShopModal = (props = {}) =>
   render(
@@ -67,6 +68,7 @@ const renderShopModal = (props = {}) =>
       form={defaultForm}
       characterId="char-1"
       strength={12}
+      currency={defaultCurrency}
       {...props}
     />
   );
@@ -116,4 +118,12 @@ test('each list fetches once when its tab is activated', async () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
   });
   await waitFor(() => expect(mockItemListFetch).toHaveBeenCalledTimes(1));
+});
+
+test('displays the provided currency summary when shown', () => {
+  renderShopModal({ currency: { cp: 9, sp: 8, gp: 7, pp: 6 } });
+
+  expect(
+    screen.getByText(/PP 6 • GP 7 • SP 8 • CP 9/)
+  ).toBeInTheDocument();
 });
