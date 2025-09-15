@@ -49,11 +49,12 @@ describe('Spells routes', () => {
     expect(res.body.message).toBe('Spell not found');
   });
 
-  test('damaging spells include parsed damage field', async () => {
+  test('damaging spells include parsed damage and type fields', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app).get('/spells/fireball');
     expect(res.status).toBe(200);
-    expect(res.body.damage).toBe('8d6');
+    expect(res.body.damage).toBe('8d6 fire');
+    expect(res.body.damageType).toBe('fire');
   });
 
   test('upcastable spells include higherLevels field', async () => {
