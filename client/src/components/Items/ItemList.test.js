@@ -48,7 +48,14 @@ test('fetches items and handles add to cart', async () => {
   await userEvent.click(addButton);
 
   expect(onAddToCart).toHaveBeenCalledWith(
-    expect.objectContaining({ name: 'potion-healing', type: 'item' })
+    expect.objectContaining({
+      name: 'potion-healing',
+      displayName: 'Potion of healing',
+      type: 'item',
+      cost: '50 gp',
+      category: 'adventuring gear',
+      weight: 0.5,
+    })
   );
 });
 

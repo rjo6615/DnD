@@ -10,7 +10,15 @@ const weaponsData = {
   dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp' },
 };
 const customData = [
-  { name: 'Laser Sword', damage: '1d8 radiant', category: 'martial melee', properties: [] },
+  {
+    name: 'Laser Sword',
+    damage: '1d8 radiant',
+    category: 'martial melee',
+    properties: [],
+    type: 'exotic',
+    cost: '100 gp',
+    weight: 6,
+  },
 ];
 
 afterEach(() => {
@@ -37,15 +45,24 @@ test('fetches weapons and handles add to cart', async () => {
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
-  const daggerCard = await screen.findByText('Dagger');
-  const daggerButton = within(daggerCard.closest('.card')).getByRole('button', {
+  const laserHeading = await screen.findByText('Laser Sword');
+  const laserButton = within(laserHeading.closest('.card')).getByRole('button', {
     name: /add to cart/i,
   });
 
-  await userEvent.click(daggerButton);
+  await userEvent.click(laserButton);
 
   expect(onAddToCart).toHaveBeenCalledWith(
-    expect.objectContaining({ name: 'dagger', type: 'weapon' })
+    expect.objectContaining({
+      name: 'laser sword',
+      displayName: 'Laser Sword',
+      type: 'weapon',
+      weaponType: 'exotic',
+      cost: '100 gp',
+      damage: '1d8 radiant',
+      category: 'martial melee',
+      weight: 6,
+    })
   );
 });
 

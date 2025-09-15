@@ -37,6 +37,7 @@ const customData = [
     stealth: false,
     weight: 5,
     cost: '1000 gp',
+    type: 'shield',
   },
 ];
 
@@ -65,18 +66,28 @@ test('fetches armor and handles add to cart', async () => {
   expect(apiFetch).toHaveBeenCalledWith('/armor');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/armor/Camp1');
   expect(apiFetch).toHaveBeenCalledWith('/armor-proficiency/char1');
-  const chainMailHeading = await screen.findByText('Chain Mail');
-  const chainMailButton = within(chainMailHeading.closest('.card')).getByRole(
+  const forceShieldHeading = await screen.findByText('Force Shield');
+  const forceShieldButton = within(
+    forceShieldHeading.closest('.card')
+  ).getByRole(
     'button',
     {
       name: /add to cart/i,
     }
   );
 
-  await userEvent.click(chainMailButton);
+  await userEvent.click(forceShieldButton);
 
   expect(onAddToCart).toHaveBeenCalledWith(
-    expect.objectContaining({ name: 'chain mail', type: 'armor' })
+    expect.objectContaining({
+      name: 'force shield',
+      displayName: 'Force Shield',
+      type: 'armor',
+      armorType: 'shield',
+      cost: '1000 gp',
+      acBonus: 8,
+      category: 'special',
+    })
   );
 });
 
