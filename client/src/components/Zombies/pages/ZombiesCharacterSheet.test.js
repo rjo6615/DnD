@@ -384,7 +384,7 @@ test('all footer buttons have footer-btn class', async () => {
   footerButtons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
 });
 
-test('weapon, armor, and item buttons open ShopModal with correct tab', async () => {
+test('shop button opens ShopModal with default tab and retains previous tab', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
@@ -407,15 +407,16 @@ test('weapon, armor, and item buttons open ShopModal with correct tab', async ()
   });
 
   render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
+
   const buttons = await screen.findAllByRole('button');
-  const weaponButton = buttons.find((btn) =>
+  const shopButton = buttons.find((btn) =>
     btn.querySelector('.fa-wand-sparkles')
   );
-  const armorButton = buttons.find((btn) => btn.querySelector('.fa-shield'));
-  const itemButton = buttons.find((btn) => btn.querySelector('.fa-briefcase'));
+  expect(shopButton).toBeTruthy();
 
   await act(async () => {
-    await userEvent.click(weaponButton);
+    await userEvent.click(shopButton);
   });
   await waitFor(() =>
     expect(mockShopModalProps.current).toMatchObject({
@@ -425,20 +426,10 @@ test('weapon, armor, and item buttons open ShopModal with correct tab', async ()
   );
 
   act(() => {
-    mockShopModalProps.current?.onHide?.();
+    mockShopModalProps.current?.onTabChange?.('armor');
   });
   await waitFor(() =>
-    expect(mockShopModalProps.current).toMatchObject({ show: false })
-  );
-
-  await act(async () => {
-    await userEvent.click(armorButton);
-  });
-  await waitFor(() =>
-    expect(mockShopModalProps.current).toMatchObject({
-      show: true,
-      activeTab: 'armor',
-    })
+    expect(mockShopModalProps.current).toMatchObject({ activeTab: 'armor' })
   );
 
   act(() => {
@@ -449,12 +440,12 @@ test('weapon, armor, and item buttons open ShopModal with correct tab', async ()
   );
 
   await act(async () => {
-    await userEvent.click(itemButton);
+    await userEvent.click(shopButton);
   });
   await waitFor(() =>
     expect(mockShopModalProps.current).toMatchObject({
       show: true,
-      activeTab: 'items',
+      activeTab: 'armor',
     })
   );
 });

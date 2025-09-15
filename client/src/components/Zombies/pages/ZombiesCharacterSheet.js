@@ -239,8 +239,8 @@ export default function ZombiesCharacterSheet() {
   const handleCloseFeats = () => setShowFeats(false);
   const handleShowFeatures = () => setShowFeatures(true);
   const handleCloseFeatures = () => setShowFeatures(false);
-  const handleShowShop = (tab = 'weapons') => {
-    setShopTab(tab);
+  const handleShowShop = (tab) => {
+    setShopTab((prevTab) => tab ?? prevTab ?? 'weapons');
     setShowShop(true);
   };
   const handleCloseShop = () => setShowShop(false);
@@ -803,7 +803,7 @@ return (
             </Button>
           )}
           <Button
-            onClick={() => handleShowShop('weapons')}
+            onClick={() => handleShowShop()}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
@@ -812,28 +812,6 @@ return (
             variant="secondary"
           >
             <i className="fas fa-wand-sparkles" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={() => handleShowShop('armor')}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn"
-            variant="secondary"
-          >
-            <i className="fas fa-shield" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={() => handleShowShop('items')}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn"
-            variant="secondary"
-          >
-            <i className="fas fa-briefcase" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowHelpModal}
