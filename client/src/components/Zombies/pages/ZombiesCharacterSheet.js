@@ -259,8 +259,7 @@ export default function ZombiesCharacterSheet() {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
       result,
       breakdown,
-      source,
-      !!breakdown
+      source
     );
   };
 
@@ -332,7 +331,6 @@ export default function ZombiesCharacterSheet() {
         const {
           level,
           damage,
-          breakdown,
           extraDice,
           levelsAbove,
           slotLevel,
@@ -347,7 +345,7 @@ export default function ZombiesCharacterSheet() {
         else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
         if (typeof damage === 'number') {
-          result = { total: damage, breakdown };
+          result = { total: damage };
         } else if (damage) {
           const calc = calculateDamage(
             damage,
@@ -369,8 +367,7 @@ export default function ZombiesCharacterSheet() {
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(
           result?.total,
           result?.breakdown,
-          typeof result?.total === 'number' ? spellLabel : undefined,
-          !!result?.breakdown
+          typeof result?.total === 'number' ? spellLabel : undefined
         );
         if (name === 'Haste') {
           setActiveEffects((prev) => [
