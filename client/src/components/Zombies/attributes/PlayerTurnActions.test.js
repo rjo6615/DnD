@@ -210,6 +210,50 @@ describe('PlayerTurnActions damage log', () => {
     Math.random = orig;
   });
 
+  test('logs weapon source names in title case', async () => {
+    const weapon = {
+      name: 'greatsword of fire',
+      damage: '1d6 fire',
+      category: 'melee',
+    };
+    const orig = Math.random;
+    Math.random = () => 0;
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+    const items = within(modal)
+      .getAllByRole('listitem')
+      .filter((li) => !li.classList.contains('roll-separator'));
+    const item = items[0];
+    const [totalLine, breakdownDiv] = item.querySelectorAll('div');
+    expect(totalLine).toHaveTextContent('Greatsword of Fire (3)');
+    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
+      (d) => d.textContent.trim()
+    );
+    expect(breakdownLines).toEqual(['- 3 fire']);
+    Math.random = orig;
+  });
+
   test('damaging spell logs name and breakdown', async () => {
     const spell = {
       name: 'Fire Bolt',
