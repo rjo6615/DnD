@@ -12,6 +12,11 @@ export default function Zombies() {
   const navigate = useNavigate();
   const user = useUser();
 
+  const handleLogout = async () => {
+    await apiFetch("/logout", { method: "POST" });
+    window.location.assign("/");
+  };
+
 //--------------------------------------------Campaign Section------------------------------
 
 const [form1, setForm1] = useState({ 
@@ -150,6 +155,7 @@ return (
         <Button className="mb-3 fantasy-button campaign-button" style={{borderColor: "transparent"}} onClick={handleShowJoinCampaign}>Join Campaign</Button>
         <Button className="mb-3 hostCampaign campaign-button" style={{borderColor: "transparent"}} onClick={handleShowHostCampaign}>Host Campaign</Button>
         <Button className="create-button campaign-button" style={{borderColor: "transparent"}} onClick={handleShow1}>Create Campaign</Button>
+        <Button className="mt-3 fantasy-button campaign-button" style={{borderColor: "transparent"}} onClick={handleLogout}>Logout</Button>
       </div>
 
       <Modal className="dnd-modal" centered show={showJoinCampaignModal} onHide={handleCloseJoinCampaign}>
