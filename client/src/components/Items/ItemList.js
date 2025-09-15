@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Form, Alert, Button, Modal } from 'react-bootstrap';
+import {
+  GiAmmoBox,
+  GiBackpack,
+  GiChariot,
+  GiHammerNails,
+  GiHorseHead,
+  GiSaddle,
+  GiSailboat,
+  GiTreasureMap,
+} from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
@@ -13,6 +23,17 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   acc[key] = label;
   return acc;
 }, {});
+
+const categoryIcons = {
+  'adventuring gear': GiBackpack,
+  ammunition: GiAmmoBox,
+  tool: GiHammerNails,
+  mount: GiHorseHead,
+  'tack and harness': GiSaddle,
+  vehicle: GiChariot,
+  'water vehicle': GiSailboat,
+  custom: GiTreasureMap,
+};
 
 const renderBonuses = (bonuses, labels) =>
   Object.entries(bonuses || {})
@@ -193,15 +214,22 @@ function ItemList({
           </Alert>
         )}
         <Row className="row-cols-2 row-cols-lg-3 g-3">
-          {Object.entries(items).map(([key, item]) => (
-            <Col key={key}>
-              <Card className="item-card h-100">
-                <Card.Body className="d-flex flex-column">
-                  <Card.Title>{item.displayName || item.name}</Card.Title>
-                  <Card.Text>Category: {item.category}</Card.Text>
-                  <Card.Text>Weight: {item.weight}</Card.Text>
-                  <Card.Text>Cost: {item.cost}</Card.Text>
-                  {renderBonuses(item.statBonuses, STAT_LABELS) && (
+          {Object.entries(items).map(([key, item]) => {
+            const categoryKey =
+              typeof item.category === 'string' ? item.category.toLowerCase() : '';
+            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
+            return (
+              <Col key={key}>
+                <Card className="item-card h-100">
+                  <Card.Body className="d-flex flex-column">
+                    <div className="d-flex justify-content-center mb-2">
+                      <Icon size={40} title={item.category} />
+                    </div>
+                    <Card.Title>{item.displayName || item.name}</Card.Title>
+                    <Card.Text>Category: {item.category}</Card.Text>
+                    <Card.Text>Weight: {item.weight}</Card.Text>
+                    <Card.Text>Cost: {item.cost}</Card.Text>
+                    {renderBonuses(item.statBonuses, STAT_LABELS) && (
                     <Card.Text>
                       Stat Bonuses: {renderBonuses(item.statBonuses, STAT_LABELS)}
                     </Card.Text>
@@ -232,9 +260,10 @@ function ItemList({
                     aria-label={item.displayName || item.name}
                   />
                 </Card.Footer>
-              </Card>
-            </Col>
-          ))}
+                </Card>
+              </Col>
+            );
+          })}
         </Row>
       </Card.Body>
       {typeof onClose === 'function' && (
