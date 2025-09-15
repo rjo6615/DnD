@@ -136,10 +136,10 @@ test('marks armor proficiency', async () => {
   const chainRow = await screen.findByText('Chain Mail');
   expect(apiFetch).toHaveBeenCalledWith('/armor-proficiency/char1');
 
-  const chainTr = chainRow.closest('tr');
-  const leatherTr = screen.getByText('Leather Armor').closest('tr');
-  const chainProf = within(chainTr).getByLabelText('Chain Mail proficiency');
-  const leatherProf = within(leatherTr).getByLabelText('Leather Armor proficiency');
+  const chainCard = chainRow.closest('.card');
+  const leatherCard = screen.getByText('Leather Armor').closest('.card');
+  const chainProf = within(chainCard).getByLabelText('Chain Mail proficiency');
+  const leatherProf = within(leatherCard).getByLabelText('Leather Armor proficiency');
   expect(chainProf).toBeChecked();
   expect(chainProf).not.toBeDisabled();
   expect(leatherProf).not.toBeChecked();
@@ -159,8 +159,8 @@ test('granted proficiencies render checked and disabled', async () => {
   render(<ArmorList characterId="char1" strength={15} />);
 
   const chainRow = await screen.findByText('Chain Mail');
-  const chainTr = chainRow.closest('tr');
-  const chainProf = within(chainTr).getByLabelText('Chain Mail proficiency');
+  const chainCard = chainRow.closest('.card');
+  const chainProf = within(chainCard).getByLabelText('Chain Mail proficiency');
   expect(chainProf).toBeChecked();
   expect(chainProf).toBeDisabled();
 });
@@ -182,8 +182,8 @@ test('toggling a non-proficient armor allows checking and unchecking', async () 
   render(<ArmorList characterId="char1" strength={15} />);
 
   const leatherRow = await screen.findByText('Leather Armor');
-  const leatherTr = leatherRow.closest('tr');
-  const leatherProf = within(leatherTr).getByLabelText('Leather Armor proficiency');
+  const leatherCard = leatherRow.closest('.card');
+  const leatherProf = within(leatherCard).getByLabelText('Leather Armor proficiency');
 
   expect(leatherProf).not.toBeChecked();
   await userEvent.click(leatherProf);
@@ -227,23 +227,23 @@ test('reloads proficiency data when character changes', async () => {
   const leatherRow1 = await screen.findByText('Leather Armor');
   const chainRow1 = await screen.findByText('Chain Mail');
   expect(
-    within(leatherRow1.closest('tr')).getByLabelText('Leather Armor proficiency')
+    within(leatherRow1.closest('.card')).getByLabelText('Leather Armor proficiency')
   ).toBeChecked();
   expect(
-    within(chainRow1.closest('tr')).getByLabelText('Chain Mail proficiency')
+    within(chainRow1.closest('.card')).getByLabelText('Chain Mail proficiency')
   ).not.toBeChecked();
 
   rerender(<ArmorList characterId="char2" strength={15} />);
   await waitFor(() =>
     expect(
-      within(screen.getByText('Leather Armor').closest('tr')).getByLabelText(
+      within(screen.getByText('Leather Armor').closest('.card')).getByLabelText(
         'Leather Armor proficiency'
       )
     ).not.toBeChecked()
   );
   await waitFor(() =>
     expect(
-      within(screen.getByText('Chain Mail').closest('tr')).getByLabelText(
+      within(screen.getByText('Chain Mail').closest('.card')).getByLabelText(
         'Chain Mail proficiency'
       )
     ).toBeChecked()
