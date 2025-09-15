@@ -31,6 +31,19 @@ function formatDamageRolls(rolls) {
     .join(' + ');
 }
 
+function toTitleCase(str) {
+  const small = new Set(['of', 'the']);
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, i) =>
+      i !== 0 && small.has(word)
+        ? word
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
+}
+
 export function calculateDamage(
   damageString,
   ability = 0,
@@ -283,7 +296,11 @@ const updateDamageValueWithAnimation = (newValue, breakdown, source) => {
   setDamageValue(newValue);
   if (newValue !== undefined) {
     setDamageLog((prev) => {
-      const entry = { total: newValue, breakdown, source };
+      const entry = {
+        total: newValue,
+        breakdown,
+        source: source ? toTitleCase(source) : undefined,
+      };
       return [entry, { divider: true }, ...prev].slice(0, 10);
     });
   }
