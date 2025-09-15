@@ -92,17 +92,20 @@
 
 @media (max-width: 576px) {
   .weapon-card {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
   }
   .weapon-card .card-title {
-    font-size: 1rem;
+    font-size: 0.85rem;
   }
   .weapon-card .card-text {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
   }
   .weapon-card .btn {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
     padding: 0.25rem 0.5rem;
+  }
+  .weapon-card .form-check-label {
+    font-size: 0.65rem;
   }
 }
 
