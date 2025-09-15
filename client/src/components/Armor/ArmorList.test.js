@@ -331,3 +331,18 @@ test('skips invalid initial armor entries with warning', async () => {
   warn.mockRestore();
 });
 
+test('omits card wrapper when embedded', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => armorData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: [], proficient: {}, granted: [] }),
+    });
+
+  render(<ArmorList characterId="char1" strength={15} embedded />);
+
+  expect(await screen.findByLabelText('Leather Armor')).toBeInTheDocument();
+  expect(screen.queryByText('Armor')).not.toBeInTheDocument();
+  expect(document.querySelector('.modern-card')).toBeNull();
+});
+

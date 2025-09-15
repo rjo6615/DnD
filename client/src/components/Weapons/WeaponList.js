@@ -13,7 +13,7 @@ import apiFetch from '../../utils/apiFetch';
 
 /**
  * List of weapons with ownership toggles.
- * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[], characterId?: string, show?: boolean }} props
+ * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[], characterId?: string, show?: boolean, embedded?: boolean }} props
  */
 function WeaponList({
   campaign,
@@ -21,6 +21,7 @@ function WeaponList({
   initialWeapons = [],
   characterId,
   show = true,
+  embedded = false,
 }) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -142,19 +143,6 @@ function WeaponList({
     return <div>Loading...</div>;
   }
 
-  if (error) {
-    return (
-      <Card className="modern-card">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">Weapons</Card.Title>
-        </Card.Header>
-        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          <div className="text-danger">{error}</div>
-        </Card.Body>
-      </Card>
-    );
-  }
-
   const categoryIcons = {
     'simple melee': GiStoneAxe,
     'simple ranged': GiBowArrow,
@@ -217,66 +205,77 @@ function WeaponList({
     }
   };
 
+  const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const bodyContent = error ? (
+    <div className="text-danger">{error}</div>
+  ) : (
+    <>
+      {unknownWeapons.length > 0 && (
+        <Alert variant="warning">
+          Unrecognized weapons from server: {unknownWeapons.join(', ')}
+        </Alert>
+      )}
+      <Row className="row-cols-2 row-cols-lg-3 g-3">
+        {Object.entries(weapons).map(([key, weapon]) => {
+          const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
+          return (
+            <Col key={key}>
+              <Card className="weapon-card h-100">
+                <Card.Body className="d-flex flex-column">
+                  <div className="d-flex justify-content-center mb-2">
+                    <Icon size={40} title={weapon.category} />
+                  </div>
+                  <Card.Title>{weapon.displayName || weapon.name}</Card.Title>
+                  <Card.Text>Damage: {weapon.damage}</Card.Text>
+                  <Card.Text>Category: {weapon.category}</Card.Text>
+                  <Card.Text>
+                    Properties: {weapon.properties.join(', ') || 'No properties'}
+                  </Card.Text>
+                  <Card.Text>Weight: {weapon.weight}</Card.Text>
+                  <Card.Text>Cost: {weapon.cost}</Card.Text>
+                </Card.Body>
+                <Card.Footer className="d-flex justify-content-center gap-2">
+                  <Form.Check
+                    type="checkbox"
+                    className="weapon-checkbox"
+                    label="Owned"
+                    checked={weapon.owned}
+                    onChange={handleOwnedToggle(key)}
+                    aria-label={weapon.displayName || weapon.name}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    className="weapon-checkbox"
+                    label="Proficient"
+                    checked={weapon.proficient}
+                    disabled={weapon.granted || weapon.pending}
+                    onChange={handleToggle(key)}
+                    aria-label={`${weapon.displayName || weapon.name} proficiency`}
+                    style={
+                      weapon.granted || weapon.pending
+                        ? { opacity: 0.5 }
+                        : undefined
+                    }
+                  />
+                </Card.Footer>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </>
+  );
+
+  if (embedded) {
+    return <div style={bodyStyle}>{bodyContent}</div>;
+  }
+
   return (
     <Card className="modern-card">
       <Card.Header className="modal-header">
         <Card.Title className="modal-title">Weapons</Card.Title>
       </Card.Header>
-      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-        {unknownWeapons.length > 0 && (
-          <Alert variant="warning">
-            Unrecognized weapons from server: {unknownWeapons.join(', ')}
-          </Alert>
-        )}
-        <Row className="row-cols-2 row-cols-lg-3 g-3">
-          {Object.entries(weapons).map(([key, weapon]) => {
-            const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
-            return (
-              <Col key={key}>
-                <Card className="weapon-card h-100">
-                  <Card.Body className="d-flex flex-column">
-                    <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={weapon.category} />
-                    </div>
-                    <Card.Title>{weapon.displayName || weapon.name}</Card.Title>
-                    <Card.Text>Damage: {weapon.damage}</Card.Text>
-                    <Card.Text>Category: {weapon.category}</Card.Text>
-                    <Card.Text>
-                      Properties: {weapon.properties.join(', ') || 'No properties'}
-                    </Card.Text>
-                    <Card.Text>Weight: {weapon.weight}</Card.Text>
-                    <Card.Text>Cost: {weapon.cost}</Card.Text>
-                  </Card.Body>
-                  <Card.Footer className="d-flex justify-content-center gap-2">
-                    <Form.Check
-                      type="checkbox"
-                      className="weapon-checkbox"
-                      label="Owned"
-                      checked={weapon.owned}
-                      onChange={handleOwnedToggle(key)}
-                      aria-label={weapon.displayName || weapon.name}
-                    />
-                    <Form.Check
-                      type="checkbox"
-                      className="weapon-checkbox"
-                      label="Proficient"
-                      checked={weapon.proficient}
-                      disabled={weapon.granted || weapon.pending}
-                      onChange={handleToggle(key)}
-                      aria-label={`${weapon.displayName || weapon.name} proficiency`}
-                      style={
-                        weapon.granted || weapon.pending
-                          ? { opacity: 0.5 }
-                          : undefined
-                      }
-                    />
-                  </Card.Footer>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      </Card.Body>
+      <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
     </Card>
   );
 }
