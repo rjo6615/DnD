@@ -29,9 +29,17 @@ const renderBonuses = (bonuses, labels) =>
  *   initialItems?: Item[],
  *   characterId?: string,
  *   show?: boolean,
+ *   onClose?: () => void,
  * }} props
  */
-function ItemList({ campaign, onChange, initialItems = [], characterId, show = true }) {
+function ItemList({
+  campaign,
+  onChange,
+  initialItems = [],
+  characterId,
+  show = true,
+  onClose,
+}) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
@@ -227,6 +235,13 @@ function ItemList({ campaign, onChange, initialItems = [], characterId, show = t
           </tbody>
         </Table>
       </Card.Body>
+      {typeof onClose === 'function' && (
+        <Card.Footer className="modal-footer">
+          <Button className="action-btn close-btn" onClick={onClose}>
+            Close
+          </Button>
+        </Card.Footer>
+      )}
       <Modal show={!!notesItem} onHide={handleCloseNotes} size="sm">
         <Modal.Header closeButton>
           <Modal.Title>{notesItem?.displayName || notesItem?.name}</Modal.Title>
