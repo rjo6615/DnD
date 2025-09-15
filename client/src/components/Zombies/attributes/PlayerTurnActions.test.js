@@ -477,6 +477,7 @@ describe('PlayerTurnActions spell casting', () => {
         level: spell.level,
         slotType: undefined,
         damage: expect.any(Number),
+        breakdown: expect.any(String),
         castingTime: spell.castingTime,
         name: spell.name,
       })
@@ -518,8 +519,8 @@ describe('PlayerTurnActions spell casting', () => {
       if (!el || el.textContent === '0') throw new Error('waiting');
     });
     const el = document.getElementById('damageValue');
-    expect(el.classList.contains('spell-cast-label')).toBe(false);
-    expect(el.textContent).not.toBe(spell.name);
+    expect(el.classList.contains('spell-cast-label')).toBe(true);
+    expect(el.textContent).toBe('6 fire');
     Math.random = orig;
   });
 
