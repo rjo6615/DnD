@@ -38,6 +38,7 @@ jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
 jest.mock('../attributes/Features', () => () => null);
+jest.mock('../attributes/ShopModal', () => () => null);
 const mockOnCastSpell = { current: null };
 const mockHandleClose = { current: null };
 jest.mock('../attributes/SpellSelector', () => (props) => {
