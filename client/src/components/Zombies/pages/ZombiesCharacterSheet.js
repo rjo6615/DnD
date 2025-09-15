@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -10,12 +10,9 @@ import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
-import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions, {
   calculateDamage,
 } from "../attributes/PlayerTurnActions";
-import ArmorList from "../../Armor/ArmorList";
-import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
@@ -26,6 +23,7 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
+import ShopModal from "../attributes/ShopModal";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -48,9 +46,8 @@ export default function ZombiesCharacterSheet() {
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
   const [showFeats, setShowFeats] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
-  const [showWeapons, setShowWeapons] = useState(false);
-  const [showArmor, setShowArmor] = useState(false);
-  const [showItems, setShowItems] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [shopTab, setShopTab] = useState('weapons');
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
@@ -242,12 +239,11 @@ export default function ZombiesCharacterSheet() {
   const handleCloseFeats = () => setShowFeats(false);
   const handleShowFeatures = () => setShowFeatures(true);
   const handleCloseFeatures = () => setShowFeatures(false);
-  const handleShowWeapons = () => setShowWeapons(true);
-  const handleCloseWeapons = () => setShowWeapons(false); 
-  const handleShowArmor = () => setShowArmor(true);
-  const handleCloseArmor = () => setShowArmor(false);
-  const handleShowItems = () => setShowItems(true);
-  const handleCloseItems = () => setShowItems(false);
+  const handleShowShop = (tab = 'weapons') => {
+    setShopTab(tab);
+    setShowShop(true);
+  };
+  const handleCloseShop = () => setShowShop(false);
   const handleShowSpells = () => setShowSpells(true);
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
@@ -807,7 +803,7 @@ return (
             </Button>
           )}
           <Button
-            onClick={handleShowWeapons}
+            onClick={() => handleShowShop('weapons')}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
@@ -818,7 +814,7 @@ return (
             <i className="fas fa-wand-sparkles" aria-hidden="true"></i>
           </Button>
           <Button
-            onClick={handleShowArmor}
+            onClick={() => handleShowShop('armor')}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
@@ -829,7 +825,7 @@ return (
             <i className="fas fa-shield" aria-hidden="true"></i>
           </Button>
           <Button
-            onClick={handleShowItems}
+            onClick={() => handleShowShop('items')}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
@@ -888,75 +884,18 @@ return (
       shortRestCount={shortRestCount}
       actionCount={actionCount}
     />
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showWeapons}
-        onHide={handleCloseWeapons}
-        size="lg"
-        centered
-        scrollable
-        fullscreen="sm-down"
-      >
-        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-          <WeaponList
-            campaign={form.campaign}
-            initialWeapons={form.weapon}
-            onChange={handleWeaponsChange}
-            characterId={characterId}
-            show={showWeapons}
-          />
-        </Modal.Body>
-        <div className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
-            Close
-          </Button>
-        </div>
-      </Modal>
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showArmor}
-        onHide={handleCloseArmor}
-        size="lg"
-        centered
-        scrollable
-        fullscreen="sm-down"
-      >
-        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-          <ArmorList
-            campaign={form.campaign}
-            initialArmor={form.armor}
-            onChange={handleArmorChange}
-            characterId={characterId}
-            show={showArmor}
-            strength={computedStats.str}
-          />
-        </Modal.Body>
-        <div className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseArmor}>
-            Close
-          </Button>
-        </div>
-      </Modal>
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showItems}
-        onHide={handleCloseItems}
-        size="lg"
-        centered
-        scrollable
-        fullscreen="sm-down"
-      >
-        <div className="text-center">
-          <ItemList
-            campaign={form.campaign}
-            initialItems={form.item}
-            onChange={handleItemsChange}
-            characterId={characterId}
-            show={showItems}
-            onClose={handleCloseItems}
-          />
-        </div>
-      </Modal>
+    <ShopModal
+      show={showShop}
+      activeTab={shopTab}
+      onHide={handleCloseShop}
+      onTabChange={setShopTab}
+      form={form}
+      characterId={characterId}
+      strength={computedStats.str}
+      onWeaponsChange={handleWeaponsChange}
+      onArmorChange={handleArmorChange}
+      onItemsChange={handleItemsChange}
+    />
     {hasSpellcasting && (
       <SpellSelector
         form={form}
