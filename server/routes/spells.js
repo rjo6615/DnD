@@ -1,6 +1,6 @@
 const express = require('express');
-const spells = require('../data/spells');
-const classSpellLists = require('../data/classSpellLists');
+
+const SPELLS_MODULE_PATH = require.resolve('../data/spells');
 
 // Extract a basic damage dice string (e.g., "8d6" or "1d8+2") from spell descriptions
 function extractDamage(description = '') {
@@ -25,43 +25,98 @@ function extractScaling(description = '') {
   return Object.keys(scaling).length ? scaling : undefined;
 }
 
-// Augment spells with a `damage` field when possible
-Object.values(spells).forEach((spell) => {
-  if (!spell.damage) {
-    const dmg = extractDamage(spell.description);
-    if (dmg) spell.damage = dmg;
+function augmentSpell(spell = {}) {
+  const enhanced = { ...spell };
+  if (!enhanced.damage) {
+    const dmg = extractDamage(enhanced.description);
+    if (dmg) enhanced.damage = dmg;
   }
-  if (!spell.higherLevels) {
-    const upcast = extractHigherLevels(spell.description);
-    if (upcast) spell.higherLevels = upcast;
+  if (!enhanced.higherLevels) {
+    const upcast = extractHigherLevels(enhanced.description);
+    if (upcast) enhanced.higherLevels = upcast;
   }
-  if (spell.level === 0 && !spell.scaling) {
-    const scaling = extractScaling(spell.description);
-    if (scaling) spell.scaling = scaling;
+  if (enhanced.level === 0 && !enhanced.scaling) {
+    const scaling = extractScaling(enhanced.description);
+    if (scaling) enhanced.scaling = scaling;
   }
-});
+  return enhanced;
+}
+
+async function withSpellData(handler) {
+  delete require.cache[SPELLS_MODULE_PATH];
+  const spells = require(SPELLS_MODULE_PATH);
+  try {
+    return await handler(spells);
+  } finally {
+    delete require.cache[SPELLS_MODULE_PATH];
+  }
+}
+
+function normalizeClassQuery(value) {
+  if (!value) return null;
+  const query = Array.isArray(value) ? value[0] : value;
+  if (typeof query !== 'string') return null;
+  const trimmed = query.trim();
+  return trimmed ? trimmed.toLowerCase() : null;
+}
+
+function buildSpellMap(spells, { className } = {}) {
+  const shouldFilterByClass = Boolean(className);
+  const entries = [];
+
+  if (shouldFilterByClass) {
+    for (const [id, spell] of Object.entries(spells)) {
+      const classes = spell.classes;
+      if (!Array.isArray(classes)) continue;
+      const matches = classes.some(cls => cls.toLowerCase() === className);
+      if (!matches) continue;
+      entries.push([id, augmentSpell(spell)]);
+    }
+    if (!entries.length) {
+      return null;
+    }
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    return Object.fromEntries(entries);
+  }
+
+  for (const [id, spell] of Object.entries(spells)) {
+    entries.push([id, augmentSpell(spell)]);
+  }
+  return Object.fromEntries(entries);
+}
 
 module.exports = (router) => {
   const spellRouter = express.Router();
 
-  spellRouter.get('/', (req, res) => {
-    const className = req.query.class?.toLowerCase();
-    if (className && classSpellLists[className]) {
-      const allowed = classSpellLists[className];
-      const filtered = Object.fromEntries(
-        allowed.map(id => [id, spells[id]]).filter(([, spell]) => spell)
-      );
-      return res.json(filtered);
+  spellRouter.get('/', async (req, res, next) => {
+    try {
+      const className = normalizeClassQuery(req.query.class);
+      const payload = await withSpellData(async spells => {
+        if (className) {
+          const filtered = buildSpellMap(spells, { className });
+          if (filtered) return filtered;
+        }
+        return buildSpellMap(spells);
+      });
+      res.json(payload);
+    } catch (error) {
+      next(error);
     }
-    res.json(spells);
   });
 
-  spellRouter.get('/:name', (req, res) => {
-    const spell = spells[req.params.name.toLowerCase()];
-    if (!spell) {
-      return res.status(404).json({ message: 'Spell not found' });
+  spellRouter.get('/:name', async (req, res, next) => {
+    try {
+      const payload = await withSpellData(async spells => {
+        const spell = spells[req.params.name.toLowerCase()];
+        return spell ? augmentSpell(spell) : null;
+      });
+      if (!payload) {
+        return res.status(404).json({ message: 'Spell not found' });
+      }
+      res.json(payload);
+    } catch (error) {
+      next(error);
     }
-    res.json(spell);
   });
 
   router.use('/spells', spellRouter);
