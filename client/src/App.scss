@@ -107,6 +107,11 @@
   color: var(--bs-body-color);
 }
 
+.item-card .form-check-label {
+  font-size: 0.9rem;
+  color: var(--bs-body-color);
+}
+
 .weapon-card .card-title,
 .weapon-card .card-text {
   margin-bottom: 0.25rem; // reduce vertical gap
