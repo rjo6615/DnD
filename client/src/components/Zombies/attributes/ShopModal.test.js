@@ -1,10 +1,16 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mockWeaponListFetch = jest.fn();
 const mockArmorListFetch = jest.fn();
 const mockItemListFetch = jest.fn();
+
+const mockWeapon = { name: 'Mock Weapon', type: 'weapon', cost: '10 gp' };
+const mockArmor = { name: 'Mock Armor', type: 'armor', cost: '50 gp' };
+const mockItem = { name: 'Mock Item', type: 'item', cost: '5 gp' };
+
+const escapeRegExp = (value) => value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 
 jest.mock('../../Weapons/WeaponList', () => {
   const React = require('react');
@@ -16,7 +22,18 @@ jest.mock('../../Weapons/WeaponList', () => {
       }
       prevShowRef.current = props.show;
     }, [props.show]);
-    return props.show ? <div data-testid="weapon-list">Weapons</div> : null;
+    if (!props.show) return null;
+    return (
+      <div data-testid="weapon-list">
+        Weapons
+        <button
+          type="button"
+          onClick={() => props.onAddToCart?.({ ...mockWeapon })}
+        >
+          Add to Cart
+        </button>
+      </div>
+    );
   };
   return WeaponListMock;
 });
@@ -31,7 +48,18 @@ jest.mock('../../Armor/ArmorList', () => {
       }
       prevShowRef.current = props.show;
     }, [props.show]);
-    return props.show ? <div data-testid="armor-list">Armor</div> : null;
+    if (!props.show) return null;
+    return (
+      <div data-testid="armor-list">
+        Armor
+        <button
+          type="button"
+          onClick={() => props.onAddToCart?.({ ...mockArmor })}
+        >
+          Add to Cart
+        </button>
+      </div>
+    );
   };
   return ArmorListMock;
 });
@@ -46,7 +74,18 @@ jest.mock('../../Items/ItemList', () => {
       }
       prevShowRef.current = props.show;
     }, [props.show]);
-    return props.show ? <div data-testid="item-list">Items</div> : null;
+    if (!props.show) return null;
+    return (
+      <div data-testid="item-list">
+        Items
+        <button
+          type="button"
+          onClick={() => props.onAddToCart?.({ ...mockItem })}
+        >
+          Add to Cart
+        </button>
+      </div>
+    );
   };
   return ItemListMock;
 });
@@ -126,4 +165,73 @@ test('displays the provided currency summary when shown', () => {
   expect(
     screen.getByText(/PP 6 • GP 7 • SP 8 • CP 9/)
   ).toBeInTheDocument();
+});
+
+describe('cart interactions', () => {
+  const scenarios = [
+    {
+      name: 'weapon',
+      tab: null,
+      listTestId: 'weapon-list',
+      item: mockWeapon,
+    },
+    {
+      name: 'armor',
+      tab: 'Armor',
+      listTestId: 'armor-list',
+      item: mockArmor,
+    },
+    {
+      name: 'item',
+      tab: 'Items',
+      listTestId: 'item-list',
+      item: mockItem,
+    },
+  ];
+
+  test.each(scenarios)('adds and removes a %s from the cart', async ({
+    tab,
+    listTestId,
+    item,
+  }) => {
+    renderShopModal();
+
+    const cartButton = screen.getByRole('button', { name: '0' });
+
+    if (tab) {
+      await act(async () => {
+        await userEvent.click(screen.getByRole('tab', { name: tab }));
+      });
+    }
+
+    expect(await screen.findByTestId(listTestId)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+
+    await waitFor(() => expect(cartButton).toHaveTextContent('1'));
+
+    await userEvent.click(cartButton);
+
+    const cartTitle = await screen.findByText('Cart', {
+      selector: '.modal-title',
+    });
+    const cartModal = cartTitle.closest('.modal');
+    expect(cartModal).not.toBeNull();
+    const cartWithin = within(cartModal);
+
+    expect(cartWithin.getByText(item.name)).toBeInTheDocument();
+    expect(
+      cartWithin.getByText(new RegExp(`Cost: ${escapeRegExp(item.cost)}`))
+    ).toBeInTheDocument();
+
+    await userEvent.click(cartWithin.getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(cartButton).toHaveTextContent('0'));
+    await waitFor(() =>
+      expect(cartWithin.queryByText(item.name)).not.toBeInTheDocument()
+    );
+    await waitFor(() =>
+      expect(cartWithin.getByText('Your cart is empty.')).toBeInTheDocument()
+    );
+  });
 });
