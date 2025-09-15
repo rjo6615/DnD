@@ -243,14 +243,19 @@ export default function ShopModal({
   onItemsChange,
   onTabChange,
 }) {
-  const [internalTab, setInternalTab] = useState(activeTab || DEFAULT_TAB);
-  const currentTab = activeTab || internalTab;
+  const [activeTabState, setActiveTabState] = useState(
+    activeTab || DEFAULT_TAB
+  );
+  const currentTab =
+    (typeof activeTab === 'string' && activeTab.length
+      ? activeTab
+      : activeTabState) || DEFAULT_TAB;
 
   useEffect(() => {
-    if (activeTab && activeTab !== internalTab) {
-      setInternalTab(activeTab);
+    if (activeTab && activeTab !== activeTabState) {
+      setActiveTabState(activeTab);
     }
-  }, [activeTab, internalTab]);
+  }, [activeTab, activeTabState]);
 
   const normalizedWeapons = useMemo(
     () => normalizeWeapons(form.weapon || []),
@@ -266,16 +271,73 @@ export default function ShopModal({
   );
 
   const handleSelectTab = (key) => {
-    if (!key || key === internalTab) return;
-    setInternalTab(key);
+    if (!key || key === currentTab) return;
+    setActiveTabState(key);
     if (typeof onTabChange === 'function') {
       onTabChange(key);
     }
   };
 
-  const showWeapons = show && currentTab === 'weapons';
-  const showArmor = show && currentTab === 'armor';
-  const showItems = show && currentTab === 'items';
+  const tabConfigs = useMemo(
+    () => [
+      {
+        key: 'weapons',
+        title: 'Weapons',
+        render: (isActive) =>
+          isActive ? (
+            <WeaponList
+              campaign={form.campaign}
+              initialWeapons={normalizedWeapons}
+              onChange={onWeaponsChange}
+              characterId={characterId}
+              show={isActive}
+            />
+          ) : null,
+      },
+      {
+        key: 'armor',
+        title: 'Armor',
+        render: (isActive) =>
+          isActive ? (
+            <ArmorList
+              campaign={form.campaign}
+              initialArmor={normalizedArmor}
+              onChange={onArmorChange}
+              characterId={characterId}
+              show={isActive}
+              strength={strength}
+            />
+          ) : null,
+      },
+      {
+        key: 'items',
+        title: 'Items',
+        render: (isActive) =>
+          isActive ? (
+            <ItemList
+              campaign={form.campaign}
+              initialItems={normalizedItems}
+              onChange={onItemsChange}
+              characterId={characterId}
+              show={isActive}
+              onClose={onHide}
+            />
+          ) : null,
+      },
+    ],
+    [
+      characterId,
+      form.campaign,
+      normalizedArmor,
+      normalizedItems,
+      normalizedWeapons,
+      onArmorChange,
+      onHide,
+      onItemsChange,
+      onWeaponsChange,
+      strength,
+    ]
+  );
 
   return (
     <Modal
@@ -291,47 +353,19 @@ export default function ShopModal({
         <Card.Header className="modal-header">
           <Card.Title className="modal-title">Shop</Card.Title>
         </Card.Header>
-        <Card.Body style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-          <Tabs
-            activeKey={currentTab}
-            onSelect={handleSelectTab}
-            className="mb-3"
-          >
-            <Tab eventKey="weapons" title="Weapons">
-              {showWeapons ? (
-                <WeaponList
-                  campaign={form.campaign}
-                  initialWeapons={normalizedWeapons}
-                  onChange={onWeaponsChange}
-                  characterId={characterId}
-                  show={showWeapons}
-                />
-              ) : null}
-            </Tab>
-            <Tab eventKey="armor" title="Armor">
-              {showArmor ? (
-                <ArmorList
-                  campaign={form.campaign}
-                  initialArmor={normalizedArmor}
-                  onChange={onArmorChange}
-                  characterId={characterId}
-                  show={showArmor}
-                  strength={strength}
-                />
-              ) : null}
-            </Tab>
-            <Tab eventKey="items" title="Items">
-              {showItems ? (
-                <ItemList
-                  campaign={form.campaign}
-                  initialItems={normalizedItems}
-                  onChange={onItemsChange}
-                  characterId={characterId}
-                  show={showItems}
-                  onClose={onHide}
-                />
-              ) : null}
-            </Tab>
+        <Card.Body
+          className="modal-body"
+          style={{ maxHeight: '80vh', overflowY: 'auto' }}
+        >
+          <Tabs activeKey={currentTab} onSelect={handleSelectTab} className="mb-3">
+            {tabConfigs.map(({ key, title, render }) => {
+              const isActive = show && currentTab === key;
+              return (
+                <Tab eventKey={key} title={title} key={key}>
+                  {render(isActive)}
+                </Tab>
+              );
+            })}
           </Tabs>
         </Card.Body>
         <Card.Footer className="modal-footer">
