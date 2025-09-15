@@ -946,19 +946,15 @@ return (
         scrollable
         fullscreen="sm-down"
       >
-        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="text-center">
           <ItemList
             campaign={form.campaign}
             initialItems={form.item}
             onChange={handleItemsChange}
             characterId={characterId}
             show={showItems}
+            onClose={handleCloseItems}
           />
-        </Modal.Body>
-        <div className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseItems}>
-            Close
-          </Button>
         </div>
       </Modal>
     {hasSpellcasting && (
