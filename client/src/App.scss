@@ -91,6 +91,12 @@
   background-color: #fff;
 }
 
+.item-card {
+  height: 100%;
+  color: var(--bs-dark);
+  background-color: #fff;
+}
+
 .weapon-card .form-check-label {
   font-size: 0.9rem;
   color: var(--bs-body-color);
@@ -120,16 +126,25 @@
   .armor-card {
     font-size: 0.6rem;
   }
+  .item-card {
+    font-size: 0.6rem;
+  }
   .weapon-card .card-title {
     font-size: 0.85rem;
   }
   .armor-card .card-title {
     font-size: 0.85rem;
   }
+  .item-card .card-title {
+    font-size: 0.85rem;
+  }
   .weapon-card .card-text {
     font-size: 0.6rem;
   }
   .armor-card .card-text {
+    font-size: 0.6rem;
+  }
+  .item-card .card-text {
     font-size: 0.6rem;
   }
   .weapon-card .btn {
@@ -140,10 +155,17 @@
     font-size: 0.6rem;
     padding: 0.25rem 0.5rem;
   }
+  .item-card .btn {
+    font-size: 0.6rem;
+    padding: 0.25rem 0.5rem;
+  }
   .weapon-card .form-check-label {
     font-size: 0.65rem;
   }
   .armor-card .form-check-label {
+    font-size: 0.65rem;
+  }
+  .item-card .form-check-label {
     font-size: 0.65rem;
   }
 }
