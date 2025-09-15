@@ -242,6 +242,7 @@ export default function ShopModal({
   onArmorChange,
   onItemsChange,
   onTabChange,
+  currency = {},
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -250,6 +251,8 @@ export default function ShopModal({
     (typeof activeTab === 'string' && activeTab.length
       ? activeTab
       : activeTabState) || DEFAULT_TAB;
+
+  const { cp = 0, sp = 0, gp = 0, pp = 0 } = currency || {};
 
   useEffect(() => {
     if (activeTab && activeTab !== activeTabState) {
@@ -357,16 +360,25 @@ export default function ShopModal({
           className="modal-body"
           style={{ maxHeight: '80vh', overflowY: 'auto' }}
         >
-          <Tabs activeKey={currentTab} onSelect={handleSelectTab} className="mb-3">
-            {tabConfigs.map(({ key, title, render }) => {
-              const isActive = show && currentTab === key;
-              return (
-                <Tab eventKey={key} title={title} key={key}>
-                  {render(isActive)}
-                </Tab>
-              );
-            })}
-          </Tabs>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <Tabs
+              activeKey={currentTab}
+              onSelect={handleSelectTab}
+              className="mb-0"
+            >
+              {tabConfigs.map(({ key, title, render }) => {
+                const isActive = show && currentTab === key;
+                return (
+                  <Tab eventKey={key} title={title} key={key}>
+                    {render(isActive)}
+                  </Tab>
+                );
+              })}
+            </Tabs>
+            <div className="ms-auto text-nowrap">
+              PP {pp} • GP {gp} • SP {sp} • CP {cp}
+            </div>
+          </div>
         </Card.Body>
         <Card.Footer className="modal-footer">
           <Button className="action-btn close-btn" onClick={onHide}>
