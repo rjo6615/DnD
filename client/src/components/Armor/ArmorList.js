@@ -12,7 +12,7 @@ import apiFetch from '../../utils/apiFetch';
 /** @typedef {import('../../../../types/armor').Armor} Armor */
 
 /**
- * List of armor with ownership and proficiency toggles.
+ * List of armor with proficiency toggles and cart actions.
  * @param {{
  *   campaign?: string,
  *   onChange?: (armor: Armor[]) => void,
@@ -21,6 +21,7 @@ import apiFetch from '../../utils/apiFetch';
  *   show?: boolean,
  *   strength?: number,
  *   embedded?: boolean,
+ *   onAddToCart?: (armor: Armor & { type?: string }) => void,
  * }} props
  */
 function ArmorList({
@@ -31,6 +32,7 @@ function ArmorList({
   show = true,
   strength = Number.POSITIVE_INFINITY,
   embedded = false,
+  onAddToCart = () => {},
 }) {
   const [armor, setArmor] =
     useState/** @type {Record<string, Armor & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -171,44 +173,13 @@ function ArmorList({
     shield: GiShield,
   };
 
-  const handleOwnedToggle = (key) => () => {
-    const piece = armor[key];
-    const unmet = piece.strength && strength < piece.strength;
-    if (unmet) return;
-    const desired = !piece.owned;
-    const nextArmor = {
-      ...armor,
-      [key]: { ...piece, owned: desired },
+  const handleAddToCart = (piece) => () => {
+    const payload = {
+      ...piece,
+      ...(piece.type ? { armorType: piece.type } : {}),
+      type: 'armor',
     };
-    setArmor(nextArmor);
-    if (typeof onChange === 'function') {
-      const ownedArmor = Object.values(nextArmor)
-        .filter((a) => a.owned)
-        .map(
-          ({
-            name,
-            category,
-            acBonus,
-            maxDex,
-            strength,
-            stealth,
-            weight,
-            cost,
-            type,
-          }) => ({
-            name,
-            category,
-            acBonus,
-            maxDex,
-            strength,
-            stealth,
-            weight,
-            cost,
-            type,
-          })
-        );
-      onChange(ownedArmor);
-    }
+    onAddToCart(payload);
   };
 
   const handleToggle = (key) => async () => {
@@ -250,7 +221,6 @@ function ArmorList({
       )}
       <Row className="g-2">
         {Object.entries(armor).map(([key, piece]) => {
-          const unmet = piece.strength && strength < piece.strength;
           const Icon = categoryIcons[piece.category] || GiArmorVest;
           return (
             <Col xs={6} md={4} key={key}>
@@ -286,17 +256,7 @@ function ArmorList({
                   <Card.Text>Weight: {piece.weight}</Card.Text>
                   <Card.Text>Cost: {piece.cost}</Card.Text>
                 </Card.Body>
-                <Card.Footer className="d-flex justify-content-center gap-2">
-                  <Form.Check
-                    type="checkbox"
-                    label="Owned"
-                    className="weapon-checkbox"
-                    checked={piece.owned}
-                    disabled={unmet}
-                    onChange={handleOwnedToggle(key)}
-                    aria-label={piece.displayName || piece.name}
-                    title={unmet ? `Requires STR ${piece.strength}` : undefined}
-                  />
+                <Card.Footer className="d-flex justify-content-center gap-2 flex-wrap">
                   <Form.Check
                     type="checkbox"
                     label="Proficient"
@@ -311,12 +271,9 @@ function ArmorList({
                         : undefined
                     }
                   />
-                  <Button
-                    size="sm"
-                    className="btn-danger action-btn fa-solid fa-trash"
-                    hidden={!piece.owned}
-                    onClick={handleOwnedToggle(key)}
-                  ></Button>
+                  <Button size="sm" onClick={handleAddToCart(piece)}>
+                    Add to Cart
+                  </Button>
                 </Card.Footer>
               </Card>
             </Col>

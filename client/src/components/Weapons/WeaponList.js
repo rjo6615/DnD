@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Form, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Alert, Button } from 'react-bootstrap';
 import {
   GiStoneAxe,
   GiBowArrow,
@@ -12,8 +12,16 @@ import apiFetch from '../../utils/apiFetch';
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
 
 /**
- * List of weapons with ownership toggles.
- * @param {{ campaign?: string, onChange?: (weapons: Weapon[]) => void, initialWeapons?: Weapon[], characterId?: string, show?: boolean, embedded?: boolean }} props
+ * List of weapons with proficiency toggles and cart actions.
+ * @param {{
+ *   campaign?: string,
+ *   onChange?: (weapons: Weapon[]) => void,
+ *   initialWeapons?: Weapon[],
+ *   characterId?: string,
+ *   show?: boolean,
+ *   embedded?: boolean,
+ *   onAddToCart?: (weapon: Weapon & { type?: string }) => void,
+ * }} props
  */
 function WeaponList({
   campaign,
@@ -22,6 +30,7 @@ function WeaponList({
   characterId,
   show = true,
   embedded = false,
+  onAddToCart = () => {},
 }) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -150,28 +159,13 @@ function WeaponList({
     'martial ranged': GiCrossbow,
   };
 
-  const handleOwnedToggle = (key) => () => {
-    const weapon = weapons[key];
-    const desired = !weapon.owned;
-    const nextWeapons = {
-      ...weapons,
-      [key]: { ...weapon, owned: desired },
+  const handleAddToCart = (weapon) => () => {
+    const payload = {
+      ...weapon,
+      ...(weapon.type ? { weaponType: weapon.type } : {}),
+      type: 'weapon',
     };
-    setWeapons(nextWeapons);
-    if (typeof onChange === 'function') {
-      const ownedWeapons = Object.values(nextWeapons)
-        .filter((w) => w.owned)
-        .map(({ name, category, damage, properties, weight, cost, type }) => ({
-          name,
-          category,
-          damage,
-          properties,
-          weight,
-          cost,
-          type,
-        }));
-      onChange(ownedWeapons);
-    }
+    onAddToCart(payload);
   };
 
   const handleToggle = (key) => async () => {
@@ -234,15 +228,7 @@ function WeaponList({
                   <Card.Text>Weight: {weapon.weight}</Card.Text>
                   <Card.Text>Cost: {weapon.cost}</Card.Text>
                 </Card.Body>
-                <Card.Footer className="d-flex justify-content-center gap-2">
-                  <Form.Check
-                    type="checkbox"
-                    className="weapon-checkbox"
-                    label="Owned"
-                    checked={weapon.owned}
-                    onChange={handleOwnedToggle(key)}
-                    aria-label={weapon.displayName || weapon.name}
-                  />
+                <Card.Footer className="d-flex justify-content-center gap-2 flex-wrap">
                   <Form.Check
                     type="checkbox"
                     className="weapon-checkbox"
@@ -257,6 +243,9 @@ function WeaponList({
                         : undefined
                     }
                   />
+                  <Button size="sm" onClick={handleAddToCart(weapon)}>
+                    Add to Cart
+                  </Button>
                 </Card.Footer>
               </Card>
             </Col>

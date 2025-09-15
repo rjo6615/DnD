@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Card, Tab, Button, Nav } from 'react-bootstrap';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
@@ -244,6 +244,7 @@ export default function ShopModal({
   onTabChange,
   currency = {},
 }) {
+  const [cart, setCart] = useState([]);
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
   );
@@ -253,6 +254,10 @@ export default function ShopModal({
       : activeTabState) || DEFAULT_TAB;
 
   const { cp = 0, sp = 0, gp = 0, pp = 0 } = currency || {};
+
+  const handleAddToCart = useCallback((item) => {
+    setCart((prevCart) => [...prevCart, item]);
+  }, []);
 
   useEffect(() => {
     if (activeTab && activeTab !== activeTabState) {
@@ -294,6 +299,7 @@ export default function ShopModal({
               onChange={onWeaponsChange}
               characterId={characterId}
               show={isActive}
+              onAddToCart={handleAddToCart}
             />
           ) : null,
       },
@@ -309,6 +315,7 @@ export default function ShopModal({
               characterId={characterId}
               show={isActive}
               strength={strength}
+              onAddToCart={handleAddToCart}
             />
           ) : null,
       },
@@ -324,6 +331,7 @@ export default function ShopModal({
               characterId={characterId}
               show={isActive}
               onClose={onHide}
+              onAddToCart={handleAddToCart}
             />
           ) : null,
       },
@@ -334,6 +342,7 @@ export default function ShopModal({
       normalizedArmor,
       normalizedItems,
       normalizedWeapons,
+      handleAddToCart,
       onArmorChange,
       onHide,
       onItemsChange,
@@ -369,7 +378,8 @@ export default function ShopModal({
                   </Nav.Item>
                 ))}
               </Nav>
-              <div className="ms-auto text-nowrap">
+              <div className="ms-auto d-flex align-items-center gap-3 text-nowrap">
+                <span>Cart: {cart.length}</span>
                 PP {pp} • GP {gp} • SP {sp} • CP {cp}
               </div>
             </div>

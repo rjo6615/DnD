@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ItemList from './ItemList';
 import apiFetch from '../../utils/apiFetch';
@@ -18,7 +18,7 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches items and toggles ownership', async () => {
+test('fetches items and handles add to cart', async () => {
   apiFetch.mockImplementation((url) => {
     if (url === '/items') {
       return Promise.resolve({ ok: true, json: async () => itemsData });
@@ -28,38 +28,28 @@ test('fetches items and toggles ownership', async () => {
     }
     return Promise.resolve({ ok: false, status: 500, statusText: 'Server Error' });
   });
-  const onChange = jest.fn();
+  const onAddToCart = jest.fn();
 
   render(
     <ItemList
       campaign="Camp1"
-      initialItems={[itemsData.torch]}
-      onChange={onChange}
       characterId="char1"
+      onAddToCart={onAddToCart}
     />
   );
 
   expect(apiFetch).toHaveBeenCalledWith('/items');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/items/Camp1');
-  const potionCheckbox = await screen.findByLabelText('Potion of healing');
-  const torchCheckbox = await screen.findByLabelText('Torch');
-  const jetCheckbox = await screen.findByLabelText('Jetpack');
-  expect(torchCheckbox).toBeChecked();
-  expect(potionCheckbox).not.toBeChecked();
-  expect(jetCheckbox).not.toBeChecked();
+  const potionHeading = await screen.findByText('Potion of healing');
+  const addButton = within(potionHeading.closest('.card')).getByRole('button', {
+    name: /add to cart/i,
+  });
 
-  onChange.mockClear();
-  await userEvent.click(potionCheckbox);
-  await waitFor(() => expect(potionCheckbox).toBeChecked());
-  await waitFor(() =>
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ name: 'potion-healing' }),
-        expect.objectContaining({ name: 'torch' }),
-      ])
-    )
+  await userEvent.click(addButton);
+
+  expect(onAddToCart).toHaveBeenCalledWith(
+    expect.objectContaining({ name: 'potion-healing', type: 'item' })
   );
-  expect(apiFetch).toHaveBeenCalledTimes(2);
 });
 
 test('shows error message when item fetch fails', async () => {
@@ -99,7 +89,7 @@ test('omits card header and footer when embedded', async () => {
 
   render(<ItemList campaign="Camp1" embedded onClose={onClose} />);
 
-  expect(await screen.findByLabelText('Potion of healing')).toBeInTheDocument();
+  expect(await screen.findByText('Potion of healing')).toBeInTheDocument();
   expect(screen.queryByText('Items')).not.toBeInTheDocument();
   expect(document.querySelector('.modern-card')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
