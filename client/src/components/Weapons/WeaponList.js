@@ -247,7 +247,7 @@ function WeaponList({
                     <Card.Text>Weight: {weapon.weight}</Card.Text>
                     <Card.Text>Cost: {weapon.cost}</Card.Text>
                   </Card.Body>
-                  <Card.Footer className="d-flex justify-content-between">
+                  <Card.Footer className="d-flex justify-content-center gap-2">
                     <Form.Check
                       type="checkbox"
                       className="weapon-checkbox"
