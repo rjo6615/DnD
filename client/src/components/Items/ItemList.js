@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Form, Alert, Button, Modal } from 'react-bootstrap';
+import { Card, Row, Col, Form, Alert, Button, Modal } from 'react-bootstrap';
 import apiFetch from '../../utils/apiFetch';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
@@ -192,48 +192,50 @@ function ItemList({
             Unrecognized items from server: {unknownItems.join(', ')}
           </Alert>
         )}
-        <Table striped bordered hover size="sm" className="modern-table">
-          <thead>
-            <tr>
-              <th>Owned</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Weight</th>
-              <th>Cost</th>
-              <th>Notes</th>
-              <th>Stat Bonuses</th>
-              <th>Skill Bonuses</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(items).map(([key, item]) => (
-              <tr key={key}>
-                <td>
+        <Row className="row-cols-2 row-cols-lg-3 g-3">
+          {Object.entries(items).map(([key, item]) => (
+            <Col key={key}>
+              <Card className="item-card h-100">
+                <Card.Body className="d-flex flex-column">
+                  <Card.Title>{item.displayName || item.name}</Card.Title>
+                  <Card.Text>Category: {item.category}</Card.Text>
+                  <Card.Text>Weight: {item.weight}</Card.Text>
+                  <Card.Text>Cost: {item.cost}</Card.Text>
+                  {renderBonuses(item.statBonuses, STAT_LABELS) && (
+                    <Card.Text>
+                      Stat Bonuses: {renderBonuses(item.statBonuses, STAT_LABELS)}
+                    </Card.Text>
+                  )}
+                  {renderBonuses(item.skillBonuses, SKILL_LABELS) && (
+                    <Card.Text>
+                      Skill Bonuses: {renderBonuses(item.skillBonuses, SKILL_LABELS)}
+                    </Card.Text>
+                  )}
+                  {item.notes && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="mt-auto align-self-start p-0"
+                      onClick={handleShowNotes(item)}
+                    >
+                      Notes
+                    </Button>
+                  )}
+                </Card.Body>
+                <Card.Footer className="d-flex justify-content-center">
                   <Form.Check
                     type="checkbox"
                     className="weapon-checkbox"
+                    label="Owned"
                     checked={item.owned}
                     onChange={handleOwnedToggle(key)}
                     aria-label={item.displayName || item.name}
                   />
-                </td>
-                <td>{item.displayName || item.name}</td>
-                <td>{item.category}</td>
-                <td>{item.weight}</td>
-                <td>{item.cost}</td>
-                <td>
-                  {item.notes && (
-                    <Button variant="link" size="sm" onClick={handleShowNotes(item)}>
-                      View
-                    </Button>
-                  )}
-                </td>
-                <td>{renderBonuses(item.statBonuses, STAT_LABELS)}</td>
-                <td>{renderBonuses(item.skillBonuses, SKILL_LABELS)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+                </Card.Footer>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       </Card.Body>
       {typeof onClose === 'function' && (
         <Card.Footer className="modal-footer">
