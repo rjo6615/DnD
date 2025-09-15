@@ -104,8 +104,16 @@ return(
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="center-td" colSpan="3">
-                        <Button onClick={handleLogout} className="action-btn close-btn">
+                      <td className="center-td">
+                        <strong className="text-light">Logout:</strong>
+                      </td>
+                      <td className="center-td"></td>
+                      <td className="text-end">
+                        <Button onClick={handleLogout} className="logout-button">
+                          <span className="logout-button__icon" aria-hidden="true">
+                            <span className="logout-button__door" />
+                            <span className="logout-button__arrow" />
+                          </span>
                           Logout
                         </Button>
                       </td>
