@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Button, Form, Col, Row, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
@@ -16,16 +16,9 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     armor: "",
   });
   const [chosenArmor, setChosenArmor] = useState('');
-  const [notification, setNotification] = useState({ show: false, message: '', variant: 'info' });
+  const [notification, setNotification] = useState(null);
   const handleChosenArmorChange = (e) => {
       setChosenArmor(e.target.value);
-  };
-  const showNotification = (message, variant = 'info', callback) => {
-    setNotification({ show: true, message, variant });
-    setTimeout(() => {
-      setNotification({ show: false, message: '', variant: 'info' });
-      if (callback) callback();
-    }, 3000);
   };
   function updateArmor(value) {
     return setAddArmor((prev) => {
@@ -35,20 +28,25 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   // Fetch Armors
   useEffect(() => {
     async function fetchArmor() {
-      const response = await apiFetch(`/equipment/armor/${currentCampaign}`);
+      try {
+        const response = await apiFetch(`/equipment/armor/${currentCampaign}`);
 
-      if (!response.ok) {
-        const message = `An error has occurred: ${response.statusText}`;
-        showNotification(message, 'danger');
-        return;
-      }
+        if (!response.ok) {
+          const message = `An error has occurred: ${response.statusText}`;
+          setNotification({ message, variant: 'danger' });
+          return;
+        }
 
-      const record = await response.json();
-      if (!record) {
-        showNotification('Record not found', 'danger', () => navigate("/"));
-        return;
+        const record = await response.json();
+        if (!record) {
+          setNotification({ message: 'Record not found', variant: 'danger' });
+          navigate("/");
+          return;
+        }
+        setArmor({armor: record});
+      } catch (error) {
+        setNotification({ message: error.message || String(error), variant: 'danger' });
       }
-      setArmor({armor: record});
     }
     fetchArmor();
     return;
@@ -75,20 +73,20 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
   }
   async function addArmorToDb(e){
     e.preventDefault();
-   await apiFetch(`/equipment/update-armor/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      armor: newArmor,
-     }),
-   })
-   .catch(error => {
-     showNotification(error.toString(), 'danger');
-     return;
-   });
-   navigate(0);
+    try {
+      await apiFetch(`/equipment/update-armor/${params.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+         armor: newArmor,
+        }),
+      });
+      navigate(0);
+    } catch (error) {
+      setNotification({ message: error.message || String(error), variant: 'danger' });
+    }
   }
   // This method will delete a armor
   function deleteArmors(el) {
@@ -102,6 +100,8 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
     let newArmorForm = form.armor;
     if (JSON.stringify(form.armor) === JSON.stringify([])){
       newArmorForm = [["","",""]];
+    }
+    try {
       await apiFetch(`/equipment/update-armor/${params.id}`, {
         method: "PUT",
         headers: {
@@ -110,90 +110,78 @@ export default function Armor({form, showArmor, handleCloseArmor, dexMod}) {
         body: JSON.stringify({
          armor: newArmorForm,
         }),
-      })
-      .catch(error => {
-        showNotification(error.toString(), 'danger');
-        return;
       });
-      showNotification('Armor Deleted', 'success', () => navigate(0));
-    } else {
-    await apiFetch(`/equipment/update-armor/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      armor: newArmorForm,
-     }),
-   })
-   .catch(error => {
-     showNotification(error.toString(), 'danger');
-     return;
-   });
-   showNotification('Armor Deleted', 'success', () => navigate(0));
-  }
+      setNotification({ message: 'Armor Deleted', variant: 'success' });
+      navigate(0);
+    } catch (error) {
+      setNotification({ message: error.message || String(error), variant: 'danger' });
+    }
   }
 
 return(
     <div>
-     {notification.show && (
-      <Alert className="position-fixed top-0 start-50 translate-middle-x mt-3" variant={notification.variant}>
-        {notification.message}
-      </Alert>
-     )}
-     {/* ------------------------------------------------Armor Render-----------------------------------------------------------
+    {/* ------------------------------------------------Armor Render-----------------------------------------------------------
 ----------------------------------------------------- */}
-<Modal className="dnd-modal modern-modal" show={showArmor} onHide={handleCloseArmor} size="lg" scrollable centered>
+<Modal className="dnd-modal modern-modal" show={showArmor} onHide={handleCloseArmor} size="lg" centered>
   <div className="text-center">
     <Card className="modern-card">
       <Card.Header className="modal-header">
         <Card.Title className="modal-title">Armor</Card.Title>
       </Card.Header>
-      <Card.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-        <Table striped bordered hover size="sm" className="modern-table">
-          <thead>
-            <tr>
-              <th>Armor Name</th>
-              <th>Ac Bns</th>
-              <th>Max Dex Bns</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+        {notification && (
+          <Alert variant={notification.variant} onClose={() => setNotification(null)} dismissible>
+            {notification.message}
+          </Alert>
+        )}
+        <Row className="g-2">
           {form.armor.map((el) => (
-            <tr key={el[0]}>
-              <td>{el[0]}</td>
-              <td>{el[1]}</td>
-              <td>{el[2]}</td>
-              <td><Button size="sm" className="btn-danger action-btn fa-solid fa-trash" hidden={!showDeleteArmorBtn} onClick={() => {deleteArmors(el);}}></Button></td>
-            </tr>
-            ))}
-          </tbody>
-        </Table>
-    <Row>
-        <Col>
-          <Form onSubmit={addArmorToDb}>
-          <Form.Group className="mb-3 mx-5">
-        <Form.Label className="text-light">Select Armor</Form.Label>
-        <Form.Select
-        onChange={(e) => {updateArmor({ armor: e.target.value }); handleChosenArmorChange(e);}}
-        defaultValue=""
-         type="text">
-          <option value="" disabled>Select your armor</option>
-          {armor.armor.map((el) => (
-          <option
-            key={el.armorName}
-            value={[el.armorName, el.acBonus || el.armorBonus, el.maxDex]}
-          >
-            {el.armorName}
-          </option>
+            <Col xs={6} md={4} key={el[0]}>
+              <Card className="armor-card h-100">
+                <Card.Body>
+                  <Card.Title as="h6">{el[0]}</Card.Title>
+                  <Card.Text>AC Bonus: {el[1]}</Card.Text>
+                  <Card.Text>Max Dex Bonus: {el[2]}</Card.Text>
+                </Card.Body>
+                <Card.Footer>
+                  <Button
+                    size="sm"
+                    className="btn-danger action-btn fa-solid fa-trash"
+                    hidden={!showDeleteArmorBtn}
+                    onClick={() => {
+                      deleteArmors(el);
+                    }}
+                  ></Button>
+                </Card.Footer>
+              </Card>
+            </Col>
           ))}
-        </Form.Select>
-      </Form.Group>
-        <Button disabled={!chosenArmor} className="action-btn" type="submit">Add</Button>
-          </Form>
-        </Col>
-      </Row>
+        </Row>
+        <Row>
+          <Col>
+            <Form onSubmit={addArmorToDb}>
+              <Form.Group className="mb-3 mx-5">
+                <Form.Label className="text-light">Select Armor</Form.Label>
+                <Form.Select
+                  onChange={(e) => {updateArmor({ armor: e.target.value }); handleChosenArmorChange(e);}}
+                  defaultValue=""
+                  type="text"
+                >
+                  <option value="" disabled>Select your armor</option>
+                  {armor.armor.map((el) => (
+                    <option
+                      key={el.armorName}
+                      value={[el.armorName, el.acBonus || el.armorBonus, el.maxDex]}
+                    >
+                      {el.armorName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <Button disabled={!chosenArmor} className="action-btn" type="submit">Add</Button>
+            </Form>
+          </Col>
+        </Row>
       </Card.Body>
       <Card.Footer className="modal-footer">
         <Button className="action-btn close-btn" onClick={handleCloseArmor}>Close</Button>
@@ -204,4 +192,3 @@ return(
     </div>
 )
 }
-
