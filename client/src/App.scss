@@ -90,6 +90,12 @@
   color: var(--bs-body-color);
 }
 
+.weapon-card .card-title,
+.weapon-card .card-text {
+  margin-bottom: 0.25rem; // reduce vertical gap
+  line-height: 1.2;
+}
+
 @media (max-width: 576px) {
   .weapon-card {
     font-size: 0.6rem;
