@@ -228,7 +228,7 @@ function WeaponList({
             Unrecognized weapons from server: {unknownWeapons.join(', ')}
           </Alert>
         )}
-        <Row className="row-cols-3 g-3">
+        <Row className="row-cols-2 row-cols-lg-3 g-3">
           {Object.entries(weapons).map(([key, weapon]) => {
             const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
             return (
