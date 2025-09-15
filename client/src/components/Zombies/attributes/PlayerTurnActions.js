@@ -175,7 +175,11 @@ const [isFumble, setIsFumble] = useState(false);
     const ability = abilityForWeapon(weapon);
     const result = calculateDamage(weapon.damage, ability, isCritical);
     if (!result) return;
-    updateDamageValueWithAnimation(result.total, result.breakdown);
+    updateDamageValueWithAnimation(
+      result.total,
+      result.breakdown,
+      weapon.name
+    );
   };
 
 const [showUpcast, setShowUpcast] = useState(false);
@@ -207,7 +211,7 @@ const [pendingSpell, setPendingSpell] = useState(null);
       diff > 0 ? diff : 0
     );
     if (!value) return;
-    updateDamageValueWithAnimation(value.total, value.breakdown);
+    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name);
     onCastSpell?.({
       level,
       slotType,
@@ -273,13 +277,13 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (newValue, breakdown) => {
+const updateDamageValueWithAnimation = (newValue, breakdown, source) => {
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
   if (newValue !== undefined) {
     setDamageLog((prev) => {
-      const entry = { total: newValue, breakdown };
+      const entry = { total: newValue, breakdown, source };
       return [entry, { divider: true }, ...prev].slice(0, 10);
     });
   }
@@ -292,8 +296,8 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const { value, breakdown, critical, fumble } = e.detail || {};
-    updateDamageValueWithAnimation(value, breakdown);
+    const { value, breakdown, source, critical, fumble } = e.detail || {};
+    updateDamageValueWithAnimation(value, breakdown, source);
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
@@ -479,7 +483,9 @@ const showSparklesEffect = () => {
                 <li key={idx} className="roll-separator" />
               ) : (
                 <li key={idx}>
-                  <div>{entry.total}</div>
+                  <div>
+                    {entry.source ? `${entry.source} (${entry.total})` : entry.total}
+                  </div>
                   {entry.breakdown && (
                     <div>
                       {entry.breakdown.split(' + ').map((segment, i) => {
