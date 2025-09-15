@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Card, Tabs, Tab, Button } from 'react-bootstrap';
+import { Modal, Card, Tab, Button, Nav } from 'react-bootstrap';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
@@ -360,25 +360,30 @@ export default function ShopModal({
           className="modal-body"
           style={{ maxHeight: '80vh', overflowY: 'auto' }}
         >
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <Tabs
-              activeKey={currentTab}
-              onSelect={handleSelectTab}
-              className="mb-0"
-            >
-              {tabConfigs.map(({ key, title, render }) => {
+          <Tab.Container activeKey={currentTab} onSelect={handleSelectTab}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <Nav variant="tabs" className="mb-0">
+                {tabConfigs.map(({ key, title }) => (
+                  <Nav.Item key={key}>
+                    <Nav.Link eventKey={key}>{title}</Nav.Link>
+                  </Nav.Item>
+                ))}
+              </Nav>
+              <div className="ms-auto text-nowrap">
+                PP {pp} • GP {gp} • SP {sp} • CP {cp}
+              </div>
+            </div>
+            <Tab.Content>
+              {tabConfigs.map(({ key, render }) => {
                 const isActive = show && currentTab === key;
                 return (
-                  <Tab eventKey={key} title={title} key={key}>
+                  <Tab.Pane eventKey={key} key={key}>
                     {render(isActive)}
-                  </Tab>
+                  </Tab.Pane>
                 );
               })}
-            </Tabs>
-            <div className="ms-auto text-nowrap">
-              PP {pp} • GP {gp} • SP {sp} • CP {cp}
-            </div>
-          </div>
+            </Tab.Content>
+          </Tab.Container>
         </Card.Body>
         <Card.Footer className="modal-footer">
           <Button className="action-btn close-btn" onClick={onHide}>
