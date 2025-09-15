@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Card, Tab, Button, Nav } from 'react-bootstrap';
+import { Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
+import { FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
@@ -245,6 +246,7 @@ export default function ShopModal({
   currency = {},
 }) {
   const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
   );
@@ -257,6 +259,15 @@ export default function ShopModal({
 
   const handleAddToCart = useCallback((item) => {
     setCart((prevCart) => [...prevCart, item]);
+  }, []);
+
+  const handleRemoveFromCart = useCallback((index) => {
+    setCart((prevCart) => {
+      if (index < 0 || index >= prevCart.length) return prevCart;
+      const updatedCart = [...prevCart];
+      updatedCart.splice(index, 1);
+      return updatedCart;
+    });
   }, []);
 
   useEffect(() => {
@@ -352,7 +363,8 @@ export default function ShopModal({
   );
 
   return (
-    <Modal
+    <>
+      <Modal
       className="dnd-modal modern-modal"
       show={show}
       onHide={onHide}
@@ -379,8 +391,21 @@ export default function ShopModal({
                 ))}
               </Nav>
               <div className="ms-auto d-flex align-items-center gap-3 text-nowrap">
-                <span>Cart: {cart.length}</span>
-                PP {pp} • GP {gp} • SP {sp} • CP {cp}
+                <span>PP {pp} • GP {gp} • SP {sp} • CP {cp}</span>
+                <Button
+                  variant="link"
+                  className="position-relative p-0"
+                  onClick={() => setShowCart(true)}
+                >
+                  <FaShoppingCart size={20} />
+                  <Badge
+                    bg="secondary"
+                    pill
+                    className="position-absolute top-0 start-100 translate-middle"
+                  >
+                    {cart.length}
+                  </Badge>
+                </Button>
               </div>
             </div>
             <Tab.Content>
@@ -401,6 +426,46 @@ export default function ShopModal({
           </Button>
         </Card.Footer>
       </Card>
-    </Modal>
+      </Modal>
+      <Modal show={showCart} onHide={() => setShowCart(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Cart</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {cart.length === 0 ? (
+            <p className="mb-0">Your cart is empty.</p>
+          ) : (
+            <div className="d-flex flex-column gap-2">
+              {cart.map((item, index) => (
+                <div
+                  key={`${item?.name || 'item'}-${index}`}
+                  className="d-flex justify-content-between align-items-center"
+                >
+                  <div className="me-3">
+                    <div className="fw-semibold">{item?.name || 'Unknown Item'}</div>
+                    <div className="text-muted small">
+                      {item?.type ? `${item.type} • ` : ''}
+                      Cost: {item?.cost ?? '—'}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => handleRemoveFromCart(index)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCart(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   );
 }
