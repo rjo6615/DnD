@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Alert, Row, Col, Button } from 'react-bootstrap';
+import {
+  GiLeatherArmor,
+  GiBreastplate,
+  GiChainMail,
+  GiShield,
+  GiArmorVest,
+} from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/armor').Armor} Armor */
@@ -168,6 +175,13 @@ function ArmorList({
     );
   }
 
+  const categoryIcons = {
+    light: GiLeatherArmor,
+    medium: GiBreastplate,
+    heavy: GiChainMail,
+    shield: GiShield,
+  };
+
   const handleOwnedToggle = (key) => () => {
     const piece = armor[key];
     const unmet = piece.strength && strength < piece.strength;
@@ -249,11 +263,35 @@ function ArmorList({
         <Row className="g-2">
           {Object.entries(armor).map(([key, piece]) => {
             const unmet = piece.strength && strength < piece.strength;
+            const Icon = categoryIcons[piece.category] || GiArmorVest;
             return (
               <Col xs={6} md={4} key={key}>
                 <Card className="armor-card h-100">
-                  <Card.Body>
+                  <Card.Body className="d-flex flex-column">
+                    <div className="d-flex justify-content-center mb-2">
+                      <Icon size={40} title={piece.category} />
+                    </div>
                     <Card.Title as="h6">{piece.displayName || piece.name}</Card.Title>
+                    <Card.Text>AC Bonus: {piece.acBonus !== '' && piece.acBonus !== null && piece.acBonus !== undefined ? piece.acBonus : ''}</Card.Text>
+                    <Card.Text>
+                      Max Dex{' '}
+                      {piece.maxDex === null || piece.maxDex === undefined
+                        ? '—'
+                        : piece.maxDex}
+                    </Card.Text>
+                    <Card.Text>
+                      Strength{' '}
+                      {piece.strength === null || piece.strength === undefined
+                        ? '—'
+                        : piece.strength}
+                    </Card.Text>
+                    <Card.Text>
+                      Stealth: {piece.stealth ? 'Disadvantage' : '—'}
+                    </Card.Text>
+                    <Card.Text>Weight: {piece.weight}</Card.Text>
+                    <Card.Text>Cost: {piece.cost}</Card.Text>
+                  </Card.Body>
+                  <Card.Footer className="d-flex justify-content-center gap-2">
                     <Form.Check
                       type="checkbox"
                       label="Owned"
@@ -278,26 +316,6 @@ function ArmorList({
                           : undefined
                       }
                     />
-                    <Card.Text>AC Bonus: {piece.acBonus !== '' && piece.acBonus !== null && piece.acBonus !== undefined ? piece.acBonus : ''}</Card.Text>
-                    <Card.Text>
-                      Max Dex:{' '}
-                      {piece.maxDex === null || piece.maxDex === undefined
-                        ? '—'
-                        : piece.maxDex}
-                    </Card.Text>
-                    <Card.Text>
-                      Strength:{' '}
-                      {piece.strength === null || piece.strength === undefined
-                        ? '—'
-                        : piece.strength}
-                    </Card.Text>
-                    <Card.Text>
-                      Stealth: {piece.stealth ? 'Disadvantage' : '—'}
-                    </Card.Text>
-                    <Card.Text>Weight: {piece.weight}</Card.Text>
-                    <Card.Text>Cost: {piece.cost}</Card.Text>
-                  </Card.Body>
-                  <Card.Footer>
                     <Button
                       size="sm"
                       className="btn-danger action-btn fa-solid fa-trash"
