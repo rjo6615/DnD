@@ -37,6 +37,7 @@ describe('Character routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
     expect(captured.allowedSkills).toEqual([]);
+    expect(captured).toMatchObject({ cp: 0, sp: 0, gp: 0, pp: 0 });
   });
 
   test('add character with array fields', async () => {
@@ -129,6 +130,43 @@ describe('Character routes', () => {
       .post('/characters/add')
       .send({ token: 'alice' });
     expect(res.status).toBe(400);
+  });
+
+  test('update currency normalizes totals before persisting', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ cp: 5, sp: 4, gp: 3, pp: 2 }),
+        updateOne,
+      }),
+    });
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/currency')
+      .send({ cp: 5 });
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(updateOne.mock.calls[0][1]).toEqual({
+      $set: { cp: 0, sp: 5, gp: 3, pp: 2 },
+    });
+    expect(res.body).toEqual({ cp: 0, sp: 5, gp: 3, pp: 2 });
+  });
+
+  test('currency adjustments follow 10-to-1 conversion chain', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ cp: 0, sp: 0, gp: 0, pp: 0 }),
+        updateOne,
+      }),
+    });
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/currency')
+      .send({ cp: 10, sp: 10, gp: 10 });
+    expect(res.status).toBe(200);
+    expect(updateOne.mock.calls[0][1]).toEqual({
+      $set: { cp: 0, sp: 1, gp: 1, pp: 1 },
+    });
+    expect(res.body).toEqual({ cp: 0, sp: 1, gp: 1, pp: 1 });
   });
 
   test('update spells success', async () => {

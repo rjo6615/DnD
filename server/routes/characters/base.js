@@ -204,6 +204,7 @@ module.exports = (router) => {
   // This section will create a new character.
   // Includes numeric stats like initiative, AC, speed, passive scores, and HP bonuses.
   const numericCharacterFields = [...numericFields];
+  const currencyFields = ['cp', 'sp', 'gp', 'pp'];
 
   characterRouter.post(
     '/add',
@@ -237,12 +238,19 @@ module.exports = (router) => {
       body('spells.*.duration').optional().isString(),
       body('sex').optional().trim(),
       body('diceColor').optional().trim(),
+      ...currencyFields.map((field) => body(field).optional().isInt().toInt()),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
     ],
     handleValidationErrors,
     async (req, res, next) => {
       const db_connect = req.db;
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+
+      currencyFields.forEach((field) => {
+        if (typeof myobj[field] !== 'number') {
+          myobj[field] = 0;
+        }
+      });
 
       // initialize skills structure with proficiency/expertise flags if not provided
       if (!myobj.skills) {
