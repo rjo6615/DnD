@@ -196,7 +196,7 @@ describe('cart interactions', () => {
   }) => {
     renderShopModal();
 
-    const cartButton = screen.getByRole('button', { name: '0' });
+    const cartButton = screen.getByRole('button', { name: /view cart/i });
 
     if (tab) {
       await act(async () => {
