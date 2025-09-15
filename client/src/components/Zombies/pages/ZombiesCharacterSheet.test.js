@@ -409,7 +409,12 @@ test('handleCastSpell closes modal and outputs spell name', async () => {
   mockOnCastSpell.current({ level: 1, name: 'Mage Hand' });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockUpdateDamage).toHaveBeenCalledWith('Mage Hand', undefined, undefined);
+  expect(mockUpdateDamage).toHaveBeenCalledWith(
+    'Mage Hand',
+    undefined,
+    undefined,
+    false
+  );
 });
 
 test('handleCastSpell outputs calculated damage', async () => {
