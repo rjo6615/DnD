@@ -182,4 +182,95 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(screen.getByPlaceholderText('Strength')).toHaveValue(2));
     expect(screen.getByPlaceholderText('Stealth')).toHaveValue(3);
   });
+
+  test('renders currency column with adjustment action', async () => {
+    const characters = [
+      {
+        _id: 'char1',
+        token: 'Player1',
+        characterName: 'Hero',
+        occupation: [{ Level: '2', Occupation: 'Wizard' }],
+      },
+    ];
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    expect(await screen.findByRole('columnheader', { name: 'Currency' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Adjust/i })).toBeInTheDocument();
+  });
+
+  test('submits normalized currency adjustments to the API', async () => {
+    const characters = [
+      {
+        _id: 'char1',
+        token: 'Player1',
+        characterName: 'Hero',
+        occupation: [{ Level: '2', Occupation: 'Wizard' }],
+      },
+    ];
+    let charactersRequestCount = 0;
+    let currencyRequest;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          charactersRequestCount += 1;
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/characters/char1/currency':
+          currencyRequest = options;
+          return Promise.resolve({ ok: true });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const adjustButton = await screen.findByRole('button', { name: /Adjust/i });
+    await userEvent.click(adjustButton);
+
+    const copperInput = await screen.findByLabelText(/Copper/i);
+    const silverInput = screen.getByLabelText(/Silver/i);
+    const goldInput = screen.getByLabelText(/Gold/i);
+    const platinumInput = screen.getByLabelText(/Platinum/i);
+
+    await userEvent.clear(copperInput);
+    await userEvent.type(copperInput, '15');
+    await userEvent.clear(silverInput);
+    await userEvent.type(silverInput, '9');
+    await userEvent.clear(goldInput);
+    await userEvent.type(goldInput, '1');
+    await userEvent.clear(platinumInput);
+    await userEvent.type(platinumInput, '0');
+
+    const submitButton = screen.getByRole('button', { name: /Update Currency/i });
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(currencyRequest).toBeDefined();
+      expect(currencyRequest.method).toBe('PUT');
+      expect(JSON.parse(currencyRequest.body)).toEqual({ cp: 5, sp: 0, gp: 2, pp: 0 });
+    });
+
+    await waitFor(() => {
+      expect(charactersRequestCount).toBeGreaterThanOrEqual(2);
+    });
+  });
 });
