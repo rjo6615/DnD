@@ -37,24 +37,24 @@ export default function ZombiesDM() {
     const params = useParams();
     const [records, setRecords] = useState([]);
     const [status, setStatus] = useState(null);
-    useEffect(() => {
-      async function getRecords() {
-        const response = await apiFetch(`/campaigns/${params.campaign}/characters`);
 
-        if (!response.ok) {
-          const message = `An error occurred: ${response.statusText}`;
-          setStatus({ type: 'danger', message });
-          return;
-        }
+    const fetchRecords = useCallback(async () => {
+      const response = await apiFetch(`/campaigns/${params.campaign}/characters`);
 
-        const data = await response.json();
-        setRecords(data);
+      if (!response.ok) {
+        const message = `An error occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
       }
 
-      getRecords();
-
-      return;
+      const data = await response.json();
+      setRecords(data);
     }, [params.campaign]);
+
+    useEffect(() => {
+      fetchRecords();
+      return;
+    }, [fetchRecords]);
   
     const navigateToCharacter = (id) => {
       navigate(`/zombies-character-sheet/${id}`);
@@ -63,6 +63,82 @@ export default function ZombiesDM() {
     const [showPlayers, setShowPlayers] = useState(false);
     const handleClosePlayers = () => setShowPlayers(false);
     const handleShowPlayers = () => setShowPlayers(true);
+    //--------------------------------------------Currency Adjustments------------------------------
+    const [currencyModalState, setCurrencyModalState] = useState({ show: false, character: null });
+    const [currencyInputs, setCurrencyInputs] = useState({ cp: '0', sp: '0', gp: '0', pp: '0' });
+    const [currencySubmitting, setCurrencySubmitting] = useState(false);
+
+    const openCurrencyModal = (character) => {
+      setCurrencyModalState({ show: true, character });
+      setCurrencyInputs({ cp: '0', sp: '0', gp: '0', pp: '0' });
+    };
+
+    const closeCurrencyModal = () => {
+      setCurrencyModalState({ show: false, character: null });
+    };
+
+    const updateCurrencyInput = (field, value) => {
+      setCurrencyInputs((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const convertCopperToCurrency = (totalCopper) => {
+      const sign = totalCopper < 0 ? -1 : 1;
+      let remaining = Math.abs(totalCopper);
+      const pp = Math.floor(remaining / 1000);
+      remaining %= 1000;
+      const gp = Math.floor(remaining / 100);
+      remaining %= 100;
+      const sp = Math.floor(remaining / 10);
+      remaining %= 10;
+      const cp = remaining;
+
+      return {
+        pp: pp * sign,
+        gp: gp * sign,
+        sp: sp * sign,
+        cp: cp * sign,
+      };
+    };
+
+    const handleCurrencySubmit = async (event) => {
+      event.preventDefault();
+      if (!currencyModalState.character) {
+        return;
+      }
+      setCurrencySubmitting(true);
+      try {
+        const parseField = (value) => {
+          const parsed = parseInt(value, 10);
+          return Number.isNaN(parsed) ? 0 : parsed;
+        };
+
+        const copper = parseField(currencyInputs.cp);
+        const silver = parseField(currencyInputs.sp);
+        const gold = parseField(currencyInputs.gp);
+        const platinum = parseField(currencyInputs.pp);
+
+        const totalCopper = copper + silver * 10 + gold * 100 + platinum * 1000;
+        const normalized = convertCopperToCurrency(totalCopper);
+
+        const response = await apiFetch(`/characters/${currencyModalState.character._id}/currency`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(normalized),
+        });
+
+        if (!response.ok) {
+          throw new Error(response.statusText || 'Failed to update currency');
+        }
+
+        await fetchRecords();
+        setStatus({ type: 'success', message: 'Currency updated.' });
+        closeCurrencyModal();
+      } catch (error) {
+        setStatus({ type: 'danger', message: error.message || 'Failed to update currency' });
+      } finally {
+        setCurrencySubmitting(false);
+      }
+    };
 //--------------------------------------------Campaign Section------------------------------
 const [campaignDM, setCampaignDM] = useState({ players: [] });
 
@@ -734,13 +810,14 @@ const [form2, setForm2] = useState({
       <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background w-75 mx-auto">
         <thead>
             <tr>
-                <th colSpan="5" style={{fontSize: 28}}>{params.campaign}</th>
+                <th colSpan="6" style={{fontSize: 28}}>{params.campaign}</th>
             </tr>
           <tr>
             <th>Player</th>
             <th>Character</th>
             <th>Level</th>
             <th>Class</th>
+            <th>Currency</th>
             <th>View</th>
           </tr>
         </thead>
@@ -758,6 +835,16 @@ const [form2, setForm2] = useState({
               <td>
                 <Button
                   size="sm"
+                  variant="secondary"
+                  className="rounded-pill"
+                  onClick={() => openCurrencyModal(Characters)}
+                >
+                  Adjust
+                </Button>
+              </td>
+              <td>
+                <Button
+                  size="sm"
                   variant="link"
                   className="p-0"
                   style={{ border: 'none' }}
@@ -771,6 +858,68 @@ const [form2, setForm2] = useState({
         </tbody>
       </Table>
     </div>
+
+    <Modal
+      className="dnd-modal"
+      size="sm"
+      centered
+      show={currencyModalState.show}
+      onHide={closeCurrencyModal}
+    >
+      <Form onSubmit={handleCurrencySubmit}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Adjust Currency{currencyModalState.character ? ` - ${currencyModalState.character.characterName}` : ''}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3" controlId="currencyCopper">
+            <Form.Label>Copper</Form.Label>
+            <Form.Control
+              type="number"
+              step="1"
+              value={currencyInputs.cp}
+              onChange={(event) => updateCurrencyInput('cp', event.target.value)}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3" controlId="currencySilver">
+            <Form.Label>Silver</Form.Label>
+            <Form.Control
+              type="number"
+              step="1"
+              value={currencyInputs.sp}
+              onChange={(event) => updateCurrencyInput('sp', event.target.value)}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3" controlId="currencyGold">
+            <Form.Label>Gold</Form.Label>
+            <Form.Control
+              type="number"
+              step="1"
+              value={currencyInputs.gp}
+              onChange={(event) => updateCurrencyInput('gp', event.target.value)}
+            />
+          </Form.Group>
+          <Form.Group className="mb-0" controlId="currencyPlatinum">
+            <Form.Label>Platinum</Form.Label>
+            <Form.Control
+              type="number"
+              step="1"
+              value={currencyInputs.pp}
+              onChange={(event) => updateCurrencyInput('pp', event.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeCurrencyModal} disabled={currencySubmitting}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" disabled={currencySubmitting}>
+            Update Currency
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
 
         <Modal className="dnd-modal" size="lg" centered show={showPlayers} onHide={handleClosePlayers}>
          <div className="text-center">
