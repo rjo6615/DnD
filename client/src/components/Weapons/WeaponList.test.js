@@ -266,3 +266,18 @@ test('warns when unknown weapon names are returned', async () => {
   warn.mockRestore();
 });
 
+test('omits card wrapper when embedded', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: [], proficient: {}, granted: [] }),
+    });
+
+  render(<WeaponList characterId="char1" embedded />);
+
+  expect(await screen.findByLabelText('Club')).toBeInTheDocument();
+  expect(screen.queryByText('Weapons')).not.toBeInTheDocument();
+  expect(document.querySelector('.modern-card')).toBeNull();
+});
+

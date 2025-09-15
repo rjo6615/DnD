@@ -83,3 +83,24 @@ test('shows error message when item fetch fails', async () => {
     await screen.findByText('Failed to load items: 500 Server Error')
   ).toBeInTheDocument();
 });
+
+test('omits card header and footer when embedded', async () => {
+  apiFetch.mockImplementation((url) => {
+    if (url === '/items') {
+      return Promise.resolve({ ok: true, json: async () => itemsData });
+    }
+    if (url === '/equipment/items/Camp1') {
+      return Promise.resolve({ ok: true, json: async () => customData });
+    }
+    return Promise.resolve({ ok: false, status: 500, statusText: 'Server Error' });
+  });
+
+  const onClose = jest.fn();
+
+  render(<ItemList campaign="Camp1" embedded onClose={onClose} />);
+
+  expect(await screen.findByLabelText('Potion of healing')).toBeInTheDocument();
+  expect(screen.queryByText('Items')).not.toBeInTheDocument();
+  expect(document.querySelector('.modern-card')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+});

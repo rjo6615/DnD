@@ -51,6 +51,7 @@ const renderBonuses = (bonuses, labels) =>
  *   characterId?: string,
  *   show?: boolean,
  *   onClose?: () => void,
+ *   embedded?: boolean,
  * }} props
  */
 function ItemList({
@@ -60,6 +61,7 @@ function ItemList({
   characterId,
   show = true,
   onClose,
+  embedded = false,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, displayName?: string }> | null} */(null);
@@ -195,41 +197,38 @@ function ItemList({
   const handleCloseNotes = () => setNotesItem(null);
   const handleShowNotes = (item) => () => setNotesItem(item);
 
-  return (
-    <Card className="modern-card">
-      <Card.Header className="modal-header">
-        <Card.Title className="modal-title">Items</Card.Title>
-      </Card.Header>
-      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-        {error && (
-          <Alert variant="danger">
-            {`Failed to load items: ${
-              error.message || `${error.status} ${error.statusText}`
-            }`}
-          </Alert>
-        )}
-        {unknownItems.length > 0 && (
-          <Alert variant="warning">
-            Unrecognized items from server: {unknownItems.join(', ')}
-          </Alert>
-        )}
-        <Row className="row-cols-2 row-cols-lg-3 g-3">
-          {Object.entries(items).map(([key, item]) => {
-            const categoryKey =
-              typeof item.category === 'string' ? item.category.toLowerCase() : '';
-            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
-            return (
-              <Col key={key}>
-                <Card className="item-card h-100">
-                  <Card.Body className="d-flex flex-column">
-                    <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={item.category} />
-                    </div>
-                    <Card.Title>{item.displayName || item.name}</Card.Title>
-                    <Card.Text>Category: {item.category}</Card.Text>
-                    <Card.Text>Weight: {item.weight}</Card.Text>
-                    <Card.Text>Cost: {item.cost}</Card.Text>
-                    {renderBonuses(item.statBonuses, STAT_LABELS) && (
+  const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const bodyContent = (
+    <>
+      {error && (
+        <Alert variant="danger">
+          {`Failed to load items: ${
+            error.message || `${error.status} ${error.statusText}`
+          }`}
+        </Alert>
+      )}
+      {unknownItems.length > 0 && (
+        <Alert variant="warning">
+          Unrecognized items from server: {unknownItems.join(', ')}
+        </Alert>
+      )}
+      <Row className="row-cols-2 row-cols-lg-3 g-3">
+        {Object.entries(items).map(([key, item]) => {
+          const categoryKey =
+            typeof item.category === 'string' ? item.category.toLowerCase() : '';
+          const Icon = categoryIcons[categoryKey] || GiTreasureMap;
+          return (
+            <Col key={key}>
+              <Card className="item-card h-100">
+                <Card.Body className="d-flex flex-column">
+                  <div className="d-flex justify-content-center mb-2">
+                    <Icon size={40} title={item.category} />
+                  </div>
+                  <Card.Title>{item.displayName || item.name}</Card.Title>
+                  <Card.Text>Category: {item.category}</Card.Text>
+                  <Card.Text>Weight: {item.weight}</Card.Text>
+                  <Card.Text>Cost: {item.cost}</Card.Text>
+                  {renderBonuses(item.statBonuses, STAT_LABELS) && (
                     <Card.Text>
                       Stat Bonuses: {renderBonuses(item.statBonuses, STAT_LABELS)}
                     </Card.Text>
@@ -260,12 +259,44 @@ function ItemList({
                     aria-label={item.displayName || item.name}
                   />
                 </Card.Footer>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      </Card.Body>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </>
+  );
+
+  const body = embedded ? (
+    <div style={bodyStyle}>{bodyContent}</div>
+  ) : (
+    <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
+  );
+
+  const modal = (
+    <Modal show={!!notesItem} onHide={handleCloseNotes} size="sm">
+      <Modal.Header closeButton>
+        <Modal.Title>{notesItem?.displayName || notesItem?.name}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>{notesItem?.notes}</Modal.Body>
+    </Modal>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {body}
+        {modal}
+      </>
+    );
+  }
+
+  return (
+    <Card className="modern-card">
+      <Card.Header className="modal-header">
+        <Card.Title className="modal-title">Items</Card.Title>
+      </Card.Header>
+      {body}
       {typeof onClose === 'function' && (
         <Card.Footer className="modal-footer">
           <Button className="action-btn close-btn" onClick={onClose}>
@@ -273,12 +304,7 @@ function ItemList({
           </Button>
         </Card.Footer>
       )}
-      <Modal show={!!notesItem} onHide={handleCloseNotes} size="sm">
-        <Modal.Header closeButton>
-          <Modal.Title>{notesItem?.displayName || notesItem?.name}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{notesItem?.notes}</Modal.Body>
-      </Modal>
+      {modal}
     </Card>
   );
 }

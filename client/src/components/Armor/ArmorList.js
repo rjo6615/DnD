@@ -20,6 +20,7 @@ import apiFetch from '../../utils/apiFetch';
  *   characterId?: string,
  *   show?: boolean,
  *   strength?: number,
+ *   embedded?: boolean,
  * }} props
  */
 function ArmorList({
@@ -29,6 +30,7 @@ function ArmorList({
   characterId,
   show = true,
   strength = Number.POSITIVE_INFINITY,
+  embedded = false,
 }) {
   const [armor, setArmor] =
     useState/** @type {Record<string, Armor & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -162,19 +164,6 @@ function ArmorList({
     return <div>Loading...</div>;
   }
 
-  if (error) {
-    return (
-      <Card className="modern-card">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">Armor</Card.Title>
-        </Card.Header>
-        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          <div className="text-danger">{error}</div>
-        </Card.Body>
-      </Card>
-    );
-  }
-
   const categoryIcons = {
     light: GiLeatherArmor,
     medium: GiBreastplate,
@@ -249,86 +238,104 @@ function ArmorList({
     }
   };
 
+  const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const bodyContent = error ? (
+    <div className="text-danger">{error}</div>
+  ) : (
+    <>
+      {unknownArmor.length > 0 && (
+        <Alert variant="warning">
+          Unrecognized armor from server: {unknownArmor.join(', ')}
+        </Alert>
+      )}
+      <Row className="g-2">
+        {Object.entries(armor).map(([key, piece]) => {
+          const unmet = piece.strength && strength < piece.strength;
+          const Icon = categoryIcons[piece.category] || GiArmorVest;
+          return (
+            <Col xs={6} md={4} key={key}>
+              <Card className="armor-card h-100">
+                <Card.Body className="d-flex flex-column">
+                  <div className="d-flex justify-content-center mb-2">
+                    <Icon size={40} title={piece.category} />
+                  </div>
+                  <Card.Title as="h6">{piece.displayName || piece.name}</Card.Title>
+                  <Card.Text>
+                    AC Bonus:{' '}
+                    {piece.acBonus !== '' &&
+                    piece.acBonus !== null &&
+                    piece.acBonus !== undefined
+                      ? piece.acBonus
+                      : ''}
+                  </Card.Text>
+                  <Card.Text>
+                    Max Dex{' '}
+                    {piece.maxDex === null || piece.maxDex === undefined
+                      ? '—'
+                      : piece.maxDex}
+                  </Card.Text>
+                  <Card.Text>
+                    Strength{' '}
+                    {piece.strength === null || piece.strength === undefined
+                      ? '—'
+                      : piece.strength}
+                  </Card.Text>
+                  <Card.Text>
+                    Stealth: {piece.stealth ? 'Disadvantage' : '—'}
+                  </Card.Text>
+                  <Card.Text>Weight: {piece.weight}</Card.Text>
+                  <Card.Text>Cost: {piece.cost}</Card.Text>
+                </Card.Body>
+                <Card.Footer className="d-flex justify-content-center gap-2">
+                  <Form.Check
+                    type="checkbox"
+                    label="Owned"
+                    className="weapon-checkbox"
+                    checked={piece.owned}
+                    disabled={unmet}
+                    onChange={handleOwnedToggle(key)}
+                    aria-label={piece.displayName || piece.name}
+                    title={unmet ? `Requires STR ${piece.strength}` : undefined}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    label="Proficient"
+                    className="weapon-checkbox"
+                    checked={piece.proficient}
+                    disabled={piece.granted || piece.pending}
+                    onChange={handleToggle(key)}
+                    aria-label={`${piece.displayName || piece.name} proficiency`}
+                    style={
+                      piece.granted || piece.pending
+                        ? { opacity: 0.5 }
+                        : undefined
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    className="btn-danger action-btn fa-solid fa-trash"
+                    hidden={!piece.owned}
+                    onClick={handleOwnedToggle(key)}
+                  ></Button>
+                </Card.Footer>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </>
+  );
+
+  if (embedded) {
+    return <div style={bodyStyle}>{bodyContent}</div>;
+  }
+
   return (
     <Card className="modern-card">
       <Card.Header className="modal-header">
         <Card.Title className="modal-title">Armor</Card.Title>
       </Card.Header>
-      <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-        {unknownArmor.length > 0 && (
-          <Alert variant="warning">
-            Unrecognized armor from server: {unknownArmor.join(', ')}
-          </Alert>
-        )}
-        <Row className="g-2">
-          {Object.entries(armor).map(([key, piece]) => {
-            const unmet = piece.strength && strength < piece.strength;
-            const Icon = categoryIcons[piece.category] || GiArmorVest;
-            return (
-              <Col xs={6} md={4} key={key}>
-                <Card className="armor-card h-100">
-                  <Card.Body className="d-flex flex-column">
-                    <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={piece.category} />
-                    </div>
-                    <Card.Title as="h6">{piece.displayName || piece.name}</Card.Title>
-                    <Card.Text>AC Bonus: {piece.acBonus !== '' && piece.acBonus !== null && piece.acBonus !== undefined ? piece.acBonus : ''}</Card.Text>
-                    <Card.Text>
-                      Max Dex{' '}
-                      {piece.maxDex === null || piece.maxDex === undefined
-                        ? '—'
-                        : piece.maxDex}
-                    </Card.Text>
-                    <Card.Text>
-                      Strength{' '}
-                      {piece.strength === null || piece.strength === undefined
-                        ? '—'
-                        : piece.strength}
-                    </Card.Text>
-                    <Card.Text>
-                      Stealth: {piece.stealth ? 'Disadvantage' : '—'}
-                    </Card.Text>
-                    <Card.Text>Weight: {piece.weight}</Card.Text>
-                    <Card.Text>Cost: {piece.cost}</Card.Text>
-                  </Card.Body>
-                  <Card.Footer className="d-flex justify-content-center gap-2">
-                    <Form.Check
-                      type="checkbox"
-                      label="Owned"
-                      className="weapon-checkbox"
-                      checked={piece.owned}
-                      disabled={unmet}
-                      onChange={handleOwnedToggle(key)}
-                      aria-label={piece.displayName || piece.name}
-                      title={unmet ? `Requires STR ${piece.strength}` : undefined}
-                    />
-                    <Form.Check
-                      type="checkbox"
-                      label="Proficient"
-                      className="weapon-checkbox"
-                      checked={piece.proficient}
-                      disabled={piece.granted || piece.pending}
-                      onChange={handleToggle(key)}
-                      aria-label={`${piece.displayName || piece.name} proficiency`}
-                      style={
-                        piece.granted || piece.pending
-                          ? { opacity: 0.5 }
-                          : undefined
-                      }
-                    />
-                    <Button
-                      size="sm"
-                      className="btn-danger action-btn fa-solid fa-trash"
-                      hidden={!piece.owned}
-                      onClick={handleOwnedToggle(key)}
-                    ></Button>
-                  </Card.Footer>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      </Card.Body>
+      <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
     </Card>
   );
 }
