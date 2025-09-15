@@ -224,12 +224,11 @@ const [pendingSpell, setPendingSpell] = useState(null);
       diff > 0 ? diff : 0
     );
     if (!value) return;
-    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name, true);
+    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name);
     onCastSpell?.({
       level,
       slotType,
       damage: value.total,
-      breakdown: value.breakdown,
       castingTime: spell.castingTime,
       name: spell.name,
     });
@@ -291,15 +290,10 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (
-  newValue,
-  breakdown,
-  source,
-  showBreakdown = false
-) => {
+const updateDamageValueWithAnimation = (newValue, breakdown, source) => {
   setLoading(true);
   setPulseClass('');
-  setDamageValue(showBreakdown && breakdown ? breakdown : newValue);
+  setDamageValue(newValue);
   if (newValue !== undefined) {
     setDamageLog((prev) => {
       const entry = {
@@ -319,15 +313,8 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const {
-      value,
-      breakdown,
-      source,
-      critical,
-      fumble,
-      displayBreakdown,
-    } = e.detail || {};
-    updateDamageValueWithAnimation(value, breakdown, source, displayBreakdown);
+    const { value, breakdown, source, critical, fumble } = e.detail || {};
+    updateDamageValueWithAnimation(value, breakdown, source);
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
