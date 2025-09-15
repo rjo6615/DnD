@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Form, Alert, Button, Modal } from 'react-bootstrap';
+import { Card, Row, Col, Alert, Button, Modal } from 'react-bootstrap';
 import {
   GiAmmoBox,
   GiBackpack,
@@ -43,7 +43,7 @@ const renderBonuses = (bonuses, labels) =>
 /** @typedef {import('../../../../types/item').Item} Item */
 
 /**
- * List of items with ownership toggles.
+ * List of items with cart actions and notes display.
  * @param {{
  *   campaign?: string,
  *   onChange?: (items: Item[]) => void,
@@ -52,6 +52,7 @@ const renderBonuses = (bonuses, labels) =>
  *   show?: boolean,
  *   onClose?: () => void,
  *   embedded?: boolean,
+ *   onAddToCart?: (item: Item & { type?: string }) => void,
  * }} props
  */
 function ItemList({
@@ -62,6 +63,7 @@ function ItemList({
   show = true,
   onClose,
   embedded = false,
+  onAddToCart = () => {},
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, displayName?: string }> | null} */(null);
@@ -156,42 +158,13 @@ function ItemList({
     return null;
   }
 
-  const handleOwnedToggle = (key) => () => {
-    const item = items[key];
-    const desired = !item.owned;
-    const nextItems = {
-      ...items,
-      [key]: { ...item, owned: desired },
+  const handleAddToCart = (item) => () => {
+    const payload = {
+      ...item,
+      ...(item.type ? { itemType: item.type } : {}),
+      type: 'item',
     };
-    setItems(nextItems);
-    if (typeof onChange === 'function') {
-      const ownedItems = Object.values(nextItems)
-        .filter((i) => i.owned)
-        .map(
-          ({
-            name,
-            category,
-            weight,
-            cost,
-            statBonuses,
-            skillBonuses,
-            notes,
-          }) => {
-            const itemObj = { name, category, weight, cost };
-            if (statBonuses && Object.keys(statBonuses).length) {
-              itemObj.statBonuses = statBonuses;
-            }
-            if (skillBonuses && Object.keys(skillBonuses).length) {
-              itemObj.skillBonuses = skillBonuses;
-            }
-            if (notes) {
-              itemObj.notes = notes;
-            }
-            return itemObj;
-          }
-        );
-      onChange(ownedItems);
-    }
+    onAddToCart(payload);
   };
 
   const handleCloseNotes = () => setNotesItem(null);
@@ -250,14 +223,9 @@ function ItemList({
                   )}
                 </Card.Body>
                 <Card.Footer className="d-flex justify-content-center">
-                  <Form.Check
-                    type="checkbox"
-                    className="weapon-checkbox"
-                    label="Owned"
-                    checked={item.owned}
-                    onChange={handleOwnedToggle(key)}
-                    aria-label={item.displayName || item.name}
-                  />
+                  <Button size="sm" onClick={handleAddToCart(item)}>
+                    Add to Cart
+                  </Button>
                 </Card.Footer>
               </Card>
             </Col>

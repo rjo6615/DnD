@@ -17,46 +17,36 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches weapons and toggles ownership', async () => {
+test('fetches weapons and handles add to cart', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({ allowed: null, proficient: {}, granted: [] }),
   });
-  const onChange = jest.fn();
+  const onAddToCart = jest.fn();
 
   render(
     <WeaponList
       campaign="Camp1"
-      initialWeapons={[weaponsData.dagger]}
-      onChange={onChange}
       characterId="char1"
+      onAddToCart={onAddToCart}
     />
   );
 
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
-  const clubCheckbox = await screen.findByLabelText('Club');
-  const daggerCheckbox = await screen.findByLabelText('Dagger');
-  const laserCheckbox = await screen.findByLabelText('Laser Sword');
-  expect(clubCheckbox).not.toBeChecked();
-  expect(daggerCheckbox).toBeChecked();
-  expect(laserCheckbox).not.toBeChecked();
+  const daggerCard = await screen.findByText('Dagger');
+  const daggerButton = within(daggerCard.closest('.card')).getByRole('button', {
+    name: /add to cart/i,
+  });
 
-  onChange.mockClear();
-  await userEvent.click(clubCheckbox);
-  await waitFor(() => expect(clubCheckbox).toBeChecked());
-  await waitFor(() =>
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ name: 'club' }),
-        expect.objectContaining({ name: 'dagger' }),
-      ])
-    )
+  await userEvent.click(daggerButton);
+
+  expect(onAddToCart).toHaveBeenCalledWith(
+    expect.objectContaining({ name: 'dagger', type: 'weapon' })
   );
-  expect(apiFetch).toHaveBeenCalledTimes(3);
 });
 
 test('renders all weapons regardless of allowed list', async () => {
@@ -69,9 +59,9 @@ test('renders all weapons regardless of allowed list', async () => {
 
   render(<WeaponList campaign="Camp1" characterId="char1" />);
 
-  expect(await screen.findByLabelText('Club')).toBeInTheDocument();
-  expect(await screen.findByLabelText('Laser Sword')).toBeInTheDocument();
-  expect(await screen.findByLabelText('Dagger')).toBeInTheDocument();
+  expect(await screen.findByText('Club')).toBeInTheDocument();
+  expect(await screen.findByText('Laser Sword')).toBeInTheDocument();
+  expect(await screen.findByText('Dagger')).toBeInTheDocument();
 });
 
 test('displays a category icon for each weapon', async () => {
@@ -276,7 +266,7 @@ test('omits card wrapper when embedded', async () => {
 
   render(<WeaponList characterId="char1" embedded />);
 
-  expect(await screen.findByLabelText('Club')).toBeInTheDocument();
+  expect(await screen.findByText('Club')).toBeInTheDocument();
   expect(screen.queryByText('Weapons')).not.toBeInTheDocument();
   expect(document.querySelector('.modern-card')).toBeNull();
 });

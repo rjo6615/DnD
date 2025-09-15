@@ -44,63 +44,60 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches armor and toggles ownership', async () => {
+test('fetches armor and handles add to cart', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({ allowed: null, proficient: {}, granted: [] }),
   });
-  const onChange = jest.fn();
+  const onAddToCart = jest.fn();
 
   render(
     <ArmorList
       campaign="Camp1"
-      initialArmor={[armorData['chain mail']]}
-      onChange={onChange}
       characterId="char1"
       strength={15}
+      onAddToCart={onAddToCart}
     />
   );
 
   expect(apiFetch).toHaveBeenCalledWith('/armor');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/armor/Camp1');
   expect(apiFetch).toHaveBeenCalledWith('/armor-proficiency/char1');
-  const leatherCheckbox = await screen.findByLabelText('Leather Armor');
-  const chainCheckbox = await screen.findByLabelText('Chain Mail');
-  const shieldCheckbox = await screen.findByLabelText('Force Shield');
-  expect(leatherCheckbox).not.toBeChecked();
-  expect(chainCheckbox).toBeChecked();
-  expect(shieldCheckbox).not.toBeChecked();
-
-  onChange.mockClear();
-  await userEvent.click(leatherCheckbox);
-  await waitFor(() => expect(leatherCheckbox).toBeChecked());
-  await waitFor(() =>
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ name: 'leather' }),
-        expect.objectContaining({ name: 'chain mail' }),
-      ])
-    )
+  const chainMailHeading = await screen.findByText('Chain Mail');
+  const chainMailButton = within(chainMailHeading.closest('.card')).getByRole(
+    'button',
+    {
+      name: /add to cart/i,
+    }
   );
-  expect(apiFetch).toHaveBeenCalledTimes(3);
+
+  await userEvent.click(chainMailButton);
+
+  expect(onAddToCart).toHaveBeenCalledWith(
+    expect.objectContaining({ name: 'chain mail', type: 'armor' })
+  );
 });
 
-test('disables ownership when strength requirement unmet', async () => {
+test('renders add to cart when strength requirement unmet', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({ allowed: null, proficient: {}, granted: [] }),
   });
 
-  render(<ArmorList characterId="char1" strength={10} />);
+  const onAddToCart = jest.fn();
 
-  const chainCheckbox = await screen.findByLabelText('Chain Mail');
-  expect(chainCheckbox).toBeDisabled();
-  expect(chainCheckbox).not.toBeChecked();
-  await userEvent.click(chainCheckbox);
-  expect(chainCheckbox).not.toBeChecked();
+  render(<ArmorList characterId="char1" strength={10} onAddToCart={onAddToCart} />);
+
+  const chainMailHeading = await screen.findByText('Chain Mail');
+  const button = within(chainMailHeading.closest('.card')).getByRole('button', {
+    name: /add to cart/i,
+  });
+  expect(button).not.toBeDisabled();
+  await userEvent.click(button);
+  expect(onAddToCart).toHaveBeenCalled();
 });
 
 test('renders all armor regardless of allowed list', async () => {
@@ -113,9 +110,9 @@ test('renders all armor regardless of allowed list', async () => {
 
   render(<ArmorList campaign="Camp1" characterId="char1" strength={15} />);
 
-  expect(await screen.findByLabelText('Leather Armor')).toBeInTheDocument();
-  expect(await screen.findByLabelText('Force Shield')).toBeInTheDocument();
-  expect(await screen.findByLabelText('Chain Mail')).toBeInTheDocument();
+  expect(await screen.findByText('Leather Armor')).toBeInTheDocument();
+  expect(await screen.findByText('Force Shield')).toBeInTheDocument();
+  expect(await screen.findByText('Chain Mail')).toBeInTheDocument();
 });
 
 test('marks armor proficiency', async () => {
@@ -322,7 +319,7 @@ test('skips invalid initial armor entries with warning', async () => {
     />
   );
 
-  expect(await screen.findByLabelText('Chain Mail')).toBeChecked();
+  expect(await screen.findByText('Chain Mail')).toBeInTheDocument();
   expect(warn).toHaveBeenCalledWith('Skipping invalid initial armor entries:', [
     { invalid: true },
     42,
@@ -341,7 +338,7 @@ test('omits card wrapper when embedded', async () => {
 
   render(<ArmorList characterId="char1" strength={15} embedded />);
 
-  expect(await screen.findByLabelText('Leather Armor')).toBeInTheDocument();
+  expect(await screen.findByText('Leather Armor')).toBeInTheDocument();
   expect(screen.queryByText('Armor')).not.toBeInTheDocument();
   expect(document.querySelector('.modern-card')).toBeNull();
 });
