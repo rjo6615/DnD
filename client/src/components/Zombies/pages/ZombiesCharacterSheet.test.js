@@ -528,6 +528,110 @@ test('purchasing from shop updates currency and inventory', async () => {
   );
 });
 
+test('purchased equipment is marked owned and shown in inventory modal', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+        cp: 100,
+        sp: 0,
+        gp: 0,
+        pp: 0,
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ cp: 90, sp: 0, gp: 0, pp: 0 }),
+    })
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({ ok: true });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
+  await waitFor(() => expect(mockInventoryModalProps.current).not.toBeNull());
+
+  const weaponPurchase = {
+    type: 'weapon',
+    weaponType: 'martial',
+    name: 'longsword',
+    displayName: 'Longsword',
+    damage: '1d8 slashing',
+    properties: ['versatile'],
+    cost: '15 gp',
+    weight: 3,
+  };
+
+  const itemPurchase = {
+    type: 'item',
+    itemType: 'gear',
+    name: 'rations',
+    displayName: 'Rations (1 day)',
+    category: 'adventuring gear',
+    cost: '5 sp',
+    weight: 2,
+  };
+
+  await act(async () => {
+    await mockShopModalProps.current.onPurchase(
+      [weaponPurchase, itemPurchase],
+      10
+    );
+  });
+
+  await waitFor(() => {
+    expect(mockInventoryModalProps.current?.form?.weapon).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ displayName: 'Longsword', owned: true }),
+      ])
+    );
+    expect(mockInventoryModalProps.current?.form?.item).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ displayName: 'Rations (1 day)', owned: true }),
+      ])
+    );
+  });
+
+  const buttons = await screen.findAllByRole('button');
+  const inventoryButton = buttons.find((btn) =>
+    btn.querySelector('.fa-box-open')
+  );
+  expect(inventoryButton).toBeTruthy();
+
+  await act(async () => {
+    await userEvent.click(inventoryButton);
+  });
+
+  await waitFor(() =>
+    expect(mockInventoryModalProps.current).toMatchObject({ show: true })
+  );
+  expect(mockInventoryModalProps.current.form.weapon).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ displayName: 'Longsword', owned: true }),
+    ])
+  );
+  expect(mockInventoryModalProps.current.form.item).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ displayName: 'Rations (1 day)', owned: true }),
+    ])
+  );
+});
+
 test('inventory button opens InventoryModal with default tab', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,

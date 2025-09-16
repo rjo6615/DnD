@@ -534,6 +534,7 @@ export default function ZombiesCharacterSheet() {
           const sanitized = {
             ...rest,
             ...(weaponType !== undefined ? { type: weaponType } : {}),
+            owned: true,
           };
           newWeapons.push(sanitized);
           return;
@@ -543,6 +544,7 @@ export default function ZombiesCharacterSheet() {
           const sanitized = {
             ...rest,
             ...(armorType !== undefined ? { type: armorType } : {}),
+            owned: true,
           };
           newArmor.push(sanitized);
           return;
@@ -552,6 +554,7 @@ export default function ZombiesCharacterSheet() {
           const sanitized = {
             ...rest,
             ...(itemType !== undefined ? { type: itemType } : {}),
+            owned: true,
           };
           newItems.push(sanitized);
         }
