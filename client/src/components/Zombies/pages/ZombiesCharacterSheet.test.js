@@ -38,6 +38,11 @@ jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
 jest.mock('../attributes/Features', () => () => null);
+const mockInventoryModalProps = { current: null };
+jest.mock('../attributes/InventoryModal', () => (props) => {
+  mockInventoryModalProps.current = props;
+  return null;
+});
 const mockShopModalProps = { current: null };
 jest.mock('../attributes/ShopModal', () => (props) => {
   mockShopModalProps.current = props;
@@ -61,6 +66,7 @@ beforeEach(() => {
   mockOnCastSpell.current = null;
   mockHandleClose.current = null;
   mockShopModalProps.current = null;
+  mockInventoryModalProps.current = null;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -446,6 +452,51 @@ test('shop button opens ShopModal with default tab and retains previous tab', as
     expect(mockShopModalProps.current).toMatchObject({
       show: true,
       activeTab: 'armor',
+    })
+  );
+});
+
+test('inventory button opens InventoryModal with default tab', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockInventoryModalProps.current).not.toBeNull());
+
+  const buttons = await screen.findAllByRole('button');
+  const inventoryButton = buttons.find((btn) =>
+    btn.querySelector('.fa-box-open')
+  );
+  expect(inventoryButton).toBeTruthy();
+
+  await act(async () => {
+    await userEvent.click(inventoryButton);
+  });
+
+  await waitFor(() =>
+    expect(mockInventoryModalProps.current).toMatchObject({
+      show: true,
+      activeTab: 'weapons',
     })
   );
 });

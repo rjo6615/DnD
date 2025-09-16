@@ -24,6 +24,7 @@ import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import ShopModal from "../attributes/ShopModal";
+import InventoryModal from "../attributes/InventoryModal";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -48,6 +49,8 @@ export default function ZombiesCharacterSheet() {
   const [showFeatures, setShowFeatures] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [shopTab, setShopTab] = useState('weapons');
+  const [showInventory, setShowInventory] = useState(false);
+  const [inventoryTab, setInventoryTab] = useState('weapons');
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
@@ -244,6 +247,11 @@ export default function ZombiesCharacterSheet() {
     setShowShop(true);
   };
   const handleCloseShop = () => setShowShop(false);
+  const handleShowInventory = (tab) => {
+    setInventoryTab((prevTab) => tab ?? prevTab ?? 'weapons');
+    setShowInventory(true);
+  };
+  const handleCloseInventory = () => setShowInventory(false);
   const handleShowSpells = () => setShowSpells(true);
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
@@ -803,6 +811,17 @@ return (
             </Button>
           )}
           <Button
+            onClick={() => handleShowInventory()}
+            style={{
+              color: "black",
+              backgroundColor: "#6C757D",
+            }}
+            className="footer-btn"
+            variant="secondary"
+          >
+            <i className="fas fa-box-open" aria-hidden="true"></i>
+          </Button>
+          <Button
             onClick={() => handleShowShop()}
             style={{
               color: "black",
@@ -861,6 +880,14 @@ return (
       longRestCount={longRestCount}
       shortRestCount={shortRestCount}
       actionCount={actionCount}
+    />
+    <InventoryModal
+      show={showInventory}
+      activeTab={inventoryTab}
+      onHide={handleCloseInventory}
+      onTabChange={setInventoryTab}
+      form={form}
+      characterId={characterId}
     />
     <ShopModal
       show={showShop}
