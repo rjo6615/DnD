@@ -12,6 +12,58 @@ const mockItem = { name: 'Mock Item', type: 'item', cost: '5 gp' };
 
 const escapeRegExp = (value) => value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 
+const TEST_COIN_VALUES = { cp: 1, sp: 10, gp: 100, pp: 1000 };
+const NUMBER_PATTERN = /^[-+]?\d*\.?\d+$/;
+
+const costStringToCp = (cost) => {
+  if (!cost) return 0;
+  const normalized = String(cost).toLowerCase();
+
+  let total = 0;
+  const regex = /(-?\d*\.?\d+)\s*(pp|gp|sp|cp)/g;
+  let match;
+  // eslint-disable-next-line no-cond-assign
+  while ((match = regex.exec(normalized))) {
+    const value = parseFloat(match[1]);
+    const unit = match[2];
+    const multiplier = TEST_COIN_VALUES[unit];
+    if (!Number.isNaN(value) && multiplier) {
+      total += value * multiplier;
+    }
+  }
+
+  if (
+    total === 0 &&
+    NUMBER_PATTERN.test(normalized.replace(/,/g, '')) &&
+    !/[a-z]/.test(normalized)
+  ) {
+    const numericValue = parseFloat(normalized.replace(/,/g, ''));
+    if (!Number.isNaN(numericValue)) {
+      total = numericValue * TEST_COIN_VALUES.gp;
+    }
+  }
+
+  return Math.round(total);
+};
+
+const formatCoinsFromCp = (cp) => {
+  const value = Number.isFinite(cp) ? cp : 0;
+  const isNegative = value < 0;
+  let remaining = Math.abs(Math.round(value));
+
+  const pp = Math.floor(remaining / TEST_COIN_VALUES.pp);
+  remaining -= pp * TEST_COIN_VALUES.pp;
+  const gp = Math.floor(remaining / TEST_COIN_VALUES.gp);
+  remaining -= gp * TEST_COIN_VALUES.gp;
+  const sp = Math.floor(remaining / TEST_COIN_VALUES.sp);
+  remaining -= sp * TEST_COIN_VALUES.sp;
+  const cpValue = remaining;
+
+  const prefix = isNegative ? '-' : '';
+
+  return `${prefix}PP ${pp} • GP ${gp} • SP ${sp} • CP ${cpValue}`;
+};
+
 jest.mock('../../Weapons/WeaponList', () => {
   const React = require('react');
   const WeaponListMock = (props) => {
@@ -206,11 +258,15 @@ describe('cart interactions', () => {
 
     expect(await screen.findByTestId(listTestId)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+    });
 
     await waitFor(() => expect(cartButton).toHaveTextContent('1'));
 
-    await userEvent.click(cartButton);
+    await act(async () => {
+      await userEvent.click(cartButton);
+    });
 
     const cartTitle = await screen.findByText('Cart', {
       selector: '.modal-title',
@@ -223,8 +279,18 @@ describe('cart interactions', () => {
     expect(
       cartWithin.getByText(new RegExp(`Cost: ${escapeRegExp(item.cost)}`))
     ).toBeInTheDocument();
+    const expectedSingleTotal = formatCoinsFromCp(
+      costStringToCp(item.cost)
+    );
+    expect(
+      cartWithin.getByText(`Total: ${expectedSingleTotal}`)
+    ).toBeInTheDocument();
 
-    await userEvent.click(cartWithin.getByRole('button', { name: 'Remove' }));
+    await act(async () => {
+      await userEvent.click(
+        cartWithin.getByRole('button', { name: 'Remove' })
+      );
+    });
 
     await waitFor(() => expect(cartButton).toHaveTextContent('0'));
     await waitFor(() =>
@@ -232,6 +298,100 @@ describe('cart interactions', () => {
     );
     await waitFor(() =>
       expect(cartWithin.getByText('Your cart is empty.')).toBeInTheDocument()
+    );
+  });
+
+  test('displays total cost for multiple cart items', async () => {
+    renderShopModal();
+
+    const cartButton = screen.getByRole('button', { name: '0' });
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+    });
+    await waitFor(() => expect(cartButton).toHaveTextContent('1'));
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('tab', { name: 'Armor' }));
+    });
+    const armorList = await screen.findByTestId('armor-list');
+    await act(async () => {
+      await userEvent.click(
+        within(armorList).getByRole('button', { name: /add to cart/i })
+      );
+    });
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
+    });
+    const itemList = await screen.findByTestId('item-list');
+    await act(async () => {
+      await userEvent.click(
+        within(itemList).getByRole('button', { name: /add to cart/i })
+      );
+    });
+
+    await waitFor(() => expect(cartButton).toHaveTextContent('3'));
+
+    await act(async () => {
+      await userEvent.click(cartButton);
+    });
+
+    const cartTitle = await screen.findByText('Cart', {
+      selector: '.modal-title',
+    });
+    const cartModal = cartTitle.closest('.modal');
+    expect(cartModal).not.toBeNull();
+    const cartWithin = within(cartModal);
+
+    const expectedMultiTotal = formatCoinsFromCp(
+      costStringToCp(mockWeapon.cost) +
+        costStringToCp(mockArmor.cost) +
+        costStringToCp(mockItem.cost)
+    );
+    expect(
+      cartWithin.getByText(`Total: ${expectedMultiTotal}`)
+    ).toBeInTheDocument();
+  });
+
+  test('purchase triggers onPurchase and clears the cart', async () => {
+    const onPurchase = jest.fn();
+    renderShopModal({ onPurchase });
+
+    const cartButton = screen.getByRole('button', { name: '0' });
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+    });
+    await waitFor(() => expect(cartButton).toHaveTextContent('1'));
+
+    await act(async () => {
+      await userEvent.click(cartButton);
+    });
+
+    const cartTitle = await screen.findByText('Cart', {
+      selector: '.modal-title',
+    });
+    const cartModal = cartTitle.closest('.modal');
+    expect(cartModal).not.toBeNull();
+    const cartWithin = within(cartModal);
+
+    await act(async () => {
+      await userEvent.click(cartWithin.getByRole('button', { name: 'Purchase' }));
+    });
+
+    await waitFor(() => expect(onPurchase).toHaveBeenCalledTimes(1));
+    const [cartArg, totalCpArg] = onPurchase.mock.calls[0];
+    expect(Array.isArray(cartArg)).toBe(true);
+    expect(cartArg).toHaveLength(1);
+    expect(cartArg[0]).toEqual(expect.objectContaining(mockWeapon));
+    expect(totalCpArg).toBe(costStringToCp(mockWeapon.cost));
+
+    await waitFor(() => expect(cartButton).toHaveTextContent('0'));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Cart', { selector: '.modal-title' })
+      ).not.toBeInTheDocument()
     );
   });
 });
