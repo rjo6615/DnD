@@ -6,9 +6,9 @@ const mockWeaponListFetch = jest.fn();
 const mockArmorListFetch = jest.fn();
 const mockItemListFetch = jest.fn();
 
-const mockWeapon = { name: 'Mock Weapon', type: 'weapon', cost: '10 gp' };
-const mockArmor = { name: 'Mock Armor', type: 'armor', cost: '50 gp' };
-const mockItem = { name: 'Mock Item', type: 'item', cost: '5 gp' };
+const mockWeapon = { name: 'Mock Weapon', type: 'weapon', cost: '1 gp' };
+const mockArmor = { name: 'Mock Armor', type: 'armor', cost: '1 pp 2 gp' };
+const mockItem = { name: 'Mock Item', type: 'item', cost: '3 sp 4 cp' };
 
 const escapeRegExp = (value) => value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 
@@ -304,7 +304,7 @@ describe('cart interactions', () => {
   test('displays total cost for multiple cart items', async () => {
     renderShopModal();
 
-    const cartButton = screen.getByRole('button', { name: '0' });
+    const cartButton = screen.getByRole('button', { name: /view cart/i });
 
     await act(async () => {
       await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
@@ -349,6 +349,7 @@ describe('cart interactions', () => {
         costStringToCp(mockArmor.cost) +
         costStringToCp(mockItem.cost)
     );
+    expect(expectedMultiTotal).toBe('PP 1 • GP 3 • SP 3 • CP 4');
     expect(
       cartWithin.getByText(`Total: ${expectedMultiTotal}`)
     ).toBeInTheDocument();
@@ -358,7 +359,7 @@ describe('cart interactions', () => {
     const onPurchase = jest.fn();
     renderShopModal({ onPurchase });
 
-    const cartButton = screen.getByRole('button', { name: '0' });
+    const cartButton = screen.getByRole('button', { name: /view cart/i });
 
     await act(async () => {
       await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
@@ -381,17 +382,31 @@ describe('cart interactions', () => {
     });
 
     await waitFor(() => expect(onPurchase).toHaveBeenCalledTimes(1));
-    const [cartArg, totalCpArg] = onPurchase.mock.calls[0];
-    expect(Array.isArray(cartArg)).toBe(true);
-    expect(cartArg).toHaveLength(1);
-    expect(cartArg[0]).toEqual(expect.objectContaining(mockWeapon));
-    expect(totalCpArg).toBe(costStringToCp(mockWeapon.cost));
+    expect(onPurchase).toHaveBeenCalledWith(
+      [expect.objectContaining(mockWeapon)],
+      costStringToCp(mockWeapon.cost)
+    );
 
     await waitFor(() => expect(cartButton).toHaveTextContent('0'));
     await waitFor(() =>
       expect(
         screen.queryByText('Cart', { selector: '.modal-title' })
       ).not.toBeInTheDocument()
+    );
+
+    await act(async () => {
+      await userEvent.click(cartButton);
+    });
+
+    const emptyCartTitle = await screen.findByText('Cart', {
+      selector: '.modal-title',
+    });
+    const emptyCartModal = emptyCartTitle.closest('.modal');
+    expect(emptyCartModal).not.toBeNull();
+    const emptyCartWithin = within(emptyCartModal);
+
+    await waitFor(() =>
+      expect(emptyCartWithin.getByText('Your cart is empty.')).toBeInTheDocument()
     );
   });
 });
