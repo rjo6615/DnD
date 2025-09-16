@@ -355,58 +355,91 @@ describe('cart interactions', () => {
     ).toBeInTheDocument();
   });
 
-  test('purchase triggers onPurchase and clears the cart', async () => {
-    const onPurchase = jest.fn();
-    renderShopModal({ onPurchase });
+test('purchase triggers onPurchase with cart details and resets the cart', async () => {
+  const onPurchase = jest.fn();
+  renderShopModal({ onPurchase });
 
-    const cartButton = screen.getByRole('button', { name: /view cart/i });
+  const cartButton = screen.getByRole('button', { name: /view cart/i });
 
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
-    });
-    await waitFor(() => expect(cartButton).toHaveTextContent('1'));
+  await act(async () => {
+    await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+  });
 
-    await act(async () => {
-      await userEvent.click(cartButton);
-    });
-
-    const cartTitle = await screen.findByText('Cart', {
-      selector: '.modal-title',
-    });
-    const cartModal = cartTitle.closest('.modal');
-    expect(cartModal).not.toBeNull();
-    const cartWithin = within(cartModal);
-
-    await act(async () => {
-      await userEvent.click(cartWithin.getByRole('button', { name: 'Purchase' }));
-    });
-
-    await waitFor(() => expect(onPurchase).toHaveBeenCalledTimes(1));
-    expect(onPurchase).toHaveBeenCalledWith(
-      [expect.objectContaining(mockWeapon)],
-      costStringToCp(mockWeapon.cost)
-    );
-
-    await waitFor(() => expect(cartButton).toHaveTextContent('0'));
-    await waitFor(() =>
-      expect(
-        screen.queryByText('Cart', { selector: '.modal-title' })
-      ).not.toBeInTheDocument()
-    );
-
-    await act(async () => {
-      await userEvent.click(cartButton);
-    });
-
-    const emptyCartTitle = await screen.findByText('Cart', {
-      selector: '.modal-title',
-    });
-    const emptyCartModal = emptyCartTitle.closest('.modal');
-    expect(emptyCartModal).not.toBeNull();
-    const emptyCartWithin = within(emptyCartModal);
-
-    await waitFor(() =>
-      expect(emptyCartWithin.getByText('Your cart is empty.')).toBeInTheDocument()
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Armor' }));
+  });
+  const armorList = await screen.findByTestId('armor-list');
+  await act(async () => {
+    await userEvent.click(
+      within(armorList).getByRole('button', { name: /add to cart/i })
     );
   });
+
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
+  });
+  const itemList = await screen.findByTestId('item-list');
+  await act(async () => {
+    await userEvent.click(
+      within(itemList).getByRole('button', { name: /add to cart/i })
+    );
+  });
+
+  await waitFor(() => expect(cartButton).toHaveTextContent('3'));
+
+  await act(async () => {
+    await userEvent.click(cartButton);
+  });
+
+  const cartTitle = await screen.findByText('Cart', {
+    selector: '.modal-title',
+  });
+  const cartModal = cartTitle.closest('.modal');
+  expect(cartModal).not.toBeNull();
+  const cartWithin = within(cartModal);
+
+  const expectedTotalCp =
+    costStringToCp(mockWeapon.cost) +
+    costStringToCp(mockArmor.cost) +
+    costStringToCp(mockItem.cost);
+  const expectedFormattedTotal = formatCoinsFromCp(expectedTotalCp);
+  expect(
+    cartWithin.getByText(`Total: ${expectedFormattedTotal}`)
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(cartWithin.getByRole('button', { name: 'Purchase' }));
+  });
+
+  await waitFor(() => expect(onPurchase).toHaveBeenCalledTimes(1));
+  const [cartArg, totalArg] = onPurchase.mock.calls[0];
+  expect(totalArg).toBe(expectedTotalCp);
+  expect(cartArg).toEqual([
+    expect.objectContaining(mockWeapon),
+    expect.objectContaining(mockArmor),
+    expect.objectContaining(mockItem),
+  ]);
+
+  await waitFor(() => expect(cartButton).toHaveTextContent('0'));
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Cart', { selector: '.modal-title' })
+    ).not.toBeInTheDocument()
+  );
+
+  await act(async () => {
+    await userEvent.click(cartButton);
+  });
+
+  const emptyCartTitle = await screen.findByText('Cart', {
+    selector: '.modal-title',
+  });
+  const emptyCartModal = emptyCartTitle.closest('.modal');
+  expect(emptyCartModal).not.toBeNull();
+  const emptyCartWithin = within(emptyCartModal);
+
+  await waitFor(() =>
+    expect(emptyCartWithin.getByText('Your cart is empty.')).toBeInTheDocument()
+  );
+});
 });
