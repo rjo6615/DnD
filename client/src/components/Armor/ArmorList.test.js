@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ArmorList from './ArmorList';
 import apiFetch from '../../utils/apiFetch';
@@ -45,7 +46,7 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches armor and handles add to cart', async () => {
+test('fetches armor, handles add to cart, and displays cart count', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
@@ -54,12 +55,31 @@ test('fetches armor and handles add to cart', async () => {
   });
   const onAddToCart = jest.fn();
 
+  function Wrapper(props) {
+    const [counts, setCounts] = React.useState({});
+    const handleAdd = (armor) => {
+      act(() => {
+        setCounts((prev) => {
+          const key = `armor::${String(armor?.name || '').toLowerCase()}`;
+          return { ...prev, [key]: (prev[key] || 0) + 1 };
+        });
+      });
+      onAddToCart(armor);
+    };
+    return (
+      <ArmorList
+        {...props}
+        onAddToCart={handleAdd}
+        cartCounts={counts}
+      />
+    );
+  }
+
   render(
-    <ArmorList
+    <Wrapper
       campaign="Camp1"
       characterId="char1"
       strength={15}
-      onAddToCart={onAddToCart}
     />
   );
 
@@ -75,8 +95,23 @@ test('fetches armor and handles add to cart', async () => {
       name: /add to cart/i,
     }
   );
+  expect(
+    within(forceShieldHeading.closest('.card')).getByText('In Cart: 0')
+  ).toBeInTheDocument();
 
   await userEvent.click(forceShieldButton);
+  await waitFor(() =>
+    expect(
+      within(forceShieldHeading.closest('.card')).getByText('In Cart: 1')
+    ).toBeInTheDocument()
+  );
+
+  await userEvent.click(forceShieldButton);
+  await waitFor(() =>
+    expect(
+      within(forceShieldHeading.closest('.card')).getByText('In Cart: 2')
+    ).toBeInTheDocument()
+  );
 
   expect(onAddToCart).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -89,6 +124,7 @@ test('fetches armor and handles add to cart', async () => {
       category: 'special',
     })
   );
+  expect(onAddToCart).toHaveBeenCalledTimes(2);
 });
 
 test('renders add to cart when strength requirement unmet', async () => {

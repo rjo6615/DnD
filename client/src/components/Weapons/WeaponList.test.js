@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WeaponList from './WeaponList';
 import apiFetch from '../../utils/apiFetch';
@@ -25,7 +26,7 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches weapons and handles add to cart', async () => {
+test('fetches weapons, handles add to cart, and displays cart count', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
@@ -34,11 +35,30 @@ test('fetches weapons and handles add to cart', async () => {
   });
   const onAddToCart = jest.fn();
 
+  function Wrapper(props) {
+    const [counts, setCounts] = React.useState({});
+    const handleAdd = (weapon) => {
+      act(() => {
+        setCounts((prev) => {
+          const key = `weapon::${String(weapon?.name || '').toLowerCase()}`;
+          return { ...prev, [key]: (prev[key] || 0) + 1 };
+        });
+      });
+      onAddToCart(weapon);
+    };
+    return (
+      <WeaponList
+        {...props}
+        onAddToCart={handleAdd}
+        cartCounts={counts}
+      />
+    );
+  }
+
   render(
-    <WeaponList
+    <Wrapper
       campaign="Camp1"
       characterId="char1"
-      onAddToCart={onAddToCart}
     />
   );
 
@@ -49,8 +69,23 @@ test('fetches weapons and handles add to cart', async () => {
   const laserButton = within(laserHeading.closest('.card')).getByRole('button', {
     name: /add to cart/i,
   });
+  expect(
+    within(laserHeading.closest('.card')).getByText('In Cart: 0')
+  ).toBeInTheDocument();
 
   await userEvent.click(laserButton);
+  await waitFor(() =>
+    expect(
+      within(laserHeading.closest('.card')).getByText('In Cart: 1')
+    ).toBeInTheDocument()
+  );
+
+  await userEvent.click(laserButton);
+  await waitFor(() =>
+    expect(
+      within(laserHeading.closest('.card')).getByText('In Cart: 2')
+    ).toBeInTheDocument()
+  );
 
   expect(onAddToCart).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -64,6 +99,7 @@ test('fetches weapons and handles add to cart', async () => {
       weight: 6,
     })
   );
+  expect(onAddToCart).toHaveBeenCalledTimes(2);
 });
 
 test('renders all weapons regardless of allowed list', async () => {

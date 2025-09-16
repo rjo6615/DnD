@@ -338,6 +338,23 @@ export default function ShopModal({
     [totalCostCp]
   );
 
+  const buildCartKey = useCallback((name = '', type = '') => {
+    const normalizedName = String(name || '').toLowerCase();
+    const normalizedType = String(type || '').toLowerCase();
+    if (!normalizedName && !normalizedType) return '';
+    return `${normalizedType}::${normalizedName}`;
+  }, []);
+
+  const cartCounts = useMemo(() => {
+    return cart.reduce((acc, item) => {
+      if (!item) return acc;
+      const key = buildCartKey(item.name ?? item.displayName, item.type);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, /** @type {Record<string, number>} */ ({}));
+  }, [buildCartKey, cart]);
+
   const handleAddToCart = useCallback((item) => {
     setCart((prevCart) => [...prevCart, item]);
   }, []);
@@ -416,6 +433,7 @@ export default function ShopModal({
               characterId={characterId}
               show={isActive}
               onAddToCart={handleAddToCart}
+              cartCounts={cartCounts}
             />
           ) : null,
       },
@@ -432,6 +450,7 @@ export default function ShopModal({
               show={isActive}
               strength={strength}
               onAddToCart={handleAddToCart}
+              cartCounts={cartCounts}
             />
           ) : null,
       },
@@ -448,6 +467,7 @@ export default function ShopModal({
               show={isActive}
               onClose={onHide}
               onAddToCart={handleAddToCart}
+              cartCounts={cartCounts}
             />
           ) : null,
       },
@@ -458,6 +478,7 @@ export default function ShopModal({
       normalizedArmor,
       normalizedItems,
       normalizedWeapons,
+      cartCounts,
       handleAddToCart,
       onArmorChange,
       onHide,
