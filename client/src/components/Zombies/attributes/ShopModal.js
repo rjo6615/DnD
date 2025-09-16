@@ -7,6 +7,71 @@ import ItemList from '../../Items/ItemList';
 
 const DEFAULT_TAB = 'weapons';
 
+const COIN_VALUES = {
+  cp: 1,
+  sp: 10,
+  ep: 50,
+  gp: 100,
+  pp: 1000,
+};
+
+const NUMERIC_PATTERN = /^[-+]?\d*\.?\d+$/;
+
+const costToCp = (costString) => {
+  if (costString == null) return 0;
+
+  if (typeof costString === 'number' && Number.isFinite(costString)) {
+    return Math.round(costString * COIN_VALUES.gp);
+  }
+
+  if (typeof costString !== 'string') return 0;
+
+  const trimmed = costString.trim();
+  if (!trimmed) return 0;
+
+  const normalized = trimmed.toLowerCase();
+  if (!/\d/.test(normalized)) return 0;
+
+  const numericOnly = normalized.replace(/,/g, '');
+  if (!/[a-z]/.test(numericOnly) && NUMERIC_PATTERN.test(numericOnly)) {
+    const value = parseFloat(numericOnly);
+    return Number.isNaN(value) ? 0 : Math.round(value * COIN_VALUES.gp);
+  }
+
+  let total = 0;
+  const regex = /(-?\d*\.?\d+)\s*(pp|gp|ep|sp|cp)/g;
+  let match;
+  // eslint-disable-next-line no-cond-assign
+  while ((match = regex.exec(normalized))) {
+    const value = parseFloat(match[1]);
+    const unit = match[2];
+    if (Number.isNaN(value)) continue;
+    const multiplier = COIN_VALUES[unit] || 0;
+    if (!multiplier) continue;
+    total += Math.round(value * multiplier);
+  }
+
+  return total;
+};
+
+const formatCp = (cp) => {
+  const value = Number.isFinite(cp) ? cp : 0;
+  const isNegative = value < 0;
+  let remaining = Math.abs(Math.round(value));
+
+  const pp = Math.floor(remaining / COIN_VALUES.pp);
+  remaining -= pp * COIN_VALUES.pp;
+  const gp = Math.floor(remaining / COIN_VALUES.gp);
+  remaining -= gp * COIN_VALUES.gp;
+  const sp = Math.floor(remaining / COIN_VALUES.sp);
+  remaining -= sp * COIN_VALUES.sp;
+  const cpValue = remaining;
+
+  const prefix = isNegative ? '-' : '';
+
+  return `${prefix}PP ${pp} • GP ${gp} • SP ${sp} • CP ${cpValue}`;
+};
+
 const parseProperties = (value) => {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') {
@@ -244,6 +309,7 @@ export default function ShopModal({
   onItemsChange,
   onTabChange,
   currency = {},
+  onPurchase = () => {},
 }) {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
@@ -257,6 +323,15 @@ export default function ShopModal({
 
   const { cp = 0, sp = 0, gp = 0, pp = 0 } = currency || {};
 
+  const totalCostCp = useMemo(
+    () => cart.reduce((sum, item) => sum + costToCp(item?.cost), 0),
+    [cart]
+  );
+  const formattedTotalCost = useMemo(
+    () => formatCp(totalCostCp),
+    [totalCostCp]
+  );
+
   const handleAddToCart = useCallback((item) => {
     setCart((prevCart) => [...prevCart, item]);
   }, []);
@@ -269,6 +344,15 @@ export default function ShopModal({
       return updatedCart;
     });
   }, []);
+
+  const handlePurchase = useCallback(() => {
+    try {
+      onPurchase(cart, totalCostCp);
+    } finally {
+      setCart([]);
+      setShowCart(false);
+    }
+  }, [cart, onPurchase, totalCostCp]);
 
   useEffect(() => {
     if (activeTab && activeTab !== activeTabState) {
@@ -436,34 +520,46 @@ export default function ShopModal({
           {cart.length === 0 ? (
             <p className="mb-0">Your cart is empty.</p>
           ) : (
-            <div className="d-flex flex-column gap-2">
-              {cart.map((item, index) => (
-                <div
-                  key={`${item?.name || 'item'}-${index}`}
-                  className="d-flex justify-content-between align-items-center"
-                >
-                  <div className="me-3">
-                    <div className="fw-semibold">{item?.name || 'Unknown Item'}</div>
-                    <div className="text-muted small">
-                      {item?.type ? `${item.type} • ` : ''}
-                      Cost: {item?.cost ?? '—'}
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => handleRemoveFromCart(index)}
+            <>
+              <div className="d-flex flex-column gap-2">
+                {cart.map((item, index) => (
+                  <div
+                    key={`${item?.name || 'item'}-${index}`}
+                    className="d-flex justify-content-between align-items-center"
                   >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="me-3">
+                      <div className="fw-semibold">{item?.name || 'Unknown Item'}</div>
+                      <div className="text-muted small">
+                        {item?.type ? `${item.type} • ` : ''}
+                        Cost: {item?.cost ?? '—'}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => handleRemoveFromCart(index)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 text-end fw-semibold">
+                Total: {formattedTotalCost}
+              </div>
+            </>
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowCart(false)}>
             Close
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handlePurchase}
+            disabled={cart.length === 0}
+          >
+            Purchase
           </Button>
         </Modal.Footer>
       </Modal>
