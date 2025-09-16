@@ -935,7 +935,7 @@ return (
             className="footer-btn"
             variant="secondary"
           >
-            <i className="fas fa-wand-sparkles" aria-hidden="true"></i>
+            <i className="fas fa-store" aria-hidden="true"></i>
           </Button>
           <Button
             onClick={handleShowHelpModal}
