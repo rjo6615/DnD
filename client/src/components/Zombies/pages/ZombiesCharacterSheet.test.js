@@ -417,7 +417,7 @@ test('shop button opens ShopModal with default tab and retains previous tab', as
 
   const buttons = await screen.findAllByRole('button');
   const shopButton = buttons.find((btn) =>
-    btn.querySelector('.fa-wand-sparkles')
+    btn.querySelector('.fa-wand-sparkles, .fa-store')
   );
   expect(shopButton).toBeTruthy();
 
@@ -622,6 +622,136 @@ test('purchasing from shop updates currency and inventory', async () => {
       ]),
     })
   );
+});
+
+test('normalizes legacy inventory entries before updating items', async () => {
+  const legacyArrayItem = [
+    'Lantern',
+    'Adventuring Gear',
+    2,
+    '5 sp',
+    'Brass lantern',
+    { wis: 1 },
+    { perception: 2 },
+  ];
+
+  const initialItems = [
+    'Rope (hempen)',
+    legacyArrayItem,
+    {
+      name: 'Spyglass',
+      category: 'Adventuring Gear',
+      weight: '1',
+      cost: '1,000 gp',
+      notes: 'Expensive',
+      owned: false,
+      displayName: 'Spyglass',
+      rarity: 'rare',
+    },
+  ];
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: initialItems,
+        feat: [],
+        weapon: [],
+        armor: [],
+        cp: 500,
+        sp: 0,
+        gp: 0,
+        pp: 0,
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ cp: 450, sp: 0, gp: 0, pp: 0 }),
+    })
+    .mockResolvedValueOnce({ ok: true });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
+
+  const newItem = {
+    type: 'item',
+    itemType: 'gear',
+    name: 'Alchemy Jug',
+    displayName: 'Alchemy Jug',
+    category: 'Wondrous Item',
+    weight: 12,
+    cost: '5 gp',
+    statBonuses: {},
+    skillBonuses: {},
+  };
+
+  await act(async () => {
+    await mockShopModalProps.current.onPurchase([newItem], 50);
+  });
+
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
+
+  const updateCall = apiFetch.mock.calls[2];
+  expect(updateCall[0]).toBe('/equipment/update-item/1');
+  expect(updateCall[1]).toEqual(
+    expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+
+  const payload = JSON.parse(updateCall[1].body);
+  expect(Array.isArray(payload.item)).toBe(true);
+  expect(payload.item).toHaveLength(4);
+  expect(
+    payload.item.every(
+      (entry) => entry && typeof entry === 'object' && !Array.isArray(entry)
+    )
+  ).toBe(true);
+
+  expect(payload.item).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'Rope (hempen)',
+        category: '',
+        weight: '',
+        statBonuses: {},
+        skillBonuses: {},
+      }),
+      expect.objectContaining({
+        name: 'Lantern',
+        category: 'Adventuring Gear',
+        notes: 'Brass lantern',
+        statBonuses: { wis: 1 },
+        skillBonuses: { perception: 2 },
+      }),
+      expect.objectContaining({
+        name: 'Alchemy Jug',
+        type: 'gear',
+        owned: true,
+      }),
+    ])
+  );
+
+  const preserved = payload.item.find((entry) => entry.name === 'Spyglass');
+  expect(preserved).toMatchObject({
+    displayName: 'Spyglass',
+    owned: false,
+    rarity: 'rare',
+    notes: 'Expensive',
+  });
 });
 
 test('purchased equipment is marked owned and shown in inventory modal', async () => {

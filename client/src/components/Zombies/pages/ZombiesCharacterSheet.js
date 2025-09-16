@@ -25,6 +25,7 @@ import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
+import { normalizeItems as normalizeInventoryItems } from "../attributes/inventoryNormalization";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -577,10 +578,11 @@ export default function ZombiesCharacterSheet() {
       }
 
       if (newItems.length) {
-        const updatedItems = [
-          ...(Array.isArray(form.item) ? form.item : []),
-          ...newItems,
-        ];
+        const normalizedExistingItems = normalizeInventoryItems(
+          Array.isArray(form.item) ? form.item : [],
+          { includeUnowned: true }
+        );
+        const updatedItems = [...normalizedExistingItems, ...newItems];
         await handleItemsChange(updatedItems);
       }
     },
