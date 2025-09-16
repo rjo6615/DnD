@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Modal } from 'react-bootstrap';
 import {
   GiAmmoBox,
@@ -56,6 +56,42 @@ const renderBonuses = (bonuses, labels) =>
  *   ownedOnly?: boolean,
  * }} props
  */
+const buildItemOwnershipMap = (initialItems) => {
+  const map = new Map();
+  if (!Array.isArray(initialItems)) return map;
+
+  initialItems.forEach((entry) => {
+    if (!entry) return;
+    if (typeof entry === 'object' && entry.owned === false) return;
+
+    let name = '';
+    if (typeof entry === 'string') {
+      name = entry;
+    } else if (Array.isArray(entry)) {
+      [name] = entry;
+    } else if (typeof entry === 'object') {
+      name = entry.name || entry.displayName || '';
+    }
+
+    if (typeof name !== 'string') return;
+
+    const key = name.trim().toLowerCase();
+    if (!key) return;
+
+    const existing = map.get(key);
+    const nextCount = (existing?.count ?? 0) + 1;
+    const normalizedItem =
+      existing?.item ||
+      (typeof entry === 'object' && !Array.isArray(entry)
+        ? entry
+        : { name });
+
+    map.set(key, { item: normalizedItem, count: nextCount });
+  });
+
+  return map;
+};
+
 function ItemList({
   campaign,
   onChange,
@@ -68,10 +104,15 @@ function ItemList({
   ownedOnly = false,
 }) {
   const [items, setItems] =
-    useState/** @type {Record<string, Item & { owned?: boolean, displayName?: string }> | null} */(null);
+    useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownItems, setUnknownItems] = useState([]);
   const [notesItem, setNotesItem] = useState(null);
+
+  const ownershipMap = useMemo(
+    () => buildItemOwnershipMap(initialItems),
+    [initialItems]
+  );
 
   useEffect(() => {
     if (!show) return;
@@ -119,25 +160,24 @@ function ItemList({
             }, {})
           : {};
 
-        const ownedSet = new Set(
-          initialItems
-            .map((i) => {
-              if (typeof i === 'string') return i;
-              if (Array.isArray(i)) return i[0];
-              return i.name || '';
-            })
-            .map((n) => n.toLowerCase())
-        );
         const all = { ...phb, ...customMap };
         const keys = Object.keys(all);
         const unknown = [];
         const withOwnership = keys.reduce((acc, key) => {
           const base = all[key];
+          const displayKey = (base.displayName || base.name || '').toLowerCase();
+          const ownedEntry =
+            ownershipMap.get(key) ||
+            (displayKey && displayKey !== key
+              ? ownershipMap.get(displayKey)
+              : undefined);
+          const ownedCount = ownedEntry?.count ?? 0;
           acc[key] = {
             ...base,
             name: key,
             displayName: base.displayName || base.name,
-            owned: ownedSet.has(key),
+            ownedCount,
+            owned: ownedCount > 0,
           };
           return acc;
         }, {});
@@ -156,6 +196,31 @@ function ItemList({
     fetchItems();
   }, [campaign, initialItems, show]);
 
+  useEffect(() => {
+    setItems((prev) => {
+      if (!prev) return prev;
+      let changed = false;
+      const next = Object.entries(prev).reduce((acc, [key, item]) => {
+        const displayKey = (item.displayName || item.name || '').toLowerCase();
+        const ownedEntry =
+          ownershipMap.get(key) ||
+          (displayKey && displayKey !== key
+            ? ownershipMap.get(displayKey)
+            : undefined);
+        const ownedCount = ownedEntry?.count ?? 0;
+        const owned = ownedCount > 0;
+        if (item.owned !== owned || (item.ownedCount ?? 0) !== ownedCount) {
+          changed = true;
+          acc[key] = { ...item, owned, ownedCount };
+        } else {
+          acc[key] = item;
+        }
+        return acc;
+      }, /** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }>} */ ({}));
+      return changed ? next : prev;
+    });
+  }, [ownershipMap]);
+
   if (!items) {
     return null;
   }
@@ -173,9 +238,39 @@ function ItemList({
   const handleShowNotes = (item) => () => setNotesItem(item);
 
   const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
-  const entries = Object.entries(items).filter(([, item]) =>
-    ownedOnly ? item.owned : true
+  const filteredEntries = Object.entries(items).filter(([, item]) =>
+    ownedOnly ? (item.ownedCount ?? 0) > 0 : true
   );
+  const expandedEntries = ownedOnly
+    ? filteredEntries.flatMap(([key, item]) => {
+        const count = item.ownedCount ?? 0;
+        if (count <= 0) return [];
+        if (count === 1) {
+          return [
+            {
+              reactKey: key,
+              dataKey: key,
+              item,
+              copyIndex: 0,
+              copyCount: 1,
+            },
+          ];
+        }
+        return Array.from({ length: count }, (_, index) => ({
+          reactKey: `${key}-${index}`,
+          dataKey: key,
+          item,
+          copyIndex: index,
+          copyCount: count,
+        }));
+      })
+    : filteredEntries.map(([key, item]) => ({
+        reactKey: key,
+        dataKey: key,
+        item,
+        copyIndex: 0,
+        copyCount: item.ownedCount ?? 0,
+      }));
   const bodyContent = (
     <>
       {error && (
@@ -190,7 +285,7 @@ function ItemList({
           Unrecognized items from server: {unknownItems.join(', ')}
         </Alert>
       )}
-      {entries.length === 0 ? (
+      {expandedEntries.length === 0 ? (
         <div className="text-center text-muted py-3">
           {ownedOnly
             ? 'No items in inventory.'
@@ -198,14 +293,14 @@ function ItemList({
         </div>
       ) : (
         <Row className="row-cols-2 row-cols-lg-3 g-3">
-          {entries.map(([key, item]) => {
+          {expandedEntries.map(({ reactKey, dataKey, item, copyIndex, copyCount }) => {
             const categoryKey =
               typeof item.category === 'string'
                 ? item.category.toLowerCase()
                 : '';
             const Icon = categoryIcons[categoryKey] || GiTreasureMap;
             return (
-              <Col key={key}>
+              <Col key={reactKey}>
                 <Card className="item-card h-100">
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-center mb-2">
@@ -231,15 +326,24 @@ function ItemList({
                         )}
                       </Card.Text>
                     )}
-                    {item.notes && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="mt-auto align-self-start p-0"
-                        onClick={handleShowNotes(item)}
-                      >
-                        Notes
-                      </Button>
+                    {(item.notes || (ownedOnly && copyCount > 1)) && (
+                      <div className="mt-auto d-flex flex-column align-items-start gap-1">
+                        {item.notes && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0"
+                            onClick={handleShowNotes(item)}
+                          >
+                            Notes
+                          </Button>
+                        )}
+                        {ownedOnly && copyCount > 1 && (
+                          <span className="text-muted small">
+                            Copy {copyIndex + 1} of {copyCount}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </Card.Body>
                   {!ownedOnly && (
