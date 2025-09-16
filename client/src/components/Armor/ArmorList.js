@@ -22,6 +22,7 @@ import apiFetch from '../../utils/apiFetch';
  *   strength?: number,
  *   embedded?: boolean,
  *   onAddToCart?: (armor: Armor & { type?: string }) => void,
+ *   ownedOnly?: boolean,
  * }} props
  */
 function ArmorList({
@@ -33,6 +34,7 @@ function ArmorList({
   strength = Number.POSITIVE_INFINITY,
   embedded = false,
   onAddToCart = () => {},
+  ownedOnly = false,
 }) {
   const [armor, setArmor] =
     useState/** @type {Record<string, Armor & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -210,6 +212,10 @@ function ArmorList({
   };
 
   const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const entries = Object.entries(armor).filter(([, piece]) =>
+    ownedOnly ? piece.owned : true
+  );
+
   const bodyContent = error ? (
     <div className="text-danger">{error}</div>
   ) : (
@@ -219,13 +225,20 @@ function ArmorList({
           Unrecognized armor from server: {unknownArmor.join(', ')}
         </Alert>
       )}
-      <Row className="g-2">
-        {Object.entries(armor).map(([key, piece]) => {
-          const Icon = categoryIcons[piece.category] || GiArmorVest;
-          return (
-            <Col xs={6} md={4} key={key}>
-              <Card className="armor-card h-100">
-                <Card.Body className="d-flex flex-column">
+      {entries.length === 0 ? (
+        <div className="text-center text-muted py-3">
+          {ownedOnly
+            ? 'No armor in inventory.'
+            : 'No armor available.'}
+        </div>
+      ) : (
+        <Row className="g-2">
+          {entries.map(([key, piece]) => {
+            const Icon = categoryIcons[piece.category] || GiArmorVest;
+            return (
+              <Col xs={6} md={4} key={key}>
+                <Card className="armor-card h-100">
+                  <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-center mb-2">
                     <Icon size={40} title={piece.category} />
                   </div>
@@ -271,15 +284,18 @@ function ArmorList({
                         : undefined
                     }
                   />
-                  <Button size="sm" onClick={handleAddToCart(piece)}>
-                    Add to Cart
-                  </Button>
+                  {!ownedOnly && (
+                    <Button size="sm" onClick={handleAddToCart(piece)}>
+                      Add to Cart
+                    </Button>
+                  )}
                 </Card.Footer>
               </Card>
             </Col>
           );
-        })}
-      </Row>
+          })}
+        </Row>
+      )}
     </>
   );
 

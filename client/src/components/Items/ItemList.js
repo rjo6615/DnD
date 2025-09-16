@@ -53,6 +53,7 @@ const renderBonuses = (bonuses, labels) =>
  *   onClose?: () => void,
  *   embedded?: boolean,
  *   onAddToCart?: (item: Item & { type?: string }) => void,
+ *   ownedOnly?: boolean,
  * }} props
  */
 function ItemList({
@@ -64,6 +65,7 @@ function ItemList({
   onClose,
   embedded = false,
   onAddToCart = () => {},
+  ownedOnly = false,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, displayName?: string }> | null} */(null);
@@ -171,6 +173,9 @@ function ItemList({
   const handleShowNotes = (item) => () => setNotesItem(item);
 
   const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const entries = Object.entries(items).filter(([, item]) =>
+    ownedOnly ? item.owned : true
+  );
   const bodyContent = (
     <>
       {error && (
@@ -185,53 +190,71 @@ function ItemList({
           Unrecognized items from server: {unknownItems.join(', ')}
         </Alert>
       )}
-      <Row className="row-cols-2 row-cols-lg-3 g-3">
-        {Object.entries(items).map(([key, item]) => {
-          const categoryKey =
-            typeof item.category === 'string' ? item.category.toLowerCase() : '';
-          const Icon = categoryIcons[categoryKey] || GiTreasureMap;
-          return (
-            <Col key={key}>
-              <Card className="item-card h-100">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-center mb-2">
-                    <Icon size={40} title={item.category} />
-                  </div>
-                  <Card.Title>{item.displayName || item.name}</Card.Title>
-                  <Card.Text>Category: {item.category}</Card.Text>
-                  <Card.Text>Weight: {item.weight}</Card.Text>
-                  <Card.Text>Cost: {item.cost}</Card.Text>
-                  {renderBonuses(item.statBonuses, STAT_LABELS) && (
-                    <Card.Text>
-                      Stat Bonuses: {renderBonuses(item.statBonuses, STAT_LABELS)}
-                    </Card.Text>
+      {entries.length === 0 ? (
+        <div className="text-center text-muted py-3">
+          {ownedOnly
+            ? 'No items in inventory.'
+            : 'No items available.'}
+        </div>
+      ) : (
+        <Row className="row-cols-2 row-cols-lg-3 g-3">
+          {entries.map(([key, item]) => {
+            const categoryKey =
+              typeof item.category === 'string'
+                ? item.category.toLowerCase()
+                : '';
+            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
+            return (
+              <Col key={key}>
+                <Card className="item-card h-100">
+                  <Card.Body className="d-flex flex-column">
+                    <div className="d-flex justify-content-center mb-2">
+                      <Icon size={40} title={item.category} />
+                    </div>
+                    <Card.Title>{item.displayName || item.name}</Card.Title>
+                    <Card.Text>Category: {item.category}</Card.Text>
+                    <Card.Text>Weight: {item.weight}</Card.Text>
+                    <Card.Text>Cost: {item.cost}</Card.Text>
+                    {renderBonuses(item.statBonuses, STAT_LABELS) && (
+                      <Card.Text>
+                        Stat Bonuses: {renderBonuses(
+                          item.statBonuses,
+                          STAT_LABELS
+                        )}
+                      </Card.Text>
+                    )}
+                    {renderBonuses(item.skillBonuses, SKILL_LABELS) && (
+                      <Card.Text>
+                        Skill Bonuses: {renderBonuses(
+                          item.skillBonuses,
+                          SKILL_LABELS
+                        )}
+                      </Card.Text>
+                    )}
+                    {item.notes && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="mt-auto align-self-start p-0"
+                        onClick={handleShowNotes(item)}
+                      >
+                        Notes
+                      </Button>
+                    )}
+                  </Card.Body>
+                  {!ownedOnly && (
+                    <Card.Footer className="d-flex justify-content-center">
+                      <Button size="sm" onClick={handleAddToCart(item)}>
+                        Add to Cart
+                      </Button>
+                    </Card.Footer>
                   )}
-                  {renderBonuses(item.skillBonuses, SKILL_LABELS) && (
-                    <Card.Text>
-                      Skill Bonuses: {renderBonuses(item.skillBonuses, SKILL_LABELS)}
-                    </Card.Text>
-                  )}
-                  {item.notes && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="mt-auto align-self-start p-0"
-                      onClick={handleShowNotes(item)}
-                    >
-                      Notes
-                    </Button>
-                  )}
-                </Card.Body>
-                <Card.Footer className="d-flex justify-content-center">
-                  <Button size="sm" onClick={handleAddToCart(item)}>
-                    Add to Cart
-                  </Button>
-                </Card.Footer>
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      )}
     </>
   );
 

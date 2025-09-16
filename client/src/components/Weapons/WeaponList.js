@@ -21,6 +21,7 @@ import apiFetch from '../../utils/apiFetch';
  *   show?: boolean,
  *   embedded?: boolean,
  *   onAddToCart?: (weapon: Weapon & { type?: string }) => void,
+ *   ownedOnly?: boolean,
  * }} props
  */
 function WeaponList({
@@ -31,6 +32,7 @@ function WeaponList({
   show = true,
   embedded = false,
   onAddToCart = () => {},
+  ownedOnly = false,
 }) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -200,6 +202,10 @@ function WeaponList({
   };
 
   const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const entries = Object.entries(weapons).filter(([, weapon]) =>
+    ownedOnly ? weapon.owned : true
+  );
+
   const bodyContent = error ? (
     <div className="text-danger">{error}</div>
   ) : (
@@ -209,13 +215,20 @@ function WeaponList({
           Unrecognized weapons from server: {unknownWeapons.join(', ')}
         </Alert>
       )}
-      <Row className="row-cols-2 row-cols-lg-3 g-3">
-        {Object.entries(weapons).map(([key, weapon]) => {
-          const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
-          return (
-            <Col key={key}>
-              <Card className="weapon-card h-100">
-                <Card.Body className="d-flex flex-column">
+      {entries.length === 0 ? (
+        <div className="text-center text-muted py-3">
+          {ownedOnly
+            ? 'No weapons in inventory.'
+            : 'No weapons available.'}
+        </div>
+      ) : (
+        <Row className="row-cols-2 row-cols-lg-3 g-3">
+          {entries.map(([key, weapon]) => {
+            const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
+            return (
+              <Col key={key}>
+                <Card className="weapon-card h-100">
+                  <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-center mb-2">
                     <Icon size={40} title={weapon.category} />
                   </div>
@@ -243,15 +256,18 @@ function WeaponList({
                         : undefined
                     }
                   />
-                  <Button size="sm" onClick={handleAddToCart(weapon)}>
-                    Add to Cart
-                  </Button>
+                  {!ownedOnly && (
+                    <Button size="sm" onClick={handleAddToCart(weapon)}>
+                      Add to Cart
+                    </Button>
+                  )}
                 </Card.Footer>
               </Card>
             </Col>
           );
-        })}
-      </Row>
+          })}
+        </Row>
+      )}
     </>
   );
 
