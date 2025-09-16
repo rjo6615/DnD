@@ -456,6 +456,78 @@ test('shop button opens ShopModal with default tab and retains previous tab', as
   );
 });
 
+test('purchasing from shop updates currency and inventory', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+        cp: 100,
+        sp: 0,
+        gp: 0,
+        pp: 0,
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ cp: 90, sp: 0, gp: 0, pp: 0 }),
+    })
+    .mockResolvedValueOnce({ ok: true });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
+
+  const cartItem = {
+    type: 'item',
+    itemType: 'gear',
+    name: 'torch',
+    displayName: 'Torch',
+    category: 'adventuring gear',
+    weight: 1,
+    cost: '1 sp',
+    statBonuses: {},
+    skillBonuses: {},
+  };
+
+  await act(async () => {
+    await mockShopModalProps.current.onPurchase([cartItem], 10);
+  });
+
+  expect(apiFetch).toHaveBeenNthCalledWith(
+    2,
+    '/characters/1/currency',
+    expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+  expect(JSON.parse(apiFetch.mock.calls[1][1].body)).toEqual({ cp: -10 });
+
+  await waitFor(() =>
+    expect(mockShopModalProps.current.form).toMatchObject({
+      cp: 90,
+      item: expect.arrayContaining([
+        expect.objectContaining({ name: 'torch', category: 'adventuring gear' }),
+      ]),
+    })
+  );
+});
+
 test('inventory button opens InventoryModal with default tab', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,

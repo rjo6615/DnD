@@ -489,6 +489,108 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
+  const handleShopPurchase = useCallback(
+    async (cart = [], totalCostCp = 0) => {
+      if (!form) return;
+
+      const normalizedCost = Number.isFinite(totalCostCp)
+        ? Math.round(totalCostCp)
+        : 0;
+
+      let updatedCurrency;
+      try {
+        const response = await apiFetch(`/characters/${characterId}/currency`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cp: -normalizedCost }),
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to update currency: ${response.statusText}`);
+        }
+        updatedCurrency = await response.json();
+        setForm((prev) => ({
+          ...prev,
+          cp: updatedCurrency.cp ?? prev?.cp ?? 0,
+          sp: updatedCurrency.sp ?? prev?.sp ?? 0,
+          gp: updatedCurrency.gp ?? prev?.gp ?? 0,
+          pp: updatedCurrency.pp ?? prev?.pp ?? 0,
+        }));
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        return;
+      }
+
+      const purchaseItems = Array.isArray(cart) ? cart : [];
+
+      const newWeapons = [];
+      const newArmor = [];
+      const newItems = [];
+
+      purchaseItems.forEach((entry) => {
+        if (!entry || typeof entry !== 'object') return;
+        if (entry.type === 'weapon') {
+          const { type: _ignored, weaponType, ...rest } = entry;
+          const sanitized = {
+            ...rest,
+            ...(weaponType !== undefined ? { type: weaponType } : {}),
+          };
+          newWeapons.push(sanitized);
+          return;
+        }
+        if (entry.type === 'armor') {
+          const { type: _ignored, armorType, ...rest } = entry;
+          const sanitized = {
+            ...rest,
+            ...(armorType !== undefined ? { type: armorType } : {}),
+          };
+          newArmor.push(sanitized);
+          return;
+        }
+        if (entry.type === 'item') {
+          const { type: _ignored, itemType, ...rest } = entry;
+          const sanitized = {
+            ...rest,
+            ...(itemType !== undefined ? { type: itemType } : {}),
+          };
+          newItems.push(sanitized);
+        }
+      });
+
+      if (newWeapons.length) {
+        const updatedWeapons = [
+          ...(Array.isArray(form.weapon) ? form.weapon : []),
+          ...newWeapons,
+        ];
+        await handleWeaponsChange(updatedWeapons);
+      }
+
+      if (newArmor.length) {
+        const updatedArmor = [
+          ...(Array.isArray(form.armor) ? form.armor : []),
+          ...newArmor,
+        ];
+        await handleArmorChange(updatedArmor);
+      }
+
+      if (newItems.length) {
+        const updatedItems = [
+          ...(Array.isArray(form.item) ? form.item : []),
+          ...newItems,
+        ];
+        await handleItemsChange(updatedItems);
+      }
+    },
+    [
+      characterId,
+      form,
+      handleArmorChange,
+      handleItemsChange,
+      handleWeaponsChange,
+      setForm,
+    ]
+  );
+
   const itemBonus = (form?.item || []).reduce(
     (acc, el) => ({
       str: acc.str + Number(el.statBonuses?.str || 0),
@@ -906,6 +1008,7 @@ return (
         gp: form?.gp ?? 0,
         pp: form?.pp ?? 0,
       }}
+      onPurchase={handleShopPurchase}
     />
     {hasSpellcasting && (
       <SpellSelector
