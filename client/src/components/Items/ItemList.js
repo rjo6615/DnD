@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Alert, Button, Modal } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Card, Row, Col, Alert, Button, Modal, Badge } from 'react-bootstrap';
 import {
   GiAmmoBox,
   GiBackpack,
@@ -54,6 +54,7 @@ const renderBonuses = (bonuses, labels) =>
  *   embedded?: boolean,
  *   onAddToCart?: (item: Item & { type?: string }) => void,
  *   ownedOnly?: boolean,
+ *   cartCounts?: Record<string, number> | null,
  * }} props
  */
 const buildItemOwnershipMap = (initialItems) => {
@@ -102,6 +103,7 @@ function ItemList({
   embedded = false,
   onAddToCart = () => {},
   ownedOnly = false,
+  cartCounts = null,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
@@ -234,6 +236,12 @@ function ItemList({
     onAddToCart(payload);
   };
 
+  const getCartCount = (item) => {
+    if (!cartCounts) return 0;
+    const key = `item::${String(item?.name || '').toLowerCase()}`;
+    return cartCounts[key] ?? 0;
+  };
+
   const handleCloseNotes = () => setNotesItem(null);
   const handleShowNotes = (item) => () => setNotesItem(item);
 
@@ -348,9 +356,16 @@ function ItemList({
                   </Card.Body>
                   {!ownedOnly && (
                     <Card.Footer className="d-flex justify-content-center">
-                      <Button size="sm" onClick={handleAddToCart(item)}>
-                        Add to Cart
-                      </Button>
+                      <div className="d-flex align-items-center gap-2">
+                        <Button size="sm" onClick={handleAddToCart(item)}>
+                          Add to Cart
+                        </Button>
+                        {cartCounts ? (
+                          <Badge bg="secondary" pill>
+                            {`In Cart: ${getCartCount(item)}`}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </Card.Footer>
                   )}
                 </Card>

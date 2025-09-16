@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Form, Alert, Row, Col, Button } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Card, Form, Alert, Row, Col, Button, Badge } from 'react-bootstrap';
 import {
   GiLeatherArmor,
   GiBreastplate,
@@ -23,6 +23,7 @@ import apiFetch from '../../utils/apiFetch';
  *   embedded?: boolean,
  *   onAddToCart?: (armor: Armor & { type?: string }) => void,
  *   ownedOnly?: boolean,
+ *   cartCounts?: Record<string, number> | null,
  * }} props
  */
 const buildArmorOwnershipMap = (initialArmor) => {
@@ -71,6 +72,7 @@ function ArmorList({
   embedded = false,
   onAddToCart = () => {},
   ownedOnly = false,
+  cartCounts = null,
 }) {
   const [armor, setArmor] =
     useState/** @type {Record<string, Armor & { owned?: boolean, ownedCount?: number, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -252,6 +254,12 @@ function ArmorList({
     onAddToCart(payload);
   };
 
+  const getCartCount = (piece) => {
+    if (!cartCounts) return 0;
+    const key = `armor::${String(piece?.name || '').toLowerCase()}`;
+    return cartCounts[key] ?? 0;
+  };
+
   const handleToggle = (key) => async () => {
     const piece = armor[key];
     if (piece.granted || piece.pending) return;
@@ -388,9 +396,16 @@ function ArmorList({
                     }
                   />
                   {!ownedOnly && (
-                    <Button size="sm" onClick={handleAddToCart(piece)}>
-                      Add to Cart
-                    </Button>
+                    <>
+                      <Button size="sm" onClick={handleAddToCart(piece)}>
+                        Add to Cart
+                      </Button>
+                      {cartCounts ? (
+                        <Badge bg="secondary" pill>
+                          {`In Cart: ${getCartCount(piece)}`}
+                        </Badge>
+                      ) : null}
+                    </>
                   )}
                 </Card.Footer>
               </Card>

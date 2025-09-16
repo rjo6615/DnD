@@ -82,9 +82,12 @@ jest.mock('../../Weapons/WeaponList', () => {
       prevShowRef.current = props.show;
     }, [props.show]);
     if (!props.show) return null;
+    const count =
+      props.cartCounts?.['weapon::mock weapon'] ?? 0;
     return (
       <div data-testid="weapon-list">
         Weapons
+        <span data-testid="weapon-cart-count">{count}</span>
         <button
           type="button"
           onClick={() => props.onAddToCart?.({ ...mockWeapon })}
@@ -108,9 +111,12 @@ jest.mock('../../Armor/ArmorList', () => {
       prevShowRef.current = props.show;
     }, [props.show]);
     if (!props.show) return null;
+    const count =
+      props.cartCounts?.['armor::mock armor'] ?? 0;
     return (
       <div data-testid="armor-list">
         Armor
+        <span data-testid="armor-cart-count">{count}</span>
         <button
           type="button"
           onClick={() => props.onAddToCart?.({ ...mockArmor })}
@@ -134,9 +140,11 @@ jest.mock('../../Items/ItemList', () => {
       prevShowRef.current = props.show;
     }, [props.show]);
     if (!props.show) return null;
+    const count = props.cartCounts?.['item::mock item'] ?? 0;
     return (
       <div data-testid="item-list">
         Items
+        <span data-testid="item-cart-count">{count}</span>
         <button
           type="button"
           onClick={() => props.onAddToCart?.({ ...mockItem })}
@@ -175,6 +183,81 @@ beforeEach(() => {
   mockWeaponListFetch.mockClear();
   mockArmorListFetch.mockClear();
   mockItemListFetch.mockClear();
+});
+
+test('cart counts increment when items are added repeatedly', async () => {
+  renderShopModal();
+
+  const weaponList = await screen.findByTestId('weapon-list');
+  expect(
+    within(weaponList).getByTestId('weapon-cart-count')
+  ).toHaveTextContent('0');
+
+  const weaponButton = within(weaponList).getByRole('button', {
+    name: /add to cart/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(weaponButton);
+  });
+  await waitFor(() =>
+    expect(
+      within(weaponList).getByTestId('weapon-cart-count')
+    ).toHaveTextContent('1')
+  );
+
+  await act(async () => {
+    await userEvent.click(weaponButton);
+  });
+  await waitFor(() =>
+    expect(
+      within(weaponList).getByTestId('weapon-cart-count')
+    ).toHaveTextContent('2')
+  );
+
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Armor' }));
+  });
+
+  const armorList = await screen.findByTestId('armor-list');
+  expect(
+    within(armorList).getByTestId('armor-cart-count')
+  ).toHaveTextContent('0');
+
+  const armorButton = within(armorList).getByRole('button', {
+    name: /add to cart/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(armorButton);
+  });
+  await waitFor(() =>
+    expect(
+      within(armorList).getByTestId('armor-cart-count')
+    ).toHaveTextContent('1')
+  );
+
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
+  });
+
+  const itemList = await screen.findByTestId('item-list');
+  expect(
+    within(itemList).getByTestId('item-cart-count')
+  ).toHaveTextContent('0');
+
+  const itemButton = within(itemList).getByRole('button', {
+    name: /add to cart/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(itemButton);
+  });
+  await waitFor(() =>
+    expect(
+      within(itemList).getByTestId('item-cart-count')
+    ).toHaveTextContent('1')
+  );
 });
 
 test('tab navigation switches between weapon, armor, and item views', async () => {

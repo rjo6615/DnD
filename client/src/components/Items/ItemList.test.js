@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import React from 'react';
+import { render, screen, within, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ItemList from './ItemList';
 import apiFetch from '../../utils/apiFetch';
@@ -18,7 +19,7 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches items and handles add to cart', async () => {
+test('fetches items, handles add to cart, and displays cart count', async () => {
   apiFetch.mockImplementation((url) => {
     if (url === '/items') {
       return Promise.resolve({ ok: true, json: async () => itemsData });
@@ -30,11 +31,30 @@ test('fetches items and handles add to cart', async () => {
   });
   const onAddToCart = jest.fn();
 
+  function Wrapper(props) {
+    const [counts, setCounts] = React.useState({});
+    const handleAdd = (item) => {
+      act(() => {
+        setCounts((prev) => {
+          const key = `item::${String(item?.name || '').toLowerCase()}`;
+          return { ...prev, [key]: (prev[key] || 0) + 1 };
+        });
+      });
+      onAddToCart(item);
+    };
+    return (
+      <ItemList
+        {...props}
+        onAddToCart={handleAdd}
+        cartCounts={counts}
+      />
+    );
+  }
+
   render(
-    <ItemList
+    <Wrapper
       campaign="Camp1"
       characterId="char1"
-      onAddToCart={onAddToCart}
     />
   );
 
@@ -44,8 +64,23 @@ test('fetches items and handles add to cart', async () => {
   const addButton = within(potionHeading.closest('.card')).getByRole('button', {
     name: /add to cart/i,
   });
+  expect(
+    within(potionHeading.closest('.card')).getByText('In Cart: 0')
+  ).toBeInTheDocument();
 
   await userEvent.click(addButton);
+  await waitFor(() =>
+    expect(
+      within(potionHeading.closest('.card')).getByText('In Cart: 1')
+    ).toBeInTheDocument()
+  );
+
+  await userEvent.click(addButton);
+  await waitFor(() =>
+    expect(
+      within(potionHeading.closest('.card')).getByText('In Cart: 2')
+    ).toBeInTheDocument()
+  );
 
   expect(onAddToCart).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -57,6 +92,7 @@ test('fetches items and handles add to cart', async () => {
       weight: 0.5,
     })
   );
+  expect(onAddToCart).toHaveBeenCalledTimes(2);
 });
 
 test('shows error message when item fetch fails', async () => {

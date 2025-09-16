@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Form, Alert, Button } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Card, Row, Col, Form, Alert, Button, Badge } from 'react-bootstrap';
 import {
   GiStoneAxe,
   GiBowArrow,
@@ -22,6 +22,7 @@ import apiFetch from '../../utils/apiFetch';
  *   embedded?: boolean,
  *   onAddToCart?: (weapon: Weapon & { type?: string }) => void,
  *   ownedOnly?: boolean,
+ *   cartCounts?: Record<string, number> | null,
  * }} props
  */
 const buildWeaponOwnershipMap = (initialWeapons) => {
@@ -69,6 +70,7 @@ function WeaponList({
   embedded = false,
   onAddToCart = () => {},
   ownedOnly = false,
+  cartCounts = null,
 }) {
   const [weapons, setWeapons] =
     useState/** @type {Record<string, Weapon & { owned?: boolean, ownedCount?: number, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
@@ -244,6 +246,12 @@ function WeaponList({
     onAddToCart(payload);
   };
 
+  const getCartCount = (weapon) => {
+    if (!cartCounts) return 0;
+    const key = `weapon::${String(weapon?.name || '').toLowerCase()}`;
+    return cartCounts[key] ?? 0;
+  };
+
   const handleToggle = (key) => async () => {
     const weapon = weapons[key];
     if (weapon.granted || weapon.pending) return;
@@ -372,9 +380,16 @@ function WeaponList({
                     }
                   />
                   {!ownedOnly && (
-                    <Button size="sm" onClick={handleAddToCart(weapon)}>
-                      Add to Cart
-                    </Button>
+                    <>
+                      <Button size="sm" onClick={handleAddToCart(weapon)}>
+                        Add to Cart
+                      </Button>
+                      {cartCounts ? (
+                        <Badge bg="secondary" pill>
+                          {`In Cart: ${getCartCount(weapon)}`}
+                        </Badge>
+                      ) : null}
+                    </>
                   )}
                 </Card.Footer>
               </Card>
