@@ -1,5 +1,12 @@
 import React from 'react';
-import { render, screen, waitFor, act, within } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  within,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mockWeaponListFetch = jest.fn();
@@ -353,6 +360,48 @@ describe('cart interactions', () => {
     expect(
       cartWithin.getByText(`Total: ${expectedMultiTotal}`)
     ).toBeInTheDocument();
+  });
+
+  test('prevents purchase when funds are insufficient', async () => {
+    const onPurchase = jest.fn();
+    renderShopModal({
+      onPurchase,
+      currency: { cp: 0, sp: 0, gp: 0, pp: 0 },
+    });
+
+    const cartButton = screen.getByRole('button', { name: /view cart/i });
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
+    });
+
+    await act(async () => {
+      await userEvent.click(cartButton);
+    });
+
+    const cartTitle = await screen.findByText('Cart', {
+      selector: '.modal-title',
+    });
+    const cartModal = cartTitle.closest('.modal');
+    expect(cartModal).not.toBeNull();
+    const cartWithin = within(cartModal);
+
+    const purchaseButton = cartWithin.getByRole('button', { name: 'Purchase' });
+    expect(purchaseButton).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(purchaseButton);
+    });
+
+    expect(onPurchase).not.toHaveBeenCalled();
+
+    await waitFor(() =>
+      expect(
+        cartWithin.getByText(/Insufficient funds to complete purchase/i)
+      ).toBeInTheDocument()
+    );
+
+    expect(purchaseButton).toBeDisabled();
   });
 
 test('purchase triggers onPurchase with cart details and resets the cart', async () => {

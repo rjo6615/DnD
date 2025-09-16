@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
+import { Alert, Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
@@ -313,6 +313,7 @@ export default function ShopModal({
 }) {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [insufficientFunds, setInsufficientFunds] = useState('');
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
   );
@@ -322,6 +323,11 @@ export default function ShopModal({
       : activeTabState) || DEFAULT_TAB;
 
   const { cp = 0, sp = 0, gp = 0, pp = 0 } = currency || {};
+
+  const availableCp = useMemo(
+    () => pp * COIN_VALUES.pp + gp * COIN_VALUES.gp + sp * COIN_VALUES.sp + cp,
+    [pp, gp, sp, cp]
+  );
 
   const totalCostCp = useMemo(
     () => cart.reduce((sum, item) => sum + costToCp(item?.cost), 0),
@@ -346,13 +352,28 @@ export default function ShopModal({
   }, []);
 
   const handlePurchase = useCallback(() => {
+    if (totalCostCp > availableCp) {
+      setInsufficientFunds('Insufficient funds to complete purchase.');
+      return;
+    }
+
     try {
       onPurchase(cart, totalCostCp);
     } finally {
       setCart([]);
       setShowCart(false);
     }
-  }, [cart, onPurchase, totalCostCp]);
+  }, [availableCp, cart, onPurchase, totalCostCp]);
+
+  useEffect(() => {
+    setInsufficientFunds('');
+  }, [cart, cp, gp, sp, pp]);
+
+  useEffect(() => {
+    if (totalCostCp > availableCp) {
+      setInsufficientFunds('Insufficient funds to complete purchase.');
+    }
+  }, [availableCp, totalCostCp]);
 
   useEffect(() => {
     if (activeTab && activeTab !== activeTabState) {
@@ -547,6 +568,11 @@ export default function ShopModal({
               <div className="mt-3 text-end fw-semibold">
                 Total: {formattedTotalCost}
               </div>
+              {insufficientFunds ? (
+                <Alert variant="danger" className="mt-3 mb-0">
+                  {insufficientFunds}
+                </Alert>
+              ) : null}
             </>
           )}
         </Modal.Body>
@@ -557,7 +583,7 @@ export default function ShopModal({
           <Button
             variant="primary"
             onClick={handlePurchase}
-            disabled={cart.length === 0}
+            disabled={cart.length === 0 || totalCostCp > availableCp}
           >
             Purchase
           </Button>
