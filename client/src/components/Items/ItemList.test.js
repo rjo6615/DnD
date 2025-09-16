@@ -137,3 +137,26 @@ test('omits card header and footer when embedded', async () => {
   expect(document.querySelector('.modern-card')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
 });
+
+test('renders duplicate item cards when multiple copies are owned', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
+
+  render(
+    <ItemList
+      characterId="char1"
+      ownedOnly
+      embedded
+      initialItems={[
+        { name: 'Torch', owned: true },
+        { name: 'Torch', owned: true },
+        { name: 'Potion of healing', owned: true },
+      ]}
+    />
+  );
+
+  const torches = await screen.findAllByText('Torch');
+  expect(torches).toHaveLength(2);
+  expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
+  expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
+  expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
+});

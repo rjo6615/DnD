@@ -240,6 +240,35 @@ test('toggling a non-proficient armor allows checking and unchecking', async () 
   expect(apiFetch).toHaveBeenCalledTimes(4);
 });
 
+test('renders duplicate armor entries when multiple copies are owned', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => armorData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+    });
+
+  render(
+    <ArmorList
+      characterId="char1"
+      strength={15}
+      ownedOnly
+      embedded
+      initialArmor={[
+        { name: 'Leather Armor', owned: true },
+        { name: 'Leather Armor', owned: true },
+        { name: 'Chain Mail', owned: true },
+      ]}
+    />
+  );
+
+  const leatherEntries = await screen.findAllByText('Leather Armor');
+  expect(leatherEntries).toHaveLength(2);
+  expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
+  expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
+  expect(screen.getAllByText('Chain Mail')).toHaveLength(1);
+});
+
 test('shows all armor when allowed list is empty', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
   apiFetch.mockResolvedValueOnce({

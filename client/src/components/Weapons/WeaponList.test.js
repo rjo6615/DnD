@@ -283,6 +283,34 @@ test('refetches weapons when modal is opened', async () => {
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
 });
 
+test('renders duplicate entries when multiple copies are owned', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+    });
+
+  render(
+    <WeaponList
+      characterId="char1"
+      ownedOnly
+      embedded
+      initialWeapons={[
+        { name: 'Club', owned: true },
+        { name: 'Club', owned: true },
+        { name: 'Dagger', owned: true },
+      ]}
+    />
+  );
+
+  const clubs = await screen.findAllByText('Club');
+  expect(clubs).toHaveLength(2);
+  expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
+  expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
+  expect(screen.getAllByText('Dagger')).toHaveLength(1);
+});
+
 test('warns when unknown weapon names are returned', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   apiFetch
