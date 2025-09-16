@@ -155,7 +155,69 @@ return (
         <Button className="mb-3 fantasy-button campaign-button" style={{borderColor: "transparent"}} onClick={handleShowJoinCampaign}>Join Campaign</Button>
         <Button className="mb-3 hostCampaign campaign-button" style={{borderColor: "transparent"}} onClick={handleShowHostCampaign}>Host Campaign</Button>
         <Button className="create-button campaign-button" style={{borderColor: "transparent"}} onClick={handleShow1}>Create Campaign</Button>
-        <Button className="mt-3 fantasy-button campaign-button" style={{borderColor: "transparent"}} onClick={handleLogout}>Logout</Button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "10px 16px",
+            background: "#2b2b2b",
+            color: "#f5f5f5",
+            border: "1px solid #3a3a3a",
+            borderRadius: "10px",
+            fontSize: "15px",
+            fontWeight: 500,
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+            transition: "all 0.2s ease",
+            marginTop: "1rem",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = "#333";
+            e.currentTarget.style.border = "1px solid #555";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = "#2b2b2b";
+            e.currentTarget.style.border = "1px solid #3a3a3a";
+          }}
+        >
+          <span
+            style={{
+              position: "relative",
+              width: "18px",
+              height: "18px",
+              display: "inline-block",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: "2px",
+                left: "0",
+                width: "10px",
+                height: "14px",
+                border: "2px solid currentColor",
+                borderRadius: "2px",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "12px",
+                transform: "translateY(-50%)",
+                width: "0",
+                height: "0",
+                borderTop: "5px solid transparent",
+                borderBottom: "5px solid transparent",
+                borderLeft: "7px solid currentColor",
+              }}
+            />
+          </span>
+          Logout
+        </button>
       </div>
 
       <Modal className="dnd-modal" centered show={showJoinCampaignModal} onHide={handleCloseJoinCampaign}>
