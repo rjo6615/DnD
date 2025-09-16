@@ -476,7 +476,7 @@ test('purchasing from shop updates currency and inventory', async () => {
         feat: [],
         weapon: [],
         armor: [],
-        cp: 100,
+        cp: 200,
         sp: 0,
         gp: 0,
         pp: 0,
@@ -484,29 +484,56 @@ test('purchasing from shop updates currency and inventory', async () => {
     })
     .mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ cp: 90, sp: 0, gp: 0, pp: 0 }),
+      json: async () => ({ cp: 50, sp: 0, gp: 0, pp: 0 }),
     })
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({ ok: true })
     .mockResolvedValueOnce({ ok: true });
 
   render(<ZombiesCharacterSheet />);
 
   await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
+  await waitFor(() => expect(mockShopModalProps.current.form).toBeTruthy());
 
-  const cartItem = {
-    type: 'item',
-    itemType: 'gear',
-    name: 'torch',
-    displayName: 'Torch',
-    category: 'adventuring gear',
-    weight: 1,
-    cost: '1 sp',
-    statBonuses: {},
-    skillBonuses: {},
-  };
+  const cartItems = [
+    {
+      type: 'weapon',
+      weaponType: 'martial',
+      name: 'Longsword',
+      category: 'martial melee weapon',
+      damage: '1d8 slashing',
+      properties: ['versatile'],
+      weight: 3,
+      cost: '1 gp',
+    },
+    {
+      type: 'armor',
+      armorType: 'light',
+      name: 'Leather Armor',
+      acBonus: 1,
+      stealth: 'disadvantage',
+      weight: 10,
+      cost: '2 sp',
+    },
+    {
+      type: 'item',
+      itemType: 'gear',
+      name: 'Torch',
+      displayName: 'Torch',
+      category: 'Adventuring Gear',
+      weight: 1,
+      cost: '3 sp',
+      statBonuses: {},
+      skillBonuses: {},
+    },
+  ];
+  const totalCostCp = 150;
 
   await act(async () => {
-    await mockShopModalProps.current.onPurchase([cartItem], 10);
+    await mockShopModalProps.current.onPurchase(cartItems, totalCostCp);
   });
+
+  await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(5));
 
   expect(apiFetch).toHaveBeenNthCalledWith(
     2,
@@ -516,13 +543,82 @@ test('purchasing from shop updates currency and inventory', async () => {
       headers: { 'Content-Type': 'application/json' },
     })
   );
-  expect(JSON.parse(apiFetch.mock.calls[1][1].body)).toEqual({ cp: -10 });
+  expect(JSON.parse(apiFetch.mock.calls[1][1].body)).toEqual({ cp: -totalCostCp });
+
+  expect(apiFetch).toHaveBeenNthCalledWith(
+    3,
+    '/equipment/update-weapon/1',
+    expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+  expect(JSON.parse(apiFetch.mock.calls[2][1].body)).toEqual({
+    weapon: [
+      expect.objectContaining({
+        name: 'Longsword',
+        cost: '1 gp',
+        type: 'martial',
+      }),
+    ],
+  });
+
+  expect(apiFetch).toHaveBeenNthCalledWith(
+    4,
+    '/equipment/update-armor/1',
+    expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+  expect(JSON.parse(apiFetch.mock.calls[3][1].body)).toEqual({
+    armor: [
+      expect.objectContaining({
+        name: 'Leather Armor',
+        cost: '2 sp',
+        type: 'light',
+      }),
+    ],
+  });
+
+  expect(apiFetch).toHaveBeenNthCalledWith(
+    5,
+    '/equipment/update-item/1',
+    expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+  expect(JSON.parse(apiFetch.mock.calls[4][1].body)).toEqual({
+    item: [
+      expect.objectContaining({
+        name: 'Torch',
+        cost: '3 sp',
+        type: 'gear',
+      }),
+    ],
+  });
+
+  await waitFor(() =>
+    expect(mockShopModalProps.current.currency).toMatchObject({
+      cp: 50,
+      sp: 0,
+      gp: 0,
+      pp: 0,
+    })
+  );
 
   await waitFor(() =>
     expect(mockShopModalProps.current.form).toMatchObject({
-      cp: 90,
+      cp: 50,
+      weapon: expect.arrayContaining([
+        expect.objectContaining({ name: 'Longsword', type: 'martial' }),
+      ]),
+      armor: expect.arrayContaining([
+        expect.objectContaining({ name: 'Leather Armor', type: 'light' }),
+      ]),
       item: expect.arrayContaining([
-        expect.objectContaining({ name: 'torch', category: 'adventuring gear' }),
+        expect.objectContaining({ name: 'Torch', type: 'gear' }),
       ]),
     })
   );
