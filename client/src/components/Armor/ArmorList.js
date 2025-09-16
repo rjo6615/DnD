@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Form, Alert, Row, Col, Button, Badge } from 'react-bootstrap';
 import {
   GiLeatherArmor,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Modal, Badge } from 'react-bootstrap';
 import {
   GiAmmoBox,
