@@ -8,6 +8,8 @@ import { Button, Modal, Card, Table } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import { normalizeEquipmentMap } from './equipmentNormalization';
+import { normalizeWeapons } from './inventoryNormalization';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -30,6 +32,8 @@ function formatDamageRolls(rolls) {
     .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
     .join(' + ');
 }
+
+const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
 
 export function calculateDamage(
   damageString,
@@ -128,9 +132,42 @@ const PlayerTurnActions = React.forwardRef(
 //--------------------------------------------Critical status------------------------------------------------
 const [isCritical, setIsCritical] = useState(false);
 const [isFumble, setIsFumble] = useState(false);
+  const equipmentProvided = useMemo(
+    () => typeof form?.equipment === 'object' && form.equipment !== null,
+    [form.equipment]
+  );
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form.equipment),
+    [form.equipment]
+  );
+  const equippedWeapons = useMemo(() => {
+    if (equipmentProvided) {
+      return WEAPON_SLOT_KEYS.map((slot) => {
+        const weapon = normalizedEquipment[slot];
+        if (!weapon) return null;
+        if (weapon.source && weapon.source !== 'weapon') return null;
+        const damage =
+          typeof weapon.damage === 'string' ? weapon.damage.trim() : '';
+        if (!damage) return null;
+        return { slot, weapon };
+      }).filter(Boolean);
+    }
+
+    const legacyWeapons = normalizeWeapons(form.weapon || [], {
+      includeUnowned: true,
+    });
+    return legacyWeapons.map((weapon, index) => ({
+      slot: `legacy-${index}`,
+      weapon,
+    }));
+  }, [equipmentProvided, normalizedEquipment, form.weapon]);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
-  const abilityForWeapon = (weapon) =>
-    weapon.category?.toLowerCase().includes('ranged') ? dexMod : strMod;
+  const abilityForWeapon = (weapon) => {
+    const category = weapon?.category;
+    return typeof category === 'string' && category.toLowerCase().includes('ranged')
+      ? dexMod
+      : strMod;
+  };
 
   const totalLevel = useMemo(
     () =>
@@ -146,22 +183,29 @@ const [isFumble, setIsFumble] = useState(false);
   const getAttackBonus = (weapon) =>
     profBonus +
     abilityForWeapon(weapon) +
-    Number(weapon.attackBonus || weapon.bonus || 0);
+    Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
 
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
-    return weapon.damage
-      .split(/\s+\+\s+/)
+    if (typeof weapon?.damage !== 'string') return '—';
+    const segments = weapon.damage.split(/\s+\+\s+/);
+    if (segments.length === 0) return '—';
+    return segments
       .map((part) => {
-        const [token, ...rest] = part.trim().split(' ');
+        const trimmed = part.trim();
+        if (!trimmed) return null;
+        const [token, ...rest] = trimmed.split(' ');
+        if (!token) return null;
         const type = rest.join(' ').trim();
         return `${token}+${ability}${type ? ` ${type}` : ''}`;
       })
-      .join(' + ');
+      .filter(Boolean)
+      .join(' + ') || '—';
   };
 
   const handleWeaponAttack = (weapon) => {
     const ability = abilityForWeapon(weapon);
+    if (typeof weapon?.damage !== 'string' || !weapon.damage.trim()) return;
     const result = calculateDamage(weapon.damage, ability, isCritical);
     if (!result) return;
     updateDamageValueWithAnimation(result.total, result.breakdown);
@@ -542,10 +586,16 @@ const showSparklesEffect = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(form.weapon) &&
-                    form.weapon.map((weapon) => (
-                      <tr key={weapon.name}>
-                        <td className="text-capitalize">{weapon.name}</td>
+                  {equippedWeapons.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center text-muted">
+                        No weapons equipped.
+                      </td>
+                    </tr>
+                  ) : (
+                    equippedWeapons.map(({ slot, weapon }) => (
+                      <tr key={`${slot}-${weapon.name || slot}`}>
+                        <td className="text-capitalize">{weapon.name || 'Unknown'}</td>
                         <td>{getAttackBonus(weapon)}</td>
                         <td>{getDamageString(weapon)}</td>
                         <td>
@@ -561,7 +611,8 @@ const showSparklesEffect = () => {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                  )}
                 </tbody>
               </Table>
             {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (

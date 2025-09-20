@@ -11,6 +11,7 @@ jest.mock('react-router-dom', () => ({
 
 const baseForm = {
   armor: [],
+  equipment: {},
   occupation: [{ Level: 3 }, { Level: 2 }],
   health: 10,
   tempHealth: 5,
