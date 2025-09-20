@@ -54,6 +54,7 @@ describe('ZombiesDM AI generation', () => {
             name: 'AI Armor',
             type: 'Light',
             category: 'Shield',
+            slot: 'chest',
             armorBonus: 2,
             maxDex: 4,
             strength: 10,
@@ -95,6 +96,9 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(screen.getByDisplayValue('AI Armor')).toBeInTheDocument());
     expect(screen.getByDisplayValue('Light')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Shield')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText('Slot')).toHaveValue('chest')
+    );
     expect(screen.getByLabelText('Stealth')).toHaveValue('false');
     expect(screen.getByLabelText('Cost')).toHaveValue('100');
     expect(screen.getByLabelText('Max Dex Bonus')).toHaveValue('4');
