@@ -12,6 +12,17 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn(),
 }));
 
+const armorSlotOptions = [
+  { key: 'head', label: 'Head' },
+  { key: 'shoulders', label: 'Shoulders' },
+  { key: 'chest', label: 'Chest' },
+  { key: 'arms', label: 'Arms' },
+  { key: 'hands', label: 'Hands' },
+  { key: 'legs', label: 'Legs' },
+  { key: 'feet', label: 'Feet' },
+  { key: 'offHand', label: 'Off Hand' },
+];
+
 describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
@@ -35,7 +46,7 @@ describe('ZombiesDM AI generation', () => {
             json: async () => ({
               types: ['Light'],
               categories: ['Shield'],
-              slots: [{ key: 'chest', label: 'Chest' }],
+              slots: armorSlotOptions,
             }),
           });
         case '/ai/armor':
@@ -65,6 +76,11 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/armor/options'));
 
     const modal = await screen.findByRole('dialog');
+    expect(
+      await within(modal).findByRole('columnheader', { name: 'Slot' })
+    ).toBeInTheDocument();
+    expect(await within(modal).findByText('Chest')).toBeInTheDocument();
+
     const insideCreateBtn = within(modal).getByText('Create Armor');
     await userEvent.click(insideCreateBtn);
 
@@ -104,10 +120,7 @@ describe('ZombiesDM AI generation', () => {
             json: async () => ({
               types: [],
               categories: [],
-              slots: [
-                { key: 'chest', label: 'Chest' },
-                { key: 'head', label: 'Head' },
-              ],
+              slots: armorSlotOptions,
             }),
           });
         default:
@@ -122,8 +135,34 @@ describe('ZombiesDM AI generation', () => {
     const openModalBtn = screen.getAllByText('Create Armor')[0];
     await userEvent.click(openModalBtn);
 
-    expect(await screen.findByRole('columnheader', { name: 'Slot' })).toBeInTheDocument();
-    expect(await screen.findByText('Chest')).toBeInTheDocument();
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/armor/options'));
+
+    const modal = await screen.findByRole('dialog');
+    expect(
+      await within(modal).findByRole('columnheader', { name: 'Slot' })
+    ).toBeInTheDocument();
+    expect(await within(modal).findByText('Chest')).toBeInTheDocument();
+
+    const insideCreateBtn = within(modal).getByText('Create Armor');
+    await userEvent.click(insideCreateBtn);
+
+    const slotLabel = await within(modal).findByText('Slot');
+    const slotSelect = slotLabel.nextElementSibling;
+    if (!slotSelect) {
+      throw new Error('Slot select not found');
+    }
+    await waitFor(() =>
+      expect(slotSelect.querySelectorAll('option')).toHaveLength(
+        1 + armorSlotOptions.length
+      )
+    );
+    const slotLabels = Array.from(slotSelect.querySelectorAll('option')).map(
+      (option) => option.textContent
+    );
+    expect(slotLabels).toEqual([
+      'Select slot',
+      ...armorSlotOptions.map((slot) => slot.label),
+    ]);
   });
 
   test('generates item via AI and populates bonus fields', async () => {

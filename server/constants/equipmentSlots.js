@@ -28,6 +28,21 @@ const EQUIPMENT_SLOT_LAYOUT = [
 
 const EQUIPMENT_SLOT_KEYS = EQUIPMENT_SLOT_LAYOUT.flat().map((slot) => slot.key);
 
+const ARMOR_SLOT_KEYS = new Set([
+  'head',
+  'shoulders',
+  'chest',
+  'arms',
+  'hands',
+  'legs',
+  'feet',
+  'offHand',
+]);
+
+const ARMOR_SLOT_OPTIONS = EQUIPMENT_SLOT_LAYOUT.flat().filter((slot) =>
+  ARMOR_SLOT_KEYS.has(slot.key)
+);
+
 const createEmptyEquipmentMap = () => {
   const map = {};
   EQUIPMENT_SLOT_KEYS.forEach((slot) => {
@@ -109,6 +124,7 @@ const normalizeEquipmentMap = (equipment, { fallback } = {}) => {
 module.exports = {
   EQUIPMENT_SLOT_LAYOUT,
   EQUIPMENT_SLOT_KEYS,
+  ARMOR_SLOT_OPTIONS,
   createEmptyEquipmentMap,
   normalizeEquipmentMap,
 };
