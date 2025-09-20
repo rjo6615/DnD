@@ -9,13 +9,63 @@
   border-radius: 1rem;
   padding: 1.5rem;
   box-shadow: 0 18px 36px var(--rack-shadow);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.rackLayout::before,
+.rackLayout::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rackLayout::before {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(173, 181, 189, 0.38), rgba(173, 181, 189, 0) 54%),
+    radial-gradient(circle at 50% 84%, rgba(96, 112, 130, 0.46), rgba(15, 19, 28, 0.94) 70%),
+    linear-gradient(165deg, rgba(21, 26, 34, 0.96), rgba(9, 12, 19, 0.98));
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size:
+    clamp(200px, 32vw, 340px) 92%,
+    clamp(220px, 34vw, 360px) 100%,
+    clamp(220px, 34vw, 360px) 100%;
+  filter: saturate(0.85) contrast(1.12) drop-shadow(0 24px 40px rgba(0, 0, 0, 0.45));
+  opacity: 0.52;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: clamp(200px, 32vw, 340px) 100%;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  mask-size: clamp(200px, 32vw, 340px) 100%;
+}
+
+.rackLayout::after {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 62%),
+    radial-gradient(circle at 50% 95%, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0) 70%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size:
+    clamp(210px, 32vw, 340px) 82%,
+    clamp(220px, 34vw, 360px) 100%;
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: clamp(200px, 32vw, 340px) 100%;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  mask-size: clamp(200px, 32vw, 340px) 100%;
 }
 
 .columns {
   display: grid;
-  gap: 1.1rem;
-  grid-template-columns: minmax(140px, 1fr) minmax(180px, 220px) minmax(140px, 1fr);
-  align-items: stretch;
+  gap: clamp(1.2rem, 3vw, 3rem);
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  align-items: start;
+  position: relative;
+  z-index: 1;
 }
 
 .leftColumn,
@@ -25,66 +75,13 @@
   gap: 1rem;
 }
 
-.centerColumn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.silhouette {
-  position: relative;
-  width: 100%;
-  max-width: 220px;
-  aspect-ratio: 3 / 5;
-  border-radius: 1.75rem;
-  background:
-    radial-gradient(circle at 50% 22%, rgba(173, 181, 189, 0.32), rgba(173, 181, 189, 0) 54%),
-    radial-gradient(circle at 50% 84%, rgba(96, 112, 130, 0.42), rgba(15, 19, 28, 0.92) 70%),
-    linear-gradient(165deg, rgba(21, 26, 34, 0.96), rgba(9, 12, 19, 0.98));
-  background-color: rgba(8, 11, 16, 0.92);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 0 28px rgba(82, 99, 122, 0.18),
-    0 22px 38px rgba(0, 0, 0, 0.45);
-  overflow: hidden;
-  filter: saturate(0.85) contrast(1.12);
-}
-
-.silhouette::before {
-  content: '';
-  position: absolute;
-  inset: 12% 18% 10%;
-  background: radial-gradient(circle at 50% 18%, rgba(235, 242, 248, 0.92), rgba(186, 203, 218, 0.88) 42%, rgba(113, 133, 152, 0.92) 100%);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E");
-  -webkit-mask-size: contain;
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E");
-  mask-size: contain;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  filter: drop-shadow(0 16px 28px rgba(4, 6, 10, 0.7));
-  pointer-events: none;
-}
-
-.silhouette::after {
-  content: '';
-  position: absolute;
-  inset: 6%;
-  border-radius: calc(1.75rem - 0.35rem);
-  background:
-    radial-gradient(circle at 50% 16%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 62%),
-    radial-gradient(circle at 50% 95%, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0) 70%);
-  mix-blend-mode: screen;
-  opacity: 0.65;
-  pointer-events: none;
-}
-
 .bottomRow {
   margin-top: 1.5rem;
   display: grid;
   gap: 0.9rem;
   grid-template-columns: repeat(5, minmax(120px, 1fr));
+  position: relative;
+  z-index: 1;
 }
 
 .slot {
@@ -192,17 +189,8 @@
 
 @media (max-width: 992px) {
   .columns {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .centerColumn {
-    grid-column: span 2;
-    order: -1;
-  }
-
-  .silhouette {
-    margin: 0 auto;
-    max-width: 260px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: clamp(1rem, 2.5vw, 2rem);
   }
 
   .bottomRow {
@@ -217,19 +205,12 @@
 
   .columns {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .centerColumn {
-    order: 0;
+    gap: 1.25rem;
   }
 
   .leftColumn,
   .rightColumn {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .silhouette {
-    aspect-ratio: 3 / 4;
   }
 }
 

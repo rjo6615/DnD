@@ -330,9 +330,6 @@ export default function EquipmentRack({
               renderSlot(slotLookup.get(slotKey))
             )}
           </div>
-          <div className={styles.centerColumn}>
-            <div className={styles.silhouette} aria-hidden="true" />
-          </div>
           <div className={styles.rightColumn}>
             {SLOT_LAYOUT.rightColumn.map((slotKey) =>
               renderSlot(slotLookup.get(slotKey))
