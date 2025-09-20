@@ -3,6 +3,7 @@ import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import UpcastModal from './UpcastModal';
+import { normalizeEquipmentMap } from './equipmentNormalization';
 
 /**
  * Modal component allowing users to select spells for their character.
@@ -78,6 +79,18 @@ export default function SpellSelector({
   availableSlots = { regular: {}, warlock: {} },
 }) {
   const params = useParams();
+
+  const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form.equipment),
+    [form.equipment]
+  );
+  const equippedItems = useMemo(() => {
+    if (hasEquipment) {
+      return Object.values(normalizedEquipment).filter(Boolean);
+    }
+    return Array.isArray(form.item) ? form.item.filter(Boolean) : [];
+  }, [form.item, hasEquipment, normalizedEquipment]);
 
   const totalLevel = useMemo(
     () =>
@@ -213,7 +226,7 @@ export default function SpellSelector({
   };
 
   const chaMod = useMemo(() => {
-    const itemBonus = (form.item || []).reduce(
+    const itemBonus = equippedItems.reduce(
       (sum, el) => sum + Number(el.statBonuses?.cha || 0),
       0
     );
@@ -224,10 +237,10 @@ export default function SpellSelector({
     const raceBonus = form.race?.abilities?.cha || 0;
     const computed = (form.cha || 0) + itemBonus + featBonus + raceBonus;
     return Math.floor((computed - 10) / 2);
-  }, [form.cha, form.item, form.feat, form.race]);
+  }, [equippedItems, form.cha, form.feat, form.race]);
 
   const wisMod = useMemo(() => {
-    const itemBonus = (form.item || []).reduce(
+    const itemBonus = equippedItems.reduce(
       (sum, el) => sum + Number(el.statBonuses?.wis || 0),
       0
     );
@@ -238,7 +251,7 @@ export default function SpellSelector({
     const raceBonus = form.race?.abilities?.wis || 0;
     const computed = (form.wis || 0) + itemBonus + featBonus + raceBonus;
     return Math.floor((computed - 10) / 2);
-  }, [form.wis, form.item, form.feat, form.race]);
+  }, [equippedItems, form.feat, form.race, form.wis]);
 
   useEffect(() => {
     apiFetch('/spells')

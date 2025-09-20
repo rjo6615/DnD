@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
+import { normalizeEquipmentMap } from './equipmentNormalization';
 
 export default function Stats({ form, showStats, handleCloseStats }) {
   const [stats] = useState({
@@ -15,8 +16,15 @@ export default function Stats({ form, showStats, handleCloseStats }) {
 
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedStat, setSelectedStat] = useState(null);
+  const equippedItems = useMemo(() => {
+    if (typeof form?.equipment === 'object' && form.equipment !== null) {
+      const normalized = normalizeEquipmentMap(form.equipment);
+      return Object.values(normalized).filter(Boolean);
+    }
+    return Array.isArray(form.item) ? form.item.filter(Boolean) : [];
+  }, [form.equipment, form.item]);
 
-  const totalItemBonus = (form.item || []).reduce(
+  const totalItemBonus = equippedItems.reduce(
     (acc, el) => ({
       str: acc.str + Number(el.statBonuses?.str || 0),
       dex: acc.dex + Number(el.statBonuses?.dex || 0),

@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
+import { normalizeEquipmentMap } from './equipmentNormalization';
 
 export function rollSkill(bonus = 0) {
   const d20 = Math.floor(Math.random() * 20) + 1;
@@ -110,11 +111,34 @@ export default function Skills({
     return <div>Loading...</div>;
   }
 
-  // Armor Check Penalty
-  const armorItems = (form.armor || []).map((el) =>
+  const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form.equipment),
+    [form.equipment]
+  );
+  const equippedArmor = useMemo(() => {
+    if (hasEquipment) {
+      return Object.values(normalizedEquipment).filter((item) => {
+        if (!item) return false;
+        if (item.source === 'armor') return true;
+        if (item.acBonus != null || item.armorBonus != null || item.ac != null)
+          return true;
+        if (item.maxDex != null || item.maxDexterity != null) return true;
+        if (item.checkPenalty != null || item.stealth != null) return true;
+        return false;
+      });
+    }
+    return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
+  }, [hasEquipment, normalizedEquipment, form.armor]);
+  const armorItems = equippedArmor.map((el) =>
     Array.isArray(el)
       ? el
-      : [el.name, el.acBonus ?? el.armorBonus ?? el.ac, el.maxDex, el.checkPenalty]
+      : [
+          el.name,
+          el.acBonus ?? el.armorBonus ?? el.ac,
+          el.maxDex ?? el.maxDexterity,
+          el.checkPenalty ?? el.stealth,
+        ]
   );
   const checkPenalty = armorItems.map((item) => Number(item[3] ?? 0));
   const totalCheckPenalty = checkPenalty.reduce(
@@ -131,8 +155,15 @@ export default function Skills({
     cha: chaMod,
   };
 
+  const equippedItems = useMemo(() => {
+    if (hasEquipment) {
+      return Object.values(normalizedEquipment).filter(Boolean);
+    }
+    return Array.isArray(form.item) ? form.item.filter(Boolean) : [];
+  }, [form.item, hasEquipment, normalizedEquipment]);
+
   const itemTotals = SKILLS.reduce((acc, { key }) => {
-    acc[key] = (form.item || []).reduce(
+    acc[key] = equippedItems.reduce(
       (sum, el) => sum + Number(el.skillBonuses?.[key] || 0),
       0
     );

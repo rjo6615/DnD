@@ -13,7 +13,10 @@ test('clicking view shows description and breakdown', async () => {
     cha: 0,
     race: { abilities: { str: 2 } },
     feat: [{ str: 1 }],
-    item: [{ statBonuses: { str: 1 } }],
+    equipment: {
+      ringLeft: { name: 'Belt of Strength', statBonuses: { str: 1 }, source: 'item' },
+    },
+    item: [],
     occupation: [{ str: 1 }],
   };
 

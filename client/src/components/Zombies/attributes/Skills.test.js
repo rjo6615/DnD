@@ -81,7 +81,10 @@ describe('item skill bonuses', () => {
     render(
       <Skills
         form={{
-          item: [{ skillBonuses: { acrobatics: 2 } }],
+          equipment: {
+            ringLeft: { name: 'Ring of Agility', skillBonuses: { acrobatics: 2 }, source: 'item' },
+          },
+          item: [],
           feat: [],
           race: {},
           skills: {},
