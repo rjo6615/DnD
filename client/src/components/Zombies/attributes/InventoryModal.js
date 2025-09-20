@@ -4,6 +4,7 @@ import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
 import EquipmentRack from './EquipmentRack';
+import { normalizeEquipmentMap } from './equipmentNormalization';
 import {
   normalizeArmor,
   normalizeItems,
@@ -48,6 +49,11 @@ export default function InventoryModal({
   const normalizedItems = useMemo(
     () => normalizeItems(form.item || []),
     [form.item]
+  );
+
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form.equipment),
+    [form.equipment]
   );
 
   const handleSelectTab = (key) => {
@@ -123,7 +129,7 @@ export default function InventoryModal({
         render: (isActive) =>
           !isActive ? null : (
             <EquipmentRack
-              equipment={form.equipment || {}}
+              equipment={normalizedEquipment}
               inventory={{
                 weapons: normalizedWeapons,
                 armor: normalizedArmor,
@@ -138,7 +144,7 @@ export default function InventoryModal({
     [
       characterId,
       form.campaign,
-      form.equipment,
+      normalizedEquipment,
       onEquipmentChange,
       onEquipmentSlotChange,
       normalizedArmor,

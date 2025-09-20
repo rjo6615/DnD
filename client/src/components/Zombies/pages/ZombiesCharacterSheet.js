@@ -26,6 +26,7 @@ import hasteIcon from "../../../images/spell-haste-icon.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import { normalizeItems as normalizeInventoryItems } from "../attributes/inventoryNormalization";
+import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -224,6 +225,7 @@ export default function ZombiesCharacterSheet() {
           weapon: data.weapon || [],
           armor: data.armor || [],
           item: data.item || [],
+          equipment: normalizeEquipmentMap(data.equipment),
         });
       } catch (error) {
         console.error(error);
@@ -490,9 +492,29 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
-  const handleEquipmentChange = useCallback((equipment = {}) => {
-    setForm((prev) => ({ ...prev, equipment }));
-  }, []);
+  const handleEquipmentChange = useCallback(
+    async (equipment = {}) => {
+      const normalized = normalizeEquipmentMap(equipment, {
+        fallback: form?.equipment,
+      });
+      setForm((prev) => {
+        const nextForm = prev ? { ...prev } : {};
+        nextForm.equipment = normalized;
+        return nextForm;
+      });
+      try {
+        await apiFetch(`/equipment/update-equipment/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ equipment: normalized }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId, form]
+  );
 
   const handleShopPurchase = useCallback(
     async (cart = [], totalCostCp = 0) => {

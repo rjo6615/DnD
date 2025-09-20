@@ -74,7 +74,7 @@ describe('EquipmentRack', () => {
 
     expect(onSlotChange).toHaveBeenLastCalledWith('mainHand', null);
     expect(onEquipmentChange).toHaveBeenLastCalledWith(
-      expect.not.objectContaining({ mainHand: expect.anything() })
+      expect.objectContaining({ mainHand: null })
     );
   });
 });
