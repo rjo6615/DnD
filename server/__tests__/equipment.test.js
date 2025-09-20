@@ -515,6 +515,7 @@ describe('Equipment routes', () => {
         equipment: {
           mainHand: { name: 'Longsword', source: 'weapon' },
           offHand: { name: 'Longsword', source: 'weapon' },
+          ranged: { name: 'Shortbow', source: 'weapon' },
           ringLeft: 'Ring of Protection',
         },
       };
@@ -533,6 +534,10 @@ describe('Equipment routes', () => {
       expect(updatedEquipment.mainHand).toBeNull();
       expect(updatedEquipment.offHand).toMatchObject({
         name: 'Longsword',
+        source: 'weapon',
+      });
+      expect(updatedEquipment.ranged).toMatchObject({
+        name: 'Shortbow',
         source: 'weapon',
       });
       expect(updatedEquipment.ringLeft).toMatchObject({
