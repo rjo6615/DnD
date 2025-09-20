@@ -1,28 +1,170 @@
+const createSlot = (key, label, config = {}) => ({
+  key,
+  label,
+  allowedSources: config.allowedSources,
+  filters: config.filters || {},
+});
+
 export const EQUIPMENT_SLOT_LAYOUT = [
   [
-    { key: 'head', label: 'Head' },
-    { key: 'eyes', label: 'Eyes' },
-    { key: 'neck', label: 'Neck' },
-    { key: 'shoulders', label: 'Shoulders' },
+    createSlot('head', 'Head', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['head', 'helm', 'helmet', 'hat', 'circlet', 'crown'],
+        },
+        armor: {
+          categories: ['helm', 'helmet', 'head'],
+        },
+      },
+    }),
+    createSlot('eyes', 'Eyes', {
+      allowedSources: ['item'],
+      filters: {
+        item: {
+          categories: ['eye', 'eyes', 'goggles', 'lens', 'visor', 'glasses'],
+        },
+      },
+    }),
+    createSlot('neck', 'Neck', {
+      allowedSources: ['item'],
+      filters: {
+        item: {
+          categories: ['neck', 'amulet', 'necklace', 'pendant', 'torc'],
+        },
+      },
+    }),
+    createSlot('shoulders', 'Shoulders', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['shoulder', 'cloak', 'cape', 'mantle'],
+        },
+        armor: {
+          categories: ['shoulder', 'cloak', 'cape', 'mantle'],
+        },
+      },
+    }),
   ],
   [
-    { key: 'chest', label: 'Chest' },
-    { key: 'back', label: 'Back' },
-    { key: 'arms', label: 'Arms' },
-    { key: 'wrists', label: 'Wrists' },
+    createSlot('chest', 'Chest', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['armor', 'chest', 'vest', 'robe', 'mail', 'shirt', 'plate'],
+        },
+      },
+    }),
+    createSlot('back', 'Back', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['back', 'cloak', 'cape', 'mantle'],
+        },
+        armor: {
+          categories: ['back', 'cloak', 'cape', 'mantle'],
+        },
+      },
+    }),
+    createSlot('arms', 'Arms', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['arm', 'arms', 'bracer', 'sleeve'],
+        },
+        armor: {
+          categories: ['arm', 'arms', 'bracer', 'vambrace'],
+        },
+      },
+    }),
+    createSlot('wrists', 'Wrists', {
+      allowedSources: ['item'],
+      filters: {
+        item: {
+          categories: ['wrist', 'bracelet', 'bracer', 'cuff'],
+        },
+      },
+    }),
   ],
   [
-    { key: 'hands', label: 'Hands' },
-    { key: 'waist', label: 'Waist' },
-    { key: 'legs', label: 'Legs' },
-    { key: 'feet', label: 'Feet' },
+    createSlot('hands', 'Hands', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['hand', 'hands', 'glove', 'gauntlet', 'mitt'],
+        },
+        armor: {
+          categories: ['hand', 'hands', 'glove', 'gauntlet', 'mitt'],
+        },
+      },
+    }),
+    createSlot('waist', 'Waist', {
+      allowedSources: ['item'],
+      filters: {
+        item: {
+          categories: ['belt', 'waist', 'sash', 'girdle'],
+        },
+      },
+    }),
+    createSlot('legs', 'Legs', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['leg', 'legs', 'greaves', 'leggings', 'pants', 'skirt'],
+        },
+        armor: {
+          categories: ['leg', 'legs', 'greaves', 'leggings', 'pants', 'skirt'],
+        },
+      },
+    }),
+    createSlot('feet', 'Feet', {
+      allowedSources: ['armor', 'item'],
+      filters: {
+        item: {
+          categories: ['feet', 'foot', 'boot', 'boots', 'shoe', 'sandals', 'slippers'],
+        },
+        armor: {
+          categories: ['feet', 'foot', 'boot', 'boots', 'shoe', 'sandals', 'slippers'],
+        },
+      },
+    }),
   ],
   [
-    { key: 'mainHand', label: 'Main Hand' },
-    { key: 'offHand', label: 'Off Hand' },
-    { key: 'ranged', label: 'Ranged' },
-    { key: 'ringLeft', label: 'Ring I' },
-    { key: 'ringRight', label: 'Ring II' },
+    createSlot('mainHand', 'Main Hand', {
+      allowedSources: ['weapon'],
+    }),
+    createSlot('offHand', 'Off Hand', {
+      allowedSources: ['weapon', 'armor'],
+      filters: {
+        armor: {
+          categories: ['shield'],
+        },
+      },
+    }),
+    createSlot('ranged', 'Ranged', {
+      allowedSources: ['weapon'],
+      filters: {
+        weapon: {
+          categories: ['ranged', 'bow', 'crossbow', 'thrown', 'gun'],
+        },
+      },
+    }),
+    createSlot('ringLeft', 'Ring I', {
+      allowedSources: ['item'],
+      filters: {
+        item: {
+          categories: ['ring', 'band', 'signet'],
+        },
+      },
+    }),
+    createSlot('ringRight', 'Ring II', {
+      allowedSources: ['item'],
+      filters: {
+        item: {
+          categories: ['ring', 'band', 'signet'],
+        },
+      },
+    }),
   ],
 ];
 
