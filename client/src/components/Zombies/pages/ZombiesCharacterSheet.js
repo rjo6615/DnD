@@ -966,7 +966,7 @@ return (
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-toolbox" aria-hidden="true"></i>
+              <i className="fas fa-helmet-safety" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={() => handleShowInventory()}
