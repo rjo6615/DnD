@@ -162,11 +162,14 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({
         collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
       });
+      const slotKey = EQUIPMENT_SLOT_KEYS[0];
       const payload = {
         campaign: 'Camp1',
         armorName: 'Plate',
         type: 'heavy',
         category: 'martial',
+        slot: slotKey,
+        equipmentSlot: slotKey,
         strength: 15,
         stealth: true,
         weight: 65,

@@ -30,7 +30,14 @@ describe('ZombiesDM AI generation', () => {
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/armor/options':
-          return Promise.resolve({ ok: true, json: async () => ({ types: ['Light'], categories: ['Shield'] }) });
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              types: ['Light'],
+              categories: ['Shield'],
+              slots: [{ key: 'chest', label: 'Chest' }],
+            }),
+          });
         case '/ai/armor':
           return Promise.resolve({ ok: true, json: async () => ({
             name: 'AI Armor',
@@ -75,6 +82,48 @@ describe('ZombiesDM AI generation', () => {
     expect(screen.getByLabelText('Stealth')).toHaveValue('false');
     expect(screen.getByLabelText('Cost')).toHaveValue('100');
     expect(screen.getByLabelText('Max Dex Bonus')).toHaveValue('4');
+  });
+
+  test('displays armor slot column in modal table', async () => {
+    const armorRecords = [
+      { _id: 'armor1', armorName: 'Custom Armor', slot: 'chest' },
+    ];
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/equipment/armor/Camp1':
+          return Promise.resolve({ ok: true, json: async () => armorRecords });
+        case '/armor/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              types: [],
+              categories: [],
+              slots: [
+                { key: 'chest', label: 'Chest' },
+                { key: 'head', label: 'Head' },
+              ],
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+
+    const openModalBtn = screen.getAllByText('Create Armor')[0];
+    await userEvent.click(openModalBtn);
+
+    expect(await screen.findByRole('columnheader', { name: 'Slot' })).toBeInTheDocument();
+    expect(await screen.findByText('Chest')).toBeInTheDocument();
   });
 
   test('generates item via AI and populates bonus fields', async () => {

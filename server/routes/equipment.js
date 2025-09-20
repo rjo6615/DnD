@@ -171,6 +171,18 @@ module.exports = (router) => {
       body('maxDex').optional({ checkFalsy: true }).isInt().toInt(),
       body('type').optional().isString().trim().toLowerCase(),
       body('category').optional().isString().trim().toLowerCase(),
+      body('slot')
+        .optional({ checkFalsy: true })
+        .isString()
+        .trim()
+        .isIn(EQUIPMENT_SLOT_KEYS)
+        .withMessage('slot must be a valid equipment slot'),
+      body('equipmentSlot')
+        .optional({ checkFalsy: true })
+        .isString()
+        .trim()
+        .isIn(EQUIPMENT_SLOT_KEYS)
+        .withMessage('equipmentSlot must be a valid equipment slot'),
       body('strength').optional().isInt().toInt(),
       body('stealth').optional().isBoolean().toBoolean(),
       body('weight').optional().isFloat().toFloat(),
