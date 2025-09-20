@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EquipmentRack from './EquipmentRack';
+import { normalizeArmor } from './inventoryNormalization';
 
 describe('EquipmentRack', () => {
   test('shows slot names and allows assigning and clearing equipment', async () => {
@@ -134,5 +135,32 @@ describe('EquipmentRack', () => {
     expect(onEquipmentChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ mainHand: null })
     );
+  });
+
+  test('includes armor entries that only define armorName', () => {
+    const inventory = {
+      armor: normalizeArmor([
+        {
+          armorName: 'Guardian Shield',
+          category: 'shield',
+        },
+      ]),
+    };
+
+    render(
+      <EquipmentRack
+        equipment={{}}
+        inventory={inventory}
+        onEquipmentChange={() => {}}
+        onSlotChange={() => {}}
+      />
+    );
+
+    const offHandSelect = screen.getByLabelText('Off Hand slot selection');
+    const offHandOptions = within(offHandSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+
+    expect(offHandOptions).toEqual(['Unequipped', 'Guardian Shield (Armor)']);
   });
 });
