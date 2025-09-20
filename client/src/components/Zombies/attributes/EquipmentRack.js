@@ -21,6 +21,8 @@ const DESCRIPTOR_KEYS = [
   'equipmentSlots',
 ];
 
+const SLOT_METADATA_KEYS = ['slot', 'equipmentSlot', 'slots', 'equipmentSlots'];
+
 const toLowercaseStrings = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) {
@@ -54,6 +56,36 @@ const matchesAllowedValues = (descriptors, allowedValues = []) => {
   });
 };
 
+const normalizeSlotEntries = (value) => {
+  const normalized = new Set();
+  toLowercaseStrings(value).forEach((entry) => {
+    normalized.add(entry);
+    const compact = entry.replace(/[\s_-]+/g, '');
+    if (compact) {
+      normalized.add(compact);
+    }
+  });
+  return Array.from(normalized);
+};
+
+const getItemSlotMetadata = (item) => {
+  if (!item || typeof item !== 'object') return new Set();
+  const slots = new Set();
+  SLOT_METADATA_KEYS.forEach((key) => {
+    normalizeSlotEntries(item[key]).forEach((entry) => {
+      slots.add(entry);
+    });
+  });
+  return slots;
+};
+
+const slotMatchesItemMetadata = (slot, itemSlots) => {
+  if (!slot) return true;
+  if (!itemSlots || itemSlots.size === 0) return true;
+  const slotKeyEntries = normalizeSlotEntries(slot.key || slot);
+  return slotKeyEntries.some((entry) => itemSlots.has(entry));
+};
+
 const slotAllowsOption = (slot, option) => {
   if (!slot || !option) return false;
   const allowedSources =
@@ -66,6 +98,12 @@ const slotAllowsOption = (slot, option) => {
 
   const sourceFilters = slot.filters?.[option.source];
   if (!sourceFilters) {
+    if (option.source === 'armor') {
+      const itemSlots = getItemSlotMetadata(option.item);
+      if (itemSlots.size > 0 && !slotMatchesItemMetadata(slot, itemSlots)) {
+        return false;
+      }
+    }
     return true;
   }
 
