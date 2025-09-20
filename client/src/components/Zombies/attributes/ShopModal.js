@@ -267,6 +267,8 @@ const normalizeItems = (items) => {
       if (typeof item === 'object') {
         const {
           name,
+          itemName,
+          displayName,
           category = '',
           weight = '',
           cost = '',
@@ -275,9 +277,10 @@ const normalizeItems = (items) => {
           notes,
           ...rest
         } = item;
-        if (!name) return null;
+        const resolvedName = name || itemName || displayName;
+        if (!resolvedName) return null;
         const normalized = {
-          name,
+          name: resolvedName,
           category,
           weight,
           cost,
@@ -289,6 +292,12 @@ const normalizeItems = (items) => {
               : {},
           ...rest,
         };
+        if (itemName !== undefined) normalized.itemName = itemName;
+        if (displayName !== undefined) {
+          normalized.displayName = displayName;
+        } else if (!name && itemName) {
+          normalized.displayName = itemName;
+        }
         if (notes) normalized.notes = notes;
         return normalized;
       }
@@ -338,9 +347,16 @@ export default function ShopModal({
     [totalCostCp]
   );
 
-  const buildCartKey = useCallback((name = '', type = '') => {
-    const normalizedName = String(name || '').toLowerCase();
-    const normalizedType = String(type || '').toLowerCase();
+  const buildCartKey = useCallback((entry) => {
+    if (!entry) return '';
+    if (typeof entry === 'string') {
+      const normalizedName = entry.toLowerCase();
+      return normalizedName ? `::${normalizedName}` : '';
+    }
+    const normalizedType = String(entry.type || '').toLowerCase();
+    const normalizedName = String(
+      entry.displayName || entry.name || entry.itemName || ''
+    ).toLowerCase();
     if (!normalizedName && !normalizedType) return '';
     return `${normalizedType}::${normalizedName}`;
   }, []);
@@ -348,7 +364,7 @@ export default function ShopModal({
   const cartCounts = useMemo(() => {
     return cart.reduce((acc, item) => {
       if (!item) return acc;
-      const key = buildCartKey(item.name ?? item.displayName, item.type);
+      const key = buildCartKey(item);
       if (!key) return acc;
       acc[key] = (acc[key] || 0) + 1;
       return acc;

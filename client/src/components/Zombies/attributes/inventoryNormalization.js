@@ -222,6 +222,8 @@ export const normalizeItems = (items, { includeUnowned = false } = {}) => {
       if (isObjectLike(item)) {
         const {
           name,
+          itemName,
+          displayName,
           category = '',
           weight = '',
           cost = '',
@@ -231,10 +233,11 @@ export const normalizeItems = (items, { includeUnowned = false } = {}) => {
           owned: ownedProp,
           ...rest
         } = item;
-        if (!name) return null;
+        const resolvedName = name || itemName || displayName;
+        if (!resolvedName) return null;
         if (!includeUnowned && ownedProp === false) return null;
         const normalized = {
-          name,
+          name: resolvedName,
           category,
           weight,
           cost,
@@ -246,6 +249,12 @@ export const normalizeItems = (items, { includeUnowned = false } = {}) => {
               : {},
           ...rest,
         };
+        if (itemName !== undefined) normalized.itemName = itemName;
+        if (displayName !== undefined) {
+          normalized.displayName = displayName;
+        } else if (!name && itemName) {
+          normalized.displayName = itemName;
+        }
         if (notes !== undefined) normalized.notes = notes;
         if (ownedProp !== undefined) normalized.owned = ownedProp;
         return normalized;
