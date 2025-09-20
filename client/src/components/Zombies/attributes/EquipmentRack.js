@@ -4,6 +4,104 @@ import { EQUIPMENT_SLOT_LAYOUT } from './equipmentSlots';
 
 const FLAT_SLOTS = EQUIPMENT_SLOT_LAYOUT.flat();
 
+const DEFAULT_ALLOWED_SOURCES = ['weapon', 'armor', 'item'];
+
+const DESCRIPTOR_KEYS = [
+  'category',
+  'categories',
+  'type',
+  'types',
+  'slot',
+  'slots',
+  'tags',
+  'subtype',
+  'subType',
+  'equipmentSlot',
+  'equipmentSlots',
+];
+
+const toLowercaseStrings = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry) => typeof entry === 'string' && entry.trim().length)
+      .map((entry) => entry.toLowerCase());
+  }
+  if (typeof value === 'string') {
+    return value.trim().length ? [value.toLowerCase()] : [];
+  }
+  return [];
+};
+
+const getItemDescriptors = (item) => {
+  if (!item || typeof item !== 'object') return [];
+  const descriptors = new Set();
+  DESCRIPTOR_KEYS.forEach((key) => {
+    toLowercaseStrings(item[key]).forEach((descriptor) => {
+      descriptors.add(descriptor);
+    });
+  });
+  return Array.from(descriptors);
+};
+
+const matchesAllowedValues = (descriptors, allowedValues = []) => {
+  if (!allowedValues || allowedValues.length === 0) return true;
+  if (!descriptors || descriptors.length === 0) return true;
+  return allowedValues.some((allowed) => {
+    const normalized = allowed.toLowerCase();
+    return descriptors.some((descriptor) => descriptor.includes(normalized));
+  });
+};
+
+const slotAllowsOption = (slot, option) => {
+  if (!slot || !option) return false;
+  const allowedSources =
+    slot.allowedSources && slot.allowedSources.length
+      ? slot.allowedSources
+      : DEFAULT_ALLOWED_SOURCES;
+  if (!allowedSources.includes(option.source)) {
+    return false;
+  }
+
+  const sourceFilters = slot.filters?.[option.source];
+  if (!sourceFilters) {
+    return true;
+  }
+
+  const descriptors = getItemDescriptors(option.item);
+
+  if (
+    sourceFilters.categories &&
+    !matchesAllowedValues(descriptors, sourceFilters.categories)
+  ) {
+    return false;
+  }
+
+  if (sourceFilters.types && !matchesAllowedValues(descriptors, sourceFilters.types)) {
+    return false;
+  }
+
+  return true;
+};
+
+const buildSlotOptions = (slot, optionsBySource) => {
+  if (!slot) return [];
+  const allowedSources =
+    slot.allowedSources && slot.allowedSources.length
+      ? slot.allowedSources
+      : DEFAULT_ALLOWED_SOURCES;
+  const options = [];
+  allowedSources.forEach((source) => {
+    const sourceOptions = optionsBySource[source] || [];
+    sourceOptions.forEach((option) => {
+      if (slotAllowsOption(slot, option)) {
+        options.push(option);
+      }
+    });
+  });
+  return options;
+};
+
 const rackStyles = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -79,13 +177,18 @@ export default function EquipmentRack({
   const { weapons = [], armor = [], items = [] } = inventory || {};
   const inventoryOptions = useMemo(() => {
     const options = [];
-    const addOptions = (items = [], source) => {
-      items.forEach((item, index) => {
+    const bySource = {};
+    const addOptions = (itemsList = [], source) => {
+      if (!itemsList || itemsList.length === 0) return;
+      if (!bySource[source]) {
+        bySource[source] = [];
+      }
+      itemsList.forEach((item, index) => {
         if (!item) return;
         const name = getItemName(item);
         if (!name) return;
         const value = `${source}-${index}-${name}`;
-        options.push({
+        const option = {
           value,
           label: name,
           item,
@@ -96,7 +199,9 @@ export default function EquipmentRack({
               : source === 'armor'
               ? 'Armor'
               : 'Item',
-        });
+        };
+        options.push(option);
+        bySource[source].push(option);
       });
     };
 
@@ -104,18 +209,26 @@ export default function EquipmentRack({
     addOptions(armor, 'armor');
     addOptions(items, 'item');
 
-    return options;
+    return { all: options, bySource };
   }, [armor, items, weapons]);
 
   const optionMap = useMemo(() => {
     const map = new Map();
-    inventoryOptions.forEach((opt) => {
+    inventoryOptions.all.forEach((opt) => {
       map.set(opt.value, opt);
     });
     return map;
   }, [inventoryOptions]);
 
-  const hasOptions = inventoryOptions.length > 0;
+  const slotOptionsMap = useMemo(() => {
+    const map = new Map();
+    FLAT_SLOTS.forEach((slot) => {
+      map.set(slot.key, buildSlotOptions(slot, inventoryOptions.bySource));
+    });
+    return map;
+  }, [inventoryOptions]);
+
+  const hasOptions = inventoryOptions.all.length > 0;
 
   const handleAssign = useCallback(
     (slotKey, optionValue) => {
@@ -157,7 +270,8 @@ export default function EquipmentRack({
 
   const renderSlot = (slot) => {
     const current = equipment?.[slot.key];
-    const selectedOption = inventoryOptions.find((opt) => {
+    const optionsForSlot = slotOptionsMap.get(slot.key) || [];
+    const selectedOption = optionsForSlot.find((opt) => {
       const itemName = getItemName(current);
       if (!itemName) return false;
       const currentSource = getItemSource(current);
@@ -183,7 +297,7 @@ export default function EquipmentRack({
             onChange={(event) => handleAssign(slot.key, event.target.value)}
           >
             <option value="">Unequipped</option>
-            {inventoryOptions.map((opt) => (
+            {optionsForSlot.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
                 {opt.description ? ` (${opt.description})` : ''}

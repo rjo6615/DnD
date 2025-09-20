@@ -10,11 +10,18 @@ describe('EquipmentRack', () => {
 
     const inventory = {
       weapons: [
-        { name: 'Dagger' },
-        { name: 'Longsword' },
+        { name: 'Dagger', category: 'simple melee weapon' },
+        { name: 'Longbow', category: 'martial ranged weapon' },
       ],
-      armor: [{ name: 'Chain Mail' }],
-      items: [{ name: 'Ring of Protection' }],
+      armor: [
+        { name: 'Chain Mail', category: 'heavy' },
+        { name: 'Shield', category: 'shield' },
+      ],
+      items: [
+        { name: 'Ring of Protection', category: 'Ring' },
+        { name: 'Circlet of Wisdom', category: 'Head' },
+        { name: 'Belt of Giant Strength', category: 'Belt' },
+      ],
     };
 
     let equipmentState = {
@@ -49,20 +56,71 @@ describe('EquipmentRack', () => {
     };
 
     expect(screen.getByText('Head')).toBeInTheDocument();
+
+    const headSelect = screen.getByLabelText('Head slot selection');
+    const headOptions = within(headSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(headOptions).toEqual([
+      'Unequipped',
+      'Circlet of Wisdom (Item)',
+    ]);
+
+    const waistSelect = screen.getByLabelText('Waist slot selection');
+    const waistOptions = within(waistSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(waistOptions).toEqual([
+      'Unequipped',
+      'Belt of Giant Strength (Item)',
+    ]);
+
+    const ringSelect = screen.getByLabelText('Ring I slot selection');
+    const ringOptions = within(ringSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(ringOptions).toEqual(['Unequipped', 'Ring of Protection (Item)']);
+
     const mainHandSelect = screen.getByLabelText('Main Hand slot selection');
-    const longSwordOption = within(mainHandSelect).getByRole('option', {
-      name: /Longsword/,
+    const mainHandOptions = within(mainHandSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(mainHandOptions).toEqual([
+      'Unequipped',
+      'Dagger (Weapon)',
+      'Longbow (Weapon)',
+    ]);
+
+    const rangedSelect = screen.getByLabelText('Ranged slot selection');
+    const rangedOptions = within(rangedSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(rangedOptions).toEqual(['Unequipped', 'Longbow (Weapon)']);
+
+    const offHandSelect = screen.getByLabelText('Off Hand slot selection');
+    const offHandOptions = within(offHandSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(offHandOptions).toEqual([
+      'Unequipped',
+      'Dagger (Weapon)',
+      'Longbow (Weapon)',
+      'Shield (Armor)',
+    ]);
+
+    const longbowOption = within(mainHandSelect).getByRole('option', {
+      name: /Longbow/,
     });
 
-    await userEvent.selectOptions(mainHandSelect, longSwordOption);
+    await userEvent.selectOptions(mainHandSelect, longbowOption);
 
     expect(onSlotChange).toHaveBeenLastCalledWith(
       'mainHand',
-      expect.objectContaining({ name: 'Longsword', source: 'weapon' })
+      expect.objectContaining({ name: 'Longbow', source: 'weapon' })
     );
     expect(onEquipmentChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        mainHand: expect.objectContaining({ name: 'Longsword', source: 'weapon' }),
+        mainHand: expect.objectContaining({ name: 'Longbow', source: 'weapon' }),
       })
     );
 
