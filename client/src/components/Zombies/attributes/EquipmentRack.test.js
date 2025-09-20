@@ -170,10 +170,10 @@ describe('EquipmentRack', () => {
         {
           name: 'Crown of Insight',
           category: 'head',
-          slot: 'head',
-          equipmentSlot: 'head',
-          slots: ['head'],
-          equipmentSlots: ['head'],
+          slot: 'Head',
+          equipmentSlot: ' head ',
+          slots: ['head', 'Headgear'],
+          equipmentSlots: ['HEAD'],
         },
       ]),
     };
@@ -192,6 +192,12 @@ describe('EquipmentRack', () => {
       .getAllByRole('option')
       .map((option) => option.textContent);
     expect(headOptions).toEqual(['Unequipped', 'Crown of Insight (Armor)']);
+
+    const chestSelect = screen.getByLabelText('Chest slot selection');
+    const chestOptions = within(chestSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(chestOptions).toEqual(['Unequipped']);
 
     const feetSelect = screen.getByLabelText('Feet slot selection');
     const feetOptions = within(feetSelect)
