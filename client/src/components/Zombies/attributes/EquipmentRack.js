@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import { EQUIPMENT_SLOT_LAYOUT } from './equipmentSlots';
+import styles from './EquipmentRack.module.scss';
 
 const FLAT_SLOTS = EQUIPMENT_SLOT_LAYOUT.flat();
 
@@ -102,54 +103,30 @@ const buildSlotOptions = (slot, optionsBySource) => {
   return options;
 };
 
-const rackStyles = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-  gap: '1rem',
+const SLOT_LAYOUT = {
+  leftColumn: ['head', 'eyes', 'neck', 'shoulders', 'chest', 'back'],
+  rightColumn: ['arms', 'wrists', 'hands', 'waist', 'legs', 'feet'],
+  bottomRow: ['mainHand', 'offHand', 'ranged', 'ringLeft', 'ringRight'],
 };
 
-const slotStyles = {
-  border: '1px solid rgba(108, 117, 125, 0.5)',
-  borderRadius: '0.75rem',
-  padding: '0.75rem',
-  minHeight: '180px',
-  background: 'linear-gradient(135deg, rgba(33,37,41,0.85), rgba(73,80,87,0.65))',
-  color: 'var(--bs-light, #f8f9fa)',
-  boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-};
-
-const labelStyles = {
-  fontSize: '0.75rem',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  fontWeight: 700,
-  opacity: 0.85,
-  marginBottom: '0.5rem',
-};
-
-const itemStyles = {
-  flex: 1,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  textAlign: 'center',
-  borderRadius: '0.5rem',
-  background: 'rgba(255, 255, 255, 0.05)',
-  marginBottom: '0.75rem',
-  padding: '0.5rem',
-  fontSize: '0.9rem',
-  fontWeight: 500,
-  minHeight: '3rem',
-  wordBreak: 'break-word',
-};
-
-const controlsStyles = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
+const SLOT_ICONS = {
+  head: '🪖',
+  eyes: '👁️',
+  neck: '🧿',
+  shoulders: '🛡️',
+  chest: '👕',
+  back: '🎒',
+  arms: '💪',
+  wrists: '⛓️',
+  hands: '🧤',
+  waist: '🧷',
+  legs: '🦵',
+  feet: '🥾',
+  mainHand: '⚔️',
+  offHand: '🛡️',
+  ranged: '🏹',
+  ringLeft: '💍',
+  ringRight: '💍',
 };
 
 const getItemName = (item) => {
@@ -175,6 +152,13 @@ export default function EquipmentRack({
   disabled = false,
 }) {
   const { weapons = [], armor = [], items = [] } = inventory || {};
+  const slotLookup = useMemo(() => {
+    const map = new Map();
+    FLAT_SLOTS.forEach((slot) => {
+      map.set(slot.key, slot);
+    });
+    return map;
+  }, []);
   const inventoryOptions = useMemo(() => {
     const options = [];
     const bySource = {};
@@ -269,6 +253,7 @@ export default function EquipmentRack({
   );
 
   const renderSlot = (slot) => {
+    if (!slot) return null;
     const current = equipment?.[slot.key];
     const optionsForSlot = slotOptionsMap.get(slot.key) || [];
     const selectedOption = optionsForSlot.find((opt) => {
@@ -286,14 +271,27 @@ export default function EquipmentRack({
     const displayName = getItemName(current) || '—';
 
     return (
-      <div key={slot.key} style={slotStyles}>
-        <div style={labelStyles}>{slot.label}</div>
-        <div style={itemStyles}>{displayName}</div>
-        <div style={controlsStyles}>
+      <div key={slot.key} className={styles.slot}>
+        <div className={styles.slotHeader}>
+          {SLOT_ICONS[slot.key] ? (
+            <span aria-hidden="true" className={styles.slotIcon}>
+              {SLOT_ICONS[slot.key]}
+            </span>
+          ) : null}
+          <span className={styles.slotLabel}>{slot.label}</span>
+        </div>
+        <div
+          className={current ? styles.slotItem : styles.slotItemEmpty}
+          data-testid={`${slot.key}-item-display`}
+        >
+          {displayName}
+        </div>
+        <div className={styles.slotControls}>
           <Form.Select
             aria-label={`${slot.label} slot selection`}
             value={selectedValue}
             disabled={disabled}
+            className={styles.slotSelect}
             onChange={(event) => handleAssign(slot.key, event.target.value)}
           >
             <option value="">Unequipped</option>
@@ -309,6 +307,7 @@ export default function EquipmentRack({
             size="sm"
             disabled={disabled || !current}
             onClick={() => handleAssign(slot.key, '')}
+            className={styles.clearButton}
           >
             Clear Slot
           </Button>
@@ -318,14 +317,33 @@ export default function EquipmentRack({
   };
 
   return (
-    <div>
+    <div className={styles.rackWrapper}>
       <p className="text-muted small mb-3">
         {hasOptions
           ? "Assign owned items to equipment slots. Selecting an option will update the character's loadout immediately."
           : "You do not have any owned inventory to assign yet. Equip gear from the inventory tabs to populate this rack."}
       </p>
-      <div style={rackStyles}>
-        {FLAT_SLOTS.map((slot) => renderSlot(slot))}
+      <div className={styles.rackLayout}>
+        <div className={styles.columns}>
+          <div className={styles.leftColumn}>
+            {SLOT_LAYOUT.leftColumn.map((slotKey) =>
+              renderSlot(slotLookup.get(slotKey))
+            )}
+          </div>
+          <div className={styles.centerColumn}>
+            <div className={styles.silhouette} aria-hidden="true" />
+          </div>
+          <div className={styles.rightColumn}>
+            {SLOT_LAYOUT.rightColumn.map((slotKey) =>
+              renderSlot(slotLookup.get(slotKey))
+            )}
+          </div>
+        </div>
+        <div className={styles.bottomRow}>
+          {SLOT_LAYOUT.bottomRow.map((slotKey) =>
+            renderSlot(slotLookup.get(slotKey))
+          )}
+        </div>
       </div>
     </div>
   );
