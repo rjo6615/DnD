@@ -9,6 +9,7 @@ jest.mock('../db/conn');
 const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const routes = require('../routes');
+const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
 
 const app = express();
 app.use(express.json());
@@ -500,6 +501,77 @@ describe('Equipment routes', () => {
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: ['potion-healing'] });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('update-equipment', () => {
+    test('update success', async () => {
+      const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne }),
+      });
+      const payload = {
+        equipment: {
+          mainHand: { name: 'Longsword', source: 'weapon' },
+          offHand: { name: 'Longsword', source: 'weapon' },
+          ringLeft: 'Ring of Protection',
+        },
+      };
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send(payload);
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Equipment updated');
+      expect(updateOne).toHaveBeenCalledTimes(1);
+      const [query, update] = updateOne.mock.calls[0];
+      expect(query).toEqual({ _id: expect.any(Object) });
+      const updatedEquipment = update.$set.equipment;
+      expect(Object.keys(updatedEquipment).sort()).toEqual(
+        [...EQUIPMENT_SLOT_KEYS].sort()
+      );
+      expect(updatedEquipment.mainHand).toBeNull();
+      expect(updatedEquipment.offHand).toMatchObject({
+        name: 'Longsword',
+        source: 'weapon',
+      });
+      expect(updatedEquipment.ringLeft).toMatchObject({
+        name: 'Ring of Protection',
+      });
+    });
+
+    test('update not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) }),
+      });
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send({ equipment: {} });
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Equipment not found');
+    });
+
+    test('update equipment invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-equipment/123')
+        .send({ equipment: {} });
+      expect(res.status).toBe(400);
+    });
+
+    test('update equipment invalid structure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send({ equipment: { mainHand: {} } });
+      expect(res.status).toBe(400);
+    });
+
+    test('update equipment invalid slot', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send({ equipment: { tail: { name: 'Tail Blade' } } });
       expect(res.status).toBe(400);
     });
   });

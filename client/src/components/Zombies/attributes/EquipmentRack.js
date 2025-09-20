@@ -1,34 +1,8 @@
 import React, { useMemo, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
+import { EQUIPMENT_SLOT_LAYOUT } from './equipmentSlots';
 
-const SLOT_LAYOUT = [
-  [
-    { key: 'head', label: 'Head' },
-    { key: 'eyes', label: 'Eyes' },
-    { key: 'neck', label: 'Neck' },
-    { key: 'shoulders', label: 'Shoulders' },
-  ],
-  [
-    { key: 'chest', label: 'Chest' },
-    { key: 'back', label: 'Back' },
-    { key: 'arms', label: 'Arms' },
-    { key: 'wrists', label: 'Wrists' },
-  ],
-  [
-    { key: 'hands', label: 'Hands' },
-    { key: 'waist', label: 'Waist' },
-    { key: 'legs', label: 'Legs' },
-    { key: 'feet', label: 'Feet' },
-  ],
-  [
-    { key: 'mainHand', label: 'Main Hand' },
-    { key: 'offHand', label: 'Off Hand' },
-    { key: 'ringLeft', label: 'Ring I' },
-    { key: 'ringRight', label: 'Ring II' },
-  ],
-];
-
-const FLAT_SLOTS = SLOT_LAYOUT.flat();
+const FLAT_SLOTS = EQUIPMENT_SLOT_LAYOUT.flat();
 
 const rackStyles = {
   display: 'grid',
@@ -168,7 +142,7 @@ export default function EquipmentRack({
       if (nextItem) {
         nextEquipment[slotKey] = nextItem;
       } else {
-        delete nextEquipment[slotKey];
+        nextEquipment[slotKey] = null;
       }
 
       if (typeof onSlotChange === 'function') {

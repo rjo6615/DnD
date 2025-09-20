@@ -10,6 +10,7 @@ const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const charactersRouter = require('../routes');
 const classes = require('../data/classes');
+const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
 
 const app = express();
 app.use(express.json());
@@ -293,6 +294,11 @@ describe('Character routes', () => {
         range: '150 ft',
         duration: 'Instantaneous',
       }],
+      equipment: {
+        mainHand: { name: 'Longsword', source: 'weapon' },
+        ringLeft: 'Ring of Protection',
+        tail: { name: 'Tail Blade' },
+      },
     };
     dbo.mockResolvedValue({
       collection: () => ({
@@ -309,6 +315,22 @@ describe('Character routes', () => {
       range: '150 ft',
       duration: 'Instantaneous',
     });
+    expect(Object.keys(res.body.equipment).sort()).toEqual(
+      [...EQUIPMENT_SLOT_KEYS].sort()
+    );
+    expect(res.body.equipment.mainHand).toMatchObject({
+      name: 'Longsword',
+      source: 'weapon',
+    });
+    expect(res.body.equipment.ringLeft).toMatchObject({
+      name: 'Ring of Protection',
+    });
+    EQUIPMENT_SLOT_KEYS.filter((slot) => !['mainHand', 'ringLeft'].includes(slot)).forEach(
+      (slot) => {
+        expect(res.body.equipment[slot]).toBeNull();
+      }
+    );
+    expect(res.body.equipment.tail).toBeUndefined();
   });
 
   test('get weapons success', async () => {

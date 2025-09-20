@@ -8,6 +8,7 @@ const { numericFields, skillFields, skillNames } = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
 const collectAllowedSkills = require('../../utils/collectAllowedSkills');
 const collectAllowedExpertise = require('../../utils/collectAllowedExpertise');
+const { normalizeEquipmentMap } = require('../../constants/equipmentSlots');
 
 const countFeatProficiencies = (feat = []) => {
   const profs = new Set();
@@ -110,6 +111,7 @@ module.exports = (router) => {
         .collection('Characters')
         .findOne(myquery);
       if (result) {
+        result.equipment = normalizeEquipmentMap(result.equipment);
         const totalLevel = Array.isArray(result.occupation)
           ? result.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
           : 0;
@@ -171,8 +173,10 @@ module.exports = (router) => {
         const featPoints = countFeatProficiencies(char.feat);
         const racePoints = countRaceProficiencies(char.race);
         const backgroundPoints = countBackgroundProficiencies(char.background);
+        const equipment = normalizeEquipmentMap(char.equipment);
         return {
           ...char,
+          equipment,
           allowedSkills: collectAllowedSkills(
             char.occupation,
             char.feat,

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import hasteIcon from '../../../images/spell-haste-icon.png';
+import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
@@ -901,6 +902,81 @@ test('inventory button opens InventoryModal with default tab', async () => {
       activeTab: 'weapons',
     })
   );
+});
+
+test('equipment changes are normalized and persisted', async () => {
+  const initialCharacter = {
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    equipment: { mainHand: { name: 'Dagger', source: 'weapon' } },
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => initialCharacter,
+    })
+    .mockResolvedValueOnce({ ok: true });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockInventoryModalProps.current).not.toBeNull());
+  await waitFor(() =>
+    expect(mockInventoryModalProps.current?.form?.equipment).toBeDefined()
+  );
+
+  const equipmentPayload = {
+    ...mockInventoryModalProps.current.form.equipment,
+    mainHand: null,
+    offHand: { name: 'Shield', source: 'armor' },
+  };
+
+  await act(async () => {
+    await mockInventoryModalProps.current.onEquipmentChange(equipmentPayload);
+  });
+
+  expect(apiFetch).toHaveBeenLastCalledWith(
+    '/equipment/update-equipment/1',
+    expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+
+  const lastCallIndex = apiFetch.mock.calls.length - 1;
+  const lastCall = apiFetch.mock.calls[lastCallIndex];
+  const payload = JSON.parse(lastCall[1].body);
+  expect(Object.keys(payload.equipment).sort()).toEqual(
+    [...EQUIPMENT_SLOT_KEYS].sort()
+  );
+  expect(payload.equipment.mainHand).toBeNull();
+  expect(payload.equipment.offHand).toMatchObject({
+    name: 'Shield',
+    source: 'armor',
+  });
+
+  await waitFor(() =>
+    expect(mockInventoryModalProps.current.form.equipment.offHand).toMatchObject({
+      name: 'Shield',
+      source: 'armor',
+    })
+  );
+  EQUIPMENT_SLOT_KEYS.filter((slot) => slot !== 'offHand').forEach((slot) => {
+    expect(mockInventoryModalProps.current.form.equipment[slot]).toBeNull();
+  });
 });
 
 test('handleCastSpell closes modal and outputs spell name', async () => {

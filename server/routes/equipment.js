@@ -4,6 +4,10 @@ const { body, matchedData } = require('express-validator');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const { armors: armorData } = require('../data/armor');
+const {
+  EQUIPMENT_SLOT_KEYS,
+  normalizeEquipmentMap,
+} = require('../constants/equipmentSlots');
 
 const validateBonusObject = (value) => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -14,6 +18,37 @@ const validateBonusObject = (value) => {
       throw new Error('values must be numbers');
     }
   }
+  return true;
+};
+
+const validateEquipmentMap = (value) => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('equipment must be an object');
+  }
+
+  const invalidKeys = Object.keys(value).filter(
+    (slot) => !EQUIPMENT_SLOT_KEYS.includes(slot)
+  );
+
+  if (invalidKeys.length > 0) {
+    throw new Error(`invalid equipment slots: ${invalidKeys.join(', ')}`);
+  }
+
+  for (const entry of Object.values(value)) {
+    if (entry === null) continue;
+    if (typeof entry === 'string') continue;
+    if (typeof entry !== 'object') {
+      throw new Error('slot assignments must be objects or null');
+    }
+    const hasName =
+      typeof entry.name === 'string' ||
+      typeof entry.displayName === 'string' ||
+      typeof entry.title === 'string';
+    if (!hasName) {
+      throw new Error('slot assignments must include a name');
+    }
+  }
+
   return true;
 };
 
@@ -364,6 +399,34 @@ module.exports = (router) => {
           return res.status(404).json({ message: 'Item not found' });
         }
         res.json({ message: 'Item updated' });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  equipmentRouter.route('/update-equipment/:id').put(
+    [body('equipment').custom(validateEquipmentMap)],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { equipment } = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
+      try {
+        const normalized = normalizeEquipmentMap(equipment);
+        const result = await db_connect.collection('Characters').updateOne(id, {
+          $set: { equipment: normalized },
+        });
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: 'Equipment not found' });
+        }
+        res.json({ message: 'Equipment updated', equipment: normalized });
       } catch (err) {
         next(err);
       }

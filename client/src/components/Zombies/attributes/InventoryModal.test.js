@@ -62,6 +62,7 @@ jest.mock('./EquipmentRack', () => {
 });
 
 import InventoryModal from './InventoryModal';
+import { EQUIPMENT_SLOT_KEYS } from './equipmentSlots';
 
 describe('InventoryModal', () => {
   beforeEach(() => {
@@ -209,13 +210,20 @@ describe('InventoryModal', () => {
     });
 
     expect(await screen.findByTestId('equipment-rack')).toBeInTheDocument();
-    expect(mockEquipmentRackProps.current).toMatchObject({
-      equipment: form.equipment,
-      inventory: {
-        weapons: [expect.objectContaining({ name: 'Longsword' })],
-        armor: [expect.objectContaining({ name: 'Shield' })],
-        items: [expect.objectContaining({ name: 'Potion' })],
-      },
+    expect(mockEquipmentRackProps.current?.inventory).toMatchObject({
+      weapons: [expect.objectContaining({ name: 'Longsword' })],
+      armor: [expect.objectContaining({ name: 'Shield' })],
+      items: [expect.objectContaining({ name: 'Potion' })],
+    });
+    const equipment = mockEquipmentRackProps.current?.equipment;
+    expect(equipment).toBeTruthy();
+    const equipmentKeys = Object.keys(equipment || {}).sort();
+    expect(equipmentKeys).toEqual([...EQUIPMENT_SLOT_KEYS].sort());
+    expect(equipment?.mainHand).toEqual(
+      expect.objectContaining({ name: 'Longsword', source: 'weapon' })
+    );
+    EQUIPMENT_SLOT_KEYS.filter((key) => key !== 'mainHand').forEach((slot) => {
+      expect(equipment?.[slot]).toBeNull();
     });
     expect(mockEquipmentRackProps.current.onEquipmentChange).toBe(
       handleEquipmentChange
