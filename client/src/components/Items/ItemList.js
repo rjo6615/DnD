@@ -407,13 +407,6 @@ function ItemList({
         <Card.Title className="modal-title">Items</Card.Title>
       </Card.Header>
       {body}
-      {typeof onClose === 'function' && (
-        <Card.Footer className="modal-footer">
-          <Button className="action-btn close-btn" onClick={onClose}>
-            Close
-          </Button>
-        </Card.Footer>
-      )}
       {modal}
     </Card>
   );
