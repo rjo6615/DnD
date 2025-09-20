@@ -134,6 +134,8 @@ export const normalizeArmor = (armor, { includeUnowned = false } = {}) => {
       if (typeof piece === 'object') {
         const {
           name,
+          armorName,
+          displayName,
           acBonus = '',
           maxDex = null,
           strength = null,
@@ -144,10 +146,11 @@ export const normalizeArmor = (armor, { includeUnowned = false } = {}) => {
           owned: ownedProp,
           ...rest
         } = piece;
-        if (!name) return null;
+        const resolvedName = name || armorName;
+        if (!resolvedName) return null;
         if (!includeUnowned && ownedProp === false) return null;
         const normalized = {
-          name,
+          name: resolvedName,
           acBonus,
           maxDex,
           strength,
@@ -155,8 +158,13 @@ export const normalizeArmor = (armor, { includeUnowned = false } = {}) => {
           weight,
           cost,
           ...(type !== undefined ? { type } : {}),
+          ...(displayName !== undefined ? { displayName } : {}),
+          ...(armorName !== undefined ? { armorName } : {}),
           ...rest,
         };
+        if (!name && armorName && normalized.displayName === undefined) {
+          normalized.displayName = armorName;
+        }
         if (ownedProp !== undefined) normalized.owned = ownedProp;
         return normalized;
       }

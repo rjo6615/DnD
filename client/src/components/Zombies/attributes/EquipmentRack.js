@@ -133,7 +133,7 @@ const getItemName = (item) => {
   if (!item) return '';
   if (typeof item === 'string') return item;
   if (typeof item !== 'object') return String(item);
-  return item.displayName || item.name || item.title || '';
+  return item.displayName || item.name || item.armorName || item.title || '';
 };
 
 const getItemSource = (item) => {
