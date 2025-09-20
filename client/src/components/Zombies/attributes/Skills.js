@@ -8,6 +8,8 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 
+const EMPTY_OBJECT = Object.freeze({});
+
 export function rollSkill(bonus = 0) {
   const d20 = Math.floor(Math.random() * 20) + 1;
   if (d20 === 20) {
@@ -34,87 +36,88 @@ export default function Skills({
   onRollResult,
 }) {
   const params = useParams();
-  const [skills, setSkills] = useState(form.skills || {});
+  const safeForm = form ?? {};
+  const formSkills = safeForm.skills ?? EMPTY_OBJECT;
+  const formProficiencyPoints = safeForm.proficiencyPoints || 0;
+  const formExpertisePoints = safeForm.expertisePoints || 0;
+  const [skills, setSkills] = useState(formSkills);
   const [error, setError] = useState('');
   const [showSkillInfo, setShowSkillInfo] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const raceProficiencies = useMemo(() => {
     return new Set(
-      Object.entries(form.race?.skills || {})
+      Object.entries(form?.race?.skills || {})
         .filter(([, s]) => s?.proficient)
         .map(([key]) => key)
     );
-  }, [form.race?.skills]);
+  }, [form?.race?.skills]);
   const backgroundProficiencies = useMemo(() => {
     return new Set(
-      Object.entries(form.background?.skills || {})
+      Object.entries(form?.background?.skills || {})
         .filter(([, s]) => s?.proficient)
         .map(([key]) => key)
     );
-  }, [form.background?.skills]);
+  }, [form?.background?.skills]);
   const raceExpertise = useMemo(() => {
     return new Set(
-      Object.entries(form.race?.skills || {})
+      Object.entries(form?.race?.skills || {})
         .filter(([, s]) => s?.expertise)
         .map(([key]) => key)
     );
-  }, [form.race?.skills]);
+  }, [form?.race?.skills]);
   const backgroundExpertise = useMemo(() => {
     return new Set(
-      Object.entries(form.background?.skills || {})
+      Object.entries(form?.background?.skills || {})
         .filter(([, s]) => s?.expertise)
         .map(([key]) => key)
     );
-  }, [form.background?.skills]);
+  }, [form?.background?.skills]);
   const lockedExpertise = useMemo(() => {
     return new Set([...raceExpertise, ...backgroundExpertise]);
   }, [raceExpertise, backgroundExpertise]);
   const lockedProficiencies = useMemo(() => {
     return new Set([...raceProficiencies, ...backgroundProficiencies]);
   }, [raceProficiencies, backgroundProficiencies]);
-  const currentProficiencyCount = Object.values(form.skills || {}).filter(
+  const currentProficiencyCount = Object.values(formSkills).filter(
     (s) => s.proficient
   ).length;
   const [proficiencyPointsLeft, setProficiencyPointsLeft] = useState(
-    Math.max(0, (form.proficiencyPoints || 0) - currentProficiencyCount)
+    Math.max(0, formProficiencyPoints - currentProficiencyCount)
   );
-  const currentExpertiseCount = Object.values(form.skills || {}).filter(
+  const currentExpertiseCount = Object.values(formSkills).filter(
     (s) => s.expertise
   ).length;
   const [expertisePointsLeft, setExpertisePointsLeft] = useState(
-    Math.max(0, (form.expertisePoints || 0) - currentExpertiseCount)
+    Math.max(0, formExpertisePoints - currentExpertiseCount)
   );
 
   useEffect(() => {
-    const count = Object.values(form.skills || {}).filter(
+    const count = Object.values(formSkills).filter(
       (s) => s.proficient
     ).length;
-    setSkills(form.skills || {});
+    setSkills(formSkills);
     setProficiencyPointsLeft(
-      Math.max(0, (form.proficiencyPoints || 0) - count)
+      Math.max(0, formProficiencyPoints - count)
     );
-    const expertiseUsed = Object.values(form.skills || {}).filter(
+    const expertiseUsed = Object.values(formSkills).filter(
       (s) => s.expertise
     ).length;
     setExpertisePointsLeft(
-      Math.max(0, (form.expertisePoints || 0) - expertiseUsed)
+      Math.max(0, formExpertisePoints - expertiseUsed)
     );
   }, [
-    form.skills,
-    form.proficiencyPoints,
-    form.expertisePoints,
+    formSkills,
+    formProficiencyPoints,
+    formExpertisePoints,
     lockedProficiencies,
     lockedExpertise,
   ]);
 
-  if (!form) {
-    return <div>Loading...</div>;
-  }
-
-  const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
+  const hasEquipment =
+    typeof safeForm.equipment === 'object' && safeForm.equipment !== null;
   const normalizedEquipment = useMemo(
-    () => normalizeEquipmentMap(form.equipment),
-    [form.equipment]
+    () => normalizeEquipmentMap(safeForm.equipment),
+    [safeForm.equipment]
   );
   const equippedArmor = useMemo(() => {
     if (hasEquipment) {
@@ -128,8 +131,8 @@ export default function Skills({
         return false;
       });
     }
-    return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
-  }, [hasEquipment, normalizedEquipment, form.armor]);
+    return Array.isArray(safeForm.armor) ? safeForm.armor.filter(Boolean) : [];
+  }, [hasEquipment, normalizedEquipment, safeForm.armor]);
   const armorItems = equippedArmor.map((el) =>
     Array.isArray(el)
       ? el
@@ -159,8 +162,8 @@ export default function Skills({
     if (hasEquipment) {
       return Object.values(normalizedEquipment).filter(Boolean);
     }
-    return Array.isArray(form.item) ? form.item.filter(Boolean) : [];
-  }, [form.item, hasEquipment, normalizedEquipment]);
+    return Array.isArray(safeForm.item) ? safeForm.item.filter(Boolean) : [];
+  }, [safeForm.item, hasEquipment, normalizedEquipment]);
 
   const itemTotals = SKILLS.reduce((acc, { key }) => {
     acc[key] = equippedItems.reduce(
@@ -171,7 +174,7 @@ export default function Skills({
   }, {});
 
   const featTotals = SKILLS.reduce((acc, { key }) => {
-    acc[key] = (form.feat || []).reduce(
+    acc[key] = (safeForm.feat || []).reduce(
       (sum, el) => sum + Number(el[key] || 0),
       0
     );
@@ -179,14 +182,18 @@ export default function Skills({
   }, {});
 
   const raceTotals = SKILLS.reduce((acc, { key }) => {
-    acc[key] = Number(form.race?.[key] || 0);
+    acc[key] = Number(safeForm.race?.[key] || 0);
     return acc;
   }, {});
 
   const profBonus = proficiencyBonus(totalLevel);
 
-  const selectableSkills = new Set(form.allowedSkills || []);
-  const selectableExpertise = new Set(form.allowedExpertise || []);
+  const selectableSkills = new Set(safeForm.allowedSkills || []);
+  const selectableExpertise = new Set(safeForm.allowedExpertise || []);
+
+  if (!form) {
+    return <div>Loading...</div>;
+  }
 
   async function updateSkill(skill, updated) {
     try {
@@ -209,7 +216,7 @@ export default function Skills({
           (s) => s.proficient
         ).length;
         setProficiencyPointsLeft(
-          Math.max(0, (form.proficiencyPoints || 0) - proficientCount)
+          Math.max(0, (safeForm.proficiencyPoints || 0) - proficientCount)
         );
         onSkillsChange?.(newSkills);
         return newSkills;
