@@ -958,6 +958,17 @@ return (
               </Button>
             )}
             <Button
+              onClick={handleShowEquipment}
+              style={{
+                color: 'black',
+                backgroundColor: '#6C757D',
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-toolbox" aria-hidden="true"></i>
+            </Button>
+            <Button
               onClick={() => handleShowInventory()}
               style={{
                 color: "black",
@@ -988,17 +999,6 @@ return (
               <i className="fas fa-info" aria-hidden="true"></i>
             </Button>
           </div>
-          <Button
-            onClick={handleShowEquipment}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn ms-auto"
-            variant="secondary"
-          >
-            <i className="fas fa-toolbox" aria-hidden="true"></i>
-          </Button>
         </Nav>
       </Container>
     </Navbar>

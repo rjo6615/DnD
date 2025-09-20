@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import hasteIcon from '../../../images/spell-haste-icon.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
@@ -165,6 +165,76 @@ test('warlock character renders spells button', async () => {
   const buttons = await screen.findAllByRole('button');
   const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   expect(spellButton).toBeInTheDocument();
+});
+
+test('footer renders equipment button after spells button for spellcasters', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const nav = await screen.findByRole('navigation');
+  const navButtons = within(nav).getAllByRole('button');
+  const indexOf = (iconClass) =>
+    navButtons.findIndex((btn) => btn.querySelector(`.${iconClass}`));
+
+  expect(indexOf('fa-hat-wizard')).toBeGreaterThan(-1);
+  expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
+  expect(indexOf('fa-box-open')).toBeGreaterThan(-1);
+  expect(indexOf('fa-hat-wizard')).toBeLessThan(indexOf('fa-toolbox'));
+  expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
+});
+
+test('footer renders equipment button before inventory for non-spellcasters', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Fighter', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const nav = await screen.findByRole('navigation');
+  const navButtons = within(nav).getAllByRole('button');
+  const indexOf = (iconClass) =>
+    navButtons.findIndex((btn) => btn.querySelector(`.${iconClass}`));
+
+  expect(indexOf('fa-hat-wizard')).toBe(-1);
+  expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
+  expect(indexOf('fa-box-open')).toBeGreaterThan(-1);
+  expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
 });
 
 test('renders SpellSlots for non-spellcasting characters', async () => {
