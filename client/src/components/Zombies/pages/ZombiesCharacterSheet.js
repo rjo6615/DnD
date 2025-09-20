@@ -490,6 +490,10 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
+  const handleEquipmentChange = useCallback((equipment = {}) => {
+    setForm((prev) => ({ ...prev, equipment }));
+  }, []);
+
   const handleShopPurchase = useCallback(
     async (cart = [], totalCostCp = 0) => {
       if (!form) return;
@@ -995,6 +999,7 @@ return (
       onTabChange={setInventoryTab}
       form={form}
       characterId={characterId}
+      onEquipmentChange={handleEquipmentChange}
     />
     <ShopModal
       show={showShop}

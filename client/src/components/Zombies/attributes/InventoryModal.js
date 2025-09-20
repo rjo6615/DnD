@@ -3,6 +3,7 @@ import { Modal, Card, Tab, Nav, Button } from 'react-bootstrap';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
+import EquipmentRack from './EquipmentRack';
 import {
   normalizeArmor,
   normalizeItems,
@@ -18,6 +19,8 @@ export default function InventoryModal({
   onTabChange,
   form = {},
   characterId,
+  onEquipmentChange,
+  onEquipmentSlotChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -114,10 +117,30 @@ export default function InventoryModal({
             />
           ),
       },
+      {
+        key: 'equipment',
+        title: 'Equipment',
+        render: (isActive) =>
+          !isActive ? null : (
+            <EquipmentRack
+              equipment={form.equipment || {}}
+              inventory={{
+                weapons: normalizedWeapons,
+                armor: normalizedArmor,
+                items: normalizedItems,
+              }}
+              onEquipmentChange={onEquipmentChange}
+              onSlotChange={onEquipmentSlotChange}
+            />
+          ),
+      },
     ],
     [
       characterId,
       form.campaign,
+      form.equipment,
+      onEquipmentChange,
+      onEquipmentSlotChange,
       normalizedArmor,
       normalizedItems,
       normalizedWeapons,
