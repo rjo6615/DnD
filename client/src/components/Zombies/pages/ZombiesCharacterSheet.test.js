@@ -44,6 +44,11 @@ jest.mock('../attributes/InventoryModal', () => (props) => {
   mockInventoryModalProps.current = props;
   return null;
 });
+const mockEquipmentModalProps = { current: null };
+jest.mock('../attributes/EquipmentModal', () => (props) => {
+  mockEquipmentModalProps.current = props;
+  return null;
+});
 const mockShopModalProps = { current: null };
 jest.mock('../attributes/ShopModal', () => (props) => {
   mockShopModalProps.current = props;
@@ -68,6 +73,7 @@ beforeEach(() => {
   mockHandleClose.current = null;
   mockShopModalProps.current = null;
   mockInventoryModalProps.current = null;
+  mockEquipmentModalProps.current = null;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -904,6 +910,59 @@ test('inventory button opens InventoryModal with default tab', async () => {
   );
 });
 
+test('equipment button opens and closes EquipmentModal independently', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+      equipment: {},
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockEquipmentModalProps.current).not.toBeNull());
+  expect(mockEquipmentModalProps.current.show).toBe(false);
+
+  const buttons = await screen.findAllByRole('button');
+  const equipmentButton = buttons.find((btn) =>
+    btn.querySelector('.fa-toolbox')
+  );
+  expect(equipmentButton).toBeTruthy();
+
+  await act(async () => {
+    await userEvent.click(equipmentButton);
+  });
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current).toMatchObject({ show: true })
+  );
+  expect(mockInventoryModalProps.current?.show).not.toBe(true);
+
+  act(() => {
+    mockEquipmentModalProps.current?.onHide?.();
+  });
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current).toMatchObject({ show: false })
+  );
+});
+
 test('equipment changes are normalized and persisted', async () => {
   const initialCharacter = {
     occupation: [],
@@ -933,19 +992,19 @@ test('equipment changes are normalized and persisted', async () => {
 
   render(<ZombiesCharacterSheet />);
 
-  await waitFor(() => expect(mockInventoryModalProps.current).not.toBeNull());
+  await waitFor(() => expect(mockEquipmentModalProps.current).not.toBeNull());
   await waitFor(() =>
-    expect(mockInventoryModalProps.current?.form?.equipment).toBeDefined()
+    expect(mockEquipmentModalProps.current?.form?.equipment).toBeDefined()
   );
 
   const equipmentPayload = {
-    ...mockInventoryModalProps.current.form.equipment,
+    ...mockEquipmentModalProps.current.form.equipment,
     mainHand: null,
     offHand: { name: 'Shield', source: 'armor' },
   };
 
   await act(async () => {
-    await mockInventoryModalProps.current.onEquipmentChange(equipmentPayload);
+    await mockEquipmentModalProps.current.onEquipmentChange(equipmentPayload);
   });
 
   expect(apiFetch).toHaveBeenLastCalledWith(
@@ -969,13 +1028,13 @@ test('equipment changes are normalized and persisted', async () => {
   });
 
   await waitFor(() =>
-    expect(mockInventoryModalProps.current.form.equipment.offHand).toMatchObject({
+    expect(mockEquipmentModalProps.current.form.equipment.offHand).toMatchObject({
       name: 'Shield',
       source: 'armor',
     })
   );
   EQUIPMENT_SLOT_KEYS.filter((slot) => slot !== 'offHand').forEach((slot) => {
-    expect(mockInventoryModalProps.current.form.equipment[slot]).toBeNull();
+    expect(mockEquipmentModalProps.current.form.equipment[slot]).toBeNull();
   });
 });
 

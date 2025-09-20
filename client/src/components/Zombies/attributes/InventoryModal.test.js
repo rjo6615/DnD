@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 const mockWeaponListProps = { current: null };
 const mockArmorListProps = { current: null };
 const mockItemListProps = { current: null };
-const mockEquipmentRackProps = { current: null };
 
 jest.mock('../../Weapons/WeaponList', () => {
   const React = require('react');
@@ -52,24 +51,13 @@ jest.mock('../../Items/ItemList', () => {
   };
 });
 
-jest.mock('./EquipmentRack', () => {
-  const React = require('react');
-  return (props) => {
-    mockEquipmentRackProps.current = props;
-    if (!props) return null;
-    return <div data-testid="equipment-rack" />;
-  };
-});
-
 import InventoryModal from './InventoryModal';
-import { EQUIPMENT_SLOT_KEYS } from './equipmentSlots';
 
 describe('InventoryModal', () => {
   beforeEach(() => {
     mockWeaponListProps.current = null;
     mockArmorListProps.current = null;
     mockItemListProps.current = null;
-    mockEquipmentRackProps.current = null;
   });
 
   test('switches tabs between weapons, armor, and items', async () => {
@@ -79,15 +67,12 @@ describe('InventoryModal', () => {
       item: [['Rations']],
     };
 
-    const handleEquipmentChange = jest.fn();
-
     render(
       <InventoryModal
         show
         onHide={jest.fn()}
         onTabChange={jest.fn()}
         form={form}
-        onEquipmentChange={handleEquipmentChange}
       />
     );
 
@@ -111,19 +96,11 @@ describe('InventoryModal', () => {
     expect(screen.queryByTestId('weapon-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('armor-list')).not.toBeInTheDocument();
 
-    await act(async () => {
-      await userEvent.click(screen.getByRole('tab', { name: 'Equipment' }));
-    });
-
-    expect(await screen.findByTestId('equipment-rack')).toBeInTheDocument();
-    expect(screen.queryByTestId('item-list')).not.toBeInTheDocument();
-
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       'Weapons',
       'Armor',
       'Items',
-      'Equipment',
     ]);
   });
 
@@ -182,51 +159,4 @@ describe('InventoryModal', () => {
     expect(mockItemListProps.current?.ownedOnly).toBe(true);
   });
 
-  test('renders equipment rack with normalized inventory and equipment data', async () => {
-    const form = {
-      weapon: [['Longsword']],
-      armor: [['Shield']],
-      item: [['Potion']],
-      equipment: {
-        mainHand: { name: 'Longsword', source: 'weapon' },
-      },
-    };
-    const handleEquipmentChange = jest.fn();
-
-    render(
-      <InventoryModal
-        show
-        onHide={jest.fn()}
-        onTabChange={jest.fn()}
-        form={form}
-        onEquipmentChange={handleEquipmentChange}
-      />
-    );
-
-    expect(mockEquipmentRackProps.current).toBeNull();
-
-    await act(async () => {
-      await userEvent.click(screen.getByRole('tab', { name: 'Equipment' }));
-    });
-
-    expect(await screen.findByTestId('equipment-rack')).toBeInTheDocument();
-    expect(mockEquipmentRackProps.current?.inventory).toMatchObject({
-      weapons: [expect.objectContaining({ name: 'Longsword' })],
-      armor: [expect.objectContaining({ name: 'Shield' })],
-      items: [expect.objectContaining({ name: 'Potion' })],
-    });
-    const equipment = mockEquipmentRackProps.current?.equipment;
-    expect(equipment).toBeTruthy();
-    const equipmentKeys = Object.keys(equipment || {}).sort();
-    expect(equipmentKeys).toEqual([...EQUIPMENT_SLOT_KEYS].sort());
-    expect(equipment?.mainHand).toEqual(
-      expect.objectContaining({ name: 'Longsword', source: 'weapon' })
-    );
-    EQUIPMENT_SLOT_KEYS.filter((key) => key !== 'mainHand').forEach((slot) => {
-      expect(equipment?.[slot]).toBeNull();
-    });
-    expect(mockEquipmentRackProps.current.onEquipmentChange).toBe(
-      handleEquipmentChange
-    );
-  });
 });
