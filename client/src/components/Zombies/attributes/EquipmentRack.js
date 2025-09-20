@@ -292,6 +292,7 @@ export default function EquipmentRack({
             value={selectedValue}
             disabled={disabled}
             className={styles.slotSelect}
+            size="sm"
             onChange={(event) => handleAssign(slot.key, event.target.value)}
           >
             <option value="">Unequipped</option>
