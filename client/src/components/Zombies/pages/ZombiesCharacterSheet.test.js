@@ -121,7 +121,7 @@ test('spells button glows when spellPoints absent but spells remain', async () =
         startStatTotal: 60,
         proficiencyPoints: 0,
         skills: {},
-        item: [],
+        item: [{ itemName: 'Legacy Keepsake' }],
         feat: [],
         weapon: [],
         armor: [],
@@ -549,7 +549,7 @@ test('purchasing from shop updates currency and inventory', async () => {
         startStatTotal: 60,
         proficiencyPoints: 0,
         skills: {},
-        item: [],
+        item: [{ itemName: 'Legacy Keepsake' }],
         feat: [],
         weapon: [],
         armor: [],
@@ -571,6 +571,11 @@ test('purchasing from shop updates currency and inventory', async () => {
 
   await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
   await waitFor(() => expect(mockShopModalProps.current.form).toBeTruthy());
+  await waitFor(() =>
+    expect(mockShopModalProps.current.form.item).toEqual([
+      { itemName: 'Legacy Keepsake' },
+    ])
+  );
 
   const cartItems = [
     {
@@ -666,15 +671,21 @@ test('purchasing from shop updates currency and inventory', async () => {
       headers: { 'Content-Type': 'application/json' },
     })
   );
-  expect(JSON.parse(apiFetch.mock.calls[4][1].body)).toEqual({
-    item: [
-      expect.objectContaining({
-        name: 'Torch',
-        cost: '3 sp',
-        type: 'gear',
-      }),
-    ],
-  });
+  const updatedItemsPayload = JSON.parse(apiFetch.mock.calls[4][1].body).item;
+  expect(updatedItemsPayload).toHaveLength(2);
+  expect(updatedItemsPayload[0]).toEqual(
+    expect.objectContaining({
+      name: 'Legacy Keepsake',
+      displayName: 'Legacy Keepsake',
+    })
+  );
+  expect(updatedItemsPayload[1]).toEqual(
+    expect.objectContaining({
+      name: 'Torch',
+      cost: '3 sp',
+      type: 'gear',
+    })
+  );
 
   await waitFor(() =>
     expect(mockShopModalProps.current.currency).toMatchObject({
