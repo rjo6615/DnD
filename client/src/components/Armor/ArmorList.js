@@ -126,8 +126,21 @@ function ArmorList({
 
         const customMap = Array.isArray(custom)
           ? custom.reduce((acc, a) => {
-              const key = (a.name || a.armorName || '').toLowerCase();
+              const key = (a?.name || a?.armorName || '').toLowerCase();
               if (!key) return acc;
+              const slotFields = Object.entries(a || {}).reduce(
+                (fields, [field, value]) => {
+                  if (
+                    typeof field === 'string' &&
+                    field.toLowerCase().includes('slot') &&
+                    value !== undefined
+                  ) {
+                    fields[field] = value;
+                  }
+                  return fields;
+                },
+                {}
+              );
               acc[key] = {
                 name: key,
                 displayName: a.name || a.armorName,
@@ -139,6 +152,7 @@ function ArmorList({
                 stealth: a.stealth ?? false,
                 weight: a.weight ?? '',
                 cost: a.cost ?? '',
+                ...slotFields,
               };
               return acc;
             }, {})

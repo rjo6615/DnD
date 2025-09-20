@@ -39,6 +39,10 @@ const customData = [
     weight: 5,
     cost: '1000 gp',
     type: 'shield',
+    slot: 'head',
+    equipmentSlot: 'head',
+    slots: ['head'],
+    equipmentSlots: ['head'],
   },
 ];
 
@@ -122,6 +126,10 @@ test('fetches armor, handles add to cart, and displays cart count', async () => 
       cost: '1000 gp',
       acBonus: 8,
       category: 'special',
+      slot: 'head',
+      equipmentSlot: 'head',
+      slots: ['head'],
+      equipmentSlots: ['head'],
     })
   );
   expect(onAddToCart).toHaveBeenCalledTimes(2);

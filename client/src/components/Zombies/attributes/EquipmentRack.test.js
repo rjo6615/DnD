@@ -163,4 +163,40 @@ describe('EquipmentRack', () => {
 
     expect(offHandOptions).toEqual(['Unequipped', 'Guardian Shield (Armor)']);
   });
+
+  test('displays custom armor with slot metadata only in matching slot', () => {
+    const inventory = {
+      armor: normalizeArmor([
+        {
+          name: 'Crown of Insight',
+          category: 'head',
+          slot: 'head',
+          equipmentSlot: 'head',
+          slots: ['head'],
+          equipmentSlots: ['head'],
+        },
+      ]),
+    };
+
+    render(
+      <EquipmentRack
+        equipment={{}}
+        inventory={inventory}
+        onEquipmentChange={() => {}}
+        onSlotChange={() => {}}
+      />
+    );
+
+    const headSelect = screen.getByLabelText('Head slot selection');
+    const headOptions = within(headSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(headOptions).toEqual(['Unequipped', 'Crown of Insight (Armor)']);
+
+    const feetSelect = screen.getByLabelText('Feet slot selection');
+    const feetOptions = within(feetSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(feetOptions).toEqual(['Unequipped']);
+  });
 });
