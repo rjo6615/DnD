@@ -3,8 +3,6 @@ import { Modal, Card, Tab, Nav, Button } from 'react-bootstrap';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
-import EquipmentRack from './EquipmentRack';
-import { normalizeEquipmentMap } from './equipmentNormalization';
 import {
   normalizeArmor,
   normalizeItems,
@@ -20,8 +18,6 @@ export default function InventoryModal({
   onTabChange,
   form = {},
   characterId,
-  onEquipmentChange,
-  onEquipmentSlotChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -49,11 +45,6 @@ export default function InventoryModal({
   const normalizedItems = useMemo(
     () => normalizeItems(form.item || []),
     [form.item]
-  );
-
-  const normalizedEquipment = useMemo(
-    () => normalizeEquipmentMap(form.equipment),
-    [form.equipment]
   );
 
   const handleSelectTab = (key) => {
@@ -123,30 +114,10 @@ export default function InventoryModal({
             />
           ),
       },
-      {
-        key: 'equipment',
-        title: 'Equipment',
-        render: (isActive) =>
-          !isActive ? null : (
-            <EquipmentRack
-              equipment={normalizedEquipment}
-              inventory={{
-                weapons: normalizedWeapons,
-                armor: normalizedArmor,
-                items: normalizedItems,
-              }}
-              onEquipmentChange={onEquipmentChange}
-              onSlotChange={onEquipmentSlotChange}
-            />
-          ),
-      },
     ],
     [
       characterId,
       form.campaign,
-      normalizedEquipment,
-      onEquipmentChange,
-      onEquipmentSlotChange,
       normalizedArmor,
       normalizedItems,
       normalizedWeapons,

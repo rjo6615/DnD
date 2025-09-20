@@ -25,6 +25,7 @@ import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
+import EquipmentModal from "../attributes/EquipmentModal";
 import { normalizeItems as normalizeInventoryItems } from "../attributes/inventoryNormalization";
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 
@@ -53,6 +54,7 @@ export default function ZombiesCharacterSheet() {
   const [shopTab, setShopTab] = useState('weapons');
   const [showInventory, setShowInventory] = useState(false);
   const [inventoryTab, setInventoryTab] = useState('weapons');
+  const [showEquipment, setShowEquipment] = useState(false);
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
@@ -255,6 +257,8 @@ export default function ZombiesCharacterSheet() {
     setShowInventory(true);
   };
   const handleCloseInventory = () => setShowInventory(false);
+  const handleShowEquipment = () => setShowEquipment(true);
+  const handleCloseEquipment = () => setShowEquipment(false);
   const handleShowSpells = () => setShowSpells(true);
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
@@ -873,105 +877,127 @@ return (
     >
       <Container style={{ backgroundColor: 'transparent' }}>
         <Nav
-          className="me-auto mx-auto"
+          className="w-100 align-items-center"
           style={{ backgroundColor: 'transparent' }}
         >
-          <Button
-            onClick={handleShowCharacterInfo}
-            style={{ color: "black" }}
-            className="footer-btn"
-            variant="secondary"
+          <div
+            className="d-flex justify-content-center flex-wrap flex-grow-1"
+            style={{ backgroundColor: 'transparent' }}
           >
-            <i className="fas fa-image-portrait" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={handleShowStats}
-            style={{
-              color: "black",
-              backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-            }}
-            className="footer-btn"
-            variant="secondary"
-          >
-            <i className="fas fa-scroll" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={handleShowSkill}
-            style={{
-              color: "black",
-              backgroundColor: skillsGold,
-            }}
-            className={`footer-btn ${
-              skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
-            }`}
-            variant="secondary"
-          >
-            <i className="fas fa-book-open" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={handleShowFeats}
-            style={{
-              color: "black",
-              backgroundColor: featsGold,
-            }}
-            className={`footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`}
-            variant="secondary"
-          >
-            <i className="fas fa-hand-fist" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={handleShowFeatures}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn"
-            variant="secondary"
-          >
-            <i className="fas fa-star" aria-hidden="true"></i>
-          </Button>
-          {hasSpellcasting && (
             <Button
-              onClick={handleShowSpells}
-              style={{
-                color: 'black',
-                backgroundColor: spellsGold,
-              }}
-              className={`footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+              onClick={handleShowCharacterInfo}
+              style={{ color: "black" }}
+              className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+              <i className="fas fa-image-portrait" aria-hidden="true"></i>
             </Button>
-          )}
+            <Button
+              onClick={handleShowStats}
+              style={{
+                color: "black",
+                backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-scroll" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowSkill}
+              style={{
+                color: "black",
+                backgroundColor: skillsGold,
+              }}
+              className={`footer-btn ${
+                skillPointsLeft > 0 || expertisePointsLeft > 0
+                  ? 'points-glow'
+                  : ''
+              }`}
+              variant="secondary"
+            >
+              <i className="fas fa-book-open" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowFeats}
+              style={{
+                color: "black",
+                backgroundColor: featsGold,
+              }}
+              className={`footer-btn ${
+                featPointsLeft > 0 ? 'points-glow' : ''
+              }`}
+              variant="secondary"
+            >
+              <i className="fas fa-hand-fist" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowFeatures}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-star" aria-hidden="true"></i>
+            </Button>
+            {hasSpellcasting && (
+              <Button
+                onClick={handleShowSpells}
+                style={{
+                  color: 'black',
+                  backgroundColor: spellsGold,
+                }}
+                className={`footer-btn ${
+                  spellPointsLeft > 0 ? 'points-glow' : ''
+                }`}
+                variant="secondary"
+              >
+                <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+              </Button>
+            )}
+            <Button
+              onClick={() => handleShowInventory()}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-box-open" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={() => handleShowShop()}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-store" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowHelpModal}
+              style={{ color: "white" }}
+              className="footer-btn"
+              variant="primary"
+            >
+              <i className="fas fa-info" aria-hidden="true"></i>
+            </Button>
+          </div>
           <Button
-            onClick={() => handleShowInventory()}
+            onClick={handleShowEquipment}
             style={{
               color: "black",
               backgroundColor: "#6C757D",
             }}
-            className="footer-btn"
+            className="footer-btn ms-auto"
             variant="secondary"
           >
-            <i className="fas fa-box-open" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={() => handleShowShop()}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn"
-            variant="secondary"
-          >
-            <i className="fas fa-store" aria-hidden="true"></i>
-          </Button>
-          <Button
-            onClick={handleShowHelpModal}
-            style={{ color: "white" }}
-            className="footer-btn"
-            variant="primary"
-          >
-            <i className="fas fa-info" aria-hidden="true"></i>
+            <i className="fas fa-toolbox" aria-hidden="true"></i>
           </Button>
         </Nav>
       </Container>
@@ -1021,6 +1047,11 @@ return (
       onTabChange={setInventoryTab}
       form={form}
       characterId={characterId}
+    />
+    <EquipmentModal
+      show={showEquipment}
+      onHide={handleCloseEquipment}
+      form={form}
       onEquipmentChange={handleEquipmentChange}
     />
     <ShopModal
