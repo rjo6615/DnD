@@ -1,11 +1,6 @@
 const express = require('express');
 const { armors, types, categories } = require('../data/armor');
-const { EQUIPMENT_SLOT_LAYOUT } = require('../constants/equipmentSlots');
-
-const SLOT_OPTIONS = EQUIPMENT_SLOT_LAYOUT.flat().map(({ key, label }) => ({
-  key,
-  label,
-}));
+const { ARMOR_SLOT_OPTIONS } = require('../constants/equipmentSlots');
 
 /** @typedef {import('../../types/armor').Armor} Armor */
 
@@ -17,7 +12,7 @@ module.exports = (router) => {
   });
 
   armorRouter.get('/options', (_req, res) => {
-    res.json({ types, categories, slots: SLOT_OPTIONS });
+    res.json({ types, categories, slots: ARMOR_SLOT_OPTIONS });
   });
 
   armorRouter.get('/:name', (req, res) => {
