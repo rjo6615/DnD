@@ -555,7 +555,7 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
     });
-    const payload = { campaign: 'Camp1', armorName: 'Plate' };
+    const payload = { campaign: 'Camp1', armorName: 'Plate', slot: EQUIPMENT_SLOT_KEYS[0] };
     const res = await request(app)
       .post('/equipment/armor/add')
       .send(payload);

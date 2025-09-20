@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { Button, Col, Form, Row, Container, Table, Card, Alert, Spinner } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
@@ -431,6 +431,7 @@ const [form2, setForm2] = useState({
   const [armorOptions, setArmorOptions] = useState({
     types: [],
     categories: [],
+    slots: [],
   });
 
   const [form3, setForm3] = useState({
@@ -438,6 +439,7 @@ const [form2, setForm2] = useState({
     armorName: "",
     type: "",
     category: "",
+    slot: "",
     armorBonus: "",
     maxDex: "",
     strength: "",
@@ -471,8 +473,31 @@ const [form2, setForm2] = useState({
       return;
     }
     const data = await response.json();
-    setArmorOptions(data);
+    const { types = [], categories = [], slots = [] } = data || {};
+    setArmorOptions({ types, categories, slots });
   }, []);
+
+  const armorSlotLabels = useMemo(() => {
+    const labels = {};
+    (armorOptions.slots || []).forEach((slot) => {
+      if (!slot || !slot.key) {
+        return;
+      }
+      labels[slot.key] = slot.label || slot.key;
+    });
+    return labels;
+  }, [armorOptions.slots]);
+
+  const getArmorSlotLabel = useCallback(
+    (armorEntry) => {
+      const slotKey = armorEntry?.slot || armorEntry?.equipmentSlot;
+      if (!slotKey) {
+        return '—';
+      }
+      return armorSlotLabels[slotKey] || slotKey;
+    },
+    [armorSlotLabels]
+  );
 
   useEffect(() => {
     if (show3) {
@@ -509,6 +534,7 @@ const [form2, setForm2] = useState({
         armorName: armor.name || '',
         type: armor.type || '',
         category: armor.category || '',
+        slot: armor.slot || armor.equipmentSlot || '',
         armorBonus: armor.armorBonus ?? armor.acBonus ?? '',
         maxDex: armor.maxDex !== undefined ? String(armor.maxDex) : '',
         strength: armor.strength ?? '',
@@ -538,6 +564,11 @@ const [form2, setForm2] = useState({
           numericFields.includes(key) ? Number(value) : key === "cost" ? String(value) : value,
         ])
     );
+    if (newArmor.slot && !newArmor.equipmentSlot) {
+      newArmor.equipmentSlot = newArmor.slot;
+    } else if (newArmor.equipmentSlot && !newArmor.slot) {
+      newArmor.slot = newArmor.equipmentSlot;
+    }
     await apiFetch("/equipment/armor/add", {
        method: "POST",
        headers: {
@@ -555,6 +586,7 @@ const [form2, setForm2] = useState({
     armorName: "",
     type: "",
     category: "",
+    slot: "",
     armorBonus: "",
     maxDex: "",
     strength: "",
@@ -1190,6 +1222,14 @@ const [form2, setForm2] = useState({
             ))}
           </Form.Select>
 
+          <Form.Label className="text-light">Slot</Form.Label>
+          <Form.Select className="mb-2" value={form3.slot} onChange={(e) => updateForm3({ slot: e.target.value })}>
+            <option value="">Select slot</option>
+            {armorOptions.slots.map((slot) => (
+              <option key={slot.key} value={slot.key}>{slot.label}</option>
+            ))}
+          </Form.Select>
+
           <Form.Label className="text-light">AC Bonus</Form.Label>
           <Form.Control
             className="mb-2"
@@ -1261,6 +1301,7 @@ const [form2, setForm2] = useState({
             <th>Category</th>
             <th>AC Bonus</th>
             <th>Max Dex</th>
+            <th>Slot</th>
             <th>Delete</th>
           </tr>
         </thead>
@@ -1272,6 +1313,7 @@ const [form2, setForm2] = useState({
               <td>{a.category}</td>
               <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
               <td>{a.maxDex}</td>
+              <td>{getArmorSlotLabel(a)}</td>
               <td>
                 <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
               </td>
