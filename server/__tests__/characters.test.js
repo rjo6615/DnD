@@ -296,6 +296,7 @@ describe('Character routes', () => {
       }],
       equipment: {
         mainHand: { name: 'Longsword', source: 'weapon' },
+        ranged: { name: 'Shortbow', source: 'weapon' },
         ringLeft: 'Ring of Protection',
         tail: { name: 'Tail Blade' },
       },
@@ -322,10 +323,16 @@ describe('Character routes', () => {
       name: 'Longsword',
       source: 'weapon',
     });
+    expect(res.body.equipment.ranged).toMatchObject({
+      name: 'Shortbow',
+      source: 'weapon',
+    });
     expect(res.body.equipment.ringLeft).toMatchObject({
       name: 'Ring of Protection',
     });
-    EQUIPMENT_SLOT_KEYS.filter((slot) => !['mainHand', 'ringLeft'].includes(slot)).forEach(
+    EQUIPMENT_SLOT_KEYS.filter((slot) =>
+      !['mainHand', 'ranged', 'ringLeft'].includes(slot)
+    ).forEach(
       (slot) => {
         expect(res.body.equipment[slot]).toBeNull();
       }

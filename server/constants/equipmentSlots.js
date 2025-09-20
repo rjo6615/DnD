@@ -20,6 +20,7 @@ const EQUIPMENT_SLOT_LAYOUT = [
   [
     { key: 'mainHand', label: 'Main Hand' },
     { key: 'offHand', label: 'Off Hand' },
+    { key: 'ranged', label: 'Ranged' },
     { key: 'ringLeft', label: 'Ring I' },
     { key: 'ringRight', label: 'Ring II' },
   ],
