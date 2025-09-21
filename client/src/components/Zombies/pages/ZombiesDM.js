@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
-import { Button, Col, Form, Row, Container, Table, Card, Alert, Spinner } from "react-bootstrap";
+import {
+  Button,
+  Col,
+  Form,
+  Row,
+  Container,
+  Table,
+  Card,
+  Alert,
+  Spinner,
+  Nav,
+  Tab,
+  CloseButton,
+} from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
@@ -63,6 +76,27 @@ export default function ZombiesDM() {
     const [showPlayers, setShowPlayers] = useState(false);
     const handleClosePlayers = () => setShowPlayers(false);
     const handleShowPlayers = () => setShowPlayers(true);
+
+    const RESOURCE_TABS = useMemo(
+      () => [
+        { key: 'weapons', title: 'Weapons' },
+        { key: 'armor', title: 'Armor' },
+        { key: 'items', title: 'Items' },
+        { key: 'accessories', title: 'Accessories' },
+      ],
+      []
+    );
+    const [activeResourceTab, setActiveResourceTab] = useState(null);
+
+    const handleSelectResourceTab = useCallback(
+      (key) => {
+        if (!key || key === activeResourceTab) {
+          return;
+        }
+        setActiveResourceTab(key);
+      },
+      [activeResourceTab]
+    );
     //--------------------------------------------Currency Adjustments------------------------------
     const [currencyModalState, setCurrencyModalState] = useState({ show: false, character: null });
     const [currencyInputs, setCurrencyInputs] = useState({ cp: '0', sp: '0', gp: '0', pp: '0' });
@@ -253,13 +287,7 @@ const [form2, setForm2] = useState({
   const [armorPrompt, setArmorPrompt] = useState("");
   const [armorLoading, setArmorLoading] = useState(false);
 
-  const [show2, setShow2] = useState(false);
   const [isCreatingWeapon, setIsCreatingWeapon] = useState(false);
-  const handleClose2 = () => {
-    setShow2(false);
-    setIsCreatingWeapon(false);
-  };
-  const handleShow2 = () => setShow2(true);
 
   const [weapons, setWeapons] = useState([]);
   const [weaponOptions, setWeaponOptions] = useState({
@@ -291,11 +319,11 @@ const [form2, setForm2] = useState({
     }, []);
 
     useEffect(() => {
-      if (show2) {
+      if (activeResourceTab === 'weapons') {
         fetchWeapons();
         fetchWeaponOptions();
       }
-    }, [show2, currentCampaign, fetchWeapons, fetchWeaponOptions]);
+    }, [activeResourceTab, fetchWeapons, fetchWeaponOptions]);
   
   function updateForm2(value) {
     return setForm2((prev) => {
@@ -397,7 +425,7 @@ const [form2, setForm2] = useState({
         weight: "",
         cost: "",
       });
-      handleClose2();
+      setIsCreatingWeapon(false);
       fetchWeapons();
     } catch (error) {
       setStatus({ type: 'danger', message: error.toString() });
@@ -419,13 +447,7 @@ const [form2, setForm2] = useState({
   }
    //  ------------------------------------Armor-----------------------------------
   
-  const [show3, setShow3] = useState(false);
   const [isCreatingArmor, setIsCreatingArmor] = useState(false);
-  const handleClose3 = () => {
-    setShow3(false);
-    setIsCreatingArmor(false);
-  };
-  const handleShow3 = () => setShow3(true);
 
   const [armor, setArmor] = useState([]);
   const [armorOptions, setArmorOptions] = useState({
@@ -500,11 +522,11 @@ const [form2, setForm2] = useState({
   );
 
   useEffect(() => {
-    if (show3) {
+    if (activeResourceTab === 'armor') {
       fetchArmor();
       fetchArmorOptions();
     }
-  }, [show3, currentCampaign, fetchArmor, fetchArmorOptions]);
+  }, [activeResourceTab, fetchArmor, fetchArmorOptions]);
 
   async function generateArmor() {
     setArmorLoading(true);
@@ -614,13 +636,7 @@ const [form2, setForm2] = useState({
   }
   
 //------------------------------------Items------------------------------------------------------------
-  const [show4, setShow4] = useState(false);
   const [isCreatingItem, setIsCreatingItem] = useState(false);
-  const handleClose4 = () => {
-    setShow4(false);
-    setIsCreatingItem(false);
-  };
-  const handleShow4 = () => setShow4(true);
 
   const [items, setItems] = useState([]);
   const [itemOptions, setItemOptions] = useState({
@@ -679,11 +695,11 @@ const [form2, setForm2] = useState({
   }, []);
 
   useEffect(() => {
-    if (show4) {
+    if (activeResourceTab === 'items') {
       fetchItems();
       fetchItemOptions();
     }
-  }, [show4, currentCampaign, fetchItems, fetchItemOptions]);
+  }, [activeResourceTab, fetchItems, fetchItemOptions]);
 
   async function generateItem() {
     setItemLoading(true);
@@ -790,7 +806,7 @@ const [form2, setForm2] = useState({
         statBonuses: {},
         skillBonuses: {},
       });
-      handleClose4();
+      setIsCreatingItem(false);
       fetchItems();
     } catch (error) {
       setStatus({ type: 'danger', message: error.toString() });
@@ -812,13 +828,7 @@ const [form2, setForm2] = useState({
   }
 
   //------------------------------------Accessories------------------------------------------------------------
-  const [showAccessories, setShowAccessories] = useState(false);
   const [isCreatingAccessory, setIsCreatingAccessory] = useState(false);
-  const handleCloseAccessories = () => {
-    setShowAccessories(false);
-    setIsCreatingAccessory(false);
-  };
-  const handleShowAccessories = () => setShowAccessories(true);
 
   const [accessories, setAccessories] = useState([]);
   const [accessoryOptions, setAccessoryOptions] = useState({
@@ -841,6 +851,29 @@ const [form2, setForm2] = useState({
 
   const [accessoryPrompt, setAccessoryPrompt] = useState('');
   const [accessoryLoading, setAccessoryLoading] = useState(false);
+
+  const handleCloseResourceTab = useCallback(
+    (key) => {
+      switch (key) {
+        case 'weapons':
+          setIsCreatingWeapon(false);
+          break;
+        case 'armor':
+          setIsCreatingArmor(false);
+          break;
+        case 'items':
+          setIsCreatingItem(false);
+          break;
+        case 'accessories':
+          setIsCreatingAccessory(false);
+          break;
+        default:
+          break;
+      }
+      setActiveResourceTab((current) => (current === key ? null : current));
+    },
+    [setActiveResourceTab]
+  );
 
   const updateAccessoryForm = (value) => {
     setAccessoryForm((prev) => ({ ...prev, ...value }));
@@ -895,11 +928,11 @@ const [form2, setForm2] = useState({
   }, [accessoryOptions.slots]);
 
   useEffect(() => {
-    if (showAccessories) {
+    if (activeResourceTab === 'accessories') {
       fetchAccessories();
       fetchAccessoryOptions();
     }
-  }, [showAccessories, currentCampaign, fetchAccessories, fetchAccessoryOptions]);
+  }, [activeResourceTab, fetchAccessories, fetchAccessoryOptions]);
 
   async function generateAccessory() {
     setAccessoryLoading(true);
@@ -1074,18 +1107,831 @@ const [form2, setForm2] = useState({
   </Alert>
 )}
 
-<div className="d-flex justify-content-center flex-wrap gap-2 mb-3" style={{ position: 'relative', zIndex: '4' }}>
-  {/*-----------------------------------Add Player-----------------------------------------------------*/}
-  <Button style={{ borderColor: 'transparent' }} onClick={() => { handleShowPlayers(); }} className="p-1 hostCampaign" size="sm" variant="secondary">View/Add Players</Button>
-  {/*-----------------------------------Create Weapon-----------------------------------------------------*/}
-  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow2(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Weapon</Button>
-  {/*-----------------------------------Create Armor-----------------------------------------------------*/}
-  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
-  {/*-----------------------------------Create Item-----------------------------------------------------*/}
-  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Item</Button>
-  {/*-----------------------------------Create Accessory-----------------------------------------------------*/}
-  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShowAccessories(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Accessory</Button>
+
+
+<div className="d-flex justify-content-center mb-3" style={{ position: 'relative', zIndex: '4' }}>
+  <Button
+    style={{ borderColor: 'transparent' }}
+    onClick={() => {
+      handleShowPlayers();
+    }}
+    className="p-1 hostCampaign"
+    size="sm"
+    variant="secondary"
+  >
+    View/Add Players
+  </Button>
 </div>
+
+<Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
+  <div className="d-flex justify-content-center mb-3" style={{ position: 'relative', zIndex: '4' }}>
+    <Nav variant="tabs" className="flex-wrap">
+      {RESOURCE_TABS.map(({ key, title }) => (
+        <Nav.Item key={key}>
+          <Nav.Link eventKey={key}>{title}</Nav.Link>
+        </Nav.Item>
+      ))}
+    </Nav>
+  </div>
+  <Tab.Content>
+    <Tab.Pane eventKey="weapons">
+      {activeResourceTab === 'weapons' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-weapons-card">
+            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
+              <Card.Title className="modal-title mb-0">
+                {isCreatingWeapon ? "Create Weapon" : "Weapons"}
+              </Card.Title>
+              <div className="d-flex align-items-center gap-2">
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={() => setIsCreatingWeapon((prev) => !prev)}
+                >
+                  {isCreatingWeapon ? "View Weapons" : "Create"}
+                </Button>
+                <CloseButton variant="white" onClick={() => handleCloseResourceTab('weapons')} />
+              </div>
+            </Card.Header>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <div className="text-center">
+                {isCreatingWeapon ? (
+                  <Form onSubmit={onSubmit2} className="px-5">
+                    <Form.Group className="mb-3 pt-3">
+                      <Form.Label className="text-light">Weapon Prompt</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={weaponPrompt}
+                        onChange={(e) => setWeaponPrompt(e.target.value)}
+                        type="text"
+                        placeholder="Describe a weapon"
+                      />
+                      <Button
+                        className="mb-3"
+                        variant="outline-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          generateWeapon();
+                        }}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                        ) : (
+                          'Generate with AI'
+                        )}
+                      </Button>
+                      <br></br>
+                      <Form.Label className="text-light">Name</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form2.name}
+                        onChange={(e) => updateForm2({ name: e.target.value })}
+                        type="text"
+                        placeholder="Enter weapon name"
+                      />
+
+                      <Form.Label className="text-light">Type</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form2.type}
+                        onChange={(e) => updateForm2({ type: e.target.value })}
+                      >
+                        <option value="">Select type</option>
+                        {weaponOptions.types.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Category</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form2.category}
+                        onChange={(e) => updateForm2({ category: e.target.value })}
+                      >
+                        <option value="">Select category</option>
+                        {weaponOptions.categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Damage</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form2.damage}
+                        onChange={(e) => updateForm2({ damage: e.target.value })}
+                        type="text"
+                        placeholder="Enter damage"
+                      />
+
+                      <Form.Label className="text-light">Properties</Form.Label>
+                      <Form.Select
+                        multiple
+                        className="mb-2"
+                        value={form2.properties}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                          updateForm2({ properties: selected });
+                        }}
+                      >
+                        {weaponOptions.properties.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Weight</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form2.weight}
+                        onChange={(e) =>
+                          updateForm2({ weight: e.target.value === '' ? '' : Number(e.target.value) })
+                        }
+                        type="number"
+                        placeholder="Enter weight"
+                      />
+
+                      <Form.Label className="text-light">Cost</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form2.cost}
+                        onChange={(e) =>
+                          updateForm2({ cost: e.target.value === '' ? '' : Number(e.target.value) })
+                        }
+                        type="number"
+                        placeholder="Enter cost"
+                      />
+                    </Form.Group>
+                    <div className="text-center">
+                      <Button variant="primary" type="submit">
+                        Create
+                      </Button>
+                      <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  <>
+                    <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Type</th>
+                          <th>Category</th>
+                          <th>Damage</th>
+                          <th>Properties</th>
+                          <th>Weight</th>
+                          <th>Cost</th>
+                          <th>Delete</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {weapons.map((w) => (
+                          <tr key={w._id}>
+                            <td>{w.name}</td>
+                            <td>{w.type}</td>
+                            <td>{w.category}</td>
+                            <td>{w.damage}</td>
+                            <td>{w.properties?.join(', ')}</td>
+                            <td>{w.weight}</td>
+                            <td>{w.cost}</td>
+                            <td>
+                              <Button
+                                className="btn-danger action-btn fa-solid fa-trash"
+                                onClick={() => deleteWeapon(w._id)}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="armor">
+      {activeResourceTab === 'armor' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-armor-card">
+            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
+              <Card.Title className="modal-title mb-0">
+                {isCreatingArmor ? "Create Armor" : "Armor"}
+              </Card.Title>
+              <div className="d-flex align-items-center gap-2">
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={() => setIsCreatingArmor((prev) => !prev)}
+                >
+                  {isCreatingArmor ? "View Armor" : "Create"}
+                </Button>
+                <CloseButton variant="white" onClick={() => handleCloseResourceTab('armor')} />
+              </div>
+            </Card.Header>
+            <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <div className="text-center">
+                {isCreatingArmor ? (
+                  <Form onSubmit={onSubmit3} className="px-5">
+                    <Form.Group className="mb-3 pt-3">
+                      <Form.Label className="text-light">Armor Prompt</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={armorPrompt}
+                        onChange={(e) => setArmorPrompt(e.target.value)}
+                        type="text"
+                        placeholder="Describe armor"
+                      />
+                      <Button
+                        className="mb-3"
+                        variant="outline-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          generateArmor();
+                        }}
+                        disabled={armorLoading}
+                      >
+                        {armorLoading ? (
+                          <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                        ) : (
+                          'Generate Armor'
+                        )}
+                      </Button>
+                      <br></br>
+                      <Form.Label className="text-light">Name</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form3.armorName}
+                        onChange={(e) => updateForm3({ armorName: e.target.value })}
+                        type="text"
+                        placeholder="Enter armor name"
+                      />
+
+                      <Form.Label className="text-light">Type</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form3.type}
+                        onChange={(e) => updateForm3({ type: e.target.value })}
+                      >
+                        <option value="">Select type</option>
+                        {armorOptions.types.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Category</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form3.category}
+                        onChange={(e) => updateForm3({ category: e.target.value })}
+                      >
+                        <option value="">Select category</option>
+                        {armorOptions.categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Slot</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form3.slot}
+                        onChange={(e) => updateForm3({ slot: e.target.value })}
+                      >
+                        <option value="">Select slot</option>
+                        {armorOptions.slots.map((slot) => (
+                          <option key={slot.key} value={slot.key}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">AC Bonus</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form3.armorBonus}
+                        onChange={(e) => updateForm3({ armorBonus: e.target.value })}
+                        type="text"
+                        placeholder="Enter AC Bonus"
+                      />
+
+                      <Form.Label className="text-light">Max Dex Bonus</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form3.maxDex}
+                        onChange={(e) => updateForm3({ maxDex: e.target.value })}
+                        type="text"
+                        placeholder="Enter Max Dex Bonus"
+                      />
+
+                      <Form.Label className="text-light">Strength Requirement</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form3.strength}
+                        onChange={(e) => updateForm3({ strength: e.target.value })}
+                        type="text"
+                        placeholder="Enter Strength Requirement"
+                      />
+
+                      <Form.Label className="text-light">Stealth</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form3.stealth}
+                        onChange={(e) => updateForm3({ stealth: e.target.value })}
+                      >
+                        <option value="">Select option</option>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Weight</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form3.weight}
+                        onChange={(e) => updateForm3({ weight: e.target.value })}
+                        type="text"
+                        placeholder="Enter Weight"
+                      />
+
+                      <Form.Label className="text-light">Cost</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form3.cost}
+                        onChange={(e) => updateForm3({ cost: e.target.value })}
+                        type="text"
+                        placeholder="Enter Cost"
+                      />
+                    </Form.Group>
+                    <div className="text-center">
+                      <Button variant="primary" type="submit">
+                        Create
+                      </Button>
+                      <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingArmor(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  <>
+                    <Table striped bordered hover size="sm" className="modern-table mt-3">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Type</th>
+                          <th>Category</th>
+                          <th>AC Bonus</th>
+                          <th>Max Dex</th>
+                          <th>Slot</th>
+                          <th>Delete</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {armor.map((a) => (
+                          <tr key={a._id}>
+                            <td>{a.armorName ?? a.name}</td>
+                            <td>{a.type}</td>
+                            <td>{a.category}</td>
+                            <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
+                            <td>{a.maxDex}</td>
+                            <td>{getArmorSlotLabel(a)}</td>
+                            <td>
+                              <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="accessories">
+      {activeResourceTab === 'accessories' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-accessories-card">
+            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
+              <Card.Title className="modal-title mb-0">
+                {isCreatingAccessory ? "Create Accessory" : "Accessories"}
+              </Card.Title>
+              <div className="d-flex align-items-center gap-2">
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={() => setIsCreatingAccessory((prev) => !prev)}
+                >
+                  {isCreatingAccessory ? "View Accessories" : "Create"}
+                </Button>
+                <CloseButton variant="white" onClick={() => handleCloseResourceTab('accessories')} />
+              </div>
+            </Card.Header>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <div className="text-center">
+                {isCreatingAccessory ? (
+                  <Form onSubmit={onSubmitAccessory} className="px-5">
+                    <Form.Group className="mb-3 pt-3">
+                      <Form.Label className="text-light">Accessory Prompt</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={accessoryPrompt}
+                        onChange={(e) => setAccessoryPrompt(e.target.value)}
+                        type="text"
+                        placeholder="Describe an accessory"
+                      />
+                      <Button
+                        className="mb-3"
+                        variant="outline-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          generateAccessory();
+                        }}
+                        disabled={accessoryLoading}
+                      >
+                        {accessoryLoading ? (
+                          <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                        ) : (
+                          'Generate Accessory'
+                        )}
+                      </Button>
+                      <br></br>
+                      <Form.Label className="text-light">Name</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={accessoryForm.name}
+                        onChange={(e) => updateAccessoryForm({ name: e.target.value })}
+                        type="text"
+                        placeholder="Enter accessory name"
+                      />
+
+                      <Form.Label className="text-light">Category</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={accessoryForm.category}
+                        onChange={(e) => updateAccessoryForm({ category: e.target.value })}
+                      >
+                        <option value="">Select category</option>
+                        {accessoryOptions.categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Target Slots</Form.Label>
+                      <Form.Select
+                        multiple
+                        className="mb-2"
+                        value={accessoryForm.targetSlots}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                          updateAccessoryForm({ targetSlots: selected });
+                        }}
+                      >
+                        {accessoryOptions.slots.map((slot) => (
+                          <option key={slot.key} value={slot.key}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Rarity</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={accessoryForm.rarity}
+                        onChange={(e) => updateAccessoryForm({ rarity: e.target.value })}
+                        type="text"
+                        placeholder="Enter rarity"
+                      />
+
+                      <Form.Label className="text-light">Weight</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={accessoryForm.weight === null ? '' : accessoryForm.weight}
+                        onChange={(e) => updateAccessoryForm({ weight: e.target.value === '' ? null : Number(e.target.value) })}
+                        type="number"
+                        placeholder="Enter weight"
+                      />
+
+                      <Form.Label className="text-light">Cost</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={accessoryForm.cost}
+                        onChange={(e) => updateAccessoryForm({ cost: e.target.value })}
+                        type="text"
+                        placeholder="Enter cost"
+                      />
+
+                      <Form.Label className="text-light">Notes</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={accessoryForm.notes}
+                        onChange={(e) => updateAccessoryForm({ notes: e.target.value })}
+                        type="text"
+                        placeholder="Enter notes"
+                      />
+
+                      <Form.Label className="text-light">Stat Bonuses</Form.Label>
+                      {STATS.map(({ key, label }) => (
+                        <Form.Control
+                          key={key}
+                          className="mb-2"
+                          type="number"
+                          placeholder={label}
+                          value={accessoryForm.statBonuses?.[key] ?? ''}
+                          onChange={(e) =>
+                            updateAccessoryForm({
+                              statBonuses: {
+                                ...accessoryForm.statBonuses,
+                                [key]: e.target.value === '' ? '' : Number(e.target.value),
+                              },
+                            })
+                          }
+                        />
+                      ))}
+
+                      <Form.Label className="text-light">Skill Bonuses</Form.Label>
+                      {SKILLS.map(({ key, label }) => (
+                        <Form.Control
+                          key={key}
+                          className="mb-2"
+                          type="number"
+                          placeholder={label}
+                          value={accessoryForm.skillBonuses?.[key] ?? ''}
+                          onChange={(e) =>
+                            updateAccessoryForm({
+                              skillBonuses: {
+                                ...accessoryForm.skillBonuses,
+                                [key]: e.target.value === '' ? '' : Number(e.target.value),
+                              },
+                            })
+                          }
+                        />
+                      ))}
+                    </Form.Group>
+                    <div className="text-center">
+                      <Button variant="primary" type="submit">
+                        Create
+                      </Button>
+                      <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingAccessory(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  <>
+                    <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Category</th>
+                          <th>Target Slots</th>
+                          <th>Rarity</th>
+                          <th>Weight</th>
+                          <th>Cost</th>
+                          <th>Notes</th>
+                          <th>Stat Bonuses</th>
+                          <th>Skill Bonuses</th>
+                          <th>Delete</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {accessories.map((acc) => (
+                          <tr key={acc._id}>
+                            <td>{acc.name}</td>
+                            <td>{acc.category}</td>
+                            <td>{getAccessorySlotLabel(acc.targetSlots || acc.slots)}</td>
+                            <td>{acc.rarity}</td>
+                            <td>{acc.weight}</td>
+                            <td>{acc.cost}</td>
+                            <td>{acc.notes}</td>
+                            <td>{renderBonuses(acc.statBonuses, STAT_LABELS)}</td>
+                            <td>{renderBonuses(acc.skillBonuses, SKILL_LABELS)}</td>
+                            <td>
+                              <Button
+                                className="btn-danger action-btn fa-solid fa-trash"
+                                onClick={() => deleteAccessory(acc._id)}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="items">
+      {activeResourceTab === 'items' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-items-card">
+            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
+              <Card.Title className="modal-title mb-0">
+                {isCreatingItem ? "Create Item" : "Items"}
+              </Card.Title>
+              <div className="d-flex align-items-center gap-2">
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={() => setIsCreatingItem((prev) => !prev)}
+                >
+                  {isCreatingItem ? "View Items" : "Create"}
+                </Button>
+                <CloseButton variant="white" onClick={() => handleCloseResourceTab('items')} />
+              </div>
+            </Card.Header>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <div className="text-center">
+                {isCreatingItem ? (
+                  <Form onSubmit={onSubmit4} className="px-5">
+                    <Form.Group className="mb-3 pt-3">
+                      <Form.Label className="text-light">Item Prompt</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={itemPrompt}
+                        onChange={(e) => setItemPrompt(e.target.value)}
+                        type="text"
+                        placeholder="Describe an item"
+                      />
+                      <Button
+                        className="mb-3"
+                        variant="outline-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          generateItem();
+                        }}
+                        disabled={itemLoading}
+                      >
+                        {itemLoading ? (
+                          <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                        ) : (
+                          'Generate Item'
+                        )}
+                      </Button>
+                      <br></br>
+                      <Form.Label className="text-light">Name</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form4.name}
+                        onChange={(e) => updateForm4({ name: e.target.value })}
+                        type="text"
+                        placeholder="Enter item name"
+                      />
+
+                      <Form.Label className="text-light">Category</Form.Label>
+                      <Form.Select
+                        className="mb-2"
+                        value={form4.category}
+                        onChange={(e) => updateForm4({ category: e.target.value })}
+                      >
+                        <option value="">Select category</option>
+                        {itemOptions.categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </Form.Select>
+
+                      <Form.Label className="text-light">Weight</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form4.weight}
+                        onChange={(e) => updateForm4({ weight: e.target.value })}
+                        type="text"
+                        placeholder="Enter weight"
+                      />
+
+                      <Form.Label className="text-light">Cost</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form4.cost}
+                        onChange={(e) => updateForm4({ cost: e.target.value })}
+                        type="text"
+                        placeholder="Enter cost"
+                      />
+
+                      <Form.Label className="text-light">Notes</Form.Label>
+                      <Form.Control
+                        className="mb-2"
+                        value={form4.notes}
+                        onChange={(e) => updateForm4({ notes: e.target.value })}
+                        type="text"
+                        placeholder="Enter notes"
+                      />
+
+                      <Form.Label className="text-light">Stat Bonuses</Form.Label>
+                      {STATS.map(({ key, label }) => (
+                        <Form.Control
+                          key={key}
+                          className="mb-2"
+                          type="number"
+                          placeholder={label}
+                          value={form4.statBonuses[key] ?? ''}
+                          onChange={(e) =>
+                            updateForm4({
+                              statBonuses: {
+                                ...form4.statBonuses,
+                                [key]: e.target.value === '' ? '' : Number(e.target.value),
+                              },
+                            })
+                          }
+                        />
+                      ))}
+
+                      <Form.Label className="text-light">Skill Bonuses</Form.Label>
+                      {SKILLS.map(({ key, label }) => (
+                        <Form.Control
+                          key={key}
+                          className="mb-2"
+                          type="number"
+                          placeholder={label}
+                          value={form4.skillBonuses[key] ?? ''}
+                          onChange={(e) =>
+                            updateForm4({
+                              skillBonuses: {
+                                ...form4.skillBonuses,
+                                [key]: e.target.value === '' ? '' : Number(e.target.value),
+                              },
+                            })
+                          }
+                        />
+                      ))}
+                    </Form.Group>
+                    <div className="text-center">
+                      <Button variant="primary" type="submit">
+                        Create
+                      </Button>
+                      <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingItem(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  <>
+                    <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Category</th>
+                          <th>Weight</th>
+                          <th>Cost</th>
+                          <th>Notes</th>
+                          <th>Stat Bonuses</th>
+                          <th>Skill Bonuses</th>
+                          <th>Delete</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((i) => (
+                          <tr key={i._id}>
+                            <td>{i.name}</td>
+                            <td>{i.category}</td>
+                            <td>{i.weight}</td>
+                            <td>{i.cost}</td>
+                            <td>
+                              {i.notes && (
+                                <Button variant="link" className="p-0" onClick={() => openItemNote(i.notes)}>
+                                  View
+                                </Button>
+                              )}
+                            </td>
+                            <td>{renderBonuses(i.statBonuses, STAT_LABELS)}</td>
+                            <td>{renderBonuses(i.skillBonuses, SKILL_LABELS)}</td>
+                            <td>
+                              <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteItem(i._id)} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+  </Tab.Content>
+</Tab.Container>
 
 <div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
       <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background w-75 mx-auto">
@@ -1256,718 +2102,6 @@ const [form2, setForm2] = useState({
        </Card>   
        </div>
         </Modal>
-          {/* ----------------------------------Weapon Modal---------------------------------------- */}
-          <Modal className="dnd-modal modern-modal" size="lg" centered show={show2} onHide={handleClose2}>
-          <div className="text-center">
-          <Card className="modern-card">
-            <Card.Header className="modal-header">
-              <Card.Title className="modal-title">{isCreatingWeapon ? "Create Weapon" : "Weapons"}</Card.Title>
-            </Card.Header>
-          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          <div className="text-center">
-            {isCreatingWeapon ? (
-              <Form onSubmit={onSubmit2} className="px-5">
-               <Form.Group className="mb-3 pt-3" >
-
-               <Form.Label className="text-light">Weapon Prompt</Form.Label>
-               <Form.Control
-                className="mb-2"
-                value={weaponPrompt}
-                onChange={(e) => setWeaponPrompt(e.target.value)}
-                type="text"
-                placeholder="Describe a weapon" />
-               <Button
-                className="mb-3"
-                variant="outline-primary"
-                onClick={(e) => { e.preventDefault(); generateWeapon(); }}
-                disabled={loading}
-               >
-                {loading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : "Generate with AI"}
-               </Button>
-               <br></br>
-               <Form.Label className="text-light">Name</Form.Label>
-               <Form.Control className="mb-2" value={form2.name} onChange={(e) => updateForm2({ name: e.target.value })}
-                type="text" placeholder="Enter weapon name" />
-
-               <Form.Label className="text-light">Type</Form.Label>
-               <Form.Select
-                className="mb-2"
-                value={form2.type}
-                onChange={(e) => updateForm2({ type: e.target.value })}
-              >
-                <option value="">Select type</option>
-                {weaponOptions.types.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </Form.Select>
-
-               <Form.Label className="text-light">Category</Form.Label>
-               <Form.Select
-                className="mb-2"
-                value={form2.category}
-                onChange={(e) => updateForm2({ category: e.target.value })}
-              >
-                <option value="">Select category</option>
-                {weaponOptions.categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </Form.Select>
-
-               <Form.Label className="text-light">Damage</Form.Label>
-               <Form.Control className="mb-2" value={form2.damage} onChange={(e) => updateForm2({ damage: e.target.value })}
-                type="text" placeholder="Enter damage" />
-
-               <Form.Label className="text-light">Properties</Form.Label>
-               <Form.Select
-                multiple
-                className="mb-2"
-                value={form2.properties}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-                  updateForm2({ properties: selected });
-                }}
-              >
-                {weaponOptions.properties.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </Form.Select>
-
-              <Form.Label className="text-light">Weight</Form.Label>
-               <Form.Control
-                className="mb-2"
-                value={form2.weight}
-                onChange={(e) =>
-                  updateForm2({ weight: e.target.value === "" ? "" : Number(e.target.value) })
-                }
-                type="number"
-                placeholder="Enter weight"
-              />
-
-               <Form.Label className="text-light">Cost</Form.Label>
-               <Form.Control
-                className="mb-2"
-                value={form2.cost}
-                onChange={(e) =>
-                  updateForm2({ cost: e.target.value === "" ? "" : Number(e.target.value) })
-                }
-                type="number"
-                placeholder="Enter cost"
-              />
-
-            </Form.Group>
-             <div className="text-center">
-             <Button variant="primary" type="submit">
-                    Create
-                  </Button>
-                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingWeapon(false)}>
-                    Cancel
-                  </Button>
-                  </div>
-            </Form>
-            ) : (
-              <>
-              <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                <thead>
-                  <tr>
-                   <th>Name</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Damage</th>
-                    <th>Properties</th>
-                    <th>Weight</th>
-                    <th>Cost</th>
-                    <th>Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {weapons.map((w) => (
-                    <tr key={w._id}>
-                      <td>{w.name}</td>
-                      <td>{w.type}</td>
-                      <td>{w.category}</td>
-                      <td>{w.damage}</td>
-                      <td>{w.properties?.join(', ')}</td>
-                      <td>{w.weight}</td>
-                      <td>{w.cost}</td>
-                      <td>
-                        <Button
-                          className="btn-danger action-btn fa-solid fa-trash"
-                          onClick={() => deleteWeapon(w._id)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-              <Button variant="primary" onClick={() => setIsCreatingWeapon(true)}>
-                Create Weapon
-              </Button>
-              <Button className="ms-4" variant="secondary" onClick={handleClose2}>
-                Close
-              </Button>
-              </>
-            )}
-          </div>
-          </Card.Body>
-          </Card>
-          </div>
-           </Modal>
-  {/* --------------------------------------- Armor Modal --------------------------------- */}
-  <Modal className="dnd-modal modern-modal" size="lg" centered show={show3} onHide={handleClose3}>
-  <div className="text-center">
-  <Card className="modern-card">
-    <Card.Header className="modal-header">
-      <Card.Title className="modal-title">{isCreatingArmor ? "Create Armor" : "Armor"}</Card.Title>
-    </Card.Header>
-  <Card.Body>
-  <div className="text-center">
-    {isCreatingArmor ? (
-      <Form onSubmit={onSubmit3} className="px-5">
-        <Form.Group className="mb-3 pt-3">
-
-          <Form.Label className="text-light">Armor Prompt</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={armorPrompt}
-            onChange={(e) => setArmorPrompt(e.target.value)}
-            type="text"
-            placeholder="Describe armor"
-          />
-          <Button
-            className="mb-3"
-            variant="outline-primary"
-            onClick={(e) => { e.preventDefault(); generateArmor(); }}
-            disabled={armorLoading}
-          >
-            {armorLoading ? (
-              <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-            ) : (
-              "Generate Armor"
-            )}
-          </Button>
-          <br></br>
-          <Form.Label className="text-light">Name</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={form3.armorName}
-            onChange={(e) => updateForm3({ armorName: e.target.value })}
-            type="text"
-            placeholder="Enter armor name"
-          />
-
-          <Form.Label className="text-light">Type</Form.Label>
-          <Form.Select className="mb-2" value={form3.type} onChange={(e) => updateForm3({ type: e.target.value })}>
-            <option value="">Select type</option>
-            {armorOptions.types.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </Form.Select>
-
-          <Form.Label className="text-light">Category</Form.Label>
-          <Form.Select className="mb-2" value={form3.category} onChange={(e) => updateForm3({ category: e.target.value })}>
-            <option value="">Select category</option>
-            {armorOptions.categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </Form.Select>
-
-          <Form.Label className="text-light">Slot</Form.Label>
-          <Form.Select className="mb-2" value={form3.slot} onChange={(e) => updateForm3({ slot: e.target.value })}>
-            <option value="">Select slot</option>
-            {armorOptions.slots.map((slot) => (
-              <option key={slot.key} value={slot.key}>{slot.label}</option>
-            ))}
-          </Form.Select>
-
-          <Form.Label className="text-light">AC Bonus</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={form3.armorBonus}
-            onChange={(e) => updateForm3({ armorBonus: e.target.value })}
-            type="text"
-            placeholder="Enter AC Bonus"
-          />
-
-          <Form.Label className="text-light">Max Dex Bonus</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={form3.maxDex}
-            onChange={(e) => updateForm3({ maxDex: e.target.value })}
-            type="text"
-            placeholder="Enter Max Dex Bonus"
-          />
-
-          <Form.Label className="text-light">Strength Requirement</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={form3.strength}
-            onChange={(e) => updateForm3({ strength: e.target.value })}
-            type="text"
-            placeholder="Enter Strength Requirement"
-          />
-
-          <Form.Label className="text-light">Stealth</Form.Label>
-          <Form.Select className="mb-2" value={form3.stealth} onChange={(e) => updateForm3({ stealth: e.target.value })}>
-            <option value="">Select option</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </Form.Select>
-
-          <Form.Label className="text-light">Weight</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={form3.weight}
-            onChange={(e) => updateForm3({ weight: e.target.value })}
-            type="text"
-            placeholder="Enter Weight"
-          />
-
-          <Form.Label className="text-light">Cost</Form.Label>
-          <Form.Control
-            className="mb-2"
-            value={form3.cost}
-            onChange={(e) => updateForm3({ cost: e.target.value })}
-            type="text"
-            placeholder="Enter Cost"
-          />
-        </Form.Group>
-        <div className="text-center">
-          <Button variant="primary" type="submit">
-            Create
-          </Button>
-          <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingArmor(false)}>
-            Cancel
-          </Button>
-        </div>
-      </Form>
-    ) : (
-      <>
-      <Table striped bordered hover size="sm" className="modern-table mt-3">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Category</th>
-            <th>AC Bonus</th>
-            <th>Max Dex</th>
-            <th>Slot</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody>
-          {armor.map((a) => (
-            <tr key={a._id}>
-              <td>{a.armorName ?? a.name}</td>
-              <td>{a.type}</td>
-              <td>{a.category}</td>
-              <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
-              <td>{a.maxDex}</td>
-              <td>{getArmorSlotLabel(a)}</td>
-              <td>
-                <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      <Button variant="primary" onClick={() => setIsCreatingArmor(true)}>
-        Create Armor
-      </Button>
-      <Button className="ms-4" variant="secondary" onClick={handleClose3}>
-        Close
-      </Button>
-      </>
-    )}
-  </div>
-  </Card.Body>
-  </Card>
-  </div>
-  </Modal>
-  {/* -----------------------------------------Accessory Modal--------------------------------------------- */}
-  <Modal className="dnd-modal modern-modal" size="lg" centered show={showAccessories} onHide={handleCloseAccessories}>
-    <div className="text-center">
-      <Card className="modern-card">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">{isCreatingAccessory ? "Create Accessory" : "Accessories"}</Card.Title>
-        </Card.Header>
-        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          <div className="text-center">
-            {isCreatingAccessory ? (
-              <Form onSubmit={onSubmitAccessory} className="px-5">
-                <Form.Group className="mb-3 pt-3">
-                  <Form.Label className="text-light">Accessory Prompt</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={accessoryPrompt}
-                    onChange={(e) => setAccessoryPrompt(e.target.value)}
-                    type="text"
-                    placeholder="Describe an accessory"
-                  />
-                  <Button
-                    className="mb-3"
-                    variant="outline-primary"
-                    onClick={(e) => { e.preventDefault(); generateAccessory(); }}
-                    disabled={accessoryLoading}
-                  >
-                    {accessoryLoading ? (
-                      <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-                    ) : (
-                      "Generate Accessory"
-                    )}
-                  </Button>
-                  <br></br>
-                  <Form.Label className="text-light">Name</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={accessoryForm.name}
-                    onChange={(e) => updateAccessoryForm({ name: e.target.value })}
-                    type="text"
-                    placeholder="Enter accessory name"
-                  />
-
-                  <Form.Label className="text-light">Category</Form.Label>
-                  <Form.Select
-                    className="mb-2"
-                    value={accessoryForm.category}
-                    onChange={(e) => updateAccessoryForm({ category: e.target.value })}
-                  >
-                    <option value="">Select category</option>
-                    {accessoryOptions.categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </Form.Select>
-
-                  <Form.Label className="text-light">Target Slots</Form.Label>
-                  <div className="d-flex flex-wrap gap-3 mb-2 justify-content-center">
-                    {accessoryOptions.slots.map((slot) => (
-                      <Form.Check
-                        key={slot.key}
-                        type="checkbox"
-                        id={`accessory-slot-${slot.key}`}
-                        label={slot.label}
-                        checked={accessoryForm.targetSlots.includes(slot.key)}
-                        onChange={() => toggleAccessorySlot(slot.key)}
-                        className="text-light"
-                      />
-                    ))}
-                  </div>
-
-                  <Form.Label className="text-light">Rarity</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={accessoryForm.rarity}
-                    onChange={(e) => updateAccessoryForm({ rarity: e.target.value })}
-                    type="text"
-                    placeholder="Enter rarity"
-                  />
-
-                  <Form.Label className="text-light">Weight</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={accessoryForm.weight ?? ''}
-                    onChange={(e) => updateAccessoryForm({ weight: e.target.value })}
-                    type="number"
-                    placeholder="Enter weight"
-                  />
-
-                  <Form.Label className="text-light">Cost</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={accessoryForm.cost}
-                    onChange={(e) => updateAccessoryForm({ cost: e.target.value })}
-                    type="text"
-                    placeholder="Enter cost"
-                  />
-
-                  <Form.Label className="text-light">Notes</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={accessoryForm.notes}
-                    onChange={(e) => updateAccessoryForm({ notes: e.target.value })}
-                    type="text"
-                    placeholder="Enter notes"
-                  />
-
-                  <Form.Label className="text-light">Stat Bonuses</Form.Label>
-                  {STATS.map(({ key, label }) => (
-                    <Form.Control
-                      key={key}
-                      className="mb-2"
-                      type="number"
-                      placeholder={label}
-                      value={accessoryForm.statBonuses[key] ?? ''}
-                      onChange={(e) =>
-                        updateAccessoryForm({
-                          statBonuses: {
-                            ...accessoryForm.statBonuses,
-                            [key]: e.target.value === '' ? '' : Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  ))}
-
-                  <Form.Label className="text-light">Skill Bonuses</Form.Label>
-                  {SKILLS.map(({ key, label }) => (
-                    <Form.Control
-                      key={key}
-                      className="mb-2"
-                      type="number"
-                      placeholder={label}
-                      value={accessoryForm.skillBonuses[key] ?? ''}
-                      onChange={(e) =>
-                        updateAccessoryForm({
-                          skillBonuses: {
-                            ...accessoryForm.skillBonuses,
-                            [key]: e.target.value === '' ? '' : Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  ))}
-                </Form.Group>
-                <div className="text-center">
-                  <Button variant="primary" type="submit">
-                    Create
-                  </Button>
-                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingAccessory(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </Form>
-            ) : (
-              <>
-                <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Category</th>
-                      <th>Target Slots</th>
-                      <th>Rarity</th>
-                      <th>Weight</th>
-                      <th>Cost</th>
-                      <th>Notes</th>
-                      <th>Stat Bonuses</th>
-                      <th>Skill Bonuses</th>
-                      <th>Delete</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {accessories.map((accessory) => (
-                      <tr key={accessory._id}>
-                        <td>{accessory.name}</td>
-                        <td>{accessory.category}</td>
-                        <td>{getAccessorySlotLabel(accessory.targetSlots)}</td>
-                        <td>{accessory.rarity || '—'}</td>
-                        <td>{accessory.weight ?? '—'}</td>
-                        <td>{accessory.cost || '—'}</td>
-                        <td>
-                          {accessory.notes && (
-                            <Button variant="link" className="p-0" onClick={() => openItemNote(accessory.notes)}>
-                              View
-                            </Button>
-                          )}
-                        </td>
-                        <td>{renderBonuses(accessory.statBonuses, STAT_LABELS)}</td>
-                        <td>{renderBonuses(accessory.skillBonuses, SKILL_LABELS)}</td>
-                        <td>
-                          <Button
-                            className="btn-danger action-btn fa-solid fa-trash"
-                            onClick={() => deleteAccessory(accessory._id)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-                <Button variant="primary" onClick={() => setIsCreatingAccessory(true)}>
-                  Create Accessory
-                </Button>
-                <Button className="ms-4" variant="secondary" onClick={handleCloseAccessories}>
-                  Close
-                </Button>
-              </>
-            )}
-          </div>
-        </Card.Body>
-      </Card>
-    </div>
-  </Modal>
-  {/* -----------------------------------------Item Modal--------------------------------------------- */}
-  <Modal className="dnd-modal modern-modal" size="lg" centered show={show4} onHide={handleClose4}>
-    <div className="text-center">
-      <Card className="modern-card">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">{isCreatingItem ? "Create Item" : "Items"}</Card.Title>
-        </Card.Header>
-        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-          <div className="text-center">
-            {isCreatingItem ? (
-              <Form onSubmit={onSubmit4} className="px-5">
-                <Form.Group className="mb-3 pt-3" >
-                  <Form.Label className="text-light">Item Prompt</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={itemPrompt}
-                    onChange={(e) => setItemPrompt(e.target.value)}
-                    type="text"
-                    placeholder="Describe an item" />
-                  <Button
-                    className="mb-3"
-                    variant="outline-primary"
-                    onClick={(e) => { e.preventDefault(); generateItem(); }}
-                    disabled={itemLoading}
-                  >
-                    {itemLoading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : "Generate with AI"}
-                  </Button>
-                  <br></br>
-                  <Form.Label className="text-light">Name</Form.Label>
-                  <Form.Control className="mb-2" value={form4.name} onChange={(e) => updateForm4({ name: e.target.value })}
-                    type="text" placeholder="Enter item name" />
-
-                  <Form.Label className="text-light">Category</Form.Label>
-                  <Form.Select
-                    className="mb-2"
-                    value={form4.category}
-                    onChange={(e) => updateForm4({ category: e.target.value })}
-                  >
-                    <option value="">Select category</option>
-                    {itemOptions.categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </Form.Select>
-
-                  <Form.Label className="text-light">Weight</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={form4.weight}
-                    onChange={(e) =>
-                      updateForm4({ weight: e.target.value === "" ? "" : Number(e.target.value) })
-                    }
-                    type="number"
-                    placeholder="Enter weight"
-                  />
-
-                  <Form.Label className="text-light">Cost</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={form4.cost}
-                    onChange={(e) => updateForm4({ cost: e.target.value })}
-                    type="text"
-                    placeholder="Enter cost"
-                  />
-
-                  <Form.Label className="text-light">Notes</Form.Label>
-                  <Form.Control
-                    className="mb-2"
-                    value={form4.notes}
-                    onChange={(e) => updateForm4({ notes: e.target.value })}
-                    type="text"
-                    placeholder="Enter notes"
-                  />
-
-                  <Form.Label className="text-light">Stat Bonuses</Form.Label>
-                  {STATS.map(({ key, label }) => (
-                    <Form.Control
-                      key={key}
-                      className="mb-2"
-                      type="number"
-                      placeholder={label}
-                      value={form4.statBonuses[key] ?? ''}
-                      onChange={(e) =>
-                        updateForm4({
-                          statBonuses: {
-                            ...form4.statBonuses,
-                            [key]: e.target.value === '' ? '' : Number(e.target.value)
-                          }
-                        })
-                      }
-                    />
-                  ))}
-
-                  <Form.Label className="text-light">Skill Bonuses</Form.Label>
-                  {SKILLS.map(({ key, label }) => (
-                    <Form.Control
-                      key={key}
-                      className="mb-2"
-                      type="number"
-                      placeholder={label}
-                      value={form4.skillBonuses[key] ?? ''}
-                      onChange={(e) =>
-                        updateForm4({
-                          skillBonuses: {
-                            ...form4.skillBonuses,
-                            [key]: e.target.value === '' ? '' : Number(e.target.value)
-                          }
-                        })
-                      }
-                    />
-                  ))}
-
-                </Form.Group>
-                <div className="text-center">
-                  <Button variant="primary" type="submit">
-                    Create
-                  </Button>
-                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingItem(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </Form>
-            ) : (
-              <>
-                <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Category</th>
-                      <th>Weight</th>
-                      <th>Cost</th>
-                      <th>Notes</th>
-                      <th>Stat Bonuses</th>
-                      <th>Skill Bonuses</th>
-                      <th>Delete</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((i) => (
-                      <tr key={i._id}>
-                        <td>{i.name}</td>
-                        <td>{i.category}</td>
-                        <td>{i.weight}</td>
-                        <td>{i.cost}</td>
-                        <td>
-                          {i.notes && (
-                            <Button variant="link" className="p-0" onClick={() => openItemNote(i.notes)}>
-                              View
-                            </Button>
-                          )}
-                        </td>
-                        <td>{renderBonuses(i.statBonuses, STAT_LABELS)}</td>
-                        <td>{renderBonuses(i.skillBonuses, SKILL_LABELS)}</td>
-                        <td>
-                          <Button
-                            className="btn-danger action-btn fa-solid fa-trash"
-                            onClick={() => deleteItem(i._id)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-                <Button variant="primary" onClick={() => setIsCreatingItem(true)}>
-                  Create Item
-                </Button>
-                <Button className="ms-4" variant="secondary" onClick={handleClose4}>
-                  Close
-                </Button>
-              </>
-            )}
-          </div>
-        </Card.Body>
-      </Card>
-    </div>
-  </Modal>
   <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
     <Card className="dnd-background">
       <Card.Header>
