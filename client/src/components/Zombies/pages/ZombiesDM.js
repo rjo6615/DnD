@@ -1233,7 +1233,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         minHeight: '100vh',
-        paddingBottom: '2rem',
+        paddingBottom: '5rem',
       }}
     >
       <div style={{ paddingTop: '150px' }}></div>
