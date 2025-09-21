@@ -194,7 +194,11 @@ test('footer renders equipment button after spells button for spellcasters', asy
   const nav = await screen.findByRole('navigation');
   const navButtons = within(nav).getAllByRole('button');
   const indexOf = (iconClass) =>
-    navButtons.findIndex((btn) => btn.querySelector(`.${iconClass}`));
+    navButtons.findIndex((btn) =>
+      iconClass === 'fa-toolbox'
+        ? btn.querySelector('.fa-toolbox, .fa-helmet-safety')
+        : btn.querySelector(`.${iconClass}`)
+    );
 
   expect(indexOf('fa-hat-wizard')).toBeGreaterThan(-1);
   expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
@@ -229,7 +233,11 @@ test('footer renders equipment button before inventory for non-spellcasters', as
   const nav = await screen.findByRole('navigation');
   const navButtons = within(nav).getAllByRole('button');
   const indexOf = (iconClass) =>
-    navButtons.findIndex((btn) => btn.querySelector(`.${iconClass}`));
+    navButtons.findIndex((btn) =>
+      iconClass === 'fa-toolbox'
+        ? btn.querySelector('.fa-toolbox, .fa-helmet-safety')
+        : btn.querySelector(`.${iconClass}`)
+    );
 
   expect(indexOf('fa-hat-wizard')).toBe(-1);
   expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
@@ -564,7 +572,22 @@ test('purchasing from shop updates currency and inventory', async () => {
       json: async () => ({ cp: 50, sp: 0, gp: 0, pp: 0 }),
     })
     .mockResolvedValueOnce({ ok: true })
-    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: 'Armor updated',
+        warnings: [
+          {
+            type: 'strengthRequirement',
+            name: 'Chain Mail',
+            required: 13,
+            actual: 10,
+            slot: 'chest',
+            message: 'Chain Mail requires strength 13 to equip.',
+          },
+        ],
+      }),
+    })
     .mockResolvedValueOnce({ ok: true });
 
   render(<ZombiesCharacterSheet />);
@@ -590,12 +613,14 @@ test('purchasing from shop updates currency and inventory', async () => {
     },
     {
       type: 'armor',
-      armorType: 'light',
-      name: 'Leather Armor',
-      acBonus: 1,
+      armorType: 'heavy',
+      name: 'Chain Mail',
+      acBonus: 16,
       stealth: 'disadvantage',
-      weight: 10,
-      cost: '2 sp',
+      weight: 55,
+      cost: '75 gp',
+      strength: 13,
+      slot: 'chest',
     },
     {
       type: 'item',
@@ -656,9 +681,11 @@ test('purchasing from shop updates currency and inventory', async () => {
   expect(JSON.parse(apiFetch.mock.calls[3][1].body)).toEqual({
     armor: [
       expect.objectContaining({
-        name: 'Leather Armor',
-        cost: '2 sp',
-        type: 'light',
+        name: 'Chain Mail',
+        cost: '75 gp',
+        type: 'heavy',
+        slot: 'chest',
+        strength: 13,
       }),
     ],
   });
@@ -703,7 +730,11 @@ test('purchasing from shop updates currency and inventory', async () => {
         expect.objectContaining({ name: 'Longsword', type: 'martial' }),
       ]),
       armor: expect.arrayContaining([
-        expect.objectContaining({ name: 'Leather Armor', type: 'light' }),
+        expect.objectContaining({
+          name: 'Chain Mail',
+          type: 'heavy',
+          slot: 'chest',
+        }),
       ]),
       item: expect.arrayContaining([
         expect.objectContaining({ name: 'Torch', type: 'gear' }),
@@ -1022,7 +1053,7 @@ test('equipment button opens and closes EquipmentModal independently', async () 
 
   const buttons = await screen.findAllByRole('button');
   const equipmentButton = buttons.find((btn) =>
-    btn.querySelector('.fa-toolbox')
+    btn.querySelector('.fa-toolbox, .fa-helmet-safety')
   );
   expect(equipmentButton).toBeTruthy();
 
