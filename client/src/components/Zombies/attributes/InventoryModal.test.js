@@ -101,6 +101,7 @@ describe('InventoryModal', () => {
       'Weapons',
       'Armor',
       'Items',
+      'Accessories',
     ]);
   });
 

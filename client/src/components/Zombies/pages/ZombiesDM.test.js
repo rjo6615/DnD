@@ -33,6 +33,17 @@ const accessorySlotOptions = [
   { key: 'ringRight', label: 'Ring II' },
 ];
 
+const openResourceCard = async (tabLabel, testId) => {
+  const tab = await screen.findByRole('tab', { name: tabLabel });
+  await userEvent.click(tab);
+  return screen.findByTestId(testId);
+};
+
+const openResourceCreateForm = async (card) => {
+  const toggleButton = within(card).getByRole('button', { name: /^Create$/i });
+  await userEvent.click(toggleButton);
+};
+
 describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
@@ -79,39 +90,38 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
 
-    const openModalBtn = screen.getAllByText('Create Armor')[0];
-    await userEvent.click(openModalBtn);
+    const card = await openResourceCard('Armor', 'resource-armor-card');
 
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/armor/options'));
 
-    const modal = await screen.findByRole('dialog');
     expect(
-      await within(modal).findByRole('columnheader', { name: 'Slot' })
+      await within(card).findByRole('columnheader', { name: 'Slot' })
     ).toBeInTheDocument();
-    expect(await within(modal).findByText('Chest')).toBeInTheDocument();
+    expect(await within(card).findByText('Chest')).toBeInTheDocument();
 
-    const insideCreateBtn = within(modal).getByText('Create Armor');
-    await userEvent.click(insideCreateBtn);
+    await openResourceCreateForm(card);
 
-    await screen.findByRole('option', { name: 'Light' });
+    await within(card).findByRole('option', { name: 'Light' });
 
-    const promptInput = await screen.findByPlaceholderText('Describe armor');
+    const promptInput = await within(card).findByPlaceholderText('Describe armor');
     await userEvent.type(promptInput, 'test armor');
 
-    const generateBtn = screen.getByRole('button', { name: /Generate Armor/i });
+    const generateBtn = within(card).getByRole('button', { name: /Generate Armor/i });
     await userEvent.click(generateBtn);
 
-    await waitFor(() => expect(screen.getByDisplayValue('AI Armor')).toBeInTheDocument());
-    expect(screen.getByDisplayValue('Light')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Shield')).toBeInTheDocument();
+    await waitFor(() => expect(within(card).getByDisplayValue('AI Armor')).toBeInTheDocument());
+    expect(within(card).getByDisplayValue('Light')).toBeInTheDocument();
+    expect(within(card).getByDisplayValue('Shield')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByLabelText('Slot')).toHaveValue('chest')
+      expect(within(card).getByLabelText('Slot')).toHaveValue('chest')
     );
-    expect(screen.getByLabelText('Stealth')).toHaveValue('false');
-    expect(screen.getByLabelText('Cost')).toHaveValue('100');
-    expect(screen.getByLabelText('Max Dex Bonus')).toHaveValue('4');
+    expect(within(card).getByLabelText('Stealth')).toHaveValue('false');
+    expect(within(card).getByLabelText('Cost')).toHaveValue('100');
+    expect(within(card).getByLabelText('Max Dex Bonus')).toHaveValue('4');
   });
 
   test('displays armor slot column in modal table', async () => {
@@ -149,23 +159,22 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
 
-    const openModalBtn = screen.getAllByText('Create Armor')[0];
-    await userEvent.click(openModalBtn);
+    const card = await openResourceCard('Armor', 'resource-armor-card');
 
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/armor/options'));
 
-    const modal = await screen.findByRole('dialog');
     expect(
-      await within(modal).findByRole('columnheader', { name: 'Slot' })
+      await within(card).findByRole('columnheader', { name: 'Slot' })
     ).toBeInTheDocument();
-    expect(await within(modal).findByText('Chest')).toBeInTheDocument();
+    expect(await within(card).findByText('Chest')).toBeInTheDocument();
 
-    const insideCreateBtn = within(modal).getByText('Create Armor');
-    await userEvent.click(insideCreateBtn);
+    await openResourceCreateForm(card);
 
-    const slotLabel = await within(modal).findByText('Slot');
+    const slotLabel = await within(card).findByText('Slot');
     const slotSelect = slotLabel.nextElementSibling;
     if (!slotSelect) {
       throw new Error('Slot select not found');
@@ -219,27 +228,28 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
 
-    const openModalBtn = screen.getAllByText('Create Item')[0];
-    await userEvent.click(openModalBtn);
+    const card = await openResourceCard('Items', 'resource-items-card');
 
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/items/options'));
 
-    const modal = await screen.findByRole('dialog');
-    const insideCreateBtn = within(modal).getByText('Create Item');
-    await userEvent.click(insideCreateBtn);
+    await openResourceCreateForm(card);
 
-    await screen.findByRole('option', { name: 'adventuring gear' });
+    await within(card).findByRole('option', { name: 'adventuring gear' });
 
-    const promptInput = await screen.findByPlaceholderText('Describe an item');
+    const promptInput = await within(card).findByPlaceholderText('Describe an item');
     await userEvent.type(promptInput, 'test item');
 
-    const generateBtn = screen.getByRole('button', { name: /Generate with AI/i });
+    const generateBtn = within(card).getByRole('button', { name: /Generate Item/i });
     await userEvent.click(generateBtn);
 
-    await waitFor(() => expect(screen.getByPlaceholderText('Strength')).toHaveValue(2));
-    expect(screen.getByPlaceholderText('Acrobatics')).toHaveValue(3);
+    await waitFor(() =>
+      expect(within(card).getByPlaceholderText('Strength')).toHaveValue(2)
+    );
+    expect(within(card).getByPlaceholderText('Acrobatics')).toHaveValue(3);
   });
 
   test('normalizes AI bonuses with full names', async () => {
@@ -277,27 +287,28 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
 
-    const openModalBtn = screen.getAllByText('Create Item')[0];
-    await userEvent.click(openModalBtn);
+    const card = await openResourceCard('Items', 'resource-items-card');
 
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/items/options'));
 
-    const modal = await screen.findByRole('dialog');
-    const insideCreateBtn = within(modal).getByText('Create Item');
-    await userEvent.click(insideCreateBtn);
+    await openResourceCreateForm(card);
 
-    await screen.findByRole('option', { name: 'adventuring gear' });
+    await within(card).findByRole('option', { name: 'adventuring gear' });
 
-    const promptInput = await screen.findByPlaceholderText('Describe an item');
+    const promptInput = await within(card).findByPlaceholderText('Describe an item');
     await userEvent.type(promptInput, 'test item');
 
-    const generateBtn = screen.getByRole('button', { name: /Generate with AI/i });
+    const generateBtn = within(card).getByRole('button', { name: /Generate Item/i });
     await userEvent.click(generateBtn);
 
-    await waitFor(() => expect(screen.getByPlaceholderText('Strength')).toHaveValue(2));
-    expect(screen.getByPlaceholderText('Stealth')).toHaveValue(3);
+    await waitFor(() =>
+      expect(within(card).getByPlaceholderText('Strength')).toHaveValue(2)
+    );
+    expect(within(card).getByPlaceholderText('Stealth')).toHaveValue(3);
   });
 
   test('generates accessory via AI and populates slots and bonuses', async () => {
@@ -335,34 +346,39 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
 
-    const openModalBtn = screen.getAllByText('Create Accessory')[0];
-    await userEvent.click(openModalBtn);
+    const card = await openResourceCard('Accessories', 'resource-accessories-card');
 
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/accessories/options'));
 
-    const modal = await screen.findByRole('dialog');
-    const insideCreateBtn = within(modal).getByText('Create Accessory');
-    await userEvent.click(insideCreateBtn);
+    await openResourceCreateForm(card);
 
-    await screen.findByRole('option', { name: 'cloak' });
+    await within(card).findByRole('option', { name: 'cloak' });
 
-    const promptInput = await screen.findByPlaceholderText('Describe an accessory');
+    const promptInput = await within(card).findByPlaceholderText('Describe an accessory');
     await userEvent.type(promptInput, 'mystic talisman');
 
-    const generateBtn = screen.getByRole('button', { name: /Generate Accessory/i });
+    const generateBtn = within(card).getByRole('button', { name: /Generate Accessory/i });
     await userEvent.click(generateBtn);
 
-    await waitFor(() => expect(screen.getByDisplayValue('AI Accessory')).toBeInTheDocument());
-    expect(screen.getByDisplayValue('cloak')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter rarity')).toHaveValue('rare');
+    await waitFor(() =>
+      expect(within(card).getByDisplayValue('AI Accessory')).toBeInTheDocument()
+    );
+    expect(within(card).getByDisplayValue('cloak')).toBeInTheDocument();
+    expect(within(card).getByPlaceholderText('Enter rarity')).toHaveValue('rare');
 
-    await waitFor(() => expect(screen.getByLabelText('Neck')).toBeChecked());
-    expect(screen.getByLabelText('Ring I')).toBeChecked();
+    await waitFor(() =>
+      expect(
+        within(card).getByRole('option', { name: 'Neck' }).selected
+      ).toBe(true)
+    );
+    expect(within(card).getByRole('option', { name: 'Ring I' }).selected).toBe(true);
 
-    await waitFor(() => expect(screen.getByPlaceholderText('Wisdom')).toHaveValue(1));
-    expect(screen.getByPlaceholderText('Perception')).toHaveValue(2);
+    await waitFor(() => expect(within(card).getByPlaceholderText('Wisdom')).toHaveValue(1));
+    expect(within(card).getByPlaceholderText('Perception')).toHaveValue(2);
   });
 
   test('renders currency column with adjustment action', async () => {
