@@ -70,6 +70,40 @@ const SPELLCASTING_CLASSES = {
   ranger: 'half',
 };
 
+const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const createEmptyStatMap = () => ({
+  str: 0,
+  dex: 0,
+  con: 0,
+  int: 0,
+  wis: 0,
+  cha: 0,
+});
+
+const aggregateStatEffects = (entries) =>
+  (Array.isArray(entries) ? entries : []).reduce(
+    (acc, el) => {
+      STAT_KEYS.forEach((key) => {
+        const bonusValue = Number(el?.statBonuses?.[key] || 0);
+        if (!Number.isNaN(bonusValue)) {
+          acc.bonuses[key] += bonusValue;
+        }
+        const overrideRaw = el?.statOverrides?.[key];
+        if (overrideRaw !== undefined && overrideRaw !== null) {
+          const overrideValue = Number(overrideRaw);
+          if (!Number.isNaN(overrideValue)) {
+            const current = acc.overrides[key];
+            acc.overrides[key] =
+              current === undefined ? overrideValue : Math.max(current, overrideValue);
+          }
+        }
+      });
+      return acc;
+    },
+    { bonuses: createEmptyStatMap(), overrides: {} }
+  );
+
 export default function SpellSelector({
   form,
   show,
@@ -91,6 +125,11 @@ export default function SpellSelector({
     }
     return Array.isArray(form.item) ? form.item.filter(Boolean) : [];
   }, [form.item, hasEquipment, normalizedEquipment]);
+
+  const { bonuses: equipmentBonuses, overrides: equipmentOverrides } = useMemo(
+    () => aggregateStatEffects(equippedItems),
+    [equippedItems]
+  );
 
   const totalLevel = useMemo(
     () =>
@@ -226,32 +265,40 @@ export default function SpellSelector({
   };
 
   const chaMod = useMemo(() => {
-    const itemBonus = equippedItems.reduce(
-      (sum, el) => sum + Number(el.statBonuses?.cha || 0),
-      0
-    );
     const featBonus = (form.feat || []).reduce(
       (sum, el) => sum + Number(el.cha || 0),
       0
     );
-    const raceBonus = form.race?.abilities?.cha || 0;
-    const computed = (form.cha || 0) + itemBonus + featBonus + raceBonus;
-    return Math.floor((computed - 10) / 2);
-  }, [equippedItems, form.cha, form.feat, form.race]);
+    const raceBonus = Number(form.race?.abilities?.cha || 0);
+    const baseScore =
+      Number(form.cha || 0) + equipmentBonuses.cha + featBonus + raceBonus;
+    const overrideValue = equipmentOverrides.cha;
+    const finalScore =
+      overrideValue !== undefined &&
+      overrideValue !== null &&
+      overrideValue > baseScore
+        ? overrideValue
+        : baseScore;
+    return Math.floor((finalScore - 10) / 2);
+  }, [equipmentBonuses, equipmentOverrides, form.cha, form.feat, form.race]);
 
   const wisMod = useMemo(() => {
-    const itemBonus = equippedItems.reduce(
-      (sum, el) => sum + Number(el.statBonuses?.wis || 0),
-      0
-    );
     const featBonus = (form.feat || []).reduce(
       (sum, el) => sum + Number(el.wis || 0),
       0
     );
-    const raceBonus = form.race?.abilities?.wis || 0;
-    const computed = (form.wis || 0) + itemBonus + featBonus + raceBonus;
-    return Math.floor((computed - 10) / 2);
-  }, [equippedItems, form.feat, form.race, form.wis]);
+    const raceBonus = Number(form.race?.abilities?.wis || 0);
+    const baseScore =
+      Number(form.wis || 0) + equipmentBonuses.wis + featBonus + raceBonus;
+    const overrideValue = equipmentOverrides.wis;
+    const finalScore =
+      overrideValue !== undefined &&
+      overrideValue !== null &&
+      overrideValue > baseScore
+        ? overrideValue
+        : baseScore;
+    return Math.floor((finalScore - 10) / 2);
+  }, [equipmentBonuses, equipmentOverrides, form.feat, form.race, form.wis]);
 
   useEffect(() => {
     apiFetch('/spells')

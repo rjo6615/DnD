@@ -63,6 +63,41 @@ describe('EquipmentModal', () => {
     );
   });
 
+  test('preserves accessory stat overrides when normalizing inventory', async () => {
+    const form = {
+      weapon: [],
+      armor: [],
+      item: [],
+      accessories: [
+        {
+          name: 'Belt of Hill Giant Strength',
+          targetSlots: ['waist'],
+          statOverrides: { str: 21 },
+        },
+      ],
+      equipment: {},
+    };
+
+    render(
+      <EquipmentModal
+        show
+        onHide={jest.fn()}
+        form={form}
+        onEquipmentChange={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByTestId('equipment-rack')).toBeInTheDocument();
+    const accessories = mockEquipmentRackProps.current?.inventory?.accessories;
+    expect(accessories).toBeTruthy();
+    expect(accessories?.[0]).toEqual(
+      expect.objectContaining({
+        name: 'Belt of Hill Giant Strength',
+        statOverrides: { str: 21 },
+      })
+    );
+  });
+
   test('close button triggers onHide handler', async () => {
     const handleHide = jest.fn();
 
