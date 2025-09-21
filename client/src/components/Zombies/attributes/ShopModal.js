@@ -562,6 +562,7 @@ export default function ShopModal({
               onChange={onWeaponsChange}
               characterId={characterId}
               show={isActive}
+              embedded
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
             />
@@ -579,6 +580,7 @@ export default function ShopModal({
               characterId={characterId}
               show={isActive}
               strength={strength}
+              embedded
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
             />
@@ -596,6 +598,7 @@ export default function ShopModal({
               characterId={characterId}
               show={isActive}
               onClose={onHide}
+              embedded
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
             />
@@ -611,6 +614,7 @@ export default function ShopModal({
               initialAccessories={normalizedAccessories}
               onChange={onAccessoriesChange}
               show={isActive}
+              embedded
               onAddToCart={handleAddAccessoryToCart}
               cartCounts={cartCounts}
             />

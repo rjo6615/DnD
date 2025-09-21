@@ -245,7 +245,7 @@ function ItemList({
   const handleCloseNotes = () => setNotesItem(null);
   const handleShowNotes = (item) => () => setNotesItem(item);
 
-  const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
   const filteredEntries = Object.entries(items).filter(([, item]) =>
     ownedOnly ? (item.ownedCount ?? 0) > 0 : true
   );
@@ -378,7 +378,7 @@ function ItemList({
   );
 
   const body = embedded ? (
-    <div style={bodyStyle}>{bodyContent}</div>
+    bodyContent
   ) : (
     <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
   );
