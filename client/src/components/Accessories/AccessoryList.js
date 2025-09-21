@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Badge, Modal } from 'react-bootstrap';
 import {
   GiNecklace,
@@ -139,6 +139,7 @@ function AccessoryList({
   const [error, setError] = useState(null);
   const [unknownAccessories, setUnknownAccessories] = useState([]);
   const [notesAccessory, setNotesAccessory] = useState(null);
+  const requestIdRef = useRef(0);
 
   const initialAccessoriesArray = Array.isArray(initialAccessories)
     ? initialAccessories
@@ -150,7 +151,11 @@ function AccessoryList({
   );
 
   useEffect(() => {
-    if (!show) return;
+    if (!show) return undefined;
+
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
+    let cancelled = false;
 
     async function fetchAccessories() {
       try {
@@ -250,6 +255,10 @@ function AccessoryList({
           }
         });
 
+        if (cancelled || requestIdRef.current !== currentRequestId) {
+          return;
+        }
+
         setAccessories(withOwnership);
         setUnknownAccessories(Array.from(new Set(unknown)));
         setError(null);
@@ -258,6 +267,9 @@ function AccessoryList({
         }
       } catch (err) {
         console.error('Failed to load accessories:', err?.message, err?.status);
+        if (cancelled || requestIdRef.current !== currentRequestId) {
+          return;
+        }
         setAccessories({});
         const { status = 0, statusText = '', message = err?.message || 'Unknown error' } =
           err || {};
@@ -266,6 +278,9 @@ function AccessoryList({
     }
 
     fetchAccessories();
+    return () => {
+      cancelled = true;
+    };
   }, [campaign, initialAccessories, onChange, ownershipMap, show]);
 
   useEffect(() => {
