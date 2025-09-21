@@ -1229,9 +1229,17 @@ const resolveIcon = (category, iconMap, fallback) => {
       {activeResourceTab === 'characters' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-characters-card">
-            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
-              <Card.Title className="modal-title mb-0">{params.campaign} Characters</Card.Title>
-              <CloseButton variant="white" onClick={() => handleCloseResourceTab('characters')} />
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <CloseButton
+                    className="ms-auto"
+                    variant="white"
+                    onClick={() => handleCloseResourceTab('characters')}
+                    aria-label="Close characters tab"
+                  />
+                </div>
+              </div>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
               <ResourceGrid
@@ -1329,9 +1337,17 @@ const resolveIcon = (category, iconMap, fallback) => {
       {activeResourceTab === 'players' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-players-card">
-            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
-              <Card.Title className="modal-title mb-0">Campaign Players</Card.Title>
-              <CloseButton variant="white" onClick={() => handleCloseResourceTab('players')} />
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <CloseButton
+                    className="ms-auto"
+                    variant="white"
+                    onClick={() => handleCloseResourceTab('players')}
+                    aria-label="Close players tab"
+                  />
+                </div>
+              </div>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
               <Container className="mt-3">
@@ -1401,29 +1417,36 @@ const resolveIcon = (category, iconMap, fallback) => {
       {activeResourceTab === 'weapons' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-weapons-card">
-            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
-              <Card.Title className="modal-title mb-0">
-                {isCreatingWeapon ? "Create Weapon" : "Weapons"}
-              </Card.Title>
-              <div className="d-flex align-items-center gap-2">
-                <Button
-                  className="action-btn create-btn"
-                  onClick={() => setIsCreatingWeapon((prev) => !prev)}
-                >
-                  {isCreatingWeapon ? (
-                    <>
-                      <FiList aria-hidden="true" />
-                      View Weapons
-                    </>
-                  ) : (
-                    <>
-                      <FiPlus aria-hidden="true" />
-                      <span>Create</span>
-                      <span aria-hidden="true"> Weapon</span>
-                    </>
-                  )}
-                </Button>
-                <CloseButton variant="white" onClick={() => handleCloseResourceTab('weapons')} />
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <Button
+                    className="action-btn create-btn"
+                    onClick={() => setIsCreatingWeapon((prev) => !prev)}
+                    aria-label={
+                      isCreatingWeapon ? 'View weapons list' : 'Create a new weapon'
+                    }
+                  >
+                    {isCreatingWeapon ? (
+                      <>
+                        <FiList aria-hidden="true" />
+                        View Weapons
+                      </>
+                    ) : (
+                      <>
+                        <FiPlus aria-hidden="true" />
+                        <span>Create</span>
+                        <span aria-hidden="true"> Weapon</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <CloseButton
+                  className="ms-auto"
+                  variant="white"
+                  onClick={() => handleCloseResourceTab('weapons')}
+                  aria-label="Close weapons tab"
+                />
               </div>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
@@ -1629,29 +1652,36 @@ const resolveIcon = (category, iconMap, fallback) => {
       {activeResourceTab === 'armor' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-armor-card">
-            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
-              <Card.Title className="modal-title mb-0">
-                {isCreatingArmor ? "Create Armor" : "Armor"}
-              </Card.Title>
-              <div className="d-flex align-items-center gap-2">
-                <Button
-                  className="action-btn create-btn"
-                  onClick={() => setIsCreatingArmor((prev) => !prev)}
-                >
-                  {isCreatingArmor ? (
-                    <>
-                      <FiList aria-hidden="true" />
-                      View Armor
-                    </>
-                  ) : (
-                    <>
-                      <FiPlus aria-hidden="true" />
-                      <span>Create</span>
-                      <span aria-hidden="true"> Armor</span>
-                    </>
-                  )}
-                </Button>
-                <CloseButton variant="white" onClick={() => handleCloseResourceTab('armor')} />
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <Button
+                    className="action-btn create-btn"
+                    onClick={() => setIsCreatingArmor((prev) => !prev)}
+                    aria-label={
+                      isCreatingArmor ? 'View armor list' : 'Create new armor'
+                    }
+                  >
+                    {isCreatingArmor ? (
+                      <>
+                        <FiList aria-hidden="true" />
+                        View Armor
+                      </>
+                    ) : (
+                      <>
+                        <FiPlus aria-hidden="true" />
+                        <span>Create</span>
+                        <span aria-hidden="true"> Armor</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <CloseButton
+                  className="ms-auto"
+                  variant="white"
+                  onClick={() => handleCloseResourceTab('armor')}
+                  aria-label="Close armor tab"
+                />
               </div>
             </Card.Header>
             <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
@@ -1888,29 +1918,38 @@ const resolveIcon = (category, iconMap, fallback) => {
       {activeResourceTab === 'accessories' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-accessories-card">
-            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
-              <Card.Title className="modal-title mb-0">
-                {isCreatingAccessory ? "Create Accessory" : "Accessories"}
-              </Card.Title>
-              <div className="d-flex align-items-center gap-2">
-                <Button
-                  className="action-btn create-btn"
-                  onClick={() => setIsCreatingAccessory((prev) => !prev)}
-                >
-                  {isCreatingAccessory ? (
-                    <>
-                      <FiList aria-hidden="true" />
-                      View Accessories
-                    </>
-                  ) : (
-                    <>
-                      <FiPlus aria-hidden="true" />
-                      <span>Create</span>
-                      <span aria-hidden="true"> Accessory</span>
-                    </>
-                  )}
-                </Button>
-                <CloseButton variant="white" onClick={() => handleCloseResourceTab('accessories')} />
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <Button
+                    className="action-btn create-btn"
+                    onClick={() => setIsCreatingAccessory((prev) => !prev)}
+                    aria-label={
+                      isCreatingAccessory
+                        ? 'View accessories list'
+                        : 'Create new accessory'
+                    }
+                  >
+                    {isCreatingAccessory ? (
+                      <>
+                        <FiList aria-hidden="true" />
+                        View Accessories
+                      </>
+                    ) : (
+                      <>
+                        <FiPlus aria-hidden="true" />
+                        <span>Create</span>
+                        <span aria-hidden="true"> Accessory</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <CloseButton
+                  className="ms-auto"
+                  variant="white"
+                  onClick={() => handleCloseResourceTab('accessories')}
+                  aria-label="Close accessories tab"
+                />
               </div>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
@@ -2151,29 +2190,36 @@ const resolveIcon = (category, iconMap, fallback) => {
       {activeResourceTab === 'items' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-items-card">
-            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
-              <Card.Title className="modal-title mb-0">
-                {isCreatingItem ? "Create Item" : "Items"}
-              </Card.Title>
-              <div className="d-flex align-items-center gap-2">
-                <Button
-                  className="action-btn create-btn"
-                  onClick={() => setIsCreatingItem((prev) => !prev)}
-                >
-                  {isCreatingItem ? (
-                    <>
-                      <FiList aria-hidden="true" />
-                      View Items
-                    </>
-                  ) : (
-                    <>
-                      <FiPlus aria-hidden="true" />
-                      <span>Create</span>
-                      <span aria-hidden="true"> Item</span>
-                    </>
-                  )}
-                </Button>
-                <CloseButton variant="white" onClick={() => handleCloseResourceTab('items')} />
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <Button
+                    className="action-btn create-btn"
+                    onClick={() => setIsCreatingItem((prev) => !prev)}
+                    aria-label={
+                      isCreatingItem ? 'View items list' : 'Create new item'
+                    }
+                  >
+                    {isCreatingItem ? (
+                      <>
+                        <FiList aria-hidden="true" />
+                        View Items
+                      </>
+                    ) : (
+                      <>
+                        <FiPlus aria-hidden="true" />
+                        <span>Create</span>
+                        <span aria-hidden="true"> Item</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <CloseButton
+                  className="ms-auto"
+                  variant="white"
+                  onClick={() => handleCloseResourceTab('items')}
+                  aria-label="Close items tab"
+                />
               </div>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
