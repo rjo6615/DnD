@@ -646,6 +646,83 @@ module.exports = (router) => {
     }
   );
 
+  equipmentRouter.route('/update-accessories/:id').put(
+    [
+      body('accessories')
+        .isArray()
+        .withMessage('accessories must be an array'),
+      body('accessories.*')
+        .isObject()
+        .withMessage('each accessory must be an object'),
+      body('accessories.*.name')
+        .trim()
+        .notEmpty()
+        .withMessage('name is required'),
+      body('accessories.*.category').optional().isString().trim(),
+      body('accessories.*.targetSlots')
+        .optional()
+        .isArray()
+        .withMessage('targetSlots must be an array when provided')
+        .custom((slots) => {
+          const invalid = slots.filter((slot) => !ACCESSORY_SLOT_SET.has(slot));
+          if (invalid.length > 0) {
+            throw new Error(`invalid target slots: ${invalid.join(', ')}`);
+          }
+          return true;
+        }),
+      body('accessories.*.rarity').optional().isString().trim(),
+      body('accessories.*.weight')
+        .optional({ checkFalsy: true })
+        .isFloat()
+        .toFloat(),
+      body('accessories.*.cost').optional().isString().trim(),
+      body('accessories.*.notes').optional().isString().trim(),
+      body('accessories.*.statBonuses')
+        .optional()
+        .custom(validateBonusObject),
+      body('accessories.*.skillBonuses')
+        .optional()
+        .custom(validateBonusObject),
+      body('accessories.*.owned').optional().isBoolean().toBoolean(),
+      body('accessories.*.ownedCount').optional().isInt().toInt(),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { accessories } = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
+      const normalizedAccessories = accessories.map((accessory) => {
+        if (accessory.targetSlots) {
+          return {
+            ...accessory,
+            targetSlots: normalizeAccessorySlots(accessory.targetSlots),
+          };
+        }
+        return accessory;
+      });
+      try {
+        const result = await db_connect.collection('Characters').updateOne(id, {
+          $set: {
+            accessories: normalizedAccessories,
+            accessory: normalizedAccessories,
+          },
+        });
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: 'Accessory not found' });
+        }
+        res.json({ message: 'Accessories updated' });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   equipmentRouter.route('/update-equipment/:id').put(
     [body('equipment').custom(validateEquipmentMap)],
     handleValidationErrors,

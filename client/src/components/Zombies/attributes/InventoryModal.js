@@ -3,10 +3,12 @@ import { Modal, Card, Tab, Nav, Button } from 'react-bootstrap';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
+import AccessoryList from '../../Accessories/AccessoryList';
 import {
   normalizeArmor,
   normalizeItems,
   normalizeWeapons,
+  normalizeAccessories,
 } from './inventoryNormalization';
 
 const DEFAULT_TAB = 'weapons';
@@ -45,6 +47,11 @@ export default function InventoryModal({
   const normalizedItems = useMemo(
     () => normalizeItems(form.item || []),
     [form.item]
+  );
+  const normalizedAccessories = useMemo(
+    () =>
+      normalizeAccessories(form.accessories || form.accessory || []),
+    [form.accessories, form.accessory]
   );
 
   const handleSelectTab = (key) => {
@@ -114,12 +121,31 @@ export default function InventoryModal({
             />
           ),
       },
+      {
+        key: 'accessories',
+        title: 'Accessories',
+        render: (isActive) =>
+          !isActive ? null : normalizedAccessories.length === 0 ? (
+            <div className="text-center text-muted py-3">
+              No accessories in inventory.
+            </div>
+          ) : (
+            <AccessoryList
+              campaign={form.campaign}
+              initialAccessories={normalizedAccessories}
+              show={isActive}
+              embedded
+              ownedOnly
+            />
+          ),
+      },
     ],
     [
       characterId,
       form.campaign,
       normalizedArmor,
       normalizedItems,
+      normalizedAccessories,
       normalizedWeapons,
     ]
   );

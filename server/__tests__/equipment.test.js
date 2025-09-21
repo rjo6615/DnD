@@ -651,6 +651,91 @@ describe('Equipment routes', () => {
     });
   });
 
+  describe('update-accessories', () => {
+    const baseAccessory = {
+      name: 'Ring of Protection',
+      category: 'ring',
+      targetSlots: [ACCESSORY_SLOT_KEYS[0]],
+      statBonuses: { str: 1 },
+    };
+
+    test('update success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: [baseAccessory] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessories updated');
+    });
+
+    test('update not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: [baseAccessory] });
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Accessory not found');
+    });
+
+    test('update accessories invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/123')
+        .send({ accessories: [baseAccessory] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid body', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: 'bad' });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid structure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: ['bad'] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid slot', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, targetSlots: ['invalid-slot'] }],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid bonuses', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, statBonuses: 'bad' }],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid weight', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, weight: 'heavy' }],
+        });
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('update-equipment', () => {
     test('update success', async () => {
       const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
