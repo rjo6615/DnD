@@ -19,6 +19,26 @@ import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
+import {
+  GiStoneAxe,
+  GiBowArrow,
+  GiBroadsword,
+  GiCrossbow,
+  GiCrossedSwords,
+  GiLeatherArmor,
+  GiBreastplate,
+  GiChainMail,
+  GiShield,
+  GiArmorVest,
+  GiBackpack,
+  GiAmmoBox,
+  GiHammerNails,
+  GiHorseHead,
+  GiSaddle,
+  GiChariot,
+  GiSailboat,
+  GiTreasureMap,
+} from "react-icons/gi";
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -48,20 +68,28 @@ function ResourceGrid({
   emptyMessage = 'No records available.',
   getKey,
   rowClassName = '',
-  colClassName = 'd-flex',
-  colProps = { xs: 12, md: 6, xl: 4 },
+  colClassName = '',
   dataTestId,
 }) {
   if (!Array.isArray(items) || items.length === 0) {
     return <div className="text-center text-muted py-3">{emptyMessage}</div>;
   }
 
-  const rowClasses = ['resource-grid', rowClassName].filter(Boolean).join(' ');
+  const rowClasses = [
+    'resource-grid',
+    'row-cols-2',
+    'row-cols-lg-3',
+    'g-3',
+    rowClassName,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const columnClasses = ['d-flex', colClassName].filter(Boolean).join(' ');
 
   return (
     <Row className={rowClasses} data-testid={dataTestId}>
       {items.map((item, index) => (
-        <Col key={(getKey && getKey(item, index)) || index} className={colClassName} {...colProps}>
+        <Col key={(getKey && getKey(item, index)) || index} className={columnClasses}>
           {renderItem(item, index)}
         </Col>
       ))}
@@ -1118,11 +1146,54 @@ const [form2, setForm2] = useState({
     [accessorySlotLabels]
   );
 
-  const renderBonuses = (bonuses, labels) =>
-    Object.entries(bonuses || {})
-      .map(([k, v]) => `${labels[k] || k}: ${v}`)
-      .join(', ');
-  
+const renderBonuses = (bonuses, labels) =>
+  Object.entries(bonuses || {})
+    .map(([k, v]) => `${labels[k] || k}: ${v}`)
+    .join(', ');
+
+const weaponCategoryIcons = {
+  'simple melee': GiStoneAxe,
+  'simple ranged': GiBowArrow,
+  'martial melee': GiBroadsword,
+  'martial ranged': GiCrossbow,
+};
+
+const armorCategoryIcons = {
+  light: GiLeatherArmor,
+  medium: GiBreastplate,
+  heavy: GiChainMail,
+  shield: GiShield,
+};
+
+const itemCategoryIcons = {
+  'adventuring gear': GiBackpack,
+  ammunition: GiAmmoBox,
+  tool: GiHammerNails,
+  mount: GiHorseHead,
+  'tack and harness': GiSaddle,
+  vehicle: GiChariot,
+  'water vehicle': GiSailboat,
+  custom: GiTreasureMap,
+};
+
+const accessoryCategoryIcons = {
+  belt: GiBackpack,
+  cloak: GiBackpack,
+  ring: GiTreasureMap,
+  amulet: GiTreasureMap,
+  necklace: GiTreasureMap,
+  trinket: GiTreasureMap,
+};
+
+const resolveIcon = (category, iconMap, fallback) => {
+  const normalized = String(category || '').toLowerCase();
+  if (iconMap[normalized]) {
+    return iconMap[normalized];
+  }
+  const matchKey = Object.keys(iconMap).find((key) => normalized.includes(key));
+  return matchKey ? iconMap[matchKey] : fallback;
+};
+
 
 // -----------------------------------Display-----------------------------------------------------------------------------
  return (
@@ -1167,35 +1238,53 @@ const [form2, setForm2] = useState({
                     (total, role) => total + (Number(role.Level) || 0),
                     0
                   );
+                  const classSummary =
+                    occupation.length > 0
+                      ? occupation
+                          .map((role) => `${role.Level} ${role.Occupation}`)
+                          .join(', ')
+                      : '—';
+
+                  const detailRows = [
+                    { label: 'Level', value: totalLevel },
+                    { label: 'Classes', value: classSummary },
+                  ];
 
                   return (
                     <Card className="resource-card h-100 w-100 text-start">
-                      <Card.Body className="d-flex flex-column gap-2">
-                        <div>
-                          <Card.Title className="mb-1">
-                            {character.characterName || 'Unnamed Character'}
-                          </Card.Title>
-                          <Card.Subtitle className="text-muted small">
-                            Player: {character.token || '—'}
-                          </Card.Subtitle>
+                      <Card.Body className="d-flex flex-column">
+                        <div className="d-flex justify-content-center mb-2">
+                          <GiCrossedSwords size={40} title="Character" />
                         </div>
-                        <Card.Text className="mb-0">
-                          <span className="fw-semibold">Level:</span> {totalLevel}
-                        </Card.Text>
-                        <div>
-                          <div className="text-muted fw-semibold small text-uppercase mb-1">
-                            Classes
+                        <Card.Title className="mb-1">
+                          {character.characterName || 'Unnamed Character'}
+                        </Card.Title>
+                        <Card.Subtitle className="text-muted small mb-2">
+                          Player: {character.token || '—'}
+                        </Card.Subtitle>
+                          <div className="d-grid gap-1">
+                            {detailRows.map(({ label, value }) => {
+                              const displayValue =
+                                value || value === 0 ? value : '—';
+                              return (
+                                <Card.Text
+                                  key={label}
+                                  className="small mb-1 text-body fw-semibold text-break"
+                                >
+                                  <span className="visually-hidden">{`${label}: ${displayValue}`}</span>
+                                  <span
+                                    className="text-muted text-uppercase fw-semibold me-1"
+                                    aria-hidden="true"
+                                  >
+                                    {`${label}:`}
+                                  </span>
+                                  <span aria-hidden="true" className="text-break">
+                                    {displayValue}
+                                  </span>
+                                </Card.Text>
+                              );
+                            })}
                           </div>
-                          {occupation.length > 0 ? (
-                            occupation.map((role, index) => (
-                              <div key={`${character._id}-class-${index}`} className="small">
-                                {`${role.Level} ${role.Occupation}`}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-muted small">—</div>
-                          )}
-                        </div>
                       </Card.Body>
                       <Card.Footer className="d-flex flex-wrap gap-2 justify-content-end">
                         <Button
@@ -1280,11 +1369,16 @@ const [form2, setForm2] = useState({
                 items={Array.isArray(campaignDM.players) ? campaignDM.players : []}
                 emptyMessage="No players added yet."
                 getKey={(player, index) => player || index}
-                colProps={{ xs: 12, sm: 6, lg: 4 }}
                 renderItem={(playerName) => (
-                  <Card className="resource-card h-100 w-100">
-                    <Card.Body className="d-flex flex-column justify-content-center align-items-center py-4">
-                      <Card.Title className="mb-0">{playerName}</Card.Title>
+                  <Card className="resource-card h-100 w-100 text-center">
+                    <Card.Body className="d-flex flex-column align-items-center justify-content-center py-4">
+                      <div className="d-flex justify-content-center mb-2 w-100">
+                        <GiStoneAxe size={40} title="Player" />
+                      </div>
+                      <Card.Title className="mb-1">{playerName}</Card.Title>
+                      <Card.Text className="text-muted small mb-0">
+                        Campaign Member
+                      </Card.Text>
                     </Card.Body>
                   </Card>
                 )}
@@ -1442,30 +1536,68 @@ const [form2, setForm2] = useState({
                     items={Array.isArray(weapons) ? weapons : []}
                     emptyMessage="No weapons created yet."
                     getKey={(weapon) => weapon._id}
-                    colProps={{ xs: 12, sm: 6, lg: 4 }}
-                    renderItem={(weapon) => (
-                      <Card className="weapon-card h-100 w-100 text-start">
-                        <Card.Body className="d-flex flex-column gap-2">
-                          <Card.Title>{weapon.name}</Card.Title>
-                          <Card.Text>Type: {weapon.type || '—'}</Card.Text>
-                          <Card.Text>Category: {weapon.category || '—'}</Card.Text>
-                          <Card.Text>Damage: {weapon.damage || '—'}</Card.Text>
-                          <Card.Text>
-                            Properties: {weapon.properties?.length ? weapon.properties.join(', ') : '—'}
-                          </Card.Text>
-                          <Card.Text>Weight: {weapon.weight ?? '—'}</Card.Text>
-                          <Card.Text>Cost: {weapon.cost ?? '—'}</Card.Text>
-                        </Card.Body>
-                        <Card.Footer className="d-flex justify-content-end">
-                          <Button
-                            className="btn-danger action-btn fa-solid fa-trash"
-                            onClick={() => deleteWeapon(weapon._id)}
-                            aria-label={`Delete ${weapon.name || 'weapon'}`}
-                            title="Delete weapon"
-                          />
-                        </Card.Footer>
-                      </Card>
-                    )}
+                    renderItem={(weapon) => {
+                      const Icon = resolveIcon(
+                        weapon.category,
+                        weaponCategoryIcons,
+                        GiCrossedSwords
+                      );
+                      const detailRows = [
+                        { label: 'Type', value: weapon.type || '—' },
+                        { label: 'Category', value: weapon.category || '—' },
+                        { label: 'Damage', value: weapon.damage || '—' },
+                        {
+                          label: 'Properties',
+                          value: weapon.properties?.length
+                            ? weapon.properties.join(', ')
+                            : '—',
+                        },
+                        { label: 'Weight', value: weapon.weight ?? '—' },
+                        { label: 'Cost', value: weapon.cost ?? '—' },
+                      ];
+
+                      return (
+                        <Card className="weapon-card h-100 w-100 text-start">
+                          <Card.Body className="d-flex flex-column">
+                            <div className="d-flex justify-content-center mb-2">
+                              <Icon size={40} title={weapon.category || 'Weapon'} />
+                            </div>
+                            <Card.Title className="mb-2">{weapon.name}</Card.Title>
+                            <div className="d-grid gap-1">
+                              {detailRows.map(({ label, value }) => {
+                                const displayValue =
+                                  value || value === 0 ? value : '—';
+                                return (
+                                  <Card.Text
+                                    key={label}
+                                    className="small mb-1 text-body fw-semibold text-break"
+                                  >
+                                    <span className="visually-hidden">{`${label}: ${displayValue}`}</span>
+                                    <span
+                                      className="text-muted text-uppercase fw-semibold me-1"
+                                      aria-hidden="true"
+                                    >
+                                      {`${label}:`}
+                                    </span>
+                                    <span aria-hidden="true" className="text-break">
+                                      {displayValue}
+                                    </span>
+                                  </Card.Text>
+                                );
+                              })}
+                            </div>
+                          </Card.Body>
+                          <Card.Footer className="d-flex justify-content-end">
+                            <Button
+                              className="btn-danger action-btn fa-solid fa-trash"
+                              onClick={() => deleteWeapon(weapon._id)}
+                              aria-label={`Delete ${weapon.name || 'weapon'}`}
+                              title="Delete weapon"
+                            />
+                          </Card.Footer>
+                        </Card>
+                      );
+                    }}
                   />
                 )}
               </div>
@@ -1644,27 +1776,65 @@ const [form2, setForm2] = useState({
                     items={Array.isArray(armor) ? armor : []}
                     emptyMessage="No armor created yet."
                     getKey={(piece) => piece._id}
-                    colProps={{ xs: 12, sm: 6, lg: 4 }}
                     renderItem={(piece) => {
                       const acBonus = piece.armorBonus ?? piece.acBonus ?? piece.ac ?? '—';
                       const maxDex = piece.maxDex ?? '—';
                       const slotLabel = getArmorSlotLabel(piece);
+                      const Icon = resolveIcon(
+                        piece.category,
+                        armorCategoryIcons,
+                        GiArmorVest
+                      );
+                      const detailRows = [
+                        { label: 'Type', value: piece.type || '—' },
+                        { label: 'Category', value: piece.category || '—' },
+                        { label: 'AC Bonus', value: acBonus },
+                        { label: 'Max Dex', value: maxDex },
+                        { label: 'Slot', value: slotLabel },
+                        {
+                          label: 'Strength',
+                          value: piece.strength ?? piece.strRequirement ?? '—',
+                        },
+                        {
+                          label: 'Stealth',
+                          value: piece.stealth ? 'Disadvantage' : '—',
+                        },
+                        { label: 'Weight', value: piece.weight ?? '—' },
+                        { label: 'Cost', value: piece.cost ?? '—' },
+                      ];
 
                       return (
                         <Card className="armor-card h-100 w-100 text-start">
-                          <Card.Body className="d-flex flex-column gap-2">
-                            <Card.Title>{piece.armorName ?? piece.name}</Card.Title>
-                            <Card.Text>Type: {piece.type || '—'}</Card.Text>
-                            <Card.Text>Category: {piece.category || '—'}</Card.Text>
-                            <Card.Text>AC Bonus: {acBonus}</Card.Text>
-                            <Card.Text>Max Dex: {maxDex}</Card.Text>
-                            <Card.Text>Slot: {slotLabel}</Card.Text>
-                            <Card.Text>
-                              Strength Requirement: {piece.strength ?? piece.strRequirement ?? '—'}
-                            </Card.Text>
-                            <Card.Text>Stealth: {piece.stealth ? 'Disadvantage' : '—'}</Card.Text>
-                            <Card.Text>Weight: {piece.weight ?? '—'}</Card.Text>
-                            <Card.Text>Cost: {piece.cost ?? '—'}</Card.Text>
+                          <Card.Body className="d-flex flex-column">
+                            <div className="d-flex justify-content-center mb-2">
+                              <Icon size={40} title={piece.category || 'Armor'} />
+                            </div>
+                            <Card.Title className="mb-2">
+                              {piece.armorName ?? piece.name}
+                            </Card.Title>
+                            <div className="d-grid gap-1">
+                              {detailRows.map(({ label, value }) => {
+                                const displayValue =
+                                  value || value === 0 ? value : '—';
+                                return (
+                                  <Card.Text
+                                    key={label}
+                                    className="small mb-1 text-body fw-semibold text-break"
+                                  >
+                                    <span className="visually-hidden">{`${label}: ${displayValue}`}</span>
+                                    <span
+                                      className="text-muted text-uppercase fw-semibold me-1"
+                                      aria-hidden="true"
+                                    >
+                                      {`${label}:`}
+                                    </span>
+                                    <span aria-hidden="true" className="text-break">
+                                      {displayValue}
+                                    </span>
+                                  </Card.Text>
+                                );
+                              })}
+                            </div>
                           </Card.Body>
                           <Card.Footer className="d-flex justify-content-end">
                             <Button
@@ -1862,24 +2032,62 @@ const [form2, setForm2] = useState({
                     items={Array.isArray(accessories) ? accessories : []}
                     emptyMessage="No accessories created yet."
                     getKey={(accessory) => accessory._id}
-                    colProps={{ xs: 12, sm: 6, lg: 4 }}
                     renderItem={(accessory) => {
                       const slotLabel = getAccessorySlotLabel(accessory.targetSlots || accessory.slots);
                       const statBonuses = renderBonuses(accessory.statBonuses, STAT_LABELS);
                       const skillBonuses = renderBonuses(accessory.skillBonuses, SKILL_LABELS);
+                      const Icon = resolveIcon(
+                        accessory.category,
+                        accessoryCategoryIcons,
+                        GiTreasureMap
+                      );
+                      const detailRows = [
+                        { label: 'Category', value: accessory.category || '—' },
+                        { label: 'Slots', value: slotLabel || '—' },
+                        { label: 'Rarity', value: accessory.rarity || '—' },
+                        { label: 'Weight', value: accessory.weight ?? '—' },
+                        { label: 'Cost', value: accessory.cost ?? '—' },
+                      ];
+                      if (accessory.notes) {
+                        detailRows.push({ label: 'Notes', value: accessory.notes });
+                      }
+                      if (statBonuses) {
+                        detailRows.push({ label: 'Stats', value: statBonuses });
+                      }
+                      if (skillBonuses) {
+                        detailRows.push({ label: 'Skills', value: skillBonuses });
+                      }
 
                       return (
                         <Card className="item-card h-100 w-100 text-start">
-                          <Card.Body className="d-flex flex-column gap-2">
-                            <Card.Title>{accessory.name}</Card.Title>
-                            <Card.Text>Category: {accessory.category || '—'}</Card.Text>
-                            <Card.Text>Target Slots: {slotLabel}</Card.Text>
-                            <Card.Text>Rarity: {accessory.rarity || '—'}</Card.Text>
-                            <Card.Text>Weight: {accessory.weight ?? '—'}</Card.Text>
-                            <Card.Text>Cost: {accessory.cost ?? '—'}</Card.Text>
-                            {accessory.notes ? <Card.Text>Notes: {accessory.notes}</Card.Text> : null}
-                            {statBonuses ? <Card.Text>Stat Bonuses: {statBonuses}</Card.Text> : null}
-                            {skillBonuses ? <Card.Text>Skill Bonuses: {skillBonuses}</Card.Text> : null}
+                          <Card.Body className="d-flex flex-column">
+                            <div className="d-flex justify-content-center mb-2">
+                              <Icon size={40} title={accessory.category || 'Accessory'} />
+                            </div>
+                            <Card.Title className="mb-2">{accessory.name}</Card.Title>
+                            <div className="d-grid gap-1">
+                              {detailRows.map(({ label, value }) => {
+                                const displayValue =
+                                  value || value === 0 ? value : '—';
+                                return (
+                                  <Card.Text
+                                    key={label}
+                                    className="small mb-1 text-body fw-semibold text-break"
+                                  >
+                                    <span className="visually-hidden">{`${label}: ${displayValue}`}</span>
+                                    <span
+                                      className="text-muted text-uppercase fw-semibold me-1"
+                                      aria-hidden="true"
+                                    >
+                                      {`${label}:`}
+                                    </span>
+                                    <span aria-hidden="true" className="text-break">
+                                      {displayValue}
+                                    </span>
+                                  </Card.Text>
+                                );
+                              })}
+                            </div>
                           </Card.Body>
                           <Card.Footer className="d-flex justify-content-end">
                             <Button
@@ -2051,25 +2259,57 @@ const [form2, setForm2] = useState({
                     items={Array.isArray(items) ? items : []}
                     emptyMessage="No items created yet."
                     getKey={(item) => item._id}
-                    colProps={{ xs: 12, sm: 6, lg: 4 }}
                     renderItem={(item) => {
                       const statBonuses = renderBonuses(item.statBonuses, STAT_LABELS);
                       const skillBonuses = renderBonuses(item.skillBonuses, SKILL_LABELS);
+                      const Icon = resolveIcon(item.category, itemCategoryIcons, GiTreasureMap);
+                      const detailRows = [
+                        { label: 'Category', value: item.category || '—' },
+                        { label: 'Weight', value: item.weight ?? '—' },
+                        { label: 'Cost', value: item.cost ?? '—' },
+                      ];
+                      if (statBonuses) {
+                        detailRows.push({ label: 'Stats', value: statBonuses });
+                      }
+                      if (skillBonuses) {
+                        detailRows.push({ label: 'Skills', value: skillBonuses });
+                      }
 
                       return (
                         <Card className="item-card h-100 w-100 text-start">
-                          <Card.Body className="d-flex flex-column gap-2">
-                            <Card.Title>{item.name}</Card.Title>
-                            <Card.Text>Category: {item.category || '—'}</Card.Text>
-                            <Card.Text>Weight: {item.weight ?? '—'}</Card.Text>
-                            <Card.Text>Cost: {item.cost ?? '—'}</Card.Text>
-                            {statBonuses ? <Card.Text>Stat Bonuses: {statBonuses}</Card.Text> : null}
-                            {skillBonuses ? <Card.Text>Skill Bonuses: {skillBonuses}</Card.Text> : null}
+                          <Card.Body className="d-flex flex-column">
+                            <div className="d-flex justify-content-center mb-2">
+                              <Icon size={40} title={item.category || 'Item'} />
+                            </div>
+                            <Card.Title className="mb-2">{item.name}</Card.Title>
+                            <div className="d-grid gap-1">
+                              {detailRows.map(({ label, value }) => {
+                                const displayValue =
+                                  value || value === 0 ? value : '—';
+                                return (
+                                  <Card.Text
+                                    key={label}
+                                    className="small mb-1 text-body fw-semibold text-break"
+                                  >
+                                    <span className="visually-hidden">{`${label}: ${displayValue}`}</span>
+                                    <span
+                                      className="text-muted text-uppercase fw-semibold me-1"
+                                      aria-hidden="true"
+                                    >
+                                      {`${label}:`}
+                                    </span>
+                                    <span aria-hidden="true" className="text-break">
+                                      {displayValue}
+                                    </span>
+                                  </Card.Text>
+                                );
+                              })}
+                            </div>
                             {item.notes ? (
                               <Button
                                 variant="link"
                                 size="sm"
-                                className="p-0 align-self-start"
+                                className="p-0 align-self-start mt-2"
                                 onClick={() => openItemNote(item.notes)}
                               >
                                 View Notes
