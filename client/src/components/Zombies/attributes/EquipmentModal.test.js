@@ -24,6 +24,7 @@ describe('EquipmentModal', () => {
       weapon: [['Longsword']],
       armor: [['Shield']],
       item: [['Potion']],
+      accessories: [['Belt of Dwarvenkind']],
       equipment: {
         mainHand: { name: 'Longsword', source: 'weapon' },
       },
@@ -44,6 +45,7 @@ describe('EquipmentModal', () => {
       weapons: [expect.objectContaining({ name: 'Longsword' })],
       armor: [expect.objectContaining({ name: 'Shield' })],
       items: [expect.objectContaining({ name: 'Potion' })],
+      accessories: [expect.objectContaining({ name: 'Belt of Dwarvenkind' })],
     });
 
     const equipment = mockEquipmentRackProps.current?.equipment;

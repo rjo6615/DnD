@@ -5,7 +5,14 @@ import styles from './EquipmentRack.module.scss';
 
 const FLAT_SLOTS = EQUIPMENT_SLOT_LAYOUT.flat();
 
-const DEFAULT_ALLOWED_SOURCES = ['weapon', 'armor', 'item'];
+const DEFAULT_ALLOWED_SOURCES = ['weapon', 'armor', 'item', 'accessory'];
+
+const SOURCE_DESCRIPTIONS = {
+  weapon: 'Weapon',
+  armor: 'Armor',
+  item: 'Item',
+  accessory: 'Accessory',
+};
 
 const DESCRIPTOR_KEYS = [
   'category',
@@ -19,9 +26,18 @@ const DESCRIPTOR_KEYS = [
   'subType',
   'equipmentSlot',
   'equipmentSlots',
+  'targetSlot',
+  'targetSlots',
 ];
 
-const SLOT_METADATA_KEYS = ['slot', 'equipmentSlot', 'slots', 'equipmentSlots'];
+const SLOT_METADATA_KEYS = [
+  'slot',
+  'equipmentSlot',
+  'slots',
+  'equipmentSlots',
+  'targetSlot',
+  'targetSlots',
+];
 
 const toLowercaseStrings = (value) => {
   if (!value) return [];
@@ -56,6 +72,19 @@ const matchesAllowedValues = (descriptors, allowedValues = []) => {
   });
 };
 
+const getMetadataFilterEntries = (filters) => {
+  if (!filters || typeof filters !== 'object') return [];
+  const entries = new Set();
+  SLOT_METADATA_KEYS.forEach((key) => {
+    if (filters[key]) {
+      normalizeSlotEntries(filters[key]).forEach((entry) => {
+        entries.add(entry);
+      });
+    }
+  });
+  return Array.from(entries);
+};
+
 const normalizeSlotEntries = (value) => {
   const normalized = new Set();
   toLowercaseStrings(value).forEach((entry) => {
@@ -79,6 +108,14 @@ const getItemSlotMetadata = (item) => {
   return slots;
 };
 
+const matchesMetadataFilters = (item, filters) => {
+  const metadataFilters = getMetadataFilterEntries(filters);
+  if (!metadataFilters.length) return true;
+  const itemSlots = getItemSlotMetadata(item);
+  if (itemSlots.size === 0) return true;
+  return metadataFilters.some((entry) => itemSlots.has(entry));
+};
+
 const slotMatchesItemMetadata = (slot, itemSlots) => {
   if (!slot) return true;
   if (!itemSlots || itemSlots.size === 0) return true;
@@ -98,7 +135,7 @@ const slotAllowsOption = (slot, option) => {
 
   const sourceFilters = slot.filters?.[option.source];
   if (!sourceFilters) {
-    if (option.source === 'armor') {
+    if (option.source === 'armor' || option.source === 'accessory') {
       const itemSlots = getItemSlotMetadata(option.item);
       if (itemSlots.size > 0 && !slotMatchesItemMetadata(slot, itemSlots)) {
         return false;
@@ -117,6 +154,10 @@ const slotAllowsOption = (slot, option) => {
   }
 
   if (sourceFilters.types && !matchesAllowedValues(descriptors, sourceFilters.types)) {
+    return false;
+  }
+
+  if (!matchesMetadataFilters(option.item, sourceFilters)) {
     return false;
   }
 
@@ -175,6 +216,7 @@ const getItemName = (item) => {
     item.displayName ||
     item.name ||
     item.itemName ||
+    item.accessoryName ||
     item.armorName ||
     item.title ||
     ''
@@ -196,7 +238,8 @@ export default function EquipmentRack({
   onSlotChange,
   disabled = false,
 }) {
-  const { weapons = [], armor = [], items = [] } = inventory || {};
+  const { weapons = [], armor = [], items = [], accessories = [] } =
+    inventory || {};
   const slotLookup = useMemo(() => {
     const map = new Map();
     FLAT_SLOTS.forEach((slot) => {
@@ -222,12 +265,7 @@ export default function EquipmentRack({
           label: name,
           item,
           source,
-          description:
-            source === 'weapon'
-              ? 'Weapon'
-              : source === 'armor'
-              ? 'Armor'
-              : 'Item',
+          description: SOURCE_DESCRIPTIONS[source] || 'Item',
         };
         options.push(option);
         bySource[source].push(option);
@@ -237,9 +275,10 @@ export default function EquipmentRack({
     addOptions(weapons, 'weapon');
     addOptions(armor, 'armor');
     addOptions(items, 'item');
+    addOptions(accessories, 'accessory');
 
     return { all: options, bySource };
-  }, [armor, items, weapons]);
+  }, [accessories, armor, items, weapons]);
 
   const optionMap = useMemo(() => {
     const map = new Map();
