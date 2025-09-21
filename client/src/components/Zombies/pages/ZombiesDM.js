@@ -1236,7 +1236,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         paddingBottom: '5rem',
       }}
     >
-      <div style={{ paddingTop: '150px' }}></div>
+      <div style={{ paddingTop: '5rem' }}></div>
       {status && (
         <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
           {status.message}
@@ -1468,7 +1468,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           )}
                         </Form.Select>
                       </Form.Group>
-                      <div className="text-center">
+                      <div className="text-center pb-2">
                         <Button
                           disabled={!playersSearch}
                           className="rounded-pill"
