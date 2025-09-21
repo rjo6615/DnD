@@ -1207,6 +1207,14 @@ const resolveIcon = (category, iconMap, fallback) => {
 )}
 
 <Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
+  <div
+    className="d-flex justify-content-center mb-2"
+    style={{ position: 'relative', zIndex: '4' }}
+  >
+    <h2 className="text-white text-center mb-0">
+      {campaignDM.campaignName ?? params.campaign}
+    </h2>
+  </div>
   <div className="d-flex justify-content-center mb-3" style={{ position: 'relative', zIndex: '4' }}>
     <Nav variant="tabs" className="flex-wrap">
       {RESOURCE_TABS.map(({ key, title }) => (
