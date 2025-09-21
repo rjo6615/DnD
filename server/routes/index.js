@@ -21,6 +21,7 @@ const spells = require('./spells');
 const weapons = require('./weapons');
 const armor = require('./armor');
 const items = require('./items');
+const accessories = require('./accessories');
 const weaponProficiency = require('./weaponProficiency');
 const armorProficiency = require('./armorProficiency');
 const ai = require('./ai');
@@ -44,6 +45,7 @@ spells(routes);
 weapons(routes);
 armor(routes);
 items(routes);
+accessories(routes);
 ai(routes);
 // Register occupations routes before generic ID-based routes to ensure
 // "/characters/occupations" is matched correctly.

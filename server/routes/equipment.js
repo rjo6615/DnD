@@ -5,6 +5,10 @@ const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const { armors: armorData } = require('../data/armor');
 const {
+  categories: accessoryCategories,
+  slotKeys: ACCESSORY_SLOT_KEYS,
+} = require('../data/accessories');
+const {
   EQUIPMENT_SLOT_KEYS,
   normalizeEquipmentMap,
 } = require('../constants/equipmentSlots');
@@ -105,6 +109,20 @@ const validateEquipmentMap = (value) => {
   }
 
   return true;
+};
+
+const ACCESSORY_SLOT_SET = new Set(ACCESSORY_SLOT_KEYS);
+
+const normalizeAccessorySlots = (slots = []) => {
+  if (!Array.isArray(slots)) {
+    return [];
+  }
+  const unique = Array.from(
+    new Set(slots.filter((slot) => ACCESSORY_SLOT_SET.has(slot)))
+  );
+  return unique.sort(
+    (a, b) => ACCESSORY_SLOT_KEYS.indexOf(a) - ACCESSORY_SLOT_KEYS.indexOf(b)
+  );
 };
 
 module.exports = (router) => {
@@ -456,6 +474,136 @@ module.exports = (router) => {
         .deleteOne({ _id: ObjectId(id) });
       if (result.deletedCount === 0) {
         return res.status(404).json({ message: 'Item not found' });
+      }
+      res.json({ acknowledged: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Accessory Section
+
+  equipmentRouter.route('/accessories/:campaign').get(async (req, res, next) => {
+    try {
+      const db_connect = req.db;
+      const result = await db_connect
+        .collection('Accessories')
+        .find({ campaign: req.params.campaign })
+        .toArray();
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  equipmentRouter.route('/accessories').post(
+    [
+      body('campaign').trim().notEmpty().withMessage('campaign is required'),
+      body('name').trim().notEmpty().withMessage('name is required'),
+      body('category')
+        .trim()
+        .notEmpty()
+        .withMessage('category is required')
+        .customSanitizer((value) => value.toLowerCase())
+        .isIn(accessoryCategories)
+        .withMessage('category must be a valid accessory category'),
+      body('targetSlots')
+        .isArray({ min: 1 })
+        .withMessage('targetSlots must be a non-empty array')
+        .custom((slots) => {
+          const invalid = slots.filter((slot) => !ACCESSORY_SLOT_SET.has(slot));
+          if (invalid.length > 0) {
+            throw new Error(`invalid target slots: ${invalid.join(', ')}`);
+          }
+          return true;
+        }),
+      body('rarity').optional().isString().trim(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
+      body('notes').optional().isString().trim(),
+      body('statBonuses').optional().custom(validateBonusObject),
+      body('skillBonuses').optional().custom(validateBonusObject),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      const db_connect = req.db;
+      const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+      myobj.targetSlots = normalizeAccessorySlots(myobj.targetSlots);
+      try {
+        const result = await db_connect.collection('Accessories').insertOne(myobj);
+        const accessory = { _id: result.insertedId, ...myobj };
+        res.json(accessory);
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  equipmentRouter.route('/accessories/:id').put(
+    [
+      body('name').optional().trim().notEmpty(),
+      body('category')
+        .optional()
+        .isString()
+        .trim()
+        .customSanitizer((value) => value.toLowerCase())
+        .isIn(accessoryCategories)
+        .withMessage('category must be a valid accessory category'),
+      body('targetSlots')
+        .optional()
+        .isArray({ min: 1 })
+        .withMessage('targetSlots must be a non-empty array when provided')
+        .custom((slots) => {
+          const invalid = slots.filter((slot) => !ACCESSORY_SLOT_SET.has(slot));
+          if (invalid.length > 0) {
+            throw new Error(`invalid target slots: ${invalid.join(', ')}`);
+          }
+          return true;
+        }),
+      body('rarity').optional().isString().trim(),
+      body('weight').optional().isFloat().toFloat(),
+      body('cost').optional().isString().trim(),
+      body('notes').optional().isString().trim(),
+      body('statBonuses').optional().custom(validateBonusObject),
+      body('skillBonuses').optional().custom(validateBonusObject),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const updates = matchedData(req, { locations: ['body'], includeOptionals: true });
+      if (updates.targetSlots) {
+        updates.targetSlots = normalizeAccessorySlots(updates.targetSlots);
+      }
+      try {
+        const result = await db_connect.collection('Accessories').updateOne(id, {
+          $set: updates,
+        });
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: 'Accessory not found' });
+        }
+        res.json({ message: 'Accessory updated' });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  equipmentRouter.route('/accessories/:id').delete(async (req, res, next) => {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    const db_connect = req.db;
+    try {
+      const result = await db_connect
+        .collection('Accessories')
+        .deleteOne({ _id: ObjectId(id) });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Accessory not found' });
       }
       res.json({ acknowledged: true });
     } catch (err) {

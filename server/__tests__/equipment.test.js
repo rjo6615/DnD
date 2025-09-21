@@ -10,6 +10,7 @@ const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const routes = require('../routes');
 const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
+const { slotKeys: ACCESSORY_SLOT_KEYS } = require('../data/accessories');
 
 const app = express();
 app.use(express.json());
@@ -147,6 +148,116 @@ describe('Equipment routes', () => {
       const res = await request(app).delete('/equipment/weapon/507f1f77bcf86cd799439011');
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Weapon not found');
+    });
+  });
+
+  describe('accessories', () => {
+    test('create accessory success', async () => {
+      const insertedId = '507f1f77bcf86cd799439099';
+      let insertedDoc;
+      dbo.mockResolvedValue({
+        collection: () => ({
+          insertOne: async (doc) => {
+            insertedDoc = doc;
+            return { insertedId };
+          },
+        }),
+      });
+
+      const res = await request(app)
+        .post('/equipment/accessories')
+        .send({
+          campaign: 'Camp1',
+          name: 'Cloak of Stars',
+          category: 'CLOAK',
+          targetSlots: ['ringRight', 'ringLeft', 'ringLeft'],
+          rarity: 'rare',
+          weight: 1.5,
+          cost: '500 gp',
+          notes: 'Shimmers with constellations',
+          statBonuses: { dex: 2 },
+        });
+
+      expect(res.status).toBe(200);
+      expect(insertedDoc.targetSlots).toEqual(['ringLeft', 'ringRight']);
+      expect(res.body).toMatchObject({
+        _id: insertedId,
+        campaign: 'Camp1',
+        name: 'Cloak of Stars',
+        category: 'cloak',
+        targetSlots: ['ringLeft', 'ringRight'],
+        rarity: 'rare',
+        weight: 1.5,
+        cost: '500 gp',
+        notes: 'Shimmers with constellations',
+        statBonuses: { dex: 2 },
+      });
+    });
+
+    test('create accessory rejects invalid slot', async () => {
+      dbo.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/equipment/accessories')
+        .send({
+          campaign: 'Camp1',
+          name: 'Odd Trinket',
+          category: 'cloak',
+          targetSlots: ['tail'],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('update accessory success', async () => {
+      let updated;
+      dbo.mockResolvedValue({
+        collection: () => ({
+          updateOne: async (_id, payload) => {
+            updated = payload.$set;
+            return { matchedCount: 1 };
+          },
+        }),
+      });
+
+      const slot = ACCESSORY_SLOT_KEYS[0];
+      const res = await request(app)
+        .put('/equipment/accessories/507f1f77bcf86cd799439010')
+        .send({
+          name: 'Updated Accessory',
+          targetSlots: [slot],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessory updated');
+      expect(updated.targetSlots).toEqual([slot]);
+    });
+
+    test('update accessory invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/accessories/not-an-id')
+        .send({ name: 'Broken' });
+      expect(res.status).toBe(400);
+    });
+
+    test('delete accessory success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
+      });
+      const res = await request(app).delete('/equipment/accessories/507f1f77bcf86cd799439010');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ acknowledged: true });
+    });
+
+    test('delete accessory not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/accessories/507f1f77bcf86cd799439010');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Accessory not found');
     });
   });
 

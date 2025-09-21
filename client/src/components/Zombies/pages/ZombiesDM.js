@@ -811,6 +811,250 @@ const [form2, setForm2] = useState({
     }
   }
 
+  //------------------------------------Accessories------------------------------------------------------------
+  const [showAccessories, setShowAccessories] = useState(false);
+  const [isCreatingAccessory, setIsCreatingAccessory] = useState(false);
+  const handleCloseAccessories = () => {
+    setShowAccessories(false);
+    setIsCreatingAccessory(false);
+  };
+  const handleShowAccessories = () => setShowAccessories(true);
+
+  const [accessories, setAccessories] = useState([]);
+  const [accessoryOptions, setAccessoryOptions] = useState({
+    categories: [],
+    slots: [],
+  });
+
+  const [accessoryForm, setAccessoryForm] = useState({
+    campaign: currentCampaign,
+    name: '',
+    category: '',
+    targetSlots: [],
+    rarity: '',
+    weight: '',
+    cost: '',
+    notes: '',
+    statBonuses: {},
+    skillBonuses: {},
+  });
+
+  const [accessoryPrompt, setAccessoryPrompt] = useState('');
+  const [accessoryLoading, setAccessoryLoading] = useState(false);
+
+  const updateAccessoryForm = (value) => {
+    setAccessoryForm((prev) => ({ ...prev, ...value }));
+  };
+
+  const toggleAccessorySlot = (slotKey) => {
+    setAccessoryForm((prev) => {
+      const currentSlots = new Set(prev.targetSlots || []);
+      if (currentSlots.has(slotKey)) {
+        currentSlots.delete(slotKey);
+      } else {
+        currentSlots.add(slotKey);
+      }
+      return { ...prev, targetSlots: Array.from(currentSlots) };
+    });
+  };
+
+  const fetchAccessories = useCallback(async () => {
+    const response = await apiFetch(`/equipment/accessories/${currentCampaign}`);
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setAccessories(data);
+  }, [currentCampaign]);
+
+  const fetchAccessoryOptions = useCallback(async () => {
+    const response = await apiFetch('/accessories/options');
+    if (!response.ok) {
+      const message = `An error has occurred: ${response.statusText}`;
+      setStatus({ type: 'danger', message });
+      return;
+    }
+    const data = await response.json();
+    setAccessoryOptions({
+      categories: data?.categories || [],
+      slots: data?.slots || [],
+    });
+  }, []);
+
+  const accessorySlotLabels = useMemo(() => {
+    const labels = {};
+    (accessoryOptions.slots || []).forEach((slot) => {
+      if (!slot || !slot.key) {
+        return;
+      }
+      labels[slot.key] = slot.label || slot.key;
+    });
+    return labels;
+  }, [accessoryOptions.slots]);
+
+  useEffect(() => {
+    if (showAccessories) {
+      fetchAccessories();
+      fetchAccessoryOptions();
+    }
+  }, [showAccessories, currentCampaign, fetchAccessories, fetchAccessoryOptions]);
+
+  async function generateAccessory() {
+    setAccessoryLoading(true);
+    try {
+      if (!accessoryOptions.categories.length || !accessoryOptions.slots.length) {
+        setStatus({ type: 'danger', message: 'Accessory options not loaded' });
+        return;
+      }
+      const response = await apiFetch('/ai/accessory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: accessoryPrompt }),
+      });
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      const accessory = await response.json();
+      const normalizeBonuses = (bonuses, lookup) => {
+        const result = {};
+        for (const [k, v] of Object.entries(bonuses || {})) {
+          const key = lookup[k.toLowerCase()] || k;
+          result[key] = v;
+        }
+        return result;
+      };
+      const updates = {
+        name: accessory.name || '',
+        category: accessory.category || '',
+        targetSlots: Array.isArray(accessory.targetSlots) ? accessory.targetSlots : [],
+        rarity: accessory.rarity || '',
+        weight: accessory.weight ?? '',
+        cost: accessory.cost ?? '',
+        notes: accessory.notes || '',
+      };
+      if (accessory.statBonuses) {
+        updates.statBonuses = normalizeBonuses(accessory.statBonuses, STAT_LOOKUP);
+      }
+      if (accessory.skillBonuses) {
+        updates.skillBonuses = normalizeBonuses(accessory.skillBonuses, SKILL_LOOKUP);
+      }
+      updateAccessoryForm(updates);
+    } catch (err) {
+      setStatus({ type: 'danger', message: err.message || 'Failed to generate accessory' });
+    } finally {
+      setAccessoryLoading(false);
+    }
+  }
+
+  const normalizeAccessoryBonuses = (obj) => {
+    const entries = Object.entries(obj || {}).filter(([, v]) => v !== '' && v !== undefined);
+    if (!entries.length) return undefined;
+    return Object.fromEntries(entries.map(([k, v]) => [k, Number(v)]));
+  };
+
+  async function sendAccessoryToDb() {
+    if (!accessoryForm.targetSlots || accessoryForm.targetSlots.length === 0) {
+      setStatus({ type: 'danger', message: 'Select at least one target slot' });
+      return;
+    }
+    const weightNumber = accessoryForm.weight === '' ? undefined : Number(accessoryForm.weight);
+    if (weightNumber !== undefined && Number.isNaN(weightNumber)) {
+      setStatus({ type: 'danger', message: 'Weight must be a number' });
+      return;
+    }
+    const statBonuses = normalizeAccessoryBonuses(accessoryForm.statBonuses);
+    const skillBonuses = normalizeAccessoryBonuses(accessoryForm.skillBonuses);
+    const newAccessory = {
+      campaign: currentCampaign,
+      name: accessoryForm.name,
+      category: accessoryForm.category,
+      targetSlots: accessoryForm.targetSlots,
+      ...(accessoryForm.rarity && { rarity: accessoryForm.rarity }),
+      ...(weightNumber !== undefined ? { weight: weightNumber } : {}),
+      ...(accessoryForm.cost && { cost: accessoryForm.cost }),
+      ...(accessoryForm.notes && { notes: accessoryForm.notes }),
+      ...(statBonuses && { statBonuses }),
+      ...(skillBonuses && { skillBonuses }),
+    };
+
+    try {
+      const response = await apiFetch('/equipment/accessories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAccessory),
+      });
+      if (!response.ok) {
+        let message;
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || errorData?.error || response.statusText;
+        } catch {
+          message = response.statusText;
+        }
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      await fetchAccessories();
+      setAccessoryForm({
+        campaign: currentCampaign,
+        name: '',
+        category: '',
+        targetSlots: [],
+        rarity: '',
+        weight: '',
+        cost: '',
+        notes: '',
+        statBonuses: {},
+        skillBonuses: {},
+      });
+      setAccessoryPrompt('');
+      setIsCreatingAccessory(false);
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
+
+  async function onSubmitAccessory(e) {
+    e.preventDefault();
+    await sendAccessoryToDb();
+  }
+
+  async function deleteAccessory(id) {
+    try {
+      const response = await apiFetch(`/equipment/accessories/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const message = `An error has occurred: ${response.statusText}`;
+        setStatus({ type: 'danger', message });
+        return;
+      }
+      setAccessories((prev) => prev.filter((acc) => acc._id !== id));
+    } catch (error) {
+      setStatus({ type: 'danger', message: error.toString() });
+    }
+  }
+
+  const getAccessorySlotLabel = useCallback(
+    (slots) => {
+      if (!Array.isArray(slots) || slots.length === 0) {
+        return '—';
+      }
+      return slots
+        .map((slot) => accessorySlotLabels[slot] || slot)
+        .join(', ');
+    },
+    [accessorySlotLabels]
+  );
+
   const renderBonuses = (bonuses, labels) =>
     Object.entries(bonuses || {})
       .map(([k, v]) => `${labels[k] || k}: ${v}`)
@@ -836,6 +1080,8 @@ const [form2, setForm2] = useState({
   <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow3(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Armor</Button>
   {/*-----------------------------------Create Item-----------------------------------------------------*/}
   <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShow4(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Item</Button>
+  {/*-----------------------------------Create Accessory-----------------------------------------------------*/}
+  <Button style={{ borderColor: 'transparent' }} onClick={(e) => { e.preventDefault(); handleShowAccessories(); }} className="p-1 hostCampaign" size="sm" variant="secondary">Create Accessory</Button>
 </div>
 
 <div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
@@ -1333,6 +1579,216 @@ const [form2, setForm2] = useState({
   </Card.Body>
   </Card>
   </div>
+  </Modal>
+  {/* -----------------------------------------Accessory Modal--------------------------------------------- */}
+  <Modal className="dnd-modal modern-modal" size="lg" centered show={showAccessories} onHide={handleCloseAccessories}>
+    <div className="text-center">
+      <Card className="modern-card">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">{isCreatingAccessory ? "Create Accessory" : "Accessories"}</Card.Title>
+        </Card.Header>
+        <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+          <div className="text-center">
+            {isCreatingAccessory ? (
+              <Form onSubmit={onSubmitAccessory} className="px-5">
+                <Form.Group className="mb-3 pt-3">
+                  <Form.Label className="text-light">Accessory Prompt</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={accessoryPrompt}
+                    onChange={(e) => setAccessoryPrompt(e.target.value)}
+                    type="text"
+                    placeholder="Describe an accessory"
+                  />
+                  <Button
+                    className="mb-3"
+                    variant="outline-primary"
+                    onClick={(e) => { e.preventDefault(); generateAccessory(); }}
+                    disabled={accessoryLoading}
+                  >
+                    {accessoryLoading ? (
+                      <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                    ) : (
+                      "Generate Accessory"
+                    )}
+                  </Button>
+                  <br></br>
+                  <Form.Label className="text-light">Name</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={accessoryForm.name}
+                    onChange={(e) => updateAccessoryForm({ name: e.target.value })}
+                    type="text"
+                    placeholder="Enter accessory name"
+                  />
+
+                  <Form.Label className="text-light">Category</Form.Label>
+                  <Form.Select
+                    className="mb-2"
+                    value={accessoryForm.category}
+                    onChange={(e) => updateAccessoryForm({ category: e.target.value })}
+                  >
+                    <option value="">Select category</option>
+                    {accessoryOptions.categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Form.Select>
+
+                  <Form.Label className="text-light">Target Slots</Form.Label>
+                  <div className="d-flex flex-wrap gap-3 mb-2 justify-content-center">
+                    {accessoryOptions.slots.map((slot) => (
+                      <Form.Check
+                        key={slot.key}
+                        type="checkbox"
+                        id={`accessory-slot-${slot.key}`}
+                        label={slot.label}
+                        checked={accessoryForm.targetSlots.includes(slot.key)}
+                        onChange={() => toggleAccessorySlot(slot.key)}
+                        className="text-light"
+                      />
+                    ))}
+                  </div>
+
+                  <Form.Label className="text-light">Rarity</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={accessoryForm.rarity}
+                    onChange={(e) => updateAccessoryForm({ rarity: e.target.value })}
+                    type="text"
+                    placeholder="Enter rarity"
+                  />
+
+                  <Form.Label className="text-light">Weight</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={accessoryForm.weight}
+                    onChange={(e) => updateAccessoryForm({ weight: e.target.value })}
+                    type="number"
+                    placeholder="Enter weight"
+                  />
+
+                  <Form.Label className="text-light">Cost</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={accessoryForm.cost}
+                    onChange={(e) => updateAccessoryForm({ cost: e.target.value })}
+                    type="text"
+                    placeholder="Enter cost"
+                  />
+
+                  <Form.Label className="text-light">Notes</Form.Label>
+                  <Form.Control
+                    className="mb-2"
+                    value={accessoryForm.notes}
+                    onChange={(e) => updateAccessoryForm({ notes: e.target.value })}
+                    type="text"
+                    placeholder="Enter notes"
+                  />
+
+                  <Form.Label className="text-light">Stat Bonuses</Form.Label>
+                  {STATS.map(({ key, label }) => (
+                    <Form.Control
+                      key={key}
+                      className="mb-2"
+                      type="number"
+                      placeholder={label}
+                      value={accessoryForm.statBonuses[key] ?? ''}
+                      onChange={(e) =>
+                        updateAccessoryForm({
+                          statBonuses: {
+                            ...accessoryForm.statBonuses,
+                            [key]: e.target.value === '' ? '' : Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  ))}
+
+                  <Form.Label className="text-light">Skill Bonuses</Form.Label>
+                  {SKILLS.map(({ key, label }) => (
+                    <Form.Control
+                      key={key}
+                      className="mb-2"
+                      type="number"
+                      placeholder={label}
+                      value={accessoryForm.skillBonuses[key] ?? ''}
+                      onChange={(e) =>
+                        updateAccessoryForm({
+                          skillBonuses: {
+                            ...accessoryForm.skillBonuses,
+                            [key]: e.target.value === '' ? '' : Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  ))}
+                </Form.Group>
+                <div className="text-center">
+                  <Button variant="primary" type="submit">
+                    Create
+                  </Button>
+                  <Button className="ms-4" variant="secondary" onClick={() => setIsCreatingAccessory(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </Form>
+            ) : (
+              <>
+                <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Target Slots</th>
+                      <th>Rarity</th>
+                      <th>Weight</th>
+                      <th>Cost</th>
+                      <th>Notes</th>
+                      <th>Stat Bonuses</th>
+                      <th>Skill Bonuses</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {accessories.map((accessory) => (
+                      <tr key={accessory._id}>
+                        <td>{accessory.name}</td>
+                        <td>{accessory.category}</td>
+                        <td>{getAccessorySlotLabel(accessory.targetSlots)}</td>
+                        <td>{accessory.rarity || '—'}</td>
+                        <td>{accessory.weight}</td>
+                        <td>{accessory.cost}</td>
+                        <td>
+                          {accessory.notes && (
+                            <Button variant="link" className="p-0" onClick={() => openItemNote(accessory.notes)}>
+                              View
+                            </Button>
+                          )}
+                        </td>
+                        <td>{renderBonuses(accessory.statBonuses, STAT_LABELS)}</td>
+                        <td>{renderBonuses(accessory.skillBonuses, SKILL_LABELS)}</td>
+                        <td>
+                          <Button
+                            className="btn-danger action-btn fa-solid fa-trash"
+                            onClick={() => deleteAccessory(accessory._id)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                <Button variant="primary" onClick={() => setIsCreatingAccessory(true)}>
+                  Create Accessory
+                </Button>
+                <Button className="ms-4" variant="secondary" onClick={handleCloseAccessories}>
+                  Close
+                </Button>
+              </>
+            )}
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
   </Modal>
   {/* -----------------------------------------Item Modal--------------------------------------------- */}
   <Modal className="dnd-modal modern-modal" size="lg" centered show={show4} onHide={handleClose4}>
