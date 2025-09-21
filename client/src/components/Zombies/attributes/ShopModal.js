@@ -354,9 +354,9 @@ export default function ShopModal({
       return normalizedName ? `::${normalizedName}` : '';
     }
     const normalizedType = String(entry.type || '').toLowerCase();
-    const normalizedName = String(
-      entry.displayName || entry.name || entry.itemName || ''
-    ).toLowerCase();
+    const slugSource =
+      entry.name || entry.displayName || entry.itemName || '';
+    const normalizedName = String(slugSource).trim().toLowerCase();
     if (!normalizedName && !normalizedType) return '';
     return `${normalizedType}::${normalizedName}`;
   }, []);
