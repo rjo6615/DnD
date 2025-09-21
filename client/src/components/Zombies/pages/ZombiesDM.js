@@ -1197,34 +1197,47 @@ const resolveIcon = (category, iconMap, fallback) => {
 
 
 // -----------------------------------Display-----------------------------------------------------------------------------
- return (
-    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-          <div style={{paddingTop: '150px'}}></div>
-{status && (
-  <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
-    {status.message}
-  </Alert>
-)}
+  return (
+    <div
+      className="pt-2 text-center"
+      style={{
+        fontFamily: 'Raleway, sans-serif',
+        backgroundImage: `url(${loginbg})`,
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        height: '100vh',
+      }}
+    >
+      <div style={{ paddingTop: '150px' }}></div>
+      {status && (
+        <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
+          {status.message}
+        </Alert>
+      )}
 
-<Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
-  <div
-    className="d-flex justify-content-center mb-2"
-    style={{ position: 'relative', zIndex: '4' }}
-  >
-    <h2 className="text-white text-center mb-0">
-      {campaignDM.campaignName ?? params.campaign}
-    </h2>
-  </div>
-  <div className="d-flex justify-content-center mb-3" style={{ position: 'relative', zIndex: '4' }}>
-    <Nav variant="tabs" className="flex-wrap">
-      {RESOURCE_TABS.map(({ key, title }) => (
-        <Nav.Item key={key}>
-          <Nav.Link eventKey={key}>{title}</Nav.Link>
-        </Nav.Item>
-      ))}
-    </Nav>
-  </div>
-  <Tab.Content>
+      <Container className="zombies-dm-container">
+        <Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
+          <div
+            className="d-flex justify-content-center mb-2"
+            style={{ position: 'relative', zIndex: '4' }}
+          >
+            <h2 className="text-white text-center mb-0">
+              {campaignDM.campaignName ?? params.campaign}
+            </h2>
+          </div>
+          <div
+            className="d-flex justify-content-center mb-3"
+            style={{ position: 'relative', zIndex: '4' }}
+          >
+            <Nav variant="tabs" className="flex-wrap">
+              {RESOURCE_TABS.map(({ key, title }) => (
+                <Nav.Item key={key}>
+                  <Nav.Link eventKey={key}>{title}</Nav.Link>
+                </Nav.Item>
+              ))}
+            </Nav>
+          </div>
+          <Tab.Content>
     <Tab.Pane eventKey="characters">
       {activeResourceTab === 'characters' && (
         <div className="text-center">
@@ -2431,9 +2444,10 @@ const resolveIcon = (category, iconMap, fallback) => {
       )}
     </Tab.Pane>
   </Tab.Content>
-</Tab.Container>
+        </Tab.Container>
+      </Container>
 
-    <Modal
+      <Modal
       className="dnd-modal"
       size="sm"
       centered

@@ -3,6 +3,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 
+.zombies-dm-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 768px) {
+  .zombies-dm-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .zombies-dm-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
 .spell-slot-tabs {
   display: flex;
   overflow-x: auto;
