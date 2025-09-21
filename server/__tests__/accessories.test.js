@@ -33,9 +33,13 @@ describe('Accessory routes', () => {
     expect(res.body['amulet-of-health'].name).toBe('Amulet of Health');
     expect(Array.isArray(res.body['amulet-of-health'].targetSlots)).toBe(true);
     expect(res.body['amulet-of-health'].targetSlots).toContain('neck');
+    expect(res.body['amulet-of-health'].weight).toBe(1);
+    expect(res.body['amulet-of-health'].cost).toBe('5000 gp');
     expect(res.body['ring-of-protection'].targetSlots).toEqual(
       expect.arrayContaining(['ringLeft', 'ringRight'])
     );
+    expect(res.body['ring-of-protection'].weight).toBe(0);
+    expect(res.body['ring-of-protection'].cost).toBe('5000 gp');
   });
 
   test('provides accessory options metadata', async () => {

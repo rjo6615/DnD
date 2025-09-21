@@ -192,7 +192,7 @@ function AccessoryList({
                 category: accessory.category || 'custom',
                 targetSlots: normalizeAccessorySlots(accessory.targetSlots),
                 rarity: accessory.rarity || '',
-                weight: accessory.weight ?? '',
+                weight: accessory.weight ?? null,
                 cost: accessory.cost ?? '',
                 statBonuses: normalizeAccessoryBonuses(accessory.statBonuses),
                 skillBonuses: normalizeAccessoryBonuses(accessory.skillBonuses),
@@ -414,8 +414,8 @@ function AccessoryList({
                     {accessory.rarity ? (
                       <Card.Text>Rarity: {accessory.rarity}</Card.Text>
                     ) : null}
-                    <Card.Text>Weight: {accessory.weight}</Card.Text>
-                    <Card.Text>Cost: {accessory.cost}</Card.Text>
+                    <Card.Text>Weight: {accessory.weight ?? '—'}</Card.Text>
+                    <Card.Text>Cost: {accessory.cost || '—'}</Card.Text>
                     {renderBonuses(accessory.statBonuses, STAT_LABELS) && (
                       <Card.Text>
                         Stat Bonuses: {renderBonuses(

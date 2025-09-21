@@ -832,7 +832,7 @@ const [form2, setForm2] = useState({
     category: '',
     targetSlots: [],
     rarity: '',
-    weight: '',
+    weight: null,
     cost: '',
     notes: '',
     statBonuses: {},
@@ -938,7 +938,7 @@ const [form2, setForm2] = useState({
         category: accessory.category || '',
         targetSlots: Array.isArray(accessory.targetSlots) ? accessory.targetSlots : [],
         rarity: accessory.rarity || '',
-        weight: accessory.weight ?? '',
+        weight: accessory.weight ?? null,
         cost: accessory.cost ?? '',
         notes: accessory.notes || '',
       };
@@ -967,7 +967,10 @@ const [form2, setForm2] = useState({
       setStatus({ type: 'danger', message: 'Select at least one target slot' });
       return;
     }
-    const weightNumber = accessoryForm.weight === '' ? undefined : Number(accessoryForm.weight);
+    const weightNumber =
+      accessoryForm.weight === '' || accessoryForm.weight === null
+        ? undefined
+        : Number(accessoryForm.weight);
     if (weightNumber !== undefined && Number.isNaN(weightNumber)) {
       setStatus({ type: 'danger', message: 'Weight must be a number' });
       return;
@@ -1011,7 +1014,7 @@ const [form2, setForm2] = useState({
         category: '',
         targetSlots: [],
         rarity: '',
-        weight: '',
+        weight: null,
         cost: '',
         notes: '',
         statBonuses: {},
@@ -1661,7 +1664,7 @@ const [form2, setForm2] = useState({
                   <Form.Label className="text-light">Weight</Form.Label>
                   <Form.Control
                     className="mb-2"
-                    value={accessoryForm.weight}
+                    value={accessoryForm.weight ?? ''}
                     onChange={(e) => updateAccessoryForm({ weight: e.target.value })}
                     type="number"
                     placeholder="Enter weight"
@@ -1756,8 +1759,8 @@ const [form2, setForm2] = useState({
                         <td>{accessory.category}</td>
                         <td>{getAccessorySlotLabel(accessory.targetSlots)}</td>
                         <td>{accessory.rarity || '—'}</td>
-                        <td>{accessory.weight}</td>
-                        <td>{accessory.cost}</td>
+                        <td>{accessory.weight ?? '—'}</td>
+                        <td>{accessory.cost || '—'}</td>
                         <td>
                           {accessory.notes && (
                             <Button variant="link" className="p-0" onClick={() => openItemNote(accessory.notes)}>
