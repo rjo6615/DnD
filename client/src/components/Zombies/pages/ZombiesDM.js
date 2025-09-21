@@ -73,12 +73,10 @@ export default function ZombiesDM() {
       navigate(`/zombies-character-sheet/${id}`);
     }
 
-    const [showPlayers, setShowPlayers] = useState(false);
-    const handleClosePlayers = () => setShowPlayers(false);
-    const handleShowPlayers = () => setShowPlayers(true);
-
     const RESOURCE_TABS = useMemo(
       () => [
+        { key: 'characters', title: 'Characters' },
+        { key: 'players', title: 'Players' },
         { key: 'weapons', title: 'Weapons' },
         { key: 'armor', title: 'Armor' },
         { key: 'items', title: 'Items' },
@@ -86,7 +84,7 @@ export default function ZombiesDM() {
       ],
       []
     );
-    const [activeResourceTab, setActiveResourceTab] = useState(null);
+    const [activeResourceTab, setActiveResourceTab] = useState('characters');
 
     const handleSelectResourceTab = useCallback(
       (key) => {
@@ -867,12 +865,15 @@ const [form2, setForm2] = useState({
         case 'accessories':
           setIsCreatingAccessory(false);
           break;
+        case 'players':
+          setPlayersSearch('');
+          break;
         default:
           break;
       }
       setActiveResourceTab((current) => (current === key ? null : current));
     },
-    [setActiveResourceTab]
+    [setActiveResourceTab, setPlayersSearch]
   );
 
   const updateAccessoryForm = (value) => {
@@ -1107,22 +1108,6 @@ const [form2, setForm2] = useState({
   </Alert>
 )}
 
-
-
-<div className="d-flex justify-content-center mb-3" style={{ position: 'relative', zIndex: '4' }}>
-  <Button
-    style={{ borderColor: 'transparent' }}
-    onClick={() => {
-      handleShowPlayers();
-    }}
-    className="p-1 hostCampaign"
-    size="sm"
-    variant="secondary"
-  >
-    View/Add Players
-  </Button>
-</div>
-
 <Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
   <div className="d-flex justify-content-center mb-3" style={{ position: 'relative', zIndex: '4' }}>
     <Nav variant="tabs" className="flex-wrap">
@@ -1134,6 +1119,138 @@ const [form2, setForm2] = useState({
     </Nav>
   </div>
   <Tab.Content>
+    <Tab.Pane eventKey="characters">
+      {activeResourceTab === 'characters' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-characters-card">
+            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
+              <Card.Title className="modal-title mb-0">{params.campaign} Characters</Card.Title>
+              <CloseButton variant="white" onClick={() => handleCloseResourceTab('characters')} />
+            </Card.Header>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Character</th>
+                    <th>Level</th>
+                    <th>Class</th>
+                    <th>Currency</th>
+                    <th>View</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(records) &&
+                    records.map((Characters) => (
+                      <tr key={Characters._id}>
+                        <td>{Characters.token}</td>
+                        <td>{Characters.characterName}</td>
+                        <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
+                        <td>
+                          {Characters.occupation.map((el, i) => (
+                            <span key={i}>
+                              {el.Level + ' ' + el.Occupation}
+                              <br />
+                            </span>
+                          ))}
+                        </td>
+                        <td>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-pill"
+                            onClick={() => openCurrencyModal(Characters)}
+                          >
+                            Adjust
+                          </Button>
+                        </td>
+                        <td>
+                          <Button
+                            size="sm"
+                            variant="link"
+                            className="p-0"
+                            style={{ border: 'none' }}
+                            onClick={() => navigateToCharacter(Characters._id)}
+                          >
+                            <i className="fa-solid fa-eye text-primary"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="players">
+      {activeResourceTab === 'players' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-players-card">
+            <Card.Header className="modal-header d-flex justify-content-between align-items-center">
+              <Card.Title className="modal-title mb-0">Campaign Players</Card.Title>
+              <CloseButton variant="white" onClick={() => handleCloseResourceTab('players')} />
+            </Card.Header>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <Container className="mt-3">
+                <Row className="justify-content-center">
+                  <Col md={8} lg={6}>
+                    <Form onSubmit={newPlayerSubmit}>
+                      <Form.Group className="mb-3">
+                        <Form.Label className="text-light">Select New Player</Form.Label>
+                        <Form.Select
+                          onChange={(e) => setPlayersSearch(e.target.value)}
+                          value={playersSearch}
+                          type="text"
+                        >
+                          <option value="" disabled>
+                            Select Player
+                          </option>
+                          {players.players && players.players.length > 0 ? (
+                            players.players.map((el) => (
+                              <option key={el.username} value={el.username}>
+                                {el.username}
+                              </option>
+                            ))
+                          ) : (
+                            <option>No players available</option>
+                          )}
+                        </Form.Select>
+                      </Form.Group>
+                      <div className="text-center">
+                        <Button
+                          disabled={!playersSearch}
+                          className="rounded-pill"
+                          variant="outline-light"
+                          type="submit"
+                        >
+                          Add Player
+                        </Button>
+                      </div>
+                    </Form>
+                  </Col>
+                </Row>
+              </Container>
+              <Table responsive striped bordered hover size="sm" className="modern-table mt-4">
+                <thead>
+                  <tr>
+                    <th>Current Players</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaignDM.players.map((el) => (
+                    <tr key={el}>
+                      <td>{el}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
     <Tab.Pane eventKey="weapons">
       {activeResourceTab === 'weapons' && (
         <div className="text-center">
@@ -1933,59 +2050,6 @@ const [form2, setForm2] = useState({
   </Tab.Content>
 </Tab.Container>
 
-<div style={{ maxHeight: '600px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
-      <Table striped bordered condensed="true" className="zombieDMCharacterSelectTable dnd-background w-75 mx-auto">
-        <thead>
-            <tr>
-                <th colSpan="6" style={{fontSize: 28}}>{params.campaign}</th>
-            </tr>
-          <tr>
-            <th>Player</th>
-            <th>Character</th>
-            <th>Level</th>
-            <th>Class</th>
-            <th>Currency</th>
-            <th>View</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.isArray(records) && records.map((Characters) => (
-            <tr key={Characters._id}>
-              <td>{Characters.token}</td>
-              <td>{Characters.characterName}</td>
-              <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
-              <td>
-                {Characters.occupation.map((el, i) => (
-                  <span key={i}>{el.Level + " " + el.Occupation}<br /></span>
-                ))}
-              </td>
-              <td>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="rounded-pill"
-                  onClick={() => openCurrencyModal(Characters)}
-                >
-                  Adjust
-                </Button>
-              </td>
-              <td>
-                <Button
-                  size="sm"
-                  variant="link"
-                  className="p-0"
-                  style={{ border: 'none' }}
-                  onClick={() => navigateToCharacter(Characters._id)}
-                >
-                  <i className="fa-solid fa-eye text-primary"></i>
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    </div>
-
     <Modal
       className="dnd-modal"
       size="sm"
@@ -2047,61 +2111,6 @@ const [form2, setForm2] = useState({
         </Modal.Footer>
       </Form>
     </Modal>
-
-        <Modal className="dnd-modal" size="lg" centered show={showPlayers} onHide={handleClosePlayers}>
-         <div className="text-center">
-          <Card className="dnd-background">
-            <Card.Title>Players</Card.Title>
-          <Card.Body>   
-        <div className="text-center">
-        <Container className="mt-3">
-        <Row>
-          <Col>
-            <Form onSubmit={newPlayerSubmit}>
-            <Form.Group className="mb-3 mx-5">
-          <Form.Label className="text-light">Select New Player</Form.Label>
-          <Form.Select onChange={(e) => setPlayersSearch(e.target.value)}
-            defaultValue=""
-            type="text">
-          <option value="" disabled>
-            Select Player
-          </option>
-            {players.players && players.players.length > 0 ? (
-              players.players.map((el) => (
-                <option key={el.username}>{el.username}</option>
-              ))
-            ) : (
-              <option>No players available</option>
-            )}
-          </Form.Select>
-        </Form.Group>
-          <Button 
-          disabled={!playersSearch}
-          style={{ position: "relative", zIndex: "4" }} 
-          className="rounded-pill" 
-          variant="outline-light" 
-          type="submit">Add</Button>
-            </Form>
-            </Col>
-        </Row>
-        </Container>
-        <Table striped bordered condensed="true" className="zombieCharacterSelectTable mt-4">
-          <tbody>
-          {campaignDM.players.map((el) => (  
-            <tr key={el}>
-            <td>{el}</td>
-            </tr>
-          ))}
-          </tbody>
-        </Table>
-            <Button className="ms-4" variant="secondary" onClick={handleClosePlayers}>
-              Close
-            </Button>
-        </div>
-       </Card.Body>     
-       </Card>   
-       </div>
-        </Modal>
   <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
     <Card className="dnd-background">
       <Card.Header>
