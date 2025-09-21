@@ -29,6 +29,11 @@ const normalizeAccessoryBonuses = (bonuses) =>
     ? bonuses
     : {};
 
+const normalizeAccessoryOverrides = (overrides) =>
+  overrides && typeof overrides === 'object' && !Array.isArray(overrides)
+    ? overrides
+    : {};
+
 export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
   if (!Array.isArray(weapons)) return [];
   return weapons
@@ -305,6 +310,7 @@ export const normalizeAccessories = (
           notes,
           statBonuses,
           skillBonuses,
+          statOverrides,
         ] = accessory;
         if (!name) return null;
         const normalized = {
@@ -316,6 +322,7 @@ export const normalizeAccessories = (
           cost: cost ?? '',
           statBonuses: normalizeAccessoryBonuses(statBonuses),
           skillBonuses: normalizeAccessoryBonuses(skillBonuses),
+          statOverrides: normalizeAccessoryOverrides(statOverrides),
         };
         if (notes !== undefined) normalized.notes = notes;
         if (owned !== undefined) normalized.owned = owned;
@@ -331,6 +338,7 @@ export const normalizeAccessories = (
           cost: '',
           statBonuses: {},
           skillBonuses: {},
+          statOverrides: {},
         };
       }
       if (isObjectLike(accessory)) {
@@ -345,6 +353,7 @@ export const normalizeAccessories = (
           cost = '',
           statBonuses,
           skillBonuses,
+          statOverrides,
           notes,
           owned: ownedProp,
           ...rest
@@ -361,6 +370,7 @@ export const normalizeAccessories = (
           cost,
           statBonuses: normalizeAccessoryBonuses(statBonuses),
           skillBonuses: normalizeAccessoryBonuses(skillBonuses),
+          statOverrides: normalizeAccessoryOverrides(statOverrides),
           ...rest,
         };
         if (!name && accessoryName && normalized.displayName === undefined) {

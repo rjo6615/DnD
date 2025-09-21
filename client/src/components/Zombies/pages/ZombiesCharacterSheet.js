@@ -44,6 +44,42 @@ const SPELLCASTING_CLASSES = {
   ranger: 'half',
 };
 
+const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const createEmptyStatMap = () => ({
+  str: 0,
+  dex: 0,
+  con: 0,
+  int: 0,
+  wis: 0,
+  cha: 0,
+});
+
+const aggregateStatEffects = (collection) => {
+  const entries = Array.isArray(collection) ? collection : [];
+  return entries.reduce(
+    (acc, el) => {
+      STAT_KEYS.forEach((key) => {
+        const bonusValue = Number(el?.statBonuses?.[key] || 0);
+        if (!Number.isNaN(bonusValue)) {
+          acc.bonuses[key] += bonusValue;
+        }
+        const overrideRaw = el?.statOverrides?.[key];
+        if (overrideRaw !== undefined && overrideRaw !== null) {
+          const overrideValue = Number(overrideRaw);
+          if (!Number.isNaN(overrideValue)) {
+            const current = acc.overrides[key];
+            acc.overrides[key] =
+              current === undefined ? overrideValue : Math.max(current, overrideValue);
+          }
+        }
+      });
+      return acc;
+    },
+    { bonuses: createEmptyStatMap(), overrides: {} }
+  );
+};
+
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id; 
@@ -685,16 +721,8 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
-  const itemBonus = (form?.item || []).reduce(
-    (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str || 0),
-      dex: acc.dex + Number(el.statBonuses?.dex || 0),
-      con: acc.con + Number(el.statBonuses?.con || 0),
-      int: acc.int + Number(el.statBonuses?.int || 0),
-      wis: acc.wis + Number(el.statBonuses?.wis || 0),
-      cha: acc.cha + Number(el.statBonuses?.cha || 0),
-    }),
-    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  const { bonuses: itemBonus, overrides: itemOverrides } = aggregateStatEffects(
+    form?.item
   );
 
   const accessorySource = Array.isArray(form?.accessories)
@@ -703,17 +731,8 @@ export default function ZombiesCharacterSheet() {
       ? form.accessory
       : [];
 
-  const accessoryBonus = accessorySource.reduce(
-    (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str || 0),
-      dex: acc.dex + Number(el.statBonuses?.dex || 0),
-      con: acc.con + Number(el.statBonuses?.con || 0),
-      int: acc.int + Number(el.statBonuses?.int || 0),
-      wis: acc.wis + Number(el.statBonuses?.wis || 0),
-      cha: acc.cha + Number(el.statBonuses?.cha || 0),
-    }),
-    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
-  );
+  const { bonuses: accessoryBonus, overrides: accessoryOverrides } =
+    aggregateStatEffects(accessorySource);
 
   const featBonus = (form?.feat || []).reduce(
     (acc, el) => ({
@@ -727,44 +746,24 @@ export default function ZombiesCharacterSheet() {
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
-  const computedStats = {
-    str:
-      (form?.str || 0) +
-      itemBonus.str +
-      accessoryBonus.str +
-      featBonus.str +
-      (form?.race?.abilities?.str || 0),
-    dex:
-      (form?.dex || 0) +
-      itemBonus.dex +
-      accessoryBonus.dex +
-      featBonus.dex +
-      (form?.race?.abilities?.dex || 0),
-    con:
-      (form?.con || 0) +
-      itemBonus.con +
-      accessoryBonus.con +
-      featBonus.con +
-      (form?.race?.abilities?.con || 0),
-    int:
-      (form?.int || 0) +
-      itemBonus.int +
-      accessoryBonus.int +
-      featBonus.int +
-      (form?.race?.abilities?.int || 0),
-    wis:
-      (form?.wis || 0) +
-      itemBonus.wis +
-      accessoryBonus.wis +
-      featBonus.wis +
-      (form?.race?.abilities?.wis || 0),
-    cha:
-      (form?.cha || 0) +
-      itemBonus.cha +
-      accessoryBonus.cha +
-      featBonus.cha +
-      (form?.race?.abilities?.cha || 0),
-  };
+  const raceBonus = form?.race?.abilities || {};
+
+  const computedStats = STAT_KEYS.reduce((acc, key) => {
+    const base = Number(form?.[key] || 0);
+    const total =
+      base +
+      itemBonus[key] +
+      accessoryBonus[key] +
+      featBonus[key] +
+      Number(raceBonus[key] || 0);
+    const overrideCandidates = [itemOverrides[key], accessoryOverrides[key]];
+    const overrideValue = overrideCandidates.reduce((max, value) => {
+      if (value === undefined || value === null) return max;
+      return max === null ? value : Math.max(max, value);
+    }, null);
+    acc[key] = overrideValue !== null && overrideValue > total ? overrideValue : total;
+    return acc;
+  }, {});
 
   const statMods = {
     str: Math.floor((computedStats.str - 10) / 2),
@@ -843,7 +842,7 @@ export default function ZombiesCharacterSheet() {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
   }
 
-  const statNames = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+  const statNames = [...STAT_KEYS];
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
   // Characters no longer receive stat points from leveling

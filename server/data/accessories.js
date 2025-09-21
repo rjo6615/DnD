@@ -44,6 +44,7 @@ const accessories = {
     targetSlots: ['neck'],
     weight: 1,
     cost: '5000 gp',
+    statOverrides: { con: 19 },
     notes: 'While attuned to this amulet, your Constitution score is 19.',
   },
   'amulet-of-proof-against-detection-and-location': {
@@ -105,6 +106,7 @@ const accessories = {
     targetSlots: ['waist'],
     weight: 3,
     cost: '5000 gp',
+    statOverrides: { str: 21 },
     notes: 'While wearing this belt, your Strength score is 21.',
   },
   'belt-of-stone-giant-strength': {
@@ -115,6 +117,7 @@ const accessories = {
     targetSlots: ['waist'],
     weight: 3,
     cost: '50000 gp',
+    statOverrides: { str: 23 },
     notes: 'While wearing this belt, your Strength score is 23.',
   },
   'bracers-of-archery': {
