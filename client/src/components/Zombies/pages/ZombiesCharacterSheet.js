@@ -26,7 +26,10 @@ import hasteIcon from "../../../images/spell-haste-icon.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
-import { normalizeItems as normalizeInventoryItems } from "../attributes/inventoryNormalization";
+import {
+  normalizeItems as normalizeInventoryItems,
+  normalizeAccessories as normalizeInventoryAccessories,
+} from "../attributes/inventoryNormalization";
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 
 const HEADER_PADDING = 16;
@@ -221,12 +224,19 @@ export default function ZombiesCharacterSheet() {
           });
           return featObj;
         });
+        const accessories = Array.isArray(data.accessories)
+          ? data.accessories
+          : Array.isArray(data.accessory)
+            ? data.accessory
+            : [];
         setForm({
           ...data,
           feat: feats,
           weapon: data.weapon || [],
           armor: data.armor || [],
           item: data.item || [],
+          accessories,
+          accessory: accessories,
           equipment: normalizeEquipmentMap(data.equipment),
         });
       } catch (error) {
@@ -496,6 +506,27 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
+  const handleAccessoriesChange = useCallback(
+    async (accessories) => {
+      setForm((prev) => ({
+        ...prev,
+        accessories,
+        accessory: accessories,
+      }));
+      try {
+        await apiFetch(`/equipment/update-accessories/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessories }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
+  );
+
   const handleEquipmentChange = useCallback(
     async (equipment = {}) => {
       const normalized = normalizeEquipmentMap(equipment, {
@@ -557,6 +588,7 @@ export default function ZombiesCharacterSheet() {
       const newWeapons = [];
       const newArmor = [];
       const newItems = [];
+      const newAccessories = [];
 
       purchaseItems.forEach((entry) => {
         if (!entry || typeof entry !== 'object') return;
@@ -589,6 +621,15 @@ export default function ZombiesCharacterSheet() {
           };
           newItems.push(sanitized);
         }
+        if (entry.type === 'accessory') {
+          const { type: _ignored, ...rest } = entry;
+          const [normalized] = normalizeInventoryAccessories([rest], {
+            includeUnowned: true,
+          });
+          if (normalized) {
+            newAccessories.push({ ...normalized, owned: true });
+          }
+        }
       });
 
       if (newWeapons.length) {
@@ -615,11 +656,29 @@ export default function ZombiesCharacterSheet() {
         const updatedItems = [...normalizedExistingItems, ...newItems];
         await handleItemsChange(updatedItems);
       }
+
+      if (newAccessories.length) {
+        const sourceAccessories = Array.isArray(form.accessories)
+          ? form.accessories
+          : Array.isArray(form.accessory)
+            ? form.accessory
+            : [];
+        const normalizedExistingAccessories = normalizeInventoryAccessories(
+          sourceAccessories,
+          { includeUnowned: true }
+        );
+        const updatedAccessories = [
+          ...normalizedExistingAccessories,
+          ...newAccessories,
+        ];
+        await handleAccessoriesChange(updatedAccessories);
+      }
     },
     [
       characterId,
       form,
       handleArmorChange,
+      handleAccessoriesChange,
       handleItemsChange,
       handleWeaponsChange,
       setForm,
@@ -627,6 +686,24 @@ export default function ZombiesCharacterSheet() {
   );
 
   const itemBonus = (form?.item || []).reduce(
+    (acc, el) => ({
+      str: acc.str + Number(el.statBonuses?.str || 0),
+      dex: acc.dex + Number(el.statBonuses?.dex || 0),
+      con: acc.con + Number(el.statBonuses?.con || 0),
+      int: acc.int + Number(el.statBonuses?.int || 0),
+      wis: acc.wis + Number(el.statBonuses?.wis || 0),
+      cha: acc.cha + Number(el.statBonuses?.cha || 0),
+    }),
+    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  );
+
+  const accessorySource = Array.isArray(form?.accessories)
+    ? form.accessories
+    : Array.isArray(form?.accessory)
+      ? form.accessory
+      : [];
+
+  const accessoryBonus = accessorySource.reduce(
     (acc, el) => ({
       str: acc.str + Number(el.statBonuses?.str || 0),
       dex: acc.dex + Number(el.statBonuses?.dex || 0),
@@ -651,12 +728,42 @@ export default function ZombiesCharacterSheet() {
   );
 
   const computedStats = {
-    str: (form?.str || 0) + itemBonus.str + featBonus.str + (form?.race?.abilities?.str || 0),
-    dex: (form?.dex || 0) + itemBonus.dex + featBonus.dex + (form?.race?.abilities?.dex || 0),
-    con: (form?.con || 0) + itemBonus.con + featBonus.con + (form?.race?.abilities?.con || 0),
-    int: (form?.int || 0) + itemBonus.int + featBonus.int + (form?.race?.abilities?.int || 0),
-    wis: (form?.wis || 0) + itemBonus.wis + featBonus.wis + (form?.race?.abilities?.wis || 0),
-    cha: (form?.cha || 0) + itemBonus.cha + featBonus.cha + (form?.race?.abilities?.cha || 0),
+    str:
+      (form?.str || 0) +
+      itemBonus.str +
+      accessoryBonus.str +
+      featBonus.str +
+      (form?.race?.abilities?.str || 0),
+    dex:
+      (form?.dex || 0) +
+      itemBonus.dex +
+      accessoryBonus.dex +
+      featBonus.dex +
+      (form?.race?.abilities?.dex || 0),
+    con:
+      (form?.con || 0) +
+      itemBonus.con +
+      accessoryBonus.con +
+      featBonus.con +
+      (form?.race?.abilities?.con || 0),
+    int:
+      (form?.int || 0) +
+      itemBonus.int +
+      accessoryBonus.int +
+      featBonus.int +
+      (form?.race?.abilities?.int || 0),
+    wis:
+      (form?.wis || 0) +
+      itemBonus.wis +
+      accessoryBonus.wis +
+      featBonus.wis +
+      (form?.race?.abilities?.wis || 0),
+    cha:
+      (form?.cha || 0) +
+      itemBonus.cha +
+      accessoryBonus.cha +
+      featBonus.cha +
+      (form?.race?.abilities?.cha || 0),
   };
 
   const statMods = {
@@ -1065,6 +1172,7 @@ return (
       onWeaponsChange={handleWeaponsChange}
       onArmorChange={handleArmorChange}
       onItemsChange={handleItemsChange}
+      onAccessoriesChange={handleAccessoriesChange}
       currency={{
         cp: form?.cp ?? 0,
         sp: form?.sp ?? 0,

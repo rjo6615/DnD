@@ -9,6 +9,26 @@ const parseProperties = (value) => {
   return [];
 };
 
+const normalizeAccessorySlots = (slots) => {
+  if (Array.isArray(slots)) {
+    return slots
+      .map((slot) => (typeof slot === 'string' ? slot.trim() : ''))
+      .filter(Boolean);
+  }
+  if (typeof slots === 'string') {
+    return slots
+      .split(',')
+      .map((slot) => slot.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const normalizeAccessoryBonuses = (bonuses) =>
+  bonuses && typeof bonuses === 'object' && !Array.isArray(bonuses)
+    ? bonuses
+    : {};
+
 export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
   if (!Array.isArray(weapons)) return [];
   return weapons
@@ -254,6 +274,100 @@ export const normalizeItems = (items, { includeUnowned = false } = {}) => {
           normalized.displayName = displayName;
         } else if (!name && itemName) {
           normalized.displayName = itemName;
+        }
+        if (notes !== undefined) normalized.notes = notes;
+        if (ownedProp !== undefined) normalized.owned = ownedProp;
+        return normalized;
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
+export const normalizeAccessories = (
+  accessories,
+  { includeUnowned = false } = {}
+) => {
+  if (!Array.isArray(accessories)) return [];
+  return accessories
+    .map((accessory) => {
+      if (!accessory) return null;
+      const owned = isObjectLike(accessory) ? accessory.owned : undefined;
+      if (!includeUnowned && owned === false) return null;
+      if (Array.isArray(accessory)) {
+        const [
+          name,
+          category,
+          targetSlots,
+          rarity,
+          weight,
+          cost,
+          notes,
+          statBonuses,
+          skillBonuses,
+        ] = accessory;
+        if (!name) return null;
+        const normalized = {
+          name,
+          category: category ?? '',
+          targetSlots: normalizeAccessorySlots(targetSlots),
+          rarity: rarity ?? '',
+          weight: weight ?? '',
+          cost: cost ?? '',
+          statBonuses: normalizeAccessoryBonuses(statBonuses),
+          skillBonuses: normalizeAccessoryBonuses(skillBonuses),
+        };
+        if (notes !== undefined) normalized.notes = notes;
+        if (owned !== undefined) normalized.owned = owned;
+        return normalized;
+      }
+      if (typeof accessory === 'string') {
+        return {
+          name: accessory,
+          category: '',
+          targetSlots: [],
+          rarity: '',
+          weight: '',
+          cost: '',
+          statBonuses: {},
+          skillBonuses: {},
+        };
+      }
+      if (isObjectLike(accessory)) {
+        const {
+          name,
+          accessoryName,
+          displayName,
+          category = '',
+          targetSlots,
+          rarity = '',
+          weight = '',
+          cost = '',
+          statBonuses,
+          skillBonuses,
+          notes,
+          owned: ownedProp,
+          ...rest
+        } = accessory;
+        const resolvedName = name || accessoryName || displayName;
+        if (!resolvedName) return null;
+        if (!includeUnowned && ownedProp === false) return null;
+        const normalized = {
+          name: resolvedName,
+          category,
+          targetSlots: normalizeAccessorySlots(targetSlots),
+          rarity,
+          weight,
+          cost,
+          statBonuses: normalizeAccessoryBonuses(statBonuses),
+          skillBonuses: normalizeAccessoryBonuses(skillBonuses),
+          ...rest,
+        };
+        if (!name && accessoryName && normalized.displayName === undefined) {
+          normalized.displayName = accessoryName;
+        }
+        if (displayName !== undefined) {
+          normalized.displayName = displayName;
         }
         if (notes !== undefined) normalized.notes = notes;
         if (ownedProp !== undefined) normalized.owned = ownedProp;
