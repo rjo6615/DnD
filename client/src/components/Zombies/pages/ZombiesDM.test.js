@@ -99,9 +99,8 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/armor/options'));
 
     expect(
-      await within(card).findByRole('columnheader', { name: 'Slot' })
+      await within(card).findByText(/No armor created yet\./i)
     ).toBeInTheDocument();
-    expect(await within(card).findByText('Chest')).toBeInTheDocument();
 
     await openResourceCreateForm(card);
 
@@ -167,10 +166,13 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/armor/options'));
 
+    const armorGrid = await within(card).findByTestId('armor-resource-grid');
     expect(
-      await within(card).findByRole('columnheader', { name: 'Slot' })
+      within(armorGrid).getByText(/Custom Armor/i)
     ).toBeInTheDocument();
-    expect(await within(card).findByText('Chest')).toBeInTheDocument();
+    expect(
+      within(armorGrid).getByText(/Slot:\s*Chest/i)
+    ).toBeInTheDocument();
 
     await openResourceCreateForm(card);
 
@@ -411,8 +413,10 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    expect(await screen.findByRole('columnheader', { name: 'Currency' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: /Adjust/i })).toBeInTheDocument();
+    const grid = await screen.findByTestId('characters-resource-grid');
+    expect(
+      within(grid).getByRole('button', { name: /Adjust currency for Hero/i })
+    ).toBeInTheDocument();
   });
 
   test('submits normalized currency adjustments to the API', async () => {
@@ -451,7 +455,9 @@ describe('ZombiesDM AI generation', () => {
 
     render(<ZombiesDM />);
 
-    const adjustButton = await screen.findByRole('button', { name: /Adjust/i });
+    const adjustButton = await screen.findByRole('button', {
+      name: /Adjust currency for Hero/i,
+    });
     await userEvent.click(adjustButton);
 
     const copperInput = await screen.findByLabelText(/Copper/i);
