@@ -6,7 +6,6 @@ import {
   Form,
   Row,
   Container,
-  Table,
   Card,
   Alert,
   Spinner,
@@ -42,6 +41,33 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   acc[key] = label;
   return acc;
 }, {});
+
+function ResourceGrid({
+  items,
+  renderItem,
+  emptyMessage = 'No records available.',
+  getKey,
+  rowClassName = '',
+  colClassName = 'd-flex',
+  colProps = { xs: 12, md: 6, xl: 4 },
+  dataTestId,
+}) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return <div className="text-center text-muted py-3">{emptyMessage}</div>;
+  }
+
+  const rowClasses = ['resource-grid', rowClassName].filter(Boolean).join(' ');
+
+  return (
+    <Row className={rowClasses} data-testid={dataTestId}>
+      {items.map((item, index) => (
+        <Col key={(getKey && getKey(item, index)) || index} className={colClassName} {...colProps}>
+          {renderItem(item, index)}
+        </Col>
+      ))}
+    </Row>
+  );
+}
 
 export default function ZombiesDM() {
   const user = useUser();
@@ -1128,57 +1154,74 @@ const [form2, setForm2] = useState({
               <CloseButton variant="white" onClick={() => handleCloseResourceTab('characters')} />
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-              <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                <thead>
-                  <tr>
-                    <th>Player</th>
-                    <th>Character</th>
-                    <th>Level</th>
-                    <th>Class</th>
-                    <th>Currency</th>
-                    <th>View</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(records) &&
-                    records.map((Characters) => (
-                      <tr key={Characters._id}>
-                        <td>{Characters.token}</td>
-                        <td>{Characters.characterName}</td>
-                        <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
-                        <td>
-                          {Characters.occupation.map((el, i) => (
-                            <span key={i}>
-                              {el.Level + ' ' + el.Occupation}
-                              <br />
-                            </span>
-                          ))}
-                        </td>
-                        <td>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="rounded-pill"
-                            onClick={() => openCurrencyModal(Characters)}
-                          >
-                            Adjust
-                          </Button>
-                        </td>
-                        <td>
-                          <Button
-                            size="sm"
-                            variant="link"
-                            className="p-0"
-                            style={{ border: 'none' }}
-                            onClick={() => navigateToCharacter(Characters._id)}
-                          >
-                            <i className="fa-solid fa-eye text-primary"></i>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </Table>
+              <ResourceGrid
+                dataTestId="characters-resource-grid"
+                items={Array.isArray(records) ? records : []}
+                emptyMessage="No characters found."
+                getKey={(character) => character._id}
+                renderItem={(character) => {
+                  const occupation = Array.isArray(character.occupation)
+                    ? character.occupation
+                    : [];
+                  const totalLevel = occupation.reduce(
+                    (total, role) => total + (Number(role.Level) || 0),
+                    0
+                  );
+
+                  return (
+                    <Card className="resource-card h-100 w-100 text-start">
+                      <Card.Body className="d-flex flex-column gap-2">
+                        <div>
+                          <Card.Title className="mb-1">
+                            {character.characterName || 'Unnamed Character'}
+                          </Card.Title>
+                          <Card.Subtitle className="text-muted small">
+                            Player: {character.token || '—'}
+                          </Card.Subtitle>
+                        </div>
+                        <Card.Text className="mb-0">
+                          <span className="fw-semibold">Level:</span> {totalLevel}
+                        </Card.Text>
+                        <div>
+                          <div className="text-muted fw-semibold small text-uppercase mb-1">
+                            Classes
+                          </div>
+                          {occupation.length > 0 ? (
+                            occupation.map((role, index) => (
+                              <div key={`${character._id}-class-${index}`} className="small">
+                                {`${role.Level} ${role.Occupation}`}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-muted small">—</div>
+                          )}
+                        </div>
+                      </Card.Body>
+                      <Card.Footer className="d-flex flex-wrap gap-2 justify-content-end">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="rounded-pill"
+                          onClick={() => openCurrencyModal(character)}
+                          aria-label={`Adjust currency for ${
+                            character.characterName || character.token || 'this character'
+                          }`}
+                        >
+                          Adjust Currency
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          className="rounded-pill"
+                          onClick={() => navigateToCharacter(character._id)}
+                        >
+                          View Sheet
+                        </Button>
+                      </Card.Footer>
+                    </Card>
+                  );
+                }}
+              />
             </Card.Body>
           </Card>
         </div>
@@ -1232,20 +1275,20 @@ const [form2, setForm2] = useState({
                   </Col>
                 </Row>
               </Container>
-              <Table responsive striped bordered hover size="sm" className="modern-table mt-4">
-                <thead>
-                  <tr>
-                    <th>Current Players</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaignDM.players.map((el) => (
-                    <tr key={el}>
-                      <td>{el}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+              <ResourceGrid
+                dataTestId="players-resource-grid"
+                items={Array.isArray(campaignDM.players) ? campaignDM.players : []}
+                emptyMessage="No players added yet."
+                getKey={(player, index) => player || index}
+                colProps={{ xs: 12, sm: 6, lg: 4 }}
+                renderItem={(playerName) => (
+                  <Card className="resource-card h-100 w-100">
+                    <Card.Body className="d-flex flex-column justify-content-center align-items-center py-4">
+                      <Card.Title className="mb-0">{playerName}</Card.Title>
+                    </Card.Body>
+                  </Card>
+                )}
+              />
             </Card.Body>
           </Card>
         </div>
@@ -1394,41 +1437,36 @@ const [form2, setForm2] = useState({
                     </div>
                   </Form>
                 ) : (
-                  <>
-                    <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Type</th>
-                          <th>Category</th>
-                          <th>Damage</th>
-                          <th>Properties</th>
-                          <th>Weight</th>
-                          <th>Cost</th>
-                          <th>Delete</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {weapons.map((w) => (
-                          <tr key={w._id}>
-                            <td>{w.name}</td>
-                            <td>{w.type}</td>
-                            <td>{w.category}</td>
-                            <td>{w.damage}</td>
-                            <td>{w.properties?.join(', ')}</td>
-                            <td>{w.weight}</td>
-                            <td>{w.cost}</td>
-                            <td>
-                              <Button
-                                className="btn-danger action-btn fa-solid fa-trash"
-                                onClick={() => deleteWeapon(w._id)}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </>
+                  <ResourceGrid
+                    dataTestId="weapons-resource-grid"
+                    items={Array.isArray(weapons) ? weapons : []}
+                    emptyMessage="No weapons created yet."
+                    getKey={(weapon) => weapon._id}
+                    colProps={{ xs: 12, sm: 6, lg: 4 }}
+                    renderItem={(weapon) => (
+                      <Card className="weapon-card h-100 w-100 text-start">
+                        <Card.Body className="d-flex flex-column gap-2">
+                          <Card.Title>{weapon.name}</Card.Title>
+                          <Card.Text>Type: {weapon.type || '—'}</Card.Text>
+                          <Card.Text>Category: {weapon.category || '—'}</Card.Text>
+                          <Card.Text>Damage: {weapon.damage || '—'}</Card.Text>
+                          <Card.Text>
+                            Properties: {weapon.properties?.length ? weapon.properties.join(', ') : '—'}
+                          </Card.Text>
+                          <Card.Text>Weight: {weapon.weight ?? '—'}</Card.Text>
+                          <Card.Text>Cost: {weapon.cost ?? '—'}</Card.Text>
+                        </Card.Body>
+                        <Card.Footer className="d-flex justify-content-end">
+                          <Button
+                            className="btn-danger action-btn fa-solid fa-trash"
+                            onClick={() => deleteWeapon(weapon._id)}
+                            aria-label={`Delete ${weapon.name || 'weapon'}`}
+                            title="Delete weapon"
+                          />
+                        </Card.Footer>
+                      </Card>
+                    )}
+                  />
                 )}
               </div>
             </Card.Body>
@@ -1601,36 +1639,45 @@ const [form2, setForm2] = useState({
                     </div>
                   </Form>
                 ) : (
-                  <>
-                    <Table striped bordered hover size="sm" className="modern-table mt-3">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Type</th>
-                          <th>Category</th>
-                          <th>AC Bonus</th>
-                          <th>Max Dex</th>
-                          <th>Slot</th>
-                          <th>Delete</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {armor.map((a) => (
-                          <tr key={a._id}>
-                            <td>{a.armorName ?? a.name}</td>
-                            <td>{a.type}</td>
-                            <td>{a.category}</td>
-                            <td>{a.armorBonus ?? a.acBonus ?? a.ac}</td>
-                            <td>{a.maxDex}</td>
-                            <td>{getArmorSlotLabel(a)}</td>
-                            <td>
-                              <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteArmor(a._id)} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </>
+                  <ResourceGrid
+                    dataTestId="armor-resource-grid"
+                    items={Array.isArray(armor) ? armor : []}
+                    emptyMessage="No armor created yet."
+                    getKey={(piece) => piece._id}
+                    colProps={{ xs: 12, sm: 6, lg: 4 }}
+                    renderItem={(piece) => {
+                      const acBonus = piece.armorBonus ?? piece.acBonus ?? piece.ac ?? '—';
+                      const maxDex = piece.maxDex ?? '—';
+                      const slotLabel = getArmorSlotLabel(piece);
+
+                      return (
+                        <Card className="armor-card h-100 w-100 text-start">
+                          <Card.Body className="d-flex flex-column gap-2">
+                            <Card.Title>{piece.armorName ?? piece.name}</Card.Title>
+                            <Card.Text>Type: {piece.type || '—'}</Card.Text>
+                            <Card.Text>Category: {piece.category || '—'}</Card.Text>
+                            <Card.Text>AC Bonus: {acBonus}</Card.Text>
+                            <Card.Text>Max Dex: {maxDex}</Card.Text>
+                            <Card.Text>Slot: {slotLabel}</Card.Text>
+                            <Card.Text>
+                              Strength Requirement: {piece.strength ?? piece.strRequirement ?? '—'}
+                            </Card.Text>
+                            <Card.Text>Stealth: {piece.stealth ? 'Disadvantage' : '—'}</Card.Text>
+                            <Card.Text>Weight: {piece.weight ?? '—'}</Card.Text>
+                            <Card.Text>Cost: {piece.cost ?? '—'}</Card.Text>
+                          </Card.Body>
+                          <Card.Footer className="d-flex justify-content-end">
+                            <Button
+                              className="btn-danger action-btn fa-solid fa-trash"
+                              onClick={() => deleteArmor(piece._id)}
+                              aria-label={`Delete ${piece.armorName ?? piece.name ?? 'armor'}`}
+                              title="Delete armor"
+                            />
+                          </Card.Footer>
+                        </Card>
+                      );
+                    }}
+                  />
                 )}
               </div>
             </Card.Body>
@@ -1810,45 +1857,42 @@ const [form2, setForm2] = useState({
                     </div>
                   </Form>
                 ) : (
-                  <>
-                    <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Category</th>
-                          <th>Target Slots</th>
-                          <th>Rarity</th>
-                          <th>Weight</th>
-                          <th>Cost</th>
-                          <th>Notes</th>
-                          <th>Stat Bonuses</th>
-                          <th>Skill Bonuses</th>
-                          <th>Delete</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {accessories.map((acc) => (
-                          <tr key={acc._id}>
-                            <td>{acc.name}</td>
-                            <td>{acc.category}</td>
-                            <td>{getAccessorySlotLabel(acc.targetSlots || acc.slots)}</td>
-                            <td>{acc.rarity}</td>
-                            <td>{acc.weight}</td>
-                            <td>{acc.cost}</td>
-                            <td>{acc.notes}</td>
-                            <td>{renderBonuses(acc.statBonuses, STAT_LABELS)}</td>
-                            <td>{renderBonuses(acc.skillBonuses, SKILL_LABELS)}</td>
-                            <td>
-                              <Button
-                                className="btn-danger action-btn fa-solid fa-trash"
-                                onClick={() => deleteAccessory(acc._id)}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </>
+                  <ResourceGrid
+                    dataTestId="accessories-resource-grid"
+                    items={Array.isArray(accessories) ? accessories : []}
+                    emptyMessage="No accessories created yet."
+                    getKey={(accessory) => accessory._id}
+                    colProps={{ xs: 12, sm: 6, lg: 4 }}
+                    renderItem={(accessory) => {
+                      const slotLabel = getAccessorySlotLabel(accessory.targetSlots || accessory.slots);
+                      const statBonuses = renderBonuses(accessory.statBonuses, STAT_LABELS);
+                      const skillBonuses = renderBonuses(accessory.skillBonuses, SKILL_LABELS);
+
+                      return (
+                        <Card className="item-card h-100 w-100 text-start">
+                          <Card.Body className="d-flex flex-column gap-2">
+                            <Card.Title>{accessory.name}</Card.Title>
+                            <Card.Text>Category: {accessory.category || '—'}</Card.Text>
+                            <Card.Text>Target Slots: {slotLabel}</Card.Text>
+                            <Card.Text>Rarity: {accessory.rarity || '—'}</Card.Text>
+                            <Card.Text>Weight: {accessory.weight ?? '—'}</Card.Text>
+                            <Card.Text>Cost: {accessory.cost ?? '—'}</Card.Text>
+                            {accessory.notes ? <Card.Text>Notes: {accessory.notes}</Card.Text> : null}
+                            {statBonuses ? <Card.Text>Stat Bonuses: {statBonuses}</Card.Text> : null}
+                            {skillBonuses ? <Card.Text>Skill Bonuses: {skillBonuses}</Card.Text> : null}
+                          </Card.Body>
+                          <Card.Footer className="d-flex justify-content-end">
+                            <Button
+                              className="btn-danger action-btn fa-solid fa-trash"
+                              onClick={() => deleteAccessory(accessory._id)}
+                              aria-label={`Delete ${accessory.name || 'accessory'}`}
+                              title="Delete accessory"
+                            />
+                          </Card.Footer>
+                        </Card>
+                      );
+                    }}
+                  />
                 )}
               </div>
             </Card.Body>
@@ -2002,44 +2046,48 @@ const [form2, setForm2] = useState({
                     </div>
                   </Form>
                 ) : (
-                  <>
-                    <Table responsive striped bordered hover size="sm" className="modern-table mt-3">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Category</th>
-                          <th>Weight</th>
-                          <th>Cost</th>
-                          <th>Notes</th>
-                          <th>Stat Bonuses</th>
-                          <th>Skill Bonuses</th>
-                          <th>Delete</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((i) => (
-                          <tr key={i._id}>
-                            <td>{i.name}</td>
-                            <td>{i.category}</td>
-                            <td>{i.weight}</td>
-                            <td>{i.cost}</td>
-                            <td>
-                              {i.notes && (
-                                <Button variant="link" className="p-0" onClick={() => openItemNote(i.notes)}>
-                                  View
-                                </Button>
-                              )}
-                            </td>
-                            <td>{renderBonuses(i.statBonuses, STAT_LABELS)}</td>
-                            <td>{renderBonuses(i.skillBonuses, SKILL_LABELS)}</td>
-                            <td>
-                              <Button className="btn-danger action-btn fa-solid fa-trash" onClick={() => deleteItem(i._id)} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </>
+                  <ResourceGrid
+                    dataTestId="items-resource-grid"
+                    items={Array.isArray(items) ? items : []}
+                    emptyMessage="No items created yet."
+                    getKey={(item) => item._id}
+                    colProps={{ xs: 12, sm: 6, lg: 4 }}
+                    renderItem={(item) => {
+                      const statBonuses = renderBonuses(item.statBonuses, STAT_LABELS);
+                      const skillBonuses = renderBonuses(item.skillBonuses, SKILL_LABELS);
+
+                      return (
+                        <Card className="item-card h-100 w-100 text-start">
+                          <Card.Body className="d-flex flex-column gap-2">
+                            <Card.Title>{item.name}</Card.Title>
+                            <Card.Text>Category: {item.category || '—'}</Card.Text>
+                            <Card.Text>Weight: {item.weight ?? '—'}</Card.Text>
+                            <Card.Text>Cost: {item.cost ?? '—'}</Card.Text>
+                            {statBonuses ? <Card.Text>Stat Bonuses: {statBonuses}</Card.Text> : null}
+                            {skillBonuses ? <Card.Text>Skill Bonuses: {skillBonuses}</Card.Text> : null}
+                            {item.notes ? (
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="p-0 align-self-start"
+                                onClick={() => openItemNote(item.notes)}
+                              >
+                                View Notes
+                              </Button>
+                            ) : null}
+                          </Card.Body>
+                          <Card.Footer className="d-flex justify-content-end">
+                            <Button
+                              className="btn-danger action-btn fa-solid fa-trash"
+                              onClick={() => deleteItem(item._id)}
+                              aria-label={`Delete ${item.name || 'item'}`}
+                              title="Delete item"
+                            />
+                          </Card.Footer>
+                        </Card>
+                      );
+                    }}
+                  />
                 )}
               </div>
             </Card.Body>

@@ -79,19 +79,14 @@
   border-color: var(--bs-primary);
 }
 
-.weapon-card {
-  height: 100%;
-  color: var(--bs-dark);
-  background-color: #fff;
+.resource-grid > [class*='col'] {
+  display: flex;
 }
 
-.armor-card {
-  height: 100%;
-  color: var(--bs-dark);
-  background-color: #fff;
-}
-
-.item-card {
+.weapon-card,
+.armor-card,
+.item-card,
+.resource-card {
   height: 100%;
   color: var(--bs-dark);
   background-color: #fff;
@@ -113,54 +108,40 @@
 }
 
 .weapon-card .card-title,
-.weapon-card .card-text {
-  margin-bottom: 0.25rem; // reduce vertical gap
-  line-height: 1.2;
-}
-
+.weapon-card .card-text,
 .armor-card .card-title,
-.armor-card .card-text {
+.armor-card .card-text,
+.item-card .card-title,
+.item-card .card-text,
+.resource-card .card-title,
+.resource-card .card-text {
   margin-bottom: 0.25rem; // reduce vertical gap
   line-height: 1.2;
 }
 
 @media (max-width: 576px) {
-  .weapon-card {
+  .weapon-card,
+  .armor-card,
+  .item-card,
+  .resource-card {
     font-size: 0.6rem;
   }
-  .armor-card {
-    font-size: 0.6rem;
-  }
-  .item-card {
-    font-size: 0.6rem;
-  }
-  .weapon-card .card-title {
+  .weapon-card .card-title,
+  .armor-card .card-title,
+  .item-card .card-title,
+  .resource-card .card-title {
     font-size: 0.85rem;
   }
-  .armor-card .card-title {
-    font-size: 0.85rem;
-  }
-  .item-card .card-title {
-    font-size: 0.85rem;
-  }
-  .weapon-card .card-text {
+  .weapon-card .card-text,
+  .armor-card .card-text,
+  .item-card .card-text,
+  .resource-card .card-text {
     font-size: 0.6rem;
   }
-  .armor-card .card-text {
-    font-size: 0.6rem;
-  }
-  .item-card .card-text {
-    font-size: 0.6rem;
-  }
-  .weapon-card .btn {
-    font-size: 0.6rem;
-    padding: 0.25rem 0.5rem;
-  }
-  .armor-card .btn {
-    font-size: 0.6rem;
-    padding: 0.25rem 0.5rem;
-  }
-  .item-card .btn {
+  .weapon-card .btn,
+  .armor-card .btn,
+  .item-card .btn,
+  .resource-card .btn {
     font-size: 0.6rem;
     padding: 0.25rem 0.5rem;
   }
