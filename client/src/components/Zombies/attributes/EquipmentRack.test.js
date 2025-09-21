@@ -247,4 +247,60 @@ describe('EquipmentRack', () => {
       .map((option) => option.textContent);
     expect(ringOptions).toEqual(['Unequipped']);
   });
+
+  test('cloaks only appear in the back slot', () => {
+    const inventory = {
+      armor: normalizeArmor([
+        { name: 'Cloak of Protection', category: 'cloak' },
+        { name: 'Steel Pauldron', category: 'shoulder' },
+      ]),
+      items: [
+        { name: 'Cape of Billowing', category: 'Cape' },
+        { name: 'Spaulders of Might', category: 'Shoulder' },
+      ],
+      accessories: [
+        {
+          name: 'Shadowed Capelet',
+          category: 'Cloak',
+          targetSlots: ['back'],
+        },
+        {
+          name: 'Silver Epaulette',
+          category: 'Shoulder',
+          targetSlots: ['shoulders'],
+        },
+      ],
+    };
+
+    render(
+      <EquipmentRack
+        equipment={{}}
+        inventory={inventory}
+        onEquipmentChange={() => {}}
+        onSlotChange={() => {}}
+      />
+    );
+
+    const shouldersSelect = screen.getByLabelText('Shoulders slot selection');
+    const shouldersOptions = within(shouldersSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(shouldersOptions).toEqual([
+      'Unequipped',
+      'Steel Pauldron (Armor)',
+      'Spaulders of Might (Item)',
+      'Silver Epaulette (Accessory)',
+    ]);
+
+    const backSelect = screen.getByLabelText('Back slot selection');
+    const backOptions = within(backSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(backOptions).toEqual([
+      'Unequipped',
+      'Cloak of Protection (Armor)',
+      'Cape of Billowing (Item)',
+      'Shadowed Capelet (Accessory)',
+    ]);
+  });
 });

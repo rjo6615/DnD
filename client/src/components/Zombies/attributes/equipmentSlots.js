@@ -66,14 +66,38 @@ export const EQUIPMENT_SLOT_LAYOUT = [
       allowedSources: ['armor', 'item', 'accessory'],
       filters: {
         item: {
-          categories: ['shoulder', 'cloak', 'cape', 'mantle'],
+          categories: [
+            'shoulder',
+            'shoulders',
+            'pauldron',
+            'spauldron',
+            'epaulet',
+            'epaulette',
+            'mantle',
+          ],
         },
         armor: {
-          categories: ['shoulder', 'cloak', 'cape', 'mantle'],
+          categories: [
+            'shoulder',
+            'shoulders',
+            'pauldron',
+            'spauldron',
+            'epaulet',
+            'epaulette',
+            'mantle',
+          ],
         },
         accessory: {
-          categories: ['shoulder', 'cloak', 'cape', 'mantle'],
-          targetSlots: ['shoulders', 'back'],
+          categories: [
+            'shoulder',
+            'shoulders',
+            'pauldron',
+            'spauldron',
+            'epaulet',
+            'epaulette',
+            'mantle',
+          ],
+          targetSlots: ['shoulders'],
         },
       },
     }),
@@ -102,7 +126,7 @@ export const EQUIPMENT_SLOT_LAYOUT = [
         },
         accessory: {
           categories: ['back', 'cloak', 'cape', 'mantle', 'wings'],
-          targetSlots: ['back', 'shoulders'],
+          targetSlots: ['back'],
         },
       },
     }),
