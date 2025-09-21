@@ -6,6 +6,7 @@ import {
   normalizeArmor,
   normalizeItems,
   normalizeWeapons,
+  normalizeAccessories,
 } from './inventoryNormalization';
 
 export default function EquipmentModal({
@@ -26,6 +27,10 @@ export default function EquipmentModal({
   const normalizedItems = useMemo(
     () => normalizeItems(form.item || []),
     [form.item]
+  );
+  const normalizedAccessories = useMemo(
+    () => normalizeAccessories(form.accessories || form.accessory || []),
+    [form.accessories, form.accessory]
   );
   const normalizedEquipment = useMemo(
     () => normalizeEquipmentMap(form.equipment),
@@ -57,6 +62,7 @@ export default function EquipmentModal({
                 weapons: normalizedWeapons,
                 armor: normalizedArmor,
                 items: normalizedItems,
+                accessories: normalizedAccessories,
               }}
               onEquipmentChange={onEquipmentChange}
               onSlotChange={onEquipmentSlotChange}

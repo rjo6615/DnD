@@ -205,4 +205,46 @@ describe('EquipmentRack', () => {
       .map((option) => option.textContent);
     expect(feetOptions).toEqual(['Unequipped']);
   });
+
+  test('accessories only appear in compatible slots', () => {
+    const inventory = {
+      accessories: [
+        {
+          name: 'Belt of Hill Giant Strength',
+          category: 'belt',
+          targetSlots: ['waist'],
+        },
+      ],
+    };
+
+    render(
+      <EquipmentRack
+        equipment={{}}
+        inventory={inventory}
+        onEquipmentChange={() => {}}
+        onSlotChange={() => {}}
+      />
+    );
+
+    const waistSelect = screen.getByLabelText('Waist slot selection');
+    const waistOptions = within(waistSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(waistOptions).toEqual([
+      'Unequipped',
+      'Belt of Hill Giant Strength (Accessory)',
+    ]);
+
+    const headSelect = screen.getByLabelText('Head slot selection');
+    const headOptions = within(headSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(headOptions).toEqual(['Unequipped']);
+
+    const ringSelect = screen.getByLabelText('Ring I slot selection');
+    const ringOptions = within(ringSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(ringOptions).toEqual(['Unequipped']);
+  });
 });
