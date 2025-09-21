@@ -89,6 +89,10 @@ const OpenAI = require('openai');
 const mockParse = OpenAI.__parse;
 
 const routes = require('../routes');
+const {
+  categories: accessoryCategories,
+  slotKeys: accessorySlotKeys,
+} = require('../data/accessories');
 
 const app = express();
 app.use(express.json());
@@ -175,6 +179,69 @@ describe('AI item route', () => {
     expect(res.status).toBe(500);
     expect(res.body.message).toBeDefined();
     expect(mockParse.mock.calls[0][0].text.format.name).toBe('item');
+  });
+});
+
+describe('AI accessory route', () => {
+  beforeEach(() => {
+    mockParse.mockReset();
+  });
+
+  test('returns accessory with slots and bonuses', async () => {
+    const category = accessoryCategories[0];
+    const slot = accessorySlotKeys[0];
+    mockParse.mockResolvedValue({
+      output: [
+        {
+          content: [
+            {
+              parsed: {
+                name: 'Stargazer Circlet',
+                category,
+                targetSlots: [slot],
+                rarity: 'rare',
+                statBonuses: { int: 2 },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/accessory')
+      .send({ prompt: 'create an accessory' });
+    expect(res.status).toBe(200);
+    expect(res.body.targetSlots).toEqual([slot]);
+    expect(res.body.category).toBe(category);
+    expect(res.body.statBonuses).toEqual({ int: 2 });
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('accessory');
+  });
+
+  test('handles invalid accessory data', async () => {
+    const category = accessoryCategories[0];
+    mockParse.mockResolvedValue({
+      output: [
+        {
+          content: [
+            {
+              parsed: {
+                name: 'Broken Accessory',
+                category,
+                targetSlots: [],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/accessory')
+      .send({ prompt: 'invalid accessory' });
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBeDefined();
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('accessory');
   });
 });
 

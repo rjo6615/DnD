@@ -23,6 +23,16 @@ const armorSlotOptions = [
   { key: 'offHand', label: 'Off Hand' },
 ];
 
+const accessorySlotOptions = [
+  { key: 'eyes', label: 'Eyes' },
+  { key: 'wrists', label: 'Wrists' },
+  { key: 'neck', label: 'Neck' },
+  { key: 'waist', label: 'Waist' },
+  { key: 'back', label: 'Back' },
+  { key: 'ringLeft', label: 'Ring I' },
+  { key: 'ringRight', label: 'Ring II' },
+];
+
 describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
@@ -127,6 +137,11 @@ describe('ZombiesDM AI generation', () => {
               slots: armorSlotOptions,
             }),
           });
+        case '/accessories/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ categories: [], slots: accessorySlotOptions }),
+          });
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
@@ -192,6 +207,11 @@ describe('ZombiesDM AI generation', () => {
               skillBonuses: { acrobatics: 3 },
             }),
           });
+        case '/accessories/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ categories: [], slots: accessorySlotOptions }),
+          });
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
@@ -245,6 +265,11 @@ describe('ZombiesDM AI generation', () => {
               skillBonuses: { Stealth: 3 },
             }),
           });
+        case '/accessories/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ categories: [], slots: accessorySlotOptions }),
+          });
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
@@ -275,6 +300,71 @@ describe('ZombiesDM AI generation', () => {
     expect(screen.getByPlaceholderText('Stealth')).toHaveValue(3);
   });
 
+  test('generates accessory via AI and populates slots and bonuses', async () => {
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/equipment/accessories/Camp1':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/accessories/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ categories: ['cloak'], slots: accessorySlotOptions }),
+          });
+        case '/ai/accessory':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              name: 'AI Accessory',
+              category: 'cloak',
+              targetSlots: ['neck', 'ringLeft'],
+              rarity: 'rare',
+              statBonuses: { Wisdom: 1 },
+              skillBonuses: { Perception: 2 },
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters'));
+
+    const openModalBtn = screen.getAllByText('Create Accessory')[0];
+    await userEvent.click(openModalBtn);
+
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/accessories/options'));
+
+    const modal = await screen.findByRole('dialog');
+    const insideCreateBtn = within(modal).getByText('Create Accessory');
+    await userEvent.click(insideCreateBtn);
+
+    await screen.findByRole('option', { name: 'cloak' });
+
+    const promptInput = await screen.findByPlaceholderText('Describe an accessory');
+    await userEvent.type(promptInput, 'mystic talisman');
+
+    const generateBtn = screen.getByRole('button', { name: /Generate Accessory/i });
+    await userEvent.click(generateBtn);
+
+    await waitFor(() => expect(screen.getByDisplayValue('AI Accessory')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('cloak')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter rarity')).toHaveValue('rare');
+
+    await waitFor(() => expect(screen.getByLabelText('Neck')).toBeChecked());
+    expect(screen.getByLabelText('Ring I')).toBeChecked();
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Wisdom')).toHaveValue(1));
+    expect(screen.getByPlaceholderText('Perception')).toHaveValue(2);
+  });
+
   test('renders currency column with adjustment action', async () => {
     const characters = [
       {
@@ -293,6 +383,11 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/accessories/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ categories: [], slots: accessorySlotOptions }),
+          });
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
@@ -328,6 +423,11 @@ describe('ZombiesDM AI generation', () => {
         case '/characters/char1/currency':
           currencyRequest = options;
           return Promise.resolve({ ok: true });
+        case '/accessories/options':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ categories: [], slots: accessorySlotOptions }),
+          });
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
