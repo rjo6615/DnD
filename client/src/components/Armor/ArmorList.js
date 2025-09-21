@@ -322,7 +322,7 @@ function ArmorList({
     }
   };
 
-  const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
   const filteredEntries = Object.entries(armor).filter(([, piece]) =>
     ownedOnly ? (piece.ownedCount ?? 0) > 0 : true
   );
@@ -453,7 +453,7 @@ function ArmorList({
   );
 
   if (embedded) {
-    return <div style={bodyStyle}>{bodyContent}</div>;
+    return bodyContent;
   }
 
   return (

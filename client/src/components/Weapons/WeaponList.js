@@ -283,7 +283,7 @@ function WeaponList({
     }
   };
 
-  const bodyStyle = { overflowY: 'auto', maxHeight: '70vh' };
+  const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
   const filteredEntries = Object.entries(weapons).filter(([, weapon]) =>
     ownedOnly ? (weapon.ownedCount ?? 0) > 0 : true
   );
@@ -402,7 +402,7 @@ function WeaponList({
   );
 
   if (embedded) {
-    return <div style={bodyStyle}>{bodyContent}</div>;
+    return bodyContent;
   }
 
   return (
