@@ -1205,7 +1205,8 @@ const resolveIcon = (category, iconMap, fallback) => {
         backgroundImage: `url(${loginbg})`,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
-        height: '100vh',
+        minHeight: '100vh',
+        paddingBottom: '2rem',
       }}
     >
       <div style={{ paddingTop: '150px' }}></div>
