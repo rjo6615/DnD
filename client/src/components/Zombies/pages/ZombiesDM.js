@@ -38,6 +38,17 @@ import {
   GiChariot,
   GiSailboat,
   GiTreasureMap,
+  GiBattleAxe,
+  GiLyre,
+  GiHolyGrail,
+  GiOakLeaf,
+  GiMeditation,
+  GiAngelWings,
+  GiPineTree,
+  GiSpy,
+  GiFireball,
+  GiPentagramRose,
+  GiSpellBook,
 } from "react-icons/gi";
 import { FiList, FiPlus } from "react-icons/fi";
 
@@ -62,6 +73,22 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   acc[key] = label;
   return acc;
 }, {});
+
+const CLASS_ICON_MAP = {
+  barbarian: { icon: GiBattleAxe, label: 'Barbarian' },
+  bard: { icon: GiLyre, label: 'Bard' },
+  cleric: { icon: GiHolyGrail, label: 'Cleric' },
+  druid: { icon: GiOakLeaf, label: 'Druid' },
+  fighter: { icon: GiBroadsword, label: 'Fighter' },
+  monk: { icon: GiMeditation, label: 'Monk' },
+  paladin: { icon: GiAngelWings, label: 'Paladin' },
+  ranger: { icon: GiPineTree, label: 'Ranger' },
+  rogue: { icon: GiSpy, label: 'Rogue' },
+  sorcerer: { icon: GiFireball, label: 'Sorcerer' },
+  warlock: { icon: GiPentagramRose, label: 'Warlock' },
+  wizard: { icon: GiSpellBook, label: 'Wizard' },
+  default: { icon: GiCrossedSwords, label: 'Adventurer' },
+};
 
 function ResourceGrid({
   items,
@@ -1275,6 +1302,46 @@ const resolveIcon = (category, iconMap, fallback) => {
                           .join(', ')
                       : '—';
 
+                  const uniqueClasses = [];
+                  const seenClasses = new Set();
+                  occupation.forEach((role) => {
+                    const rawOccupation =
+                      role?.Occupation ?? role?.occupation ?? '';
+                    const trimmedOccupation = String(rawOccupation || '').trim();
+                    if (!trimmedOccupation) {
+                      return;
+                    }
+
+                    const normalizedKey = trimmedOccupation.toLowerCase();
+                    if (seenClasses.has(normalizedKey)) {
+                      return;
+                    }
+
+                    seenClasses.add(normalizedKey);
+                    uniqueClasses.push({
+                      original: trimmedOccupation,
+                      normalizedKey,
+                    });
+                  });
+
+                  const classIcons = (uniqueClasses.length > 0
+                    ? uniqueClasses
+                    : [{ original: null, normalizedKey: null }]
+                  ).map(({ original, normalizedKey }, index) => {
+                    const iconEntry =
+                      (normalizedKey && CLASS_ICON_MAP[normalizedKey]) ||
+                      CLASS_ICON_MAP.default;
+                    const IconComponent = iconEntry.icon;
+                    const displayLabel = original || iconEntry.label;
+                    const accessibleLabel = `${displayLabel} class`;
+
+                    return {
+                      IconComponent,
+                      accessibleLabel,
+                      key: `${normalizedKey || 'default'}-${index}`,
+                    };
+                  });
+
                   const detailRows = [
                     { label: 'Level', value: totalLevel },
                     { label: 'Classes', value: classSummary },
@@ -1284,7 +1351,19 @@ const resolveIcon = (category, iconMap, fallback) => {
                     <Card className="resource-card h-100 w-100 text-start">
                       <Card.Body className="d-flex flex-column">
                         <div className="d-flex justify-content-center mb-2">
-                          <GiCrossedSwords size={40} title="Character" />
+                          <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
+                            {classIcons.map(({ IconComponent, accessibleLabel, key }) => (
+                              <span
+                                key={key}
+                                className="d-inline-flex align-items-center text-primary"
+                                role="img"
+                                aria-label={accessibleLabel}
+                                title={accessibleLabel}
+                              >
+                                <IconComponent aria-hidden="true" focusable="false" size={26} />
+                              </span>
+                            ))}
+                          </div>
                         </div>
                         <Card.Title className="mb-1">
                           {character.characterName || 'Unnamed Character'}
