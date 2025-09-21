@@ -20,6 +20,7 @@ import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import {
+  GiCharacter,
   GiStoneAxe,
   GiBowArrow,
   GiBroadsword,
@@ -1491,7 +1492,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                   <Card className="resource-card h-100 w-100 text-center">
                     <Card.Body className="d-flex flex-column align-items-center justify-content-center py-4">
                       <div className="d-flex justify-content-center mb-2 w-100">
-                        <GiStoneAxe size={40} title="Player" />
+                        <GiCharacter size={40} title="Player" />
                       </div>
                       <Card.Title className="mb-1">{playerName}</Card.Title>
                       <Card.Text className="text-muted small mb-0">
