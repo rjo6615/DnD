@@ -9,6 +9,61 @@ const {
   normalizeEquipmentMap,
 } = require('../constants/equipmentSlots');
 
+const SLOT_KEY_LOOKUP = EQUIPMENT_SLOT_KEYS.reduce((lookup, key) => {
+  const normalized = key.toLowerCase();
+  lookup[normalized] = key;
+  lookup[normalized.replace(/[\s_-]+/g, '')] = key;
+  return lookup;
+}, {});
+
+const getSlotString = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object' && typeof value.key === 'string') {
+    return value.key;
+  }
+  return '';
+};
+
+const normalizeSlotAssignment = (value) => {
+  const slotString = getSlotString(value);
+  if (!slotString) return '';
+  const lower = slotString.trim().toLowerCase();
+  if (!lower) return '';
+  if (SLOT_KEY_LOOKUP[lower]) {
+    return SLOT_KEY_LOOKUP[lower];
+  }
+  const compact = lower.replace(/[\s_-]+/g, '');
+  if (SLOT_KEY_LOOKUP[compact]) {
+    return SLOT_KEY_LOOKUP[compact];
+  }
+  return '';
+};
+
+const resolveSlotAssignment = (entry) => {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    return { assigned: false, slot: '' };
+  }
+  const directKeys = ['slot', 'equipmentSlot', 'equippedSlot', 'assignedSlot'];
+  for (const key of directKeys) {
+    const normalized = normalizeSlotAssignment(entry[key]);
+    if (normalized) {
+      return { assigned: true, slot: normalized };
+    }
+  }
+  return { assigned: false, slot: '' };
+};
+
+const isTruthyEquipFlag = (value) => value === true || value === 'true';
+
+const hasExplicitEquipFlag = (entry) => {
+  if (!entry || typeof entry !== 'object') return false;
+  const equipFlags = ['equipped', 'isEquipped', 'equippedFlag', 'equippedStatus'];
+  return equipFlags.some((flag) => isTruthyEquipFlag(entry[flag]));
+};
+
 const validateBonusObject = (value) => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('must be an object');
@@ -240,17 +295,40 @@ module.exports = (router) => {
           }
         });
 
+        const charStrength = Number(charDoc?.str);
+        const canCompareStrength = Number.isFinite(charStrength);
+        const warnings = [];
+
         for (const entry of armor) {
+          const entryObject =
+            entry && typeof entry === 'object' && !Array.isArray(entry)
+              ? entry
+              : null;
+          const { assigned, slot } = resolveSlotAssignment(entryObject);
+          const equipFlag = hasExplicitEquipFlag(entryObject);
+          if (!assigned && !equipFlag) {
+            continue;
+          }
+
           const name =
             typeof entry === 'string'
               ? entry
-              : entry?.name || entry?.armorName;
+              : entryObject?.displayName ||
+                entryObject?.name ||
+                entryObject?.armorName ||
+                entryObject?.title;
           if (!name) continue;
-          const required = strengthMap[String(name).toLowerCase()];
-          if (required != null && charDoc.str < required) {
-            return res
-              .status(400)
-              .json({ message: `${name} requires strength ${required}` });
+          const normalizedName = String(name);
+          const required = strengthMap[normalizedName.toLowerCase()];
+          if (required != null && canCompareStrength && charStrength < required) {
+            warnings.push({
+              type: 'strengthRequirement',
+              name: normalizedName,
+              slot: slot || null,
+              required,
+              actual: charStrength,
+              message: `${normalizedName} requires strength ${required} to equip.`,
+            });
           }
         }
 
@@ -259,6 +337,9 @@ module.exports = (router) => {
         });
         if (result.matchedCount === 0) {
           return res.status(404).json({ message: 'Armor not found' });
+        }
+        if (warnings.length > 0) {
+          return res.json({ message: 'Armor updated', warnings });
         }
         res.json({ message: 'Armor updated' });
       } catch (err) {

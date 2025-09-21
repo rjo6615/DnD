@@ -215,41 +215,73 @@ describe('Equipment routes', () => {
   });
 
   describe('update-armor', () => {
-    const buildDb = (str, armorStrength, updateResult = { matchedCount: 1 }) => ({
-      collection: (name) => {
-        if (name === 'Characters') {
-          return {
-            findOne: async () => ({ str, campaign: 'Camp1' }),
-            updateOne: async () => updateResult,
-          };
-        }
-        if (name === 'Armor') {
-          return {
-            find: () => ({
-              toArray: async () => [{ armorName: 'Test Armor', strength: armorStrength }],
-            }),
-          };
-        }
-        return {};
-      },
-    });
+    const buildDb = (str, armorStrength, updateResult = { matchedCount: 1 }) => {
+      const characterCollection = {
+        findOne: jest.fn(async () => ({ str, campaign: 'Camp1' })),
+        updateOne: jest.fn(async () => updateResult),
+      };
+      const armorCollection = {
+        find: jest.fn(() => ({
+          toArray: async () => [{ armorName: 'Test Armor', strength: armorStrength }],
+        })),
+      };
+      return {
+        characterCollection,
+        armorCollection,
+        collection: (name) => {
+          if (name === 'Characters') {
+            return characterCollection;
+          }
+          if (name === 'Armor') {
+            return armorCollection;
+          }
+          return {};
+        },
+      };
+    };
 
     test('accepts armor when strength sufficient', async () => {
-      dbo.mockResolvedValue(buildDb(12, 10));
+      const connection = buildDb(12, 10);
+      dbo.mockResolvedValue(connection);
+      const res = await request(app)
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: [{ name: 'Test Armor', slot: 'chest' }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Armor updated');
+      expect(res.body.warnings).toBeUndefined();
+      expect(connection.characterCollection.updateOne).toHaveBeenCalledTimes(1);
+    });
+
+    test('returns warning when armor requires higher strength', async () => {
+      const connection = buildDb(8, 10);
+      dbo.mockResolvedValue(connection);
+      const res = await request(app)
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: [{ name: 'Test Armor', slot: 'chest' }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Armor updated');
+      expect(res.body.warnings).toEqual([
+        expect.objectContaining({
+          type: 'strengthRequirement',
+          name: 'Test Armor',
+          required: 10,
+          actual: 8,
+          slot: 'chest',
+        }),
+      ]);
+      expect(connection.characterCollection.updateOne).toHaveBeenCalledTimes(1);
+    });
+
+    test('skips strength requirement when no slot assignment provided', async () => {
+      const connection = buildDb(8, 10);
+      dbo.mockResolvedValue(connection);
       const res = await request(app)
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Test Armor'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Armor updated');
-    });
-
-    test('rejects armor requiring higher strength', async () => {
-      dbo.mockResolvedValue(buildDb(8, 10));
-      const res = await request(app)
-        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
-        .send({ armor: ['Test Armor'] });
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Test Armor requires strength 10');
+      expect(res.body.warnings).toBeUndefined();
+      expect(connection.characterCollection.updateOne).toHaveBeenCalledTimes(1);
     });
 
     test('update not found', async () => {
