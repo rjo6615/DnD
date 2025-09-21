@@ -1215,7 +1215,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         </Alert>
       )}
 
-      <Container className="zombies-dm-container">
+      <Container className="zombies-dm-container zombies-dm-container--spaced">
         <Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
           <div
             className="d-flex justify-content-center mb-2"
