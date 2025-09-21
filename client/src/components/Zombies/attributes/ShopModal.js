@@ -4,6 +4,7 @@ import { FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
+import AccessoryList from '../../Accessories/AccessoryList';
 
 const DEFAULT_TAB = 'weapons';
 
@@ -306,6 +307,101 @@ const normalizeItems = (items) => {
     .filter(Boolean);
 };
 
+const normalizeAccessorySlots = (slots) => {
+  if (!Array.isArray(slots)) return [];
+  return slots
+    .map((slot) => (typeof slot === 'string' ? slot.trim() : ''))
+    .filter(Boolean);
+};
+
+const normalizeAccessoryBonuses = (bonuses) =>
+  bonuses && typeof bonuses === 'object' ? bonuses : {};
+
+const normalizeAccessories = (accessories) => {
+  if (!Array.isArray(accessories)) return [];
+  return accessories
+    .map((accessory) => {
+      if (!accessory) return null;
+      if (Array.isArray(accessory)) {
+        const [
+          name,
+          category,
+          targetSlots,
+          rarity,
+          weight,
+          cost,
+          notes,
+          statBonuses,
+          skillBonuses,
+        ] = accessory;
+        if (!name) return null;
+        const normalized = {
+          name,
+          category: category ?? '',
+          targetSlots: normalizeAccessorySlots(targetSlots),
+          rarity: rarity ?? '',
+          weight: weight ?? '',
+          cost: cost ?? '',
+          statBonuses: normalizeAccessoryBonuses(statBonuses),
+          skillBonuses: normalizeAccessoryBonuses(skillBonuses),
+        };
+        if (notes) normalized.notes = notes;
+        return normalized;
+      }
+      if (typeof accessory === 'string') {
+        return {
+          name: accessory,
+          category: '',
+          targetSlots: [],
+          rarity: '',
+          weight: '',
+          cost: '',
+          statBonuses: {},
+          skillBonuses: {},
+        };
+      }
+      if (typeof accessory === 'object') {
+        const {
+          name,
+          accessoryName,
+          displayName,
+          category = '',
+          targetSlots,
+          rarity = '',
+          weight = '',
+          cost = '',
+          statBonuses,
+          skillBonuses,
+          notes,
+          ...rest
+        } = accessory;
+        const resolvedName = name || accessoryName || displayName;
+        if (!resolvedName) return null;
+        const normalized = {
+          name: resolvedName,
+          category,
+          targetSlots: normalizeAccessorySlots(targetSlots),
+          rarity,
+          weight,
+          cost,
+          statBonuses: normalizeAccessoryBonuses(statBonuses),
+          skillBonuses: normalizeAccessoryBonuses(skillBonuses),
+          ...rest,
+        };
+        if (!name && accessoryName && normalized.displayName === undefined) {
+          normalized.displayName = accessoryName;
+        }
+        if (displayName !== undefined) {
+          normalized.displayName = displayName;
+        }
+        if (notes) normalized.notes = notes;
+        return normalized;
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
 export default function ShopModal({
   show,
   activeTab,
@@ -316,6 +412,7 @@ export default function ShopModal({
   onWeaponsChange,
   onArmorChange,
   onItemsChange,
+  onAccessoriesChange = () => {},
   onTabChange,
   currency = {},
   onPurchase = () => {},
@@ -371,9 +468,22 @@ export default function ShopModal({
     }, /** @type {Record<string, number>} */ ({}));
   }, [buildCartKey, cart]);
 
-  const handleAddToCart = useCallback((item) => {
-    setCart((prevCart) => [...prevCart, item]);
+  const handleAddToCart = useCallback((item, typeOverride) => {
+    if (!item) return;
+    const payload =
+      typeof typeOverride === 'string' && typeOverride.length
+        ? { ...item, type: typeOverride }
+        : item;
+    setCart((prevCart) => [...prevCart, payload]);
   }, []);
+
+  const handleAddAccessoryToCart = useCallback(
+    (accessory) => {
+      if (!accessory) return;
+      handleAddToCart(accessory, 'accessory');
+    },
+    [handleAddToCart]
+  );
 
   const handleRemoveFromCart = useCallback((index) => {
     setCart((prevCart) => {
@@ -425,6 +535,10 @@ export default function ShopModal({
   const normalizedItems = useMemo(
     () => normalizeItems(form.item || []),
     [form.item]
+  );
+  const normalizedAccessories = useMemo(
+    () => normalizeAccessories(form.accessories || form.accessory || []),
+    [form.accessories, form.accessory]
   );
 
   const handleSelectTab = (key) => {
@@ -487,18 +601,36 @@ export default function ShopModal({
             />
           ) : null,
       },
+      {
+        key: 'accessories',
+        title: 'Accessories',
+        render: (isActive) =>
+          isActive ? (
+            <AccessoryList
+              campaign={form.campaign}
+              initialAccessories={normalizedAccessories}
+              onChange={onAccessoriesChange}
+              show={isActive}
+              onAddToCart={handleAddAccessoryToCart}
+              cartCounts={cartCounts}
+            />
+          ) : null,
+      },
     ],
     [
       characterId,
       form.campaign,
       normalizedArmor,
       normalizedItems,
+      normalizedAccessories,
       normalizedWeapons,
       cartCounts,
       handleAddToCart,
+      handleAddAccessoryToCart,
       onArmorChange,
       onHide,
       onItemsChange,
+      onAccessoriesChange,
       onWeaponsChange,
       strength,
     ]

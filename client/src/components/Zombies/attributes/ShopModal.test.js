@@ -12,10 +12,16 @@ import userEvent from '@testing-library/user-event';
 const mockWeaponListFetch = jest.fn();
 const mockArmorListFetch = jest.fn();
 const mockItemListFetch = jest.fn();
+const mockAccessoryListFetch = jest.fn();
 
 const mockWeapon = { name: 'Mock Weapon', type: 'weapon', cost: '1 gp' };
 const mockArmor = { name: 'Mock Armor', type: 'armor', cost: '1 pp 2 gp' };
 const mockItem = { name: 'Mock Item', type: 'item', cost: '3 sp 4 cp' };
+const mockAccessory = {
+  name: 'Mock Accessory',
+  type: 'accessory',
+  cost: '5 gp',
+};
 
 const escapeRegExp = (value) => value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 
@@ -157,9 +163,43 @@ jest.mock('../../Items/ItemList', () => {
   return ItemListMock;
 });
 
+jest.mock('../../Accessories/AccessoryList', () => {
+  const React = require('react');
+  const AccessoryListMock = (props) => {
+    const prevShowRef = React.useRef(false);
+    React.useEffect(() => {
+      if (props.show && !prevShowRef.current) {
+        mockAccessoryListFetch();
+      }
+      prevShowRef.current = props.show;
+    }, [props.show]);
+    if (!props.show) return null;
+    const count = props.cartCounts?.['accessory::mock accessory'] ?? 0;
+    return (
+      <div data-testid="accessory-list">
+        Accessories
+        <span data-testid="accessory-cart-count">{count}</span>
+        <button
+          type="button"
+          onClick={() => props.onAddToCart?.({ ...mockAccessory })}
+        >
+          Add to Cart
+        </button>
+      </div>
+    );
+  };
+  return AccessoryListMock;
+});
+
 import ShopModal from './ShopModal';
 
-const defaultForm = { weapon: [], armor: [], item: [], campaign: 'alpha' };
+const defaultForm = {
+  weapon: [],
+  armor: [],
+  item: [],
+  accessory: [],
+  campaign: 'alpha',
+};
 const defaultCurrency = { cp: 1, sp: 2, gp: 3, pp: 4 };
 
 const renderShopModal = (props = {}) =>
@@ -171,6 +211,7 @@ const renderShopModal = (props = {}) =>
       onWeaponsChange={jest.fn()}
       onArmorChange={jest.fn()}
       onItemsChange={jest.fn()}
+      onAccessoriesChange={jest.fn()}
       form={defaultForm}
       characterId="char-1"
       strength={12}
@@ -183,6 +224,7 @@ beforeEach(() => {
   mockWeaponListFetch.mockClear();
   mockArmorListFetch.mockClear();
   mockItemListFetch.mockClear();
+  mockAccessoryListFetch.mockClear();
 });
 
 test('cart counts increment when items are added repeatedly', async () => {
@@ -260,12 +302,13 @@ test('cart counts increment when items are added repeatedly', async () => {
   );
 });
 
-test('tab navigation switches between weapon, armor, and item views', async () => {
+test('tab navigation switches between weapon, armor, item, and accessory views', async () => {
   renderShopModal();
 
   expect(screen.getByTestId('weapon-list')).toBeInTheDocument();
   expect(screen.queryByTestId('armor-list')).not.toBeInTheDocument();
   expect(screen.queryByTestId('item-list')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('accessory-list')).not.toBeInTheDocument();
 
   await act(async () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Armor' }));
@@ -273,6 +316,7 @@ test('tab navigation switches between weapon, armor, and item views', async () =
   expect(await screen.findByTestId('armor-list')).toBeInTheDocument();
   expect(screen.queryByTestId('weapon-list')).not.toBeInTheDocument();
   expect(screen.queryByTestId('item-list')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('accessory-list')).not.toBeInTheDocument();
 
   await act(async () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
@@ -280,6 +324,15 @@ test('tab navigation switches between weapon, armor, and item views', async () =
   expect(await screen.findByTestId('item-list')).toBeInTheDocument();
   expect(screen.queryByTestId('weapon-list')).not.toBeInTheDocument();
   expect(screen.queryByTestId('armor-list')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('accessory-list')).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Accessories' }));
+  });
+  expect(await screen.findByTestId('accessory-list')).toBeInTheDocument();
+  expect(screen.queryByTestId('weapon-list')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('armor-list')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('item-list')).not.toBeInTheDocument();
 });
 
 test('each list fetches once when its tab is activated', async () => {
@@ -288,17 +341,25 @@ test('each list fetches once when its tab is activated', async () => {
   await waitFor(() => expect(mockWeaponListFetch).toHaveBeenCalledTimes(1));
   expect(mockArmorListFetch).not.toHaveBeenCalled();
   expect(mockItemListFetch).not.toHaveBeenCalled();
+  expect(mockAccessoryListFetch).not.toHaveBeenCalled();
 
   await act(async () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Armor' }));
   });
   await waitFor(() => expect(mockArmorListFetch).toHaveBeenCalledTimes(1));
   expect(mockItemListFetch).not.toHaveBeenCalled();
+  expect(mockAccessoryListFetch).not.toHaveBeenCalled();
 
   await act(async () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
   });
   await waitFor(() => expect(mockItemListFetch).toHaveBeenCalledTimes(1));
+  expect(mockAccessoryListFetch).not.toHaveBeenCalled();
+
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Accessories' }));
+  });
+  await waitFor(() => expect(mockAccessoryListFetch).toHaveBeenCalledTimes(1));
 });
 
 test('displays the provided currency summary when shown', () => {
@@ -328,6 +389,12 @@ describe('cart interactions', () => {
       tab: 'Items',
       listTestId: 'item-list',
       item: mockItem,
+    },
+    {
+      name: 'accessory',
+      tab: 'Accessories',
+      listTestId: 'accessory-list',
+      item: mockAccessory,
     },
   ];
 
@@ -421,7 +488,17 @@ describe('cart interactions', () => {
       );
     });
 
-    await waitFor(() => expect(cartButton).toHaveTextContent('3'));
+    await act(async () => {
+      await userEvent.click(screen.getByRole('tab', { name: 'Accessories' }));
+    });
+    const accessoryList = await screen.findByTestId('accessory-list');
+    await act(async () => {
+      await userEvent.click(
+        within(accessoryList).getByRole('button', { name: /add to cart/i })
+      );
+    });
+
+    await waitFor(() => expect(cartButton).toHaveTextContent('4'));
 
     await act(async () => {
       await userEvent.click(cartButton);
@@ -437,9 +514,10 @@ describe('cart interactions', () => {
     const expectedMultiTotal = formatCoinsFromCp(
       costStringToCp(mockWeapon.cost) +
         costStringToCp(mockArmor.cost) +
-        costStringToCp(mockItem.cost)
+        costStringToCp(mockItem.cost) +
+        costStringToCp(mockAccessory.cost)
     );
-    expect(expectedMultiTotal).toBe('PP 1 • GP 3 • SP 3 • CP 4');
+    expect(expectedMultiTotal).toBe('PP 1 • GP 8 • SP 3 • CP 4');
     expect(
       cartWithin.getByText(`Total: ${expectedMultiTotal}`)
     ).toBeInTheDocument();
@@ -517,7 +595,17 @@ test('purchase triggers onPurchase with cart details and resets the cart', async
     );
   });
 
-  await waitFor(() => expect(cartButton).toHaveTextContent('3'));
+  await act(async () => {
+    await userEvent.click(screen.getByRole('tab', { name: 'Accessories' }));
+  });
+  const accessoryList = await screen.findByTestId('accessory-list');
+  await act(async () => {
+    await userEvent.click(
+      within(accessoryList).getByRole('button', { name: /add to cart/i })
+    );
+  });
+
+  await waitFor(() => expect(cartButton).toHaveTextContent('4'));
 
   await act(async () => {
     await userEvent.click(cartButton);
@@ -533,7 +621,8 @@ test('purchase triggers onPurchase with cart details and resets the cart', async
   const expectedTotalCp =
     costStringToCp(mockWeapon.cost) +
     costStringToCp(mockArmor.cost) +
-    costStringToCp(mockItem.cost);
+    costStringToCp(mockItem.cost) +
+    costStringToCp(mockAccessory.cost);
   const expectedFormattedTotal = formatCoinsFromCp(expectedTotalCp);
   expect(
     cartWithin.getByText(`Total: ${expectedFormattedTotal}`)
@@ -550,6 +639,7 @@ test('purchase triggers onPurchase with cart details and resets the cart', async
     expect.objectContaining(mockWeapon),
     expect.objectContaining(mockArmor),
     expect.objectContaining(mockItem),
+    expect.objectContaining(mockAccessory),
   ]);
 
   await waitFor(() => expect(cartButton).toHaveTextContent('0'));
