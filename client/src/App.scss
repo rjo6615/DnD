@@ -1429,6 +1429,45 @@ h1 {
   transition: all 0.2s ease-in-out;
 }
 
+.action-btn.create-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background-image: linear-gradient(135deg, var(--bs-primary), #6610f2);
+  border: 0;
+  color: #fff;
+  text-transform: none;
+  box-shadow: 0 0.5rem 1.25rem rgba(13, 110, 253, 0.25);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out,
+    background-image 0.2s ease-in-out;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    background-image: linear-gradient(135deg, #4aa3ff, #5a21ff);
+    box-shadow: 0 0.75rem 1.5rem rgba(13, 110, 253, 0.35);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 0.35rem 1rem rgba(13, 110, 253, 0.3);
+  }
+
+  svg {
+    font-size: 1.1rem;
+  }
+}
+
 .save-btn {
   background: #ffc107;
   margin-right: 5px;

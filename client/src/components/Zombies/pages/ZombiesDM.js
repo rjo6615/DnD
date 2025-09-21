@@ -39,6 +39,7 @@ import {
   GiSailboat,
   GiTreasureMap,
 } from "react-icons/gi";
+import { FiList, FiPlus } from "react-icons/fi";
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -1398,11 +1399,21 @@ const resolveIcon = (category, iconMap, fallback) => {
               </Card.Title>
               <div className="d-flex align-items-center gap-2">
                 <Button
-                  variant="outline-light"
-                  size="sm"
+                  className="action-btn create-btn"
                   onClick={() => setIsCreatingWeapon((prev) => !prev)}
                 >
-                  {isCreatingWeapon ? "View Weapons" : "Create"}
+                  {isCreatingWeapon ? (
+                    <>
+                      <FiList aria-hidden="true" />
+                      View Weapons
+                    </>
+                  ) : (
+                    <>
+                      <FiPlus aria-hidden="true" />
+                      <span>Create</span>
+                      <span aria-hidden="true"> Weapon</span>
+                    </>
+                  )}
                 </Button>
                 <CloseButton variant="white" onClick={() => handleCloseResourceTab('weapons')} />
               </div>
@@ -1616,11 +1627,21 @@ const resolveIcon = (category, iconMap, fallback) => {
               </Card.Title>
               <div className="d-flex align-items-center gap-2">
                 <Button
-                  variant="outline-light"
-                  size="sm"
+                  className="action-btn create-btn"
                   onClick={() => setIsCreatingArmor((prev) => !prev)}
                 >
-                  {isCreatingArmor ? "View Armor" : "Create"}
+                  {isCreatingArmor ? (
+                    <>
+                      <FiList aria-hidden="true" />
+                      View Armor
+                    </>
+                  ) : (
+                    <>
+                      <FiPlus aria-hidden="true" />
+                      <span>Create</span>
+                      <span aria-hidden="true"> Armor</span>
+                    </>
+                  )}
                 </Button>
                 <CloseButton variant="white" onClick={() => handleCloseResourceTab('armor')} />
               </div>
@@ -1865,11 +1886,21 @@ const resolveIcon = (category, iconMap, fallback) => {
               </Card.Title>
               <div className="d-flex align-items-center gap-2">
                 <Button
-                  variant="outline-light"
-                  size="sm"
+                  className="action-btn create-btn"
                   onClick={() => setIsCreatingAccessory((prev) => !prev)}
                 >
-                  {isCreatingAccessory ? "View Accessories" : "Create"}
+                  {isCreatingAccessory ? (
+                    <>
+                      <FiList aria-hidden="true" />
+                      View Accessories
+                    </>
+                  ) : (
+                    <>
+                      <FiPlus aria-hidden="true" />
+                      <span>Create</span>
+                      <span aria-hidden="true"> Accessory</span>
+                    </>
+                  )}
                 </Button>
                 <CloseButton variant="white" onClick={() => handleCloseResourceTab('accessories')} />
               </div>
@@ -2118,11 +2149,21 @@ const resolveIcon = (category, iconMap, fallback) => {
               </Card.Title>
               <div className="d-flex align-items-center gap-2">
                 <Button
-                  variant="outline-light"
-                  size="sm"
+                  className="action-btn create-btn"
                   onClick={() => setIsCreatingItem((prev) => !prev)}
                 >
-                  {isCreatingItem ? "View Items" : "Create"}
+                  {isCreatingItem ? (
+                    <>
+                      <FiList aria-hidden="true" />
+                      View Items
+                    </>
+                  ) : (
+                    <>
+                      <FiPlus aria-hidden="true" />
+                      <span>Create</span>
+                      <span aria-hidden="true"> Item</span>
+                    </>
+                  )}
                 </Button>
                 <CloseButton variant="white" onClick={() => handleCloseResourceTab('items')} />
               </div>
