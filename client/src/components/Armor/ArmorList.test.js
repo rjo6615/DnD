@@ -46,6 +46,19 @@ const customData = [
   },
 ];
 
+const phbHalfPlateData = {
+  'half-plate': {
+    name: 'Half Plate',
+    category: 'medium',
+    acBonus: 15,
+    maxDex: 2,
+    strength: null,
+    stealth: true,
+    weight: 40,
+    cost: '750 gp',
+  },
+};
+
 afterEach(() => {
   apiFetch.mockReset();
 });
@@ -133,6 +146,71 @@ test('fetches armor, handles add to cart, and displays cart count', async () => 
     })
   );
   expect(onAddToCart).toHaveBeenCalledTimes(2);
+});
+
+test('adding PHB armor updates the cart badge', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => phbHalfPlateData,
+  });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+  });
+  const onAddToCart = jest.fn();
+
+  function Wrapper(props) {
+    const [counts, setCounts] = React.useState({});
+    const handleAdd = (armor) => {
+      act(() => {
+        setCounts((prev) => {
+          const key = `armor::${String(armor?.name || '').toLowerCase()}`;
+          return { ...prev, [key]: (prev[key] || 0) + 1 };
+        });
+      });
+      onAddToCart(armor);
+    };
+    return (
+      <ArmorList
+        {...props}
+        onAddToCart={handleAdd}
+        cartCounts={counts}
+      />
+    );
+  }
+
+  render(
+    <Wrapper
+      campaign="Camp1"
+      characterId="char1"
+      strength={15}
+    />
+  );
+
+  const halfPlateHeading = await screen.findByText('Half Plate');
+  const halfPlateCard = halfPlateHeading.closest('.card');
+  expect(within(halfPlateCard).getByText('In Cart: 0')).toBeInTheDocument();
+
+  const addButton = within(halfPlateCard).getByRole('button', {
+    name: /add to cart/i,
+  });
+  await userEvent.click(addButton);
+
+  await waitFor(() =>
+    expect(
+      within(halfPlateCard).getByText('In Cart: 1')
+    ).toBeInTheDocument()
+  );
+
+  expect(onAddToCart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'half-plate',
+      displayName: 'Half Plate',
+      type: 'armor',
+    })
+  );
+  expect(onAddToCart).toHaveBeenCalledTimes(1);
 });
 
 test('renders add to cart when strength requirement unmet', async () => {

@@ -270,8 +270,29 @@ function ArmorList({
 
   const getCartCount = (piece) => {
     if (!cartCounts) return 0;
-    const key = `armor::${String(piece?.name || '').toLowerCase()}`;
-    return cartCounts[key] ?? 0;
+    const primaryName = String(piece?.name || '').trim().toLowerCase();
+    const fallbackName = String(
+      piece?.displayName || piece?.itemName || ''
+    )
+      .trim()
+      .toLowerCase();
+    const names = primaryName
+      ? [primaryName]
+      : fallbackName
+      ? [fallbackName]
+      : [];
+    if (fallbackName && fallbackName !== primaryName) {
+      names.push(fallbackName);
+    }
+
+    for (const name of names) {
+      const key = `armor::${name}`;
+      if (Object.prototype.hasOwnProperty.call(cartCounts, key)) {
+        return cartCounts[key];
+      }
+    }
+
+    return 0;
   };
 
   const handleToggle = (key) => async () => {
