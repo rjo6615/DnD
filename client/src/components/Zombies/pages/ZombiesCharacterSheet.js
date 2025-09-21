@@ -1073,7 +1073,7 @@ return (
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-helmet-safety" aria-hidden="true"></i>
+              <i className="fas fa-user-shield" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={() => handleShowInventory()}
@@ -1084,7 +1084,7 @@ return (
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-box-open" aria-hidden="true"></i>
+              <i className="fas fa-briefcase" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={() => handleShowShop()}
@@ -1095,7 +1095,7 @@ return (
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-store" aria-hidden="true"></i>
+              <i className="fas fa-shop" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={handleShowHelpModal}
