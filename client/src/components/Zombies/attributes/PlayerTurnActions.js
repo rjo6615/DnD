@@ -198,25 +198,7 @@ const [isFumble, setIsFumble] = useState(false);
     profBonus +
     abilityForWeapon(weapon) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
-
-
-  const getDamageString = (weapon) => {
-    const ability = abilityForWeapon(weapon);
-    if (typeof weapon?.damage !== 'string') return '—';
-    const segments = weapon.damage.split(/\s+\+\s+/);
-    if (segments.length === 0) return '—';
-    return segments
-      .map((part) => {
-        const trimmed = part.trim();
-        if (!trimmed) return null;
-        const [token, ...rest] = trimmed.split(' ');
-        if (!token) return null;
-        const type = rest.join(' ').trim();
-        return `${token}+${ability}${type ? ` ${type}` : ''}`;
-      })
-      .filter(Boolean)
-      .join(' + ') || '—';
-
+    
   const formatDamageSegments = (damage, ability) =>
     damage
       .split(/\s+\+\s+/)
