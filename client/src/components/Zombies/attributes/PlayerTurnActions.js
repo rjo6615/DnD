@@ -263,14 +263,18 @@ const [pendingSpell, setPendingSpell] = useState(null);
       diff > 0 ? diff : 0
     );
     if (!value) return;
+    if (onCastSpell) {
+      onCastSpell({
+        level,
+        slotType,
+        damage: value.total,
+        breakdown: value.breakdown,
+        castingTime: spell.castingTime,
+        name: spell.name,
+      });
+      return;
+    }
     updateDamageValueWithAnimation(value.total, value.breakdown, spell.name);
-    onCastSpell?.({
-      level,
-      slotType,
-      damage: value.total,
-      castingTime: spell.castingTime,
-      name: spell.name,
-    });
   };
 
   const handleSpellsButtonClick = (spell, crit = false) => {
