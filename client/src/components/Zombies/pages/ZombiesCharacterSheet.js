@@ -388,6 +388,7 @@ export default function ZombiesCharacterSheet() {
         const {
           level,
           damage,
+          breakdown,
           extraDice,
           levelsAbove,
           slotLevel,
@@ -402,7 +403,7 @@ export default function ZombiesCharacterSheet() {
         else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
         if (typeof damage === 'number') {
-          result = { total: damage };
+          result = { total: damage, breakdown };
         } else if (damage) {
           const calc = calculateDamage(
             damage,
@@ -416,6 +417,9 @@ export default function ZombiesCharacterSheet() {
             calc && typeof calc === 'object'
               ? calc
               : { total: calc };
+          if (!result?.breakdown && breakdown) {
+            result = { ...result, breakdown };
+          }
         } else {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };

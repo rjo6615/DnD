@@ -492,6 +492,7 @@ describe('PlayerTurnActions spell casting', () => {
         level: spell.level,
         slotType: undefined,
         damage: expect.any(Number),
+        breakdown: expect.any(String),
         castingTime: spell.castingTime,
         name: spell.name,
       })
