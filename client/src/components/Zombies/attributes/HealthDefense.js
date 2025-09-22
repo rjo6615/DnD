@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'; // Import useState and React
+import React, { useEffect, useMemo, useState } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import { normalizeEquipmentMap } from './equipmentNormalization';
 
 export default function HealthDefense({
   form,
@@ -16,11 +17,29 @@ export default function HealthDefense({
   spellAbilityMod,
 }) {
   const params = useParams();
-//-----------------------Health/Defense-------------------------------------------------------------------------------------------------------------------------------------------------
-  let atkBonus = 0;
-    
-  // Armor AC/MaxDex
-  const armorItems = form.armor || [];
+  const isLargeScreen =
+    typeof window !== 'undefined' && window.innerWidth >= 768;
+//-----------------------Health/Defense------------------------------
+  const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form.equipment),
+    [form.equipment]
+  );
+  const armorItems = useMemo(() => {
+    if (hasEquipment) {
+      return Object.values(normalizedEquipment).filter((item) => {
+        if (!item) return false;
+        if (item.source === 'armor') return true;
+        if (item.acBonus != null || item.armorBonus != null || item.ac != null)
+          return true;
+        if (item.maxDex != null || item.maxDexterity != null) return true;
+        if (item.checkPenalty != null || item.stealth != null) return true;
+        return false;
+      });
+    }
+    return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
+  }, [hasEquipment, normalizedEquipment, form.armor]);
+
   const armorAcBonus = armorItems.map((item) => {
     if (Array.isArray(item)) {
       const value = Number(item[1] ?? 0);
@@ -29,7 +48,9 @@ export default function HealthDefense({
     return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
   });
   const armorMaxDexBonus = armorItems.map((item) =>
-    Array.isArray(item) ? Number(item[2] ?? 0) : Number(item.maxDex ?? 0)
+    Array.isArray(item)
+      ? Number(item[2] ?? 0)
+      : Number(item.maxDex ?? item.maxDexterity ?? 0)
   );
   let totalArmorAcBonus =
     armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
@@ -46,21 +67,6 @@ export default function HealthDefense({
     
   const occupations = form.occupation;
 
-  for (const occupation of occupations) {
-    const level = parseInt(occupation.Level, 10);
-    const attackBonusValue = parseInt(occupation.atkBonus, 10);
-
-    if (!isNaN(level)) {
-      if (attackBonusValue === 0) {
-        atkBonus += Math.floor(level / 2);
-      } else if (attackBonusValue === 1) {
-        atkBonus += Math.floor(level * 0.75);
-      } else if (attackBonusValue === 2) {
-        atkBonus += level;
-      }
-    }
-  }
-
   const totalLevel = occupations.reduce(
     (total, o) => total + Number(o.Level),
     0
@@ -75,7 +81,7 @@ export default function HealthDefense({
     Number(conMod * totalLevel) +
     Number(hpMaxBonus) +
     Number(hpMaxBonusPerLevel * totalLevel);
-  const [health, setHealth] = useState(); // Initial health value
+  const [health, setHealth] = useState(Number(form.tempHealth) || 0); // Initial health value
   const [error, setError] = useState(null); // Error message state
 
   // Sends tempHealth data to database for update
@@ -124,6 +130,15 @@ export default function HealthDefense({
     }
   };
 
+  const handleBarChange = (e) => {
+    const newHealth = Number(e.target.value);
+    const offset = newHealth - (health ?? 0);
+    setHealth(newHealth);
+    if (!Number.isNaN(offset)) {
+      tempHealthUpdate(offset);
+    }
+  };
+
 return (
 <div
   style={{
@@ -131,7 +146,7 @@ return (
     flexDirection: "column", // <-- vertical stacking
     alignItems: "center",
     gap: "32px",
-    marginBottom: "80px",
+    marginBottom: isLargeScreen ? "80px" : "1rem",
     padding: "0 16px",
     maxWidth: "100%",
   }}
@@ -182,12 +197,30 @@ return (
         flexShrink: 0
       }}
     >
+      <input
+        type="range"
+        min="-10"
+        max={maxHealth}
+        value={health ?? 0}
+        onChange={handleBarChange}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0,
+          cursor: "pointer",
+          zIndex: 1,
+        }}
+      />
       <div
         style={{
           width: `${(health / maxHealth) * 100}%`,
           height: "100%",
           background: health > maxHealth * 0.5 ? "#2ecc71" : "#c0392b",
           transition: "width 0.3s ease-in-out",
+          pointerEvents: "none",
         }}
       />
       <span
@@ -201,6 +234,7 @@ return (
           fontWeight: 600,
           color: "#222",
           lineHeight: "24px",
+          pointerEvents: "none",
         }}
       >
         {health}/{maxHealth}
@@ -253,7 +287,6 @@ return (
   {/* First row */}
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
     <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-    <div><strong>Attack Bonus:</strong> {atkBonus}</div>
     <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
     <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
   </div>

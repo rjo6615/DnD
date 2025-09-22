@@ -75,3 +75,34 @@ describe('Skills expertise toggle', () => {
     await waitFor(() => expect(expertiseCheckbox).toBeChecked());
   });
 });
+
+describe('item skill bonuses', () => {
+  test('applies bonuses from item skillBonuses object', async () => {
+    render(
+      <Skills
+        form={{
+          equipment: {
+            ringLeft: { name: 'Ring of Agility', skillBonuses: { acrobatics: 2 }, source: 'item' },
+          },
+          item: [],
+          feat: [],
+          race: {},
+          skills: {},
+        }}
+        showSkill={true}
+        handleCloseSkill={() => {}}
+        totalLevel={1}
+        strMod={0}
+        dexMod={0}
+        conMod={0}
+        intMod={0}
+        chaMod={0}
+        wisMod={0}
+      />
+    );
+
+    const row = await screen.findByText('Acrobatics');
+    expect(within(row.closest('tr')).getByText('2')).toBeInTheDocument();
+  });
+
+});

@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WeaponList from './WeaponList';
 import apiFetch from '../../utils/apiFetch';
@@ -10,27 +11,53 @@ const weaponsData = {
   dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp' },
 };
 const customData = [
-  { name: 'Laser Sword', damage: '1d8 radiant', category: 'martial melee', properties: [] },
+  {
+    name: 'Laser Sword',
+    damage: '1d8 radiant',
+    category: 'martial melee',
+    properties: [],
+    type: 'exotic',
+    cost: '100 gp',
+    weight: 6,
+  },
 ];
 
 afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches weapons and toggles ownership', async () => {
+test('fetches weapons, handles add to cart, and displays cart count', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({ allowed: null, proficient: {}, granted: [] }),
   });
-  const onChange = jest.fn();
+  const onAddToCart = jest.fn();
+
+  function Wrapper(props) {
+    const [counts, setCounts] = React.useState({});
+    const handleAdd = (weapon) => {
+      act(() => {
+        setCounts((prev) => {
+          const key = `weapon::${String(weapon?.name || '').toLowerCase()}`;
+          return { ...prev, [key]: (prev[key] || 0) + 1 };
+        });
+      });
+      onAddToCart(weapon);
+    };
+    return (
+      <WeaponList
+        {...props}
+        onAddToCart={handleAdd}
+        cartCounts={counts}
+      />
+    );
+  }
 
   render(
-    <WeaponList
+    <Wrapper
       campaign="Camp1"
-      initialWeapons={[weaponsData.dagger]}
-      onChange={onChange}
       characterId="char1"
     />
   );
@@ -38,25 +65,41 @@ test('fetches weapons and toggles ownership', async () => {
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
-  const clubCheckbox = await screen.findByLabelText('Club');
-  const daggerCheckbox = await screen.findByLabelText('Dagger');
-  const laserCheckbox = await screen.findByLabelText('Laser Sword');
-  expect(clubCheckbox).not.toBeChecked();
-  expect(daggerCheckbox).toBeChecked();
-  expect(laserCheckbox).not.toBeChecked();
+  const laserHeading = await screen.findByText('Laser Sword');
+  const laserButton = within(laserHeading.closest('.card')).getByRole('button', {
+    name: /add to cart/i,
+  });
+  expect(
+    within(laserHeading.closest('.card')).getByText('In Cart: 0')
+  ).toBeInTheDocument();
 
-  onChange.mockClear();
-  await userEvent.click(clubCheckbox);
-  await waitFor(() => expect(clubCheckbox).toBeChecked());
+  await userEvent.click(laserButton);
   await waitFor(() =>
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ name: 'club' }),
-        expect.objectContaining({ name: 'dagger' }),
-      ])
-    )
+    expect(
+      within(laserHeading.closest('.card')).getByText('In Cart: 1')
+    ).toBeInTheDocument()
   );
-  expect(apiFetch).toHaveBeenCalledTimes(3);
+
+  await userEvent.click(laserButton);
+  await waitFor(() =>
+    expect(
+      within(laserHeading.closest('.card')).getByText('In Cart: 2')
+    ).toBeInTheDocument()
+  );
+
+  expect(onAddToCart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'laser sword',
+      displayName: 'Laser Sword',
+      type: 'weapon',
+      weaponType: 'exotic',
+      cost: '100 gp',
+      damage: '1d8 radiant',
+      category: 'martial melee',
+      weight: 6,
+    })
+  );
+  expect(onAddToCart).toHaveBeenCalledTimes(2);
 });
 
 test('renders all weapons regardless of allowed list', async () => {
@@ -69,9 +112,24 @@ test('renders all weapons regardless of allowed list', async () => {
 
   render(<WeaponList campaign="Camp1" characterId="char1" />);
 
-  expect(await screen.findByLabelText('Club')).toBeInTheDocument();
-  expect(await screen.findByLabelText('Laser Sword')).toBeInTheDocument();
-  expect(await screen.findByLabelText('Dagger')).toBeInTheDocument();
+  expect(await screen.findByText('Club')).toBeInTheDocument();
+  expect(await screen.findByText('Laser Sword')).toBeInTheDocument();
+  expect(await screen.findByText('Dagger')).toBeInTheDocument();
+});
+
+test('displays a category icon for each weapon', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => weaponsData });
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => customData });
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+  });
+
+  render(<WeaponList campaign="Camp1" characterId="char1" />);
+
+  const simpleIcons = await screen.findAllByTitle('simple melee');
+  expect(simpleIcons.length).toBeGreaterThanOrEqual(2);
+  expect(await screen.findByTitle('martial melee')).toBeInTheDocument();
 });
 
 test('marks weapon proficiency', async () => {
@@ -92,10 +150,10 @@ test('marks weapon proficiency', async () => {
   const daggerRow = await screen.findByText('Dagger');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
 
-  const daggerTr = daggerRow.closest('tr');
-  const clubTr = screen.getByText('Club').closest('tr');
-  const daggerProf = within(daggerTr).getByLabelText('Dagger proficiency');
-  const clubProf = within(clubTr).getByLabelText('Club proficiency');
+  const daggerCard = daggerRow.closest('.card');
+  const clubCard = screen.getByText('Club').closest('.card');
+  const daggerProf = within(daggerCard).getByLabelText('Dagger proficiency');
+  const clubProf = within(clubCard).getByLabelText('Club proficiency');
   expect(daggerProf).toBeChecked();
   expect(daggerProf).not.toBeDisabled();
   expect(clubProf).not.toBeChecked();
@@ -115,8 +173,8 @@ test('granted proficiencies render checked and disabled', async () => {
   render(<WeaponList characterId="char1" />);
 
   const daggerRow = await screen.findByText('Dagger');
-  const daggerTr = daggerRow.closest('tr');
-  const daggerProf = within(daggerTr).getByLabelText('Dagger proficiency');
+  const daggerCard = daggerRow.closest('.card');
+  const daggerProf = within(daggerCard).getByLabelText('Dagger proficiency');
   expect(daggerProf).toBeChecked();
   expect(daggerProf).toBeDisabled();
 });
@@ -138,8 +196,8 @@ test('toggling a non-proficient weapon allows checking and unchecking', async ()
   render(<WeaponList characterId="char1" />);
 
   const clubRow = await screen.findByText('Club');
-  const clubTr = clubRow.closest('tr');
-  const clubProf = within(clubTr).getByLabelText('Club proficiency');
+  const clubCard = clubRow.closest('.card');
+  const clubProf = within(clubCard).getByLabelText('Club proficiency');
 
   expect(clubProf).not.toBeChecked();
   await userEvent.click(clubProf);
@@ -183,23 +241,23 @@ test('reloads proficiency data when character changes', async () => {
   const clubRow1 = await screen.findByText('Club');
   const daggerRow1 = await screen.findByText('Dagger');
   expect(
-    within(clubRow1.closest('tr')).getByLabelText('Club proficiency')
+    within(clubRow1.closest('.card')).getByLabelText('Club proficiency')
   ).toBeChecked();
   expect(
-    within(daggerRow1.closest('tr')).getByLabelText('Dagger proficiency')
+    within(daggerRow1.closest('.card')).getByLabelText('Dagger proficiency')
   ).not.toBeChecked();
 
   rerender(<WeaponList characterId="char2" />);
   await waitFor(() =>
     expect(
-      within(screen.getByText('Club').closest('tr')).getByLabelText(
+      within(screen.getByText('Club').closest('.card')).getByLabelText(
         'Club proficiency'
       )
     ).not.toBeChecked()
   );
   await waitFor(() =>
     expect(
-      within(screen.getByText('Dagger').closest('tr')).getByLabelText(
+      within(screen.getByText('Dagger').closest('.card')).getByLabelText(
         'Dagger proficiency'
       )
     ).toBeChecked()
@@ -223,6 +281,34 @@ test('refetches weapons when modal is opened', async () => {
   expect(await screen.findByText('Dagger')).toBeInTheDocument();
   expect(apiFetch).toHaveBeenCalledWith('/weapons');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
+});
+
+test('renders duplicate entries when multiple copies are owned', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+    });
+
+  render(
+    <WeaponList
+      characterId="char1"
+      ownedOnly
+      embedded
+      initialWeapons={[
+        { name: 'Club', owned: true },
+        { name: 'Club', owned: true },
+        { name: 'Dagger', owned: true },
+      ]}
+    />
+  );
+
+  const clubs = await screen.findAllByText('Club');
+  expect(clubs).toHaveLength(2);
+  expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
+  expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
+  expect(screen.getAllByText('Dagger')).toHaveLength(1);
 });
 
 test('warns when unknown weapon names are returned', async () => {
@@ -249,5 +335,20 @@ test('warns when unknown weapon names are returned', async () => {
     'mystery'
   );
   warn.mockRestore();
+});
+
+test('omits card wrapper when embedded', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: [], proficient: {}, granted: [] }),
+    });
+
+  render(<WeaponList characterId="char1" embedded />);
+
+  expect(await screen.findByText('Club')).toBeInTheDocument();
+  expect(screen.queryByText('Weapons')).not.toBeInTheDocument();
+  expect(document.querySelector('.modern-card')).toBeNull();
 });
 

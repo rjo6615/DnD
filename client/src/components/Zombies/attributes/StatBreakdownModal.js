@@ -59,6 +59,12 @@ export default function StatBreakdownModal({ show, onHide, statKey, breakdown })
                     <td>Item</td>
                     <td>{breakdown.item}</td>
                   </tr>
+                  {breakdown.override !== undefined && (
+                    <tr>
+                      <td>Override</td>
+                      <td>{breakdown.override}</td>
+                    </tr>
+                  )}
                   <tr>
                     <td>Total</td>
                     <td>{breakdown.total}</td>

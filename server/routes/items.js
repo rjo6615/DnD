@@ -1,5 +1,5 @@
 const express = require('express');
-const { items, types, categories } = require('../data/items');
+const { items, categories } = require('../data/items');
 
 module.exports = (router) => {
   const itemRouter = express.Router();
@@ -9,7 +9,7 @@ module.exports = (router) => {
   });
 
   itemRouter.get('/options', (_req, res) => {
-    res.json({ types, categories });
+    res.json({ categories });
   });
 
   itemRouter.get('/:name', (req, res) => {

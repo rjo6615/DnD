@@ -56,6 +56,13 @@ describe('Spells routes', () => {
     expect(res.body.damage).toBe('8d6');
   });
 
+  test('upcastable spells include higherLevels field', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app).get('/spells/burning-hands');
+    expect(res.status).toBe(200);
+    expect(res.body.higherLevels).toMatch(/damage increases/i);
+  });
+
   test('GET /spells?class=bard returns only bard spells', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app).get('/spells').query({ class: 'bard' });
