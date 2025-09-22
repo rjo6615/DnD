@@ -660,7 +660,7 @@ export default function ShopModal({
           style={{ maxHeight: '80vh', overflowY: 'auto' }}
         >
           <Tab.Container activeKey={currentTab} onSelect={handleSelectTab}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="modal-tab-header d-flex justify-content-between align-items-center mb-3">
               <Nav variant="tabs" className="mb-0">
                 {tabConfigs.map(({ key, title }) => (
                   <Nav.Item key={key}>

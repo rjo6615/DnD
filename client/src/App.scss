@@ -1322,6 +1322,20 @@ h1 {
   overflow: visible;
 }
 
+.modern-card .modal-body {
+  position: relative;
+}
+
+.modern-card .modal-tab-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: rgba(0, 0, 0, 0.95);
+  padding: 0.75rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Modal Header */
 .modal-header {
   background: none !important;
