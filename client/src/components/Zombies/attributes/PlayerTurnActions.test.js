@@ -65,10 +65,15 @@ describe('PlayerTurnActions weapon damage display', () => {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
       category: 'melee',
+      source: 'weapon',
     };
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
         strMod={2}
         atkBonus={0}
         dexMod={0}
@@ -116,12 +121,17 @@ describe('PlayerTurnActions damage log', () => {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
       category: 'melee',
+      source: 'weapon',
     };
     const orig = Math.random;
     Math.random = () => 0; // deterministic rolls
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
         strMod={2}
         atkBonus={0}
         dexMod={0}
@@ -315,10 +325,15 @@ describe('PlayerTurnActions weapon damage display', () => {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
       category: 'melee',
+      source: 'weapon',
     };
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
         strMod={2}
         atkBonus={0}
         dexMod={0}
@@ -366,7 +381,7 @@ describe('PlayerTurnActions critical events', () => {
 
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells: [] }}
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
         strMod={0}
         dexMod={0}
       />
@@ -418,7 +433,7 @@ describe('PlayerTurnActions critical events', () => {
   test('clicking damageAmount toggles critical class', () => {
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells: [] }}
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
         strMod={0}
         dexMod={0}
       />
@@ -456,7 +471,7 @@ describe('PlayerTurnActions spell casting', () => {
     };
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
         dexMod={0}
         onCastSpell={onCastSpell}
@@ -497,7 +512,7 @@ describe('PlayerTurnActions spell casting', () => {
     };
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
         atkBonus={0}
         dexMod={0}
@@ -547,7 +562,7 @@ describe('PlayerTurnActions spell casting', () => {
     };
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
         dexMod={0}
         onCastSpell={onCastSpell}
@@ -588,7 +603,7 @@ describe('PlayerTurnActions spell casting', () => {
     };
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
         dexMod={0}
         onCastSpell={onCastSpell}
@@ -637,7 +652,7 @@ describe('PlayerTurnActions spell casting', () => {
     ];
     render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', weapon: [], spells }}
+        form={{ diceColor: '#000000', equipment: {}, spells }}
         strMod={0}
         dexMod={0}
       />
@@ -676,7 +691,7 @@ describe('cantrip scaling', () => {
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
-          weapon: [],
+          equipment: {},
           spells: [{ ...baseSpell }],
           occupation: [{ Level: lvl }],
         }}

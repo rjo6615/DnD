@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen, within, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ItemList from './ItemList';
 import apiFetch from '../../utils/apiFetch';
@@ -18,7 +19,7 @@ afterEach(() => {
   apiFetch.mockReset();
 });
 
-test('fetches items and toggles ownership', async () => {
+test('fetches items, handles add to cart, and displays cart count', async () => {
   apiFetch.mockImplementation((url) => {
     if (url === '/items') {
       return Promise.resolve({ ok: true, json: async () => itemsData });
@@ -28,38 +29,70 @@ test('fetches items and toggles ownership', async () => {
     }
     return Promise.resolve({ ok: false, status: 500, statusText: 'Server Error' });
   });
-  const onChange = jest.fn();
+  const onAddToCart = jest.fn();
+
+  function Wrapper(props) {
+    const [counts, setCounts] = React.useState({});
+    const handleAdd = (item) => {
+      act(() => {
+        setCounts((prev) => {
+          const key = `item::${String(item?.name || '').toLowerCase()}`;
+          return { ...prev, [key]: (prev[key] || 0) + 1 };
+        });
+      });
+      onAddToCart(item);
+    };
+    return (
+      <ItemList
+        {...props}
+        onAddToCart={handleAdd}
+        cartCounts={counts}
+      />
+    );
+  }
 
   render(
-    <ItemList
+    <Wrapper
       campaign="Camp1"
-      initialItems={[itemsData.torch]}
-      onChange={onChange}
       characterId="char1"
     />
   );
 
   expect(apiFetch).toHaveBeenCalledWith('/items');
   expect(apiFetch).toHaveBeenCalledWith('/equipment/items/Camp1');
-  const potionCheckbox = await screen.findByLabelText('Potion of healing');
-  const torchCheckbox = await screen.findByLabelText('Torch');
-  const jetCheckbox = await screen.findByLabelText('Jetpack');
-  expect(torchCheckbox).toBeChecked();
-  expect(potionCheckbox).not.toBeChecked();
-  expect(jetCheckbox).not.toBeChecked();
+  const potionHeading = await screen.findByText('Potion of healing');
+  const addButton = within(potionHeading.closest('.card')).getByRole('button', {
+    name: /add to cart/i,
+  });
+  expect(
+    within(potionHeading.closest('.card')).getByText('In Cart: 0')
+  ).toBeInTheDocument();
 
-  onChange.mockClear();
-  await userEvent.click(potionCheckbox);
-  await waitFor(() => expect(potionCheckbox).toBeChecked());
+  await userEvent.click(addButton);
   await waitFor(() =>
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ name: 'potion-healing' }),
-        expect.objectContaining({ name: 'torch' }),
-      ])
-    )
+    expect(
+      within(potionHeading.closest('.card')).getByText('In Cart: 1')
+    ).toBeInTheDocument()
   );
-  expect(apiFetch).toHaveBeenCalledTimes(2);
+
+  await userEvent.click(addButton);
+  await waitFor(() =>
+    expect(
+      within(potionHeading.closest('.card')).getByText('In Cart: 2')
+    ).toBeInTheDocument()
+  );
+
+  expect(onAddToCart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'potion-healing',
+      displayName: 'Potion of healing',
+      type: 'item',
+      cost: '50 gp',
+      category: 'adventuring gear',
+      weight: 0.5,
+    })
+  );
+  expect(onAddToCart).toHaveBeenCalledTimes(2);
 });
 
 test('shows error message when item fetch fails', async () => {
@@ -82,4 +115,48 @@ test('shows error message when item fetch fails', async () => {
   expect(
     await screen.findByText('Failed to load items: 500 Server Error')
   ).toBeInTheDocument();
+});
+
+test('omits card header and footer when embedded', async () => {
+  apiFetch.mockImplementation((url) => {
+    if (url === '/items') {
+      return Promise.resolve({ ok: true, json: async () => itemsData });
+    }
+    if (url === '/equipment/items/Camp1') {
+      return Promise.resolve({ ok: true, json: async () => customData });
+    }
+    return Promise.resolve({ ok: false, status: 500, statusText: 'Server Error' });
+  });
+
+  const onClose = jest.fn();
+
+  render(<ItemList campaign="Camp1" embedded onClose={onClose} />);
+
+  expect(await screen.findByText('Potion of healing')).toBeInTheDocument();
+  expect(screen.queryByText('Items')).not.toBeInTheDocument();
+  expect(document.querySelector('.modern-card')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+});
+
+test('renders duplicate item cards when multiple copies are owned', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
+
+  render(
+    <ItemList
+      characterId="char1"
+      ownedOnly
+      embedded
+      initialItems={[
+        { name: 'Torch', owned: true },
+        { name: 'Torch', owned: true },
+        { name: 'Potion of healing', owned: true },
+      ]}
+    />
+  );
+
+  const torches = await screen.findAllByText('Torch');
+  expect(torches).toHaveLength(2);
+  expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
+  expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
+  expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
 });

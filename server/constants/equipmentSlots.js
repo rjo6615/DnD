@@ -1,0 +1,130 @@
+const EQUIPMENT_SLOT_LAYOUT = [
+  [
+    { key: 'head', label: 'Head' },
+    { key: 'eyes', label: 'Eyes' },
+    { key: 'neck', label: 'Neck' },
+    { key: 'shoulders', label: 'Shoulders' },
+  ],
+  [
+    { key: 'chest', label: 'Chest' },
+    { key: 'back', label: 'Back' },
+    { key: 'arms', label: 'Arms' },
+    { key: 'wrists', label: 'Wrists' },
+  ],
+  [
+    { key: 'hands', label: 'Hands' },
+    { key: 'waist', label: 'Waist' },
+    { key: 'legs', label: 'Legs' },
+    { key: 'feet', label: 'Feet' },
+  ],
+  [
+    { key: 'mainHand', label: 'Main Hand' },
+    { key: 'offHand', label: 'Off Hand' },
+    { key: 'ranged', label: 'Ranged' },
+    { key: 'ringLeft', label: 'Ring I' },
+    { key: 'ringRight', label: 'Ring II' },
+  ],
+];
+
+const EQUIPMENT_SLOT_KEYS = EQUIPMENT_SLOT_LAYOUT.flat().map((slot) => slot.key);
+
+const ARMOR_SLOT_KEYS = new Set([
+  'head',
+  'shoulders',
+  'chest',
+  'arms',
+  'hands',
+  'legs',
+  'feet',
+  'offHand',
+]);
+
+const ARMOR_SLOT_OPTIONS = EQUIPMENT_SLOT_LAYOUT.flat().filter((slot) =>
+  ARMOR_SLOT_KEYS.has(slot.key)
+);
+
+const createEmptyEquipmentMap = () => {
+  const map = {};
+  EQUIPMENT_SLOT_KEYS.forEach((slot) => {
+    map[slot] = null;
+  });
+  return map;
+};
+
+const cloneItem = (item) => {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    return { name: item };
+  }
+  if (typeof item !== 'object') {
+    return null;
+  }
+  return { ...item };
+};
+
+const getAssignmentKey = (item) => {
+  if (!item || typeof item !== 'object') return '';
+  const identifier =
+    item._id || item.id || item.name || item.displayName || item.title || '';
+  const source = item.__source || item.source || '';
+  return `${String(source).toLowerCase()}::${String(identifier).toLowerCase()}`;
+};
+
+const normalizeEquipmentMap = (equipment, { fallback } = {}) => {
+  const normalized = createEmptyEquipmentMap();
+  const base =
+    fallback && typeof fallback === 'object' ? fallback : undefined;
+
+  if (base) {
+    EQUIPMENT_SLOT_KEYS.forEach((slot) => {
+      const baseValue = base[slot];
+      normalized[slot] = baseValue ? cloneItem(baseValue) : null;
+    });
+  }
+
+  if (!equipment || typeof equipment !== 'object') {
+    return normalized;
+  }
+
+  const assigned = new Map();
+
+  Object.entries(equipment).forEach(([slot, value]) => {
+    if (!EQUIPMENT_SLOT_KEYS.includes(slot)) {
+      return;
+    }
+
+    if (!value) {
+      normalized[slot] = null;
+      return;
+    }
+
+    const cloned = cloneItem(value);
+    if (!cloned) {
+      normalized[slot] = null;
+      return;
+    }
+
+    const key = getAssignmentKey(cloned);
+    if (key && assigned.has(key)) {
+      const previousSlot = assigned.get(key);
+      if (previousSlot && previousSlot !== slot) {
+        normalized[previousSlot] = null;
+      }
+    }
+
+    normalized[slot] = cloned;
+    if (key) {
+      assigned.set(key, slot);
+    }
+  });
+
+  return normalized;
+};
+
+module.exports = {
+  EQUIPMENT_SLOT_LAYOUT,
+  EQUIPMENT_SLOT_KEYS,
+  ARMOR_SLOT_OPTIONS,
+  createEmptyEquipmentMap,
+  normalizeEquipmentMap,
+};

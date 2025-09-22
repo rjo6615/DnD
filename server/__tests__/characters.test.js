@@ -10,6 +10,7 @@ const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const charactersRouter = require('../routes');
 const classes = require('../data/classes');
+const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,7 @@ describe('Character routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.acknowledged).toBe(true);
     expect(captured.allowedSkills).toEqual([]);
+    expect(captured).toMatchObject({ cp: 0, sp: 0, gp: 0, pp: 0 });
   });
 
   test('add character with array fields', async () => {
@@ -129,6 +131,43 @@ describe('Character routes', () => {
       .post('/characters/add')
       .send({ token: 'alice' });
     expect(res.status).toBe(400);
+  });
+
+  test('update currency normalizes totals before persisting', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ cp: 5, sp: 4, gp: 3, pp: 2 }),
+        updateOne,
+      }),
+    });
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/currency')
+      .send({ cp: 5 });
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(updateOne.mock.calls[0][1]).toEqual({
+      $set: { cp: 0, sp: 5, gp: 3, pp: 2 },
+    });
+    expect(res.body).toEqual({ cp: 0, sp: 5, gp: 3, pp: 2 });
+  });
+
+  test('currency adjustments follow 10-to-1 conversion chain', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ cp: 0, sp: 0, gp: 0, pp: 0 }),
+        updateOne,
+      }),
+    });
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/currency')
+      .send({ cp: 10, sp: 10, gp: 10 });
+    expect(res.status).toBe(200);
+    expect(updateOne.mock.calls[0][1]).toEqual({
+      $set: { cp: 0, sp: 1, gp: 1, pp: 1 },
+    });
+    expect(res.body).toEqual({ cp: 0, sp: 1, gp: 1, pp: 1 });
   });
 
   test('update spells success', async () => {
@@ -255,6 +294,12 @@ describe('Character routes', () => {
         range: '150 ft',
         duration: 'Instantaneous',
       }],
+      equipment: {
+        mainHand: { name: 'Longsword', source: 'weapon' },
+        ranged: { name: 'Shortbow', source: 'weapon' },
+        ringLeft: 'Ring of Protection',
+        tail: { name: 'Tail Blade' },
+      },
     };
     dbo.mockResolvedValue({
       collection: () => ({
@@ -271,6 +316,28 @@ describe('Character routes', () => {
       range: '150 ft',
       duration: 'Instantaneous',
     });
+    expect(Object.keys(res.body.equipment).sort()).toEqual(
+      [...EQUIPMENT_SLOT_KEYS].sort()
+    );
+    expect(res.body.equipment.mainHand).toMatchObject({
+      name: 'Longsword',
+      source: 'weapon',
+    });
+    expect(res.body.equipment.ranged).toMatchObject({
+      name: 'Shortbow',
+      source: 'weapon',
+    });
+    expect(res.body.equipment.ringLeft).toMatchObject({
+      name: 'Ring of Protection',
+    });
+    EQUIPMENT_SLOT_KEYS.filter((slot) =>
+      !['mainHand', 'ranged', 'ringLeft'].includes(slot)
+    ).forEach(
+      (slot) => {
+        expect(res.body.equipment[slot]).toBeNull();
+      }
+    );
+    expect(res.body.equipment.tail).toBeUndefined();
   });
 
   test('get weapons success', async () => {
@@ -488,7 +555,7 @@ describe('Character routes', () => {
     dbo.mockResolvedValue({
       collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
     });
-    const payload = { campaign: 'Camp1', armorName: 'Plate' };
+    const payload = { campaign: 'Camp1', armorName: 'Plate', slot: EQUIPMENT_SLOT_KEYS[0] };
     const res = await request(app)
       .post('/equipment/armor/add')
       .send(payload);

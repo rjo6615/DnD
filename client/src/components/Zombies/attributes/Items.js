@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { Modal } from 'react-bootstrap';
 import ItemList from '../../Items/ItemList';
 import apiFetch from '../../../utils/apiFetch';
 
@@ -57,17 +57,15 @@ export default function Items({ form, showItems, handleCloseItems }) {
       size="lg"
       centered
     >
-      <ItemList
-        campaign={campaign}
-        initialItems={normalized}
-        onChange={handleItemsChange}
-        characterId={characterId}
-        show={showItems}
-      />
-      <div className="modal-footer">
-        <Button className="action-btn close-btn" onClick={handleCloseItems}>
-          Close
-        </Button>
+      <div className="text-center">
+        <ItemList
+          campaign={campaign}
+          initialItems={normalized}
+          onChange={handleItemsChange}
+          characterId={characterId}
+          show={showItems}
+          onClose={handleCloseItems}
+        />
       </div>
     </Modal>
   );

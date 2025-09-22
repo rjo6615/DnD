@@ -1,0 +1,229 @@
+.rackWrapper {
+  --rack-border: rgba(255, 255, 255, 0.08);
+  --rack-shadow: rgba(0, 0, 0, 0.35);
+}
+
+.rackLayout {
+  background: radial-gradient(circle at top, rgba(73, 80, 87, 0.25), rgba(33, 37, 41, 0.85));
+  border: 1px solid var(--rack-border);
+  border-radius: 1rem;
+  padding: clamp(0.85rem, 2vw, 1.15rem);
+  box-shadow: 0 18px 36px var(--rack-shadow);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.rackLayout::before,
+.rackLayout::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rackLayout::before {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(173, 181, 189, 0.38), rgba(173, 181, 189, 0) 54%),
+    radial-gradient(circle at 50% 84%, rgba(96, 112, 130, 0.46), rgba(15, 19, 28, 0.94) 70%),
+    linear-gradient(165deg, rgba(21, 26, 34, 0.96), rgba(9, 12, 19, 0.98));
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size:
+    clamp(200px, 32vw, 340px) 92%,
+    clamp(220px, 34vw, 360px) 100%,
+    clamp(220px, 34vw, 360px) 100%;
+  filter: saturate(0.85) contrast(1.12) drop-shadow(0 24px 40px rgba(0, 0, 0, 0.45));
+  opacity: 0.52;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: clamp(200px, 32vw, 340px) 100%;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  mask-size: clamp(200px, 32vw, 340px) 100%;
+}
+
+.rackLayout::after {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 62%),
+    radial-gradient(circle at 50% 95%, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0) 70%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size:
+    clamp(210px, 32vw, 340px) 82%,
+    clamp(220px, 34vw, 360px) 100%;
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: clamp(200px, 32vw, 340px) 100%;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20200%20320%27%3E%3Cpath%20fill%3D%27white%27%20fill-rule%3D%27evenodd%27%20d%3D%27M100%2018c17%200%2033%2013%2037%2032%203%2013%201%2029-3%2043l-5%2018%2012%2016c11%2016%2017%2037%2017%2058v16l11%2032c6%2015%209%2031%209%2047v58H22v-58c0-16%203-32%209-47l11-32v-16c0-21%206-42%2017-58l12-16-5-18c-4-14-6-30-3-43%204-19%2020-32%2037-32zm0%2034c-7%200-13%205-14%2012-2%209%201%2021%204%2031l10%2030%2010-30c3-10%206-22%204-31-1-7-7-12-14-12zm-19%20118-11%2056%2030%2028%2030-28-11-56-19%2030-19-30zm-6%2076%2025%2023%2025-23%2020%2057H55l20-57z%27/%3E%3C/svg%3E") no-repeat center;
+  mask-size: clamp(200px, 32vw, 340px) 100%;
+}
+
+.columns {
+  display: grid;
+  gap: clamp(0.75rem, 2.25vw, 2.25rem);
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  align-items: start;
+  position: relative;
+  z-index: 1;
+}
+
+.leftColumn,
+.rightColumn {
+  display: grid;
+  grid-auto-rows: minmax(0, auto);
+  gap: 0.75rem;
+}
+
+.bottomRow {
+  margin-top: 1.1rem;
+  display: grid;
+  gap: clamp(0.65rem, 2vw, 0.9rem);
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  position: relative;
+  z-index: 1;
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 118px;
+  padding: 0.6rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, rgba(33, 37, 41, 0.92), rgba(73, 80, 87, 0.7));
+  color: var(--bs-light, #f8f9fa);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.slot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.slotHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: rgba(248, 249, 250, 0.9);
+}
+
+.slotIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  font-size: 0.95rem;
+}
+
+.slotLabel {
+  flex: 1;
+}
+
+%slotItemBase {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 0.65rem;
+  padding: 0.55rem;
+  margin-bottom: 0.5rem;
+  min-height: 2.6rem;
+  word-break: break-word;
+}
+
+.slotItem {
+  @extend %slotItemBase;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+}
+
+.slotItemEmpty {
+  @extend %slotItemBase;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(248, 249, 250, 0.7);
+  font-style: italic;
+}
+
+.slotControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: auto;
+}
+
+.slotSelect {
+  background: rgba(8, 12, 20, 0.75);
+  color: var(--bs-light, #f8f9fa);
+  border-radius: 0.55rem;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.88rem;
+  flex: 1 1 160px;
+}
+
+.slotSelect:focus {
+  border-color: rgba(173, 181, 189, 0.8);
+  box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.35);
+}
+
+.clearButton {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 992px) {
+  .columns {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: clamp(0.75rem, 2.75vw, 1.75rem);
+  }
+
+  .bottomRow {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .rackLayout {
+    padding: 1rem;
+  }
+
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .leftColumn,
+  .rightColumn {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot,
+  .rackLayout {
+    transition: none !important;
+    animation: none !important;
+  }
+}

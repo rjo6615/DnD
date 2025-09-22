@@ -1,7 +1,19 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, Table, Modal, Button } from "react-bootstrap";
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
+import { normalizeEquipmentMap } from './equipmentNormalization';
+
+const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const createEmptyStatMap = () => ({
+  str: 0,
+  dex: 0,
+  con: 0,
+  int: 0,
+  wis: 0,
+  cha: 0,
+});
 
 export default function Stats({ form, showStats, handleCloseStats }) {
   const [stats] = useState({
@@ -15,17 +27,34 @@ export default function Stats({ form, showStats, handleCloseStats }) {
 
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedStat, setSelectedStat] = useState(null);
+  const equippedItems = useMemo(() => {
+    if (typeof form?.equipment === 'object' && form.equipment !== null) {
+      const normalized = normalizeEquipmentMap(form.equipment);
+      return Object.values(normalized).filter(Boolean);
+    }
+    return Array.isArray(form.item) ? form.item.filter(Boolean) : [];
+  }, [form.equipment, form.item]);
 
-  const totalItemBonus = (form.item || []).reduce(
-    (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str || 0),
-      dex: acc.dex + Number(el.statBonuses?.dex || 0),
-      con: acc.con + Number(el.statBonuses?.con || 0),
-      int: acc.int + Number(el.statBonuses?.int || 0),
-      wis: acc.wis + Number(el.statBonuses?.wis || 0),
-      cha: acc.cha + Number(el.statBonuses?.cha || 0),
-    }),
-    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  const { bonuses: totalItemBonus, overrides: itemOverrides } = equippedItems.reduce(
+    (acc, el) => {
+      STAT_KEYS.forEach((key) => {
+        const bonusValue = Number(el.statBonuses?.[key] || 0);
+        if (!Number.isNaN(bonusValue)) {
+          acc.bonuses[key] += bonusValue;
+        }
+        const overrideRaw = el.statOverrides?.[key];
+        if (overrideRaw !== undefined && overrideRaw !== null) {
+          const overrideValue = Number(overrideRaw);
+          if (!Number.isNaN(overrideValue)) {
+            const current = acc.overrides[key];
+            acc.overrides[key] =
+              current === undefined ? overrideValue : Math.max(current, overrideValue);
+          }
+        }
+      });
+      return acc;
+    },
+    { bonuses: createEmptyStatMap(), overrides: {} }
   );
 
   const totalFeatBonus = (form.feat || []).reduce(
@@ -59,14 +88,25 @@ export default function Stats({ form, showStats, handleCloseStats }) {
     const feat = totalFeatBonus[key];
     const item = totalItemBonus[key];
     const cls = classBonus[key];
-    acc[key] = {
+    const totalWithoutOverride = base + cls + race + feat + item;
+    const overrideValue = itemOverrides[key];
+    const breakdown = {
       base,
       class: cls,
       race,
       feat,
       item,
-      total: base + cls + race + feat + item,
+      total: totalWithoutOverride,
     };
+    if (
+      overrideValue !== undefined &&
+      overrideValue !== null &&
+      overrideValue > totalWithoutOverride
+    ) {
+      breakdown.override = overrideValue;
+      breakdown.total = overrideValue;
+    }
+    acc[key] = breakdown;
     return acc;
   }, {});
 

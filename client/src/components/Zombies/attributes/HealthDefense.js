@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'; // Import useState and React
+import React, { useEffect, useMemo, useState } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import { normalizeEquipmentMap } from './equipmentNormalization';
 
 export default function HealthDefense({
   form,
@@ -19,8 +20,26 @@ export default function HealthDefense({
   const isLargeScreen =
     typeof window !== 'undefined' && window.innerWidth >= 768;
 //-----------------------Health/Defense------------------------------
-  // Armor AC/MaxDex
-  const armorItems = form.armor || [];
+  const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form.equipment),
+    [form.equipment]
+  );
+  const armorItems = useMemo(() => {
+    if (hasEquipment) {
+      return Object.values(normalizedEquipment).filter((item) => {
+        if (!item) return false;
+        if (item.source === 'armor') return true;
+        if (item.acBonus != null || item.armorBonus != null || item.ac != null)
+          return true;
+        if (item.maxDex != null || item.maxDexterity != null) return true;
+        if (item.checkPenalty != null || item.stealth != null) return true;
+        return false;
+      });
+    }
+    return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
+  }, [hasEquipment, normalizedEquipment, form.armor]);
+
   const armorAcBonus = armorItems.map((item) => {
     if (Array.isArray(item)) {
       const value = Number(item[1] ?? 0);
@@ -29,7 +48,9 @@ export default function HealthDefense({
     return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
   });
   const armorMaxDexBonus = armorItems.map((item) =>
-    Array.isArray(item) ? Number(item[2] ?? 0) : Number(item.maxDex ?? 0)
+    Array.isArray(item)
+      ? Number(item[2] ?? 0)
+      : Number(item.maxDex ?? item.maxDexterity ?? 0)
   );
   let totalArmorAcBonus =
     armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +

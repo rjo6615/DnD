@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button, Modal } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -10,12 +10,9 @@ import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
 import Feats from "../attributes/Feats";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
-import WeaponList from "../../Weapons/WeaponList";
 import PlayerTurnActions, {
   calculateDamage,
 } from "../attributes/PlayerTurnActions";
-import ArmorList from "../../Armor/ArmorList";
-import ItemList from "../../Items/ItemList";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import HealthDefense from "../attributes/HealthDefense";
@@ -26,6 +23,14 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
+import ShopModal from "../attributes/ShopModal";
+import InventoryModal from "../attributes/InventoryModal";
+import EquipmentModal from "../attributes/EquipmentModal";
+import {
+  normalizeItems as normalizeInventoryItems,
+  normalizeAccessories as normalizeInventoryAccessories,
+} from "../attributes/inventoryNormalization";
+import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 
 const HEADER_PADDING = 16;
 const SPELLCASTING_CLASSES = {
@@ -39,6 +44,42 @@ const SPELLCASTING_CLASSES = {
   ranger: 'half',
 };
 
+const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const createEmptyStatMap = () => ({
+  str: 0,
+  dex: 0,
+  con: 0,
+  int: 0,
+  wis: 0,
+  cha: 0,
+});
+
+const aggregateStatEffects = (collection) => {
+  const entries = Array.isArray(collection) ? collection : [];
+  return entries.reduce(
+    (acc, el) => {
+      STAT_KEYS.forEach((key) => {
+        const bonusValue = Number(el?.statBonuses?.[key] || 0);
+        if (!Number.isNaN(bonusValue)) {
+          acc.bonuses[key] += bonusValue;
+        }
+        const overrideRaw = el?.statOverrides?.[key];
+        if (overrideRaw !== undefined && overrideRaw !== null) {
+          const overrideValue = Number(overrideRaw);
+          if (!Number.isNaN(overrideValue)) {
+            const current = acc.overrides[key];
+            acc.overrides[key] =
+              current === undefined ? overrideValue : Math.max(current, overrideValue);
+          }
+        }
+      });
+      return acc;
+    },
+    { bonuses: createEmptyStatMap(), overrides: {} }
+  );
+};
+
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id; 
@@ -48,9 +89,11 @@ export default function ZombiesCharacterSheet() {
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
   const [showFeats, setShowFeats] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
-  const [showWeapons, setShowWeapons] = useState(false);
-  const [showArmor, setShowArmor] = useState(false);
-  const [showItems, setShowItems] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [shopTab, setShopTab] = useState('weapons');
+  const [showInventory, setShowInventory] = useState(false);
+  const [inventoryTab, setInventoryTab] = useState('weapons');
+  const [showEquipment, setShowEquipment] = useState(false);
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
@@ -217,12 +260,20 @@ export default function ZombiesCharacterSheet() {
           });
           return featObj;
         });
+        const accessories = Array.isArray(data.accessories)
+          ? data.accessories
+          : Array.isArray(data.accessory)
+            ? data.accessory
+            : [];
         setForm({
           ...data,
           feat: feats,
           weapon: data.weapon || [],
           armor: data.armor || [],
           item: data.item || [],
+          accessories,
+          accessory: accessories,
+          equipment: normalizeEquipmentMap(data.equipment),
         });
       } catch (error) {
         console.error(error);
@@ -242,12 +293,18 @@ export default function ZombiesCharacterSheet() {
   const handleCloseFeats = () => setShowFeats(false);
   const handleShowFeatures = () => setShowFeatures(true);
   const handleCloseFeatures = () => setShowFeatures(false);
-  const handleShowWeapons = () => setShowWeapons(true);
-  const handleCloseWeapons = () => setShowWeapons(false); 
-  const handleShowArmor = () => setShowArmor(true);
-  const handleCloseArmor = () => setShowArmor(false);
-  const handleShowItems = () => setShowItems(true);
-  const handleCloseItems = () => setShowItems(false);
+  const handleShowShop = (tab) => {
+    setShopTab((prevTab) => tab ?? prevTab ?? 'weapons');
+    setShowShop(true);
+  };
+  const handleCloseShop = () => setShowShop(false);
+  const handleShowInventory = (tab) => {
+    setInventoryTab((prevTab) => tab ?? prevTab ?? 'weapons');
+    setShowInventory(true);
+  };
+  const handleCloseInventory = () => setShowInventory(false);
+  const handleShowEquipment = () => setShowEquipment(true);
+  const handleCloseEquipment = () => setShowEquipment(false);
   const handleShowSpells = () => setShowSpells(true);
   const handleCloseSpells = () => setShowSpells(false);
   const handleShowHelpModal = () => setShowHelpModal(true);
@@ -488,17 +545,197 @@ export default function ZombiesCharacterSheet() {
     [characterId]
   );
 
-  const itemBonus = (form?.item || []).reduce(
-    (acc, el) => ({
-      str: acc.str + Number(el.statBonuses?.str || 0),
-      dex: acc.dex + Number(el.statBonuses?.dex || 0),
-      con: acc.con + Number(el.statBonuses?.con || 0),
-      int: acc.int + Number(el.statBonuses?.int || 0),
-      wis: acc.wis + Number(el.statBonuses?.wis || 0),
-      cha: acc.cha + Number(el.statBonuses?.cha || 0),
-    }),
-    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+  const handleAccessoriesChange = useCallback(
+    async (accessories) => {
+      setForm((prev) => ({
+        ...prev,
+        accessories,
+        accessory: accessories,
+      }));
+      try {
+        await apiFetch(`/equipment/update-accessories/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessories }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId]
   );
+
+  const handleEquipmentChange = useCallback(
+    async (equipment = {}) => {
+      const normalized = normalizeEquipmentMap(equipment, {
+        fallback: form?.equipment,
+      });
+      setForm((prev) => {
+        const nextForm = prev ? { ...prev } : {};
+        nextForm.equipment = normalized;
+        return nextForm;
+      });
+      try {
+        await apiFetch(`/equipment/update-equipment/${characterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ equipment: normalized }),
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    },
+    [characterId, form]
+  );
+
+  const handleShopPurchase = useCallback(
+    async (cart = [], totalCostCp = 0) => {
+      if (!form) return;
+
+      const normalizedCost = Number.isFinite(totalCostCp)
+        ? Math.round(totalCostCp)
+        : 0;
+
+      let updatedCurrency;
+      try {
+        const response = await apiFetch(`/characters/${characterId}/currency`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cp: -normalizedCost }),
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to update currency: ${response.statusText}`);
+        }
+        updatedCurrency = await response.json();
+        setForm((prev) => ({
+          ...prev,
+          cp: updatedCurrency.cp ?? prev?.cp ?? 0,
+          sp: updatedCurrency.sp ?? prev?.sp ?? 0,
+          gp: updatedCurrency.gp ?? prev?.gp ?? 0,
+          pp: updatedCurrency.pp ?? prev?.pp ?? 0,
+        }));
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        return;
+      }
+
+      const purchaseItems = Array.isArray(cart) ? cart : [];
+
+      const newWeapons = [];
+      const newArmor = [];
+      const newItems = [];
+      const newAccessories = [];
+
+      purchaseItems.forEach((entry) => {
+        if (!entry || typeof entry !== 'object') return;
+        if (entry.type === 'weapon') {
+          const { type: _ignored, weaponType, ...rest } = entry;
+          const sanitized = {
+            ...rest,
+            ...(weaponType !== undefined ? { type: weaponType } : {}),
+            owned: true,
+          };
+          newWeapons.push(sanitized);
+          return;
+        }
+        if (entry.type === 'armor') {
+          const { type: _ignored, armorType, ...rest } = entry;
+          const sanitized = {
+            ...rest,
+            ...(armorType !== undefined ? { type: armorType } : {}),
+            owned: true,
+          };
+          newArmor.push(sanitized);
+          return;
+        }
+        if (entry.type === 'item') {
+          const { type: _ignored, itemType, ...rest } = entry;
+          const sanitized = {
+            ...rest,
+            ...(itemType !== undefined ? { type: itemType } : {}),
+            owned: true,
+          };
+          newItems.push(sanitized);
+        }
+        if (entry.type === 'accessory') {
+          const { type: _ignored, ...rest } = entry;
+          const [normalized] = normalizeInventoryAccessories([rest], {
+            includeUnowned: true,
+          });
+          if (normalized) {
+            newAccessories.push({ ...normalized, owned: true });
+          }
+        }
+      });
+
+      if (newWeapons.length) {
+        const updatedWeapons = [
+          ...(Array.isArray(form.weapon) ? form.weapon : []),
+          ...newWeapons,
+        ];
+        await handleWeaponsChange(updatedWeapons);
+      }
+
+      if (newArmor.length) {
+        const updatedArmor = [
+          ...(Array.isArray(form.armor) ? form.armor : []),
+          ...newArmor,
+        ];
+        await handleArmorChange(updatedArmor);
+      }
+
+      if (newItems.length) {
+        const normalizedExistingItems = normalizeInventoryItems(
+          Array.isArray(form.item) ? form.item : [],
+          { includeUnowned: true }
+        );
+        const updatedItems = [...normalizedExistingItems, ...newItems];
+        await handleItemsChange(updatedItems);
+      }
+
+      if (newAccessories.length) {
+        const sourceAccessories = Array.isArray(form.accessories)
+          ? form.accessories
+          : Array.isArray(form.accessory)
+            ? form.accessory
+            : [];
+        const normalizedExistingAccessories = normalizeInventoryAccessories(
+          sourceAccessories,
+          { includeUnowned: true }
+        );
+        const updatedAccessories = [
+          ...normalizedExistingAccessories,
+          ...newAccessories,
+        ];
+        await handleAccessoriesChange(updatedAccessories);
+      }
+    },
+    [
+      characterId,
+      form,
+      handleArmorChange,
+      handleAccessoriesChange,
+      handleItemsChange,
+      handleWeaponsChange,
+      setForm,
+    ]
+  );
+
+  const { bonuses: itemBonus, overrides: itemOverrides } = aggregateStatEffects(
+    form?.item
+  );
+
+  const accessorySource = Array.isArray(form?.accessories)
+    ? form.accessories
+    : Array.isArray(form?.accessory)
+      ? form.accessory
+      : [];
+
+  const { bonuses: accessoryBonus, overrides: accessoryOverrides } =
+    aggregateStatEffects(accessorySource);
 
   const featBonus = (form?.feat || []).reduce(
     (acc, el) => ({
@@ -512,14 +749,24 @@ export default function ZombiesCharacterSheet() {
     { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
   );
 
-  const computedStats = {
-    str: (form?.str || 0) + itemBonus.str + featBonus.str + (form?.race?.abilities?.str || 0),
-    dex: (form?.dex || 0) + itemBonus.dex + featBonus.dex + (form?.race?.abilities?.dex || 0),
-    con: (form?.con || 0) + itemBonus.con + featBonus.con + (form?.race?.abilities?.con || 0),
-    int: (form?.int || 0) + itemBonus.int + featBonus.int + (form?.race?.abilities?.int || 0),
-    wis: (form?.wis || 0) + itemBonus.wis + featBonus.wis + (form?.race?.abilities?.wis || 0),
-    cha: (form?.cha || 0) + itemBonus.cha + featBonus.cha + (form?.race?.abilities?.cha || 0),
-  };
+  const raceBonus = form?.race?.abilities || {};
+
+  const computedStats = STAT_KEYS.reduce((acc, key) => {
+    const base = Number(form?.[key] || 0);
+    const total =
+      base +
+      itemBonus[key] +
+      accessoryBonus[key] +
+      featBonus[key] +
+      Number(raceBonus[key] || 0);
+    const overrideCandidates = [itemOverrides[key], accessoryOverrides[key]];
+    const overrideValue = overrideCandidates.reduce((max, value) => {
+      if (value === undefined || value === null) return max;
+      return max === null ? value : Math.max(max, value);
+    }, null);
+    acc[key] = overrideValue !== null && overrideValue > total ? overrideValue : total;
+    return acc;
+  }, {});
 
   const statMods = {
     str: Math.floor((computedStats.str - 10) / 2),
@@ -598,7 +845,7 @@ export default function ZombiesCharacterSheet() {
     return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
   }
 
-  const statNames = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+  const statNames = [...STAT_KEYS];
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
   // Characters no longer receive stat points from leveling
@@ -739,97 +986,128 @@ return (
     >
       <Container style={{ backgroundColor: 'transparent' }}>
         <Nav
-          className="me-auto mx-auto"
+          className="w-100 align-items-center"
           style={{ backgroundColor: 'transparent' }}
         >
-          <Button
-            onClick={handleShowCharacterInfo}
-            style={{ color: "black" }}
-            className="footer-btn fas fa-image-portrait"
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowStats}
-            style={{
-              color: "black",
-              backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-            }}
-            className="footer-btn fas fa-scroll"
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowSkill}
-            style={{
-              color: "black",
-              backgroundColor: skillsGold,
-            }}
-            className={`footer-btn fas fa-book-open ${
-              skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
-            }`}
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowFeats}
-            style={{
-              color: "black",
-              backgroundColor: featsGold,
-            }}
-            className={`footer-btn fas fa-hand-fist ${featPointsLeft > 0 ? 'points-glow' : ''}`}
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowFeatures}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn fas fa-star"
-            variant="secondary"
-          ></Button>
-          {hasSpellcasting && (
+          <div
+            className="d-flex justify-content-center flex-wrap flex-grow-1"
+            style={{ backgroundColor: 'transparent' }}
+          >
             <Button
-              onClick={handleShowSpells}
+              onClick={handleShowCharacterInfo}
+              style={{ color: "black" }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-image-portrait" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowStats}
+              style={{
+                color: "black",
+                backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-scroll" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowSkill}
+              style={{
+                color: "black",
+                backgroundColor: skillsGold,
+              }}
+              className={`footer-btn ${
+                skillPointsLeft > 0 || expertisePointsLeft > 0
+                  ? 'points-glow'
+                  : ''
+              }`}
+              variant="secondary"
+            >
+              <i className="fas fa-book-open" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowFeats}
+              style={{
+                color: "black",
+                backgroundColor: featsGold,
+              }}
+              className={`footer-btn ${
+                featPointsLeft > 0 ? 'points-glow' : ''
+              }`}
+              variant="secondary"
+            >
+              <i className="fas fa-hand-fist" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowFeatures}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-star" aria-hidden="true"></i>
+            </Button>
+            {hasSpellcasting && (
+              <Button
+                onClick={handleShowSpells}
+                style={{
+                  color: 'black',
+                  backgroundColor: spellsGold,
+                }}
+                className={`footer-btn ${
+                  spellPointsLeft > 0 ? 'points-glow' : ''
+                }`}
+                variant="secondary"
+              >
+                <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+              </Button>
+            )}
+            <Button
+              onClick={handleShowEquipment}
               style={{
                 color: 'black',
-                backgroundColor: spellsGold,
+                backgroundColor: '#6C757D',
               }}
-              className={`footer-btn fas fa-hat-wizard ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+              className="footer-btn"
               variant="secondary"
-            ></Button>
-          )}
-          <Button
-            onClick={handleShowWeapons}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn fas fa-wand-sparkles"
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowArmor}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn fas fa-shield"
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowItems}
-            style={{
-              color: "black",
-              backgroundColor: "#6C757D",
-            }}
-            className="footer-btn fas fa-briefcase"
-            variant="secondary"
-          ></Button>
-          <Button
-            onClick={handleShowHelpModal}
-            style={{ color: "white" }}
-            className="footer-btn fas fa-info"
-            variant="primary"
-          ></Button>
+            >
+              <i className="fas fa-user-shield" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={() => handleShowInventory()}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-briefcase" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={() => handleShowShop()}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+            >
+              <i className="fas fa-shop" aria-hidden="true"></i>
+            </Button>
+            <Button
+              onClick={handleShowHelpModal}
+              style={{ color: "white" }}
+              className="footer-btn"
+              variant="primary"
+            >
+              <i className="fas fa-info" aria-hidden="true"></i>
+            </Button>
+          </div>
         </Nav>
       </Container>
     </Navbar>
@@ -871,79 +1149,40 @@ return (
       shortRestCount={shortRestCount}
       actionCount={actionCount}
     />
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showWeapons}
-        onHide={handleCloseWeapons}
-        size="lg"
-        centered
-        scrollable
-        fullscreen="sm-down"
-      >
-        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-          <WeaponList
-            campaign={form.campaign}
-            initialWeapons={form.weapon}
-            onChange={handleWeaponsChange}
-            characterId={characterId}
-            show={showWeapons}
-          />
-        </Modal.Body>
-        <div className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseWeapons}>
-            Close
-          </Button>
-        </div>
-      </Modal>
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showArmor}
-        onHide={handleCloseArmor}
-        size="lg"
-        centered
-        scrollable
-        fullscreen="sm-down"
-      >
-        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-          <ArmorList
-            campaign={form.campaign}
-            initialArmor={form.armor}
-            onChange={handleArmorChange}
-            characterId={characterId}
-            show={showArmor}
-            strength={computedStats.str}
-          />
-        </Modal.Body>
-        <div className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseArmor}>
-            Close
-          </Button>
-        </div>
-      </Modal>
-      <Modal
-        className="dnd-modal modern-modal"
-        show={showItems}
-        onHide={handleCloseItems}
-        size="lg"
-        centered
-        scrollable
-        fullscreen="sm-down"
-      >
-        <Modal.Body style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-          <ItemList
-            campaign={form.campaign}
-            initialItems={form.item}
-            onChange={handleItemsChange}
-            characterId={characterId}
-            show={showItems}
-          />
-        </Modal.Body>
-        <div className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseItems}>
-            Close
-          </Button>
-        </div>
-      </Modal>
+    <InventoryModal
+      show={showInventory}
+      activeTab={inventoryTab}
+      onHide={handleCloseInventory}
+      onTabChange={setInventoryTab}
+      form={form}
+      characterId={characterId}
+    />
+    <EquipmentModal
+      show={showEquipment}
+      onHide={handleCloseEquipment}
+      form={form}
+      onEquipmentChange={handleEquipmentChange}
+    />
+    <ShopModal
+      show={showShop}
+      activeTab={shopTab}
+      onHide={handleCloseShop}
+      onTabChange={setShopTab}
+      form={form}
+      characterId={characterId}
+      strength={computedStats.str}
+      onWeaponsChange={handleWeaponsChange}
+      onArmorChange={handleArmorChange}
+      onItemsChange={handleItemsChange}
+      onAccessoriesChange={handleAccessoriesChange}
+      currency={{
+        cp: form?.cp ?? 0,
+        sp: form?.sp ?? 0,
+        gp: form?.gp ?? 0,
+        pp: form?.pp ?? 0,
+      }}
+      onPurchase={handleShopPurchase}
+    />
     {hasSpellcasting && (
       <SpellSelector
         form={form}

@@ -9,6 +9,8 @@ jest.mock('../db/conn');
 const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
 const routes = require('../routes');
+const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
+const { slotKeys: ACCESSORY_SLOT_KEYS } = require('../data/accessories');
 
 const app = express();
 app.use(express.json());
@@ -149,6 +151,116 @@ describe('Equipment routes', () => {
     });
   });
 
+  describe('accessories', () => {
+    test('create accessory success', async () => {
+      const insertedId = '507f1f77bcf86cd799439099';
+      let insertedDoc;
+      dbo.mockResolvedValue({
+        collection: () => ({
+          insertOne: async (doc) => {
+            insertedDoc = doc;
+            return { insertedId };
+          },
+        }),
+      });
+
+      const res = await request(app)
+        .post('/equipment/accessories')
+        .send({
+          campaign: 'Camp1',
+          name: 'Cloak of Stars',
+          category: 'CLOAK',
+          targetSlots: ['ringRight', 'ringLeft', 'ringLeft'],
+          rarity: 'rare',
+          weight: 1.5,
+          cost: '500 gp',
+          notes: 'Shimmers with constellations',
+          statBonuses: { dex: 2 },
+        });
+
+      expect(res.status).toBe(200);
+      expect(insertedDoc.targetSlots).toEqual(['ringLeft', 'ringRight']);
+      expect(res.body).toMatchObject({
+        _id: insertedId,
+        campaign: 'Camp1',
+        name: 'Cloak of Stars',
+        category: 'cloak',
+        targetSlots: ['ringLeft', 'ringRight'],
+        rarity: 'rare',
+        weight: 1.5,
+        cost: '500 gp',
+        notes: 'Shimmers with constellations',
+        statBonuses: { dex: 2 },
+      });
+    });
+
+    test('create accessory rejects invalid slot', async () => {
+      dbo.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/equipment/accessories')
+        .send({
+          campaign: 'Camp1',
+          name: 'Odd Trinket',
+          category: 'cloak',
+          targetSlots: ['tail'],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('update accessory success', async () => {
+      let updated;
+      dbo.mockResolvedValue({
+        collection: () => ({
+          updateOne: async (_id, payload) => {
+            updated = payload.$set;
+            return { matchedCount: 1 };
+          },
+        }),
+      });
+
+      const slot = ACCESSORY_SLOT_KEYS[0];
+      const res = await request(app)
+        .put('/equipment/accessories/507f1f77bcf86cd799439010')
+        .send({
+          name: 'Updated Accessory',
+          targetSlots: [slot],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessory updated');
+      expect(updated.targetSlots).toEqual([slot]);
+    });
+
+    test('update accessory invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/accessories/not-an-id')
+        .send({ name: 'Broken' });
+      expect(res.status).toBe(400);
+    });
+
+    test('delete accessory success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 1 }) })
+      });
+      const res = await request(app).delete('/equipment/accessories/507f1f77bcf86cd799439010');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ acknowledged: true });
+    });
+
+    test('delete accessory not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ deleteOne: async () => ({ acknowledged: true, deletedCount: 0 }) })
+      });
+      const res = await request(app).delete('/equipment/accessories/507f1f77bcf86cd799439010');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Accessory not found');
+    });
+  });
+
   describe('/armor/add', () => {
     test('validation failure', async () => {
       dbo.mockResolvedValue({});
@@ -161,11 +273,14 @@ describe('Equipment routes', () => {
       dbo.mockResolvedValue({
         collection: () => ({ insertOne: async () => ({ insertedId: 'abc123' }) })
       });
+      const slotKey = EQUIPMENT_SLOT_KEYS[0];
       const payload = {
         campaign: 'Camp1',
         armorName: 'Plate',
         type: 'heavy',
         category: 'martial',
+        slot: slotKey,
+        equipmentSlot: slotKey,
         strength: 15,
         stealth: true,
         weight: 65,
@@ -211,41 +326,73 @@ describe('Equipment routes', () => {
   });
 
   describe('update-armor', () => {
-    const buildDb = (str, armorStrength, updateResult = { matchedCount: 1 }) => ({
-      collection: (name) => {
-        if (name === 'Characters') {
-          return {
-            findOne: async () => ({ str, campaign: 'Camp1' }),
-            updateOne: async () => updateResult,
-          };
-        }
-        if (name === 'Armor') {
-          return {
-            find: () => ({
-              toArray: async () => [{ armorName: 'Test Armor', strength: armorStrength }],
-            }),
-          };
-        }
-        return {};
-      },
-    });
+    const buildDb = (str, armorStrength, updateResult = { matchedCount: 1 }) => {
+      const characterCollection = {
+        findOne: jest.fn(async () => ({ str, campaign: 'Camp1' })),
+        updateOne: jest.fn(async () => updateResult),
+      };
+      const armorCollection = {
+        find: jest.fn(() => ({
+          toArray: async () => [{ armorName: 'Test Armor', strength: armorStrength }],
+        })),
+      };
+      return {
+        characterCollection,
+        armorCollection,
+        collection: (name) => {
+          if (name === 'Characters') {
+            return characterCollection;
+          }
+          if (name === 'Armor') {
+            return armorCollection;
+          }
+          return {};
+        },
+      };
+    };
 
     test('accepts armor when strength sufficient', async () => {
-      dbo.mockResolvedValue(buildDb(12, 10));
+      const connection = buildDb(12, 10);
+      dbo.mockResolvedValue(connection);
+      const res = await request(app)
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: [{ name: 'Test Armor', slot: 'chest' }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Armor updated');
+      expect(res.body.warnings).toBeUndefined();
+      expect(connection.characterCollection.updateOne).toHaveBeenCalledTimes(1);
+    });
+
+    test('returns warning when armor requires higher strength', async () => {
+      const connection = buildDb(8, 10);
+      dbo.mockResolvedValue(connection);
+      const res = await request(app)
+        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
+        .send({ armor: [{ name: 'Test Armor', slot: 'chest' }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Armor updated');
+      expect(res.body.warnings).toEqual([
+        expect.objectContaining({
+          type: 'strengthRequirement',
+          name: 'Test Armor',
+          required: 10,
+          actual: 8,
+          slot: 'chest',
+        }),
+      ]);
+      expect(connection.characterCollection.updateOne).toHaveBeenCalledTimes(1);
+    });
+
+    test('skips strength requirement when no slot assignment provided', async () => {
+      const connection = buildDb(8, 10);
+      dbo.mockResolvedValue(connection);
       const res = await request(app)
         .put('/equipment/update-armor/507f1f77bcf86cd799439011')
         .send({ armor: ['Test Armor'] });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Armor updated');
-    });
-
-    test('rejects armor requiring higher strength', async () => {
-      dbo.mockResolvedValue(buildDb(8, 10));
-      const res = await request(app)
-        .put('/equipment/update-armor/507f1f77bcf86cd799439011')
-        .send({ armor: ['Test Armor'] });
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Test Armor requires strength 10');
+      expect(res.body.warnings).toBeUndefined();
+      expect(connection.characterCollection.updateOne).toHaveBeenCalledTimes(1);
     });
 
     test('update not found', async () => {
@@ -500,6 +647,167 @@ describe('Equipment routes', () => {
       const res = await request(app)
         .put('/equipment/update-item/507f1f77bcf86cd799439011')
         .send({ item: ['potion-healing'] });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('update-accessories', () => {
+    const baseAccessory = {
+      name: 'Ring of Protection',
+      category: 'ring',
+      targetSlots: [ACCESSORY_SLOT_KEYS[0]],
+      statBonuses: { str: 1 },
+    };
+
+    test('update success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: [baseAccessory] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessories updated');
+    });
+
+    test('update not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: [baseAccessory] });
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Accessory not found');
+    });
+
+    test('update accessories invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/123')
+        .send({ accessories: [baseAccessory] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid body', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: 'bad' });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid structure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({ accessories: ['bad'] });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid slot', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, targetSlots: ['invalid-slot'] }],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid bonuses', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, statBonuses: 'bad' }],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories invalid weight', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, weight: 'heavy' }],
+        });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('update-equipment', () => {
+    test('update success', async () => {
+      const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne }),
+      });
+      const payload = {
+        equipment: {
+          mainHand: { name: 'Longsword', source: 'weapon' },
+          offHand: { name: 'Longsword', source: 'weapon' },
+          ranged: { name: 'Shortbow', source: 'weapon' },
+          ringLeft: 'Ring of Protection',
+        },
+      };
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send(payload);
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Equipment updated');
+      expect(updateOne).toHaveBeenCalledTimes(1);
+      const [query, update] = updateOne.mock.calls[0];
+      expect(query).toEqual({ _id: expect.any(Object) });
+      const updatedEquipment = update.$set.equipment;
+      expect(Object.keys(updatedEquipment).sort()).toEqual(
+        [...EQUIPMENT_SLOT_KEYS].sort()
+      );
+      expect(updatedEquipment.mainHand).toBeNull();
+      expect(updatedEquipment.offHand).toMatchObject({
+        name: 'Longsword',
+        source: 'weapon',
+      });
+      expect(updatedEquipment.ranged).toMatchObject({
+        name: 'Shortbow',
+        source: 'weapon',
+      });
+      expect(updatedEquipment.ringLeft).toMatchObject({
+        name: 'Ring of Protection',
+      });
+    });
+
+    test('update not found', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) }),
+      });
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send({ equipment: {} });
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Equipment not found');
+    });
+
+    test('update equipment invalid id', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-equipment/123')
+        .send({ equipment: {} });
+      expect(res.status).toBe(400);
+    });
+
+    test('update equipment invalid structure', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send({ equipment: { mainHand: {} } });
+      expect(res.status).toBe(400);
+    });
+
+    test('update equipment invalid slot', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-equipment/507f1f77bcf86cd799439011')
+        .send({ equipment: { tail: { name: 'Tail Blade' } } });
       expect(res.status).toBe(400);
     });
   });
