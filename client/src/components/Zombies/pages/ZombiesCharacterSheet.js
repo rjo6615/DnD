@@ -312,10 +312,11 @@ export default function ZombiesCharacterSheet() {
   const handleShowBackground = () => setShowBackground(true);
   const handleCloseBackground = () => setShowBackground(false);
 
-  const handleRollResult = (result, breakdown) => {
+  const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
       result,
-      breakdown
+      breakdown,
+      source
     );
   };
 
@@ -419,9 +420,11 @@ export default function ZombiesCharacterSheet() {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };
         }
+        const spellLabel = name || altName;
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(
           result?.total,
-          result?.breakdown
+          result?.breakdown,
+          typeof result?.total === 'number' ? spellLabel : undefined
         );
         if (name === 'Haste') {
           setActiveEffects((prev) => [

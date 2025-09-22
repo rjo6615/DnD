@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
 
@@ -59,7 +60,7 @@ describe('calculateDamage parser', () => {
 });
 
 describe('PlayerTurnActions weapon damage display', () => {
-  test('getDamageString applies ability to each component', () => {
+  test('weapon damage segments include ability and type classes', () => {
     const weapon = {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
@@ -82,9 +83,35 @@ describe('PlayerTurnActions weapon damage display', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
     const row = screen.getByText('Frost Brand').closest('tr');
-    expect(
-      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
-    ).toBeInTheDocument();
+    const cold = within(row).getByText(/1d4\+2 cold/);
+    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    expect(cold).toHaveClass('damage-cold');
+    expect(slashing).toHaveClass('damage-slashing');
+  });
+
+  test('spell damage segments include type classes', () => {
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const row = screen.getByText('Fire Bolt').closest('tr');
+    const fire = within(row).getByText(/1d10 fire/);
+    expect(fire).toHaveClass('damage-fire');
   });
 });
 
@@ -127,9 +154,160 @@ describe('PlayerTurnActions damage log', () => {
       fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
     });
     const modal = await screen.findByRole('dialog');
+    const items = within(modal)
+      .getAllByRole('listitem')
+      .filter((li) => !li.classList.contains('roll-separator'));
+    const item = items[0];
+    const [totalLine, breakdownDiv] = item.querySelectorAll('div');
+    expect(totalLine).toHaveTextContent('Frost Brand (6)');
+    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
+      (d) => d.textContent.trim()
+    );
+    expect(breakdownLines).toEqual(['- 3 cold', '- 3 slashing']);
+    Math.random = orig;
+  });
+
+  test('damage log segments use damage type colors', async () => {
+    const weapon = {
+      name: 'Elemental Blade',
+      damage: '1d4 cold + 1d4 fire + 1d4 lightning',
+      category: 'melee',
+    };
+    const orig = Math.random;
+    Math.random = () => 0;
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+
+    const cold = within(modal).getByText('3 cold');
     expect(
-      within(modal).getByText('6 (3 cold + 3 slashing)')
-    ).toBeInTheDocument();
+      cold.style.color === damageTypeColors.cold ||
+        cold.classList.contains('damage-cold')
+    ).toBe(true);
+
+    const fire = within(modal).getByText('3 fire');
+    expect(
+      fire.style.color === damageTypeColors.fire ||
+        fire.classList.contains('damage-fire')
+    ).toBe(true);
+
+    const lightning = within(modal).getByText('3 lightning');
+    expect(
+      lightning.style.color === damageTypeColors.lightning ||
+        lightning.classList.contains('damage-lightning')
+    ).toBe(true);
+    Math.random = orig;
+  });
+
+  test('logs weapon source names in title case', async () => {
+    const weapon = {
+      name: 'greatsword of fire',
+      damage: '1d6 fire',
+      category: 'melee',
+    };
+    const orig = Math.random;
+    Math.random = () => 0;
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+    const items = within(modal)
+      .getAllByRole('listitem')
+      .filter((li) => !li.classList.contains('roll-separator'));
+    const item = items[0];
+    const [totalLine, breakdownDiv] = item.querySelectorAll('div');
+    expect(totalLine).toHaveTextContent('Greatsword of Fire (3)');
+    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
+      (d) => d.textContent.trim()
+    );
+    expect(breakdownLines).toEqual(['- 3 fire']);
+    Math.random = orig;
+  });
+
+  test('damaging spell logs name and breakdown', async () => {
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    const orig = Math.random;
+    Math.random = () => 0; // deterministic roll
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const rollButton = await screen.findByLabelText('roll');
+    act(() => {
+      fireEvent.click(rollButton);
+    });
+    await waitFor(() => {
+      const el = document.getElementById('damageValue');
+      if (!el || el.textContent === '0') throw new Error('waiting');
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
+    });
+    const modal = await screen.findByRole('dialog');
+    const items = within(modal)
+      .getAllByRole('listitem')
+      .filter((li) => !li.classList.contains('roll-separator'));
+    const item = items[0];
+    const [totalLine, breakdownDiv] = item.querySelectorAll('div');
+    expect(totalLine).toHaveTextContent('Fire Bolt (1)');
+    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
+      (d) => d.textContent.trim()
+    );
+    expect(breakdownLines).toEqual(['- 1 fire']);
     Math.random = orig;
   });
 
@@ -142,7 +320,7 @@ describe('PlayerTurnActions damage log', () => {
 });
 
 describe('PlayerTurnActions weapon damage display', () => {
-  test('getDamageString applies ability to each component', () => {
+  test('weapon damage segments include ability and type classes', () => {
     const weapon = {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
@@ -165,9 +343,35 @@ describe('PlayerTurnActions weapon damage display', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
     const row = screen.getByText('Frost Brand').closest('tr');
-    expect(
-      within(row).getByText('1d4+2 cold + 1d6+2 slashing')
-    ).toBeInTheDocument();
+    const cold = within(row).getByText(/1d4\+2 cold/);
+    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    expect(cold).toHaveClass('damage-cold');
+    expect(slashing).toHaveClass('damage-slashing');
+  });
+
+  test('spell damage segments include type classes', () => {
+    const spell = {
+      name: 'Fire Bolt',
+      level: 1,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const row = screen.getByText('Fire Bolt').closest('tr');
+    const fire = within(row).getByText(/1d10 fire/);
+    expect(fire).toHaveClass('damage-fire');
   });
 });
 

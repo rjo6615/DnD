@@ -1563,3 +1563,20 @@ h1 {
     font-size: 0.9rem;
   }
 }
+
+/* Damage type colors */
+.damage-acid { color: #228B22; }
+.damage-cold { color: #00BFFF; }
+.damage-fire { color: #FF4500; }
+.damage-lightning { color: #FFD700; }
+.damage-poison { color: #32CD32; }
+.damage-thunder { color: #8A2BE2; }
+.damage-force { color: #FF1493; }
+.damage-necrotic { color: #4B0082; }
+.damage-radiant { color: #FFFF99; }
+.damage-psychic { color: #BA55D3; }
+
+.roll-separator {
+  border-top: 1px solid #ccc;
+  margin: 0.25rem 0;
+}

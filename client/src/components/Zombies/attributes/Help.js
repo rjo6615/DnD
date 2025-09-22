@@ -16,6 +16,11 @@ export default function Help({props, form, showHelpModal, handleCloseHelpModal})
   });
   navigate(`/zombies-character-select/${form.campaign}`);
 }
+
+ async function handleLogout() {
+  await apiFetch("/logout", { method: "POST" });
+  window.location.assign("/");
+ }
   //-------------------------------------------Help Module--------------------------------------------------------------------
 // Color Picker
 document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
@@ -97,6 +102,15 @@ return(
                       </td>
                     </tr>
                   </thead>
+                  <tbody>
+                    <tr>
+                      <td className="center-td" colSpan="3">
+                        <Button onClick={handleLogout} className="action-btn close-btn">
+                          Logout
+                        </Button>
+                      </td>
+                    </tr>
+                  </tbody>
                 </Table>
               </div>
             </Card.Body>

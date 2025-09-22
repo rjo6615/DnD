@@ -33,7 +33,21 @@ function formatDamageRolls(rolls) {
     .join(' + ');
 }
 
+
 const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
+
+function toTitleCase(str) {
+  const small = new Set(['of', 'the']);
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, i) =>
+      i !== 0 && small.has(word)
+        ? word
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
+}
 
 export function calculateDamage(
   damageString,
@@ -185,6 +199,7 @@ const [isFumble, setIsFumble] = useState(false);
     abilityForWeapon(weapon) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
 
+
   const getDamageString = (weapon) => {
     const ability = abilityForWeapon(weapon);
     if (typeof weapon?.damage !== 'string') return '—';
@@ -201,6 +216,28 @@ const [isFumble, setIsFumble] = useState(false);
       })
       .filter(Boolean)
       .join(' + ') || '—';
+
+  const formatDamageSegments = (damage, ability) =>
+    damage
+      .split(/\s+\+\s+/)
+      .map((part, i, arr) => {
+        const [token, ...rest] = part.trim().split(' ');
+        const type = rest.join(' ').trim();
+        return (
+          <React.Fragment key={i}>
+            <span className={type ? `damage-${type}` : ''}>
+              {token}
+              {ability !== undefined ? `+${ability}` : ''}
+              {type ? ` ${type}` : ''}
+            </span>
+            {i < arr.length - 1 ? ' + ' : ''}
+          </React.Fragment>
+        );
+      });
+
+  const getDamageString = (weapon) => {
+    const ability = abilityForWeapon(weapon);
+    return formatDamageSegments(weapon.damage, ability);
   };
 
   const handleWeaponAttack = (weapon) => {
@@ -208,7 +245,11 @@ const [isFumble, setIsFumble] = useState(false);
     if (typeof weapon?.damage !== 'string' || !weapon.damage.trim()) return;
     const result = calculateDamage(weapon.damage, ability, isCritical);
     if (!result) return;
-    updateDamageValueWithAnimation(result.total, result.breakdown);
+    updateDamageValueWithAnimation(
+      result.total,
+      result.breakdown,
+      weapon.name
+    );
   };
 
 const [showUpcast, setShowUpcast] = useState(false);
@@ -240,7 +281,7 @@ const [pendingSpell, setPendingSpell] = useState(null);
       diff > 0 ? diff : 0
     );
     if (!value) return;
-    updateDamageValueWithAnimation(value.total, value.breakdown);
+    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name);
     onCastSpell?.({
       level,
       slotType,
@@ -306,14 +347,18 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (newValue, breakdown) => {
+const updateDamageValueWithAnimation = (newValue, breakdown, source) => {
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
   if (newValue !== undefined) {
     setDamageLog((prev) => {
-      const entry = { total: newValue, breakdown };
-      return [entry, ...prev].slice(0, 10);
+      const entry = {
+        total: newValue,
+        breakdown,
+        source: source ? toTitleCase(source) : undefined,
+      };
+      return [entry, { divider: true }, ...prev].slice(0, 10);
     });
   }
 };
@@ -325,8 +370,8 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const { value, breakdown, critical, fumble } = e.detail || {};
-    updateDamageValueWithAnimation(value, breakdown);
+    const { value, breakdown, source, critical, fumble } = e.detail || {};
+    updateDamageValueWithAnimation(value, breakdown, source);
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
@@ -507,12 +552,35 @@ const showSparklesEffect = () => {
         </Modal.Header>
         <Modal.Body>
           <ul className="list-unstyled mb-0">
-            {damageLog.map((entry, idx) => (
-              <li key={idx}>
-                {entry.total}
-                {entry.breakdown ? ` (${entry.breakdown})` : ''}
-              </li>
-            ))}
+            {damageLog.map((entry, idx) =>
+              entry.divider ? (
+                <li key={idx} className="roll-separator" />
+              ) : (
+                <li key={idx}>
+                  <div>
+                    {entry.source ? `${entry.source} (${entry.total})` : entry.total}
+                  </div>
+                  {entry.breakdown && (
+                    <div>
+                      {entry.breakdown.split(' + ').map((segment, i) => {
+                        const match = segment.match(/(\d+)(?:\s+(\w+))?/);
+                        const value = match ? match[1] : segment;
+                        const type = match ? match[2] : '';
+                        return (
+                          <div key={i}>
+                            -{' '}
+                            <span className={type ? `damage-${type}` : ''}>
+                              {value}
+                              {type ? ` ${type}` : ''}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </li>
+              )
+            )}
           </ul>
         </Modal.Body>
       </Modal>
@@ -639,7 +707,7 @@ const showSparklesEffect = () => {
                           <td>{spell.name}</td>
                           <td>{spell.casterType || spell.caster || 'Unknown'}</td>
                           <td>{spell.level}</td>
-                          <td>{spell.damage}</td>
+                          <td>{formatDamageSegments(spell.damage)}</td>
                           <td>{spell.castingTime}</td>
                           <td>{spell.range}</td>
                           <td>{spell.duration}</td>
