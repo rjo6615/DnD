@@ -3,6 +3,7 @@ const express = require('express');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const logger = require('../utils/logger');
+const { emitCombatUpdate } = require('../utils/socket');
 
 module.exports = (router) => {
   const campaignRouter = express.Router();
@@ -304,6 +305,8 @@ module.exports = (router) => {
               { campaignName: req.params.campaign },
               { $set: { combat: combatState } }
             );
+
+          emitCombatUpdate(req.params.campaign, combatState);
 
           res.json(combatState);
         } catch (err) {
