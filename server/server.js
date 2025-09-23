@@ -1,3 +1,4 @@
+const http = require('http');
 const express = require("express");
 const app = express();
 app.set('trust proxy', 1);
@@ -11,6 +12,7 @@ const config = require("./utils/config");
 const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 const logger = require("./utils/logger");
+const { initializeSocket } = require('./utils/socket');
 const port = process.env.PORT || 5000;
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = config.clientOrigins;
@@ -106,10 +108,13 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
+const server = http.createServer(app);
+
 async function startServer() {
   try {
     await connectToDatabase();
-    app.listen(port, '0.0.0.0', () => {
+    initializeSocket(server);
+    server.listen(port, '0.0.0.0', () => {
       logger.info(`Server is running on port: ${port}`);
     });
   } catch (err) {

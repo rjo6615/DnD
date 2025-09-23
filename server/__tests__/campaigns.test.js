@@ -12,6 +12,10 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
   req.user = mockUser;
   next();
 });
+jest.mock('../utils/socket', () => ({
+  emitCombatUpdate: jest.fn(),
+}));
+const { emitCombatUpdate } = require('../utils/socket');
 const registerCampaignRoutes = require('../routes/campaigns');
 
 const app = express();
@@ -221,6 +225,13 @@ describe('Campaign routes', () => {
         },
       }
     );
+    expect(emitCombatUpdate).toHaveBeenCalledWith('Test', {
+      participants: [
+        { characterId: 'char1', initiative: 15 },
+        { characterId: 'char2', initiative: 12 },
+      ],
+      activeTurn: 0,
+    });
   });
 
   test('update combat forbidden for non-DM', async () => {

@@ -17,6 +17,7 @@ try {
 } catch {
   zodResponseFormat = null;
 }
+const logger = require('../utils/logger');
 const { types: weaponTypes, categories: weaponCategories } = require('../data/weapons');
 const {
   types: armorTypes,
@@ -32,6 +33,24 @@ const { skillNames } = require('./fieldConstants');
 
 module.exports = (router) => {
   const aiRouter = express.Router();
+
+  const buildFormat = (schema, name) => {
+    if (!zodResponseFormat) {
+      return { name, schema: {} };
+    }
+
+    try {
+      const { json_schema, ...rest } = zodResponseFormat(schema);
+      const resolvedSchema = json_schema?.schema ?? json_schema ?? {};
+      return { name, schema: resolvedSchema, ...rest };
+    } catch (error) {
+      logger.warn('Falling back to basic OpenAI schema', {
+        route: name,
+        error: error.message,
+      });
+      return { name, schema: {} };
+    }
+  };
 
   aiRouter.post('/weapon', async (req, res) => {
     const { prompt } = req.body || {};
@@ -54,8 +73,7 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const { json_schema, ...rest } = zodResponseFormat(WeaponSchema);
-      const format = { name: 'weapon', schema: json_schema.schema, ...rest };
+      const format = buildFormat(WeaponSchema, 'weapon');
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
@@ -104,8 +122,7 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const { json_schema, ...rest } = zodResponseFormat(ArmorSchema);
-      const format = { name: 'armor', schema: json_schema.schema, ...rest };
+      const format = buildFormat(ArmorSchema, 'armor');
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
         input: [
@@ -152,8 +169,7 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const { json_schema, ...rest } = zodResponseFormat(ItemSchema);
-      const format = { name: 'item', schema: json_schema.schema, ...rest };
+      const format = buildFormat(ItemSchema, 'item');
       const skillsList = skillNames.join(', ');
 
       const response = await openai.responses.parse({
@@ -202,8 +218,7 @@ module.exports = (router) => {
 
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const { json_schema, ...rest } = zodResponseFormat(AccessorySchema);
-      const format = { name: 'accessory', schema: json_schema.schema, ...rest };
+      const format = buildFormat(AccessorySchema, 'accessory');
       const slotList = accessorySlotKeys.join(', ');
       const categoryList = accessoryCategories.join(', ');
       const skillsList = skillNames.join(', ');
