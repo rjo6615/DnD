@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
@@ -33,6 +34,142 @@ import {
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 
 const HEADER_PADDING = 16;
+const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
+
+const normalizeCombatState = (state) => {
+  if (!state || typeof state !== "object") {
+    return createEmptyCombatState();
+  }
+
+  const participants = Array.isArray(state.participants)
+    ? state.participants
+        .map((participant) => {
+          if (
+            !participant ||
+            typeof participant.characterId !== "string" ||
+            participant.characterId.trim() === ""
+          ) {
+            return null;
+          }
+
+          const initiativeValue = Number(participant.initiative);
+          return {
+            characterId: participant.characterId.trim(),
+            initiative: Number.isFinite(initiativeValue) ? initiativeValue : 0,
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  const activeTurnCandidate =
+    state.activeTurn === null || state.activeTurn === undefined
+      ? null
+      : Number(state.activeTurn);
+
+  const activeTurn =
+    Number.isInteger(activeTurnCandidate) &&
+    activeTurnCandidate >= 0 &&
+    activeTurnCandidate < participants.length
+      ? activeTurnCandidate
+      : null;
+
+  return { participants, activeTurn };
+};
+
+const parseHpValue = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const mapCharactersById = (characters) => {
+  if (!Array.isArray(characters)) {
+    return {};
+  }
+
+  return characters.reduce((acc, character) => {
+    if (!character) {
+      return acc;
+    }
+
+    const id =
+      typeof character._id === "string"
+        ? character._id
+        : typeof character.characterId === "string"
+          ? character.characterId
+          : null;
+
+    if (id) {
+      acc[id] = character;
+    }
+
+    return acc;
+  }, {});
+};
+
+function CombatTurnHeader({ participants }) {
+  if (!Array.isArray(participants) || participants.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        flexWrap: "wrap",
+        gap: "12px",
+        marginBottom: "12px",
+      }}
+    >
+      {participants.map((participant) => {
+        const { characterId, name, hpDisplay, isActive } = participant;
+        return (
+          <div
+            key={characterId}
+            style={{
+              backgroundColor: isActive ? "rgba(40, 167, 69, 0.85)" : "rgba(33, 37, 41, 0.75)",
+              color: "#FFFFFF",
+              borderRadius: "12px",
+              padding: "8px 14px",
+              minWidth: "140px",
+              boxShadow: isActive
+                ? "0 0 12px rgba(40, 167, 69, 0.6)"
+                : "0 0 8px rgba(0, 0, 0, 0.35)",
+              border: isActive
+                ? "1px solid rgba(255, 255, 255, 0.65)"
+                : "1px solid rgba(255, 255, 255, 0.25)",
+              transition: "transform 0.2s ease",
+              transform: isActive ? "scale(1.02)" : "scale(1)",
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: "14px",
+                letterSpacing: "0.5px",
+              }}
+            >
+              {name}
+            </div>
+            <div
+              style={{
+                marginTop: "4px",
+                fontSize: "12px",
+                opacity: 0.9,
+              }}
+            >
+              HP: {hpDisplay}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const SPELLCASTING_CLASSES = {
   bard: 'full',
   cleric: 'full',
@@ -82,8 +219,11 @@ const aggregateStatEffects = (collection) => {
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
-  const characterId = params.id; 
+  const characterId = params.id;
   const [form, setForm] = useState(null);
+  const [campaignId, setCampaignId] = useState(null);
+  const [combatState, setCombatState] = useState(createEmptyCombatState());
+  const [campaignCharacters, setCampaignCharacters] = useState({});
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
@@ -113,6 +253,59 @@ export default function ZombiesCharacterSheet() {
     action: initCircleState(),
     bonus: initCircleState(),
   });
+
+  const participantsWithDetails = useMemo(() => {
+    const sourceParticipants = Array.isArray(combatState?.participants)
+      ? combatState.participants
+      : [];
+
+    if (sourceParticipants.length === 0) {
+      return [];
+    }
+
+    const characterMap = { ...campaignCharacters };
+    if (form?._id) {
+      characterMap[form._id] = form;
+    }
+
+    const activeParticipantId =
+      combatState?.activeTurn !== null &&
+      combatState?.activeTurn !== undefined &&
+      sourceParticipants[combatState.activeTurn]
+        ? sourceParticipants[combatState.activeTurn].characterId
+        : null;
+
+    return sourceParticipants
+      .slice()
+      .sort((a, b) => b.initiative - a.initiative)
+      .map((participant) => {
+        const char = characterMap[participant.characterId];
+        const name = char?.characterName || participant.characterId;
+        const parsedTemp = parseHpValue(char?.tempHealth);
+        const parsedHealth = parseHpValue(char?.health);
+        const currentHp = parsedTemp ?? parsedHealth;
+        const maxHp = parsedHealth;
+
+        let hpDisplay = '—';
+        if (currentHp !== null && maxHp !== null) {
+          hpDisplay = `${currentHp}/${maxHp}`;
+        } else if (currentHp !== null) {
+          hpDisplay = `${currentHp}`;
+        } else if (maxHp !== null) {
+          hpDisplay = `${maxHp}`;
+        }
+
+        return {
+          characterId: participant.characterId,
+          name,
+          hpDisplay,
+          initiative: participant.initiative,
+          isActive:
+            activeParticipantId !== null &&
+            participant.characterId === activeParticipantId,
+        };
+      });
+  }, [campaignCharacters, combatState, form]);
 
   useEffect(() => {
     const handlePass = () => {
@@ -181,6 +374,7 @@ export default function ZombiesCharacterSheet() {
   }, []);
 
   const playerTurnActionsRef = useRef(null);
+  const socketRef = useRef(null);
 
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -227,9 +421,11 @@ export default function ZombiesCharacterSheet() {
     if (headerRef.current) {
       setHeaderHeight(headerRef.current.offsetHeight + navHeight + HEADER_PADDING);
     }
-  }, [form, navHeight]);
+  }, [form, navHeight, participantsWithDetails]);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function fetchCharacterData(id) {
       try {
         const response = await apiFetch(`/characters/${id}`);
@@ -237,6 +433,8 @@ export default function ZombiesCharacterSheet() {
           throw new Error(`Error fetching character data: ${response.statusText}`);
         }
         const data = await response.json();
+        if (isCancelled) return;
+
         const feats = (data.feat || []).map((feat) => {
           if (!Array.isArray(feat)) return feat;
           const [featName = "", notes = "", ...rest] = feat;
@@ -265,6 +463,12 @@ export default function ZombiesCharacterSheet() {
           : Array.isArray(data.accessory)
             ? data.accessory
             : [];
+
+        const normalizedCampaign =
+          typeof data.campaign === "string" && data.campaign.trim() !== ""
+            ? data.campaign.trim()
+            : null;
+
         setForm({
           ...data,
           feat: feats,
@@ -275,13 +479,89 @@ export default function ZombiesCharacterSheet() {
           accessory: accessories,
           equipment: normalizeEquipmentMap(data.equipment),
         });
+
+        setCampaignId(normalizedCampaign);
+
+        if (!normalizedCampaign) {
+          setCombatState(createEmptyCombatState());
+          setCampaignCharacters({});
+          return;
+        }
+
+        try {
+          const encodedCampaign = encodeURIComponent(normalizedCampaign);
+          const [combatRes, charactersRes] = await Promise.all([
+            apiFetch(`/campaigns/${encodedCampaign}/combat`),
+            apiFetch(`/campaigns/${encodedCampaign}/characters`),
+          ]);
+
+          let combatData = createEmptyCombatState();
+          if (combatRes.ok) {
+            const combatJson = await combatRes.json();
+            combatData = normalizeCombatState(combatJson);
+          }
+
+          let characterMap = {};
+          if (charactersRes.ok) {
+            const charactersJson = await charactersRes.json();
+            characterMap = mapCharactersById(charactersJson);
+          }
+
+          if (!isCancelled) {
+            setCombatState(combatData);
+            setCampaignCharacters(characterMap);
+          }
+        } catch (err) {
+          console.error(err);
+          if (!isCancelled) {
+            setCombatState(createEmptyCombatState());
+            setCampaignCharacters({});
+          }
+        }
       } catch (error) {
         console.error(error);
+        if (!isCancelled) {
+          setCampaignId(null);
+          setCombatState(createEmptyCombatState());
+          setCampaignCharacters({});
+        }
       }
     }
 
     fetchCharacterData(characterId);
+
+    return () => {
+      isCancelled = true;
+    };
   }, [characterId]);
+
+  useEffect(() => {
+    if (!campaignId) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return undefined;
+    }
+
+    const socketUrl = process.env.REACT_APP_API_URL || undefined;
+    const socket = io(socketUrl, { withCredentials: true });
+    socketRef.current = socket;
+
+    const handleCombatUpdate = (state) => {
+      setCombatState(normalizeCombatState(state));
+    };
+
+    socket.on('combat:update', handleCombatUpdate);
+    socket.emit('campaign:join', campaignId);
+
+    return () => {
+      socket.off('combat:update', handleCombatUpdate);
+      socket.emit('campaign:leave', campaignId);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [campaignId]);
 
   const handleShowCharacterInfo = () => setShowCharacterInfo(true);
   const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
@@ -894,22 +1174,23 @@ const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
-return (
-  <div
-    className="text-center"
-    style={{
-      fontFamily: 'Raleway, sans-serif',
-      backgroundImage: `url(${loginbg})`,
-      height: "100vh",
-      overflow: "hidden",
-      backgroundSize: "cover",
-      backgroundRepeat: "no-repeat",
-      paddingTop: navHeight + HEADER_PADDING,
-      display: 'flex',
-      flexDirection: 'column',
-    }}
-  >
+  return (
+    <div
+      className="text-center"
+      style={{
+        fontFamily: 'Raleway, sans-serif',
+        backgroundImage: `url(${loginbg})`,
+        height: "100vh",
+        overflow: "hidden",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        paddingTop: navHeight + HEADER_PADDING,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
     <div ref={headerRef}>
+      <CombatTurnHeader participants={participantsWithDetails} />
       <h1
         style={{
           fontSize: "28px",
