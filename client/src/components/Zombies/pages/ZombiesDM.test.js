@@ -3,7 +3,6 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import apiFetch from '../../../utils/apiFetch';
 import useUser from '../../../hooks/useUser';
-import ZombiesDM from './ZombiesDM';
 jest.mock('../../../utils/apiFetch');
 jest.mock('../../../hooks/useUser');
 jest.mock('react-router-dom', () => ({
@@ -11,6 +10,16 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ campaign: 'Camp1' }),
   useNavigate: () => jest.fn(),
 }));
+
+jest.mock(
+  'socket.io-client',
+  () => require('../../../../__mocks__/socket.io-client.js'),
+  { virtual: true }
+);
+
+const socketModule = require('socket.io-client');
+
+const ZombiesDM = require('./ZombiesDM').default;
 
 const armorSlotOptions = [
   { key: 'head', label: 'Head' },
@@ -40,7 +49,7 @@ const openResourceCard = async (tabLabel, testId) => {
 };
 
 const openResourceCreateForm = async (card) => {
-  const toggleButton = within(card).getByRole('button', { name: /^Create$/i });
+  const toggleButton = within(card).getByRole('button', { name: /Create/i });
   await userEvent.click(toggleButton);
 };
 
@@ -48,6 +57,24 @@ describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
     useUser.mockReturnValue({ username: 'dm' });
+    const sockets = socketModule.__getMockSockets();
+    sockets.length = 0;
+    const ioMock = socketModule.__getIoMock();
+    ioMock.mockClear();
+    ioMock.mockImplementation(() => {
+      const socket = {
+        on: jest.fn(),
+        off: jest.fn(),
+        emit: jest.fn(),
+        disconnect: jest.fn(),
+      };
+      sockets.push(socket);
+      return socket;
+    });
+    const testSocket = socketModule.io();
+    expect(testSocket).toBeDefined();
+    expect(typeof testSocket.on).toBe('function');
+    ioMock.mockClear();
   });
 
   test.skip('generates armor via AI and populates form', async () => {
@@ -59,6 +86,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/armor/options':
@@ -135,6 +164,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => armorRecords });
         case '/armor/options':
@@ -204,6 +235,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/items/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/items/options':
@@ -263,6 +296,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/items/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/items/options':
@@ -322,6 +357,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/accessories/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/accessories/options':
@@ -401,6 +438,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/accessories/options':
           return Promise.resolve({
             ok: true,
@@ -440,6 +479,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/characters/char1/currency':
           currencyRequest = options;
           return Promise.resolve({ ok: true });
@@ -486,5 +527,91 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => {
       expect(charactersRequestCount).toBeGreaterThanOrEqual(2);
     });
+  });
+
+  test('allows the DM to manage combat participants', async () => {
+    const characters = [
+      { _id: 'char1', characterName: 'Hero', token: 'Player1' },
+      { _id: 'char2', characterName: 'Rogue', token: 'Player2' },
+    ];
+    let combatState = { participants: [], activeTurn: null };
+    const combatUpdates = [];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/Camp1/combat':
+          if (options.method === 'PUT') {
+            const payload = JSON.parse(options.body);
+            combatUpdates.push(payload);
+            combatState = {
+              participants: payload.participants || [],
+              activeTurn:
+                payload.activeTurn === undefined || payload.activeTurn === null
+                  ? null
+                  : payload.activeTurn,
+            };
+            return Promise.resolve({ ok: true, json: async () => combatState });
+          }
+          return Promise.resolve({ ok: true, json: async () => combatState });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() => expect(socketModule.__getIoMock()).toHaveBeenCalledTimes(1));
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    expect(socketInstance).toBeDefined();
+    expect(socketInstance.emit).toHaveBeenCalledWith('campaign:join', 'Camp1');
+
+    await screen.findByRole('heading', { name: /Combat Tracker/i });
+
+    const combatHeader = await screen.findByRole('columnheader', { name: /In Combat/i });
+    const combatTable = combatHeader.closest('table');
+    if (!combatTable) {
+      throw new Error('Combat tracker table not found');
+    }
+
+    const heroRow = (await within(combatTable).findByText('Hero')).closest('tr');
+    if (!heroRow) {
+      throw new Error('Hero row not found in combat table');
+    }
+
+    const heroCheckbox = within(heroRow).getByRole('checkbox', {
+      name: /Toggle Hero in combat/i,
+    });
+    await userEvent.click(heroCheckbox);
+
+    await waitFor(() => expect(combatUpdates).toHaveLength(1));
+    expect(combatUpdates[0]).toMatchObject({
+      participants: [{ characterId: 'char1', initiative: 0 }],
+      activeTurn: null,
+    });
+
+    const heroSetTurnButton = within(heroRow).getByRole('button', {
+      name: /Set Turn/i,
+    });
+    await userEvent.click(heroSetTurnButton);
+
+    await waitFor(() => expect(combatUpdates).toHaveLength(2));
+    expect(combatUpdates[1].activeTurn).toBe(0);
+
+    const nextTurnButton = screen.getByRole('button', { name: /Next Turn/i });
+    await userEvent.click(nextTurnButton);
+
+    await waitFor(() => expect(combatUpdates).toHaveLength(3));
+    expect(combatUpdates[2].activeTurn).toBe(0);
+
+    expect(
+      screen.getByText(/Active Turn:/i).textContent
+    ).toContain('Hero');
   });
 });
