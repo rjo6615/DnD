@@ -16,6 +16,12 @@ import PlayerTurnActions, {
 } from "../attributes/PlayerTurnActions";
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
+import {
+  STAT_KEYS,
+  aggregateStatEffects,
+  collectFeatAbilityBonuses,
+  collectFeatNumericBonuses,
+} from "../utils/derivedStats";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import StatusEffectBar from "../attributes/StatusEffectBar";
@@ -179,42 +185,6 @@ const SPELLCASTING_CLASSES = {
   warlock: 'full',
   paladin: 'half',
   ranger: 'half',
-};
-
-const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-
-const createEmptyStatMap = () => ({
-  str: 0,
-  dex: 0,
-  con: 0,
-  int: 0,
-  wis: 0,
-  cha: 0,
-});
-
-const aggregateStatEffects = (collection) => {
-  const entries = Array.isArray(collection) ? collection : [];
-  return entries.reduce(
-    (acc, el) => {
-      STAT_KEYS.forEach((key) => {
-        const bonusValue = Number(el?.statBonuses?.[key] || 0);
-        if (!Number.isNaN(bonusValue)) {
-          acc.bonuses[key] += bonusValue;
-        }
-        const overrideRaw = el?.statOverrides?.[key];
-        if (overrideRaw !== undefined && overrideRaw !== null) {
-          const overrideValue = Number(overrideRaw);
-          if (!Number.isNaN(overrideValue)) {
-            const current = acc.overrides[key];
-            acc.overrides[key] =
-              current === undefined ? overrideValue : Math.max(current, overrideValue);
-          }
-        }
-      });
-      return acc;
-    },
-    { bonuses: createEmptyStatMap(), overrides: {} }
-  );
 };
 
 export default function ZombiesCharacterSheet() {
@@ -1021,17 +991,7 @@ export default function ZombiesCharacterSheet() {
   const { bonuses: accessoryBonus, overrides: accessoryOverrides } =
     aggregateStatEffects(accessorySource);
 
-  const featBonus = (form?.feat || []).reduce(
-    (acc, el) => ({
-      str: acc.str + Number(el.str || 0),
-      dex: acc.dex + Number(el.dex || 0),
-      con: acc.con + Number(el.con || 0),
-      int: acc.int + Number(el.int || 0),
-      wis: acc.wis + Number(el.wis || 0),
-      cha: acc.cha + Number(el.cha || 0),
-    }),
-    { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
-  );
+  const featAbilityBonuses = collectFeatAbilityBonuses(form?.feat);
 
   const raceBonus = form?.race?.abilities || {};
 
@@ -1041,7 +1001,7 @@ export default function ZombiesCharacterSheet() {
       base +
       itemBonus[key] +
       accessoryBonus[key] +
-      featBonus[key] +
+      featAbilityBonuses[key] +
       Number(raceBonus[key] || 0);
     const overrideCandidates = [itemOverrides[key], accessoryOverrides[key]];
     const overrideValue = overrideCandidates.reduce((max, value) => {
@@ -1152,23 +1112,7 @@ export default function ZombiesCharacterSheet() {
     skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'gold' : '#6C757D';
 
 // ---------------------------------------Feats and bonuses----------------------------------------------
-const featBonuses = (form.feat || []).reduce(
-  (acc, feat) => {
-    acc.initiative += Number(feat.initiative || 0);
-    acc.speed += Number(feat.speed || 0);
-    acc.ac += Number(feat.ac || 0);
-    acc.hpMaxBonus += Number(feat.hpMaxBonus || 0);
-    acc.hpMaxBonusPerLevel += Number(feat.hpMaxBonusPerLevel || 0);
-    return acc;
-  },
-  {
-    initiative: 0,
-    speed: 0,
-    ac: 0,
-    hpMaxBonus: 0,
-    hpMaxBonusPerLevel: 0,
-  }
-);
+const featBonuses = collectFeatNumericBonuses(form?.feat);
 
 const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
