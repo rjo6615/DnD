@@ -20,6 +20,7 @@ import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
+import { calculateCharacterInitiative } from '../utils/derivedStats';
 import {
   GiCharacter,
   GiStoneAxe,
@@ -291,6 +292,58 @@ export default function ZombiesDM() {
       [campaignId, encodedCampaign, fetchRecords]
     );
 
+    const characterInitiativeMap = useMemo(() => {
+      const map = new Map();
+      if (Array.isArray(records)) {
+        records.forEach((character) => {
+          if (!character) {
+            return;
+          }
+          const id =
+            (typeof character._id === 'string' && character._id) ||
+            (typeof character.characterId === 'string' && character.characterId) ||
+            (typeof character.token === 'string' && character.token);
+          if (!id) {
+            return;
+          }
+          const initiative = calculateCharacterInitiative(character);
+          map.set(id, initiative);
+        });
+      }
+      return map;
+    }, [records]);
+
+    useEffect(() => {
+      if (!characterInitiativeMap.size) {
+        return;
+      }
+
+      let nextState = null;
+      setCombatState((prevState) => {
+        const normalized = normalizeCombatState(prevState);
+        let changed = false;
+        const updatedParticipants = normalized.participants.map((participant) => {
+          const derived = characterInitiativeMap.get(participant.characterId);
+          if (derived === undefined || derived === participant.initiative) {
+            return participant;
+          }
+          changed = true;
+          return { ...participant, initiative: derived };
+        });
+
+        if (!changed) {
+          return prevState;
+        }
+
+        nextState = { participants: updatedParticipants, activeTurn: normalized.activeTurn };
+        return nextState;
+      });
+
+      if (nextState) {
+        persistCombatState(nextState);
+      }
+    }, [characterInitiativeMap, persistCombatState]);
+
     const handleToggleParticipant = useCallback(
       (characterId) => {
         if (!characterId) {
@@ -307,8 +360,11 @@ export default function ZombiesDM() {
         let nextState;
 
         if (existingIndex === -1) {
+          const derivedInitiative = characterInitiativeMap.get(characterId);
+          const initiative =
+            derivedInitiative !== undefined ? derivedInitiative : 0;
           nextState = normalizeCombatState({
-            participants: [...participants, { characterId, initiative: 0 }],
+            participants: [...participants, { characterId, initiative }],
             activeTurn: combatState.activeTurn,
           });
         } else {
@@ -335,37 +391,7 @@ export default function ZombiesDM() {
         setCombatState(nextState);
         persistCombatState(nextState);
       },
-      [combatState, persistCombatState]
-    );
-
-    const handleInitiativeChange = useCallback(
-      (characterId, value) => {
-        const parsedValue = Number(value);
-        const sanitizedValue = Number.isFinite(parsedValue) ? parsedValue : 0;
-
-        const participants = Array.isArray(combatState.participants)
-          ? combatState.participants.map((participant) => ({ ...participant }))
-          : [];
-        const index = participants.findIndex((participant) => participant.characterId === characterId);
-
-        if (index === -1) {
-          return;
-        }
-
-        if (participants[index].initiative === sanitizedValue) {
-          return;
-        }
-
-        participants[index].initiative = sanitizedValue;
-        const nextState = normalizeCombatState({
-          participants,
-          activeTurn: combatState.activeTurn,
-        });
-
-        setCombatState(nextState);
-        persistCombatState(nextState);
-      },
-      [combatState, persistCombatState]
+      [combatState, persistCombatState, characterInitiativeMap]
     );
 
     const handleSetTurn = useCallback(
@@ -1679,9 +1705,14 @@ const resolveIcon = (category, iconMap, fallback) => {
                               ? participantLookup.get(rowId)
                               : undefined;
                             const isParticipant = Boolean(participantInfo);
+                            const derivedInitiative = rowId
+                              ? characterInitiativeMap.get(rowId)
+                              : undefined;
                             const initiativeValue = isParticipant
                               ? participantInfo.initiative
-                              : '';
+                              : derivedInitiative !== undefined
+                                ? derivedInitiative
+                                : '—';
                             const isActive =
                               isParticipant &&
                               Number.isInteger(combatState.activeTurn) &&
@@ -1712,16 +1743,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   />
                                 </td>
                                 <td className="text-center" style={{ width: '120px' }}>
-                                  <Form.Control
-                                    type="number"
-                                    size="sm"
-                                    value={isParticipant ? initiativeValue : ''}
-                                    onChange={(event) =>
-                                      rowId && handleInitiativeChange(rowId, event.target.value)
-                                    }
-                                    disabled={!isParticipant}
-                                    aria-label={`Initiative for ${characterName}`}
-                                  />
+                                  {initiativeValue}
                                 </td>
                                 <td className="text-center">
                                   <div className="d-flex justify-content-center gap-2">

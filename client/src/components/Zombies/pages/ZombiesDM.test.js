@@ -531,8 +531,14 @@ describe('ZombiesDM AI generation', () => {
 
   test('allows the DM to manage combat participants', async () => {
     const characters = [
-      { _id: 'char1', characterName: 'Hero', token: 'Player1' },
-      { _id: 'char2', characterName: 'Rogue', token: 'Player2' },
+      {
+        _id: 'char1',
+        characterName: 'Hero',
+        token: 'Player1',
+        dex: 14,
+        feat: [{ initiative: 1 }],
+      },
+      { _id: 'char2', characterName: 'Rogue', token: 'Player2', dex: 12 },
     ];
     let combatState = { participants: [], activeTurn: null };
     const combatUpdates = [];
@@ -585,6 +591,10 @@ describe('ZombiesDM AI generation', () => {
       throw new Error('Hero row not found in combat table');
     }
 
+    const cells = within(heroRow).getAllByRole('cell');
+    const initiativeCell = cells[3];
+    expect(initiativeCell).toHaveTextContent('3');
+
     const heroCheckbox = within(heroRow).getByRole('checkbox', {
       name: /Toggle Hero in combat/i,
     });
@@ -592,7 +602,7 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => expect(combatUpdates).toHaveLength(1));
     expect(combatUpdates[0]).toMatchObject({
-      participants: [{ characterId: 'char1', initiative: 0 }],
+      participants: [{ characterId: 'char1', initiative: 3 }],
       activeTurn: null,
     });
 
