@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
+import { io } from "socket.io-client";
 import {
   Button,
   Col,
@@ -75,6 +76,48 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
+const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
+
+const normalizeCombatState = (state) => {
+  if (!state || typeof state !== 'object') {
+    return createEmptyCombatState();
+  }
+
+  const participants = Array.isArray(state.participants)
+    ? state.participants
+        .map((participant) => {
+          if (
+            !participant ||
+            typeof participant.characterId !== 'string' ||
+            participant.characterId.trim() === ''
+          ) {
+            return null;
+          }
+
+          const initiativeValue = Number(participant.initiative);
+          return {
+            characterId: participant.characterId.trim(),
+            initiative: Number.isFinite(initiativeValue) ? initiativeValue : 0,
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  const activeTurnCandidate =
+    state.activeTurn === null || state.activeTurn === undefined
+      ? null
+      : Number(state.activeTurn);
+
+  const activeTurn =
+    Number.isInteger(activeTurnCandidate) &&
+    activeTurnCandidate >= 0 &&
+    activeTurnCandidate < participants.length
+      ? activeTurnCandidate
+      : null;
+
+  return { participants, activeTurn };
+};
+
 const CLASS_ICON_MAP = {
   barbarian: { icon: GiBattleAxe, label: 'Barbarian' },
   bard: { icon: GiLyre, label: 'Bard' },
@@ -133,24 +176,330 @@ export default function ZombiesDM() {
     const params = useParams();
     const [records, setRecords] = useState([]);
     const [status, setStatus] = useState(null);
+    const [combatState, setCombatState] = useState(createEmptyCombatState());
+    const socketRef = useRef(null);
+
+    const campaignId = params.campaign ?? '';
+    const encodedCampaign = useMemo(
+      () => (campaignId ? encodeURIComponent(campaignId) : ''),
+      [campaignId]
+    );
 
     const fetchRecords = useCallback(async () => {
-      const response = await apiFetch(`/campaigns/${params.campaign}/characters`);
-
-      if (!response.ok) {
-        const message = `An error occurred: ${response.statusText}`;
-        setStatus({ type: 'danger', message });
+      if (!campaignId || !encodedCampaign) {
+        setRecords([]);
+        setCombatState(createEmptyCombatState());
         return;
       }
 
-      const data = await response.json();
-      setRecords(data);
-    }, [params.campaign]);
+      try {
+        const [charactersResponse, combatResponse] = await Promise.all([
+          apiFetch(`/campaigns/${encodedCampaign}/characters`),
+          apiFetch(`/campaigns/${encodedCampaign}/combat`),
+        ]);
+
+        if (!charactersResponse.ok) {
+          const message = `An error occurred: ${charactersResponse.statusText}`;
+          setStatus({ type: 'danger', message });
+          setRecords([]);
+          return;
+        }
+
+        const characters = await charactersResponse.json();
+        setRecords(characters);
+
+        if (combatResponse.ok) {
+          const combatJson = await combatResponse.json();
+          setCombatState(normalizeCombatState(combatJson));
+        } else {
+          setCombatState(createEmptyCombatState());
+          if (combatResponse.status !== 404) {
+            const message = `An error occurred: ${combatResponse.statusText}`;
+            setStatus({ type: 'danger', message });
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus({ type: 'danger', message: error.message || 'Failed to fetch records.' });
+        setCombatState(createEmptyCombatState());
+      }
+    }, [campaignId, encodedCampaign]);
 
     useEffect(() => {
       fetchRecords();
       return;
     }, [fetchRecords]);
+
+    useEffect(() => {
+      if (!campaignId) {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+        return undefined;
+      }
+
+      const socketUrl = process.env.REACT_APP_API_URL || undefined;
+      const socket = io(socketUrl, { withCredentials: true });
+      socketRef.current = socket;
+
+      const handleCombatUpdate = (state) => {
+        setCombatState(normalizeCombatState(state));
+      };
+
+      socket.on('combat:update', handleCombatUpdate);
+      socket.emit('campaign:join', campaignId);
+
+      return () => {
+        socket.off('combat:update', handleCombatUpdate);
+        socket.emit('campaign:leave', campaignId);
+        socket.disconnect();
+        socketRef.current = null;
+      };
+    }, [campaignId]);
+
+    const persistCombatState = useCallback(
+      async (nextState) => {
+        if (!campaignId || !encodedCampaign) {
+          return;
+        }
+
+        const normalizedState = normalizeCombatState(nextState);
+
+        try {
+          const response = await apiFetch(`/campaigns/${encodedCampaign}/combat`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(normalizedState),
+          });
+
+          if (!response.ok) {
+            throw new Error(response.statusText || 'Failed to update combat state');
+          }
+
+          const updatedState = await response.json();
+          setCombatState(normalizeCombatState(updatedState));
+        } catch (error) {
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error.message || 'Failed to update combat state.',
+          });
+          await fetchRecords();
+        }
+      },
+      [campaignId, encodedCampaign, fetchRecords]
+    );
+
+    const handleToggleParticipant = useCallback(
+      (characterId) => {
+        if (!characterId) {
+          return;
+        }
+
+        const participants = Array.isArray(combatState.participants)
+          ? [...combatState.participants]
+          : [];
+        const existingIndex = participants.findIndex(
+          (participant) => participant.characterId === characterId
+        );
+
+        let nextState;
+
+        if (existingIndex === -1) {
+          nextState = normalizeCombatState({
+            participants: [...participants, { characterId, initiative: 0 }],
+            activeTurn: combatState.activeTurn,
+          });
+        } else {
+          const updatedParticipants = participants.filter((_, index) => index !== existingIndex);
+          let nextActiveTurn = combatState.activeTurn;
+
+          if (typeof nextActiveTurn === 'number') {
+            if (existingIndex === nextActiveTurn) {
+              nextActiveTurn =
+                updatedParticipants.length > 0
+                  ? Math.min(nextActiveTurn, updatedParticipants.length - 1)
+                  : null;
+            } else if (existingIndex < nextActiveTurn) {
+              nextActiveTurn -= 1;
+            }
+          }
+
+          nextState = normalizeCombatState({
+            participants: updatedParticipants,
+            activeTurn: nextActiveTurn,
+          });
+        }
+
+        setCombatState(nextState);
+        persistCombatState(nextState);
+      },
+      [combatState, persistCombatState]
+    );
+
+    const handleInitiativeChange = useCallback(
+      (characterId, value) => {
+        const parsedValue = Number(value);
+        const sanitizedValue = Number.isFinite(parsedValue) ? parsedValue : 0;
+
+        const participants = Array.isArray(combatState.participants)
+          ? combatState.participants.map((participant) => ({ ...participant }))
+          : [];
+        const index = participants.findIndex((participant) => participant.characterId === characterId);
+
+        if (index === -1) {
+          return;
+        }
+
+        if (participants[index].initiative === sanitizedValue) {
+          return;
+        }
+
+        participants[index].initiative = sanitizedValue;
+        const nextState = normalizeCombatState({
+          participants,
+          activeTurn: combatState.activeTurn,
+        });
+
+        setCombatState(nextState);
+        persistCombatState(nextState);
+      },
+      [combatState, persistCombatState]
+    );
+
+    const handleSetTurn = useCallback(
+      (characterId) => {
+        if (!characterId) {
+          return;
+        }
+
+        const participants = Array.isArray(combatState.participants)
+          ? [...combatState.participants]
+          : [];
+        const index = participants.findIndex((participant) => participant.characterId === characterId);
+
+        if (index === -1 || combatState.activeTurn === index) {
+          return;
+        }
+
+        const nextState = normalizeCombatState({
+          participants,
+          activeTurn: index,
+        });
+
+        setCombatState(nextState);
+        persistCombatState(nextState);
+      },
+      [combatState, persistCombatState]
+    );
+
+    const handleAdvanceTurn = useCallback(
+      (direction) => {
+        if (direction !== 1 && direction !== -1) {
+          return;
+        }
+
+        const participants = Array.isArray(combatState.participants)
+          ? [...combatState.participants]
+          : [];
+        const total = participants.length;
+
+        if (total === 0) {
+          if (combatState.activeTurn === null || combatState.activeTurn === undefined) {
+            return;
+          }
+
+          const nextState = normalizeCombatState({
+            participants,
+            activeTurn: null,
+          });
+
+          setCombatState(nextState);
+          persistCombatState(nextState);
+          return;
+        }
+
+        let nextIndex;
+        if (typeof combatState.activeTurn === 'number' && combatState.activeTurn >= 0) {
+          nextIndex = (combatState.activeTurn + direction + total) % total;
+        } else {
+          nextIndex = direction > 0 ? 0 : total - 1;
+        }
+
+        const nextState = normalizeCombatState({
+          participants,
+          activeTurn: nextIndex,
+        });
+
+        setCombatState(nextState);
+        persistCombatState(nextState);
+      },
+      [combatState, persistCombatState]
+    );
+
+    const participantLookup = useMemo(() => {
+      const map = new Map();
+      if (Array.isArray(combatState.participants)) {
+        combatState.participants.forEach((participant, index) => {
+          if (participant && typeof participant.characterId === 'string') {
+            map.set(participant.characterId, { ...participant, index });
+          }
+        });
+      }
+      return map;
+    }, [combatState.participants]);
+
+    const characterLookup = useMemo(() => {
+      const map = new Map();
+      if (Array.isArray(records)) {
+        records.forEach((character) => {
+          if (character && typeof character._id === 'string') {
+            map.set(character._id, character);
+          }
+        });
+      }
+      return map;
+    }, [records]);
+
+    const activeParticipant = useMemo(() => {
+      if (!Array.isArray(combatState.participants)) {
+        return null;
+      }
+
+      const { activeTurn } = combatState;
+
+      if (
+        !Number.isInteger(activeTurn) ||
+        activeTurn < 0 ||
+        activeTurn >= combatState.participants.length
+      ) {
+        return null;
+      }
+
+      return { ...combatState.participants[activeTurn], index: activeTurn };
+    }, [combatState]);
+
+    const activeTurnDisplayName = useMemo(() => {
+      if (!activeParticipant) {
+        return 'None';
+      }
+
+      const character = characterLookup.get(activeParticipant.characterId);
+      if (character) {
+        return (
+          character.characterName ||
+          character.token ||
+          activeParticipant.characterId
+        );
+      }
+
+      return activeParticipant.characterId;
+    }, [activeParticipant, characterLookup]);
+
+    const combatParticipantCount = Array.isArray(combatState.participants)
+      ? combatState.participants.length
+      : 0;
   
     const navigateToCharacter = (id) => {
       navigate(`/zombies-character-sheet/${id}`);
@@ -1284,6 +1633,123 @@ const resolveIcon = (category, iconMap, fallback) => {
               </div>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <Card className="mb-4 bg-dark bg-opacity-75 border border-secondary text-start">
+                <Card.Header className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 bg-transparent border-secondary text-light">
+                  <h3 className="h5 mb-0">Combat Tracker</h3>
+                  <div className="small">
+                    <strong>Active Turn: {activeTurnDisplayName}</strong>
+                  </div>
+                </Card.Header>
+                <Card.Body className="bg-transparent text-light">
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      onClick={() => handleAdvanceTurn(-1)}
+                      disabled={combatParticipantCount === 0}
+                    >
+                      Previous Turn
+                    </Button>
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      onClick={() => handleAdvanceTurn(1)}
+                      disabled={combatParticipantCount === 0}
+                    >
+                      Next Turn
+                    </Button>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="table table-dark table-striped table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col">Character</th>
+                          <th scope="col">Player</th>
+                          <th scope="col" className="text-center">In Combat</th>
+                          <th scope="col" className="text-center">Initiative</th>
+                          <th scope="col" className="text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.isArray(records) && records.length > 0 ? (
+                          records.map((character) => {
+                            const rowId =
+                              character?._id || character?.characterId || character?.token || '';
+                            const participantInfo = rowId
+                              ? participantLookup.get(rowId)
+                              : undefined;
+                            const isParticipant = Boolean(participantInfo);
+                            const initiativeValue = isParticipant
+                              ? participantInfo.initiative
+                              : '';
+                            const isActive =
+                              isParticipant &&
+                              Number.isInteger(combatState.activeTurn) &&
+                              participantInfo.index === combatState.activeTurn;
+                            const characterName =
+                              character?.characterName || character?.token || 'Unnamed Character';
+                            const playerName = character?.token || '—';
+                            const checkboxLabel =
+                              character?.characterName ||
+                              character?.token ||
+                              participantInfo?.characterId ||
+                              'this character';
+
+                            return (
+                              <tr
+                                key={rowId || playerName}
+                                className={isActive ? 'table-success text-dark' : undefined}
+                              >
+                                <td className="fw-semibold">{character?.characterName || '—'}</td>
+                                <td>{playerName}</td>
+                                <td className="text-center">
+                                  <Form.Check
+                                    type="checkbox"
+                                    id={`combat-toggle-${rowId}`}
+                                    checked={isParticipant}
+                                    onChange={() => rowId && handleToggleParticipant(rowId)}
+                                    aria-label={`Toggle ${checkboxLabel} in combat`}
+                                  />
+                                </td>
+                                <td className="text-center" style={{ width: '120px' }}>
+                                  <Form.Control
+                                    type="number"
+                                    size="sm"
+                                    value={isParticipant ? initiativeValue : ''}
+                                    onChange={(event) =>
+                                      rowId && handleInitiativeChange(rowId, event.target.value)
+                                    }
+                                    disabled={!isParticipant}
+                                    aria-label={`Initiative for ${characterName}`}
+                                  />
+                                </td>
+                                <td className="text-center">
+                                  <div className="d-flex justify-content-center gap-2">
+                                    <Button
+                                      variant={isActive ? 'success' : 'outline-light'}
+                                      size="sm"
+                                      onClick={() => rowId && handleSetTurn(rowId)}
+                                      disabled={!isParticipant}
+                                    >
+                                      Set Turn
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="text-center text-muted py-3">
+                              No characters available.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card.Body>
+              </Card>
               <ResourceGrid
                 dataTestId="characters-resource-grid"
                 items={Array.isArray(records) ? records : []}
