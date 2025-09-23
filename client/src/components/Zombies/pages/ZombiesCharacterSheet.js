@@ -22,6 +22,7 @@ import {
   collectFeatAbilityBonuses,
   collectFeatNumericBonuses,
 } from "../utils/derivedStats";
+import { calculateCharacterHitPoints } from "../utils/characterMetrics";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import StatusEffectBar from "../attributes/StatusEffectBar";
@@ -80,14 +81,6 @@ const normalizeCombatState = (state) => {
       : null;
 
   return { participants, activeTurn };
-};
-
-const parseHpValue = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 };
 
 const mapCharactersById = (characters) => {
@@ -251,10 +244,7 @@ export default function ZombiesCharacterSheet() {
       .map((participant) => {
         const char = characterMap[participant.characterId];
         const name = char?.characterName || participant.characterId;
-        const parsedTemp = parseHpValue(char?.tempHealth);
-        const parsedHealth = parseHpValue(char?.health);
-        const currentHp = parsedTemp ?? parsedHealth;
-        const maxHp = parsedHealth;
+        const { currentHp, maxHp } = calculateCharacterHitPoints(char);
 
         let hpDisplay = '—';
         if (currentHp !== null && maxHp !== null) {
