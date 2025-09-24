@@ -117,6 +117,8 @@ const PlayerTurnActions = React.forwardRef(
       dexMod,
       onCastSpell,
       onPassTurn = () => {},
+      canPassTurn = true,
+      isPassTurnInProgress = false,
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
@@ -445,6 +447,7 @@ const showSparklesEffect = () => {
   }
 };
 //-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
+  const passDisabled = !canPassTurn || isPassTurnInProgress;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -464,11 +467,16 @@ const showSparklesEffect = () => {
             background: 'transparent',
             borderRadius: '8px',
             textShadow: '1px 1px 2px #000',
-            cursor: 'pointer',
+            cursor: passDisabled ? 'not-allowed' : 'pointer',
+            opacity: passDisabled ? 0.5 : 1,
             transition: 'all 0.2s ease',
             border: 'none',
           }}
+          disabled={passDisabled}
           onMouseOver={(e) => {
+            if (passDisabled) {
+              return;
+            }
             e.target.style.background = 'none';
             e.target.style.boxShadow =
               '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
@@ -478,7 +486,12 @@ const showSparklesEffect = () => {
             e.target.style.boxShadow = 'none';
             e.target.style.border = 'none';
           }}
-          onClick={onPassTurn}
+          onClick={() => {
+            if (passDisabled) {
+              return;
+            }
+            onPassTurn();
+          }}
         >
           Pass ➔
         </Button>
