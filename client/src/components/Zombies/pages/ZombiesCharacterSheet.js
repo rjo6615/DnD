@@ -261,6 +261,7 @@ export default function ZombiesCharacterSheet() {
     action: initCircleState(),
     bonus: initCircleState(),
   });
+  const [isPassingTurn, setIsPassingTurn] = useState(false);
 
   const participantsWithDetails = useMemo(() => {
     const sourceParticipants = Array.isArray(combatState?.participants)
@@ -330,6 +331,63 @@ export default function ZombiesCharacterSheet() {
     }
     return Array.from(ids);
   }, [characterId, form]);
+
+  const encodedCampaignId = useMemo(() => {
+    if (typeof campaignId !== 'string') {
+      return null;
+    }
+    const trimmed = campaignId.trim();
+    return trimmed ? encodeURIComponent(trimmed) : null;
+  }, [campaignId]);
+
+  const playerCharacterIdSet = useMemo(() => {
+    const set = new Set();
+    activeCharacterIds.forEach((id) => {
+      if (typeof id !== 'string') {
+        return;
+      }
+      const trimmed = id.trim();
+      if (trimmed) {
+        set.add(trimmed);
+      }
+    });
+    return set;
+  }, [activeCharacterIds]);
+
+  const activeTurnParticipantId = useMemo(() => {
+    if (!Array.isArray(combatState?.participants)) {
+      return null;
+    }
+    const activeIndex = Number.isInteger(combatState?.activeTurn)
+      ? combatState.activeTurn
+      : null;
+    if (
+      activeIndex === null ||
+      activeIndex < 0 ||
+      activeIndex >= combatState.participants.length
+    ) {
+      return null;
+    }
+    const participant = combatState.participants[activeIndex];
+    if (!participant || typeof participant.characterId !== 'string') {
+      return null;
+    }
+    const trimmed = participant.characterId.trim();
+    return trimmed !== '' ? trimmed : null;
+  }, [combatState]);
+
+  const isPlayersTurn = useMemo(() => {
+    if (!activeTurnParticipantId) {
+      return false;
+    }
+    return playerCharacterIdSet.has(activeTurnParticipantId);
+  }, [activeTurnParticipantId, playerCharacterIdSet]);
+
+  const canPassTurn =
+    isPlayersTurn &&
+    Boolean(encodedCampaignId) &&
+    Array.isArray(combatState.participants) &&
+    combatState.participants.length > 0;
 
   const handleHealthChange = useCallback(
     (nextTempHealth) => {
@@ -438,6 +496,88 @@ export default function ZombiesCharacterSheet() {
       return next;
     });
   }, []);
+
+  const handlePassTurn = useCallback(async () => {
+    if (isPassingTurn || !encodedCampaignId) {
+      return;
+    }
+
+    const participants = Array.isArray(combatState.participants)
+      ? combatState.participants
+      : [];
+
+    if (participants.length === 0) {
+      return;
+    }
+
+    const activeIndex =
+      Number.isInteger(combatState.activeTurn) && combatState.activeTurn >= 0
+        ? combatState.activeTurn
+        : null;
+
+    if (activeIndex === null || activeIndex >= participants.length) {
+      return;
+    }
+
+    const activeParticipant = participants[activeIndex];
+    const activeId =
+      typeof activeParticipant?.characterId === 'string'
+        ? activeParticipant.characterId.trim()
+        : '';
+
+    if (!activeId || !playerCharacterIdSet.has(activeId)) {
+      return;
+    }
+
+    const nextIndex = (activeIndex + 1) % participants.length;
+
+    const payload = {
+      participants: participants.map((participant) => ({
+        characterId: participant.characterId,
+        initiative: participant.initiative,
+      })),
+      activeTurn: nextIndex,
+    };
+
+    try {
+      setIsPassingTurn(true);
+      const response = await apiFetch(`/campaigns/${encodedCampaignId}/combat`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(response.statusText || 'Failed to update combat state');
+      }
+
+      let nextCombatState = normalizeCombatState({
+        participants: payload.participants,
+        activeTurn: nextIndex,
+      });
+
+      if (response.status !== 204 && response.status !== 205) {
+        try {
+          nextCombatState = normalizeCombatState(await response.json());
+        } catch (parseError) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to parse combat state response', parseError);
+        }
+      }
+
+      setCombatState(nextCombatState);
+      window.dispatchEvent(new Event('pass-turn'));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsPassingTurn(false);
+    }
+  }, [
+    combatState,
+    encodedCampaignId,
+    isPassingTurn,
+    playerCharacterIdSet,
+  ]);
 
   const playerTurnActionsRef = useRef(null);
   const socketRef = useRef(null);
@@ -1391,7 +1531,9 @@ const spellsGold =
         availableSlots={availableSlots}
         longRestCount={longRestCount}
         shortRestCount={shortRestCount}
-        onPassTurn={() => window.dispatchEvent(new Event('pass-turn'))}
+        onPassTurn={handlePassTurn}
+        canPassTurn={canPassTurn}
+        isPassTurnInProgress={isPassingTurn}
       />
     </div>
     {form && (
@@ -1501,7 +1643,7 @@ const spellsGold =
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-user-shield" aria-hidden="true"></i>
+              <i className="fas fa-toolbox" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={() => handleShowInventory()}
@@ -1512,7 +1654,7 @@ const spellsGold =
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-briefcase" aria-hidden="true"></i>
+              <i className="fas fa-box-open" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={() => handleShowShop()}
@@ -1523,7 +1665,7 @@ const spellsGold =
               className="footer-btn"
               variant="secondary"
             >
-              <i className="fas fa-shop" aria-hidden="true"></i>
+              <i className="fas fa-store" aria-hidden="true"></i>
             </Button>
             <Button
               onClick={handleShowHelpModal}
