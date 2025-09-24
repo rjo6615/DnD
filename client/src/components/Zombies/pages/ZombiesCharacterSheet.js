@@ -124,24 +124,39 @@ function CombatTurnHeader({ participants }) {
       }}
     >
       {participants.map((participant) => {
-        const { characterId, name, hpDisplay, isActive } = participant;
+        const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+
+        const hasHpData = hpCurrent !== null || hpMax !== null;
+        const computedPercentage =
+          hpCurrent !== null && hpMax !== null && hpMax > 0
+            ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
+            : null;
+        const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
+        const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
+        const hpFillColor =
+          computedPercentage !== null
+            ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
+            : "rgba(220, 220, 220, 0.35)";
+
         return (
           <div
             key={characterId}
             style={{
-              backgroundColor: isActive ? "rgba(40, 167, 69, 0.85)" : "rgba(33, 37, 41, 0.75)",
+              background: isActive
+                ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
+                : "rgba(28, 25, 22, 0.82)",
               color: "#FFFFFF",
               borderRadius: "12px",
-              padding: "8px 14px",
-              minWidth: "140px",
+              padding: "10px 16px",
+              minWidth: "160px",
               boxShadow: isActive
-                ? "0 0 12px rgba(40, 167, 69, 0.6)"
-                : "0 0 8px rgba(0, 0, 0, 0.35)",
+                ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
+                : "0 0 8px rgba(0, 0, 0, 0.45)",
               border: isActive
-                ? "1px solid rgba(255, 255, 255, 0.65)"
-                : "1px solid rgba(255, 255, 255, 0.25)",
-              transition: "transform 0.2s ease",
-              transform: isActive ? "scale(1.02)" : "scale(1)",
+                ? "1px solid rgba(214, 178, 86, 0.85)"
+                : "1px solid rgba(255, 255, 255, 0.18)",
+              transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              transform: isActive ? "scale(1.03)" : "scale(1)",
             }}
           >
             <div
@@ -153,14 +168,44 @@ function CombatTurnHeader({ participants }) {
             >
               {name}
             </div>
-            <div
-              style={{
-                marginTop: "4px",
-                fontSize: "12px",
-                opacity: 0.9,
-              }}
-            >
-              HP: {hpDisplay}
+            <div style={{ marginTop: "6px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "12px",
+                  opacity: 0.9,
+                  marginBottom: "4px",
+                }}
+              >
+                <span>HP</span>
+                <span>{hasHpData ? hpDisplay : "—"}</span>
+              </div>
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  height: "8px",
+                  borderRadius: "6px",
+                  background: "rgba(0, 0, 0, 0.45)",
+                  overflow: "hidden",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    height: "100%",
+                    width: `${hpPercentage}%`,
+                    background: computedPercentage !== null
+                      ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
+                      : "transparent",
+                    transition: "width 0.3s ease, background-color 0.3s ease",
+                  }}
+                />
+              </div>
             </div>
           </div>
         );
@@ -246,18 +291,23 @@ export default function ZombiesCharacterSheet() {
         const name = char?.characterName || participant.characterId;
         const { currentHp, maxHp } = calculateCharacterHitPoints(char);
 
+        const normalizedCurrentHp = Number.isFinite(currentHp) ? currentHp : null;
+        const normalizedMaxHp = Number.isFinite(maxHp) ? maxHp : null;
+
         let hpDisplay = '—';
-        if (currentHp !== null && maxHp !== null) {
-          hpDisplay = `${currentHp}/${maxHp}`;
-        } else if (currentHp !== null) {
-          hpDisplay = `${currentHp}`;
-        } else if (maxHp !== null) {
-          hpDisplay = `${maxHp}`;
+        if (normalizedCurrentHp !== null && normalizedMaxHp !== null) {
+          hpDisplay = `${normalizedCurrentHp}/${normalizedMaxHp}`;
+        } else if (normalizedCurrentHp !== null) {
+          hpDisplay = `${normalizedCurrentHp}`;
+        } else if (normalizedMaxHp !== null) {
+          hpDisplay = `${normalizedMaxHp}`;
         }
 
         return {
           characterId: participant.characterId,
           name,
+          hpCurrent: normalizedCurrentHp,
+          hpMax: normalizedMaxHp,
           hpDisplay,
           initiative: participant.initiative,
           isActive:
