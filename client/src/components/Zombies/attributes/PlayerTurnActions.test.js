@@ -60,6 +60,23 @@ describe('calculateDamage parser', () => {
 });
 
 describe('PlayerTurnActions weapon damage display', () => {
+  test('pass button is disabled when canPassTurn is false', () => {
+    const onPassTurn = jest.fn();
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, weapon: [], spells: [] }}
+        strMod={0}
+        dexMod={0}
+        onPassTurn={onPassTurn}
+        canPassTurn={false}
+      />
+    );
+    const passButton = screen.getByRole('button', { name: /pass/i });
+    expect(passButton).toBeDisabled();
+    fireEvent.click(passButton);
+    expect(onPassTurn).not.toHaveBeenCalled();
+  });
+
   test('weapon damage segments include ability and type classes', () => {
     const weapon = {
       name: 'Frost Brand',
