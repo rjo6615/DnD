@@ -136,8 +136,40 @@ const emitCombatUpdate = (campaignId, combatState) => {
   io.to(getCampaignRoom(normalizedId)).emit('combat:update', combatState);
 };
 
+const emitCharacterHealthUpdate = ({ campaignId, characterId, tempHealth, health }) => {
+  if (!io) {
+    logger.warn('Socket.io server not initialized; cannot emit character health update');
+    return;
+  }
+
+  const normalizedCampaignId =
+    typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
+  if (!normalizedCampaignId) {
+    logger.warn('Invalid campaign id provided for character health update', { campaignId });
+    return;
+  }
+
+  const normalizedCharacterId =
+    typeof characterId === 'string' && characterId.trim() !== '' ? characterId.trim() : null;
+  if (!normalizedCharacterId) {
+    logger.warn('Invalid character id provided for character health update', { characterId });
+    return;
+  }
+
+  const payload = { characterId: normalizedCharacterId };
+  if (tempHealth !== undefined) {
+    payload.tempHealth = tempHealth;
+  }
+  if (health !== undefined) {
+    payload.health = health;
+  }
+
+  io.to(getCampaignRoom(normalizedCampaignId)).emit('character:health:update', payload);
+};
+
 module.exports = {
   initializeSocket,
   emitCombatUpdate,
+  emitCharacterHealthUpdate,
 };
 

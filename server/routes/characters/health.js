@@ -4,6 +4,70 @@ const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
+const { emitCharacterHealthUpdate } = require('../../utils/socket');
+
+const notifyCharacterHealthUpdate = async (db, characterObjectId) => {
+  if (!db || !characterObjectId) {
+    return;
+  }
+
+  try {
+    const character = await db.collection('Characters').findOne(
+      { _id: characterObjectId },
+      {
+        projection: {
+          campaign: 1,
+          tempHealth: 1,
+          health: 1,
+          characterId: 1,
+        },
+      }
+    );
+
+    if (!character) {
+      return;
+    }
+
+    const campaignId =
+      typeof character.campaign === 'string' && character.campaign.trim() !== ''
+        ? character.campaign.trim()
+        : null;
+
+    if (!campaignId) {
+      return;
+    }
+
+    let normalizedCharacterId = null;
+    if (typeof character.characterId === 'string' && character.characterId.trim() !== '') {
+      normalizedCharacterId = character.characterId.trim();
+    } else if (character._id) {
+      try {
+        normalizedCharacterId = character._id.toString();
+      } catch (err) {
+        normalizedCharacterId = String(character._id);
+      }
+    }
+
+    if (!normalizedCharacterId) {
+      return;
+    }
+
+    emitCharacterHealthUpdate({
+      campaignId,
+      characterId: normalizedCharacterId,
+      tempHealth: character.tempHealth,
+      health: character.health,
+    });
+  } catch (error) {
+    logger.warn('Failed to emit character health update', {
+      error: error.message,
+      characterId:
+        (typeof characterObjectId?.toString === 'function'
+          ? characterObjectId.toString()
+          : String(characterObjectId)) || 'unknown',
+    });
+  }
+};
 
 module.exports = (router) => {
   const characterRouter = express.Router();
@@ -26,6 +90,7 @@ module.exports = (router) => {
         await db_connect.collection('Characters').updateOne(id, {
           $set: { tempHealth },
         });
+        await notifyCharacterHealthUpdate(db_connect, id._id);
         logger.info('character tempHealth updated');
         res.json({ message: 'User updated successfully' });
       } catch (err) {
@@ -60,6 +125,7 @@ module.exports = (router) => {
         await db_connect.collection('Characters').updateOne(id, {
           $set: fields,
         });
+        await notifyCharacterHealthUpdate(db_connect, id._id);
         logger.info('Character health and stats updated');
         res.json({ message: 'User updated successfully' });
       } catch (error) {

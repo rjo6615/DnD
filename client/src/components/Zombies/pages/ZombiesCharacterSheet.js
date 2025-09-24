@@ -568,11 +568,111 @@ export default function ZombiesCharacterSheet() {
       setCombatState(normalizeCombatState(state));
     };
 
+    const handleCharacterHealthUpdate = (update) => {
+      if (!update || typeof update !== 'object') {
+        return;
+      }
+
+      const rawCharacterId = update.characterId;
+      const normalizedCharacterId =
+        typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
+          ? rawCharacterId.trim()
+          : null;
+
+      if (!normalizedCharacterId) {
+        return;
+      }
+
+      const nextTempHealthValue =
+        update.tempHealth !== undefined && update.tempHealth !== null
+          ? (() => {
+              const numeric = Number(update.tempHealth);
+              return Number.isFinite(numeric) ? numeric : update.tempHealth;
+            })()
+          : undefined;
+
+      const nextHealthValue =
+        update.health !== undefined && update.health !== null
+          ? (() => {
+              const numeric = Number(update.health);
+              return Number.isFinite(numeric) ? numeric : update.health;
+            })()
+          : undefined;
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object') {
+          return prev;
+        }
+
+        const existing = prev[normalizedCharacterId];
+        if (!existing) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const updatedCharacter = { ...existing };
+
+        if (nextTempHealthValue !== undefined && existing.tempHealth !== nextTempHealthValue) {
+          updatedCharacter.tempHealth = nextTempHealthValue;
+          didUpdate = true;
+        }
+
+        if (nextHealthValue !== undefined && existing.health !== nextHealthValue) {
+          updatedCharacter.health = nextHealthValue;
+          didUpdate = true;
+        }
+
+        if (!didUpdate) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [normalizedCharacterId]: updatedCharacter,
+        };
+      });
+
+      setForm((prev) => {
+        if (!prev || typeof prev !== 'object') {
+          return prev;
+        }
+
+        const candidateIds = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          candidateIds.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          candidateIds.push(prev.characterId.trim());
+        }
+
+        if (!candidateIds.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const updatedForm = { ...prev };
+
+        if (nextTempHealthValue !== undefined && prev.tempHealth !== nextTempHealthValue) {
+          updatedForm.tempHealth = nextTempHealthValue;
+          didUpdate = true;
+        }
+
+        if (nextHealthValue !== undefined && prev.health !== nextHealthValue) {
+          updatedForm.health = nextHealthValue;
+          didUpdate = true;
+        }
+
+        return didUpdate ? updatedForm : prev;
+      });
+    };
+
     socket.on('combat:update', handleCombatUpdate);
+    socket.on('character:health:update', handleCharacterHealthUpdate);
     socket.emit('campaign:join', campaignId);
 
     return () => {
       socket.off('combat:update', handleCombatUpdate);
+      socket.off('character:health:update', handleCharacterHealthUpdate);
       socket.emit('campaign:leave', campaignId);
       socket.disconnect();
       socketRef.current = null;
