@@ -522,6 +522,65 @@ export default function ZombiesDM() {
       [combatState, persistCombatState]
     );
 
+    const handleRollInitiative = useCallback(() => {
+      if (!Array.isArray(combatState.participants) || combatState.participants.length === 0) {
+        return;
+      }
+
+      const rolledParticipants = combatState.participants
+        .map((participant) => {
+          if (!participant || typeof participant.characterId !== 'string') {
+            return null;
+          }
+
+          const baseInitiative = characterInitiativeMap.get(participant.characterId) || 0;
+          const numericBase = Number.isFinite(baseInitiative)
+            ? baseInitiative
+            : Number.isFinite(Number(baseInitiative))
+              ? Number(baseInitiative)
+              : 0;
+          const roll = Math.floor(Math.random() * 20) + 1;
+
+          return {
+            characterId: participant.characterId,
+            initiative: numericBase + roll,
+          };
+        })
+        .filter(Boolean);
+
+      if (rolledParticipants.length === 0) {
+        return;
+      }
+
+      let activeCharacterId = null;
+      if (
+        Number.isInteger(combatState.activeTurn) &&
+        combatState.activeTurn >= 0 &&
+        combatState.activeTurn < combatState.participants.length
+      ) {
+        const activeParticipant = combatState.participants[combatState.activeTurn];
+        activeCharacterId = activeParticipant?.characterId || null;
+      }
+
+      let activeTurnIndex = null;
+      if (activeCharacterId) {
+        const foundIndex = rolledParticipants.findIndex(
+          (participant) => participant.characterId === activeCharacterId
+        );
+        if (foundIndex !== -1) {
+          activeTurnIndex = foundIndex;
+        }
+      }
+
+      const nextState = normalizeCombatState({
+        participants: rolledParticipants,
+        activeTurn: activeTurnIndex,
+      });
+
+      setCombatState(nextState);
+      persistCombatState(nextState);
+    }, [combatState, characterInitiativeMap, persistCombatState]);
+
     const handleAdvanceTurn = useCallback(
       (direction) => {
         if (direction !== 1 && direction !== -1) {
@@ -1841,6 +1900,14 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </Card.Header>
                 <Card.Body className="bg-transparent text-light">
                   <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      onClick={handleRollInitiative}
+                      disabled={combatParticipantCount === 0}
+                    >
+                      Roll Initiative
+                    </Button>
                     <Button
                       variant="outline-light"
                       size="sm"
