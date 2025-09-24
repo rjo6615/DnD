@@ -17,6 +17,7 @@ export default function HealthDefense({
   initiative = 0,
   speed = 0,
   spellAbilityMod,
+  onTempHealthChange,
 }) {
   const params = useParams();
   const isLargeScreen =
@@ -102,6 +103,7 @@ export default function HealthDefense({
 
   // Sends tempHealth data to database for update
   async function tempHealthUpdate(offset) {
+    const updatedHealthValue = (Number.isFinite(health) ? health : 0) + offset;
     try {
       await apiFetch(`/characters/update-temphealth/${params.id}`, {
         method: "PUT",
@@ -109,10 +111,13 @@ export default function HealthDefense({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        tempHealth: (Number.isFinite(health) ? health : 0) + offset,
+        tempHealth: updatedHealthValue,
       }),
     });
       setError(null);
+      if (typeof onTempHealthChange === 'function') {
+        onTempHealthChange(updatedHealthValue);
+      }
     } catch (error) {
       console.error(error);
       setError("Failed to update health.");

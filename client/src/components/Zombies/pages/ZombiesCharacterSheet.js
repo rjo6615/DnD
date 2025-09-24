@@ -267,6 +267,62 @@ export default function ZombiesCharacterSheet() {
       });
   }, [campaignCharacters, combatState, form]);
 
+  const activeCharacterIds = useMemo(() => {
+    const ids = new Set();
+    if (typeof characterId === 'string' && characterId.trim() !== '') {
+      ids.add(characterId.trim());
+    }
+    if (form && typeof form._id === 'string' && form._id.trim() !== '') {
+      ids.add(form._id.trim());
+    }
+    if (form && typeof form.characterId === 'string' && form.characterId.trim() !== '') {
+      ids.add(form.characterId.trim());
+    }
+    return Array.from(ids);
+  }, [characterId, form]);
+
+  const handleHealthChange = useCallback(
+    (nextTempHealth) => {
+      const numericHealth = Number(nextTempHealth);
+      if (!Number.isFinite(numericHealth)) {
+        return;
+      }
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        if (Number(prev.tempHealth) === numericHealth) {
+          return prev;
+        }
+        return { ...prev, tempHealth: numericHealth };
+      });
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object') {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const next = { ...prev };
+        activeCharacterIds.forEach((idKey) => {
+          if (!idKey || !next[idKey]) {
+            return;
+          }
+          const existing = next[idKey];
+          if (Number(existing?.tempHealth) === numericHealth) {
+            return;
+          }
+          next[idKey] = { ...existing, tempHealth: numericHealth };
+          didUpdate = true;
+        });
+
+        return didUpdate ? next : prev;
+      });
+    },
+    [activeCharacterIds]
+  );
+
   useEffect(() => {
     const handlePass = () => {
       setActiveEffects((prev) =>
@@ -1154,6 +1210,7 @@ const spellsGold =
         ac={featBonuses.ac}
         hpMaxBonus={featBonuses.hpMaxBonus}
         hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+        onTempHealthChange={handleHealthChange}
         {...(spellAbilityMod !== null && { spellAbilityMod })}
       />
     </div>
