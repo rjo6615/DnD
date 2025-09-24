@@ -1,22 +1,7 @@
 const express = require('express');
 let OpenAI;
-try {
-  OpenAI = require('openai');
-} catch {
-  OpenAI = null;
-}
 let z;
-try {
-  ({ z } = require('zod'));
-} catch {
-  z = null;
-}
 let zodResponseFormat;
-try {
-  ({ zodResponseFormat } = require('openai/helpers/zod'));
-} catch {
-  zodResponseFormat = null;
-}
 const logger = require('../utils/logger');
 const { types: weaponTypes, categories: weaponCategories } = require('../data/weapons');
 const {
@@ -31,16 +16,50 @@ const {
 } = require('../data/accessories');
 const { skillNames } = require('./fieldConstants');
 
+const resolveOpenAI = () => {
+  if (!OpenAI) {
+    try {
+      OpenAI = require('openai');
+    } catch {
+      OpenAI = null;
+    }
+  }
+  return OpenAI;
+};
+
+const resolveZod = () => {
+  if (!z) {
+    try {
+      ({ z } = require('zod'));
+    } catch {
+      z = null;
+    }
+  }
+  return z;
+};
+
+const resolveZodResponseFormat = () => {
+  if (!zodResponseFormat) {
+    try {
+      ({ zodResponseFormat } = require('openai/helpers/zod'));
+    } catch {
+      zodResponseFormat = null;
+    }
+  }
+  return zodResponseFormat;
+};
+
 module.exports = (router) => {
   const aiRouter = express.Router();
 
   const buildFormat = (schema, name) => {
-    if (!zodResponseFormat) {
+    const responseFormatter = resolveZodResponseFormat();
+    if (!responseFormatter) {
       return { name, schema: {} };
     }
 
     try {
-      const { json_schema, ...rest } = zodResponseFormat(schema);
+      const { json_schema, ...rest } = responseFormatter(schema);
       const resolvedSchema = json_schema?.schema ?? json_schema ?? {};
       return { name, schema: resolvedSchema, ...rest };
     } catch (error) {
@@ -57,22 +76,24 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodResponseFormat) {
+    const OpenAIClient = resolveOpenAI();
+    const Z = resolveZod();
+    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
-    const WeaponSchema = z.object({
-      name: z.string(),
-      type: z.enum(weaponTypes),
-      category: z.enum(weaponCategories),
-      damage: z.string(),
-      properties: z.array(z.string()).optional(),
-      weight: z.number().optional(),
-      cost: z.number().optional(),
+    const WeaponSchema = Z.object({
+      name: Z.string(),
+      type: Z.enum(weaponTypes),
+      category: Z.enum(weaponCategories),
+      damage: Z.string(),
+      properties: Z.array(Z.string()).nullable().optional(),
+      weight: Z.number().nullable().optional(),
+      cost: Z.number().nullable().optional(),
     });
 
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
       const format = buildFormat(WeaponSchema, 'weapon');
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
@@ -99,29 +120,31 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodResponseFormat) {
+    const OpenAIClient = resolveOpenAI();
+    const Z = resolveZod();
+    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
     const armorSlotKeys = ARMOR_SLOT_OPTIONS.map((slot) => slot.key);
 
-    const ArmorSchema = z.object({
-      name: z.string(),
-      type: z.enum(armorTypes),
-      category: z.enum(armorCategories),
-      slot: z.enum(armorSlotKeys),
-      equipmentSlot: z.enum(armorSlotKeys).optional(),
-      armorBonus: z.number().optional(),
-      acBonus: z.number().optional(),
-      maxDex: z.number().optional(),
-      strength: z.number().optional(),
-      stealth: z.boolean().optional(),
-      weight: z.number().optional(),
-      cost: z.string().optional(),
+    const ArmorSchema = Z.object({
+      name: Z.string(),
+      type: Z.enum(armorTypes),
+      category: Z.enum(armorCategories),
+      slot: Z.enum(armorSlotKeys),
+      equipmentSlot: Z.enum(armorSlotKeys).nullable().optional(),
+      armorBonus: Z.number().nullable().optional(),
+      acBonus: Z.number().nullable().optional(),
+      maxDex: Z.number().nullable().optional(),
+      strength: Z.number().nullable().optional(),
+      stealth: Z.boolean().nullable().optional(),
+      weight: Z.number().nullable().optional(),
+      cost: Z.string().nullable().optional(),
     });
 
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
       const format = buildFormat(ArmorSchema, 'armor');
       const response = await openai.responses.parse({
         model: 'gpt-4o-2024-08-06',
@@ -153,22 +176,24 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodResponseFormat) {
+    const OpenAIClient = resolveOpenAI();
+    const Z = resolveZod();
+    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
-    const ItemSchema = z.object({
-      name: z.string(),
-      category: z.enum(itemCategories),
-      weight: z.number().optional(),
-      cost: z.string().optional(),
-      properties: z.array(z.string()).optional(),
-      statBonuses: z.object({}).catchall(z.number()).optional(),
-      skillBonuses: z.object({}).catchall(z.number()).optional(),
+    const ItemSchema = Z.object({
+      name: Z.string(),
+      category: Z.enum(itemCategories),
+      weight: Z.number().nullable().optional(),
+      cost: Z.string().nullable().optional(),
+      properties: Z.array(Z.string()).nullable().optional(),
+      statBonuses: Z.object({}).catchall(Z.number()).nullable().optional(),
+      skillBonuses: Z.object({}).catchall(Z.number()).nullable().optional(),
     });
 
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
       const format = buildFormat(ItemSchema, 'item');
       const skillsList = skillNames.join(', ');
 
@@ -200,24 +225,26 @@ module.exports = (router) => {
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
-    if (!OpenAI || !z || !zodResponseFormat) {
+    const OpenAIClient = resolveOpenAI();
+    const Z = resolveZod();
+    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
-    const AccessorySchema = z.object({
-      name: z.string(),
-      category: z.enum(accessoryCategories),
-      targetSlots: z.array(z.enum(accessorySlotKeys)),
-      rarity: z.string().optional(),
-      weight: z.number().optional(),
-      cost: z.string().optional(),
-      notes: z.string().optional(),
-      statBonuses: z.object({}).catchall(z.number()).optional(),
-      skillBonuses: z.object({}).catchall(z.number()).optional(),
+    const AccessorySchema = Z.object({
+      name: Z.string(),
+      category: Z.enum(accessoryCategories),
+      targetSlots: Z.array(Z.enum(accessorySlotKeys)),
+      rarity: Z.string().nullable().optional(),
+      weight: Z.number().nullable().optional(),
+      cost: Z.string().nullable().optional(),
+      notes: Z.string().nullable().optional(),
+      statBonuses: Z.object({}).catchall(Z.number()).nullable().optional(),
+      skillBonuses: Z.object({}).catchall(Z.number()).nullable().optional(),
     });
 
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
       const format = buildFormat(AccessorySchema, 'accessory');
       const slotList = accessorySlotKeys.join(', ');
       const categoryList = accessoryCategories.join(', ');

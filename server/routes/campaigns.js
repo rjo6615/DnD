@@ -1,5 +1,8 @@
 const { param, body } = require('express-validator');
 const express = require('express');
+const { randomUUID } = require('crypto');
+const { getMonsterByIndex } = require('../utils/dnd5eApi');
+const { buildEnemyRecord } = require('../utils/monsters');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const logger = require('../utils/logger');
@@ -12,6 +15,13 @@ module.exports = (router) => {
     participants: [],
     activeTurn: null,
   });
+
+  const generateEnemyId = () => {
+    if (typeof randomUUID === 'function') {
+      return randomUUID();
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  };
 
   const parseInitiative = (value) => {
     const parsed = Number(value);
@@ -71,6 +81,7 @@ module.exports = (router) => {
         participants,
         activeTurn,
       },
+      enemies: Array.isArray(campaign.enemies) ? campaign.enemies : [],
     };
   };
 
@@ -166,6 +177,7 @@ module.exports = (router) => {
       dm: req.body.dm,
       players: Array.isArray(req.body.players) ? req.body.players : [],
       combat: createDefaultCombatState(),
+      enemies: [],
     };
     try {
       const result = await db_connect.collection("Campaigns").insertOne(myobj);
@@ -188,6 +200,120 @@ module.exports = (router) => {
       next(err);
     }
   });
+
+  campaignRouter
+    .route('/:campaign/enemies')
+    .get(
+      [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const db_connect = req.db;
+          const campaign = await db_connect
+            .collection('Campaigns')
+            .findOne({ campaignName: req.params.campaign });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          res.json(Array.isArray(campaign.enemies) ? campaign.enemies : []);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .post(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        body('index').trim().notEmpty().withMessage('index is required'),
+        body('name').optional().isString().withMessage('name must be a string'),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        const campaignName = req.params.campaign;
+        const { index, name } = req.body;
+
+        try {
+          const monster = await getMonsterByIndex(index);
+          const enemyId = generateEnemyId();
+          const enemyRecord = buildEnemyRecord(monster, enemyId, name);
+
+          if (!enemyRecord) {
+            return res.status(500).json({ message: 'Failed to create enemy record' });
+          }
+
+          const db_connect = req.db;
+          const result = await db_connect.collection('Campaigns').findOneAndUpdate(
+            { campaignName },
+            { $push: { enemies: enemyRecord } },
+            { returnDocument: 'after' }
+          );
+
+          if (!result.value) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          res.json(enemyRecord);
+        } catch (err) {
+          if (err.statusCode === 404) {
+            return res.status(404).json({ message: 'Monster not found' });
+          }
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/enemies/:enemyId')
+    .delete(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        param('enemyId').trim().notEmpty().withMessage('enemyId is required'),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const { enemyId } = req.params;
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const existingEnemies = Array.isArray(campaign.enemies) ? campaign.enemies : [];
+          if (!existingEnemies.some((enemy) => enemy.enemyId === enemyId)) {
+            return res.status(404).json({ message: 'Enemy not found' });
+          }
+
+          const updatedEnemies = existingEnemies.filter((enemy) => enemy.enemyId !== enemyId);
+          const participants = sanitizeParticipants(campaign.combat?.participants).filter(
+            (participant) => participant.characterId !== enemyId
+          );
+
+          let activeTurn = parseTurnIndex(campaign.combat?.activeTurn);
+          if (activeTurn !== null && activeTurn >= participants.length) {
+            activeTurn = participants.length > 0 ? Math.min(activeTurn, participants.length - 1) : null;
+          }
+
+          const combatState = { participants, activeTurn };
+
+          await collection.updateOne(
+            { campaignName },
+            { $set: { enemies: updatedEnemies, combat: combatState } }
+          );
+
+          emitCombatUpdate(campaignName, combatState);
+
+          res.json({ success: true, enemies: updatedEnemies, combat: combatState });
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
 
   campaignRouter
     .route('/:campaign/combat')
