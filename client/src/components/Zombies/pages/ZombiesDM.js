@@ -561,6 +561,77 @@ export default function ZombiesDM() {
       return map;
     }, [records]);
 
+    const orderedCombatRecords = useMemo(() => {
+      if (!Array.isArray(records) || records.length === 0) {
+        return [];
+      }
+
+      return records
+        .map((character, recordIndex) => {
+          if (!character || typeof character !== 'object') {
+            return {
+              character,
+              rowId: '',
+              participantInfo: undefined,
+              initiativeValue: undefined,
+              sortInitiative: Number.NEGATIVE_INFINITY,
+              recordIndex,
+            };
+          }
+
+          const rowId =
+            (typeof character._id === 'string' && character._id) ||
+            (typeof character.characterId === 'string' && character.characterId) ||
+            (typeof character.token === 'string' && character.token) ||
+            '';
+
+          const participantInfo = rowId ? participantLookup.get(rowId) : undefined;
+          const derivedInitiative = rowId ? characterInitiativeMap.get(rowId) : undefined;
+
+          const initiativeValue =
+            participantInfo && participantInfo.initiative !== undefined
+              ? participantInfo.initiative
+              : derivedInitiative;
+
+          const numericInitiative =
+            typeof initiativeValue === 'number' && Number.isFinite(initiativeValue)
+              ? initiativeValue
+              : Number.isFinite(Number(initiativeValue))
+                ? Number(initiativeValue)
+                : Number.NEGATIVE_INFINITY;
+
+          return {
+            character,
+            rowId,
+            participantInfo,
+            initiativeValue,
+            sortInitiative: numericInitiative,
+            recordIndex,
+          };
+        })
+        .sort((a, b) => {
+          if (b.sortInitiative !== a.sortInitiative) {
+            return b.sortInitiative - a.sortInitiative;
+          }
+
+          const aIsParticipant = Boolean(a.participantInfo);
+          const bIsParticipant = Boolean(b.participantInfo);
+          if (aIsParticipant !== bIsParticipant) {
+            return aIsParticipant ? -1 : 1;
+          }
+
+          if (
+            a.participantInfo &&
+            b.participantInfo &&
+            a.participantInfo.index !== b.participantInfo.index
+          ) {
+            return a.participantInfo.index - b.participantInfo.index;
+          }
+
+          return a.recordIndex - b.recordIndex;
+        });
+    }, [records, participantLookup, characterInitiativeMap]);
+
     const activeParticipant = useMemo(() => {
       if (!Array.isArray(combatState.participants)) {
         return null;
@@ -1770,69 +1841,65 @@ const resolveIcon = (category, iconMap, fallback) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {Array.isArray(records) && records.length > 0 ? (
-                          records.map((character) => {
-                            const rowId =
-                              character?._id || character?.characterId || character?.token || '';
-                            const participantInfo = rowId
-                              ? participantLookup.get(rowId)
-                              : undefined;
-                            const isParticipant = Boolean(participantInfo);
-                            const derivedInitiative = rowId
-                              ? characterInitiativeMap.get(rowId)
-                              : undefined;
-                            const initiativeValue = isParticipant
-                              ? participantInfo.initiative
-                              : derivedInitiative !== undefined
-                                ? derivedInitiative
-                                : '—';
-                            const isActive =
-                              isParticipant &&
-                              Number.isInteger(combatState.activeTurn) &&
-                              participantInfo.index === combatState.activeTurn;
-                            const characterName =
-                              character?.characterName || character?.token || 'Unnamed Character';
-                            const playerName = character?.token || '—';
-                            const checkboxLabel =
-                              character?.characterName ||
-                              character?.token ||
-                              participantInfo?.characterId ||
-                              'this character';
+                        {orderedCombatRecords.length > 0 ? (
+                          orderedCombatRecords.map(
+                            ({ character, rowId, participantInfo, initiativeValue }) => {
+                              const resolvedRowId = rowId || '';
+                              const isParticipant = Boolean(participantInfo);
+                              const displayInitiative =
+                                initiativeValue !== undefined && initiativeValue !== null
+                                  ? initiativeValue
+                                  : '—';
+                              const isActive =
+                                isParticipant &&
+                                Number.isInteger(combatState.activeTurn) &&
+                                participantInfo.index === combatState.activeTurn;
+                              const playerName = character?.token || '—';
+                              const checkboxLabel =
+                                character?.characterName ||
+                                character?.token ||
+                                participantInfo?.characterId ||
+                                'this character';
 
-                            return (
-                              <tr
-                                key={rowId || playerName}
-                                className={isActive ? 'table-success text-dark' : undefined}
-                              >
-                                <td className="fw-semibold">{character?.characterName || '—'}</td>
-                                <td>{playerName}</td>
-                                <td className="text-center">
-                                  <Form.Check
-                                    type="checkbox"
-                                    id={`combat-toggle-${rowId}`}
-                                    checked={isParticipant}
-                                    onChange={() => rowId && handleToggleParticipant(rowId)}
-                                    aria-label={`Toggle ${checkboxLabel} in combat`}
-                                  />
-                                </td>
-                                <td className="text-center" style={{ width: '120px' }}>
-                                  {initiativeValue}
-                                </td>
-                                <td className="text-center">
-                                  <div className="d-flex justify-content-center gap-2">
-                                    <Button
-                                      variant={isActive ? 'success' : 'outline-light'}
-                                      size="sm"
-                                      onClick={() => rowId && handleSetTurn(rowId)}
-                                      disabled={!isParticipant}
-                                    >
-                                      Set Turn
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
+                              return (
+                                <tr
+                                  key={resolvedRowId || playerName}
+                                  className={isActive ? 'table-success text-dark' : undefined}
+                                >
+                                  <td className="fw-semibold">{character?.characterName || '—'}</td>
+                                  <td>{playerName}</td>
+                                  <td className="text-center">
+                                    <Form.Check
+                                      type="checkbox"
+                                      id={`combat-toggle-${resolvedRowId}`}
+                                      checked={isParticipant}
+                                      onChange={() =>
+                                        resolvedRowId && handleToggleParticipant(resolvedRowId)
+                                      }
+                                      aria-label={`Toggle ${checkboxLabel} in combat`}
+                                    />
+                                  </td>
+                                  <td className="text-center" style={{ width: '120px' }}>
+                                    {displayInitiative}
+                                  </td>
+                                  <td className="text-center">
+                                    <div className="d-flex justify-content-center gap-2">
+                                      <Button
+                                        variant={isActive ? 'success' : 'outline-light'}
+                                        size="sm"
+                                        onClick={() =>
+                                          resolvedRowId && handleSetTurn(resolvedRowId)
+                                        }
+                                        disabled={!isParticipant}
+                                      >
+                                        Set Turn
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            }
+                          )
                         ) : (
                           <tr>
                             <td colSpan={5} className="text-center text-muted py-3">
