@@ -79,6 +79,18 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
 
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
+const sortParticipantsDescending = (participantsWithMeta) =>
+  participantsWithMeta
+    .slice()
+    .sort((a, b) => {
+      if (b.participant.initiative !== a.participant.initiative) {
+        return b.participant.initiative - a.participant.initiative;
+      }
+
+      return a.index - b.index;
+    })
+    .map(({ participant }) => participant);
+
 const normalizeCombatState = (state) => {
   if (!state || typeof state !== 'object') {
     return createEmptyCombatState();
@@ -104,19 +116,36 @@ const normalizeCombatState = (state) => {
         .filter(Boolean)
     : [];
 
+  const participantsWithMeta = participants.map((participant, index) => ({
+    participant,
+    index,
+  }));
+
+  const sortedParticipants = sortParticipantsDescending(participantsWithMeta);
+
   const activeTurnCandidate =
     state.activeTurn === null || state.activeTurn === undefined
       ? null
       : Number(state.activeTurn);
 
-  const activeTurn =
+  let activeTurn = null;
+  if (
     Number.isInteger(activeTurnCandidate) &&
     activeTurnCandidate >= 0 &&
     activeTurnCandidate < participants.length
-      ? activeTurnCandidate
-      : null;
+  ) {
+    const activeParticipant = participants[activeTurnCandidate];
+    if (activeParticipant) {
+      const sortedIndex = sortedParticipants.findIndex(
+        (participant) => participant.characterId === activeParticipant.characterId
+      );
+      if (sortedIndex !== -1) {
+        activeTurn = sortedIndex;
+      }
+    }
+  }
 
-  return { participants, activeTurn };
+  return { participants: sortedParticipants, activeTurn };
 };
 
 const CLASS_ICON_MAP = {
