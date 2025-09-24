@@ -248,11 +248,84 @@ export default function ZombiesDM() {
         setCombatState(normalizeCombatState(state));
       };
 
+      const handleCharacterHealthUpdate = (update) => {
+        if (!update || typeof update !== 'object') {
+          return;
+        }
+
+        const rawCharacterId = update.characterId;
+        const normalizedCharacterId =
+          typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
+            ? rawCharacterId.trim()
+            : null;
+
+        if (!normalizedCharacterId) {
+          return;
+        }
+
+        const nextTempHealthValue =
+          update.tempHealth !== undefined && update.tempHealth !== null
+            ? (() => {
+                const numeric = Number(update.tempHealth);
+                return Number.isFinite(numeric) ? numeric : update.tempHealth;
+              })()
+            : undefined;
+
+        const nextHealthValue =
+          update.health !== undefined && update.health !== null
+            ? (() => {
+                const numeric = Number(update.health);
+                return Number.isFinite(numeric) ? numeric : update.health;
+              })()
+            : undefined;
+
+        setRecords((prev) => {
+          if (!Array.isArray(prev) || prev.length === 0) {
+            return prev;
+          }
+
+          let didUpdate = false;
+
+          const nextRecords = prev.map((record) => {
+            if (!record || typeof record !== 'object') {
+              return record;
+            }
+
+            const recordId =
+              (typeof record._id === 'string' && record._id.trim() !== '' && record._id.trim()) ||
+              (typeof record.characterId === 'string' && record.characterId.trim() !== '' && record.characterId.trim()) ||
+              (typeof record.token === 'string' && record.token.trim() !== '' && record.token.trim());
+
+            if (recordId !== normalizedCharacterId) {
+              return record;
+            }
+
+            const updatedRecord = { ...record };
+
+            if (nextTempHealthValue !== undefined && record.tempHealth !== nextTempHealthValue) {
+              updatedRecord.tempHealth = nextTempHealthValue;
+              didUpdate = true;
+            }
+
+            if (nextHealthValue !== undefined && record.health !== nextHealthValue) {
+              updatedRecord.health = nextHealthValue;
+              didUpdate = true;
+            }
+
+            return updatedRecord;
+          });
+
+          return didUpdate ? nextRecords : prev;
+        });
+      };
+
       socket.on('combat:update', handleCombatUpdate);
+      socket.on('character:health:update', handleCharacterHealthUpdate);
       socket.emit('campaign:join', campaignId);
 
       return () => {
         socket.off('combat:update', handleCombatUpdate);
+        socket.off('character:health:update', handleCharacterHealthUpdate);
         socket.emit('campaign:leave', campaignId);
         socket.disconnect();
         socketRef.current = null;
