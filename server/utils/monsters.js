@@ -151,6 +151,7 @@ const buildEnemyRecord = (monsterDetail, enemyId, nameOverride) => {
     ...normalized,
     enemyId,
     name: trimmedName || normalized.name,
+    currentHp: normalized.hitPoints,
     addedAt: new Date().toISOString(),
   };
 };

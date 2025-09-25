@@ -43,6 +43,15 @@ import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 const HEADER_PADDING = 16;
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const normalizeCombatState = (state) => {
   if (!state || typeof state !== "object") {
     return createEmptyCombatState();
@@ -66,10 +75,19 @@ const normalizeCombatState = (state) => {
               ? participant.displayName.trim()
               : null;
 
+          const currentHpValue = toFiniteNumberOrNull(
+            participant.currentHp ?? participant.hpCurrent
+          );
+          const maxHpValue = toFiniteNumberOrNull(
+            participant.maxHp ?? participant.hpMax
+          );
+
           return {
             characterId: participant.characterId.trim(),
             initiative: Number.isFinite(initiativeValue) ? initiativeValue : 0,
             ...(displayName ? { displayName } : {}),
+            ...(currentHpValue !== null ? { currentHp: currentHpValue } : {}),
+            ...(maxHpValue !== null ? { maxHp: maxHpValue } : {}),
           };
         })
         .filter(Boolean)
@@ -308,10 +326,36 @@ export default function ZombiesCharacterSheet() {
             ? participant.displayName.trim()
             : null);
         const name = participantName || participant.characterId;
+        const participantCurrentHp = toFiniteNumberOrNull(
+          participant.currentHp ?? participant.hpCurrent
+        );
+        const participantMaxHp = toFiniteNumberOrNull(
+          participant.maxHp ?? participant.hpMax
+        );
+
         const { currentHp, maxHp } = calculateCharacterHitPoints(char);
 
-        const normalizedCurrentHp = Number.isFinite(currentHp) ? currentHp : null;
-        const normalizedMaxHp = Number.isFinite(maxHp) ? maxHp : null;
+        let normalizedCurrentHp = participantCurrentHp !== null
+          ? participantCurrentHp
+          : Number.isFinite(currentHp)
+            ? currentHp
+            : null;
+        let normalizedMaxHp = participantMaxHp !== null
+          ? participantMaxHp
+          : Number.isFinite(maxHp)
+            ? maxHp
+            : null;
+
+        if (normalizedMaxHp === null) {
+          const fallbackMax = toFiniteNumberOrNull(char?.hitPoints ?? char?.health);
+          if (fallbackMax !== null) {
+            normalizedMaxHp = fallbackMax;
+          }
+        }
+
+        if (normalizedCurrentHp === null && normalizedMaxHp !== null) {
+          normalizedCurrentHp = normalizedMaxHp;
+        }
 
         let hpDisplay = '—';
         if (normalizedCurrentHp !== null && normalizedMaxHp !== null) {
