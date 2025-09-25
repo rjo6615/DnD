@@ -15,7 +15,15 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
 }));
+jest.mock('../utils/dnd5eApi', () => ({
+  getMonsterByIndex: jest.fn(),
+}));
+jest.mock('../utils/monsters', () => ({
+  buildEnemyRecord: jest.fn(),
+}));
 const { emitCombatUpdate } = require('../utils/socket');
+const { getMonsterByIndex } = require('../utils/dnd5eApi');
+const { buildEnemyRecord } = require('../utils/monsters');
 const registerCampaignRoutes = require('../routes/campaigns');
 
 const app = express();
@@ -41,6 +49,8 @@ describe('Campaign routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     dbo.mockReset();
+    getMonsterByIndex.mockReset();
+    buildEnemyRecord.mockReset();
     mockUser = { username: 'DM' };
   });
 
@@ -59,6 +69,7 @@ describe('Campaign routes', () => {
     expect(insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
         players: [],
+        enemies: [],
         combat: { participants: [], activeTurn: null },
       })
     );
@@ -264,4 +275,76 @@ describe('Campaign routes', () => {
     expect(res.status).toBe(400);
     expect(res.body.errors[0].param).toBe('participants');
   });
+
+  test('get enemies success', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({ campaignName: 'Test', enemies: [{ enemyId: 'enemy-1', name: 'Goblin' }] }),
+      }),
+    });
+
+    const res = await request(app).get('/campaigns/Test/enemies');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([{ enemyId: 'enemy-1', name: 'Goblin' }]);
+  });
+
+  test('add enemy success', async () => {
+    getMonsterByIndex.mockResolvedValue({ index: 'goblin' });
+    buildEnemyRecord.mockImplementation((monster, enemyId, providedName) => ({ enemyId, name: 'Goblin', providedName }));
+    const findOneAndUpdate = jest.fn().mockResolvedValue({ value: { campaignName: 'Test' } });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate,
+      }),
+    });
+
+    const res = await request(app)
+      .post('/campaigns/Test/enemies')
+      .send({ index: 'goblin' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe('Goblin');
+    expect(typeof res.body.enemyId).toBe('string');
+    expect(getMonsterByIndex).toHaveBeenCalledWith('goblin');
+    expect(buildEnemyRecord).toHaveBeenCalledWith({ index: 'goblin' }, res.body.enemyId, undefined);
+  });
+
+  test('delete enemy success', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    const campaign = {
+      campaignName: 'Test',
+      enemies: [{ enemyId: 'enemy-1', name: 'Goblin' }],
+      combat: {
+        participants: [
+          { characterId: 'enemy-1', initiative: 14 },
+          { characterId: 'char-1', initiative: 12 },
+        ],
+        activeTurn: 0,
+      },
+    };
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => campaign,
+        updateOne,
+      }),
+    });
+
+    const res = await request(app).delete('/campaigns/Test/enemies/enemy-1');
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledWith(
+      { campaignName: 'Test' },
+      {
+        $set: {
+          enemies: [],
+          combat: { participants: [{ characterId: 'char-1', initiative: 12 }], activeTurn: 0 },
+        },
+      }
+    );
+    expect(emitCombatUpdate).toHaveBeenCalledWith('Test', {
+      participants: [{ characterId: 'char-1', initiative: 12 }],
+      activeTurn: 0,
+    });
+    expect(res.body.success).toBe(true);
+  });
+
 });

@@ -66,6 +66,8 @@ const STAT_LABELS = STATS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
+const STAT_KEYS_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
 const SKILL_LOOKUP = SKILLS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
   acc[key.toLowerCase()] = key;
@@ -205,6 +207,18 @@ export default function ZombiesDM() {
     const navigate = useNavigate();
     const params = useParams();
     const [records, setRecords] = useState([]);
+    const [enemies, setEnemies] = useState([]);
+    const [monsterCatalog, setMonsterCatalog] = useState([]);
+    const [monsterCatalogLoading, setMonsterCatalogLoading] = useState(false);
+    const [monsterCatalogLoaded, setMonsterCatalogLoaded] = useState(false);
+    const [monsterCatalogError, setMonsterCatalogError] = useState(null);
+    const [monsterSearch, setMonsterSearch] = useState('');
+    const [selectedMonsterIndex, setSelectedMonsterIndex] = useState('');
+    const [selectedMonster, setSelectedMonster] = useState(null);
+    const [monsterDetailLoading, setMonsterDetailLoading] = useState(false);
+    const [addingEnemy, setAddingEnemy] = useState(false);
+    const [customEnemyName, setCustomEnemyName] = useState('');
+    const [removingEnemyId, setRemovingEnemyId] = useState(null);
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const socketRef = useRef(null);
@@ -218,25 +232,39 @@ export default function ZombiesDM() {
     const fetchRecords = useCallback(async () => {
       if (!campaignId || !encodedCampaign) {
         setRecords([]);
+        setEnemies([]);
         setCombatState(createEmptyCombatState());
         return;
       }
 
       try {
-        const [charactersResponse, combatResponse] = await Promise.all([
+        const [charactersResponse, combatResponse, enemiesResponse] = await Promise.all([
           apiFetch(`/campaigns/${encodedCampaign}/characters`),
           apiFetch(`/campaigns/${encodedCampaign}/combat`),
+          apiFetch(`/campaigns/${encodedCampaign}/enemies`),
         ]);
 
         if (!charactersResponse.ok) {
           const message = `An error occurred: ${charactersResponse.statusText}`;
           setStatus({ type: 'danger', message });
           setRecords([]);
+          setEnemies([]);
           return;
         }
 
         const characters = await charactersResponse.json();
         setRecords(characters);
+
+        if (enemiesResponse.ok) {
+          const enemiesData = await enemiesResponse.json();
+          setEnemies(Array.isArray(enemiesData) ? enemiesData : []);
+        } else if (enemiesResponse.status === 404) {
+          setEnemies([]);
+        } else {
+          setEnemies([]);
+          const message = `An error occurred: ${enemiesResponse.statusText}`;
+          setStatus({ type: 'danger', message });
+        }
 
         if (combatResponse.ok) {
           const combatJson = await combatResponse.json();
@@ -251,9 +279,169 @@ export default function ZombiesDM() {
       } catch (error) {
         console.error(error);
         setStatus({ type: 'danger', message: error.message || 'Failed to fetch records.' });
+        setEnemies([]);
         setCombatState(createEmptyCombatState());
       }
     }, [campaignId, encodedCampaign]);
+
+    const fetchMonsterCatalog = useCallback(async () => {
+      if (monsterCatalogLoading) {
+        return;
+      }
+
+      setMonsterCatalogLoading(true);
+      try {
+        setMonsterCatalogError(null);
+        const response = await apiFetch('/monsters');
+        if (!response.ok) {
+          throw new Error(response.statusText || 'Failed to load monsters.');
+        }
+        const data = await response.json();
+        const catalog = Array.isArray(data)
+          ? data
+              .slice()
+              .sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
+          : [];
+        setMonsterCatalog(catalog);
+      } catch (error) {
+        console.error(error);
+        setMonsterCatalog([]);
+        setMonsterCatalogError(error.message || 'Failed to load monsters.');
+        setStatus({ type: 'danger', message: error.message || 'Failed to load monsters.' });
+      } finally {
+        setMonsterCatalogLoaded(true);
+        setMonsterCatalogLoading(false);
+      }
+    }, [monsterCatalogLoading]);
+
+    const updateSelectedMonster = useCallback(
+      async (index) => {
+        const normalizedIndex = typeof index === 'string' ? index.trim() : '';
+        setSelectedMonsterIndex(normalizedIndex);
+        if (!normalizedIndex) {
+          setSelectedMonster(null);
+          return;
+        }
+
+        setMonsterDetailLoading(true);
+        try {
+          const response = await apiFetch(`/monsters/${normalizedIndex}`);
+          if (!response.ok) {
+            throw new Error(response.statusText || 'Failed to load monster.');
+          }
+          const detail = await response.json();
+          setSelectedMonster(detail);
+        } catch (error) {
+          console.error(error);
+          setSelectedMonster(null);
+          setStatus({ type: 'danger', message: error.message || 'Failed to load monster.' });
+        } finally {
+          setMonsterDetailLoading(false);
+        }
+      },
+      [setStatus]
+    );
+
+    const handleMonsterSelectChange = useCallback(
+      (event) => {
+        const { value } = event.target;
+        setCustomEnemyName('');
+        updateSelectedMonster(value);
+      },
+      [updateSelectedMonster]
+    );
+
+    const handleAddEnemy = useCallback(
+      async (event) => {
+        event.preventDefault();
+        if (!selectedMonsterIndex || !encodedCampaign) {
+          return;
+        }
+
+        setAddingEnemy(true);
+        try {
+          const payload = { index: selectedMonsterIndex };
+          const trimmedName = customEnemyName.trim();
+          if (trimmedName) {
+            payload.name = trimmedName;
+          }
+
+          const response = await apiFetch(`/campaigns/${encodedCampaign}/enemies`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            let message = response.statusText || 'Failed to add enemy.';
+            try {
+              const errorData = await response.json();
+              message = errorData?.message || message;
+            } catch (jsonError) {
+              // Ignore JSON parsing errors
+            }
+            throw new Error(message);
+          }
+
+          const addedEnemy = await response.json();
+          setStatus({ type: 'success', message: `${addedEnemy?.name || 'Enemy'} added to campaign.` });
+          setCustomEnemyName('');
+          await fetchRecords();
+        } catch (error) {
+          console.error(error);
+          setStatus({ type: 'danger', message: error.message || 'Failed to add enemy.' });
+        } finally {
+          setAddingEnemy(false);
+        }
+      },
+      [selectedMonsterIndex, encodedCampaign, customEnemyName, fetchRecords]
+    );
+
+    const handleRemoveEnemy = useCallback(
+      async (enemyId) => {
+        if (!enemyId || !encodedCampaign) {
+          return;
+        }
+
+        setRemovingEnemyId(enemyId);
+        try {
+          const response = await apiFetch(`/campaigns/${encodedCampaign}/enemies/${enemyId}`, {
+            method: 'DELETE',
+          });
+
+          if (!response.ok) {
+            let message = response.statusText || 'Failed to remove enemy.';
+            try {
+              const errorData = await response.json();
+              message = errorData?.message || message;
+            } catch (jsonError) {
+              // Ignore JSON parsing errors
+            }
+            throw new Error(message);
+          }
+
+          await fetchRecords();
+          setStatus({ type: 'success', message: 'Enemy removed.' });
+        } catch (error) {
+          console.error(error);
+          setStatus({ type: 'danger', message: error.message || 'Failed to remove enemy.' });
+        } finally {
+          setRemovingEnemyId(null);
+        }
+      },
+      [encodedCampaign, fetchRecords]
+    );
+
+    const filteredMonsterCatalog = useMemo(() => {
+      if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
+        return [];
+      }
+      const query = monsterSearch.trim().toLowerCase();
+      if (!query) {
+        return monsterCatalog;
+      }
+      return monsterCatalog.filter((monster) => monster?.name?.toLowerCase().includes(query));
+    }, [monsterCatalog, monsterSearch]);
 
     useEffect(() => {
       fetchRecords();
@@ -394,26 +582,84 @@ export default function ZombiesDM() {
       [campaignId, encodedCampaign, fetchRecords]
     );
 
+    const getEntityId = useCallback((entity) => {
+      if (!entity || typeof entity !== 'object') {
+        return null;
+      }
+      if (entity.entityType === 'enemy' && typeof entity.enemyId === 'string') {
+        return entity.enemyId;
+      }
+      if (typeof entity._id === 'string' && entity._id) {
+        return entity._id;
+      }
+      if (typeof entity.characterId === 'string' && entity.characterId) {
+        return entity.characterId;
+      }
+      if (typeof entity.token === 'string' && entity.token) {
+        return entity.token;
+      }
+      return null;
+    }, []);
+
+    const normalizedEnemies = useMemo(() => {
+      if (!Array.isArray(enemies)) {
+        return [];
+      }
+
+      return enemies.map((enemy) => {
+        const typeLabel = [enemy?.size, enemy?.type].filter(Boolean).join(' ');
+        return {
+          ...enemy,
+          entityType: 'enemy',
+          _id: enemy.enemyId,
+          characterName: enemy.name,
+          token: typeLabel || 'Enemy',
+          displayType: typeLabel,
+        };
+      });
+    }, [enemies]);
+
+    const combinedRecords = useMemo(() => {
+      const characterRecords = Array.isArray(records)
+        ? records.map((character) => ({ ...character, entityType: 'character' }))
+        : [];
+      return [...characterRecords, ...normalizedEnemies];
+    }, [records, normalizedEnemies]);
+
+    const calculateEntityInitiative = useCallback(
+      (entity) => {
+        if (!entity || typeof entity !== 'object') {
+          return 0;
+        }
+
+        if (entity.entityType === 'enemy') {
+          const dexScore =
+            Number(entity?.abilityScores?.dex) ||
+            Number(entity?.dexterity) ||
+            0;
+          const modifier = Math.floor((dexScore - 10) / 2);
+          return Number.isFinite(modifier) ? modifier : 0;
+        }
+
+        return calculateCharacterInitiative(entity);
+      },
+      [calculateCharacterInitiative]
+    );
+
     const characterInitiativeMap = useMemo(() => {
       const map = new Map();
-      if (Array.isArray(records)) {
-        records.forEach((character) => {
-          if (!character) {
-            return;
-          }
-          const id =
-            (typeof character._id === 'string' && character._id) ||
-            (typeof character.characterId === 'string' && character.characterId) ||
-            (typeof character.token === 'string' && character.token);
+      if (Array.isArray(combinedRecords)) {
+        combinedRecords.forEach((entity) => {
+          const id = getEntityId(entity);
           if (!id) {
             return;
           }
-          const initiative = calculateCharacterInitiative(character);
+          const initiative = calculateEntityInitiative(entity);
           map.set(id, initiative);
         });
       }
       return map;
-    }, [records]);
+    }, [combinedRecords, calculateEntityInitiative, getEntityId]);
 
     useEffect(() => {
       if (!characterInitiativeMap.size) {
@@ -639,26 +885,28 @@ export default function ZombiesDM() {
 
     const characterLookup = useMemo(() => {
       const map = new Map();
-      if (Array.isArray(records)) {
-        records.forEach((character) => {
-          if (character && typeof character._id === 'string') {
-            map.set(character._id, character);
+      if (Array.isArray(combinedRecords)) {
+        combinedRecords.forEach((entity) => {
+          const id = getEntityId(entity);
+          if (!id) {
+            return;
           }
+          map.set(id, entity);
         });
       }
       return map;
-    }, [records]);
+    }, [combinedRecords, getEntityId]);
 
     const orderedCombatRecords = useMemo(() => {
-      if (!Array.isArray(records) || records.length === 0) {
+      if (!Array.isArray(combinedRecords) || combinedRecords.length === 0) {
         return [];
       }
 
-      return records
-        .map((character, recordIndex) => {
-          if (!character || typeof character !== 'object') {
+      return combinedRecords
+        .map((entity, recordIndex) => {
+          if (!entity || typeof entity !== 'object') {
             return {
-              character,
+              character: entity,
               rowId: '',
               participantInfo: undefined,
               initiativeValue: undefined,
@@ -667,12 +915,7 @@ export default function ZombiesDM() {
             };
           }
 
-          const rowId =
-            (typeof character._id === 'string' && character._id) ||
-            (typeof character.characterId === 'string' && character.characterId) ||
-            (typeof character.token === 'string' && character.token) ||
-            '';
-
+          const rowId = getEntityId(entity) || '';
           const participantInfo = rowId ? participantLookup.get(rowId) : undefined;
           const derivedInitiative = rowId ? characterInitiativeMap.get(rowId) : undefined;
 
@@ -689,7 +932,7 @@ export default function ZombiesDM() {
                 : Number.NEGATIVE_INFINITY;
 
           return {
-            character,
+            character: entity,
             rowId,
             participantInfo,
             initiativeValue,
@@ -718,7 +961,64 @@ export default function ZombiesDM() {
 
           return a.recordIndex - b.recordIndex;
         });
-    }, [records, participantLookup, characterInitiativeMap]);
+    }, [combinedRecords, participantLookup, characterInitiativeMap, getEntityId]);
+
+    const formatArmorClass = useCallback((armorClass) => {
+      if (!Array.isArray(armorClass) || armorClass.length === 0) {
+        return '—';
+      }
+
+      const parts = armorClass
+        .map((entry) => {
+          if (!entry || (entry.value === undefined && entry.value !== 0)) {
+            return null;
+          }
+          const numeric = Number(entry.value);
+          if (!Number.isFinite(numeric)) {
+            return null;
+          }
+          const suffix = entry.type ? ` (${entry.type})` : '';
+          return `${numeric}${suffix}`;
+        })
+        .filter(Boolean);
+
+      return parts.length > 0 ? parts.join(', ') : '—';
+    }, []);
+
+    const formatSpeed = useCallback((speed) => {
+      if (!speed) {
+        return '—';
+      }
+
+      if (typeof speed === 'string') {
+        return speed;
+      }
+
+      if (typeof speed === 'object') {
+        const entries = Object.entries(speed)
+          .map(([mode, value]) => {
+            if (value === undefined || value === null || value === '') {
+              return null;
+            }
+            return `${mode}: ${value}`;
+          })
+          .filter(Boolean);
+        return entries.length > 0 ? entries.join(', ') : '—';
+      }
+
+      return '—';
+    }, []);
+
+    const formatAbilityScore = useCallback((key, value) => {
+      const label = STAT_LABELS[key] || key.toUpperCase();
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return `${label}: —`;
+      }
+      const modifier = Math.floor((numeric - 10) / 2);
+      const modifierText = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+      return `${label}: ${numeric} (${modifierText})`;
+    }, []);
 
     const activeParticipant = useMemo(() => {
       if (!Array.isArray(combatState.participants)) {
@@ -747,6 +1047,7 @@ export default function ZombiesDM() {
       if (character) {
         return (
           character.characterName ||
+          character.name ||
           character.token ||
           activeParticipant.characterId
         );
@@ -767,12 +1068,13 @@ export default function ZombiesDM() {
       () => [
         { key: 'characters', title: 'Characters' },
         { key: 'players', title: 'Players' },
+        { key: 'enemies', title: 'Enemies' },
         { key: 'weapons', title: 'Weapons' },
         { key: 'armor', title: 'Armor' },
         { key: 'items', title: 'Items' },
         { key: 'accessories', title: 'Accessories' },
       ],
-      []
+      [calculateCharacterInitiative]
     );
     const [activeResourceTab, setActiveResourceTab] = useState('characters');
 
@@ -785,6 +1087,16 @@ export default function ZombiesDM() {
       },
       [activeResourceTab]
     );
+
+    useEffect(() => {
+      if (
+        activeResourceTab === 'enemies' &&
+        !monsterCatalogLoaded &&
+        !monsterCatalogLoading
+      ) {
+        fetchMonsterCatalog();
+      }
+    }, [activeResourceTab, monsterCatalogLoaded, monsterCatalogLoading, fetchMonsterCatalog]);
     //--------------------------------------------Currency Adjustments------------------------------
     const [currencyModalState, setCurrencyModalState] = useState({ show: false, character: null });
     const [currencyInputs, setCurrencyInputs] = useState({ cp: '0', sp: '0', gp: '0', pp: '0' });
@@ -1950,9 +2262,11 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 isParticipant &&
                                 Number.isInteger(combatState.activeTurn) &&
                                 participantInfo.index === combatState.activeTurn;
+                              const displayName = character?.characterName || character?.name || '—';
                               const playerName = character?.token || '—';
                               const checkboxLabel =
                                 character?.characterName ||
+                                character?.name ||
                                 character?.token ||
                                 participantInfo?.characterId ||
                                 'this character';
@@ -1962,7 +2276,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   key={resolvedRowId || playerName}
                                   className={isActive ? 'table-success text-dark' : undefined}
                                 >
-                                  <td className="fw-semibold">{character?.characterName || '—'}</td>
+                                  <td className="fw-semibold">{displayName}</td>
                                   <td>{playerName}</td>
                                   <td className="text-center">
                                     <Form.Check
@@ -2225,6 +2539,293 @@ const resolveIcon = (category, iconMap, fallback) => {
                     </Card.Body>
                   </Card>
                 )}
+              />
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="enemies">
+      {activeResourceTab === 'enemies' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-enemies-card">
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <CloseButton
+                    className="ms-auto"
+                    variant="white"
+                    onClick={() => handleCloseResourceTab('enemies')}
+                    aria-label="Close enemies tab"
+                  />
+                </div>
+              </div>
+            </Card.Header>
+            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+              <Container className="mt-3">
+                <Form onSubmit={handleAddEnemy}>
+                  <Row className="g-3 align-items-end">
+                    <Col md={6}>
+                      <Form.Group className="mb-3 mb-md-0">
+                        <Form.Label className="text-light">Search Monsters</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={monsterSearch}
+                          onChange={(e) => setMonsterSearch(e.target.value)}
+                          placeholder="Search by name"
+                          disabled={monsterCatalogLoading && !monsterCatalogLoaded}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="text-light">Select Monster</Form.Label>
+                        <Form.Select
+                          value={selectedMonsterIndex}
+                          onChange={handleMonsterSelectChange}
+                          disabled={monsterCatalogLoading && !monsterCatalogLoaded}
+                        >
+                          <option value="" disabled>
+                            {monsterCatalogLoading && !monsterCatalogLoaded
+                              ? 'Loading monsters...'
+                              : 'Select Monster'}
+                          </option>
+                          {filteredMonsterCatalog.length > 0 ? (
+                            filteredMonsterCatalog.map((monster) => (
+                              <option key={monster.index} value={monster.index}>
+                                {monster.name}
+                              </option>
+                            ))
+                          ) : (
+                            monsterCatalogLoaded && (
+                              <option value="" disabled>
+                                No monsters match your search
+                              </option>
+                            )
+                          )}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  <Row className="g-3 align-items-end mt-0">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="text-light">Custom Name (optional)</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={customEnemyName}
+                          onChange={(e) => setCustomEnemyName(e.target.value)}
+                          placeholder="Override monster name"
+                          disabled={!selectedMonsterIndex}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6} className="d-flex justify-content-center justify-content-md-end">
+                      <Button
+                        type="submit"
+                        variant="outline-light"
+                        className="rounded-pill mt-3 mt-md-0"
+                        disabled={!selectedMonsterIndex || addingEnemy}
+                      >
+                        {addingEnemy && (
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            aria-hidden="true"
+                            className="me-2"
+                          />
+                        )}
+                        Add Enemy
+                      </Button>
+                    </Col>
+                  </Row>
+                </Form>
+                {monsterCatalogError && (
+                  <div className="text-warning small mt-3">
+                    {monsterCatalogError}{' '}
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      onClick={() => fetchMonsterCatalog()}
+                      disabled={monsterCatalogLoading}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+                <div className="mt-3">
+                  {monsterDetailLoading ? (
+                    <div className="text-light text-center">
+                      <Spinner animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                      Loading monster details...
+                    </div>
+                  ) : selectedMonster ? (
+                    <Card className="bg-dark bg-opacity-75 border border-secondary text-start text-light mt-3">
+                      <Card.Body>
+                        <Card.Title className="h5 mb-1">{selectedMonster.name}</Card.Title>
+                        <Card.Subtitle className="text-muted small mb-3">
+                          {[selectedMonster.size, selectedMonster.type].filter(Boolean).join(' ') || '—'}
+                          {selectedMonster.challengeRating !== null && selectedMonster.challengeRating !== undefined
+                            ? ` • CR ${selectedMonster.challengeRating}`
+                            : ''}
+                        </Card.Subtitle>
+                        <div className="d-grid gap-1">
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              AC:
+                            </span>
+                            <span aria-hidden="true">{formatArmorClass(selectedMonster.armorClass)}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              HP:
+                            </span>
+                            <span aria-hidden="true">{selectedMonster.hitPoints ?? '—'}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Hit Dice:
+                            </span>
+                            <span aria-hidden="true">{selectedMonster.hitDice || '—'}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Speed:
+                            </span>
+                            <span aria-hidden="true">{formatSpeed(selectedMonster.speed)}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Alignment:
+                            </span>
+                            <span aria-hidden="true">{selectedMonster.alignment || '—'}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Languages:
+                            </span>
+                            <span aria-hidden="true">
+                              {Array.isArray(selectedMonster.languages)
+                                ? selectedMonster.languages.join(', ')
+                                : selectedMonster.languages || '—'}
+                            </span>
+                          </Card.Text>
+                        </div>
+                        <div className="mt-3">
+                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Abilities</h6>
+                          <div className="d-flex flex-wrap gap-2">
+                            {STAT_KEYS_ORDER.map((key) => (
+                              <span key={`preview-${key}`} className="badge bg-secondary">
+                                {formatAbilityScore(key, selectedMonster?.abilityScores?.[key])}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  ) : null}
+                </div>
+              </Container>
+              <ResourceGrid
+                dataTestId="enemies-resource-grid"
+                items={Array.isArray(normalizedEnemies) ? normalizedEnemies : []}
+                emptyMessage="No enemies added yet."
+                getKey={(enemy) => enemy.enemyId}
+                renderItem={(enemy) => {
+                  const participantInfo = enemy.enemyId ? participantLookup.get(enemy.enemyId) : undefined;
+                  const inCombat = Boolean(participantInfo);
+                  const challengeText =
+                    enemy.challengeRating !== null && enemy.challengeRating !== undefined
+                      ? `CR ${enemy.challengeRating}`
+                      : null;
+                  const languagesDisplay = Array.isArray(enemy.languages)
+                    ? enemy.languages.join(', ')
+                    : enemy.languages || '—';
+
+                  return (
+                    <Card className="resource-card h-100 w-100 text-start">
+                      <Card.Body className="d-flex flex-column">
+                        <Card.Title className="mb-1">{enemy.name || 'Unnamed Enemy'}</Card.Title>
+                        <Card.Subtitle className="text-muted small mb-2">
+                          {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
+                        </Card.Subtitle>
+                        <div className="d-grid gap-1">
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              AC:
+                            </span>
+                            <span aria-hidden="true">{formatArmorClass(enemy.armorClass)}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              HP:
+                            </span>
+                            <span aria-hidden="true">{enemy.hitPoints ?? '—'}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Speed:
+                            </span>
+                            <span aria-hidden="true">{formatSpeed(enemy.speed)}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Alignment:
+                            </span>
+                            <span aria-hidden="true">{enemy.alignment || '—'}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Languages:
+                            </span>
+                            <span aria-hidden="true">{languagesDisplay}</span>
+                          </Card.Text>
+                        </div>
+                        <div className="mt-2">
+                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Abilities</h6>
+                          <div className="d-flex flex-wrap gap-2">
+                            {STAT_KEYS_ORDER.map((key) => (
+                              <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
+                                {formatAbilityScore(key, enemy?.abilityScores?.[key])}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </Card.Body>
+                      <Card.Footer className="d-flex flex-wrap gap-2 justify-content-end">
+                        <Button
+                          variant={inCombat ? 'success' : 'outline-light'}
+                          size="sm"
+                          onClick={() => handleToggleParticipant(enemy.enemyId)}
+                        >
+                          {inCombat ? 'Remove from Combat' : 'Add to Combat'}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleRemoveEnemy(enemy.enemyId)}
+                          disabled={removingEnemyId === enemy.enemyId}
+                        >
+                          {removingEnemyId === enemy.enemyId ? (
+                            <>
+                              <Spinner
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                                className="me-2"
+                              />
+                              Removing
+                            </>
+                          ) : (
+                            'Remove'
+                          )}
+                        </Button>
+                      </Card.Footer>
+                    </Card>
+                  );
+                }}
               />
             </Card.Body>
           </Card>
