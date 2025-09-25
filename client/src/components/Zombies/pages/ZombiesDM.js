@@ -2458,7 +2458,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </div>
               </div>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
               <Card className="mb-4 bg-dark bg-opacity-75 border border-secondary text-start">
                 <Card.Header className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 bg-transparent border-secondary text-light">
                   <h3 className="h5 mb-0">Combat Tracker</h3>
@@ -2737,7 +2740,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </div>
               </div>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
               <Container className="mt-3">
                 <Row className="justify-content-center">
                   <Col md={8} lg={6}>
@@ -2817,7 +2823,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </div>
               </div>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
               <Container className="mt-3">
                 <Form onSubmit={handleAddEnemy}>
                   <Row className="g-3 align-items-end">
