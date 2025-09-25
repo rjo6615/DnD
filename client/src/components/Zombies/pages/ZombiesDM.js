@@ -205,10 +205,14 @@ function ResourceGrid({
     return <div className="text-center text-muted py-3">{emptyMessage}</div>;
   }
 
+  const hasRowColsOverride =
+    typeof rowClassName === 'string' && /\brow-cols[\w-]*/.test(rowClassName);
+
   const rowClasses = [
     'resource-grid',
-    'row-cols-2',
-    'row-cols-lg-3',
+    !hasRowColsOverride && 'row-cols-1',
+    !hasRowColsOverride && 'row-cols-sm-2',
+    !hasRowColsOverride && 'row-cols-xl-3',
     'g-3',
     rowClassName,
   ]
