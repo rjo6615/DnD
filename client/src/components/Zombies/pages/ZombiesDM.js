@@ -3134,7 +3134,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           </div>
                         </div>
                       </Card.Body>
-                      <Card.Footer className="d-flex flex-wrap gap-2 justify-content-end">
+                      <Card.Footer className="resource-card-footer-safe-area d-flex flex-wrap gap-2 justify-content-end">
                         <Button
                           variant={inCombat ? 'success' : 'outline-primary'}
                           size="sm"

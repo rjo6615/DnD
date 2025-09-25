@@ -18,6 +18,10 @@
   );
 }
 
+.resource-card-footer-safe-area {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0) + var(--bs-card-spacer-y, 0.75rem));
+}
+
 @media (min-width: 768px) {
   .zombies-dm-container {
     padding-left: 1.5rem;
