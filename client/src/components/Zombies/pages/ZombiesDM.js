@@ -13,7 +13,6 @@ import {
   Nav,
   Tab,
   CloseButton,
-  InputGroup,
 } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
@@ -3079,10 +3078,11 @@ const resolveIcon = (category, iconMap, fallback) => {
                               <span>Current:</span>
                               <span>{healthSummary}</span>
                             </div>
-                            <InputGroup size="sm">
+                            <div className="health-adjustment-group d-flex flex-column flex-sm-row gap-2 gap-sm-0 w-100">
                               <Button
                                 variant="outline-danger"
                                 size="sm"
+                                className="health-adjustment-button"
                                 onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
                                 disabled={isSavingHealth}
                               >
@@ -3098,16 +3098,19 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 min="0"
                                 aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
                                 disabled={isSavingHealth}
+                                size="sm"
+                                className="health-adjustment-input flex-sm-grow-1"
                               />
                               <Button
                                 variant="outline-success"
                                 size="sm"
+                                className="health-adjustment-button"
                                 onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
                                 disabled={isSavingHealth}
                               >
                                 Heal
                               </Button>
-                            </InputGroup>
+                            </div>
                             <div className="d-flex justify-content-end">
                               <Button
                                 variant="outline-light"
