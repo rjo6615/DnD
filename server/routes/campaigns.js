@@ -33,6 +33,15 @@ module.exports = (router) => {
     return Number.isInteger(parsed) ? parsed : null;
   };
 
+  const toFiniteNumberOrNull = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const createEnemyLookup = (enemies) => {
     const map = new Map();
 
@@ -55,9 +64,23 @@ module.exports = (router) => {
           ? enemy.name.trim()
           : null;
 
-      if (rawName) {
-        map.set(trimmedId, rawName);
-      }
+      const maxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+      const currentHpCandidate =
+        enemy.currentHp !== undefined
+          ? toFiniteNumberOrNull(enemy.currentHp)
+          : null;
+      const currentHp =
+        currentHpCandidate !== null
+          ? currentHpCandidate
+          : maxHp !== null
+            ? maxHp
+            : null;
+
+      map.set(trimmedId, {
+        ...(rawName ? { displayName: rawName } : {}),
+        ...(currentHp !== null ? { currentHp } : {}),
+        ...(maxHp !== null ? { maxHp } : {}),
+      });
     });
 
     return map;
@@ -90,12 +113,40 @@ module.exports = (router) => {
             ? participant.displayName.trim()
             : null;
 
-        const displayName = rawDisplayName || enemyLookup.get(trimmedId) || null;
+        const lookupEntry = enemyLookup.get(trimmedId);
+        let displayName = rawDisplayName || null;
+        let currentHp = null;
+        let maxHp = null;
+
+        if (lookupEntry) {
+          if (typeof lookupEntry === 'string') {
+            displayName = displayName || lookupEntry;
+          } else if (typeof lookupEntry === 'object') {
+            if (!displayName && typeof lookupEntry.displayName === 'string') {
+              const trimmedDisplay = lookupEntry.displayName.trim();
+              if (trimmedDisplay) {
+                displayName = trimmedDisplay;
+              }
+            }
+
+            const normalizedCurrent = toFiniteNumberOrNull(lookupEntry.currentHp);
+            if (normalizedCurrent !== null) {
+              currentHp = normalizedCurrent;
+            }
+
+            const normalizedMax = toFiniteNumberOrNull(lookupEntry.maxHp);
+            if (normalizedMax !== null) {
+              maxHp = normalizedMax;
+            }
+          }
+        }
 
         return {
           characterId: trimmedId,
           initiative,
           ...(displayName ? { displayName } : {}),
+          ...(currentHp !== null ? { currentHp } : {}),
+          ...(maxHp !== null ? { maxHp } : {}),
         };
       })
       .filter(Boolean);
@@ -357,6 +408,107 @@ module.exports = (router) => {
           emitCombatUpdate(campaignName, combatState);
 
           res.json({ success: true, enemies: updatedEnemies, combat: combatState });
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/enemies/:enemyId/health')
+    .put(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        param('enemyId').trim().notEmpty().withMessage('enemyId is required'),
+        body('currentHp')
+          .optional({ nullable: true })
+          .custom((value) => {
+            if (value === null || value === undefined || value === '') {
+              return true;
+            }
+
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) {
+              throw new Error('currentHp must be a number');
+            }
+
+            return true;
+          }),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const { enemyId } = req.params;
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const existingEnemies = Array.isArray(campaign.enemies) ? campaign.enemies : [];
+          const enemyIndex = existingEnemies.findIndex(
+            (enemy) => enemy?.enemyId === enemyId
+          );
+
+          if (enemyIndex === -1) {
+            return res.status(404).json({ message: 'Enemy not found' });
+          }
+
+          const enemyRecord = existingEnemies[enemyIndex];
+          const maxHp = toFiniteNumberOrNull(enemyRecord.maxHp ?? enemyRecord.hitPoints);
+          let nextCurrentHp = null;
+
+          if (!(req.body.currentHp === null || req.body.currentHp === undefined || req.body.currentHp === '')) {
+            nextCurrentHp = toFiniteNumberOrNull(req.body.currentHp);
+            if (nextCurrentHp === null) {
+              return res.status(400).json({ message: 'currentHp must be a finite number' });
+            }
+
+            if (nextCurrentHp < 0) {
+              nextCurrentHp = 0;
+            }
+
+            if (maxHp !== null && nextCurrentHp > maxHp) {
+              nextCurrentHp = maxHp;
+            }
+          }
+
+          const updatedEnemy = {
+            ...enemyRecord,
+            ...(nextCurrentHp === null ? { currentHp: undefined } : { currentHp: nextCurrentHp }),
+          };
+
+          if (nextCurrentHp === null) {
+            delete updatedEnemy.currentHp;
+          }
+
+          const updatedEnemies = existingEnemies.slice();
+          updatedEnemies[enemyIndex] = updatedEnemy;
+
+          const enemyLookup = createEnemyLookup(updatedEnemies);
+          const participants = sanitizeParticipants(
+            campaign.combat?.participants,
+            enemyLookup
+          );
+
+          let activeTurn = parseTurnIndex(campaign.combat?.activeTurn);
+          if (activeTurn !== null && activeTurn >= participants.length) {
+            activeTurn = participants.length > 0 ? Math.min(activeTurn, participants.length - 1) : null;
+          }
+
+          const combatState = { participants, activeTurn };
+
+          await collection.updateOne(
+            { campaignName },
+            { $set: { enemies: updatedEnemies, combat: combatState } }
+          );
+
+          emitCombatUpdate(campaignName, combatState);
+
+          res.json({ success: true, enemy: updatedEnemy, combat: combatState });
         } catch (err) {
           next(err);
         }

@@ -372,4 +372,104 @@ describe('Campaign routes', () => {
     expect(res.body.success).toBe(true);
   });
 
+  test('update enemy health success', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    const campaign = {
+      campaignName: 'Test',
+      enemies: [
+        { enemyId: 'enemy-1', name: 'Goblin', hitPoints: 30, currentHp: 30 },
+      ],
+      combat: {
+        participants: [{ characterId: 'enemy-1', initiative: 15 }],
+        activeTurn: 0,
+      },
+    };
+
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => campaign,
+        updateOne,
+      }),
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/enemies/enemy-1/health')
+      .send({ currentHp: 12 });
+
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledWith(
+      { campaignName: 'Test' },
+      {
+        $set: {
+          enemies: [
+            { enemyId: 'enemy-1', name: 'Goblin', hitPoints: 30, currentHp: 12 },
+          ],
+          combat: {
+            participants: [
+              {
+                characterId: 'enemy-1',
+                initiative: 15,
+                displayName: 'Goblin',
+                currentHp: 12,
+                maxHp: 30,
+              },
+            ],
+            activeTurn: 0,
+          },
+        },
+      }
+    );
+    expect(res.body.enemy.currentHp).toBe(12);
+    expect(emitCombatUpdate).toHaveBeenCalledWith('Test', {
+      participants: [
+        {
+          characterId: 'enemy-1',
+          initiative: 15,
+          displayName: 'Goblin',
+          currentHp: 12,
+          maxHp: 30,
+        },
+      ],
+      activeTurn: 0,
+    });
+  });
+
+  test('update enemy health validation failure', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({
+          campaignName: 'Test',
+          enemies: [{ enemyId: 'enemy-1', name: 'Goblin', hitPoints: 10 }],
+          combat: { participants: [], activeTurn: null },
+        }),
+      }),
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/enemies/enemy-1/health')
+      .send({ currentHp: 'invalid' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message || res.body.errors?.[0]?.msg).toBeDefined();
+  });
+
+  test('update enemy health enemy not found', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({
+          campaignName: 'Test',
+          enemies: [{ enemyId: 'enemy-2', name: 'Orc', hitPoints: 15 }],
+          combat: { participants: [], activeTurn: null },
+        }),
+      }),
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/enemies/enemy-1/health')
+      .send({ currentHp: 5 });
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe('Enemy not found');
+  });
+
 });

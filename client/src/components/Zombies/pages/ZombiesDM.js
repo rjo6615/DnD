@@ -13,6 +13,7 @@ import {
   Nav,
   Tab,
   CloseButton,
+  InputGroup,
 } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
@@ -81,6 +82,15 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
 
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const sortParticipantsDescending = (participantsWithMeta) =>
   participantsWithMeta
     .slice()
@@ -116,10 +126,19 @@ const normalizeCombatState = (state) => {
               ? participant.displayName.trim()
               : null;
 
+          const currentHpValue = toFiniteNumberOrNull(
+            participant.currentHp ?? participant.hpCurrent
+          );
+          const maxHpValue = toFiniteNumberOrNull(
+            participant.maxHp ?? participant.hpMax
+          );
+
           return {
             characterId: participant.characterId.trim(),
             initiative: Number.isFinite(initiativeValue) ? initiativeValue : 0,
             ...(displayName ? { displayName } : {}),
+            ...(currentHpValue !== null ? { currentHp: currentHpValue } : {}),
+            ...(maxHpValue !== null ? { maxHp: maxHpValue } : {}),
           };
         })
         .filter(Boolean)
@@ -226,6 +245,8 @@ export default function ZombiesDM() {
     const [addingEnemy, setAddingEnemy] = useState(false);
     const [customEnemyName, setCustomEnemyName] = useState('');
     const [removingEnemyId, setRemovingEnemyId] = useState(null);
+    const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
+    const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const socketRef = useRef(null);
@@ -439,6 +460,141 @@ export default function ZombiesDM() {
       [encodedCampaign, fetchRecords]
     );
 
+    const handleEnemyAdjustmentInputChange = useCallback((enemyId, value) => {
+      if (!enemyId) {
+        return;
+      }
+
+      setEnemyHealthAdjustments((prev) => ({ ...prev, [enemyId]: value }));
+    }, []);
+
+    const updateEnemyHealth = useCallback(
+      async (enemyId, nextHp) => {
+        if (!enemyId || !encodedCampaign) {
+          return;
+        }
+
+        const encodedEnemyId = encodeURIComponent(enemyId);
+        setEnemyHealthSaving((prev) => ({ ...prev, [enemyId]: true }));
+
+        try {
+          const response = await apiFetch(
+            `/campaigns/${encodedCampaign}/enemies/${encodedEnemyId}/health`,
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ currentHp: nextHp }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(response.statusText || 'Failed to update enemy health');
+          }
+
+          const result = await response.json();
+
+          if (result?.enemy) {
+            setEnemies((prev) => {
+              if (!Array.isArray(prev)) {
+                return prev;
+              }
+
+              const index = prev.findIndex((entry) => entry?.enemyId === enemyId);
+              if (index === -1) {
+                return prev;
+              }
+
+              const next = [...prev];
+              next[index] = { ...next[index], ...result.enemy };
+              return next;
+            });
+          }
+
+          if (result?.combat) {
+            setCombatState(normalizeCombatState(result.combat));
+          }
+        } catch (error) {
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error.message || 'Failed to update enemy health.',
+          });
+        } finally {
+          setEnemyHealthSaving((prev) => {
+            const next = { ...prev };
+            delete next[enemyId];
+            return next;
+          });
+        }
+      },
+      [encodedCampaign, normalizeCombatState, setCombatState, setEnemies, setStatus]
+    );
+
+    const handleApplyEnemyHealthAdjustment = useCallback(
+      (enemyId, direction) => {
+        if (!enemyId || !direction) {
+          return;
+        }
+
+        const enemy = enemies.find((entry) => entry?.enemyId === enemyId);
+        if (!enemy) {
+          return;
+        }
+
+        const rawInput = enemyHealthAdjustments[enemyId];
+        const parsedInput = Number(rawInput);
+        const adjustment = Number.isFinite(parsedInput) && parsedInput !== 0
+          ? Math.abs(parsedInput)
+          : 1;
+
+        const maxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+        const currentHpCandidate =
+          enemy.currentHp !== undefined
+            ? toFiniteNumberOrNull(enemy.currentHp)
+            : null;
+        const baseCurrent =
+          currentHpCandidate !== null
+            ? currentHpCandidate
+            : maxHp !== null
+              ? maxHp
+              : 0;
+
+        let nextValue = baseCurrent + direction * adjustment;
+        if (Number.isFinite(nextValue)) {
+          if (nextValue < 0) {
+            nextValue = 0;
+          }
+          if (maxHp !== null && nextValue > maxHp) {
+            nextValue = maxHp;
+          }
+        }
+
+        updateEnemyHealth(enemyId, nextValue);
+      },
+      [enemyHealthAdjustments, enemies, updateEnemyHealth]
+    );
+
+    const handleResetEnemyHealth = useCallback(
+      (enemyId) => {
+        if (!enemyId) {
+          return;
+        }
+
+        const enemy = enemies.find((entry) => entry?.enemyId === enemyId);
+        if (!enemy) {
+          return;
+        }
+
+        const maxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+        if (maxHp === null) {
+          return;
+        }
+
+        updateEnemyHealth(enemyId, maxHp);
+      },
+      [enemies, updateEnemyHealth]
+    );
+
     const filteredMonsterCatalog = useMemo(() => {
       if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
         return [];
@@ -615,6 +771,17 @@ export default function ZombiesDM() {
 
       return enemies.map((enemy) => {
         const typeLabel = [enemy?.size, enemy?.type].filter(Boolean).join(' ');
+        const maxHp = toFiniteNumberOrNull(enemy.hitPoints);
+        const currentHpCandidate =
+          enemy.currentHp !== undefined
+            ? toFiniteNumberOrNull(enemy.currentHp)
+            : null;
+        const currentHp =
+          currentHpCandidate !== null
+            ? currentHpCandidate
+            : maxHp !== null
+              ? maxHp
+              : null;
         return {
           ...enemy,
           entityType: 'enemy',
@@ -622,6 +789,8 @@ export default function ZombiesDM() {
           characterName: enemy.name,
           token: typeLabel || 'Enemy',
           displayType: typeLabel,
+          ...(currentHp !== null ? { currentHp } : {}),
+          ...(maxHp !== null ? { maxHp } : {}),
         };
       });
     }, [enemies]);
@@ -671,6 +840,41 @@ export default function ZombiesDM() {
         }
 
         return null;
+      },
+      [characterLookup]
+    );
+
+    const resolveParticipantHealth = useCallback(
+      (characterId) => {
+        if (typeof characterId !== 'string' || characterId.trim() === '') {
+          return {};
+        }
+
+        const entity = characterLookup.get(characterId);
+        if (!entity || typeof entity !== 'object') {
+          return {};
+        }
+
+        if (entity.entityType !== 'enemy') {
+          return {};
+        }
+
+        const maxHp = toFiniteNumberOrNull(entity.maxHp ?? entity.hitPoints);
+        const currentHpCandidate =
+          entity.currentHp !== undefined
+            ? toFiniteNumberOrNull(entity.currentHp)
+            : null;
+        const currentHp =
+          currentHpCandidate !== null
+            ? currentHpCandidate
+            : maxHp !== null
+              ? maxHp
+              : null;
+
+        return {
+          ...(currentHp !== null ? { currentHp } : {}),
+          ...(maxHp !== null ? { maxHp } : {}),
+        };
       },
       [characterLookup]
     );
@@ -765,6 +969,7 @@ export default function ZombiesDM() {
             characterId,
             initiative,
             ...(displayName ? { displayName } : {}),
+            ...resolveParticipantHealth(characterId),
           };
           nextState = normalizeCombatState({
             participants: [...participants, participant],
@@ -794,7 +999,13 @@ export default function ZombiesDM() {
         setCombatState(nextState);
         persistCombatState(nextState);
       },
-      [combatState, persistCombatState, characterInitiativeMap, resolveDisplayName]
+      [
+        combatState,
+        persistCombatState,
+        characterInitiativeMap,
+        resolveDisplayName,
+        resolveParticipantHealth,
+      ]
     );
 
     const handleSetTurn = useCallback(
@@ -843,9 +1054,8 @@ export default function ZombiesDM() {
           const roll = Math.floor(Math.random() * 20) + 1;
 
           return {
-            characterId: participant.characterId,
+            ...participant,
             initiative: numericBase + roll,
-            ...(participant.displayName ? { displayName: participant.displayName } : {}),
           };
         })
         .filter(Boolean);
@@ -2784,6 +2994,25 @@ const resolveIcon = (category, iconMap, fallback) => {
                   const languagesDisplay = Array.isArray(enemy.languages)
                     ? enemy.languages.join(', ')
                     : enemy.languages || '—';
+                  const maxHpValue = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+                  const currentHpCandidate =
+                    enemy.currentHp !== undefined
+                      ? toFiniteNumberOrNull(enemy.currentHp)
+                      : null;
+                  const resolvedCurrentHp =
+                    currentHpCandidate !== null
+                      ? currentHpCandidate
+                      : maxHpValue !== null
+                        ? maxHpValue
+                        : null;
+                  const healthSummary =
+                    maxHpValue !== null
+                      ? `${resolvedCurrentHp !== null ? resolvedCurrentHp : '—'} / ${maxHpValue}`
+                      : resolvedCurrentHp !== null
+                        ? `${resolvedCurrentHp}`
+                        : '—';
+                  const adjustmentValue = enemyHealthAdjustments[enemy.enemyId] ?? '';
+                  const isSavingHealth = Boolean(enemyHealthSaving[enemy.enemyId]);
 
                   return (
                     <Card className="resource-card h-100 w-100 text-start">
@@ -2801,9 +3030,15 @@ const resolveIcon = (category, iconMap, fallback) => {
                           </Card.Text>
                           <Card.Text className="small mb-1 text-body fw-semibold text-break">
                             <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              HP:
+                              Max HP:
                             </span>
-                            <span aria-hidden="true">{enemy.hitPoints ?? '—'}</span>
+                            <span aria-hidden="true">{maxHpValue !== null ? maxHpValue : '—'}</span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Current HP:
+                            </span>
+                            <span aria-hidden="true">{healthSummary}</span>
                           </Card.Text>
                           <Card.Text className="small mb-1 text-body fw-semibold text-break">
                             <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
@@ -2823,6 +3058,54 @@ const resolveIcon = (category, iconMap, fallback) => {
                             </span>
                             <span aria-hidden="true">{languagesDisplay}</span>
                           </Card.Text>
+                        </div>
+                        <div className="mt-2">
+                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Health</h6>
+                          <div className="d-flex flex-column gap-2">
+                            <div className="d-flex justify-content-between small text-body fw-semibold">
+                              <span>Current:</span>
+                              <span>{healthSummary}</span>
+                            </div>
+                            <InputGroup size="sm">
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
+                                disabled={isSavingHealth}
+                              >
+                                Damage
+                              </Button>
+                              <Form.Control
+                                value={adjustmentValue}
+                                onChange={(e) =>
+                                  handleEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)
+                                }
+                                placeholder="Amount"
+                                type="number"
+                                min="0"
+                                aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
+                                disabled={isSavingHealth}
+                              />
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
+                                disabled={isSavingHealth}
+                              >
+                                Heal
+                              </Button>
+                            </InputGroup>
+                            <div className="d-flex justify-content-end">
+                              <Button
+                                variant="outline-light"
+                                size="sm"
+                                onClick={() => handleResetEnemyHealth(enemy.enemyId)}
+                                disabled={isSavingHealth || maxHpValue === null}
+                              >
+                                Reset to Max
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                         <div className="mt-2">
                           <h6 className="text-uppercase text-muted small fw-semibold mb-1">Abilities</h6>
