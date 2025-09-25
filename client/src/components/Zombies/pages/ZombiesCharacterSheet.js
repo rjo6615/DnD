@@ -60,9 +60,16 @@ const normalizeCombatState = (state) => {
           }
 
           const initiativeValue = Number(participant.initiative);
+          const displayName =
+            typeof participant.displayName === "string" &&
+            participant.displayName.trim() !== ""
+              ? participant.displayName.trim()
+              : null;
+
           return {
             characterId: participant.characterId.trim(),
             initiative: Number.isFinite(initiativeValue) ? initiativeValue : 0,
+            ...(displayName ? { displayName } : {}),
           };
         })
         .filter(Boolean)
@@ -289,7 +296,18 @@ export default function ZombiesCharacterSheet() {
       .sort((a, b) => b.initiative - a.initiative)
       .map((participant) => {
         const char = characterMap[participant.characterId];
-        const name = char?.characterName || participant.characterId;
+        const participantName =
+          (typeof char?.characterName === "string" && char.characterName.trim() !== ""
+            ? char.characterName.trim()
+            : null) ||
+          (typeof char?.name === "string" && char.name.trim() !== ""
+            ? char.name.trim()
+            : null) ||
+          (typeof participant.displayName === "string" &&
+          participant.displayName.trim() !== ""
+            ? participant.displayName.trim()
+            : null);
+        const name = participantName || participant.characterId;
         const { currentHp, maxHp } = calculateCharacterHitPoints(char);
 
         const normalizedCurrentHp = Number.isFinite(currentHp) ? currentHp : null;

@@ -88,6 +88,16 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/campaigns/Camp1/combat':
           return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/armor/options':
@@ -166,6 +176,10 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/campaigns/Camp1/combat':
           return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => armorRecords });
         case '/armor/options':
@@ -561,6 +575,8 @@ describe('ZombiesDM AI generation', () => {
             return Promise.resolve({ ok: true, json: async () => combatState });
           }
           return Promise.resolve({ ok: true, json: async () => combatState });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
         case '/campaigns/dm/dm/Camp1':
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
@@ -602,7 +618,9 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => expect(combatUpdates).toHaveLength(1));
     expect(combatUpdates[0]).toMatchObject({
-      participants: [{ characterId: 'char1', initiative: 3 }],
+      participants: [
+        { characterId: 'char1', initiative: 3, displayName: 'Hero' },
+      ],
       activeTurn: null,
     });
 

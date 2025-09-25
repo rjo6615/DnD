@@ -37,6 +37,9 @@ jest.mock(
         optional() {
           return makeSchema((v) => v === undefined || check(v));
         },
+        nullable() {
+          return makeSchema((v) => v === null || check(v));
+        },
       };
     }
     const z = {
