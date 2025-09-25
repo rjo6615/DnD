@@ -633,6 +633,7 @@ export default function ZombiesDM() {
       return [...characterRecords, ...normalizedEnemies];
     }, [records, normalizedEnemies]);
 
+
     const characterLookup = useMemo(() => {
       const map = new Map();
       if (Array.isArray(combinedRecords)) {
