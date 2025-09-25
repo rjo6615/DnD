@@ -110,9 +110,16 @@ const normalizeCombatState = (state) => {
           }
 
           const initiativeValue = Number(participant.initiative);
+          const displayName =
+            typeof participant.displayName === 'string' &&
+            participant.displayName.trim() !== ''
+              ? participant.displayName.trim()
+              : null;
+
           return {
             characterId: participant.characterId.trim(),
             initiative: Number.isFinite(initiativeValue) ? initiativeValue : 0,
+            ...(displayName ? { displayName } : {}),
           };
         })
         .filter(Boolean)
@@ -626,6 +633,48 @@ export default function ZombiesDM() {
       return [...characterRecords, ...normalizedEnemies];
     }, [records, normalizedEnemies]);
 
+
+    const characterLookup = useMemo(() => {
+      const map = new Map();
+      if (Array.isArray(combinedRecords)) {
+        combinedRecords.forEach((entity) => {
+          const id = getEntityId(entity);
+          if (!id) {
+            return;
+          }
+          map.set(id, entity);
+        });
+      }
+      return map;
+    }, [combinedRecords, getEntityId]);
+
+    const resolveDisplayName = useCallback(
+      (characterId) => {
+        if (typeof characterId !== 'string' || characterId.trim() === '') {
+          return null;
+        }
+
+        const entity = characterLookup.get(characterId);
+        if (!entity || typeof entity !== 'object') {
+          return null;
+        }
+
+        if (
+          typeof entity.characterName === 'string' &&
+          entity.characterName.trim() !== ''
+        ) {
+          return entity.characterName.trim();
+        }
+
+        if (typeof entity.name === 'string' && entity.name.trim() !== '') {
+          return entity.name.trim();
+        }
+
+        return null;
+      },
+      [characterLookup]
+    );
+
     const calculateEntityInitiative = useCallback(
       (entity) => {
         if (!entity || typeof entity !== 'object') {
@@ -711,8 +760,14 @@ export default function ZombiesDM() {
           const derivedInitiative = characterInitiativeMap.get(characterId);
           const initiative =
             derivedInitiative !== undefined ? derivedInitiative : 0;
+          const displayName = resolveDisplayName(characterId);
+          const participant = {
+            characterId,
+            initiative,
+            ...(displayName ? { displayName } : {}),
+          };
           nextState = normalizeCombatState({
-            participants: [...participants, { characterId, initiative }],
+            participants: [...participants, participant],
             activeTurn: combatState.activeTurn,
           });
         } else {
@@ -739,7 +794,7 @@ export default function ZombiesDM() {
         setCombatState(nextState);
         persistCombatState(nextState);
       },
-      [combatState, persistCombatState, characterInitiativeMap]
+      [combatState, persistCombatState, characterInitiativeMap, resolveDisplayName]
     );
 
     const handleSetTurn = useCallback(
@@ -790,6 +845,7 @@ export default function ZombiesDM() {
           return {
             characterId: participant.characterId,
             initiative: numericBase + roll,
+            ...(participant.displayName ? { displayName: participant.displayName } : {}),
           };
         })
         .filter(Boolean);
@@ -882,20 +938,6 @@ export default function ZombiesDM() {
       }
       return map;
     }, [combatState.participants]);
-
-    const characterLookup = useMemo(() => {
-      const map = new Map();
-      if (Array.isArray(combinedRecords)) {
-        combinedRecords.forEach((entity) => {
-          const id = getEntityId(entity);
-          if (!id) {
-            return;
-          }
-          map.set(id, entity);
-        });
-      }
-      return map;
-    }, [combinedRecords, getEntityId]);
 
     const orderedCombatRecords = useMemo(() => {
       if (!Array.isArray(combinedRecords) || combinedRecords.length === 0) {

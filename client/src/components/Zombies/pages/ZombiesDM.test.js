@@ -618,7 +618,9 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => expect(combatUpdates).toHaveLength(1));
     expect(combatUpdates[0]).toMatchObject({
-      participants: [{ characterId: 'char1', initiative: 3 }],
+      participants: [
+        { characterId: 'char1', initiative: 3, displayName: 'Hero' },
+      ],
       activeTurn: null,
     });
 

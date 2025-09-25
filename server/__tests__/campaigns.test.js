@@ -182,6 +182,31 @@ describe('Campaign routes', () => {
     });
   });
 
+  test('get combat state populates enemy display names', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: async () => ({
+          campaignName: 'Test',
+          dm: 'DM',
+          combat: {
+            participants: [{ characterId: 'enemy-1', initiative: 8 }],
+            activeTurn: 0,
+          },
+          enemies: [{ enemyId: 'enemy-1', name: 'Goblin' }],
+        }),
+      }),
+    });
+
+    const res = await request(app).get('/campaigns/Test/combat');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      participants: [
+        { characterId: 'enemy-1', initiative: 8, displayName: 'Goblin' },
+      ],
+      activeTurn: 0,
+    });
+  });
+
   test('get combat state not found', async () => {
     dbo.mockResolvedValue({
       collection: () => ({

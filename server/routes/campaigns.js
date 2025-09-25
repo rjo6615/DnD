@@ -33,7 +33,37 @@ module.exports = (router) => {
     return Number.isInteger(parsed) ? parsed : null;
   };
 
-  const sanitizeParticipants = (participants) => {
+  const createEnemyLookup = (enemies) => {
+    const map = new Map();
+
+    if (!Array.isArray(enemies)) {
+      return map;
+    }
+
+    enemies.forEach((enemy) => {
+      if (
+        !enemy ||
+        typeof enemy.enemyId !== 'string' ||
+        enemy.enemyId.trim() === ''
+      ) {
+        return;
+      }
+
+      const trimmedId = enemy.enemyId.trim();
+      const rawName =
+        typeof enemy.name === 'string' && enemy.name.trim() !== ''
+          ? enemy.name.trim()
+          : null;
+
+      if (rawName) {
+        map.set(trimmedId, rawName);
+      }
+    });
+
+    return map;
+  };
+
+  const sanitizeParticipants = (participants, enemyLookup = new Map()) => {
     if (!Array.isArray(participants)) {
       return [];
     }
@@ -53,9 +83,19 @@ module.exports = (router) => {
           return null;
         }
 
+        const trimmedId = participant.characterId.trim();
+        const rawDisplayName =
+          typeof participant.displayName === 'string' &&
+          participant.displayName.trim() !== ''
+            ? participant.displayName.trim()
+            : null;
+
+        const displayName = rawDisplayName || enemyLookup.get(trimmedId) || null;
+
         return {
-          characterId: participant.characterId.trim(),
+          characterId: trimmedId,
           initiative,
+          ...(displayName ? { displayName } : {}),
         };
       })
       .filter(Boolean);
@@ -66,7 +106,11 @@ module.exports = (router) => {
       return campaign;
     }
 
-    const participants = sanitizeParticipants(campaign.combat?.participants);
+    const enemyLookup = createEnemyLookup(campaign.enemies);
+    const participants = sanitizeParticipants(
+      campaign.combat?.participants,
+      enemyLookup
+    );
     const requestedTurn = parseTurnIndex(campaign.combat?.activeTurn);
     const activeTurn =
       requestedTurn !== null &&
@@ -290,7 +334,11 @@ module.exports = (router) => {
           }
 
           const updatedEnemies = existingEnemies.filter((enemy) => enemy.enemyId !== enemyId);
-          const participants = sanitizeParticipants(campaign.combat?.participants).filter(
+          const enemyLookup = createEnemyLookup(updatedEnemies);
+          const participants = sanitizeParticipants(
+            campaign.combat?.participants,
+            enemyLookup
+          ).filter(
             (participant) => participant.characterId !== enemyId
           );
 
@@ -398,7 +446,11 @@ module.exports = (router) => {
             return res.status(403).json({ message: 'Forbidden' });
           }
 
-          const participants = sanitizeParticipants(req.body.participants);
+          const enemyLookup = createEnemyLookup(campaign.enemies);
+          const participants = sanitizeParticipants(
+            req.body.participants,
+            enemyLookup
+          );
 
           if (participants.length !== req.body.participants.length) {
             return res
