@@ -13,7 +13,9 @@
 }
 
 .resource-tab-safe-area {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0) + var(--bs-card-spacer-y, 1rem));
+  padding-bottom: calc(
+    env(safe-area-inset-bottom, 0) + max(var(--bs-card-spacer-y, 1rem), 2.75rem)
+  );
 }
 
 @media (min-width: 768px) {
