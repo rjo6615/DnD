@@ -2913,48 +2913,48 @@ const resolveIcon = (category, iconMap, fallback) => {
                       Loading monster details...
                     </div>
                   ) : selectedMonster ? (
-                    <Card className="bg-dark bg-opacity-75 border border-secondary text-start text-light mt-3">
+                    <Card className="bg-dark border border-secondary text-start text-light mt-3">
                       <Card.Body>
-                        <Card.Title className="h5 mb-1">{selectedMonster.name}</Card.Title>
-                        <Card.Subtitle className="text-muted small mb-3">
+                        <Card.Title className="h5 mb-1 text-light">{selectedMonster.name}</Card.Title>
+                        <Card.Subtitle className="text-white-50 small mb-3">
                           {[selectedMonster.size, selectedMonster.type].filter(Boolean).join(' ') || '—'}
                           {selectedMonster.challengeRating !== null && selectedMonster.challengeRating !== undefined
                             ? ` • CR ${selectedMonster.challengeRating}`
                             : ''}
                         </Card.Subtitle>
                         <div className="d-grid gap-1">
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               AC:
                             </span>
                             <span aria-hidden="true">{formatArmorClass(selectedMonster.armorClass)}</span>
                           </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               HP:
                             </span>
                             <span aria-hidden="true">{selectedMonster.hitPoints ?? '—'}</span>
                           </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               Hit Dice:
                             </span>
                             <span aria-hidden="true">{selectedMonster.hitDice || '—'}</span>
                           </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               Speed:
                             </span>
                             <span aria-hidden="true">{formatSpeed(selectedMonster.speed)}</span>
                           </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               Alignment:
                             </span>
                             <span aria-hidden="true">{selectedMonster.alignment || '—'}</span>
                           </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               Languages:
                             </span>
                             <span aria-hidden="true">
@@ -3120,7 +3120,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                       </Card.Body>
                       <Card.Footer className="d-flex flex-wrap gap-2 justify-content-end">
                         <Button
-                          variant={inCombat ? 'success' : 'outline-light'}
+                          variant={inCombat ? 'success' : 'outline-primary'}
                           size="sm"
                           onClick={() => handleToggleParticipant(enemy.enemyId)}
                         >
