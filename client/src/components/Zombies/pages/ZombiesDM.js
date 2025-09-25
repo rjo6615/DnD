@@ -3209,7 +3209,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 />
               </div>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
               <div className="text-center">
                 {isCreatingWeapon ? (
                   <Form onSubmit={onSubmit2} className="px-5">
@@ -3444,7 +3447,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 />
               </div>
             </Card.Header>
-            <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ maxHeight: '70vh', overflowY: 'auto' }}
+            >
               <div className="text-center">
                 {isCreatingArmor ? (
                   <Form onSubmit={onSubmit3} className="px-5">
@@ -3712,7 +3718,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 />
               </div>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
               <div className="text-center">
                 {isCreatingAccessory ? (
                   <Form onSubmit={onSubmitAccessory} className="px-5">
@@ -3982,7 +3991,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                 />
               </div>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
               <div className="text-center">
                 {isCreatingItem ? (
                   <Form onSubmit={onSubmit4} className="px-5">
