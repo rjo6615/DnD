@@ -119,6 +119,27 @@
   background-color: #fff;
 }
 
+.health-adjustment-group {
+  width: 100%;
+}
+
+.health-adjustment-group .health-adjustment-input {
+  min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+  .health-adjustment-group .health-adjustment-button,
+  .health-adjustment-group .health-adjustment-input {
+    width: 100%;
+  }
+}
+
+@media (min-width: 576px) {
+  .health-adjustment-group .health-adjustment-input {
+    flex: 1 1 auto;
+  }
+}
+
 .weapon-card .form-check-label {
   font-size: 0.9rem;
   color: var(--bs-body-color);
