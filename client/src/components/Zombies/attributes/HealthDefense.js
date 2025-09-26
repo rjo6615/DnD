@@ -22,6 +22,8 @@ export default function HealthDefense({
   const params = useParams();
   const isLargeScreen =
     typeof window !== 'undefined' && window.innerWidth >= 768;
+  const wrapperGap = isLargeScreen ? '32px' : 'clamp(16px, 4vh, 24px)';
+  const wrapperMarginBottom = isLargeScreen ? '64px' : '0.5rem';
 //-----------------------Health/Defense------------------------------
   const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
   const normalizedEquipment = useMemo(
@@ -182,8 +184,8 @@ return (
     display: "flex",
     flexDirection: "column", // <-- vertical stacking
     alignItems: "center",
-    gap: "32px",
-    marginBottom: isLargeScreen ? "80px" : "1rem",
+    gap: wrapperGap,
+    marginBottom: wrapperMarginBottom,
     padding: "0 16px",
     maxWidth: "100%",
   }}
