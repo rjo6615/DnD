@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiFetch from './utils/apiFetch';
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import Navbar from "./components/Navbar/Navbar";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 // import Footer from "./components/Footer/Footer";
 import Zombies from "./components/Zombies/pages/Zombies";
 import ZombiesCharacterSheet from "./components/Zombies/pages/ZombiesCharacterSheet";
@@ -48,13 +47,9 @@ function App() {
 }
 
 function AppRoutes({ user }) {
-  const location = useLocation();
-  const hideNavbarRoutes = []; // Add routes here to hide the navbar when needed
-
   return (
     <>
       <Notifications />
-      {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
       <Routes>
         <Route path="/" element={<Zombies />} />
         <Route path="/spells" element={<SpellList />} />

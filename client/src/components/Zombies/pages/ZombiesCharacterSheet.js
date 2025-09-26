@@ -896,9 +896,7 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
-    if (nav) {
-      setNavHeight(nav.offsetHeight);
-    }
+    setNavHeight(nav ? nav.offsetHeight : 0);
   }, []);
 
   useEffect(() => {
