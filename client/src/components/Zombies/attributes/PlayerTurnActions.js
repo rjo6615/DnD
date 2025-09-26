@@ -134,13 +134,51 @@ const PlayerTurnActions = React.forwardRef(
 
   useEffect(() => {
     const observed = new Map();
+    let safeAreaProbe = null;
+
+    const parseSize = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    const ensureSafeAreaProbe = () => {
+      if (typeof document === 'undefined') {
+        return null;
+      }
+      if (!safeAreaProbe) {
+        safeAreaProbe = document.createElement('div');
+        safeAreaProbe.setAttribute('data-safe-area-probe', 'true');
+        safeAreaProbe.style.cssText =
+          'position:fixed;bottom:0;left:0;height:0;pointer-events:none;visibility:hidden;padding-bottom:env(safe-area-inset-bottom, 0);';
+        document.body.appendChild(safeAreaProbe);
+      }
+      return safeAreaProbe;
+    };
+
+    const getSafeAreaInsetBottom = () => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return 0;
+      }
+      const probe = ensureSafeAreaProbe();
+      if (!probe) {
+        return 0;
+      }
+      return parseSize(getComputedStyle(probe).paddingBottom || '0');
+    };
 
     const updateFooterHeight = () => {
       const slots = observed.get('slots')?.element;
       const navbar = observed.get('navbar')?.element;
       const slotsHeight = slots ? slots.getBoundingClientRect().height : 0;
       const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0;
-      setFooterHeight(slotsHeight + navbarHeight);
+      const slotsBottomOffset =
+        slots && typeof window !== 'undefined'
+          ? parseSize(getComputedStyle(slots).bottom || '0')
+          : 0;
+      const safeAreaInset = getSafeAreaInsetBottom();
+      setFooterHeight(
+        slotsHeight + navbarHeight + slotsBottomOffset + safeAreaInset
+      );
     };
 
     const observeElement = (key, element) => {
@@ -201,6 +239,8 @@ const PlayerTurnActions = React.forwardRef(
       observed.clear();
       window.removeEventListener('resize', updateFooterHeight);
       documentObserver?.disconnect();
+      safeAreaProbe?.remove();
+      safeAreaProbe = null;
     };
   }, []);
 
