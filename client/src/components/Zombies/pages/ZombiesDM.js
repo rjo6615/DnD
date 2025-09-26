@@ -1258,7 +1258,7 @@ const resolveIcon = (category, iconMap, fallback) => {
             className="d-flex justify-content-center mb-3"
             style={{ position: 'relative', zIndex: '4' }}
           >
-            <Nav variant="tabs" className="flex-wrap">
+            <Nav variant="tabs" className="combat-tracker-nav">
               {RESOURCE_TABS.map(({ key, title }) => (
                 <Nav.Item key={key}>
                   <Nav.Link eventKey={key}>{title}</Nav.Link>

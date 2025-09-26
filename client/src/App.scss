@@ -12,6 +12,47 @@
   padding-bottom: 2rem;
 }
 
+.combat-tracker-nav {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+  -ms-overflow-style: none; // IE and Edge
+  scrollbar-width: none; // Firefox
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-item {
+    flex: 1 0 clamp(6.5rem, 24vw, 11rem);
+    min-width: clamp(6.5rem, 24vw, 11rem);
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    white-space: nowrap;
+    font-size: clamp(0.75rem, 2.6vw, 1rem);
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .combat-tracker-nav {
+    gap: 0.25rem;
+
+    .nav-link {
+      font-size: clamp(0.7rem, 3.2vw, 0.9rem);
+      padding: 0.45rem 0.5rem;
+    }
+  }
+}
+
 @media (min-width: 768px) {
   .zombies-dm-container {
     padding-left: 1.5rem;
