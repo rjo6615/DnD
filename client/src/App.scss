@@ -1603,6 +1603,9 @@ h1 {
 .modal-footer {
   display: flex;
   justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+  column-gap: 0.75rem;
   padding: 10px;
 }
 
