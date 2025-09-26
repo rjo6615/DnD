@@ -567,7 +567,7 @@ $rotateX: -$angle;
     height: $containerHeight;
     perspective: 1500px;
 
-    @media (max-width: 576px) {
+    @media (max-width: 576px), (max-height: 600px) {
       top: calc(#{$containerHeight} * -0.06);
     }
   }
