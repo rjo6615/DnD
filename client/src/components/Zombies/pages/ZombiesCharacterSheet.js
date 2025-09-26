@@ -138,6 +138,7 @@ function CombatTurnHeader({ participants }) {
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const startScrollLeftRef = useRef(0);
+  const lastAutoScrollTargetRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -279,7 +280,24 @@ function CombatTurnHeader({ participants }) {
     }
 
     const container = headerRef.current;
-    if (!container || activeIndex < 0) {
+    const participantsList = Array.isArray(participants) ? participants : null;
+    const activeParticipant =
+      activeIndex >= 0 && participantsList ? participantsList[activeIndex] : null;
+
+    if (activeIndex < 0 || !activeParticipant) {
+      if (lastAutoScrollTargetRef.current !== null) {
+        lastAutoScrollTargetRef.current = null;
+      }
+      return;
+    }
+
+    if (!container) {
+      return;
+    }
+
+    const identifier = activeParticipant.characterId ?? activeIndex;
+
+    if (lastAutoScrollTargetRef.current === identifier) {
       return;
     }
 
@@ -322,6 +340,8 @@ function CombatTurnHeader({ participants }) {
       adjustScrollManually();
       updateOverflowHints();
     });
+
+    lastAutoScrollTargetRef.current = identifier;
   }, [activeIndex, participants, isDragging, updateOverflowHints]);
 
   if (!participantsCount) {
