@@ -133,16 +133,75 @@ const PlayerTurnActions = React.forwardRef(
   const [footerHeight, setFooterHeight] = useState(0);
 
   useEffect(() => {
+    const observed = new Map();
+
     const updateFooterHeight = () => {
-      const slots = document.querySelector('.spell-slot-container');
-      const navbar = document.querySelector('.navbar.fixed-bottom');
-      const slotsHeight = slots ? slots.offsetHeight : 0;
-      const navbarHeight = navbar ? navbar.offsetHeight : 0;
+      const slots = observed.get('slots')?.element;
+      const navbar = observed.get('navbar')?.element;
+      const slotsHeight = slots ? slots.getBoundingClientRect().height : 0;
+      const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0;
       setFooterHeight(slotsHeight + navbarHeight);
     };
-    updateFooterHeight();
+
+    const observeElement = (key, element) => {
+      const current = observed.get(key);
+      if (current?.element === element) {
+        return;
+      }
+
+      current?.cleanup?.();
+
+      if (!element) {
+        observed.delete(key);
+        updateFooterHeight();
+        return;
+      }
+
+      const onChange = () => updateFooterHeight();
+      let cleanup = () => {};
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(onChange);
+        resizeObserver.observe(element);
+        cleanup = () => resizeObserver.disconnect();
+      } else if (typeof MutationObserver !== 'undefined') {
+        const mutationObserver = new MutationObserver(onChange);
+        mutationObserver.observe(element, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+        cleanup = () => mutationObserver.disconnect();
+      }
+
+      observed.set(key, { element, cleanup });
+      updateFooterHeight();
+    };
+
+    const refreshElements = () => {
+      observeElement('slots', document.querySelector('.spell-slot-container'));
+      observeElement('navbar', document.querySelector('.navbar.fixed-bottom'));
+    };
+
+    refreshElements();
+
+    let documentObserver;
+    if (typeof MutationObserver !== 'undefined') {
+      documentObserver = new MutationObserver(refreshElements);
+      documentObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
     window.addEventListener('resize', updateFooterHeight);
-    return () => window.removeEventListener('resize', updateFooterHeight);
+
+    return () => {
+      observed.forEach(({ cleanup }) => cleanup());
+      observed.clear();
+      window.removeEventListener('resize', updateFooterHeight);
+      documentObserver?.disconnect();
+    };
   }, []);
 
 //--------------------------------------------Critical status------------------------------------------------
