@@ -143,6 +143,13 @@ function CombatTurnHeader({ participants }) {
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const participantsCount = Array.isArray(participants) ? participants.length : 0;
+  const activeIndex = useMemo(() => {
+    if (!Array.isArray(participants)) {
+      return -1;
+    }
+
+    return participants.findIndex((participant) => participant?.isActive);
+  }, [participants]);
 
   const updateOverflowHints = useCallback(() => {
     const container = headerRef.current;
@@ -266,6 +273,57 @@ function CombatTurnHeader({ participants }) {
     updateOverflowHints();
   }, [updateOverflowHints]);
 
+  useEffect(() => {
+    if (isDragging) {
+      return;
+    }
+
+    const container = headerRef.current;
+    if (!container || activeIndex < 0) {
+      return;
+    }
+
+    const card = container.children?.[activeIndex];
+    if (!card) {
+      return;
+    }
+
+    const adjustScrollManually = () => {
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      const leftOverflow = cardRect.left - containerRect.left - HEADER_PADDING;
+      const rightOverflow = cardRect.right - containerRect.right + HEADER_PADDING;
+
+      if (leftOverflow < 0) {
+        container.scrollLeft += leftOverflow;
+      } else if (rightOverflow > 0) {
+        container.scrollLeft += rightOverflow;
+      }
+    };
+
+    if (typeof card.scrollIntoView === 'function') {
+      try {
+        card.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      } catch (error) {
+        // Ignore scrollIntoView errors and fall back to manual scrolling.
+      }
+    }
+
+    const schedule = typeof requestAnimationFrame === 'function'
+      ? (callback) => requestAnimationFrame(callback)
+      : (callback) => callback();
+
+    schedule(() => {
+      adjustScrollManually();
+      updateOverflowHints();
+    });
+  }, [activeIndex, participants, isDragging, updateOverflowHints]);
+
   if (!participantsCount) {
     return null;
   }
@@ -284,7 +342,7 @@ function CombatTurnHeader({ participants }) {
       onPointerCancel={handlePointerCancel}
       onScroll={handleScroll}
     >
-      {participants.map((participant) => {
+      {participants.map((participant, index) => {
         const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
 
         const hasHpData = hpCurrent !== null || hpMax !== null;
@@ -303,6 +361,8 @@ function CombatTurnHeader({ participants }) {
           <div
             key={characterId}
             className="combat-turn-header__card"
+            data-participant-id={characterId}
+            data-participant-index={index}
             style={{
               background: isActive
                 ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
