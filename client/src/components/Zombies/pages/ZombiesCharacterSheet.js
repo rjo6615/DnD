@@ -139,15 +139,7 @@ function CombatTurnHeader({ participants }) {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        flexWrap: "wrap",
-        gap: "12px",
-        marginBottom: "12px",
-      }}
-    >
+    <div className="combat-turn-header">
       {participants.map((participant) => {
         const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
 
@@ -166,6 +158,7 @@ function CombatTurnHeader({ participants }) {
         return (
           <div
             key={characterId}
+            className="combat-turn-header__card"
             style={{
               background: isActive
                 ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
@@ -173,7 +166,6 @@ function CombatTurnHeader({ participants }) {
               color: "#FFFFFF",
               borderRadius: "12px",
               padding: "10px 16px",
-              minWidth: "160px",
               boxShadow: isActive
                 ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
                 : "0 0 8px rgba(0, 0, 0, 0.45)",

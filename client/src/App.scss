@@ -8,6 +8,31 @@
   padding-right: 1rem;
 }
 
+.combat-turn-header {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: stretch;
+  margin-bottom: 12px;
+  padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.combat-turn-header__card {
+  flex: 0 0 auto;
+  width: clamp(160px, 22vw, 240px);
+  min-width: clamp(160px, 22vw, 240px);
+}
+
+@media (max-width: 576px) {
+  .combat-turn-header__card {
+    width: clamp(100px, 32vw, 33.333%);
+    min-width: clamp(100px, 32vw, 33.333%);
+  }
+}
+
 .zombies-dm-container--spaced {
   padding-bottom: 2rem;
 }
