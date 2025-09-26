@@ -592,45 +592,41 @@ const showSparklesEffect = () => {
           paddingBottom: `${footerHeight}px`,
         }}
       >
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
-            {/* Attack Button */}
-            <button
-              onClick={handleShowAttack}
-              style={{
-              width: "64px",
-              height: "64px",
+        <div className="attack-roll-controls">
+          {/* Attack Button */}
+          <button
+            onClick={handleShowAttack}
+            style={{
+              width: '64px',
+              height: '64px',
               backgroundImage: `url(${sword})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              border: "none",
-              transition: "transform 0.2s ease",
-              cursor: "pointer",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              border: 'none',
+              transition: 'transform 0.2s ease',
+              cursor: 'pointer',
               backgroundColor: 'transparent',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             title="Attack"
           />
-        </div>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <div className="content">
-            {showSparkles && (
-              <div className="sparkle"></div>
-            )}
-            {showSparkles1 && (
-              <div className="sparkle1"></div>
-            )}
-            <div onClick={handleRandomizeClick}
-    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-      {faceElements}
-    </div>
+          <div className="attack-roll-controls__die">
+            <div className="content">
+              {showSparkles && (
+                <div className="sparkle"></div>
+              )}
+              {showSparkles1 && (
+                <div className="sparkle1"></div>
+              )}
+              <div
+                onClick={handleRandomizeClick}
+                className={`die ${rolling ? 'rolling' : ''}`}
+                data-face={activeFace}
+              >
+                {faceElements}
+              </div>
+            </div>
           </div>
         </div>
       </div>
