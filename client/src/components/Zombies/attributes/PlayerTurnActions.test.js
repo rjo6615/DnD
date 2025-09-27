@@ -202,7 +202,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(breathCard).toBeInTheDocument();
     expect(within(breathCard).getByText('Save DC')).toBeInTheDocument();
     expect(within(breathCard).getByText('13')).toBeInTheDocument();
-    expect(within(breathCard).getByText('3d6 Fire')).toBeInTheDocument();
+    const fireDamage = within(breathCard).getByText('3d6 Fire');
+    expect(fireDamage).toBeInTheDocument();
+    expect(fireDamage).toHaveClass('damage-fire');
     expect(
       within(breathCard).getByText('15 ft. cone • Dexterity Save')
     ).toBeInTheDocument();
