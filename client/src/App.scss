@@ -1472,6 +1472,12 @@ max-width: 300px;
   color: initial;
 }
 
+.dnd-modal .modal-body .stat-card-view,
+.dnd-modal .modal-body .stat-card-view:hover,
+.dnd-modal .modal-body .stat-card-view:focus {
+  color: var(--bs-info);
+}
+
 //vars
 $fg: linear-gradient(135deg, #3e8e41, #2e7d32);
 $fgDM: linear-gradient(135deg, #979940b6, #fffb00);
