@@ -280,17 +280,32 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.stat-card-view {
-  color: #0dcaf0;
-  color: var(--bs-info);
+.view-link-btn {
+  color: var(--bs-link-color);
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
   padding: 0.25rem;
+}
+
+.view-link-btn:hover,
+.view-link-btn:focus,
+.view-link-btn:focus-visible {
+  color: var(--bs-link-hover-color);
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  text-decoration: none;
+  outline: none;
+}
+
+.stat-card-view {
+  @extend .view-link-btn;
   font-size: 1.1rem;
 }
 
 .stat-card-view:hover,
 .stat-card-view:focus {
-  color: #3dd5f3;
-  color: color-mix(in srgb, var(--bs-info) 85%, white 15%);
   text-decoration: none;
 }
 
@@ -1472,10 +1487,13 @@ max-width: 300px;
   color: initial;
 }
 
-.dnd-modal .modal-body .stat-card-view,
+.dnd-modal .modal-body .stat-card-view {
+  color: var(--bs-link-color);
+}
+
 .dnd-modal .modal-body .stat-card-view:hover,
 .dnd-modal .modal-body .stat-card-view:focus {
-  color: var(--bs-info);
+  color: var(--bs-link-hover-color);
 }
 
 //vars

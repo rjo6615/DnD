@@ -126,8 +126,9 @@ export default function Features({
                             )}
                             <Button
                               aria-label="view feature"
-                              variant="outline-light"
+                              variant="link"
                               size="sm"
+                              className="view-link-btn"
                               onClick={() => {
                                 setModalFeature(feat);
                                 setShowModal(true);
