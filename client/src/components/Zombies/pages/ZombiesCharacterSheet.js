@@ -1806,6 +1806,7 @@ const spellsGold =
         form={form}
         dexMod={statMods.dex}
         strMod={statMods.str}
+        conMod={statMods.con}
         ref={playerTurnActionsRef}
         onCastSpell={handleCastSpell}
         availableSlots={availableSlots}
