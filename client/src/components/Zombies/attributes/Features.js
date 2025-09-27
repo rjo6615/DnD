@@ -43,8 +43,18 @@ export default function Features({
     return null;
   }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey]);
 
-  const ancestryFeature = useMemo(() => {
-    if (!dragonbornAncestry) return null;
+  const totalCharacterLevel = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) return 0;
+    return form.occupation.reduce((sum, occ) => {
+      if (typeof occ !== 'object' || occ === null) return sum;
+      const levelValue =
+        Number(occ.Level ?? occ.level ?? occ.Levels ?? occ.levels ?? 0) || 0;
+      return sum + levelValue;
+    }, 0);
+  }, [form?.occupation]);
+
+  const ancestryFeatures = useMemo(() => {
+    if (!dragonbornAncestry) return [];
 
     const ancestryLabel =
       dragonbornAncestry.label || dragonbornAncestry.name || 'Dragonborn';
@@ -54,7 +64,7 @@ export default function Features({
       ? `You have resistance to ${damageTypeLower} damage.`
       : 'You have resistance to the damage type associated with your draconic ancestry.';
 
-    return {
+    const resistanceFeature = {
       id: 'dragonborn-damage-resistance',
       name: 'Damage Resistance',
       meta: `Dragon Subrace (${ancestryLabel})`,
@@ -62,12 +72,29 @@ export default function Features({
       description: resistanceDescription,
       hideUseButton: true,
     };
-  }, [dragonbornAncestry]);
+
+    const flightFeatures = [];
+
+    if (totalCharacterLevel >= 5) {
+      const draconicFlightDescription =
+        'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
+      flightFeatures.push({
+        id: 'dragonborn-draconic-flight',
+        name: 'Draconic Flight',
+        meta: `Dragon Subrace (${ancestryLabel})`,
+        desc: draconicFlightDescription,
+        description: draconicFlightDescription,
+        hideUseButton: true,
+      });
+    }
+
+    return [resistanceFeature, ...flightFeatures];
+  }, [dragonbornAncestry, totalCharacterLevel]);
 
   const displayFeatures = useMemo(() => {
-    if (!ancestryFeature) return features;
-    return [ancestryFeature, ...features];
-  }, [ancestryFeature, features]);
+    if (ancestryFeatures.length === 0) return features;
+    return [...ancestryFeatures, ...features];
+  }, [ancestryFeatures, features]);
 
   useEffect(() => {
     if (!showFeatures) return;

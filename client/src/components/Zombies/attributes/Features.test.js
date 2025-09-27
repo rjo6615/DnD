@@ -50,8 +50,12 @@ test('renders features and opens modal with description', async () => {
   });
   expect(useButtons).toHaveLength(2);
 
-  const actionSurgeRow = (await screen.findByText('Action Surge')).closest('tr');
-  const actionSurgeButton = within(actionSurgeRow).getByRole('button', {
+  const actionSurgeCard = (await screen.findByText('Action Surge')).closest(
+    '.feature-card'
+  );
+  expect(actionSurgeCard).not.toBeNull();
+
+  const actionSurgeButton = within(actionSurgeCard).getByRole('button', {
     name: /view feature/i
   });
 
@@ -62,6 +66,63 @@ test('renders features and opens modal with description', async () => {
   expect(
     await screen.findByText('You can take one additional action.')
   ).toBeInTheDocument();
+});
+
+test('dragonborn always has damage resistance and gains draconic flight at level 5', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const baseForm = {
+    race: {
+      name: 'Dragonborn',
+      selectedAncestry: {
+        label: 'Gold',
+        damageType: 'Fire',
+      },
+    },
+  };
+
+  const renderFeatures = (occupation) =>
+    render(
+      <Features
+        form={{ ...baseForm, occupation }}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+      />
+    );
+
+  const firstRender = renderFeatures([]);
+
+  expect(await screen.findByText('Damage Resistance')).toBeInTheDocument();
+  expect(screen.queryByText('Draconic Flight')).not.toBeInTheDocument();
+
+  firstRender.unmount();
+
+  const levelFiveForm = [{ Name: 'Fighter', Level: 5 }];
+
+  renderFeatures(levelFiveForm);
+
+  const flightFeature = await screen.findByText('Draconic Flight');
+  expect(await screen.findByText('Damage Resistance')).toBeInTheDocument();
+  expect(screen.getAllByText('Damage Resistance').length).toBeGreaterThan(0);
+
+  const flightCard = flightFeature.closest('.feature-card');
+  expect(flightCard).not.toBeNull();
+
+  const viewButton = within(flightCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(viewButton);
+  });
+
+  const descriptions = await screen.findAllByText(
+    'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
+  );
+  expect(descriptions.length).toBeGreaterThan(0);
 });
 
 test('features are sorted by class then level', async () => {
@@ -100,18 +161,10 @@ test('features are sorted by class then level', async () => {
 
   expect(await screen.findByText('Arcane Recovery')).toBeInTheDocument();
 
-  const rows = screen.getAllByRole('row').slice(1); // skip header
-  const order = rows.map((row) => {
-    const cells = within(row).getAllByRole('cell');
-    return {
-      cls: cells[0].textContent,
-      lvl: cells[1].textContent,
-      feat: cells[2].textContent,
-    };
-  });
-  expect(order).toEqual([
-    { cls: 'Fighter', lvl: '1', feat: 'Second Wind' },
-    { cls: 'Fighter', lvl: '2', feat: 'Action Surge' },
-    { cls: 'Wizard', lvl: '1', feat: 'Arcane Recovery' },
-  ]);
+  const featureNameNodes = screen.getAllByText((_, node) =>
+    node.classList?.contains('feature-card-name')
+  );
+
+  const order = featureNameNodes.map((node) => node.textContent);
+  expect(order).toEqual(['Second Wind', 'Action Surge', 'Arcane Recovery']);
 });
