@@ -134,21 +134,235 @@ const mapCharactersById = (characters) => {
 };
 
 function CombatTurnHeader({ participants }) {
-  if (!Array.isArray(participants) || participants.length === 0) {
+  const headerRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startScrollLeftRef = useRef(0);
+  const lastAutoScrollTargetRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const participantsCount = Array.isArray(participants) ? participants.length : 0;
+  const activeIndex = useMemo(() => {
+    if (!Array.isArray(participants)) {
+      return -1;
+    }
+
+    return participants.findIndex((participant) => participant?.isActive);
+  }, [participants]);
+
+  const updateOverflowHints = useCallback(() => {
+    const container = headerRef.current;
+
+    if (!container) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+    const nextCanScrollLeft = scrollLeft > 1;
+    const nextCanScrollRight = maxScrollLeft - scrollLeft > 1;
+
+    setCanScrollLeft((prev) => (prev !== nextCanScrollLeft ? nextCanScrollLeft : prev));
+    setCanScrollRight((prev) => (prev !== nextCanScrollRight ? nextCanScrollRight : prev));
+  }, []);
+
+  useEffect(() => {
+    updateOverflowHints();
+
+    const handleResize = () => {
+      updateOverflowHints();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [updateOverflowHints, participantsCount]);
+
+  const headerClassName = useMemo(() => {
+    const classes = ['combat-turn-header'];
+
+    if (isDragging) {
+      classes.push('combat-turn-header--dragging');
+    }
+    if (canScrollLeft) {
+      classes.push('combat-turn-header--fade-left');
+    }
+    if (canScrollRight) {
+      classes.push('combat-turn-header--fade-right');
+    }
+
+    return classes.join(' ');
+  }, [isDragging, canScrollLeft, canScrollRight]);
+
+  const finishDrag = useCallback((event) => {
+    if (!isDraggingRef.current) {
+      const container = headerRef.current;
+      if (container && typeof event?.pointerId === 'number' && container.hasPointerCapture?.(event.pointerId)) {
+        container.releasePointerCapture(event.pointerId);
+      }
+      return;
+    }
+
+    isDraggingRef.current = false;
+    setIsDragging(false);
+
+    const container = headerRef.current;
+    if (container && typeof event?.pointerId === 'number' && container.hasPointerCapture?.(event.pointerId)) {
+      container.releasePointerCapture(event.pointerId);
+    }
+
+    updateOverflowHints();
+  }, [updateOverflowHints]);
+
+  const handlePointerDown = useCallback((event) => {
+    const container = headerRef.current;
+    if (!container) {
+      return;
+    }
+
+    isDraggingRef.current = true;
+    startXRef.current = event.clientX ?? 0;
+    startScrollLeftRef.current = container.scrollLeft;
+    setIsDragging(true);
+
+    if (typeof event.pointerId === 'number' && container.setPointerCapture) {
+      try {
+        container.setPointerCapture(event.pointerId);
+      } catch (error) {
+        // Ignore capture errors (e.g., unsupported browsers).
+      }
+    }
+  }, []);
+
+  const handlePointerMove = useCallback((event) => {
+    if (!isDraggingRef.current) {
+      return;
+    }
+
+    const container = headerRef.current;
+    if (!container) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const pointerX = event.clientX ?? 0;
+    const deltaX = pointerX - startXRef.current;
+    container.scrollLeft = startScrollLeftRef.current - deltaX;
+
+    updateOverflowHints();
+  }, [updateOverflowHints]);
+
+  const handlePointerUp = useCallback((event) => {
+    finishDrag(event);
+  }, [finishDrag]);
+
+  const handlePointerLeave = useCallback((event) => {
+    finishDrag(event);
+  }, [finishDrag]);
+
+  const handlePointerCancel = useCallback((event) => {
+    finishDrag(event);
+  }, [finishDrag]);
+
+  const handleScroll = useCallback(() => {
+    updateOverflowHints();
+  }, [updateOverflowHints]);
+
+  useEffect(() => {
+    if (isDragging) {
+      return;
+    }
+
+    const container = headerRef.current;
+    const participantsList = Array.isArray(participants) ? participants : null;
+    const activeParticipant =
+      activeIndex >= 0 && participantsList ? participantsList[activeIndex] : null;
+
+    if (activeIndex < 0 || !activeParticipant) {
+      if (lastAutoScrollTargetRef.current !== null) {
+        lastAutoScrollTargetRef.current = null;
+      }
+      return;
+    }
+
+    if (!container) {
+      return;
+    }
+
+    const identifier = activeParticipant.characterId ?? activeIndex;
+
+    if (lastAutoScrollTargetRef.current === identifier) {
+      return;
+    }
+
+    const card = container.children?.[activeIndex];
+    if (!card) {
+      return;
+    }
+
+    const adjustScrollManually = () => {
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      const leftOverflow = cardRect.left - containerRect.left - HEADER_PADDING;
+      const rightOverflow = cardRect.right - containerRect.right + HEADER_PADDING;
+
+      if (leftOverflow < 0) {
+        container.scrollLeft += leftOverflow;
+      } else if (rightOverflow > 0) {
+        container.scrollLeft += rightOverflow;
+      }
+    };
+
+    if (typeof card.scrollIntoView === 'function') {
+      try {
+        card.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      } catch (error) {
+        // Ignore scrollIntoView errors and fall back to manual scrolling.
+      }
+    }
+
+    const schedule = typeof requestAnimationFrame === 'function'
+      ? (callback) => requestAnimationFrame(callback)
+      : (callback) => callback();
+
+    schedule(() => {
+      adjustScrollManually();
+      updateOverflowHints();
+    });
+
+    lastAutoScrollTargetRef.current = identifier;
+  }, [activeIndex, participants, isDragging, updateOverflowHints]);
+
+  if (!participantsCount) {
     return null;
   }
 
   return (
     <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        flexWrap: "wrap",
-        gap: "12px",
-        marginBottom: "12px",
-      }}
+      ref={headerRef}
+      className={headerClassName}
+      role="group"
+      aria-label="Combat turn order"
+      touchAction="pan-x"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
+      onPointerCancel={handlePointerCancel}
+      onScroll={handleScroll}
     >
-      {participants.map((participant) => {
+      {participants.map((participant, index) => {
         const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
 
         const hasHpData = hpCurrent !== null || hpMax !== null;
@@ -166,6 +380,9 @@ function CombatTurnHeader({ participants }) {
         return (
           <div
             key={characterId}
+            className="combat-turn-header__card"
+            data-participant-id={characterId}
+            data-participant-index={index}
             style={{
               background: isActive
                 ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
@@ -173,7 +390,6 @@ function CombatTurnHeader({ participants }) {
               color: "#FFFFFF",
               borderRadius: "12px",
               padding: "10px 16px",
-              minWidth: "160px",
               boxShadow: isActive
                 ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
                 : "0 0 8px rgba(0, 0, 0, 0.45)",

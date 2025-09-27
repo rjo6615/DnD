@@ -133,16 +133,115 @@ const PlayerTurnActions = React.forwardRef(
   const [footerHeight, setFooterHeight] = useState(0);
 
   useEffect(() => {
-    const updateFooterHeight = () => {
-      const slots = document.querySelector('.spell-slot-container');
-      const navbar = document.querySelector('.navbar.fixed-bottom');
-      const slotsHeight = slots ? slots.offsetHeight : 0;
-      const navbarHeight = navbar ? navbar.offsetHeight : 0;
-      setFooterHeight(slotsHeight + navbarHeight);
+    const observed = new Map();
+    let safeAreaProbe = null;
+
+    const parseSize = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isNaN(parsed) ? 0 : parsed;
     };
-    updateFooterHeight();
+
+    const ensureSafeAreaProbe = () => {
+      if (typeof document === 'undefined') {
+        return null;
+      }
+      if (!safeAreaProbe) {
+        safeAreaProbe = document.createElement('div');
+        safeAreaProbe.setAttribute('data-safe-area-probe', 'true');
+        safeAreaProbe.style.cssText =
+          'position:fixed;bottom:0;left:0;height:0;pointer-events:none;visibility:hidden;padding-bottom:env(safe-area-inset-bottom, 0);';
+        document.body.appendChild(safeAreaProbe);
+      }
+      return safeAreaProbe;
+    };
+
+    const getSafeAreaInsetBottom = () => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return 0;
+      }
+      const probe = ensureSafeAreaProbe();
+      if (!probe) {
+        return 0;
+      }
+      return parseSize(getComputedStyle(probe).paddingBottom || '0');
+    };
+
+    const updateFooterHeight = () => {
+      const slots = observed.get('slots')?.element;
+      const navbar = observed.get('navbar')?.element;
+      const slotsHeight = slots ? slots.getBoundingClientRect().height : 0;
+      const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0;
+      const slotsBottomOffset =
+        slots && typeof window !== 'undefined'
+          ? parseSize(getComputedStyle(slots).bottom || '0')
+          : 0;
+      const safeAreaInset = getSafeAreaInsetBottom();
+      setFooterHeight(
+        slotsHeight + navbarHeight + slotsBottomOffset + safeAreaInset
+      );
+    };
+
+    const observeElement = (key, element) => {
+      const current = observed.get(key);
+      if (current?.element === element) {
+        return;
+      }
+
+      current?.cleanup?.();
+
+      if (!element) {
+        observed.delete(key);
+        updateFooterHeight();
+        return;
+      }
+
+      const onChange = () => updateFooterHeight();
+      let cleanup = () => {};
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(onChange);
+        resizeObserver.observe(element);
+        cleanup = () => resizeObserver.disconnect();
+      } else if (typeof MutationObserver !== 'undefined') {
+        const mutationObserver = new MutationObserver(onChange);
+        mutationObserver.observe(element, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+        cleanup = () => mutationObserver.disconnect();
+      }
+
+      observed.set(key, { element, cleanup });
+      updateFooterHeight();
+    };
+
+    const refreshElements = () => {
+      observeElement('slots', document.querySelector('.spell-slot-container'));
+      observeElement('navbar', document.querySelector('.navbar.fixed-bottom'));
+    };
+
+    refreshElements();
+
+    let documentObserver;
+    if (typeof MutationObserver !== 'undefined') {
+      documentObserver = new MutationObserver(refreshElements);
+      documentObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
     window.addEventListener('resize', updateFooterHeight);
-    return () => window.removeEventListener('resize', updateFooterHeight);
+
+    return () => {
+      observed.forEach(({ cleanup }) => cleanup());
+      observed.clear();
+      window.removeEventListener('resize', updateFooterHeight);
+      documentObserver?.disconnect();
+      safeAreaProbe?.remove();
+      safeAreaProbe = null;
+    };
   }, []);
 
 //--------------------------------------------Critical status------------------------------------------------
@@ -592,45 +691,41 @@ const showSparklesEffect = () => {
           paddingBottom: `${footerHeight}px`,
         }}
       >
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
-            {/* Attack Button */}
-            <button
-              onClick={handleShowAttack}
-              style={{
-              width: "64px",
-              height: "64px",
+        <div className="attack-roll-controls">
+          {/* Attack Button */}
+          <button
+            onClick={handleShowAttack}
+            style={{
+              width: '64px',
+              height: '64px',
               backgroundImage: `url(${sword})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              border: "none",
-              transition: "transform 0.2s ease",
-              cursor: "pointer",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              border: 'none',
+              transition: 'transform 0.2s ease',
+              cursor: 'pointer',
               backgroundColor: 'transparent',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             title="Attack"
           />
-        </div>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <div className="content">
-            {showSparkles && (
-              <div className="sparkle"></div>
-            )}
-            {showSparkles1 && (
-              <div className="sparkle1"></div>
-            )}
-            <div onClick={handleRandomizeClick}
-    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-      {faceElements}
-    </div>
+          <div className="attack-roll-controls__die">
+            <div className="content">
+              {showSparkles && (
+                <div className="sparkle"></div>
+              )}
+              {showSparkles1 && (
+                <div className="sparkle1"></div>
+              )}
+              <div
+                onClick={handleRandomizeClick}
+                className={`die ${rolling ? 'rolling' : ''}`}
+                data-face={activeFace}
+              >
+                {faceElements}
+              </div>
+            </div>
           </div>
         </div>
       </div>

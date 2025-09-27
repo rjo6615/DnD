@@ -310,7 +310,7 @@ export default function Skills({
               </Alert>
             )}
             <div className="points-container" style={{ display: 'flex' }}>
-              <span className="points-label text-light">Points Left:</span>
+              <span className="points-label text-light">Proficiencies Left:</span>
               <span className="points-value">{proficiencyPointsLeft}</span>
             </div>
             <div className="points-container" style={{ display: 'flex' }}>

@@ -8,6 +8,75 @@
   padding-right: 1rem;
 }
 
+.combat-turn-header {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: stretch;
+  margin-bottom: 12px;
+  padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-x;
+  position: relative;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &.combat-turn-header--dragging {
+    cursor: grabbing;
+  }
+
+  &::before,
+  &::after {
+    content: '';
+    position: sticky;
+    top: 0;
+    bottom: 0;
+    width: 1.25rem;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(12, 10, 8, 0.65), rgba(12, 10, 8, 0));
+  }
+
+  &::after {
+    right: 0;
+    background: linear-gradient(270deg, rgba(12, 10, 8, 0.65), rgba(12, 10, 8, 0));
+  }
+
+  &.combat-turn-header--fade-left::before {
+    opacity: 1;
+  }
+
+  &.combat-turn-header--fade-right::after {
+    opacity: 1;
+  }
+}
+
+.combat-turn-header__card {
+  flex: 0 0 auto;
+  width: clamp(160px, 22vw, 240px);
+  min-width: clamp(160px, 22vw, 240px);
+}
+
+@media (max-width: 576px) {
+  .combat-turn-header__card {
+    width: clamp(100px, 32vw, 33.333%);
+    min-width: clamp(100px, 32vw, 33.333%);
+  }
+}
+
 .zombies-dm-container--spaced {
   padding-bottom: 2rem;
 }
@@ -493,10 +562,14 @@ $rotateX: -$angle;
   .content {
     margin: 0 auto;
     position: relative;
-    top: -30px;
+    top: calc(#{$containerHeight} * -0.18);
     width: $containerWidth;
     height: $containerHeight;
     perspective: 1500px;
+
+    @media (max-width: 576px), (max-height: 600px) {
+      top: calc(#{$containerHeight} * -0.06);
+    }
   }
 
   .die {
@@ -600,6 +673,51 @@ $rotateX: -$angle;
         }
       }
     }
+  }
+}
+
+// Layout helpers for the attack button and dice roller
+.attack-roll-controls {
+  --attack-die-size: min(25vw, 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: calc(var(--attack-die-size) * 0.25);
+  min-height: calc(var(--attack-die-size) + 88px);
+  padding-bottom: calc(var(--attack-die-size) * 0.35);
+}
+
+.attack-roll-controls__die {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: calc(var(--attack-die-size) * 0.2);
+}
+
+@media (max-height: 600px) {
+  .attack-roll-controls {
+    --attack-die-size: min(20vw, 100px);
+    gap: calc(var(--attack-die-size) * 0.25);
+    min-height: calc(var(--attack-die-size) + 88px);
+    padding-bottom: calc(var(--attack-die-size) * 0.35);
+  }
+
+  .attack-roll-controls__die {
+    margin-bottom: calc(var(--attack-die-size) * 0.2);
+  }
+}
+
+@media (max-width: 576px) {
+  .attack-roll-controls {
+    gap: calc(var(--attack-die-size) * 0.4);
+    min-height: calc(var(--attack-die-size) * 1.9);
+    padding-bottom: calc(var(--attack-die-size) * 0.5);
+  }
+
+  .attack-roll-controls__die {
+    margin-bottom: calc(var(--attack-die-size) * 0.3);
   }
 }
 
@@ -1485,6 +1603,9 @@ h1 {
 .modal-footer {
   display: flex;
   justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+  column-gap: 0.75rem;
   padding: 10px;
 }
 
@@ -1598,14 +1719,14 @@ h1 {
 }
 
 /* Damage type colors */
-.damage-acid { color: #228B22; }
+.damage-acid { color: #09ff09; }
 .damage-cold { color: #00BFFF; }
 .damage-fire { color: #FF4500; }
-.damage-lightning { color: #FFD700; }
-.damage-poison { color: #32CD32; }
+.damage-lightning { color: #0026ff; }
+.damage-poison { color: #96bd3b; }
 .damage-thunder { color: #8A2BE2; }
 .damage-force { color: #FF1493; }
-.damage-necrotic { color: #4B0082; }
+.damage-necrotic { color: #90cf80; }
 .damage-radiant { color: #FFFF99; }
 .damage-psychic { color: #BA55D3; }
 
