@@ -45,6 +45,68 @@ const races = {
     abilities: { str: 2, cha: 1 },
     skills: {},
     languages: ["Common", "Draconic"],
+    dragonAncestries: {
+      black: {
+        label: "Black (Acid)",
+        damageType: "Acid",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "evil",
+      },
+      blue: {
+        label: "Blue (Lightning)",
+        damageType: "Lightning",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "evil",
+      },
+      brass: {
+        label: "Brass (Fire)",
+        damageType: "Fire",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      bronze: {
+        label: "Bronze (Lightning)",
+        damageType: "Lightning",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      copper: {
+        label: "Copper (Acid)",
+        damageType: "Acid",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      gold: {
+        label: "Gold (Fire)",
+        damageType: "Fire",
+        breathWeapon: { shape: "15 ft. cone", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      green: {
+        label: "Green (Poison)",
+        damageType: "Poison",
+        breathWeapon: { shape: "15 ft. cone", save: "Constitution" },
+        moralAlignment: "evil",
+      },
+      red: {
+        label: "Red (Fire)",
+        damageType: "Fire",
+        breathWeapon: { shape: "15 ft. cone", save: "Dexterity" },
+        moralAlignment: "evil",
+      },
+      silver: {
+        label: "Silver (Cold)",
+        damageType: "Cold",
+        breathWeapon: { shape: "15 ft. cone", save: "Constitution" },
+        moralAlignment: "good",
+      },
+      white: {
+        label: "White (Cold)",
+        damageType: "Cold",
+        breathWeapon: { shape: "15 ft. cone", save: "Constitution" },
+        moralAlignment: "evil",
+      },
+    },
   },
   gnome: {
     name: "Gnome",
