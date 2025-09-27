@@ -856,7 +856,7 @@ const showSparklesEffect = () => {
                       <div className="attack-card__row">
                         <span className="attack-card__label">Damage</span>
                         <span className="attack-card__value">
-                          {breathWeaponDetails.damageString}
+                          {formatDamageSegments(breathWeaponDetails.damageString)}
                         </span>
                       </div>
                       {(breathWeaponDetails.shape || breathWeaponDetails.save) && (

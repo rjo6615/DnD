@@ -172,6 +172,41 @@ describe('PlayerTurnActions weapon damage display', () => {
     ).toBeInTheDocument();
   });
 
+  test('breath attack damage segments include type classes', () => {
+    const ancestry = {
+      label: 'Blue (Lightning)',
+      damageType: 'lightning',
+      breathWeapon: { shape: '5 by 30 ft. line', save: 'Dexterity' },
+    };
+    const race = {
+      name: 'Dragonborn',
+      dragonAncestries: { blue: ancestry },
+      selectedAncestryKey: 'blue',
+      selectedAncestry: ancestry,
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          race,
+          equipment: {},
+          spells: [],
+          occupation: [{ Level: '6' }],
+        }}
+        strMod={0}
+        dexMod={0}
+        conMod={2}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const breathCard = screen.getByText('Blue (Lightning)').closest('.attack-card');
+    expect(breathCard).toBeInTheDocument();
+    const damage = within(breathCard).getByText('3d6 lightning');
+    expect(damage).toHaveClass('damage-lightning');
+  });
+
   test('does not render breath attack card for non-dragonborn characters', () => {
     render(
       <PlayerTurnActions
