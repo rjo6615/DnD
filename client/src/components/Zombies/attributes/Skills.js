@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Alert } from 'react-bootstrap';
+import { Modal, Card, Button, Form, Alert } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 
 import { SKILLS } from '../skillSchema';
@@ -317,96 +317,101 @@ export default function Skills({
               <span className="points-label text-light">Expertise Left:</span>
               <span className="points-value">{expertisePointsLeft}</span>
             </div>
-            <Table striped bordered hover size="sm" className="modern-table">
-              <thead>
-                <tr>
-                  <th>Skill</th>
-                  <th>View</th>
-                  <th>Total</th>
-                  <th>Mod</th>
-                  <th>Prof</th>
-                  <th>Exp</th>
-                  <th>Roll</th>
-                </tr>
-              </thead>
-              <tbody>
-                {SKILLS.map(({
-                  key,
-                  label,
-                  ability,
-                  armorPenalty = 0,
-                }) => {
-                  const { proficient = false, expertise = false } =
-                    skills[key] || {};
-                  const penalty = armorPenalty
-                    ? armorPenalty * totalCheckPenalty
-                    : 0;
-                  const isProficient =
-                    proficient || lockedProficiencies.has(key);
-                  const multiplier = expertise ? 2 : isProficient ? 1 : 0;
-                  const total =
-                    modMap[ability] +
-                    profBonus * multiplier +
-                    penalty +
-                    itemTotals[key] +
-                    featTotals[key] +
-                    raceTotals[key];
-                  const isSelectable = selectableSkills.has(key);
-                  const isRaceSkill = raceProficiencies.has(key);
-                  const isBackgroundSkill = backgroundProficiencies.has(key);
-                  return (
-                    <tr key={key}>
-                      <td>{label}</td>
-                      <td>
+            <div className="skills-card-grid">
+              {SKILLS.map(({
+                key,
+                label,
+                ability,
+                armorPenalty = 0,
+              }) => {
+                const { proficient = false, expertise = false } =
+                  skills[key] || {};
+                const penalty = armorPenalty
+                  ? armorPenalty * totalCheckPenalty
+                  : 0;
+                const isProficient = proficient || lockedProficiencies.has(key);
+                const multiplier = expertise ? 2 : isProficient ? 1 : 0;
+                const total =
+                  modMap[ability] +
+                  profBonus * multiplier +
+                  penalty +
+                  itemTotals[key] +
+                  featTotals[key] +
+                  raceTotals[key];
+                const isSelectable = selectableSkills.has(key);
+                const isRaceSkill = raceProficiencies.has(key);
+                const isBackgroundSkill = backgroundProficiencies.has(key);
+                const abilityLabel = ability?.toUpperCase();
+                const proficiencyId = `skill-${key}-proficiency`;
+                const expertiseId = `skill-${key}-expertise`;
+
+                return (
+                  <div key={key} className="skill-card">
+                    <div className="skill-card-header">
+                      <div className="skill-card-title">
+                        <span className="skill-card-name">{label}</span>
+                        <span className="skill-card-ability">{abilityLabel}</span>
+                      </div>
+                      <div className="skill-card-actions">
                         <Button
                           onClick={() => handleView(key)}
                           variant="link"
-                          aria-label="view"
+                          aria-label={`view ${label}`}
                         >
                           <i className="fa-solid fa-eye"></i>
                         </Button>
-                      </td>
-                      <td>{total}</td>
-                      <td>{modMap[ability]}</td>
-                      <td>
-                        <Form.Check
-                          className="skill-checkbox"
-                          type="checkbox"
-                          checked={proficient}
-                          disabled={!isSelectable || isRaceSkill || isBackgroundSkill}
-                          onChange={() => toggleProficient(key)}
-                        />
-                      </td>
-                      <td>
-                        <Form.Check
-                          className="skill-checkbox"
-                          type="checkbox"
-                          checked={expertise}
-                          disabled={
-                            !isProficient ||
-                            !selectableExpertise.has(key) ||
-                            lockedExpertise.has(key) ||
-                            (!expertise && expertisePointsLeft <= 0)
-                          }
-                          onChange={() => toggleExpertise(key)}
-                        />
-                      </td>
-                      <td>
                         <Button
                           onClick={() =>
                             handleRoll(key, ability, isProficient, expertise)
                           }
                           variant="link"
-                          aria-label="roll"
+                          aria-label={`roll ${label}`}
                         >
                           <i className="fa-solid fa-dice-d20"></i>
                         </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
+                      </div>
+                    </div>
+                    <div className="skill-card-metrics">
+                      <div className="skill-card-metric">
+                        <span className="skill-card-metric-label">Total</span>
+                        <span className="skill-card-metric-value">{total}</span>
+                      </div>
+                      <div className="skill-card-metric">
+                        <span className="skill-card-metric-label">Mod</span>
+                        <span className="skill-card-metric-value">
+                          {modMap[ability]}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="skill-card-toggles">
+                      <Form.Check
+                        id={proficiencyId}
+                        className="skill-checkbox"
+                        type="checkbox"
+                        label="Proficient"
+                        checked={proficient}
+                        disabled={!isSelectable || isRaceSkill || isBackgroundSkill}
+                        onChange={() => toggleProficient(key)}
+                      />
+                      <Form.Check
+                        id={expertiseId}
+                        className="skill-checkbox"
+                        type="checkbox"
+                        label="Expertise"
+                        checked={expertise}
+                        disabled={
+                          !isProficient ||
+                          !selectableExpertise.has(key) ||
+                          lockedExpertise.has(key) ||
+                          (!expertise && expertisePointsLeft <= 0)
+                        }
+                        onChange={() => toggleExpertise(key)}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card.Body>
           <Card.Footer className="modal-footer d-flex">
             <Button
