@@ -71,8 +71,10 @@ export function calculateDamage(
 
     const type = rest.join(' ').trim();
 
+    const abilityBonus = i === 0 ? ability : 0;
+
     if (!match[2]) {
-      const baseValue = parseInt(match[1], 10) + ability;
+      const baseValue = parseInt(match[1], 10) + abilityBonus;
       results.push({ value: baseValue, type });
       continue;
     }
@@ -102,7 +104,7 @@ export function calculateDamage(
       }
     }
 
-    results.push({ value: damageSum + modifier + ability, type });
+    results.push({ value: damageSum + modifier + abilityBonus, type });
   }
 
   const total = results.reduce((sum, r) => sum + r.value, 0);
@@ -350,11 +352,12 @@ const [isFumble, setIsFumble] = useState(false);
       .map((part, i, arr) => {
         const [token, ...rest] = part.trim().split(' ');
         const type = rest.join(' ').trim();
+        const showAbility = ability !== undefined && ability !== null && i === 0;
         return (
           <React.Fragment key={i}>
             <span className={type ? `damage-${type}` : ''}>
               {token}
-              {ability !== undefined ? `+${ability}` : ''}
+              {showAbility ? `+${ability}` : ''}
               {type ? ` ${type}` : ''}
             </span>
             {i < arr.length - 1 ? ' + ' : ''}
