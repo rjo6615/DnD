@@ -346,8 +346,9 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                           style={{ display: showDeleteFeatBtn }}
                         >
                           <Button
-                            variant="outline-light"
+                            variant="link"
                             size="sm"
+                            className="view-link-btn"
                             onClick={() => {
                               handleShowFeatNotes();
                               setModalFeatData(el);
@@ -424,6 +425,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                         </Form.Select>
                         <Button
                           variant="link"
+                          className="view-link-btn"
                           disabled={!selectedFeatData}
                           onClick={() => {
                             setModalFeatData(selectedFeatData);
