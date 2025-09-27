@@ -125,7 +125,7 @@ describe('Users routes', () => {
     dbo.mockResolvedValue({ collection: () => ({}) });
     const res = await request(app)
       .post('/users/add')
-      .send({ username: 'bob', password: 'weakpass' });
+      .send({ username: 'bob', password: 'short' });
     expect(res.status).toBe(400);
     expect(res.body.errors).toBeDefined();
   });

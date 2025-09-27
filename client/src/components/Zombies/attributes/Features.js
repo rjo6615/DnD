@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
@@ -18,6 +18,81 @@ export default function Features({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [surgeUsed, setSurgeUsed] = useState(false);
+
+  const dragonbornAncestry = useMemo(() => {
+    const race = form?.race;
+    if (!race) return null;
+
+    const raceName =
+      typeof race?.name === 'string' ? race.name.toLowerCase() : '';
+    if (raceName !== 'dragonborn') return null;
+
+    if (race.selectedAncestry) return race.selectedAncestry;
+
+    if (race.selectedAncestryKey && race.dragonAncestries) {
+      const selected = race.dragonAncestries[race.selectedAncestryKey];
+      if (selected) return selected;
+    }
+
+    if (form?.dragonAncestry) return form.dragonAncestry;
+
+    if (form?.dragonAncestryKey && race.dragonAncestries) {
+      return race.dragonAncestries[form.dragonAncestryKey] || null;
+    }
+
+    return null;
+  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey]);
+
+  const totalCharacterLevel = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) return 0;
+    return form.occupation.reduce((sum, occ) => {
+      if (typeof occ !== 'object' || occ === null) return sum;
+      const levelValue =
+        Number(occ.Level ?? occ.level ?? occ.Levels ?? occ.levels ?? 0) || 0;
+      return sum + levelValue;
+    }, 0);
+  }, [form?.occupation]);
+
+  const ancestryFeatures = useMemo(() => {
+    if (!dragonbornAncestry) return [];
+
+    const ancestryLabel =
+      dragonbornAncestry.label || dragonbornAncestry.name || 'Dragonborn';
+    const damageType = dragonbornAncestry.damageType || '';
+    const damageTypeLower = damageType.toLowerCase();
+    const resistanceDescription = damageTypeLower
+      ? `You have resistance to ${damageTypeLower} damage.`
+      : 'You have resistance to the damage type associated with your draconic ancestry.';
+
+    const resistanceFeature = {
+      id: 'dragonborn-damage-resistance',
+      name: 'Damage Resistance',
+      meta: `Dragon Subrace (${ancestryLabel})`,
+      description: resistanceDescription,
+      hideUseButton: true,
+    };
+
+    const flightFeatures = [];
+
+    if (totalCharacterLevel >= 5) {
+      const draconicFlightDescription =
+        'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
+      flightFeatures.push({
+        id: 'dragonborn-draconic-flight',
+        name: 'Draconic Flight',
+        meta: `Dragon Subrace (${ancestryLabel})`,
+        description: draconicFlightDescription,
+        hideUseButton: true,
+      });
+    }
+
+    return [resistanceFeature, ...flightFeatures];
+  }, [dragonbornAncestry, totalCharacterLevel]);
+
+  const displayFeatures = useMemo(() => {
+    if (ancestryFeatures.length === 0) return features;
+    return [...ancestryFeatures, ...features];
+  }, [ancestryFeatures, features]);
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -83,10 +158,10 @@ export default function Features({
                 <div className="d-flex justify-content-center py-4">
                   <Spinner animation="border" role="status" />
                 </div>
-              ) : features.length > 0 ? (
+              ) : displayFeatures.length > 0 ? (
                 <div className="feature-card-grid">
-                  {features.map((feat, idx) => {
-                    const featKey = `${feat.class}-${feat.level}-${idx}`;
+                  {displayFeatures.map((feat, idx) => {
+                    const featKey = feat.id || `${feat.name}-${idx}`;
                     const isActionSurge = feat.name?.includes('Action Surge');
                     return (
                       <div className="feature-card" key={featKey}>
@@ -94,8 +169,16 @@ export default function Features({
                           <div>
                             <div className="feature-card-name">{feat.name}</div>
                             <div className="feature-card-meta">
-                              <span>{feat.class}</span>
-                              <span>Level {feat.level}</span>
+                              {feat.meta ? (
+                                <span>{feat.meta}</span>
+                              ) : (
+                                <>
+                                  {feat.class && <span>{feat.class}</span>}
+                                  {feat.level != null && (
+                                    <span>Level {feat.level}</span>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="feature-card-actions">
@@ -119,11 +202,11 @@ export default function Features({
                                   height={36}
                                 />
                               </Button>
-                            ) : (
+                            ) : !feat.hideUseButton ? (
                               <Button aria-label="use feature" variant="outline-light" size="sm">
                                 Use
                               </Button>
-                            )}
+                            ) : null}
                             <Button
                               aria-label="view feature"
                               variant="link"

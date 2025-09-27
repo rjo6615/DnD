@@ -1710,19 +1710,20 @@ export default function ZombiesCharacterSheet() {
   // Characters no longer receive stat points from leveling
   const statPointsLeft = form.startStatTotal - statTotal;
 
-  const skillPointsLeft =
-    (form.proficiencyPoints || 0) -
-    Object.entries(form.skills || {}).filter(
-      ([key, s]) => s.proficient && !form.race?.skills?.[key]?.proficient
-    ).length;
-  const expertisePointsLeft =
-    (form.expertisePoints || 0) -
-    Object.entries(form.skills || {}).filter(
-      ([key, s]) =>
-        s.expertise &&
-        !form.race?.skills?.[key]?.expertise &&
-        !form.background?.skills?.[key]?.expertise
-    ).length;
+  const proficientSkillsCount = Object.values(form.skills || {}).filter(
+    (skill) => skill?.proficient
+  ).length;
+  const expertiseSkillsCount = Object.values(form.skills || {}).filter(
+    (skill) => skill?.expertise
+  ).length;
+  const skillPointsLeft = Math.max(
+    0,
+    (form.proficiencyPoints || 0) - proficientSkillsCount
+  );
+  const expertisePointsLeft = Math.max(
+    0,
+    (form.expertisePoints || 0) - expertiseSkillsCount
+  );
   const skillsGold =
     skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'gold' : '#6C757D';
 
@@ -1805,6 +1806,7 @@ const spellsGold =
         form={form}
         dexMod={statMods.dex}
         strMod={statMods.str}
+        conMod={statMods.con}
         ref={playerTurnActionsRef}
         onCastSpell={handleCastSpell}
         availableSlots={availableSlots}
