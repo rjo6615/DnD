@@ -324,9 +324,9 @@ const [isFumble, setIsFumble] = useState(false);
     if (!dragonbornAncestry) return null;
 
     const diceCount =
-      totalLevel >= 16 ? 5 : totalLevel >= 11 ? 4 : totalLevel >= 6 ? 3 : 2;
+      totalLevel >= 17 ? 4 : totalLevel >= 11 ? 3 : totalLevel >= 5 ? 2 : 1;
     const damageType = dragonbornAncestry.damageType || '';
-    const damageString = `${diceCount}d6${damageType ? ` ${damageType}` : ''}`;
+    const damageString = `${diceCount}d10${damageType ? ` ${damageType}` : ''}`;
     const breathWeapon = dragonbornAncestry.breathWeapon || {};
     const numericConMod = Number(conMod) || 0;
 
