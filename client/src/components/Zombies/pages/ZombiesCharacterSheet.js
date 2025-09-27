@@ -195,9 +195,12 @@ function CombatTurnHeader({ participants }) {
     if (canScrollRight) {
       classes.push('combat-turn-header--fade-right');
     }
+    if (!participantsCount) {
+      classes.push('combat-turn-header--empty');
+    }
 
     return classes.join(' ');
-  }, [isDragging, canScrollLeft, canScrollRight]);
+  }, [isDragging, canScrollLeft, canScrollRight, participantsCount]);
 
   const finishDrag = useCallback((event) => {
     if (!isDraggingRef.current) {
@@ -344,113 +347,113 @@ function CombatTurnHeader({ participants }) {
     lastAutoScrollTargetRef.current = identifier;
   }, [activeIndex, participants, isDragging, updateOverflowHints]);
 
-  if (!participantsCount) {
-    return null;
-  }
-
   return (
     <div
       ref={headerRef}
       className={headerClassName}
       role="group"
       aria-label="Combat turn order"
-      touchAction="pan-x"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerLeave}
-      onPointerCancel={handlePointerCancel}
-      onScroll={handleScroll}
+      touchAction={participantsCount ? 'pan-x' : 'auto'}
+      onPointerDown={participantsCount ? handlePointerDown : undefined}
+      onPointerMove={participantsCount ? handlePointerMove : undefined}
+      onPointerUp={participantsCount ? handlePointerUp : undefined}
+      onPointerLeave={participantsCount ? handlePointerLeave : undefined}
+      onPointerCancel={participantsCount ? handlePointerCancel : undefined}
+      onScroll={participantsCount ? handleScroll : undefined}
     >
-      {participants.map((participant, index) => {
-        const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+      {participantsCount ? (
+        participants.map((participant, index) => {
+          const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
 
-        const hasHpData = hpCurrent !== null || hpMax !== null;
-        const computedPercentage =
-          hpCurrent !== null && hpMax !== null && hpMax > 0
-            ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
-            : null;
-        const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
-        const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
-        const hpFillColor =
-          computedPercentage !== null
-            ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
-            : "rgba(220, 220, 220, 0.35)";
+          const hasHpData = hpCurrent !== null || hpMax !== null;
+          const computedPercentage =
+            hpCurrent !== null && hpMax !== null && hpMax > 0
+              ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
+              : null;
+          const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
+          const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
+          const hpFillColor =
+            computedPercentage !== null
+              ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
+              : "rgba(220, 220, 220, 0.35)";
 
-        return (
-          <div
-            key={characterId}
-            className="combat-turn-header__card"
-            data-participant-id={characterId}
-            data-participant-index={index}
-            style={{
-              background: isActive
-                ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
-                : "rgba(28, 25, 22, 0.82)",
-              color: "#FFFFFF",
-              borderRadius: "12px",
-              padding: "10px 16px",
-              boxShadow: isActive
-                ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
-                : "0 0 8px rgba(0, 0, 0, 0.45)",
-              border: isActive
-                ? "1px solid rgba(214, 178, 86, 0.85)"
-                : "1px solid rgba(255, 255, 255, 0.18)",
-              transition: "transform 0.2s ease, box-shadow 0.2s ease",
-              transform: isActive ? "scale(1.03)" : "scale(1)",
-            }}
-          >
+          return (
             <div
+              key={characterId}
+              className="combat-turn-header__card"
+              data-participant-id={characterId}
+              data-participant-index={index}
               style={{
-                fontWeight: 600,
-                fontSize: "14px",
-                letterSpacing: "0.5px",
+                background: isActive
+                  ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
+                  : "rgba(28, 25, 22, 0.82)",
+                color: "#FFFFFF",
+                borderRadius: "12px",
+                padding: "10px 16px",
+                boxShadow: isActive
+                  ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
+                  : "0 0 8px rgba(0, 0, 0, 0.45)",
+                border: isActive
+                  ? "1px solid rgba(214, 178, 86, 0.85)"
+                  : "1px solid rgba(255, 255, 255, 0.18)",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                transform: isActive ? "scale(1.03)" : "scale(1)",
               }}
             >
-              {name}
-            </div>
-            <div style={{ marginTop: "6px" }}>
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "12px",
-                  opacity: 0.9,
-                  marginBottom: "4px",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  letterSpacing: "0.5px",
                 }}
               >
-                <span>HP</span>
-                <span>{hasHpData ? hpDisplay : "—"}</span>
+                {name}
               </div>
-              <div
-                style={{
-                  position: "relative",
-                  width: "100%",
-                  height: "8px",
-                  borderRadius: "6px",
-                  background: "rgba(0, 0, 0, 0.45)",
-                  overflow: "hidden",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                }}
-              >
+              <div style={{ marginTop: "6px" }}>
                 <div
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    height: "100%",
-                    width: `${hpPercentage}%`,
-                    background: computedPercentage !== null
-                      ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
-                      : "transparent",
-                    transition: "width 0.3s ease, background-color 0.3s ease",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "12px",
+                    opacity: 0.9,
+                    marginBottom: "4px",
                   }}
-                />
+                >
+                  <span>HP</span>
+                  <span>{hasHpData ? hpDisplay : "—"}</span>
+                </div>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    height: "8px",
+                    borderRadius: "6px",
+                    background: "rgba(0, 0, 0, 0.45)",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      height: "100%",
+                      width: `${hpPercentage}%`,
+                      background: computedPercentage !== null
+                        ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
+                        : "transparent",
+                      transition: "width 0.3s ease, background-color 0.3s ease",
+                    }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })
+      ) : (
+        <div className="combat-turn-header__placeholder" aria-hidden="true" />
+      )}
     </div>
   );
 }
@@ -896,9 +899,7 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     const nav = document.querySelector('.navbar.fixed-top');
-    if (nav) {
-      setNavHeight(nav.offsetHeight);
-    }
+    setNavHeight(nav ? nav.offsetHeight : 0);
   }, []);
 
   useEffect(() => {

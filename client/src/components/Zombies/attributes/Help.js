@@ -1,11 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
+import CampaignModals from "../components/CampaignModals";
+import useCampaignActions from "../hooks/useCampaignActions";
 
-export default function Help({props, form, showHelpModal, handleCloseHelpModal}) {
+export default function Help({ form, showHelpModal, handleCloseHelpModal }) {
   const params = useParams();
   const navigate = useNavigate();
+  const {
+    notification: campaignNotification,
+    clearNotification,
+    playerCampaigns,
+    dmCampaigns,
+    showJoinCampaignModal,
+    showHostCampaignModal,
+    showCreateCampaignModal,
+    openJoinCampaignModal,
+    closeJoinCampaignModal,
+    openHostCampaignModal,
+    closeHostCampaignModal,
+    openCreateCampaignModal,
+    closeCreateCampaignModal,
+    createCampaignForm,
+    updateCreateCampaignForm,
+    submitCreateCampaign,
+  } = useCampaignActions();
   const [showDeleteCharacter, setShowDeleteCharacter] = useState(false);
   const handleCloseDeleteCharacter = () => setShowDeleteCharacter(false);
  const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
@@ -67,81 +87,140 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
    });
    navigate(0);
  } 
-return(
+  return (
     <div>
-        <Modal
+      <Modal
         className="dnd-modal modern-modal text-center"
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
         centered
         scrollable
-        show={showHelpModal} onHide={handleCloseHelpModal}>
-          <Card className="modern-card text-center">
-            <Card.Header className="modal-header">
-              <Card.Title className="modal-title">Help</Card.Title>
-            </Card.Header>
-            <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              <div className="table-container">
-                <Table striped bordered hover size="sm" className="custom-table">
-                  <thead>
-                    <tr>
-                      <td className="center-td">
-                        <strong className='text-light'>Change Dice Color:</strong>
-                      </td>
-                      <td className="center-td">
-                        <input
-                          type="color"
-                          id="colorPicker"
-                          ref={colorPickerRef}
-                          value={newColor}
-                          onChange={handleColorChange}
-                        />
-                      </td>
-                      <td className="center-td">
-                        <Button onClick={diceColorUpdate} className="action-btn save-btn fa-solid fa-floppy-disk"></Button>
-                      </td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="center-td" colSpan="3">
-                        <Button onClick={handleLogout} className="action-btn close-btn">
-                          Logout
-                        </Button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </div>
-            </Card.Body>
-            <Card.Footer className="modal-footer justify-content-between">
-              <Button className="action-btn btn-danger" onClick={handleShowDeleteCharacter}>Delete Character</Button>
-              <Button className="action-btn close-btn" onClick={handleCloseHelpModal}>
-                Close
+        show={showHelpModal}
+        onHide={handleCloseHelpModal}
+      >
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Help</Card.Title>
+          </Card.Header>
+          <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            {campaignNotification && (
+              <Alert
+                variant="danger"
+                dismissible
+                onClose={clearNotification}
+                className="mb-3"
+              >
+                {campaignNotification}
+              </Alert>
+            )}
+            <div className="table-container">
+              <Table striped bordered hover size="sm" className="custom-table">
+                <thead>
+                  <tr>
+                    <td className="center-td">
+                      <strong className="text-light">Change Dice Color:</strong>
+                    </td>
+                    <td className="center-td">
+                      <input
+                        type="color"
+                        id="colorPicker"
+                        ref={colorPickerRef}
+                        value={newColor}
+                        onChange={handleColorChange}
+                      />
+                    </td>
+                    <td className="center-td">
+                      <Button
+                        onClick={diceColorUpdate}
+                        className="action-btn save-btn fa-solid fa-floppy-disk"
+                      ></Button>
+                    </td>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="center-td" colSpan="3">
+                      <Button onClick={handleLogout} className="action-btn close-btn">
+                        Logout
+                      </Button>
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
+            </div>
+            <div className="mt-3 d-flex flex-column flex-lg-row gap-2 justify-content-center align-items-center">
+              <Button
+                className="fantasy-button campaign-button"
+                style={{ borderColor: "transparent" }}
+                onClick={openJoinCampaignModal}
+              >
+                Join Campaign
               </Button>
-            </Card.Footer>
-          </Card>
-        </Modal>
-        <Modal
-          className="dnd-modal modern-modal text-center"
-          size="lg"
-          aria-labelledby="contained-modal-title-vcenter"
-          centered
-          scrollable
-          show={showDeleteCharacter} onHide={handleCloseDeleteCharacter}>
-          <Card className="modern-card text-center">
-            <Card.Header className="modal-header">
-              <Card.Title className="modal-title">Delete Character</Card.Title>
-            </Card.Header>
-            <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              Are you sure you want to delete your character?
-            </Card.Body>
-            <Card.Footer className="modal-footer">
-              <Button className="btn-danger action-btn save-btn" onClick={deleteRecord}>Im Sure</Button>
-              <Button className="action-btn close-btn" onClick={handleCloseDeleteCharacter}>Close</Button>
-            </Card.Footer>
-          </Card>
-        </Modal>
+              <Button
+                className="hostCampaign campaign-button hostCampaign"
+                style={{ borderColor: "transparent" }}
+                onClick={openHostCampaignModal}
+              >
+                Host Campaign
+              </Button>
+              <Button
+                className="fantasy-button campaign-button create-button"
+                style={{ borderColor: "transparent" }}
+                onClick={openCreateCampaignModal}
+              >
+                Create Campaign
+              </Button>
+            </div>
+          </Card.Body>
+          <Card.Footer className="modal-footer justify-content-between">
+            <Button className="action-btn btn-danger" onClick={handleShowDeleteCharacter}>
+              Delete Character
+            </Button>
+            <Button className="action-btn close-btn" onClick={handleCloseHelpModal}>
+              Close
+            </Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
+      <Modal
+        className="dnd-modal modern-modal text-center"
+        size="lg"
+        aria-labelledby="contained-modal-title-vcenter"
+        centered
+        scrollable
+        show={showDeleteCharacter}
+        onHide={handleCloseDeleteCharacter}
+      >
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Delete Character</Card.Title>
+          </Card.Header>
+          <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            Are you sure you want to delete your character?
+          </Card.Body>
+          <Card.Footer className="modal-footer">
+            <Button className="btn-danger action-btn save-btn" onClick={deleteRecord}>
+              Im Sure
+            </Button>
+            <Button className="action-btn close-btn" onClick={handleCloseDeleteCharacter}>
+              Close
+            </Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
+      <CampaignModals
+        playerCampaigns={playerCampaigns}
+        dmCampaigns={dmCampaigns}
+        showJoinCampaignModal={showJoinCampaignModal}
+        closeJoinCampaignModal={closeJoinCampaignModal}
+        showHostCampaignModal={showHostCampaignModal}
+        closeHostCampaignModal={closeHostCampaignModal}
+        showCreateCampaignModal={showCreateCampaignModal}
+        closeCreateCampaignModal={closeCreateCampaignModal}
+        createCampaignForm={createCampaignForm}
+        updateCreateCampaignForm={updateCreateCampaignForm}
+        submitCreateCampaign={submitCreateCampaign}
+      />
     </div>
-)
+  );
 }

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Card, Table, Modal, Button } from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
@@ -137,46 +137,44 @@ export default function Stats({ form, showStats, handleCloseStats }) {
         centered
         className="dnd-modal modern-modal"
       >
-        <div className="text-center">
-          <Card className="modern-card">
-            <Card.Header className="modal-header">
-              <Card.Title className="modal-title">Stats</Card.Title>
-            </Card.Header>
-            <Card.Body>
-              <Table striped bordered hover size="sm" responsive className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Stat</th>
-                    <th>Level</th>
-                    <th>Mod</th>
-                    <th>View</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {STATS.map(({ key }) => (
-                    <tr key={key}>
-                      <td>{key.toUpperCase()}</td>
-                      <td>{computedStats[key]}</td>
-                      <td>{statMods[key]}</td>
-                      <td>
-                          <Button
-                            onClick={() => handleView(key)}
-                            variant="link"
-                            aria-label="view"
-                          >
-                            <i className="fa-solid fa-eye"></i>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-            </Card.Body>
-            <Card.Footer className="modal-footer">
-              <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
-            </Card.Footer>
-          </Card>
-        </div>
+        <Modal.Header className="modal-header">
+          <Modal.Title className="modal-title">Stats</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="stats-modal-body">
+          <div className="stat-card-grid">
+            {STATS.map(({ key, label }) => (
+              <div className="stat-card" key={key}>
+                <div className="stat-card-header">
+                  <div className="stat-card-title">
+                    <span className="stat-card-key">{key.toUpperCase()}</span>
+                    {label && <span className="stat-card-label">{label}</span>}
+                  </div>
+                  <Button
+                    onClick={() => handleView(key)}
+                    variant="link"
+                    aria-label={`View ${label || key} details`}
+                    className="stat-card-view"
+                  >
+                    <i className="fa-solid fa-eye"></i>
+                  </Button>
+                </div>
+                <div className="stat-card-body">
+                  <div className="stat-card-metric">
+                    <span className="stat-card-metric-label">Total</span>
+                    <span className="stat-card-metric-value">{computedStats[key]}</span>
+                  </div>
+                  <div className="stat-card-metric">
+                    <span className="stat-card-metric-label">Modifier</span>
+                    <span className="stat-card-metric-value">{statMods[key]}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="modal-footer">
+          <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
+        </Modal.Footer>
       </Modal>
       <StatBreakdownModal
         show={showBreakdown}

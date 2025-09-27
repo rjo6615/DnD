@@ -9,6 +9,7 @@
 }
 
 .combat-turn-header {
+  --combat-turn-header-height: clamp(112px, 20vw, 148px);
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -62,16 +63,44 @@
   &.combat-turn-header--fade-right::after {
     opacity: 1;
   }
+
+  &.combat-turn-header--empty {
+    min-height: var(--combat-turn-header-height);
+    cursor: default;
+    gap: 0;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
 }
 
 .combat-turn-header__card {
   flex: 0 0 auto;
   width: clamp(160px, 22vw, 240px);
   min-width: clamp(160px, 22vw, 240px);
+  min-height: var(--combat-turn-header-height);
 }
 
 @media (max-width: 576px) {
   .combat-turn-header__card {
+    width: clamp(100px, 32vw, 33.333%);
+    min-width: clamp(100px, 32vw, 33.333%);
+    min-height: var(--combat-turn-header-height);
+  }
+}
+
+.combat-turn-header__placeholder {
+  flex: 0 0 auto;
+  width: clamp(160px, 22vw, 240px);
+  min-width: clamp(160px, 22vw, 240px);
+  min-height: var(--combat-turn-header-height);
+  pointer-events: none;
+}
+
+@media (max-width: 576px) {
+  .combat-turn-header__placeholder {
     width: clamp(100px, 32vw, 33.333%);
     min-width: clamp(100px, 32vw, 33.333%);
   }
@@ -176,6 +205,565 @@
 .spell-slot-tab .pip.filled {
   background-color: currentColor;
   opacity: 1;
+}
+
+.spell-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .spell-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+.attack-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .attack-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+.attack-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  backdrop-filter: blur(6px);
+}
+
+.attack-card--empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.attack-card__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.attack-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.attack-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attack-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.attack-card__label {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.attack-card__value {
+  text-align: right;
+  flex: 1;
+}
+
+.attack-card__actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.attack-card__roll {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.attack-card__roll:hover,
+.attack-card__roll:focus {
+  color: #fff;
+  text-decoration: none;
+}
+
+.attack-card--empty .attack-card__roll {
+  display: none;
+}
+
+.skills-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .skills-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+.feature-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .feature-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+.feat-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .feat-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+.stats-modal-body {
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.stat-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .stat-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+.stat-card { 
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.character-info-body {
+  overflow-y: auto;
+}
+
+.character-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .character-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 992px) {
+  .character-info-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.character-info-item {
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+  text-align: center;
+}
+
+.character-info-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+}
+
+.character-info-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+}
+
+.character-info-value--stacked {
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.stat-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-card-key {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.stat-card-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.view-link-btn {
+  color: var(--bs-link-color);
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding: 0.25rem;
+}
+
+.view-link-btn:hover,
+.view-link-btn:focus,
+.view-link-btn:focus-visible {
+  color: var(--bs-link-hover-color);
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  text-decoration: none;
+  outline: none;
+}
+
+.stat-card-view {
+  @extend .view-link-btn;
+  font-size: 1.1rem;
+}
+
+.stat-card-view:hover,
+.stat-card-view:focus {
+  text-decoration: none;
+}
+
+.stat-card-body {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-card-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 90px;
+}
+
+.stat-card-metric-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.stat-card-metric-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.spell-card {
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spell-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.spell-card-header .form-check {
+  margin: 0;
+}
+
+.spell-card .form-check-label {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.spell-card-details {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.spell-card-details span {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.spell-card-details strong {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.spell-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.skill-card {
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skill-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.skill-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.skill-card-name {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.skill-card-ability {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.skill-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.skill-card-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.skill-card-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 90px;
+}
+
+.skill-card-metric-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.skill-card-metric-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.skill-card-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.skill-card .form-check {
+  margin: 0;
+}
+
+.skill-card .form-check-label {
+  font-weight: 500;
+}
+
+.feature-card {
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feature-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.feature-card-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.feature-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.feature-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.feature-card-actions .btn-outline-light {
+  color: var(--bs-light);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.feature-card-actions .btn-outline-light:hover,
+.feature-card-actions .btn-outline-light:focus {
+  color: var(--bs-dark);
+  background-color: var(--bs-light);
+}
+
+.feature-card-body {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.45;
+}
+
+.feat-card {
+  background: rgba(17, 16, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--bs-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.feat-card-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.feat-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.feat-card-actions .btn-outline-light {
+  color: var(--bs-light);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.feat-card-actions .btn-outline-light:hover,
+.feat-card-actions .btn-outline-light:focus {
+  color: var(--bs-dark);
+  background-color: var(--bs-light);
+}
+
+.feat-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.feat-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.feat-card-section-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.feat-card-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.feat-card-list li {
+  line-height: 1.4;
 }
 
 .weapon-checkbox .form-check-input:checked {
@@ -1071,6 +1659,15 @@ max-width: 300px;
 .dnd-modal .modal-body table,
 .dnd-modal .modal-body .dropdown-menu {
   color: initial;
+}
+
+.dnd-modal .modal-body .stat-card-view {
+  color: var(--bs-link-color);
+}
+
+.dnd-modal .modal-body .stat-card-view:hover,
+.dnd-modal .modal-body .stat-card-view:focus {
+  color: var(--bs-link-hover-color);
 }
 
 //vars

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Form, Col, Row, Alert } from 'react-bootstrap';
+import { Modal, Card, Button, Form, Col, Row, Alert } from 'react-bootstrap';
 import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
@@ -305,103 +305,103 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                 <span className="points-label text-light">Points Left:</span>
                 <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
               </div>
-              <Table striped bordered hover size="sm" className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Notes</th>
-                    <th>Skills</th>
-                    <th>Abilities</th>
+              <div className="feat-card-grid">
+                {form.feat.map((el, index) => {
+                  const skillValues = [];
+                  if (el.skills) {
+                    Object.keys(el.skills).forEach((key) => {
+                      const skill = ALL_SKILLS.find((s) => s.key === key);
+                      const label = skill ? skill.label : key;
+                      skillValues.push(`${label}: proficient`);
+                    });
+                  }
+                  SKILLS.forEach(({ label, key }) => {
+                    const val = el[key];
+                    if (val && val !== "0" && val !== "") {
+                      skillValues.push(`${label}: ${val}`);
+                    }
+                  });
 
-                    <th>Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {form.feat.map((el, index) => (
-                    <tr key={`${el.featName}-${index}`}>
-                      <td>{el.featName}</td>
-                      <td style={{ display: showDeleteFeatBtn }}>
-                        <Button
-                          variant="link"
-                          onClick={() => {
-                            handleShowFeatNotes();
-                            setModalFeatData(el);
-                          }}
-                        >
-                          <i className="fa-solid fa-eye"></i>
-                        </Button>
-                      </td>
-                      <td style={{ display: showDeleteFeatBtn }}>
-                        {(() => {
-                          const skillValues = [];
-                          if (el.skills) {
-                            Object.keys(el.skills).forEach((key) => {
-                              const skill = ALL_SKILLS.find((s) => s.key === key);
-                              const label = skill ? skill.label : key;
-                              skillValues.push(`${label}: proficient`);
-                            });
-                          }
-                          SKILLS.forEach(({ label, key }) => {
-                            const val = el[key];
-                            if (val && val !== "0" && val !== "") {
-                              skillValues.push(`${label}: ${val} `);
-                            }
-                          });
-                          return (
-                            <div>
-                              {skillValues.map((skill, index) => (
-                                <div key={index}>{skill}</div>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td
-                        style={{
-                          display: showDeleteFeatBtn,
-                          textAlign: "left",
-                          verticalAlign: "top",
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {(() => {
-                          const abilityValues = [];
-                          abilityLabels.forEach((label) => {
-                            const prop = label.toLowerCase();
-                            const val = el[prop];
-                            if (val && val !== "0" && val !== "") {
-                              abilityValues.push(`${label}: ${val}`);
-                            }
-                          });
-                          extraAbilityLabels.forEach(({ label, key }) => {
-                            const val = el[key];
-                            if (val && val !== "0" && val !== "") {
-                              abilityValues.push(`${label}: ${val}`);
-                            }
-                          });
-                          return (
-                            <div>
-                              {abilityValues.map((ab, index) => (
-                                <div key={index}>{ab}</div>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td>
-                        <Button
-                          size="sm"
+                  const abilityValues = [];
+                  abilityLabels.forEach((label) => {
+                    const prop = label.toLowerCase();
+                    const val = el[prop];
+                    if (val && val !== "0" && val !== "") {
+                      abilityValues.push(`${label}: ${val}`);
+                    }
+                  });
+                  extraAbilityLabels.forEach(({ label, key }) => {
+                    const val = el[key];
+                    if (val && val !== "0" && val !== "") {
+                      abilityValues.push(`${label}: ${val}`);
+                    }
+                  });
+
+                  return (
+                    <div className="feat-card" key={`${el.featName}-${index}`}>
+                      <div className="feat-card-header">
+                        <div className="feat-card-name">{el.featName}</div>
+                        <div
+                          className="feat-card-actions"
                           style={{ display: showDeleteFeatBtn }}
-                          className="btn-danger action-btn fa-solid fa-trash"
-                          onClick={() => {
-                            deleteFeats(index);
-                          }}
-                        ></Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+                        >
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="view-link-btn"
+                            onClick={() => {
+                              handleShowFeatNotes();
+                              setModalFeatData(el);
+                            }}
+                          >
+                            <i className="fa-solid fa-eye" aria-hidden="true"></i>
+                            <span className="visually-hidden">View notes</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            className="action-btn"
+                            onClick={() => {
+                              deleteFeats(index);
+                            }}
+                          >
+                            <i className="fa-solid fa-trash" aria-hidden="true"></i>
+                            <span className="visually-hidden">Delete feat</span>
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="feat-card-body">
+                        {skillValues.length > 0 && (
+                          <div
+                            className="feat-card-section"
+                            style={{ display: showDeleteFeatBtn }}
+                          >
+                            <div className="feat-card-section-title">Skills &amp; Tools</div>
+                            <ul className="feat-card-list">
+                              {skillValues.map((skill) => (
+                                <li key={skill}>{skill}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {abilityValues.length > 0 && (
+                          <div
+                            className="feat-card-section"
+                            style={{ display: showDeleteFeatBtn }}
+                          >
+                            <div className="feat-card-section-title">Ability Bonuses</div>
+                            <ul className="feat-card-list">
+                              {abilityValues.map((ab) => (
+                                <li key={ab}>{ab}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
               <Row>
                 <Col style={{ display: showFeatBtn }}>
                   <Form onSubmit={addFeatToDb}>
@@ -425,6 +425,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
                         </Form.Select>
                         <Button
                           variant="link"
+                          className="view-link-btn"
                           disabled={!selectedFeatData}
                           onClick={() => {
                             setModalFeatData(selectedFeatData);

@@ -4,7 +4,7 @@ import React, {
   useImperativeHandle,
   useMemo,
 } from 'react';
-import { Button, Modal, Card, Table } from "react-bootstrap";
+import { Button, Modal, Card } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -738,92 +738,103 @@ const showSparklesEffect = () => {
           </Card.Header>
           <Card.Body>
             <Card.Title className="modal-title">Weapons</Card.Title>
-              <Table className="modern-table" striped bordered hover responsive>
-                <thead>
-                  <tr>
-                    <th>Weapon Name</th>
-                    <th>Attack Bonus</th>
-                    <th>Damage</th>
-                    <th>Attack</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {equippedWeapons.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center text-muted">
-                        No weapons equipped.
-                      </td>
-                    </tr>
-                  ) : (
-                    equippedWeapons.map(({ slot, weapon }) => (
-                      <tr key={`${slot}-${weapon.name || slot}`}>
-                        <td className="text-capitalize">{weapon.name || 'Unknown'}</td>
-                        <td>{getAttackBonus(weapon)}</td>
-                        <td>{getDamageString(weapon)}</td>
-                        <td>
+            <div className="attack-card-grid">
+              {equippedWeapons.length === 0 ? (
+                <div className="attack-card attack-card--empty">
+                  <p className="text-muted mb-0">No weapons equipped.</p>
+                </div>
+              ) : (
+                equippedWeapons.map(({ slot, weapon }) => (
+                  <div
+                    className="attack-card"
+                    key={`${slot}-${weapon.name || slot}`}
+                  >
+                    <div className="attack-card__title text-capitalize">
+                      {weapon.name || 'Unknown'}
+                    </div>
+                    <div className="attack-card__details">
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Attack Bonus</span>
+                        <span className="attack-card__value">
+                          {getAttackBonus(weapon)}
+                        </span>
+                      </div>
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Damage</span>
+                        <span className="attack-card__value">
+                          {getDamageString(weapon)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="attack-card__actions">
+                      <Button
+                        onClick={() => {
+                          handleWeaponAttack(weapon);
+                          handleCloseAttack();
+                        }}
+                        variant="link"
+                        aria-label="roll"
+                        className="attack-card__roll"
+                      >
+                        <i className="fa-solid fa-dice-d20"></i>
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
+              <>
+                <Card.Title className="modal-title mt-4">Spells</Card.Title>
+                <div className="attack-card-grid">
+                  {sortedSpells
+                    .filter((s) => s && s.damage)
+                    .map((spell, idx) => (
+                      <div className="attack-card" key={idx}>
+                        <div className="attack-card__title">{spell.name}</div>
+                        <div className="attack-card__meta">
+                          <span>{spell.casterType || spell.caster || 'Unknown'}</span>
+                          <span>• Level {spell.level}</span>
+                        </div>
+                        <div className="attack-card__details">
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Damage</span>
+                            <span className="attack-card__value">
+                              {formatDamageSegments(spell.damage)}
+                            </span>
+                          </div>
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Casting Time</span>
+                            <span className="attack-card__value">{spell.castingTime}</span>
+                          </div>
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Range</span>
+                            <span className="attack-card__value">{spell.range}</span>
+                          </div>
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Duration</span>
+                            <span className="attack-card__value">{spell.duration}</span>
+                          </div>
+                        </div>
+                        <div className="attack-card__actions">
                           <Button
                             onClick={() => {
-                              handleWeaponAttack(weapon);
+                              handleSpellsButtonClick(spell);
                               handleCloseAttack();
                             }}
                             variant="link"
                             aria-label="roll"
+                            className="attack-card__roll"
                           >
                             <i className="fa-solid fa-dice-d20"></i>
                           </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
-              <>
-                <Card.Title className="modal-title mt-4">Spells</Card.Title>
-                <Table className="modern-table" striped bordered hover responsive>
-                  <thead>
-                    <tr>
-                      <th>Spell Name</th>
-                      <th>Class</th>
-                      <th>Level</th>
-                      <th>Damage</th>
-                      <th>Casting Time</th>
-                      <th>Range</th>
-                      <th>Duration</th>
-                      <th>Attack</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedSpells
-                      .filter((s) => s && s.damage)
-                      .map((spell, idx) => (
-                        <tr key={idx}>
-                          <td>{spell.name}</td>
-                          <td>{spell.casterType || spell.caster || 'Unknown'}</td>
-                          <td>{spell.level}</td>
-                          <td>{formatDamageSegments(spell.damage)}</td>
-                          <td>{spell.castingTime}</td>
-                          <td>{spell.range}</td>
-                          <td>{spell.duration}</td>
-                          <td>
-                            <Button
-                              onClick={() => {
-                                handleSpellsButtonClick(spell);
-                                handleCloseAttack();
-                              }} 
-                              variant="link"
-                              aria-label="roll"                 
-                            >
-                              <i className="fa-solid fa-dice-d20"></i>
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </Table>
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </>
             )}
-            </Card.Body>
+          </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>
                 Close
