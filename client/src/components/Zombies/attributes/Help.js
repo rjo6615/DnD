@@ -157,7 +157,7 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
                 Join Campaign
               </Button>
               <Button
-                className="fantasy-button campaign-button hostCampaign"
+                className="hostCampaign campaign-button hostCampaign"
                 style={{ borderColor: "transparent" }}
                 onClick={openHostCampaignModal}
               >
