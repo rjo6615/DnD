@@ -55,7 +55,7 @@ describe('calculateDamage parser', () => {
   test('handles multi-type damage and returns breakdown string', () => {
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
+    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
   });
 });
 
@@ -102,9 +102,45 @@ describe('PlayerTurnActions weapon damage display', () => {
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
     const cold = within(card).getByText(/1d4\+2 cold/);
-    const slashing = within(card).getByText(/1d6\+2 slashing/);
+    const slashing = within(card).getByText(/1d6 slashing/);
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
+    expect(slashing.textContent).toBe('1d6 slashing');
+  });
+
+  test('multi-part weapon damage applies ability modifier once', () => {
+    const weapon = {
+      name: 'Storm Blade',
+      damage: '2d8 slashing + 1d6 lightning',
+      category: 'melee',
+      source: 'weapon',
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={3}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const card = screen.getByText('Storm Blade').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const slashing = within(card).getByText(/2d8\+3 slashing/);
+    const lightning = within(card).getByText(/1d6 lightning/);
+    expect(slashing.textContent).toBe('2d8+3 slashing');
+    expect(lightning.textContent).toBe('1d6 lightning');
+
+    const deterministicRoll = (count, sides) => Array(count).fill(1);
+    expect(
+      calculateDamage(weapon.damage, 3, false, deterministicRoll)
+    ).toEqual({ total: 6, breakdown: '5 slashing + 1 lightning' });
   });
 
   test('spell damage segments include type classes', () => {
@@ -262,7 +298,7 @@ describe('PlayerTurnActions damage log', () => {
       const el = document.getElementById('damageValue');
       if (!el || el.textContent === '0') throw new Error('waiting');
     });
-    expect(document.getElementById('damageValue').textContent).toBe('6');
+    expect(document.getElementById('damageValue').textContent).toBe('4');
 
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
@@ -273,11 +309,11 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Frost Brand (6)');
+    expect(totalLine).toHaveTextContent('Frost Brand (4)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
-    expect(breakdownLines).toEqual(['- 3 cold', '- 3 slashing']);
+    expect(breakdownLines).toEqual(['- 3 cold', '- 1 slashing']);
     Math.random = orig;
   });
 
@@ -320,13 +356,13 @@ describe('PlayerTurnActions damage log', () => {
         cold.classList.contains('damage-cold')
     ).toBe(true);
 
-    const fire = within(modal).getByText('3 fire');
+    const fire = within(modal).getByText('1 fire');
     expect(
       fire.style.color === damageTypeColors.fire ||
         fire.classList.contains('damage-fire')
     ).toBe(true);
 
-    const lightning = within(modal).getByText('3 lightning');
+    const lightning = within(modal).getByText('1 lightning');
     expect(
       lightning.style.color === damageTypeColors.lightning ||
         lightning.classList.contains('damage-lightning')
@@ -429,7 +465,7 @@ describe('PlayerTurnActions damage log', () => {
     const fixedRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
+    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
   });
 });
 
@@ -459,9 +495,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
     const cold = within(card).getByText(/1d4\+2 cold/);
-    const slashing = within(card).getByText(/1d6\+2 slashing/);
+    const slashing = within(card).getByText(/1d6 slashing/);
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
+    expect(slashing.textContent).toBe('1d6 slashing');
   });
 
   test('spell damage segments include type classes', () => {
