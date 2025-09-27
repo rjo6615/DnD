@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Button, Form, Tabs, Tab, Table } from 'react-bootstrap';
+import { Modal, Card, Button, Form, Tabs, Tab } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import UpcastModal from './UpcastModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
@@ -400,6 +400,82 @@ export default function SpellSelector({
     saveSpells(updatedSpells, updatedCasters);
   }
 
+  const renderSpellCards = (cls) => {
+    const spells = spellsForClass(cls);
+    if (!spells.length) {
+      return <div className="text-light">No spells available.</div>;
+    }
+
+    return (
+      <div className="spell-card-grid">
+        {spells.map((spell) => {
+          const isSelected = selectedSpells.includes(spell.name);
+          const disableSelection = !isSelected && (pointsLeft[cls] || 0) <= 0;
+
+          return (
+            <div key={spell.name} className="spell-card">
+              <div className="spell-card-header">
+                <Form.Check
+                  id={`spell-${cls}-${spell.name}`}
+                  type="checkbox"
+                  label={spell.name}
+                  checked={isSelected}
+                  disabled={disableSelection}
+                  onChange={() => toggleSpell(spell.name, cls)}
+                />
+                <div className="spell-card-actions">
+                  <Button
+                    variant="link"
+                    onClick={() => setViewSpell(spell)}
+                  >
+                    <i className="fa-solid fa-eye"></i>
+                  </Button>
+                  <Button
+                    variant="link"
+                    disabled={!isSelected}
+                    className={!isSelected ? 'text-secondary' : ''}
+                    onClick={() => {
+                      if (!isSelected) return;
+                      if (spell.higherLevels) {
+                        setPendingSpell(spell);
+                        setShowUpcast(true);
+                      } else {
+                        const damage = getScaledDamage(spell);
+                        onCastSpell?.({
+                          level: spell.level,
+                          damage,
+                          castingTime: spell.castingTime,
+                          name: spell.name,
+                        });
+                        handleClose();
+                      }
+                    }}
+                  >
+                    <i className="fa-solid fa-wand-sparkles" />
+                  </Button>
+                </div>
+              </div>
+              <div className="spell-card-details">
+                <span>
+                  <strong>School:</strong> {spell.school}
+                </span>
+                <span>
+                  <strong>Casting Time:</strong> {spell.castingTime}
+                </span>
+                <span>
+                  <strong>Range:</strong> {spell.range}
+                </span>
+                <span>
+                  <strong>Duration:</strong> {spell.duration}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   async function saveSpells(
     spells = selectedSpells,
     casters = spellCasters
@@ -510,83 +586,7 @@ export default function SpellSelector({
                           : pointsLeft[cls] || 0}
                       </span>
                     </div>
-                    <Table
-                      striped
-                      bordered
-                      hover
-                      size="sm"
-                      className="modern-table"
-                    >
-                      <thead>
-                        <tr>
-                          <th></th>
-                          <th>Name</th>
-                          <th>School</th>
-                          <th>Casting Time</th>
-                          <th>Range</th>
-                          <th>Duration</th>
-                          <th></th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {spellsForClass(cls).map((spell) => {
-                          const isSelected = selectedSpells.includes(spell.name);
-                          return (
-                            <tr key={spell.name}>
-                              <td>
-                                <Form.Check
-                                  id={`spell-${spell.name}`}
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  disabled={
-                                    !isSelected && (pointsLeft[cls] || 0) <= 0
-                                  }
-                                  onChange={() => toggleSpell(spell.name, cls)}
-                                />
-                              </td>
-                              <td>{spell.name}</td>
-                              <td>{spell.school}</td>
-                              <td>{spell.castingTime}</td>
-                              <td>{spell.range}</td>
-                              <td>{spell.duration}</td>
-                              <td>
-                                <Button
-                                  variant="link"
-                                  onClick={() => setViewSpell(spell)}
-                                >
-                                  <i className="fa-solid fa-eye"></i>
-                                </Button>
-                              </td>
-                              <td>
-                                <Button
-                                  variant="link"
-                                  disabled={!isSelected}
-                                  className={!isSelected ? 'text-secondary' : ''}
-                                  onClick={() => {
-                                    if (spell.higherLevels) {
-                                      setPendingSpell(spell);
-                                      setShowUpcast(true);
-                                    } else {
-                                      const damage = getScaledDamage(spell);
-                                      onCastSpell?.({
-                                        level: spell.level,
-                                        damage,
-                                        castingTime: spell.castingTime,
-                                        name: spell.name,
-                                      });
-                                      handleClose();
-                                    }
-                                  }}
-                                >
-                                  <i className="fa-solid fa-wand-sparkles" />
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </Table>
+                    {renderSpellCards(cls)}
                   </>
                 );
               })()
@@ -631,83 +631,7 @@ export default function SpellSelector({
                           : pointsLeft[name] || 0}
                       </span>
                     </div>
-                    <Table
-                      striped
-                      bordered
-                      hover
-                      size="sm"
-                      className="modern-table"
-                    >
-                      <thead>
-                        <tr>
-                          <th></th>
-                          <th>Name</th>
-                          <th>School</th>
-                          <th>Casting Time</th>
-                          <th>Range</th>
-                          <th>Duration</th>
-                          <th></th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {spellsForClass(name).map((spell) => {
-                          const isSelected = selectedSpells.includes(spell.name);
-                          return (
-                            <tr key={spell.name}>
-                              <td>
-                                <Form.Check
-                                  id={`spell-${spell.name}`}
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  disabled={
-                                    !isSelected && (pointsLeft[name] || 0) <= 0
-                                  }
-                                  onChange={() => toggleSpell(spell.name, name)}
-                                />
-                              </td>
-                              <td>{spell.name}</td>
-                              <td>{spell.school}</td>
-                              <td>{spell.castingTime}</td>
-                              <td>{spell.range}</td>
-                              <td>{spell.duration}</td>
-                              <td>
-                                <Button
-                                  variant="link"
-                                  onClick={() => setViewSpell(spell)}
-                                >
-                                  <i className="fa-solid fa-eye"></i>
-                                </Button>
-                              </td>
-                              <td>
-                                <Button
-                                  variant="link"
-                                  disabled={!isSelected}
-                                  className={!isSelected ? 'text-secondary' : ''}
-                                  onClick={() => {
-                                    if (spell.higherLevels) {
-                                      setPendingSpell(spell);
-                                      setShowUpcast(true);
-                                    } else {
-                                      const damage = getScaledDamage(spell);
-                                      onCastSpell?.({
-                                        level: spell.level,
-                                        damage,
-                                        castingTime: spell.castingTime,
-                                        name: spell.name,
-                                      });
-                                      handleClose();
-                                    }
-                                  }}
-                                >
-                                  <i className="fa-solid fa-wand-sparkles" />
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </Table>
+                    {renderSpellCards(name)}
                   </Tab>
                 ))}
               </Tabs>
