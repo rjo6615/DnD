@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Card, Table, Button, Spinner } from 'react-bootstrap';
+import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
@@ -79,39 +79,31 @@ export default function Features({
               {error && (
                 <div className="text-danger mb-2">{error}</div>
               )}
-              <Table striped bordered hover size="sm" className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Class</th>
-                    <th>Level</th>
-                    <th>Feature</th>
-                    <th>Use</th>
-                    <th>View</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="text-center">
-                        <Spinner animation="border" size="sm" role="status" />
-                      </td>
-                    </tr>
-                  ) : features.length > 0 ? (
-                    features.map((feat, idx) => {
-                      const featKey = `${feat.class}-${feat.level}-${idx}`;
-                      return (
-                        <tr key={featKey}>
-                          <td>{feat.class}</td>
-                          <td>{feat.level}</td>
-                          <td>{feat.name}</td>
-                          <td>
-                            {feat.name && feat.name.includes('Action Surge') ? (
+              {loading ? (
+                <div className="d-flex justify-content-center py-4">
+                  <Spinner animation="border" role="status" />
+                </div>
+              ) : features.length > 0 ? (
+                <div className="feature-card-grid">
+                  {features.map((feat, idx) => {
+                    const featKey = `${feat.class}-${feat.level}-${idx}`;
+                    const isActionSurge = feat.name?.includes('Action Surge');
+                    return (
+                      <div className="feature-card" key={featKey}>
+                        <div className="feature-card-header">
+                          <div>
+                            <div className="feature-card-name">{feat.name}</div>
+                            <div className="feature-card-meta">
+                              <span>{feat.class}</span>
+                              <span>Level {feat.level}</span>
+                            </div>
+                          </div>
+                          <div className="feature-card-actions">
+                            {isActionSurge ? (
                               <Button
                                 aria-label="use feature"
                                 variant="link"
-                                className={`p-0 border-0 ${
-                                  surgeUsed ? 'opacity-50' : ''
-                                }`}
+                                className={`p-0 border-0 ${surgeUsed ? 'opacity-50' : ''}`}
                                 onClick={() => {
                                   if (!surgeUsed) {
                                     onActionSurge?.();
@@ -128,13 +120,14 @@ export default function Features({
                                 />
                               </Button>
                             ) : (
-                              <Button aria-label="use feature">Use</Button>
+                              <Button aria-label="use feature" variant="outline-light" size="sm">
+                                Use
+                              </Button>
                             )}
-                          </td>
-                          <td>
                             <Button
                               aria-label="view feature"
-                              variant="link"
+                              variant="outline-light"
+                              size="sm"
                               onClick={() => {
                                 setModalFeature(feat);
                                 setShowModal(true);
@@ -142,19 +135,22 @@ export default function Features({
                             >
                               <i className="fa-solid fa-eye"></i>
                             </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : !error ? (
-                    <tr>
-                      <td colSpan={5} className="text-center">
-                        No features found
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </Table>
+                          </div>
+                        </div>
+                        {feat.desc && (
+                          <div className="feature-card-body">
+                            {Array.isArray(feat.desc)
+                              ? feat.desc.join(' ')
+                              : feat.desc}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !error ? (
+                <div className="text-center text-muted">No features found</div>
+              ) : null}
             </Card.Body>
           </Card>
         </div>
