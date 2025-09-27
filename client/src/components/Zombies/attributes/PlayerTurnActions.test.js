@@ -99,9 +99,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
-    const cold = within(row).getByText(/1d4\+2 cold/);
-    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    const card = screen.getByText('Frost Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const cold = within(card).getByText(/1d4\+2 cold/);
+    const slashing = within(card).getByText(/1d6\+2 slashing/);
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
   });
@@ -126,9 +127,70 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Fire Bolt').closest('tr');
-    const fire = within(row).getByText(/1d10 fire/);
+    const card = screen.getByText('Fire Bolt').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const fire = within(card).getByText(/1d10 fire/);
     expect(fire).toHaveClass('damage-fire');
+  });
+
+  test('shows breath attack details for dragonborn ancestry', () => {
+    const ancestry = {
+      label: 'Gold (Fire)',
+      damageType: 'Fire',
+      breathWeapon: { shape: '15 ft. cone', save: 'Dexterity' },
+    };
+    const race = {
+      name: 'Dragonborn',
+      dragonAncestries: { gold: ancestry },
+      selectedAncestryKey: 'gold',
+      selectedAncestry: ancestry,
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          race,
+          equipment: {},
+          spells: [],
+          occupation: [{ Level: '6' }],
+        }}
+        strMod={0}
+        dexMod={0}
+        conMod={2}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const breathCard = screen.getByText('Gold (Fire)').closest('.attack-card');
+    expect(breathCard).toBeInTheDocument();
+    expect(within(breathCard).getByText('Save DC')).toBeInTheDocument();
+    expect(within(breathCard).getByText('13')).toBeInTheDocument();
+    expect(within(breathCard).getByText('3d6 Fire')).toBeInTheDocument();
+    expect(
+      within(breathCard).getByText('15 ft. cone • Dexterity Save')
+    ).toBeInTheDocument();
+  });
+
+  test('does not render breath attack card for non-dragonborn characters', () => {
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          race: { name: 'Human' },
+          equipment: {},
+          spells: [],
+          occupation: [{ Level: '6' }],
+        }}
+        strMod={0}
+        dexMod={0}
+        conMod={2}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    expect(screen.queryByText('Breath Attack')).not.toBeInTheDocument();
   });
 });
 
@@ -359,9 +421,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
-    const cold = within(row).getByText(/1d4\+2 cold/);
-    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    const card = screen.getByText('Frost Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const cold = within(card).getByText(/1d4\+2 cold/);
+    const slashing = within(card).getByText(/1d6\+2 slashing/);
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
   });
@@ -386,8 +449,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Fire Bolt').closest('tr');
-    const fire = within(row).getByText(/1d10 fire/);
+    const card = screen.getByText('Fire Bolt').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const fire = within(card).getByText(/1d10 fire/);
     expect(fire).toHaveClass('damage-fire');
   });
 });
@@ -680,13 +744,12 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const header = await screen.findByText('Spell Name');
-    const table = header.closest('table');
-    const rows = within(table).getAllByRole('row').slice(1);
-    const names = rows.map(
-      (row) => within(row).getAllByRole('cell')[0].textContent
-    );
-    expect(names).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
+    const titles = Array.from(
+      document.querySelectorAll('.attack-card__title')
+    )
+      .map((el) => el.textContent)
+      .filter((text) => spells.some((spell) => spell.name === text));
+    expect(titles).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
   });
 });
 

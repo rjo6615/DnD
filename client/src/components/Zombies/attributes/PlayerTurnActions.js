@@ -115,6 +115,7 @@ const PlayerTurnActions = React.forwardRef(
       form,
       strMod,
       dexMod,
+      conMod = 0,
       onCastSpell,
       onPassTurn = () => {},
       canPassTurn = true,
@@ -295,6 +296,49 @@ const [isFumble, setIsFumble] = useState(false);
   const profBonus =
     form.proficiencyBonus ?? proficiencyBonus(totalLevel);
 
+  const dragonbornAncestry = useMemo(() => {
+    const race = form?.race;
+    if (!race) return null;
+    const raceName = typeof race?.name === 'string' ? race.name.toLowerCase() : '';
+    if (raceName !== 'dragonborn') return null;
+
+    if (race.selectedAncestry) return race.selectedAncestry;
+
+    if (race.selectedAncestryKey && race.dragonAncestries) {
+      const selected = race.dragonAncestries[race.selectedAncestryKey];
+      if (selected) return selected;
+    }
+
+    if (form?.dragonAncestry) return form.dragonAncestry;
+
+    if (form?.dragonAncestryKey && race.dragonAncestries) {
+      return race.dragonAncestries[form.dragonAncestryKey] || null;
+    }
+
+    return null;
+  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey]);
+
+  const breathWeaponDetails = useMemo(() => {
+    if (!dragonbornAncestry) return null;
+
+    const diceCount =
+      totalLevel >= 16 ? 5 : totalLevel >= 11 ? 4 : totalLevel >= 6 ? 3 : 2;
+    const damageType = dragonbornAncestry.damageType || '';
+    const damageString = `${diceCount}d6${damageType ? ` ${damageType}` : ''}`;
+    const breathWeapon = dragonbornAncestry.breathWeapon || {};
+    const numericConMod = Number(conMod) || 0;
+
+    return {
+      label: dragonbornAncestry.label || 'Breath Weapon',
+      damageString,
+      damageType,
+      diceCount,
+      saveDC: 8 + numericConMod + profBonus,
+      shape: breathWeapon.shape,
+      save: breathWeapon.save,
+    };
+  }, [dragonbornAncestry, conMod, profBonus, totalLevel]);
+
   const getAttackBonus = (weapon) =>
     profBonus +
     abilityForWeapon(weapon) +
@@ -332,6 +376,17 @@ const [isFumble, setIsFumble] = useState(false);
       result.total,
       result.breakdown,
       weapon.name
+    );
+  };
+
+  const handleBreathWeaponAttack = () => {
+    if (!breathWeaponDetails) return;
+    const result = calculateDamage(breathWeaponDetails.damageString, 0, false);
+    if (!result) return;
+    updateDamageValueWithAnimation(
+      result.total,
+      result.breakdown,
+      'Breath Weapon'
     );
   };
 
@@ -783,6 +838,59 @@ const showSparklesEffect = () => {
                 ))
               )}
             </div>
+            {breathWeaponDetails && (
+              <>
+                <Card.Title className="modal-title mt-4">Breath Attack</Card.Title>
+                <div className="attack-card-grid">
+                  <div className="attack-card">
+                    <div className="attack-card__title">
+                      {breathWeaponDetails.label}
+                    </div>
+                    <div className="attack-card__details">
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Save DC</span>
+                        <span className="attack-card__value">
+                          {breathWeaponDetails.saveDC}
+                        </span>
+                      </div>
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Damage</span>
+                        <span className="attack-card__value">
+                          {breathWeaponDetails.damageString}
+                        </span>
+                      </div>
+                      {(breathWeaponDetails.shape || breathWeaponDetails.save) && (
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Shape</span>
+                          <span className="attack-card__value">
+                            {breathWeaponDetails.shape}
+                            {breathWeaponDetails.shape && breathWeaponDetails.save
+                              ? ' • '
+                              : ''}
+                            {breathWeaponDetails.save
+                              ? `${breathWeaponDetails.save} Save`
+                              : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="attack-card__actions">
+                      <Button
+                        onClick={() => {
+                          handleBreathWeaponAttack();
+                          handleCloseAttack();
+                        }}
+                        variant="link"
+                        aria-label="roll"
+                        className="attack-card__roll"
+                      >
+                        <i className="fa-solid fa-dice-d20"></i>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
             {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
               <>
                 <Card.Title className="modal-title mt-4">Spells</Card.Title>
