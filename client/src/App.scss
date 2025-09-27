@@ -281,14 +281,16 @@
 }
 
 .stat-card-view {
-  color: rgba(255, 255, 255, 0.85);
+  color: #0dcaf0;
+  color: var(--bs-info);
   padding: 0.25rem;
   font-size: 1.1rem;
 }
 
 .stat-card-view:hover,
 .stat-card-view:focus {
-  color: #fff;
+  color: #3dd5f3;
+  color: color-mix(in srgb, var(--bs-info) 85%, white 15%);
   text-decoration: none;
 }
 
