@@ -346,16 +346,22 @@ const [isFumble, setIsFumble] = useState(false);
     abilityForWeapon(weapon) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
     
+  const normalizeDamageTypeForClass = (type) => {
+    const trimmed = (type || '').trim();
+    return trimmed ? trimmed.toLowerCase().replace(/\s+/g, '-') : '';
+  };
+
   const formatDamageSegments = (damage, ability) =>
     damage
       .split(/\s+\+\s+/)
       .map((part, i, arr) => {
         const [token, ...rest] = part.trim().split(' ');
         const type = rest.join(' ').trim();
+        const normalizedType = normalizeDamageTypeForClass(type);
         const showAbility = ability !== undefined && ability !== null && i === 0;
         return (
           <React.Fragment key={i}>
-            <span className={type ? `damage-${type}` : ''}>
+            <span className={normalizedType ? `damage-${normalizedType}` : ''}>
               {token}
               {showAbility ? `+${ability}` : ''}
               {type ? ` ${type}` : ''}
@@ -719,13 +725,14 @@ const showSparklesEffect = () => {
                   {entry.breakdown && (
                     <div>
                       {entry.breakdown.split(' + ').map((segment, i) => {
-                        const match = segment.match(/(\d+)(?:\s+(\w+))?/);
-                        const value = match ? match[1] : segment;
-                        const type = match ? match[2] : '';
+                        const [valueToken, ...typeParts] = segment.trim().split(/\s+/);
+                        const value = valueToken || segment;
+                        const type = typeParts.join(' ');
+                        const normalizedType = normalizeDamageTypeForClass(type);
                         return (
                           <div key={i}>
                             -{' '}
-                            <span className={type ? `damage-${type}` : ''}>
+                            <span className={normalizedType ? `damage-${normalizedType}` : ''}>
                               {value}
                               {type ? ` ${type}` : ''}
                             </span>
