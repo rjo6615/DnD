@@ -330,6 +330,50 @@ test('skills button includes points-glow when expertise points available', async
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
 });
 
+test('skills button does not glow when granted proficiencies meet totals', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Rogue', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 2,
+      expertisePoints: 1,
+      skills: {
+        stealth: { proficient: true, expertise: true },
+        perception: { proficient: true },
+      },
+      race: {
+        skills: {
+          stealth: { proficient: true, expertise: true },
+          perception: { proficient: true },
+        },
+      },
+      background: {
+        skills: {
+          stealth: { expertise: true },
+          perception: { proficient: true },
+        },
+      },
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
+  await waitFor(() => expect(skillButton).not.toHaveClass('points-glow'));
+});
+
 test('casting spells consumes action and bonus circles based on casting time', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
