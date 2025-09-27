@@ -68,7 +68,6 @@ export default function Features({
       id: 'dragonborn-damage-resistance',
       name: 'Damage Resistance',
       meta: `Dragon Subrace (${ancestryLabel})`,
-      desc: resistanceDescription,
       description: resistanceDescription,
       hideUseButton: true,
     };
@@ -82,7 +81,6 @@ export default function Features({
         id: 'dragonborn-draconic-flight',
         name: 'Draconic Flight',
         meta: `Dragon Subrace (${ancestryLabel})`,
-        desc: draconicFlightDescription,
         description: draconicFlightDescription,
         hideUseButton: true,
       });
