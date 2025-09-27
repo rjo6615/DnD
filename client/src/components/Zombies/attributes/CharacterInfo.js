@@ -69,7 +69,8 @@ export default function CharacterInfo({
                   onClick={onShowBackground}
                   variant="link"
                   aria-label="Show Background"
-                  className="view-link-btn"
+                  className="stat-card-view"
+                  size="sm"
                 >
                   <i className="fa-solid fa-eye"></i>
                 </Button>
