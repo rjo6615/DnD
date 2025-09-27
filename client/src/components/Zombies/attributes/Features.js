@@ -152,6 +152,14 @@ export default function Features({
                 <div className="text-center text-muted">No features found</div>
               ) : null}
             </Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button
+                className="action-btn close-btn"
+                onClick={handleCloseFeatures}
+              >
+                Close
+              </Button>
+            </Card.Footer>
           </Card>
         </div>
       </Modal>
