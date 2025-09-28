@@ -18,6 +18,8 @@ import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
 import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
+import WeaponPropertyList from '../../Weapons/WeaponPropertyList';
+import { resolveWeaponBaseName } from '../../../constants/weaponProperties';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative } from '../utils/derivedStats';
@@ -3347,16 +3349,24 @@ const resolveIcon = (category, iconMap, fallback) => {
                         weaponCategoryIcons,
                         GiCrossedSwords
                       );
+                      const displayName = weapon.name || weapon.displayName || 'Unnamed Weapon';
+                      const baseName = resolveWeaponBaseName(weapon);
+                      const canonicalMatch = baseName && displayName
+                        ? baseName.toLowerCase() === displayName.toLowerCase()
+                        : false;
+                      const rootLabel = !canonicalMatch && baseName ? baseName : null;
+                      const propertyArray = Array.isArray(weapon.properties)
+                        ? weapon.properties
+                        : typeof weapon.properties === 'string'
+                        ? weapon.properties
+                            .split(',')
+                            .map((prop) => prop.trim())
+                            .filter(Boolean)
+                        : [];
                       const detailRows = [
                         { label: 'Type', value: weapon.type || '—' },
                         { label: 'Category', value: weapon.category || '—' },
                         { label: 'Damage', value: weapon.damage || '—' },
-                        {
-                          label: 'Properties',
-                          value: weapon.properties?.length
-                            ? weapon.properties.join(', ')
-                            : '—',
-                        },
                         { label: 'Weight', value: weapon.weight ?? '—' },
                         { label: 'Cost', value: weapon.cost ?? '—' },
                       ];
@@ -3367,7 +3377,12 @@ const resolveIcon = (category, iconMap, fallback) => {
                             <div className="d-flex justify-content-center mb-2">
                               <Icon size={40} title={weapon.category || 'Weapon'} />
                             </div>
-                            <Card.Title className="mb-2">{weapon.name}</Card.Title>
+                            <Card.Title className="mb-2">{displayName}</Card.Title>
+                            {rootLabel && (
+                              <Card.Subtitle className="text-muted small mb-2">
+                                {rootLabel}
+                              </Card.Subtitle>
+                            )}
                             <div className="d-grid gap-1">
                               {detailRows.map(({ label, value }) => {
                                 const displayValue =
@@ -3390,6 +3405,12 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   </Card.Text>
                                 );
                               })}
+                              <Card.Text as="div" className="small mb-1 text-body fw-semibold text-break">
+                                <span className="text-muted text-uppercase fw-semibold d-block">
+                                  Properties
+                                </span>
+                                <WeaponPropertyList properties={propertyArray} />
+                              </Card.Text>
                             </div>
                           </Card.Body>
                           <Card.Footer className="d-flex justify-content-end">

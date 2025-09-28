@@ -10,6 +10,9 @@ import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
+import WeaponPropertyList from '../../Weapons/WeaponPropertyList';
+import { resolveWeaponBaseName } from '../../../constants/weaponProperties';
+import useWeaponCatalog from '../../../hooks/useWeaponCatalog';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -250,6 +253,8 @@ const PlayerTurnActions = React.forwardRef(
 //--------------------------------------------Critical status------------------------------------------------
 const [isCritical, setIsCritical] = useState(false);
 const [isFumble, setIsFumble] = useState(false);
+  const { catalog: weaponCatalog } = useWeaponCatalog();
+
   const equipmentProvided = useMemo(
     () => typeof form?.equipment === 'object' && form.equipment !== null,
     [form.equipment]
@@ -267,7 +272,8 @@ const [isFumble, setIsFumble] = useState(false);
         const damage =
           typeof weapon.damage === 'string' ? weapon.damage.trim() : '';
         if (!damage) return null;
-        return { slot, weapon };
+        const baseName = resolveWeaponBaseName(weapon, weaponCatalog);
+        return { slot, weapon, baseName };
       }).filter(Boolean);
     }
 
@@ -277,8 +283,9 @@ const [isFumble, setIsFumble] = useState(false);
     return legacyWeapons.map((weapon, index) => ({
       slot: `legacy-${index}`,
       weapon,
+      baseName: resolveWeaponBaseName(weapon, weaponCatalog),
     }));
-  }, [equipmentProvided, normalizedEquipment, form.weapon]);
+  }, [equipmentProvided, normalizedEquipment, form.weapon, weaponCatalog]);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon) => {
     const category = weapon?.category;
@@ -809,43 +816,72 @@ const showSparklesEffect = () => {
                   <p className="text-muted mb-0">No weapons equipped.</p>
                 </div>
               ) : (
-                equippedWeapons.map(({ slot, weapon }) => (
-                  <div
-                    className="attack-card"
-                    key={`${slot}-${weapon.name || slot}`}
-                  >
-                    <div className="attack-card__title text-capitalize">
-                      {weapon.name || 'Unknown'}
-                    </div>
-                    <div className="attack-card__details">
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Attack Bonus</span>
-                        <span className="attack-card__value">
-                          {getAttackBonus(weapon)}
-                        </span>
+                equippedWeapons.map(({ slot, weapon, baseName }) => {
+                  const displayName =
+                    weapon.displayName ||
+                    weapon.name ||
+                    weapon.weaponName ||
+                    'Unknown';
+                  const canonicalMatch = baseName && displayName
+                    ? baseName.toLowerCase() === displayName.toLowerCase()
+                    : false;
+                  const fallbackBase =
+                    !baseName && typeof weapon.type === 'string'
+                      ? toTitleCase(weapon.type.replace(/[-_]/g, ' '))
+                      : null;
+                  const rootLabel =
+                    !canonicalMatch && (baseName || fallbackBase)
+                      ? baseName || fallbackBase
+                      : null;
+                  return (
+                    <div
+                      className="attack-card"
+                      key={`${slot}-${weapon.name || slot}`}
+                    >
+                      <div className="attack-card__title text-capitalize">
+                        {displayName}
                       </div>
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Damage</span>
-                        <span className="attack-card__value">
-                          {getDamageString(weapon)}
-                        </span>
+                      {rootLabel && (
+                        <div className="attack-card__subtitle text-muted small">
+                          {rootLabel}
+                        </div>
+                      )}
+                      <div className="attack-card__details">
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Attack Bonus</span>
+                          <span className="attack-card__value">
+                            {getAttackBonus(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Damage</span>
+                          <span className="attack-card__value">
+                            {getDamageString(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row attack-card__row--properties">
+                          <span className="attack-card__label">Properties</span>
+                          <div className="attack-card__value attack-card__value--properties">
+                            <WeaponPropertyList properties={weapon.properties} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="attack-card__actions">
+                        <Button
+                          onClick={() => {
+                            handleWeaponAttack(weapon);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="roll"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
                       </div>
                     </div>
-                    <div className="attack-card__actions">
-                      <Button
-                        onClick={() => {
-                          handleWeaponAttack(weapon);
-                          handleCloseAttack();
-                        }}
-                        variant="link"
-                        aria-label="roll"
-                        className="attack-card__roll"
-                      >
-                        <i className="fa-solid fa-dice-d20"></i>
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
             {breathWeaponDetails && (

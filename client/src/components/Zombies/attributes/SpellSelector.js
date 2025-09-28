@@ -426,6 +426,7 @@ export default function SpellSelector({
                 <div className="spell-card-actions">
                   <Button
                     variant="link"
+                    aria-label={`View ${spell.name} details`}
                     onClick={() => setViewSpell(spell)}
                   >
                     <i className="fa-solid fa-eye"></i>
@@ -434,6 +435,7 @@ export default function SpellSelector({
                     variant="link"
                     disabled={!isSelected}
                     className={!isSelected ? 'text-secondary' : ''}
+                    aria-label={`Cast ${spell.name}`}
                     onClick={() => {
                       if (!isSelected) return;
                       if (spell.higherLevels) {

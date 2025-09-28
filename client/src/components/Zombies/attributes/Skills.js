@@ -346,7 +346,11 @@ export default function Skills({
                 const expertiseId = `skill-${key}-expertise`;
 
                 return (
-                  <div key={key} className="skill-card">
+                  <div
+                    key={key}
+                    className="skill-card"
+                    data-testid={`skill-card-${key}`}
+                  >
                     <div className="skill-card-header">
                       <div className="skill-card-title">
                         <span className="skill-card-name">{label}</span>

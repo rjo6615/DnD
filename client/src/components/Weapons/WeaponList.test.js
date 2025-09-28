@@ -9,14 +9,22 @@ jest.mock('../../utils/apiFetch');
 const weaponsData = {
   club: { name: 'Club', damage: '1d4 bludgeoning', category: 'simple melee', properties: ['light'], weight: 2, cost: '1 sp' },
   dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp' },
+  longsword: {
+    name: 'Longsword',
+    damage: '1d8 slashing',
+    category: 'martial melee',
+    properties: ['versatile (1d10)'],
+    weight: 3,
+    cost: '15 gp',
+  },
 };
 const customData = [
   {
     name: 'Laser Sword',
     damage: '1d8 radiant',
     category: 'martial melee',
-    properties: [],
-    type: 'exotic',
+    properties: ['versatile (1d10)'],
+    type: 'longsword',
     cost: '100 gp',
     weight: 6,
   },
@@ -66,25 +74,38 @@ test('fetches weapons, handles add to cart, and displays cart count', async () =
   expect(apiFetch).toHaveBeenCalledWith('/equipment/weapons/Camp1');
   expect(apiFetch).toHaveBeenCalledWith('/weapon-proficiency/char1');
   const laserHeading = await screen.findByText('Laser Sword');
-  const laserButton = within(laserHeading.closest('.card')).getByRole('button', {
+  const laserCard = laserHeading.closest('.card');
+  expect(laserCard).not.toBeNull();
+  const laserButton = within(laserCard).getByRole('button', {
     name: /add to cart/i,
   });
+  expect(within(laserCard).getByText('Longsword')).toBeInTheDocument();
+  expect(within(laserCard).getByText('Properties')).toBeInTheDocument();
+  expect(within(laserCard).getByText('Versatile (1d10)')).toBeInTheDocument();
   expect(
-    within(laserHeading.closest('.card')).getByText('In Cart: 0')
+    within(laserCard).getByRole('button', {
+      name: /show description for versatile/i,
+    })
   ).toBeInTheDocument();
+
+  const clubHeading = await screen.findByText('Club');
+  const clubCard = clubHeading.closest('.card');
+  expect(clubCard).not.toBeNull();
+  expect(within(clubCard).getByText('Light')).toBeInTheDocument();
+  expect(
+    within(clubCard).getByRole('button', { name: /show description for light/i })
+  ).toBeInTheDocument();
+
+  expect(within(laserCard).getByText('In Cart: 0')).toBeInTheDocument();
 
   await userEvent.click(laserButton);
   await waitFor(() =>
-    expect(
-      within(laserHeading.closest('.card')).getByText('In Cart: 1')
-    ).toBeInTheDocument()
+    expect(within(laserCard).getByText('In Cart: 1')).toBeInTheDocument()
   );
 
   await userEvent.click(laserButton);
   await waitFor(() =>
-    expect(
-      within(laserHeading.closest('.card')).getByText('In Cart: 2')
-    ).toBeInTheDocument()
+    expect(within(laserCard).getByText('In Cart: 2')).toBeInTheDocument()
   );
 
   expect(onAddToCart).toHaveBeenCalledWith(
@@ -92,7 +113,7 @@ test('fetches weapons, handles add to cart, and displays cart count', async () =
       name: 'laser sword',
       displayName: 'Laser Sword',
       type: 'weapon',
-      weaponType: 'exotic',
+      weaponType: 'longsword',
       cost: '100 gp',
       damage: '1d8 radiant',
       category: 'martial melee',
@@ -129,7 +150,9 @@ test('displays a category icon for each weapon', async () => {
 
   const simpleIcons = await screen.findAllByTitle('simple melee');
   expect(simpleIcons.length).toBeGreaterThanOrEqual(2);
-  expect(await screen.findByTitle('martial melee')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryAllByTitle('martial melee').length).toBeGreaterThan(0);
+  });
 });
 
 test('marks weapon proficiency', async () => {

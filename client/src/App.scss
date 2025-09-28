@@ -2331,3 +2331,53 @@ h1 {
   border-top: 1px solid #ccc;
   margin: 0.25rem 0;
 }
+.weapon-property-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.weapon-property-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+.weapon-property-pill--empty {
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.weapon-property-pill__label {
+  line-height: 1.2;
+}
+
+.weapon-property-pill__info {
+  padding: 0;
+  line-height: 1;
+  color: inherit;
+}
+
+.weapon-property-pill__info:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.weapon-property-pill__info[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.attack-card__row--properties {
+  align-items: flex-start;
+}
+
+.attack-card__value--properties {
+  text-align: left;
+}

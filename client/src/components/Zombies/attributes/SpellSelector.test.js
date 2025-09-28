@@ -75,6 +75,14 @@ const spellsData = {
   },
 };
 
+const getSpellControls = async (spellName) => {
+  const checkbox = await screen.findByRole('checkbox', { name: spellName });
+  const castButton = await screen.findByRole('button', {
+    name: `Cast ${spellName}`,
+  });
+  return { checkbox, castButton };
+};
+
 beforeEach(() => {
   apiFetch.mockReset();
 });
@@ -117,14 +125,11 @@ test('cast button disabled until spell checked and then calls onCastSpell', asyn
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
-  const row = await screen.findByText('Fireball');
-  const rowEl = row.closest('tr');
-  const castBtn = within(rowEl).getAllByRole('button')[1];
-  expect(castBtn).toBeDisabled();
-  const checkbox = within(rowEl).getByRole('checkbox');
+  const { checkbox, castButton } = await getSpellControls('Fireball');
+  expect(castButton).toBeDisabled();
   await userEvent.click(checkbox);
-  expect(castBtn).not.toBeDisabled();
-  await userEvent.click(castBtn);
+  expect(castButton).not.toBeDisabled();
+  await userEvent.click(castButton);
   expect(onCast).toHaveBeenCalledWith(
     expect.objectContaining({ level: 3, damage: undefined, name: 'Fireball' })
   );
@@ -153,11 +158,9 @@ test.each([
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '0');
-  const row = await screen.findByText('Fire Bolt');
-  const rowEl = row.closest('tr');
-  await userEvent.click(within(rowEl).getByRole('checkbox'));
-  const castBtn = within(rowEl).getAllByRole('button')[1];
-  await userEvent.click(castBtn);
+  const { checkbox, castButton } = await getSpellControls('Fire Bolt');
+  await userEvent.click(checkbox);
+  await userEvent.click(castButton);
   expect(onCast).toHaveBeenCalledWith(
     expect.objectContaining({ level: 0, damage: dmg, name: 'Fire Bolt' })
   );
@@ -182,7 +185,7 @@ test('saves selected spells', async () => {
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
-  const checkbox = (await screen.findAllByRole('checkbox'))[0];
+  const { checkbox } = await getSpellControls('Burning Hands');
   await userEvent.click(checkbox);
   await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
   const lastCall = apiFetch.mock.calls[2];
@@ -244,11 +247,9 @@ test('UpcastModal returns warlock slot type', async () => {
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
-  const row = await screen.findByText('Burning Hands');
-  const rowEl = row.closest('tr');
-  await userEvent.click(within(rowEl).getByRole('checkbox'));
-  const castBtn = within(rowEl).getAllByRole('button')[1];
-  await userEvent.click(castBtn);
+  const { checkbox, castButton } = await getSpellControls('Burning Hands');
+  await userEvent.click(checkbox);
+  await userEvent.click(castButton);
   const warlockLvl = await screen.findByText('II');
   const warlockBtn = warlockLvl.parentElement;
   expect(warlockBtn).toHaveClass('warlock-slot');
@@ -282,7 +283,7 @@ test('uses Occupation when Name is missing', async () => {
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '3');
-  const checkbox = (await screen.findAllByRole('checkbox'))[0];
+  const { checkbox } = await getSpellControls('Fireball');
   await userEvent.click(checkbox);
   await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
   const lastCall = apiFetch.mock.calls[2];
@@ -339,7 +340,7 @@ test('saves cantrip with scaling data', async () => {
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '0');
-  const checkbox = (await screen.findAllByRole('checkbox'))[0];
+  const { checkbox } = await getSpellControls('Fire Bolt');
   await userEvent.click(checkbox);
   await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
   const lastCall = apiFetch.mock.calls[2];
@@ -395,11 +396,9 @@ test('modal appears for spells with higherLevels', async () => {
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
-  const row = await screen.findByText('Burning Hands');
-  const rowEl = row.closest('tr');
-  await userEvent.click(within(rowEl).getByRole('checkbox'));
-  const castBtn = within(rowEl).getAllByRole('button')[1];
-  await userEvent.click(castBtn);
+  const { checkbox, castButton } = await getSpellControls('Burning Hands');
+  await userEvent.click(checkbox);
+  await userEvent.click(castButton);
   expect(await screen.findByText('Cast at Level')).toBeInTheDocument();
 });
 
@@ -422,11 +421,9 @@ test('upcasting consumes higher slot and reports extra damage', async () => {
   );
   await screen.findByLabelText('Level');
   await userEvent.selectOptions(screen.getByLabelText('Level'), '1');
-  const row = await screen.findByText('Burning Hands');
-  const rowEl = row.closest('tr');
-  await userEvent.click(within(rowEl).getByRole('checkbox'));
-  const castBtn = within(rowEl).getAllByRole('button')[1];
-  await userEvent.click(castBtn);
+  const { checkbox, castButton } = await getSpellControls('Burning Hands');
+  await userEvent.click(checkbox);
+  await userEvent.click(castButton);
   const lvl3 = await screen.findByText('III');
   await userEvent.click(lvl3.parentElement);
   await userEvent.click(screen.getByRole('button', { name: 'Cast' }));

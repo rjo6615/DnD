@@ -143,7 +143,11 @@ export default function Stats({ form, showStats, handleCloseStats }) {
         <Modal.Body className="stats-modal-body">
           <div className="stat-card-grid">
             {STATS.map(({ key, label }) => (
-              <div className="stat-card" key={key}>
+              <div
+                className="stat-card"
+                key={key}
+                data-testid={`stat-card-${key}`}
+              >
                 <div className="stat-card-header">
                   <div className="stat-card-title">
                     <span className="stat-card-key">{key.toUpperCase()}</span>

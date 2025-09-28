@@ -8,6 +8,16 @@ import {
   GiCrossedSwords,
 } from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
+import WeaponPropertyList from './WeaponPropertyList';
+import { resolveWeaponBaseName } from '../../constants/weaponProperties';
+
+const formatBaseLabel = (label) =>
+  typeof label === 'string'
+    ? label
+        .split(/[-_]/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
+    : null;
 
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
 
@@ -171,6 +181,7 @@ function WeaponList({
             ...base,
             name: key,
             displayName: base.displayName || base.name,
+            baseName: resolveWeaponBaseName(base, phb),
             owned: ownedCount > 0,
             ownedCount,
             proficient: grantedSet.has(key) || proficientSet.has(key),
@@ -343,6 +354,16 @@ function WeaponList({
             copyCount,
           }) => {
             const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
+            const displayName = weapon.displayName || weapon.name;
+            const canonicalMatch = weapon.baseName && displayName
+              ? weapon.baseName.toLowerCase() === displayName.toLowerCase()
+              : false;
+            const fallbackBase = !weapon.baseName && weapon.type
+              ? formatBaseLabel(weapon.type)
+              : null;
+            const rootLabel = !canonicalMatch && (weapon.baseName || fallbackBase)
+              ? weapon.baseName || fallbackBase
+              : null;
             return (
               <Col key={reactKey}>
                 <Card className="weapon-card h-100">
@@ -350,11 +371,19 @@ function WeaponList({
                   <div className="d-flex justify-content-center mb-2">
                     <Icon size={40} title={weapon.category} />
                   </div>
-                  <Card.Title>{weapon.displayName || weapon.name}</Card.Title>
+                  <Card.Title>{displayName}</Card.Title>
+                  {rootLabel && (
+                    <Card.Subtitle className="text-muted small mb-2">
+                      {rootLabel}
+                    </Card.Subtitle>
+                  )}
                   <Card.Text>Damage: {weapon.damage}</Card.Text>
                   <Card.Text>Category: {weapon.category}</Card.Text>
-                  <Card.Text>
-                    Properties: {weapon.properties.join(', ') || 'No properties'}
+                  <Card.Text as="div" className="mt-2">
+                    <span className="text-uppercase text-muted small fw-semibold d-block">
+                      Properties
+                    </span>
+                    <WeaponPropertyList properties={weapon.properties} />
                   </Card.Text>
                   <Card.Text>Weight: {weapon.weight}</Card.Text>
                   <Card.Text>Cost: {weapon.cost}</Card.Text>

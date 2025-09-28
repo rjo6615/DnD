@@ -3,6 +3,21 @@ import { render, act, fireEvent, screen, within, waitFor } from '@testing-librar
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
 import damageTypeColors from '../../../utils/damageTypeColors';
 
+jest.mock('../../../constants/weaponProperties', () => ({
+  ...jest.requireActual('../../../constants/weaponProperties'),
+}));
+
+const catalogMock = {
+  longsword: { name: 'Longsword', displayName: 'Longsword', properties: ['versatile (1d10)'] },
+  dagger: { name: 'Dagger', displayName: 'Dagger', properties: ['finesse'] },
+};
+
+jest.mock('../../../hooks/useWeaponCatalog', () => ({
+  __esModule: true,
+  default: () => ({ catalog: catalogMock, loading: false, error: null }),
+  useWeaponCatalog: () => ({ catalog: catalogMock, loading: false, error: null }),
+}));
+
 const { calculateDamage } = PlayerTurnActionsModule;
 
 describe('calculateDamage parser', () => {
@@ -169,6 +184,46 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(fire).toHaveClass('damage-fire');
   });
 
+  test('renders base weapon label and property info controls', async () => {
+    const weapon = {
+      name: 'Storm Blade',
+      displayName: 'Storm Blade',
+      damage: '1d8 slashing',
+      category: 'melee',
+      source: 'weapon',
+      type: 'longsword',
+      properties: ['versatile (1d10)'],
+    };
+
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = await screen.findByText('Storm Blade');
+    const attackCard = card.closest('.attack-card');
+    expect(attackCard).not.toBeNull();
+    expect(within(attackCard).getByText('Longsword')).toBeInTheDocument();
+    expect(within(attackCard).getByText('Properties')).toBeInTheDocument();
+    expect(within(attackCard).getByText('Versatile (1d10)')).toBeInTheDocument();
+    const infoButton = within(attackCard).getByRole('button', {
+      name: /show description for versatile/i,
+    });
+    expect(infoButton).toBeEnabled();
+  });
+
   test('shows breath attack details for dragonborn ancestry', () => {
     const ancestry = {
       label: 'Gold (Fire)',
@@ -202,7 +257,7 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(breathCard).toBeInTheDocument();
     expect(within(breathCard).getByText('Save DC')).toBeInTheDocument();
     expect(within(breathCard).getByText('13')).toBeInTheDocument();
-    const fireDamage = within(breathCard).getByText('3d6 Fire');
+    const fireDamage = within(breathCard).getByText('2d10 Fire');
     expect(fireDamage).toBeInTheDocument();
     expect(fireDamage).toHaveClass('damage-fire');
     expect(
@@ -241,7 +296,7 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const breathCard = screen.getByText('Blue (Lightning)').closest('.attack-card');
     expect(breathCard).toBeInTheDocument();
-    const damage = within(breathCard).getByText('3d6 lightning');
+    const damage = within(breathCard).getByText('2d10 lightning');
     expect(damage).toHaveClass('damage-lightning');
   });
 
