@@ -412,13 +412,14 @@ const [isFumble, setIsFumble] = useState(false);
         const [token, ...rest] = part.trim().split(' ');
         const type = rest.join(' ').trim();
         const normalizedType = normalizeDamageTypeForClass(type);
+        const displayType = type ? toTitleCase(type) : '';
         const showAbility = ability !== undefined && ability !== null && i === 0;
         return (
           <React.Fragment key={i}>
             <span className={normalizedType ? `damage-${normalizedType}` : ''}>
               {token}
               {showAbility ? `+${ability}` : ''}
-              {type ? ` ${type}` : ''}
+              {displayType ? ` ${displayType}` : ''}
             </span>
             {i < arr.length - 1 ? ' + ' : ''}
           </React.Fragment>
