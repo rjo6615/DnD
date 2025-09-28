@@ -4,9 +4,28 @@ import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
 import {
-  WEAPON_MASTERY_OPTIONS,
-  WEAPON_MASTERY_OPTION_MAP,
-} from './weaponMasteryOptions';
+  WEAPON_MASTERY_LIST,
+  getWeaponsForProficiency,
+  resolveWeaponMasteryEntry,
+  resolveWeaponMasteryEntryFromWeapon,
+} from './weaponMasteryCatalog';
+import { normalizeEquipmentMap } from './equipmentNormalization';
+import { normalizeWeapons } from './inventoryNormalization';
+
+const EQUIPPED_WEAPON_SLOTS = ['mainHand', 'offHand', 'ranged'];
+
+const normalizeWeaponMasteryRecord = (record) => {
+  if (!record || typeof record !== 'object') return {};
+  const normalized = {};
+  Object.entries(record).forEach(([featureKey, selections]) => {
+    if (!Array.isArray(selections)) return;
+    normalized[featureKey] = selections.map((value) => {
+      const entry = resolveWeaponMasteryEntry(value);
+      return entry?.key || '';
+    });
+  });
+  return normalized;
+};
 
 export default function Features({
   form,
@@ -23,8 +42,8 @@ export default function Features({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [surgeUsed, setSurgeUsed] = useState(false);
-  const [weaponMasterySelections, setWeaponMasterySelections] = useState(
-    () => form?.features?.weaponMastery || {}
+  const [weaponMasterySelections, setWeaponMasterySelections] = useState(() =>
+    normalizeWeaponMasteryRecord(form?.features?.weaponMastery)
   );
 
   const handleFeatureStateChange =
@@ -33,17 +52,88 @@ export default function Features({
       : () => {};
 
   useEffect(() => {
-    setWeaponMasterySelections(form?.features?.weaponMastery || {});
+    setWeaponMasterySelections(
+      normalizeWeaponMasteryRecord(form?.features?.weaponMastery)
+    );
   }, [form?.features?.weaponMastery]);
 
-  const masteryOptionElements = useMemo(
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form?.equipment),
+    [form?.equipment]
+  );
+
+  const normalizedWeapons = useMemo(
+    () => normalizeWeapons(form?.weapon || [], { includeUnowned: true }),
+    [form?.weapon]
+  );
+
+  const availableWeaponOptions = useMemo(() => {
+    const optionMap = new Map();
+    const addEntry = (entry) => {
+      if (entry && !optionMap.has(entry.key)) {
+        optionMap.set(entry.key, entry);
+      }
+    };
+
+    EQUIPPED_WEAPON_SLOTS.forEach((slot) => {
+      const equipped = normalizedEquipment?.[slot];
+      const entry = resolveWeaponMasteryEntryFromWeapon(equipped);
+      if (entry) addEntry(entry);
+    });
+
+    normalizedWeapons.forEach((weapon) => {
+      const entry = resolveWeaponMasteryEntryFromWeapon(weapon);
+      if (entry) addEntry(entry);
+    });
+
+    const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
+    occupations.forEach((occ) => {
+      const proficiencyList = Array.isArray(occ?.weapons)
+        ? occ.weapons
+        : Array.isArray(occ?.proficiencies?.weapons)
+        ? occ.proficiencies.weapons
+        : [];
+      proficiencyList.forEach((value) => {
+        if (!value) return;
+        const entries = getWeaponsForProficiency(value);
+        if (entries.length) {
+          entries.forEach(addEntry);
+          return;
+        }
+        const entry = resolveWeaponMasteryEntry(value);
+        if (entry) addEntry(entry);
+      });
+    });
+
+    Object.values(weaponMasterySelections || {}).forEach((selections) => {
+      (selections || []).forEach((value) => {
+        const entry = resolveWeaponMasteryEntry(value);
+        if (entry) addEntry(entry);
+      });
+    });
+
+    if (!optionMap.size) {
+      WEAPON_MASTERY_LIST.forEach(addEntry);
+    }
+
+    return Array.from(optionMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+  }, [
+    form?.occupation,
+    normalizedEquipment,
+    normalizedWeapons,
+    weaponMasterySelections,
+  ]);
+
+  const weaponOptionElements = useMemo(
     () =>
-      WEAPON_MASTERY_OPTIONS.map((option) => (
-        <option value={option.id} key={option.id}>
-          {option.title}
+      availableWeaponOptions.map((option) => (
+        <option value={option.key} key={option.key}>
+          {option.label}
         </option>
       )),
-    []
+    [availableWeaponOptions]
   );
 
   const buildFeatureKey = (feat) =>
@@ -57,11 +147,14 @@ export default function Features({
   };
 
   const handleMasterySelectionChange = (featureKey, picks, index, value) => {
+    const normalizedValue = resolveWeaponMasteryEntry(value)?.key || '';
     setWeaponMasterySelections((prev) => {
       const nextSelections = {
         ...prev,
         [featureKey]: Array.from({ length: picks }, (_, idx) =>
-          idx === index ? value : prev?.[featureKey]?.[idx] || ''
+          idx === index
+            ? normalizedValue
+            : prev?.[featureKey]?.[idx] || ''
         ),
       };
 
@@ -218,9 +311,14 @@ export default function Features({
                                 const selectedMasteries = masterySelections.filter(
                                   Boolean
                                 );
+                                const selectedEntries = selectedMasteries
+                                  .map((selection) =>
+                                    resolveWeaponMasteryEntry(selection)
+                                  )
+                                  .filter(Boolean);
                                 setModalFeature({
                                   ...feat,
-                                  masterySelections: selectedMasteries,
+                                  masterySelections: selectedEntries,
                                 });
                                 setShowModal(true);
                               }}
@@ -257,8 +355,8 @@ export default function Features({
                                       )
                                     }
                                   >
-                                    <option value="">Choose a mastery option</option>
-                                    {masteryOptionElements}
+                                    <option value="">Choose a weapon</option>
+                                    {weaponOptionElements}
                                   </Form.Select>
                                 ))}
                               </div>
@@ -270,13 +368,17 @@ export default function Features({
                                       .filter(Boolean)
                                       .map((selection, selectionIdx) => {
                                         const option =
-                                          WEAPON_MASTERY_OPTION_MAP[selection];
+                                          resolveWeaponMasteryEntry(selection);
                                         if (!option) return null;
                                         return (
                                           <li
                                             key={`${featureKey}-${selection}-${selectionIdx}`}
                                           >
-                                            <strong>{option.title}</strong>: {option.description}
+                                            <strong>{option.label}</strong> —{' '}
+                                            <span className="fw-semibold">
+                                              {option.masteryTitle}
+                                            </span>
+                                            <div>{option.masteryDescription}</div>
                                           </li>
                                         );
                                       })}

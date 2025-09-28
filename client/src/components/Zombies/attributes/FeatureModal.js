@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Card, Button } from 'react-bootstrap';
-import { WEAPON_MASTERY_OPTION_MAP } from './weaponMasteryOptions';
+import { resolveWeaponMasteryEntry } from './weaponMasteryCatalog';
 
 export default function FeatureModal({ show, onHide, feature }) {
   if (!show || !feature) return null;
@@ -11,7 +11,7 @@ export default function FeatureModal({ show, onHide, feature }) {
     ? feature.masterySelections
     : [];
   const masteryDetails = masterySelections
-    .map((selection) => WEAPON_MASTERY_OPTION_MAP[selection])
+    .map((selection) => resolveWeaponMasteryEntry(selection))
     .filter(Boolean);
   return (
     <Modal
@@ -32,9 +32,12 @@ export default function FeatureModal({ show, onHide, feature }) {
                 <h5 className="fw-semibold">Weapon Mastery Selections</h5>
                 <ul className="mb-0">
                   {masteryDetails.map((option) => (
-                    <li key={option.id} className="mb-2">
-                      <strong>{option.title}</strong>
-                      <div>{option.description}</div>
+                    <li key={option.key} className="mb-2">
+                      <strong>{option.label}</strong> —{' '}
+                      <span className="fw-semibold">
+                        {option.masteryTitle}
+                      </span>
+                      <div>{option.masteryDescription}</div>
                     </li>
                   ))}
                 </ul>
