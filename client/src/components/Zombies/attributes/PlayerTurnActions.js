@@ -300,14 +300,43 @@ const [isFumble, setIsFumble] = useState(false);
     return formatWeaponLabel(raw || 'Unknown');
   };
 
+  const getWeaponPropertyDefinitionKeys = (prop) => {
+    if (typeof prop !== 'string') return [];
+
+    const base = prop
+      .replace(/\s*[\(\[\{][^\)\]\}]*[\)\]\}]\s*/g, ' ')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!base) return [];
+
+    const titleCase = toTitleCase(base);
+    const candidates = new Set([titleCase]);
+
+    if (titleCase.includes(' ')) {
+      candidates.add(titleCase.replace(/\s+/g, '-'));
+    }
+
+    if (!titleCase.endsWith(':')) {
+      candidates.add(`${titleCase}:`);
+    }
+
+    return Array.from(candidates);
+  };
+
   const getWeaponPropertyDetails = (weapon) => {
     if (!Array.isArray(weapon?.properties)) return [];
     return weapon.properties
       .filter((prop) => typeof prop === 'string' && prop.trim())
       .map((prop) => {
         const label = formatWeaponLabel(prop);
-        const description =
-          weaponPropertyDefinitions[label] || 'Definition not available.';
+        const definitionKey = getWeaponPropertyDefinitionKeys(prop).find(
+          (key) => weaponPropertyDefinitions[key]
+        );
+        const description = definitionKey
+          ? weaponPropertyDefinitions[definitionKey]
+          : 'Definition not available.';
         return { label, description };
       });
   };

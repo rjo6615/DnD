@@ -84,7 +84,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       category: 'melee',
       source: 'weapon',
       type: 'martial melee weapon',
-      properties: ['Finesse', 'Light'],
+      properties: ['Finesse', 'Versatile (1d10)'],
     };
     render(
       <PlayerTurnActions
@@ -115,7 +115,9 @@ describe('PlayerTurnActions weapon damage display', () => {
       .getByText('Properties')
       .closest('.attack-card__row');
     expect(propertiesRow).not.toBeNull();
-    expect(within(propertiesRow).getByText('Finesse, Light')).toBeInTheDocument();
+    expect(
+      within(propertiesRow).getByText('Finesse, Versatile (1d10)')
+    ).toBeInTheDocument();
     const propertiesButton = within(propertiesRow).getByRole('button', {
       name: /view weapon property descriptions/i,
     });
@@ -129,6 +131,15 @@ describe('PlayerTurnActions weapon damage display', () => {
           /When making an attack with a finesse weapon, you use your choice/
         )
       ).toBeInTheDocument();
+      expect(screen.getByText('Versatile (1d10)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /This weapon can be used with one or two hands\. A damage value in parentheses/
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Definition not available.')
+      ).not.toBeInTheDocument();
     });
     await act(async () => {
       fireEvent.click(document.body);
