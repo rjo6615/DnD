@@ -6,10 +6,12 @@ import React, {
 } from 'react';
 import { Button, Modal, Card } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
+import WeaponMasteryModal from './WeaponMasteryModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
+import { WEAPON_MASTERY_OPTION_MAP } from './weaponMasteryOptions';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -244,9 +246,9 @@ const PlayerTurnActions = React.forwardRef(
     };
   }, []);
 
-//--------------------------------------------Critical status------------------------------------------------
-const [isCritical, setIsCritical] = useState(false);
-const [isFumble, setIsFumble] = useState(false);
+  //--------------------------------------------Critical status------------------------------------------------
+  const [isCritical, setIsCritical] = useState(false);
+  const [isFumble, setIsFumble] = useState(false);
   const equipmentProvided = useMemo(
     () => typeof form?.equipment === 'object' && form.equipment !== null,
     [form.equipment]
@@ -255,6 +257,27 @@ const [isFumble, setIsFumble] = useState(false);
     () => normalizeEquipmentMap(form.equipment),
     [form.equipment]
   );
+  const getWeaponMasteryId = (weapon) => {
+    if (!weapon || typeof weapon !== 'object') return '';
+    const { mastery } = weapon;
+    if (!mastery) return '';
+    if (typeof mastery === 'string') {
+      const trimmed = mastery.trim();
+      return trimmed ? trimmed.toLowerCase() : '';
+    }
+    if (typeof mastery === 'object') {
+      const { id, key, name } = mastery;
+      const candidate =
+        (typeof id === 'string' && id) ||
+        (typeof key === 'string' && key) ||
+        (typeof name === 'string' && name) ||
+        '';
+      const trimmed = candidate.trim();
+      return trimmed ? trimmed.toLowerCase() : '';
+    }
+    return '';
+  };
+
   const equippedWeapons = useMemo(() => {
     if (equipmentProvided) {
       return WEAPON_SLOT_KEYS.map((slot) => {
@@ -264,17 +287,28 @@ const [isFumble, setIsFumble] = useState(false);
         const damage =
           typeof weapon.damage === 'string' ? weapon.damage.trim() : '';
         if (!damage) return null;
-        return { slot, weapon };
+        const masteryId = getWeaponMasteryId(weapon);
+        const masteryDetails = masteryId
+          ? WEAPON_MASTERY_OPTION_MAP[masteryId]
+          : undefined;
+        return { slot, weapon, masteryId, masteryDetails };
       }).filter(Boolean);
     }
 
     const legacyWeapons = normalizeWeapons(form.weapon || [], {
       includeUnowned: true,
     });
-    return legacyWeapons.map((weapon, index) => ({
-      slot: `legacy-${index}`,
-      weapon,
-    }));
+    return legacyWeapons.map((weapon, index) => {
+      const masteryId = getWeaponMasteryId(weapon);
+      return {
+        slot: `legacy-${index}`,
+        weapon,
+        masteryId,
+        masteryDetails: masteryId
+          ? WEAPON_MASTERY_OPTION_MAP[masteryId]
+          : undefined,
+      };
+    });
   }, [equipmentProvided, normalizedEquipment, form.weapon]);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon) => {
@@ -335,8 +369,9 @@ const [isFumble, setIsFumble] = useState(false);
     );
   };
 
-const [showUpcast, setShowUpcast] = useState(false);
-const [pendingSpell, setPendingSpell] = useState(null);
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
+  const [activeMastery, setActiveMastery] = useState(null);
 
   const applyUpcast = (spell, level, crit, slotType) => {
     const diff = level - (spell.level || 0);
@@ -744,7 +779,7 @@ const showSparklesEffect = () => {
                   <p className="text-muted mb-0">No weapons equipped.</p>
                 </div>
               ) : (
-                equippedWeapons.map(({ slot, weapon }) => (
+                equippedWeapons.map(({ slot, weapon, masteryId, masteryDetails }) => (
                   <div
                     className="attack-card"
                     key={`${slot}-${weapon.name || slot}`}
@@ -767,6 +802,21 @@ const showSparklesEffect = () => {
                       </div>
                     </div>
                     <div className="attack-card__actions">
+                      {masteryDetails && (
+                        <Button
+                          onClick={() =>
+                            setActiveMastery({
+                              id: masteryId,
+                              weaponName: weapon.name || 'Unknown weapon',
+                            })
+                          }
+                          variant="link"
+                          aria-label={`View mastery: ${masteryDetails.title}`}
+                          className="attack-card__mastery"
+                        >
+                          <i className="fa-solid fa-crown" aria-hidden="true"></i>
+                        </Button>
+                      )}
                       <Button
                         onClick={() => {
                           handleWeaponAttack(weapon);
@@ -854,6 +904,12 @@ const showSparklesEffect = () => {
           }
           setShowUpcast(false);
         }}
+      />
+      <WeaponMasteryModal
+        show={Boolean(activeMastery)}
+        masteryId={activeMastery?.id || ''}
+        weaponName={activeMastery?.weaponName}
+        onHide={() => setActiveMastery(null)}
       />
     </div>
   );

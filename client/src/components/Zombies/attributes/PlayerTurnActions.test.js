@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+import { WEAPON_MASTERY_OPTION_MAP } from './weaponMasteryOptions';
 import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
@@ -99,9 +100,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
-    const cold = within(row).getByText(/1d4\+2 cold/);
-    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    const card = screen.getByText('Frost Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const cold = within(card).getByText(/1d4\+2 cold/);
+    const slashing = within(card).getByText(/1d6\+2 slashing/);
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
   });
@@ -126,9 +128,87 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Fire Bolt').closest('tr');
-    const fire = within(row).getByText(/1d10 fire/);
+    const card = screen.getByText('Fire Bolt').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const fire = within(card).getByText(/1d10 fire/);
     expect(fire).toHaveClass('damage-fire');
+  });
+});
+
+describe('PlayerTurnActions weapon mastery modal', () => {
+  test('renders crown button and shows mastery details', async () => {
+    const weapon = {
+      name: 'Longsword',
+      damage: '1d8 slashing',
+      category: 'martial melee',
+      source: 'weapon',
+      mastery: 'flex',
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const attackModal = await screen.findByRole('dialog');
+    expect(within(attackModal).getByText('Attacks')).toBeInTheDocument();
+    const masteryDetails = WEAPON_MASTERY_OPTION_MAP.flex;
+    const crownButton = within(attackModal).getByRole('button', {
+      name: `View mastery: ${masteryDetails.title}`,
+    });
+    act(() => {
+      fireEvent.click(crownButton);
+    });
+    const masteryModal = await screen.findByRole('dialog', {
+      name: masteryDetails.title,
+    });
+    expect(
+      within(masteryModal).getByRole('heading', { name: /flex/i })
+    ).toBeInTheDocument();
+    expect(
+      within(masteryModal).getByText(masteryDetails.description)
+    ).toBeInTheDocument();
+    expect(
+      within(masteryModal).getByText(/for Longsword/i)
+    ).toBeInTheDocument();
+  });
+
+  test('omits crown button when no mastery is present', async () => {
+    const weapon = {
+      name: 'Battleaxe',
+      damage: '1d8 slashing',
+      category: 'martial melee',
+      source: 'weapon',
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+        }}
+        strMod={3}
+        dexMod={1}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const attackModal = await screen.findByRole('dialog');
+    expect(within(attackModal).getByText('Attacks')).toBeInTheDocument();
+    expect(
+      within(attackModal).queryByRole('button', { name: /view mastery/i })
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -359,9 +439,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
-    const cold = within(row).getByText(/1d4\+2 cold/);
-    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    const card = screen.getByText('Frost Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const cold = within(card).getByText(/1d4\+2 cold/);
+    const slashing = within(card).getByText(/1d6\+2 slashing/);
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
   });
@@ -386,8 +467,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Fire Bolt').closest('tr');
-    const fire = within(row).getByText(/1d10 fire/);
+    const card = screen.getByText('Fire Bolt').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const fire = within(card).getByText(/1d10 fire/);
     expect(fire).toHaveClass('damage-fire');
   });
 });
@@ -680,12 +762,12 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const header = await screen.findByText('Spell Name');
-    const table = header.closest('table');
-    const rows = within(table).getAllByRole('row').slice(1);
-    const names = rows.map(
-      (row) => within(row).getAllByRole('cell')[0].textContent
-    );
+    const spellsHeading = await screen.findByText('Spells');
+    const spellsGrid = spellsHeading.nextElementSibling;
+    expect(spellsGrid).not.toBeNull();
+    const names = Array.from(
+      spellsGrid.querySelectorAll('.attack-card__title')
+    ).map((el) => el.textContent);
     expect(names).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
   });
 });
