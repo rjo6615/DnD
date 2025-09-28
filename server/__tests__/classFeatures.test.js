@@ -31,7 +31,11 @@ describe('Class features API', () => {
     expect(res.body.features).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'Rage' }),
-        expect.objectContaining({ name: 'Unarmored Defense' })
+        expect.objectContaining({ name: 'Unarmored Defense' }),
+        expect.objectContaining({
+          name: 'Weapon Mastery',
+          mastery: expect.objectContaining({ picks: 2 })
+        })
       ])
     );
     expect(res.body.spellSlots).toBeUndefined();
@@ -53,6 +57,32 @@ describe('Class features API', () => {
     const res = await request(app).get('/classes/warlock/features/2');
     expect(res.status).toBe(200);
     expect(res.body.pactMagic).toEqual({ 1: 2 });
+  });
+
+  test('includes weapon mastery progression for fighters', async () => {
+    const res = await request(app).get('/classes/fighter/features/10');
+    expect(res.status).toBe(200);
+    expect(res.body.features).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Weapon Mastery',
+          mastery: expect.objectContaining({ picks: 5 })
+        })
+      ])
+    );
+  });
+
+  test('paladins expose mastery data at level 1', async () => {
+    const res = await request(app).get('/classes/paladin/features/1');
+    expect(res.status).toBe(200);
+    expect(res.body.features).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Weapon Mastery',
+          mastery: expect.objectContaining({ picks: 2 })
+        })
+      ])
+    );
   });
 });
 

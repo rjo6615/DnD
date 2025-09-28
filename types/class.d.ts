@@ -3,6 +3,11 @@ export interface Feature {
   name: string;
   /** Detailed description of the feature */
   description: string;
+  /** Optional weapon mastery metadata */
+  mastery?: {
+    /** Number of mastery selections available at this level */
+    picks: number;
+  };
 }
 
 export interface Class {
