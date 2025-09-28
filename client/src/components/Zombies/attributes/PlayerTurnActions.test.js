@@ -108,6 +108,34 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(slashing).toHaveClass('damage-slashing');
   });
 
+  test('renders base weapon type for custom weapons', () => {
+    const weapon = {
+      name: 'Azure Brand',
+      damage: '1d8 slashing',
+      category: 'martial melee',
+      source: 'weapon',
+      type: 'longsword',
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={2}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const card = screen.getByText('Azure Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    expect(within(card).getByText('Longsword')).toBeInTheDocument();
+  });
+
   test('spell damage segments include type classes', () => {
     const spell = {
       name: 'Fire Bolt',

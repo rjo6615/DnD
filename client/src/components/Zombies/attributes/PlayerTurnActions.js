@@ -12,6 +12,7 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import { WEAPON_MASTERY_OPTION_MAP } from './weaponMasteryOptions';
+import { resolveWeaponMasteryEntry } from './weaponMasteryCatalog';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -50,6 +51,31 @@ function toTitleCase(str) {
     )
     .join(' ');
 }
+
+const formatWeaponTypeLabel = (weapon) => {
+  if (!weapon || typeof weapon !== 'object') return '';
+
+  const entry = resolveWeaponMasteryEntry(weapon);
+  if (entry?.label) {
+    return entry.label;
+  }
+
+  const candidates = [weapon.type, weapon.weaponType];
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (!trimmed) continue;
+
+    const candidateEntry = resolveWeaponMasteryEntry(trimmed);
+    if (candidateEntry?.label) {
+      return candidateEntry.label;
+    }
+
+    return toTitleCase(trimmed.replace(/[-_]+/g, ' '));
+  }
+
+  return '';
+};
 
 export function calculateDamage(
   damageString,
@@ -779,58 +805,66 @@ const showSparklesEffect = () => {
                   <p className="text-muted mb-0">No weapons equipped.</p>
                 </div>
               ) : (
-                equippedWeapons.map(({ slot, weapon, masteryId, masteryDetails }) => (
-                  <div
-                    className="attack-card"
-                    key={`${slot}-${weapon.name || slot}`}
-                  >
-                    <div className="attack-card__title text-capitalize">
-                      {weapon.name || 'Unknown'}
-                    </div>
-                    <div className="attack-card__details">
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Attack Bonus</span>
-                        <span className="attack-card__value">
-                          {getAttackBonus(weapon)}
-                        </span>
+                equippedWeapons.map(({ slot, weapon, masteryId, masteryDetails }) => {
+                  const typeLabel = formatWeaponTypeLabel(weapon);
+                  return (
+                    <div
+                      className="attack-card"
+                      key={`${slot}-${weapon.name || slot}`}
+                    >
+                      <div className="attack-card__title text-capitalize">
+                        {weapon.name || 'Unknown'}
                       </div>
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Damage</span>
-                        <span className="attack-card__value">
-                          {getDamageString(weapon)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="attack-card__actions">
-                      {masteryDetails && (
-                        <Button
-                          onClick={() =>
-                            setActiveMastery({
-                              id: masteryId,
-                              weaponName: weapon.name || 'Unknown weapon',
-                            })
-                          }
-                          variant="link"
-                          aria-label={`View mastery: ${masteryDetails.title}`}
-                          className="attack-card__mastery"
-                        >
-                          <i className="fa-solid fa-crown" aria-hidden="true"></i>
-                        </Button>
+                      {typeLabel && (
+                        <div className="attack-card__subtitle text-muted">
+                          {typeLabel}
+                        </div>
                       )}
-                      <Button
-                        onClick={() => {
-                          handleWeaponAttack(weapon);
-                          handleCloseAttack();
-                        }}
-                        variant="link"
-                        aria-label="roll"
-                        className="attack-card__roll"
-                      >
-                        <i className="fa-solid fa-dice-d20"></i>
-                      </Button>
+                      <div className="attack-card__details">
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Attack Bonus</span>
+                          <span className="attack-card__value">
+                            {getAttackBonus(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Damage</span>
+                          <span className="attack-card__value">
+                            {getDamageString(weapon)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="attack-card__actions">
+                        {masteryDetails && (
+                          <Button
+                            onClick={() =>
+                              setActiveMastery({
+                                id: masteryId,
+                                weaponName: weapon.name || 'Unknown weapon',
+                              })
+                            }
+                            variant="link"
+                            aria-label={`View mastery: ${masteryDetails.title}`}
+                            className="attack-card__mastery"
+                          >
+                            <i className="fa-solid fa-crown" aria-hidden="true"></i>
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => {
+                            handleWeaponAttack(weapon);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="roll"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
             {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
