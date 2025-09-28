@@ -3,7 +3,11 @@
 // keyed by level.
 
 /**
- * @typedef {{ name: string, description: string }} Feature
+ * @typedef {{
+ *   name: string,
+ *   description: string,
+ *   mastery?: { picks: number }
+ * }} Feature
  * @typedef {{
  *   featuresByLevel: Record<number, Feature[]>,
  *   spellSlots?: Record<number, Record<number, number>>,
@@ -144,6 +148,12 @@ const barbarianFeatures = {
     {
       name: 'Unarmored Defense',
       description: 'While not wearing armor, your AC equals 10 + your Dex modifier + your Con modifier.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description:
+        'You can use the mastery properties of two weapons with which you are proficient, and you can change one choice after each long rest.',
+      mastery: { picks: 2 }
     }
   ],
   2: [
@@ -162,7 +172,15 @@ const barbarianFeatures = {
       description: 'You choose a path that shapes the nature of your rage.'
     }
   ],
-  4: [ASI],
+  4: [
+    ASI,
+    {
+      name: 'Weapon Mastery',
+      description:
+        'Your martial training lets you master a third weapon of your choice, replacing one option whenever you finish a long rest.',
+      mastery: { picks: 3 }
+    }
+  ],
   5: [
     {
       name: 'Extra Attack',
@@ -198,6 +216,12 @@ const barbarianFeatures = {
     {
       name: 'Primal Path feature',
       description: 'Your chosen path grants you an additional feature.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description:
+        'You can keep four weapons readied with mastery properties, and you can swap one selection whenever you finish a long rest.',
+      mastery: { picks: 4 }
     }
   ],
  11: [
@@ -575,6 +599,12 @@ const fighterFeatures = {
     {
       name: 'Second Wind',
       description: 'You have a limited well of stamina you can draw on to protect yourself.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description:
+        'You ready three weapons with mastery properties and can adjust one choice when you complete a long rest.',
+      mastery: { picks: 3 }
     }
   ],
   2: [
@@ -589,7 +619,15 @@ const fighterFeatures = {
       description: 'You choose an archetype that you strive to emulate in your combat styles.'
     }
   ],
-  4: [ASI],
+  4: [
+    ASI,
+    {
+      name: 'Weapon Mastery',
+      description:
+        'Your practiced versatility lets you prepare mastery for four different weapons at once.',
+      mastery: { picks: 4 }
+    }
+  ],
   5: [
     {
       name: 'Extra Attack',
@@ -615,6 +653,11 @@ const fighterFeatures = {
     {
       name: 'Martial Archetype feature',
       description: 'Your archetype grants you an additional feature.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description: 'You can maintain mastery with five weapons simultaneously.',
+      mastery: { picks: 5 }
     }
   ],
  11: [
@@ -639,7 +682,14 @@ const fighterFeatures = {
       description: 'Your archetype grants you an additional feature.'
     }
   ],
- 16: [ASI],
+ 16: [
+    ASI,
+    {
+      name: 'Weapon Mastery',
+      description: 'Your expertise extends to six mastered weapons at a time.',
+      mastery: { picks: 6 }
+    }
+  ],
  17: [
     {
       name: 'Action Surge (two uses)',
@@ -815,6 +865,12 @@ const paladinFeatures = {
       name: 'Lay on Hands',
       description:
         'You have a pool of healing power that replenishes when you take a long rest.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description:
+        'You can prepare mastery for two weapons you are proficient with and adjust one choice after finishing a long rest.',
+      mastery: { picks: 2 }
     }
   ],
   2: [
@@ -922,6 +978,12 @@ const rangerFeatures = {
       name: 'Natural Explorer',
       description:
         'You are particularly familiar with one type of natural environment and are adept at traveling and surviving in such regions.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description:
+        'You focus on two weapons for mastery and can revise one choice whenever you complete a long rest.',
+      mastery: { picks: 2 }
     }
   ],
   2: [
@@ -1061,6 +1123,12 @@ const rogueFeatures = {
     {
       name: 'Sneak Attack',
       description: 'You know how to strike subtly and exploit a foe’s distraction.'
+    },
+    {
+      name: 'Weapon Mastery',
+      description:
+        'You train with two weapons to unlock their mastery properties and can replace one selection when you finish a long rest.',
+      mastery: { picks: 2 }
     },
     {
       name: "Thieves' Cant",
