@@ -77,12 +77,14 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(onPassTurn).not.toHaveBeenCalled();
   });
 
-  test('weapon damage segments include ability and type classes', () => {
+  test('weapon damage segments include ability and type classes', async () => {
     const weapon = {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
       category: 'melee',
       source: 'weapon',
+      type: 'martial melee weapon',
+      properties: ['Finesse', 'Versatile (1d10)'],
     };
     render(
       <PlayerTurnActions
@@ -101,11 +103,47 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
-    const cold = within(card).getByText(/1d4\+2 cold/);
-    const slashing = within(card).getByText(/1d6 slashing/);
+    expect(within(card).getByText('Weapon Type:')).toBeInTheDocument();
+    expect(within(card).getByText('Martial Melee Weapon')).toBeInTheDocument();
+    const cold = within(card).getByText('1d4+2 Cold');
+    const slashing = within(card).getByText('1d6 Slashing');
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
-    expect(slashing.textContent).toBe('1d6 slashing');
+    expect(slashing.textContent).toBe('1d6 Slashing');
+
+    const propertiesRow = within(card)
+      .getByText('Properties')
+      .closest('.attack-card__row');
+    expect(propertiesRow).not.toBeNull();
+    expect(
+      within(propertiesRow).getByText('Finesse, Versatile (1d10)')
+    ).toBeInTheDocument();
+    const propertiesButton = within(propertiesRow).getByRole('button', {
+      name: /view weapon property descriptions/i,
+    });
+    await act(async () => {
+      fireEvent.click(propertiesButton);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Finesse')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /When making an attack with a finesse weapon, you use your choice/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByText('Versatile (1d10)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /This weapon can be used with one or two hands\. A damage value in parentheses/
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Definition not available.')
+      ).not.toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(document.body);
+    });
   });
 
   test('multi-part weapon damage applies ability modifier once', () => {
@@ -114,6 +152,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       damage: '2d8 slashing + 1d6 lightning',
       category: 'melee',
       source: 'weapon',
+      properties: ['Versatile'],
     };
     render(
       <PlayerTurnActions
@@ -132,10 +171,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Storm Blade').closest('.attack-card');
     expect(card).not.toBeNull();
-    const slashing = within(card).getByText(/2d8\+3 slashing/);
-    const lightning = within(card).getByText(/1d6 lightning/);
-    expect(slashing.textContent).toBe('2d8+3 slashing');
-    expect(lightning.textContent).toBe('1d6 lightning');
+    const slashing = within(card).getByText('2d8+3 Slashing');
+    const lightning = within(card).getByText('1d6 Lightning');
+    expect(slashing.textContent).toBe('2d8+3 Slashing');
+    expect(lightning.textContent).toBe('1d6 Lightning');
 
     const deterministicRoll = (count, sides) => Array(count).fill(1);
     expect(
@@ -165,8 +204,36 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Fire Bolt').closest('.attack-card');
     expect(card).not.toBeNull();
-    const fire = within(card).getByText(/1d10 fire/);
+    const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
+    expect(fire.textContent).toBe('1d10 Fire');
+  });
+
+  test('spell damage displays type in title case', () => {
+    const spell = {
+      name: 'Chill Touch',
+      level: 0,
+      damage: '2d8 necrotic',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const card = screen.getByText('Chill Touch').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const necrotic = within(card).getByText('2d8 Necrotic');
+    expect(necrotic).toHaveClass('damage-necrotic');
+    expect(necrotic.textContent).toBe('2d8 Necrotic');
   });
 
   test('shows breath attack details for dragonborn ancestry', () => {
@@ -202,8 +269,12 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(breathCard).toBeInTheDocument();
     expect(within(breathCard).getByText('Save DC')).toBeInTheDocument();
     expect(within(breathCard).getByText('13')).toBeInTheDocument();
-    const fireDamage = within(breathCard).getByText('3d6 Fire');
-    expect(fireDamage).toBeInTheDocument();
+    const fireDamage = within(breathCard).getByText((content, element) => {
+      return (
+        element.textContent === '2d10 Fire' &&
+        element.classList.contains('damage-fire')
+      );
+    });
     expect(fireDamage).toHaveClass('damage-fire');
     expect(
       within(breathCard).getByText('15 ft. cone • Dexterity Save')
@@ -241,7 +312,12 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const breathCard = screen.getByText('Blue (Lightning)').closest('.attack-card');
     expect(breathCard).toBeInTheDocument();
-    const damage = within(breathCard).getByText('3d6 lightning');
+    const damage = within(breathCard).getByText((content, element) => {
+      return (
+        element.textContent === '2d10 Lightning' &&
+        element.classList.contains('damage-lightning')
+      );
+    });
     expect(damage).toHaveClass('damage-lightning');
   });
 
@@ -496,11 +572,11 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
-    const cold = within(card).getByText(/1d4\+2 cold/);
-    const slashing = within(card).getByText(/1d6 slashing/);
+    const cold = within(card).getByText('1d4+2 Cold');
+    const slashing = within(card).getByText('1d6 Slashing');
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
-    expect(slashing.textContent).toBe('1d6 slashing');
+    expect(slashing.textContent).toBe('1d6 Slashing');
   });
 
   test('spell damage segments include type classes', () => {
@@ -525,8 +601,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Fire Bolt').closest('.attack-card');
     expect(card).not.toBeNull();
-    const fire = within(card).getByText(/1d10 fire/);
+    const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
+    expect(fire.textContent).toBe('1d10 Fire');
   });
 });
 
