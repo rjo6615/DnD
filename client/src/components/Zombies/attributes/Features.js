@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Card, Button, Spinner, Form } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
@@ -146,12 +146,22 @@ export default function Features({
     return Array.from({ length: picks }, (_, idx) => selections[idx] || '');
   };
 
-  const persistWeaponMasterySelections = useCallback(
-    (featureKey, selections) => {
-      const normalizedSelections = Array.isArray(selections)
-        ? selections
-        : [];
-      const hasSelected = normalizedSelections.some(Boolean);
+  const handleMasterySelectionChange = (featureKey, picks, index, value) => {
+    const normalizedValue = resolveWeaponMasteryEntry(value)?.key || '';
+    setWeaponMasterySelections((prev) => {
+      const nextSelections = {
+        ...prev,
+        [featureKey]: Array.from({ length: picks }, (_, idx) =>
+          idx === index
+            ? normalizedValue
+            : prev?.[featureKey]?.[idx] || ''
+        ),
+      };
+
+      const hasSelected = nextSelections[featureKey].some(Boolean);
+      if (!hasSelected) {
+        delete nextSelections[featureKey];
+      }
 
       handleFeatureStateChange((prevFeatureState = {}) => {
         const nextFeatureState = { ...prevFeatureState };
@@ -160,7 +170,7 @@ export default function Features({
         };
 
         if (hasSelected) {
-          existingWeaponMastery[featureKey] = [...normalizedSelections];
+          existingWeaponMastery[featureKey] = nextSelections[featureKey];
         } else {
           delete existingWeaponMastery[featureKey];
         }
@@ -173,26 +183,6 @@ export default function Features({
 
         return nextFeatureState;
       });
-    },
-    [handleFeatureStateChange]
-  );
-
-  const handleMasterySelectionChange = (featureKey, picks, index, value) => {
-    const normalizedValue = resolveWeaponMasteryEntry(value)?.key || '';
-    setWeaponMasterySelections((prev) => {
-      const nextFeatureSelections = Array.from({ length: picks }, (_, idx) =>
-        idx === index ? normalizedValue : prev?.[featureKey]?.[idx] || ''
-      );
-      const hasSelected = nextFeatureSelections.some(Boolean);
-      const nextSelections = { ...prev };
-
-      if (hasSelected) {
-        nextSelections[featureKey] = nextFeatureSelections;
-      } else {
-        delete nextSelections[featureKey];
-      }
-
-      persistWeaponMasterySelections(featureKey, nextFeatureSelections);
 
       return nextSelections;
     });
@@ -272,7 +262,6 @@ export default function Features({
                     const masterySelections = isWeaponMastery
                       ? getMasterySelections(featureKey, feat.mastery.picks)
                       : [];
-                    const hasMasterySelection = masterySelections.some(Boolean);
                     return (
                       <div
                         className="feature-card"
@@ -309,26 +298,7 @@ export default function Features({
                                 />
                               </Button>
                             ) : (
-                              <Button
-                                aria-label="use feature"
-                                variant="outline-light"
-                                size="sm"
-                                onClick={() =>
-                                  persistWeaponMasterySelections(
-                                    featureKey,
-                                    weaponMasterySelections?.[featureKey] ||
-                                      masterySelections
-                                  )
-                                }
-                                disabled={
-                                  isWeaponMastery && !hasMasterySelection
-                                }
-                                title={
-                                  isWeaponMastery && !hasMasterySelection
-                                    ? 'Select a weapon to use this feature'
-                                    : undefined
-                                }
-                              >
+                              <Button aria-label="use feature" variant="outline-light" size="sm">
                                 Use
                               </Button>
                             )}
