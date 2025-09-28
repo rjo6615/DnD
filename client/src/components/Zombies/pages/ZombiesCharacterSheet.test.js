@@ -5,7 +5,11 @@ import hasteIcon from '../../../images/spell-haste-icon.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(),
+}));
 import apiFetch from '../../../utils/apiFetch';
+import { io as mockSocketIo } from 'socket.io-client';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -54,6 +58,11 @@ jest.mock('../attributes/ShopModal', () => (props) => {
   mockShopModalProps.current = props;
   return null;
 });
+const mockMapModalProps = { current: null };
+jest.mock('../attributes/MapModal', () => (props) => {
+  mockMapModalProps.current = props;
+  return props.show ? <div data-testid="map-modal" /> : null;
+});
 const mockOnCastSpell = { current: null };
 const mockHandleClose = { current: null };
 jest.mock('../attributes/SpellSelector', () => (props) => {
@@ -67,6 +76,21 @@ import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
 beforeEach(() => {
   apiFetch.mockReset();
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/map')) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
+  });
+  mockSocketIo.mockReset();
+  const socketStub = {
+    on: jest.fn(),
+    off: jest.fn(),
+    emit: jest.fn(),
+    disconnect: jest.fn(),
+  };
+  mockSocketIo.mockReturnValue(socketStub);
   mockUpdateDamage.mockClear();
   mockCalcDamage.mockClear();
   mockOnCastSpell.current = null;
@@ -74,6 +98,7 @@ beforeEach(() => {
   mockShopModalProps.current = null;
   mockInventoryModalProps.current = null;
   mockEquipmentModalProps.current = null;
+  mockMapModalProps.current = null;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -243,6 +268,72 @@ test('footer renders equipment button before inventory for non-spellcasters', as
   expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
   expect(indexOf('fa-box-open')).toBeGreaterThan(-1);
   expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
+});
+
+test('map footer button toggles the campaign map modal', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+        campaign: 'The Wilds',
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ participants: [], activeTurn: null }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        title: 'Wilds Overview',
+        grid: [
+          ['S', '.'],
+          ['.', 'E'],
+        ],
+        legend: {
+          S: 'Starting position',
+          E: 'Objective',
+        },
+        summary: 'Navigate from S to E.',
+      }),
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  const buttons = await screen.findAllByRole('button');
+  const mapButton = buttons.find((btn) => btn.querySelector('.fa-map'));
+  expect(mapButton).toBeInTheDocument();
+
+  await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
+  expect(mockMapModalProps.current.show).toBe(false);
+
+  await userEvent.click(mapButton);
+  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
+
+  act(() => {
+    mockMapModalProps.current.onHide();
+  });
+
+  await waitFor(() => expect(mockMapModalProps.current.show).toBe(false));
 });
 
 test('renders SpellSlots for non-spellcasting characters', async () => {

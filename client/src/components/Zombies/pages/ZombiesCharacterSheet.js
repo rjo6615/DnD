@@ -39,6 +39,7 @@ import {
   normalizeAccessories as normalizeInventoryAccessories,
 } from "../attributes/inventoryNormalization";
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
+import MapModal from "../attributes/MapModal";
 
 const HEADER_PADDING = 16;
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
@@ -476,6 +477,8 @@ export default function ZombiesCharacterSheet() {
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
   const [campaignCharacters, setCampaignCharacters] = useState({});
+  const [campaignMap, setCampaignMap] = useState(null);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
@@ -970,14 +973,16 @@ export default function ZombiesCharacterSheet() {
         if (!normalizedCampaign) {
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
+          setCampaignMap(null);
           return;
         }
 
         try {
           const encodedCampaign = encodeURIComponent(normalizedCampaign);
-          const [combatRes, charactersRes] = await Promise.all([
+          const [combatRes, charactersRes, mapRes] = await Promise.all([
             apiFetch(`/campaigns/${encodedCampaign}/combat`),
             apiFetch(`/campaigns/${encodedCampaign}/characters`),
+            apiFetch(`/campaigns/${encodedCampaign}/map`),
           ]);
 
           let combatData = createEmptyCombatState();
@@ -992,15 +997,31 @@ export default function ZombiesCharacterSheet() {
             characterMap = mapCharactersById(charactersJson);
           }
 
+          let mapData = null;
+          if (mapRes.ok) {
+            try {
+              const mapJson = await mapRes.json();
+              if (mapJson && typeof mapJson === "object") {
+                mapData = mapJson.map && typeof mapJson.map === "object" ? mapJson.map : mapJson;
+              }
+            } catch (mapError) {
+              console.error(mapError);
+            }
+          } else if (mapRes?.status === 404) {
+            mapData = null;
+          }
+
           if (!isCancelled) {
             setCombatState(combatData);
             setCampaignCharacters(characterMap);
+            setCampaignMap(mapData);
           }
         } catch (err) {
           console.error(err);
           if (!isCancelled) {
             setCombatState(createEmptyCombatState());
             setCampaignCharacters({});
+            setCampaignMap(null);
           }
         }
       } catch (error) {
@@ -1009,6 +1030,7 @@ export default function ZombiesCharacterSheet() {
           setCampaignId(null);
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
+          setCampaignMap(null);
         }
       }
     }
@@ -1026,6 +1048,8 @@ export default function ZombiesCharacterSheet() {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      setCampaignMap(null);
+      setShowMapModal(false);
       return undefined;
     }
 
@@ -1135,13 +1159,30 @@ export default function ZombiesCharacterSheet() {
       });
     };
 
+    const handleCampaignMapUpdate = (update) => {
+      if (update === null) {
+        setCampaignMap(null);
+        return;
+      }
+
+      if (!update || typeof update !== "object") {
+        return;
+      }
+
+      const normalizedMap =
+        update.map && typeof update.map === "object" ? update.map : update;
+      setCampaignMap(normalizedMap);
+    };
+
     socket.on('combat:update', handleCombatUpdate);
     socket.on('character:health:update', handleCharacterHealthUpdate);
+    socket.on('campaign:map:update', handleCampaignMapUpdate);
     socket.emit('campaign:join', campaignId);
 
     return () => {
       socket.off('combat:update', handleCombatUpdate);
       socket.off('character:health:update', handleCharacterHealthUpdate);
+      socket.off('campaign:map:update', handleCampaignMapUpdate);
       socket.emit('campaign:leave', campaignId);
       socket.disconnect();
       socketRef.current = null;
@@ -1176,6 +1217,8 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = () => setShowHelpModal(false);
   const handleShowBackground = () => setShowBackground(true);
   const handleCloseBackground = () => setShowBackground(false);
+  const handleShowMapModal = () => setShowMapModal(true);
+  const handleCloseMapModal = () => setShowMapModal(false);
 
   const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
@@ -1949,6 +1992,18 @@ const spellsGold =
               <i className="fas fa-store" aria-hidden="true"></i>
             </Button>
             <Button
+              onClick={handleShowMapModal}
+              style={{
+                color: "black",
+                backgroundColor: "#6C757D",
+              }}
+              className="footer-btn"
+              variant="secondary"
+              aria-label="Show campaign map"
+            >
+              <i className="fas fa-map" aria-hidden="true"></i>
+            </Button>
+            <Button
               onClick={handleShowHelpModal}
               style={{ color: "white" }}
               className="footer-btn"
@@ -2049,6 +2104,7 @@ const spellsGold =
       showHelpModal={showHelpModal}
       handleCloseHelpModal={handleCloseHelpModal}
     />
+    <MapModal show={showMapModal} onHide={handleCloseMapModal} map={campaignMap} />
   </div>
 );
 }
