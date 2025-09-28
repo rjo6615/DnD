@@ -778,6 +778,25 @@ export default function ZombiesCharacterSheet() {
     });
   }, []);
 
+  const handleFeatureStateChange = useCallback(
+    (updater) => {
+      setForm((prev) => {
+        if (!prev) return prev;
+        const prevFeatures = prev.features || {};
+        const nextFeatures =
+          typeof updater === 'function' ? updater(prevFeatures) : updater;
+        const updatedForm = { ...prev };
+        if (nextFeatures && Object.keys(nextFeatures).length > 0) {
+          updatedForm.features = nextFeatures;
+        } else {
+          delete updatedForm.features;
+        }
+        return updatedForm;
+      });
+    },
+    [setForm]
+  );
+
   const handlePassTurn = useCallback(async () => {
     if (isPassingTurn || !encodedCampaignId) {
       return;
@@ -1995,6 +2014,7 @@ const spellsGold =
       longRestCount={longRestCount}
       shortRestCount={shortRestCount}
       actionCount={actionCount}
+      onFeatureStateChange={handleFeatureStateChange}
     />
     <InventoryModal
       show={showInventory}

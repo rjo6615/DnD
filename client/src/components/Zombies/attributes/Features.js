@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Card, Button, Spinner } from 'react-bootstrap';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Modal, Card, Button, Spinner, Form } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
+import {
+  WEAPON_MASTERY_OPTIONS,
+  WEAPON_MASTERY_OPTION_MAP,
+} from './weaponMasteryOptions';
 
 export default function Features({
   form,
@@ -11,6 +15,7 @@ export default function Features({
   onActionSurge,
   longRestCount,
   shortRestCount,
+  onFeatureStateChange,
 }) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
@@ -18,6 +23,77 @@ export default function Features({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [surgeUsed, setSurgeUsed] = useState(false);
+  const [weaponMasterySelections, setWeaponMasterySelections] = useState(
+    () => form?.features?.weaponMastery || {}
+  );
+
+  const handleFeatureStateChange =
+    typeof onFeatureStateChange === 'function'
+      ? onFeatureStateChange
+      : () => {};
+
+  useEffect(() => {
+    setWeaponMasterySelections(form?.features?.weaponMastery || {});
+  }, [form?.features?.weaponMastery]);
+
+  const masteryOptionElements = useMemo(
+    () =>
+      WEAPON_MASTERY_OPTIONS.map((option) => (
+        <option value={option.id} key={option.id}>
+          {option.title}
+        </option>
+      )),
+    []
+  );
+
+  const buildFeatureKey = (feat) =>
+    [feat.class, feat.level, feat.name]
+      .map((part) => String(part || '').toLowerCase())
+      .join('::');
+
+  const getMasterySelections = (featureKey, picks) => {
+    const selections = weaponMasterySelections?.[featureKey] || [];
+    return Array.from({ length: picks }, (_, idx) => selections[idx] || '');
+  };
+
+  const handleMasterySelectionChange = (featureKey, picks, index, value) => {
+    setWeaponMasterySelections((prev) => {
+      const nextSelections = {
+        ...prev,
+        [featureKey]: Array.from({ length: picks }, (_, idx) =>
+          idx === index ? value : prev?.[featureKey]?.[idx] || ''
+        ),
+      };
+
+      const hasSelected = nextSelections[featureKey].some(Boolean);
+      if (!hasSelected) {
+        delete nextSelections[featureKey];
+      }
+
+      handleFeatureStateChange((prevFeatureState = {}) => {
+        const nextFeatureState = { ...prevFeatureState };
+        const existingWeaponMastery = {
+          ...(prevFeatureState.weaponMastery || {}),
+        };
+
+        if (hasSelected) {
+          existingWeaponMastery[featureKey] = nextSelections[featureKey];
+        } else {
+          delete existingWeaponMastery[featureKey];
+        }
+
+        if (Object.keys(existingWeaponMastery).length > 0) {
+          nextFeatureState.weaponMastery = existingWeaponMastery;
+        } else {
+          delete nextFeatureState.weaponMastery;
+        }
+
+        return nextFeatureState;
+      });
+
+      return nextSelections;
+    });
+  };
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -88,8 +164,17 @@ export default function Features({
                   {features.map((feat, idx) => {
                     const featKey = `${feat.class}-${feat.level}-${idx}`;
                     const isActionSurge = feat.name?.includes('Action Surge');
+                    const isWeaponMastery = Boolean(feat.mastery?.picks);
+                    const featureKey = buildFeatureKey(feat);
+                    const masterySelections = isWeaponMastery
+                      ? getMasterySelections(featureKey, feat.mastery.picks)
+                      : [];
                     return (
-                      <div className="feature-card" key={featKey}>
+                      <div
+                        className="feature-card"
+                        key={featKey}
+                        data-testid="feature-card"
+                      >
                         <div className="feature-card-header">
                           <div>
                             <div className="feature-card-name">{feat.name}</div>
@@ -130,7 +215,13 @@ export default function Features({
                               size="sm"
                               className="view-link-btn"
                               onClick={() => {
-                                setModalFeature(feat);
+                                const selectedMasteries = masterySelections.filter(
+                                  Boolean
+                                );
+                                setModalFeature({
+                                  ...feat,
+                                  masterySelections: selectedMasteries,
+                                });
                                 setShowModal(true);
                               }}
                             >
@@ -138,13 +229,63 @@ export default function Features({
                             </Button>
                           </div>
                         </div>
-                        {feat.desc && (
-                          <div className="feature-card-body">
-                            {Array.isArray(feat.desc)
-                              ? feat.desc.join(' ')
-                              : feat.desc}
-                          </div>
-                        )}
+                        <div className="feature-card-body">
+                          {(feat.description || feat.desc) && (
+                            <div className="mb-2">
+                              {Array.isArray(feat.description || feat.desc)
+                                ? (feat.description || feat.desc).join(' ')
+                                : feat.description || feat.desc}
+                            </div>
+                          )}
+                          {isWeaponMastery && (
+                            <div className="weapon-mastery-card">
+                              <div className="mb-2 fw-semibold">
+                                Weapon Mastery selections available: {feat.mastery.picks}
+                              </div>
+                              <div className="d-flex flex-column gap-2">
+                                {masterySelections.map((selection, selectionIdx) => (
+                                  <Form.Select
+                                    key={`${featureKey}-${selectionIdx}`}
+                                    aria-label={`Select mastery option ${selectionIdx + 1}`}
+                                    value={selection}
+                                    onChange={(event) =>
+                                      handleMasterySelectionChange(
+                                        featureKey,
+                                        feat.mastery.picks,
+                                        selectionIdx,
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="">Choose a mastery option</option>
+                                    {masteryOptionElements}
+                                  </Form.Select>
+                                ))}
+                              </div>
+                              {masterySelections.filter(Boolean).length > 0 && (
+                                <div className="mt-3 text-start">
+                                  <div className="fw-semibold">Current selections</div>
+                                  <ul className="mb-0">
+                                    {masterySelections
+                                      .filter(Boolean)
+                                      .map((selection, selectionIdx) => {
+                                        const option =
+                                          WEAPON_MASTERY_OPTION_MAP[selection];
+                                        if (!option) return null;
+                                        return (
+                                          <li
+                                            key={`${featureKey}-${selection}-${selectionIdx}`}
+                                          >
+                                            <strong>{option.title}</strong>: {option.description}
+                                          </li>
+                                        );
+                                      })}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
