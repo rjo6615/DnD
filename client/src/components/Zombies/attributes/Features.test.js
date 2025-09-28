@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Features from './Features';
+import { WEAPON_MASTERY_OPTION_MAP } from './weaponMasteryOptions';
 
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
@@ -144,10 +145,23 @@ test('weapon mastery card supports selections and modal details', async () => {
   render(
     <Features
       form={{
-        occupation: [{ Name: 'Fighter', Level: 1 }],
+        occupation: [
+          {
+            Name: 'Fighter',
+            Level: 1,
+            weapons: ['simple', 'martial'],
+          },
+        ],
+        weapon: [
+          ['Longsword', 'martial melee', '1d8 slashing', [], '', '', 'longsword'],
+          ['Shortsword', 'martial melee', '1d6 piercing', [], '', '', 'shortsword'],
+        ],
+        equipment: {
+          mainHand: { name: 'Longsword', type: 'longsword', source: 'weapon' },
+        },
         features: {
           weaponMastery: {
-            [featureKey]: ['cleave', 'graze'],
+            [featureKey]: ['longsword', 'shortsword'],
           },
         },
       }}
@@ -162,17 +176,39 @@ test('weapon mastery card supports selections and modal details', async () => {
 
   const selects = within(masteryCard).getAllByRole('combobox');
   expect(selects).toHaveLength(2);
-  expect(selects[0]).toHaveValue('cleave');
-  expect(selects[1]).toHaveValue('graze');
+  expect(selects[0]).toHaveDisplayValue('Longsword');
+  expect(selects[1]).toHaveDisplayValue('Shortsword');
+
+  const handaxeOption = within(selects[1]).getByRole('option', {
+    name: 'Handaxe',
+  });
 
   await act(async () => {
-    await userEvent.selectOptions(selects[1], 'vex');
+    await userEvent.selectOptions(selects[1], handaxeOption);
   });
 
   expect(onFeatureStateChange).toHaveBeenCalled();
   const updateFn = onFeatureStateChange.mock.calls.at(-1)[0];
   const updatedState = updateFn({ weaponMastery: {} });
-  expect(updatedState.weaponMastery[featureKey]).toEqual(['cleave', 'vex']);
+  expect(updatedState.weaponMastery[featureKey]).toEqual([
+    'longsword',
+    'handaxe',
+  ]);
+  expect(updatedState.weaponMastery[featureKey]).not.toContain('vex');
+
+  const selectionsHeader = within(masteryCard).getByText('Current selections');
+  const selectionsSection = selectionsHeader.parentElement;
+  expect(selectionsSection).toBeTruthy();
+  const selectionsList = within(selectionsSection).getByRole('list');
+  const currentListItems = within(selectionsList).getAllByRole('listitem');
+  expect(currentListItems[0]).toHaveTextContent('Longsword — Flex');
+  expect(currentListItems[0]).toHaveTextContent(
+    WEAPON_MASTERY_OPTION_MAP.flex.description
+  );
+  expect(currentListItems[1]).toHaveTextContent('Handaxe — Vex');
+  expect(currentListItems[1]).toHaveTextContent(
+    WEAPON_MASTERY_OPTION_MAP.vex.description
+  );
 
   await act(async () => {
     await userEvent.click(
@@ -188,10 +224,15 @@ test('weapon mastery card supports selections and modal details', async () => {
   expect(
     within(modal).getByText('Weapon Mastery Selections')
   ).toBeInTheDocument();
-  expect(within(modal).getByText('Vex')).toBeInTheDocument();
-  expect(
-    within(modal).getByText(
-      /you have advantage on the next attack you make against that creature/i
-    )
-  ).toBeInTheDocument();
+  const modalListItems = within(modal).getAllByRole('listitem');
+  expect(modalListItems[0]).toHaveTextContent('Longsword');
+  expect(modalListItems[0]).toHaveTextContent('Flex');
+  expect(modalListItems[0]).toHaveTextContent(
+    WEAPON_MASTERY_OPTION_MAP.flex.description
+  );
+  expect(modalListItems[1]).toHaveTextContent('Handaxe');
+  expect(modalListItems[1]).toHaveTextContent('Vex');
+  expect(modalListItems[1]).toHaveTextContent(
+    WEAPON_MASTERY_OPTION_MAP.vex.description
+  );
 });
