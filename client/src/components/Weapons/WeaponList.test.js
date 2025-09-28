@@ -7,8 +7,24 @@ import apiFetch from '../../utils/apiFetch';
 jest.mock('../../utils/apiFetch');
 
 const weaponsData = {
-  club: { name: 'Club', damage: '1d4 bludgeoning', category: 'simple melee', properties: ['light'], weight: 2, cost: '1 sp' },
-  dagger: { name: 'Dagger', damage: '1d4 piercing', category: 'simple melee', properties: ['finesse'], weight: 1, cost: '2 gp' },
+  club: {
+    name: 'Club',
+    damage: '1d4 bludgeoning',
+    category: 'simple melee',
+    properties: ['light'],
+    weight: 2,
+    cost: '1 sp',
+    mastery: 'Slow',
+  },
+  dagger: {
+    name: 'Dagger',
+    damage: '1d4 piercing',
+    category: 'simple melee',
+    properties: ['finesse'],
+    weight: 1,
+    cost: '2 gp',
+    mastery: 'Nick',
+  },
 };
 const customData = [
   {
@@ -99,7 +115,18 @@ test('fetches weapons, handles add to cart, and displays cart count', async () =
       weight: 6,
     })
   );
-  expect(onAddToCart).toHaveBeenCalledTimes(2);
+
+  const clubHeading = await screen.findByText('Club');
+  const clubButton = within(clubHeading.closest('.card')).getByRole('button', {
+    name: /add to cart/i,
+  });
+  await userEvent.click(clubButton);
+  await waitFor(() =>
+    expect(onAddToCart).toHaveBeenLastCalledWith(
+      expect.objectContaining({ name: 'club', mastery: 'Slow' })
+    )
+  );
+  expect(onAddToCart).toHaveBeenCalledTimes(3);
 });
 
 test('renders all weapons regardless of allowed list', async () => {

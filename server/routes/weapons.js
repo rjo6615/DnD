@@ -4,6 +4,7 @@ const {
   types,
   categories,
   properties,
+  masteries,
 } = require('../data/weapons');
 
 module.exports = (router) => {
@@ -14,7 +15,7 @@ module.exports = (router) => {
   });
 
   weaponRouter.get('/options', (_req, res) => {
-    res.json({ types, categories, properties });
+    res.json({ types, categories, properties, masteries });
   });
 
   weaponRouter.get('/:name', (req, res) => {

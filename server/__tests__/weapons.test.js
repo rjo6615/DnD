@@ -30,12 +30,26 @@ describe('Weapons API routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.club).toBeDefined();
     expect(res.body.dagger).toBeDefined();
+    expect(res.body.club.mastery).toBe('Slow');
+    expect(res.body.greataxe.mastery).toBe('Cleave');
   });
 
   test('fetches a single weapon', async () => {
     const res = await request(app).get('/weapons/club');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ name: 'Club', damage: '1d4 bludgeoning' });
+    expect(res.body).toMatchObject({
+      name: 'Club',
+      damage: '1d4 bludgeoning',
+      mastery: 'Slow',
+    });
+  });
+
+  test('returns mastery options with weapon metadata', async () => {
+    const res = await request(app).get('/weapons/options');
+    expect(res.status).toBe(200);
+    expect(res.body.masteries).toEqual(
+      expect.arrayContaining(['Slow', 'Cleave'])
+    );
   });
 
   test('returns 404 for unknown weapon', async () => {

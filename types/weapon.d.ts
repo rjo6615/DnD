@@ -16,6 +16,10 @@ export interface Weapon {
    */
   damage: string;
   /**
+   * Weapon Mastery key, e.g. "Cleave".
+   */
+  mastery?: string;
+  /**
    * List of properties from the SRD, e.g. ["versatile", "heavy"].
    */
   properties: string[];

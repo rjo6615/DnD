@@ -15,6 +15,7 @@ test('fetches and displays weapon detail', async () => {
       weight: 2,
       cost: '1 sp',
       proficient: false,
+      mastery: 'Slow',
     }),
   });
 
@@ -30,5 +31,7 @@ test('fetches and displays weapon detail', async () => {
   await waitFor(() => expect(screen.getByText('Club')).toBeInTheDocument());
   expect(screen.getByText(/simple melee/)).toBeInTheDocument();
   expect(screen.getByText(/1d4 bludgeoning/)).toBeInTheDocument();
+  expect(screen.getByText(/Mastery:/)).toBeInTheDocument();
+  expect(screen.getByText(/reduce its Speed by 10 feet/)).toBeInTheDocument();
 });
 

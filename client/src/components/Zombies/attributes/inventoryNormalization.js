@@ -52,6 +52,7 @@ export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
           cost,
           type,
           attackBonus,
+          mastery,
         ] = weapon;
         if (!name) return null;
         const normalized = {
@@ -64,6 +65,7 @@ export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
         };
         if (type !== undefined) normalized.type = type;
         if (attackBonus !== undefined) normalized.attackBonus = attackBonus;
+        if (mastery !== undefined) normalized.mastery = mastery;
         if (owned !== undefined) normalized.owned = owned;
         return normalized;
       }
