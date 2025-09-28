@@ -4,12 +4,13 @@ import React, {
   useImperativeHandle,
   useMemo,
 } from 'react';
-import { Button, Modal, Card } from "react-bootstrap";
+import { Button, Modal, Card, OverlayTrigger, Popover } from "react-bootstrap";
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
+import weaponPropertyDefinitions from '../../../data/weaponProperties';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -285,6 +286,30 @@ const [isFumble, setIsFumble] = useState(false);
     return typeof category === 'string' && category.toLowerCase().includes('ranged')
       ? dexMod
       : strMod;
+  };
+
+  const formatWeaponLabel = (value) => {
+    if (typeof value !== 'string') return 'Unknown';
+    const normalized = value.replace(/[_-]+/g, ' ').trim();
+    if (!normalized) return 'Unknown';
+    return toTitleCase(normalized);
+  };
+
+  const getWeaponTypeLabel = (weapon) => {
+    const raw = weapon?.type || weapon?.category;
+    return formatWeaponLabel(raw || 'Unknown');
+  };
+
+  const getWeaponPropertyDetails = (weapon) => {
+    if (!Array.isArray(weapon?.properties)) return [];
+    return weapon.properties
+      .filter((prop) => typeof prop === 'string' && prop.trim())
+      .map((prop) => {
+        const label = formatWeaponLabel(prop);
+        const description =
+          weaponPropertyDefinitions[label] || 'Definition not available.';
+        return { label, description };
+      });
   };
 
   const totalLevel = useMemo(
@@ -809,43 +834,97 @@ const showSparklesEffect = () => {
                   <p className="text-muted mb-0">No weapons equipped.</p>
                 </div>
               ) : (
-                equippedWeapons.map(({ slot, weapon }) => (
-                  <div
-                    className="attack-card"
-                    key={`${slot}-${weapon.name || slot}`}
-                  >
-                    <div className="attack-card__title text-capitalize">
-                      {weapon.name || 'Unknown'}
-                    </div>
-                    <div className="attack-card__details">
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Attack Bonus</span>
-                        <span className="attack-card__value">
-                          {getAttackBonus(weapon)}
-                        </span>
+                equippedWeapons.map(({ slot, weapon }) => {
+                  const weaponTypeLabel = getWeaponTypeLabel(weapon);
+                  const propertyDetails = getWeaponPropertyDetails(weapon);
+                  const propertyLabels = propertyDetails.map(({ label }) => label);
+                  const propertiesDisplay =
+                    propertyLabels.length > 0
+                      ? propertyLabels.join(', ')
+                      : 'None';
+                  const popoverId = `weapon-properties-${slot}`;
+
+                  const propertiesPopover = (
+                    <Popover id={popoverId}>
+                      <Popover.Header as="h3">Weapon Properties</Popover.Header>
+                      <Popover.Body>
+                        {propertyDetails.map(({ label, description }) => (
+                          <div className="weapon-property" key={`${popoverId}-${label}`}>
+                            <div className="weapon-property__name">{label}</div>
+                            <div className="weapon-property__description">{description}</div>
+                          </div>
+                        ))}
+                      </Popover.Body>
+                    </Popover>
+                  );
+
+                  return (
+                    <div
+                      className="attack-card"
+                      key={`${slot}-${weapon.name || slot}`}
+                    >
+                      <div className="attack-card__title text-capitalize">
+                        {weapon.name || 'Unknown'}
                       </div>
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Damage</span>
-                        <span className="attack-card__value">
-                          {getDamageString(weapon)}
-                        </span>
+                      <div className="attack-card__meta">
+                        <div className="attack-card__meta-item">
+                          <span className="attack-card__meta-label">Weapon Type:</span>
+                          <span className="attack-card__meta-value">{weaponTypeLabel}</span>
+                        </div>
+                      </div>
+                      <div className="attack-card__details">
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Attack Bonus</span>
+                          <span className="attack-card__value">
+                            {getAttackBonus(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Damage</span>
+                          <span className="attack-card__value">
+                            {getDamageString(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row attack-card__row--properties">
+                          <span className="attack-card__label">Properties</span>
+                          <span className="attack-card__value attack-card__properties">
+                            {propertiesDisplay}
+                            {propertyDetails.length > 0 && (
+                              <OverlayTrigger
+                                trigger="click"
+                                placement="auto"
+                                overlay={propertiesPopover}
+                                rootClose
+                              >
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  className="attack-card__properties-button"
+                                  aria-label="View weapon property descriptions"
+                                >
+                                  <i className="fa-solid fa-eye" aria-hidden="true"></i>
+                                </Button>
+                              </OverlayTrigger>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="attack-card__actions">
+                        <Button
+                          onClick={() => {
+                            handleWeaponAttack(weapon);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="roll"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
                       </div>
                     </div>
-                    <div className="attack-card__actions">
-                      <Button
-                        onClick={() => {
-                          handleWeaponAttack(weapon);
-                          handleCloseAttack();
-                        }}
-                        variant="link"
-                        aria-label="roll"
-                        className="attack-card__roll"
-                      >
-                        <i className="fa-solid fa-dice-d20"></i>
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
             {breathWeaponDetails && (

@@ -261,6 +261,20 @@
   color: rgba(255, 255, 255, 0.75);
 }
 
+.attack-card__meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.attack-card__meta-label {
+  font-weight: 500;
+}
+
+.attack-card__meta-value {
+  color: #fff;
+}
+
 .attack-card__details {
   display: flex;
   flex-direction: column;
@@ -282,6 +296,39 @@
 .attack-card__value {
   text-align: right;
   flex: 1;
+}
+
+.attack-card__properties {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.attack-card__properties-button {
+  padding: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.95rem;
+}
+
+.attack-card__properties-button:hover,
+.attack-card__properties-button:focus {
+  color: #fff;
+  text-decoration: none;
+}
+
+.weapon-property {
+  margin-bottom: 0.75rem;
+}
+
+.weapon-property:last-child {
+  margin-bottom: 0;
+}
+
+.weapon-property__name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
 }
 
 .attack-card__actions {
