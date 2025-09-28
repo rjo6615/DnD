@@ -210,6 +210,54 @@ describe('PlayerTurnActions weapon mastery modal', () => {
     ).toBeInTheDocument();
   });
 
+  test('renders crown button when mastery is selected via feature', async () => {
+    const weapon = {
+      name: 'Longsword',
+      damage: '1d8 slashing',
+      category: 'martial melee',
+      source: 'weapon',
+      type: 'longsword',
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+          features: {
+            weaponMastery: {
+              'fighter::1::weapon mastery': ['longsword'],
+            },
+          },
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const attackModal = await screen.findByRole('dialog');
+    expect(within(attackModal).getByText('Attacks')).toBeInTheDocument();
+    const masteryDetails = WEAPON_MASTERY_OPTION_MAP.flex;
+    const crownButton = within(attackModal).getByRole('button', {
+      name: `View mastery: ${masteryDetails.title}`,
+    });
+    act(() => {
+      fireEvent.click(crownButton);
+    });
+    const masteryModal = await screen.findByRole('dialog', {
+      name: masteryDetails.title,
+    });
+    expect(
+      within(masteryModal).getByText(masteryDetails.description)
+    ).toBeInTheDocument();
+    expect(
+      within(masteryModal).getByText(/for Longsword/i)
+    ).toBeInTheDocument();
+  });
+
   test('omits crown button when no mastery is present', async () => {
     const weapon = {
       name: 'Battleaxe',

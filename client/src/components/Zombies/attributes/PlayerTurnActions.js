@@ -77,6 +77,21 @@ const formatWeaponTypeLabel = (weapon) => {
   return '';
 };
 
+const resolveMasteryDetails = (masteryId, fallback = {}) => {
+  if (!masteryId || typeof masteryId !== 'string') return undefined;
+  const normalized = masteryId.trim().toLowerCase();
+  if (!normalized) return undefined;
+  const option = WEAPON_MASTERY_OPTION_MAP[normalized];
+  if (option) return option;
+  const fallbackTitle = fallback.title || fallback.masteryTitle;
+  const fallbackDescription = fallback.description || fallback.masteryDescription;
+  return {
+    id: normalized,
+    title: fallbackTitle || toTitleCase(normalized.replace(/[-_]+/g, ' ')),
+    description: fallbackDescription || '',
+  };
+};
+
 export function calculateDamage(
   damageString,
   ability = 0,
@@ -304,6 +319,51 @@ const PlayerTurnActions = React.forwardRef(
     return '';
   };
 
+  const selectedMasteryMap = useMemo(() => {
+    const selections = form?.features?.weaponMastery;
+    if (!selections || typeof selections !== 'object') {
+      return new Map();
+    }
+
+    const map = new Map();
+    Object.values(selections).forEach((values) => {
+      if (!Array.isArray(values)) return;
+      values.forEach((value) => {
+        const entry = resolveWeaponMasteryEntry(value);
+        if (entry?.key) {
+          map.set(entry.key, entry);
+        }
+      });
+    });
+
+    return map;
+  }, [form?.features?.weaponMastery]);
+
+  const getWeaponMasteryInfo = (weapon) => {
+    const masteryId = getWeaponMasteryId(weapon);
+    if (masteryId) {
+      return {
+        masteryId,
+        masteryDetails: resolveMasteryDetails(masteryId),
+      };
+    }
+
+    const entry = resolveWeaponMasteryEntry(weapon);
+    if (!entry?.key) {
+      return { masteryId: '', masteryDetails: undefined };
+    }
+
+    const selectedEntry = selectedMasteryMap.get(entry.key);
+    if (!selectedEntry?.masteryId) {
+      return { masteryId: '', masteryDetails: undefined };
+    }
+
+    return {
+      masteryId: selectedEntry.masteryId,
+      masteryDetails: resolveMasteryDetails(selectedEntry.masteryId, selectedEntry),
+    };
+  };
+
   const equippedWeapons = useMemo(() => {
     if (equipmentProvided) {
       return WEAPON_SLOT_KEYS.map((slot) => {
@@ -313,10 +373,7 @@ const PlayerTurnActions = React.forwardRef(
         const damage =
           typeof weapon.damage === 'string' ? weapon.damage.trim() : '';
         if (!damage) return null;
-        const masteryId = getWeaponMasteryId(weapon);
-        const masteryDetails = masteryId
-          ? WEAPON_MASTERY_OPTION_MAP[masteryId]
-          : undefined;
+        const { masteryId, masteryDetails } = getWeaponMasteryInfo(weapon);
         return { slot, weapon, masteryId, masteryDetails };
       }).filter(Boolean);
     }
@@ -325,17 +382,20 @@ const PlayerTurnActions = React.forwardRef(
       includeUnowned: true,
     });
     return legacyWeapons.map((weapon, index) => {
-      const masteryId = getWeaponMasteryId(weapon);
+      const { masteryId, masteryDetails } = getWeaponMasteryInfo(weapon);
       return {
         slot: `legacy-${index}`,
         weapon,
         masteryId,
-        masteryDetails: masteryId
-          ? WEAPON_MASTERY_OPTION_MAP[masteryId]
-          : undefined,
+        masteryDetails,
       };
     });
-  }, [equipmentProvided, normalizedEquipment, form.weapon]);
+  }, [
+    equipmentProvided,
+    normalizedEquipment,
+    form.weapon,
+    selectedMasteryMap,
+  ]);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon) => {
     const category = weapon?.category;
@@ -841,6 +901,7 @@ const showSparklesEffect = () => {
                               setActiveMastery({
                                 id: masteryId,
                                 weaponName: weapon.name || 'Unknown weapon',
+                                details: masteryDetails,
                               })
                             }
                             variant="link"
@@ -942,6 +1003,7 @@ const showSparklesEffect = () => {
       <WeaponMasteryModal
         show={Boolean(activeMastery)}
         masteryId={activeMastery?.id || ''}
+        masteryDetails={activeMastery?.details}
         weaponName={activeMastery?.weaponName}
         onHide={() => setActiveMastery(null)}
       />

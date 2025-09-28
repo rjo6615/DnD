@@ -8,8 +8,19 @@ const getMasteryDetails = (masteryId) => {
   return WEAPON_MASTERY_OPTION_MAP[normalized] || null;
 };
 
-const WeaponMasteryModal = ({ show, onHide, masteryId, weaponName }) => {
-  const mastery = useMemo(() => getMasteryDetails(masteryId), [masteryId]);
+const WeaponMasteryModal = ({
+  show,
+  onHide,
+  masteryId,
+  masteryDetails,
+  weaponName,
+}) => {
+  const mastery = useMemo(() => {
+    if (masteryDetails) {
+      return masteryDetails;
+    }
+    return getMasteryDetails(masteryId);
+  }, [masteryDetails, masteryId]);
   const title = mastery?.title || 'Weapon Mastery';
 
   return (
