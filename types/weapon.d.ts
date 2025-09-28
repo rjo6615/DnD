@@ -32,6 +32,10 @@ export interface Weapon {
    */
   attackBonus?: number;
   /**
+   * Assigned weapon mastery identifier such as "cleave" or "vex".
+   */
+  mastery?: string;
+  /**
    * Whether the creature currently owns the weapon.
    */
   owned: boolean;

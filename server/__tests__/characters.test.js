@@ -295,7 +295,7 @@ describe('Character routes', () => {
         duration: 'Instantaneous',
       }],
       equipment: {
-        mainHand: { name: 'Longsword', source: 'weapon' },
+        mainHand: { name: 'Longsword', source: 'weapon', mastery: 'cleave' },
         ranged: { name: 'Shortbow', source: 'weapon' },
         ringLeft: 'Ring of Protection',
         tail: { name: 'Tail Blade' },
@@ -322,6 +322,7 @@ describe('Character routes', () => {
     expect(res.body.equipment.mainHand).toMatchObject({
       name: 'Longsword',
       source: 'weapon',
+      mastery: 'cleave',
     });
     expect(res.body.equipment.ranged).toMatchObject({
       name: 'Shortbow',

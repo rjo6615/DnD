@@ -34,6 +34,23 @@ const normalizeAccessoryOverrides = (overrides) =>
     ? overrides
     : {};
 
+const normalizeMastery = (value) => {
+  if (!value) return undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? trimmed.toLowerCase() : undefined;
+  }
+  if (typeof value === 'object') {
+    const { id, key, name } = value;
+    const candidate = id || key || name;
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      return trimmed ? trimmed.toLowerCase() : undefined;
+    }
+  }
+  return undefined;
+};
+
 export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
   if (!Array.isArray(weapons)) return [];
   return weapons
@@ -52,8 +69,10 @@ export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
           cost,
           type,
           attackBonus,
+          mastery,
         ] = weapon;
         if (!name) return null;
+        const masteryId = normalizeMastery(mastery);
         const normalized = {
           name,
           category: category ?? '',
@@ -65,6 +84,7 @@ export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
         if (type !== undefined) normalized.type = type;
         if (attackBonus !== undefined) normalized.attackBonus = attackBonus;
         if (owned !== undefined) normalized.owned = owned;
+        if (masteryId) normalized.mastery = masteryId;
         return normalized;
       }
       if (typeof weapon === 'string') {
@@ -87,11 +107,13 @@ export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
           cost = '',
           type,
           attackBonus,
+          mastery: rawMastery,
           owned: ownedProp,
           ...rest
         } = weapon;
         if (!name) return null;
         if (!includeUnowned && ownedProp === false) return null;
+        const mastery = normalizeMastery(rawMastery);
         const normalized = {
           name,
           category,
@@ -104,6 +126,7 @@ export const normalizeWeapons = (weapons, { includeUnowned = false } = {}) => {
           ...rest,
         };
         if (ownedProp !== undefined) normalized.owned = ownedProp;
+        if (mastery) normalized.mastery = mastery;
         return normalized;
       }
       return null;

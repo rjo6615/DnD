@@ -288,11 +288,25 @@
   margin-top: auto;
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .attack-card__roll {
   font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.85);
+}
+
+.attack-card__mastery {
+  font-size: 1.25rem;
+  color: #f1c40f;
+  text-shadow: 0 0 6px rgba(241, 196, 15, 0.7);
+}
+
+.attack-card__mastery:hover,
+.attack-card__mastery:focus {
+  color: #ffeaa7;
+  text-shadow: 0 0 10px rgba(255, 234, 167, 0.85);
+  text-decoration: none;
 }
 
 .attack-card__roll:hover,
