@@ -105,11 +105,11 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(card).not.toBeNull();
     expect(within(card).getByText('Weapon Type:')).toBeInTheDocument();
     expect(within(card).getByText('Martial Melee Weapon')).toBeInTheDocument();
-    const cold = within(card).getByText(/1d4\+2 cold/);
-    const slashing = within(card).getByText(/1d6 slashing/);
+    const cold = within(card).getByText('1d4+2 Cold');
+    const slashing = within(card).getByText('1d6 Slashing');
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
-    expect(slashing.textContent).toBe('1d6 slashing');
+    expect(slashing.textContent).toBe('1d6 Slashing');
 
     const propertiesRow = within(card)
       .getByText('Properties')
@@ -171,10 +171,10 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Storm Blade').closest('.attack-card');
     expect(card).not.toBeNull();
-    const slashing = within(card).getByText(/2d8\+3 slashing/);
-    const lightning = within(card).getByText(/1d6 lightning/);
-    expect(slashing.textContent).toBe('2d8+3 slashing');
-    expect(lightning.textContent).toBe('1d6 lightning');
+    const slashing = within(card).getByText('2d8+3 Slashing');
+    const lightning = within(card).getByText('1d6 Lightning');
+    expect(slashing.textContent).toBe('2d8+3 Slashing');
+    expect(lightning.textContent).toBe('1d6 Lightning');
 
     const deterministicRoll = (count, sides) => Array(count).fill(1);
     expect(
@@ -204,8 +204,36 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Fire Bolt').closest('.attack-card');
     expect(card).not.toBeNull();
-    const fire = within(card).getByText(/1d10 fire/);
+    const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
+    expect(fire.textContent).toBe('1d10 Fire');
+  });
+
+  test('spell damage displays type in title case', () => {
+    const spell = {
+      name: 'Chill Touch',
+      level: 0,
+      damage: '2d8 necrotic',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const card = screen.getByText('Chill Touch').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const necrotic = within(card).getByText('2d8 Necrotic');
+    expect(necrotic).toHaveClass('damage-necrotic');
+    expect(necrotic.textContent).toBe('2d8 Necrotic');
   });
 
   test('shows breath attack details for dragonborn ancestry', () => {
@@ -286,7 +314,7 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(breathCard).toBeInTheDocument();
     const damage = within(breathCard).getByText((content, element) => {
       return (
-        element.textContent === '2d10 lightning' &&
+        element.textContent === '2d10 Lightning' &&
         element.classList.contains('damage-lightning')
       );
     });
@@ -544,11 +572,11 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
-    const cold = within(card).getByText(/1d4\+2 cold/);
-    const slashing = within(card).getByText(/1d6 slashing/);
+    const cold = within(card).getByText('1d4+2 Cold');
+    const slashing = within(card).getByText('1d6 Slashing');
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
-    expect(slashing.textContent).toBe('1d6 slashing');
+    expect(slashing.textContent).toBe('1d6 Slashing');
   });
 
   test('spell damage segments include type classes', () => {
@@ -573,8 +601,9 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
     const card = screen.getByText('Fire Bolt').closest('.attack-card');
     expect(card).not.toBeNull();
-    const fire = within(card).getByText(/1d10 fire/);
+    const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
+    expect(fire.textContent).toBe('1d10 Fire');
   });
 });
 
