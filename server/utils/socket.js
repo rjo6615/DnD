@@ -136,7 +136,7 @@ const emitCombatUpdate = (campaignId, combatState) => {
   io.to(getCampaignRoom(normalizedId)).emit('combat:update', combatState);
 };
 
-const emitMapUpdate = (campaignId, map) => {
+const emitMapUpdate = (campaignId, payload) => {
   if (!io) {
     logger.warn('Socket.io server not initialized; cannot emit map update');
     return;
@@ -148,7 +148,11 @@ const emitMapUpdate = (campaignId, map) => {
   }
 
   const normalizedId = campaignId.trim();
-  io.to(getCampaignRoom(normalizedId)).emit('map:update', map);
+  io.to(getCampaignRoom(normalizedId)).emit('campaign:map:update', payload);
+
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'map')) {
+    io.to(getCampaignRoom(normalizedId)).emit('map:update', payload.map);
+  }
 };
 
 const emitCharacterHealthUpdate = ({ campaignId, characterId, tempHealth, health }) => {

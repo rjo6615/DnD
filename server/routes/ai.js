@@ -72,12 +72,12 @@ module.exports = (router) => {
     }
   };
 
-  let mapSchema;
-  const getMapSchema = (Z) => {
-    if (!mapSchema) {
-      mapSchema = createMapSchema(Z);
+  let mapSchemas;
+  const getMapSchemas = (Z) => {
+    if (!mapSchemas) {
+      mapSchemas = createMapSchema(Z);
     }
-    return mapSchema;
+    return mapSchemas;
   };
 
   aiRouter.post('/weapon', async (req, res) => {
@@ -297,7 +297,7 @@ module.exports = (router) => {
     }
 
     const Z = resolveZod();
-    const MapSchema = Z ? getMapSchema(Z) : null;
+    const mapSchemas = Z ? getMapSchemas(Z) : null;
 
     try {
       const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
@@ -364,11 +364,11 @@ module.exports = (router) => {
           : {}),
       };
 
-      if (!MapSchema) {
+      if (!mapSchemas) {
         return res.json(mapPayload);
       }
 
-      const parsed = MapSchema.safeParse(mapPayload);
+      const parsed = mapSchemas.input.safeParse(mapPayload);
       if (!parsed.success) {
         logger.error('Image payload failed schema validation', {
           error: parsed.error?.message,
