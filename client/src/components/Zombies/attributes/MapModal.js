@@ -1,7 +1,71 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner } from 'react-bootstrap';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
 import MapDisplay from './MapDisplay';
+import CampaignMapBoard from './CampaignMapBoard';
+
+const clamp01 = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  if (parsed < 0) {
+    return 0;
+  }
+  if (parsed > 1) {
+    return 1;
+  }
+  return parsed;
+};
+
+const sanitizeToken = (tokenValue, fallbackId) => {
+  if (!tokenValue || typeof tokenValue !== 'object') {
+    return null;
+  }
+
+  const candidate = { ...tokenValue };
+  const candidateId =
+    (typeof candidate.characterId === 'string' && candidate.characterId.trim()) ||
+    (typeof fallbackId === 'string' && fallbackId.trim()) ||
+    null;
+
+  if (!candidateId) {
+    return null;
+  }
+
+  const x = clamp01(candidate.x);
+  const y = clamp01(candidate.y);
+
+  if (x === null || y === null) {
+    return null;
+  }
+
+  return { ...candidate, characterId: candidateId, x, y };
+};
+
+const sanitizeTokenDictionary = (tokens) => {
+  if (!tokens || typeof tokens !== 'object') {
+    return {};
+  }
+
+  if (Array.isArray(tokens)) {
+    return tokens.reduce((acc, token) => {
+      const sanitized = sanitizeToken(token);
+      if (sanitized) {
+        acc[sanitized.characterId] = sanitized;
+      }
+      return acc;
+    }, {});
+  }
+
+  return Object.entries(tokens).reduce((acc, [key, value]) => {
+    const sanitized = sanitizeToken(value, key);
+    if (sanitized) {
+      acc[sanitized.characterId] = sanitized;
+    }
+    return acc;
+  }, {});
+};
 
 const normalizeMapId = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
@@ -47,6 +111,11 @@ const MapModal = ({
   actionInProgressId,
   emptyMessage,
   title,
+  tokensByMapId,
+  currentCharacterId,
+  characterLookup,
+  onTokenMove,
+  readOnly,
 }) => {
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
@@ -92,6 +161,219 @@ const MapModal = ({
 
     return map || null;
   }, [normalizedMaps, resolvedSelectedId, normalizedActiveId, map]);
+
+  const previewMapId = useMemo(
+    () => normalizeMapId(previewMap?.mapId),
+    [previewMap]
+  );
+
+  const normalizedCurrentCharacterId = useMemo(
+    () => normalizeMapId(currentCharacterId),
+    [currentCharacterId]
+  );
+
+  const normalizedCharacterLookup = useMemo(() => {
+    if (!characterLookup || typeof characterLookup !== 'object') {
+      return {};
+    }
+
+    return Object.entries(characterLookup).reduce((acc, [key, value]) => {
+      if (typeof key !== 'string') {
+        return acc;
+      }
+
+      const trimmedKey = key.trim();
+      if (!trimmedKey) {
+        return acc;
+      }
+
+      const color =
+        typeof value?.color === 'string' && value.color.trim() !== ''
+          ? value.color.trim()
+          : null;
+      const label =
+        typeof value?.label === 'string' && value.label.trim() !== ''
+          ? value.label.trim()
+          : null;
+
+      acc[trimmedKey] = { color, label };
+      return acc;
+    }, {});
+  }, [characterLookup]);
+
+  const tokensDictionary = useMemo(() => {
+    if (!previewMapId) {
+      return {};
+    }
+
+    if (tokensByMapId && typeof tokensByMapId === 'object') {
+      const entry = tokensByMapId[previewMapId];
+      if (entry && typeof entry === 'object') {
+        return sanitizeTokenDictionary(entry);
+      }
+    }
+
+    if (previewMap && typeof previewMap === 'object' && previewMap.tokens) {
+      return sanitizeTokenDictionary(previewMap.tokens);
+    }
+
+    return {};
+  }, [previewMap, previewMapId, tokensByMapId]);
+
+  const [placementPending, setPlacementPending] = useState(false);
+  const [placementError, setPlacementError] = useState(null);
+
+  useEffect(() => {
+    if (!show) {
+      setPlacementPending(false);
+      setPlacementError(null);
+    }
+  }, [show]);
+
+  useEffect(() => {
+    setPlacementError(null);
+    setPlacementPending(false);
+  }, [previewMapId, currentCharacterId]);
+
+  const isInteractive = useMemo(
+    () => typeof onTokenMove === 'function' && Boolean(previewMapId),
+    [onTokenMove, previewMapId]
+  );
+
+  const boardTokens = useMemo(() => {
+    const tokensList = Object.values(tokensDictionary);
+
+    return tokensList
+      .map((token) => {
+        const lookup = normalizedCharacterLookup[token.characterId] || {};
+        const rawLabel =
+          lookup.label ||
+          (typeof token.label === 'string' && token.label.trim() !== '' ? token.label.trim() : null) ||
+          token.characterId;
+
+        const color =
+          lookup.color ||
+          (typeof token.color === 'string' && token.color.trim() !== ''
+            ? token.color.trim()
+            : null);
+
+        const isMovable =
+          isInteractive &&
+          !placementPending &&
+          (!readOnly || token.characterId === normalizedCurrentCharacterId);
+
+        return {
+          ...token,
+          label: typeof rawLabel === 'string' ? rawLabel : token.characterId,
+          color,
+          isMovable,
+        };
+      })
+      .sort((a, b) => {
+        const labelA = (a.label || a.characterId || '').toLowerCase();
+        const labelB = (b.label || b.characterId || '').toLowerCase();
+        return labelA.localeCompare(labelB);
+      });
+  }, [
+    currentCharacterId,
+    isInteractive,
+    normalizedCharacterLookup,
+    placementPending,
+    readOnly,
+    tokensDictionary,
+  ]);
+
+  const currentToken = useMemo(() => {
+    if (!normalizedCurrentCharacterId) {
+      return null;
+    }
+    return tokensDictionary[normalizedCurrentCharacterId] || null;
+  }, [normalizedCurrentCharacterId, tokensDictionary]);
+
+  const handleCommitMove = useCallback(
+    async ({ characterId, x, y }) => {
+      if (!isInteractive || placementPending) {
+        return;
+      }
+
+      const normalizedCharacterId = normalizeMapId(characterId);
+      if (!normalizedCharacterId || !previewMapId) {
+        return;
+      }
+
+      if (readOnly && normalizedCharacterId !== normalizedCurrentCharacterId) {
+        return;
+      }
+
+      setPlacementPending(true);
+      setPlacementError(null);
+
+      try {
+        const result = await onTokenMove({
+          mapId: previewMapId,
+          characterId: normalizedCharacterId,
+          x,
+          y,
+        });
+
+        if (result === false) {
+          setPlacementError('Unable to update figurine position.');
+        }
+      } catch (error) {
+        const message =
+          (error && typeof error.message === 'string' && error.message.trim()) ||
+          'Failed to update figurine position.';
+        setPlacementError(message);
+      } finally {
+        setPlacementPending(false);
+      }
+    },
+    [
+      normalizedCurrentCharacterId,
+      isInteractive,
+      onTokenMove,
+      placementPending,
+      previewMapId,
+      readOnly,
+    ]
+  );
+
+  const handleTokenPositionChange = useCallback(
+    ({ characterId, x, y }) => {
+      if (!isInteractive) {
+        return;
+      }
+
+      handleCommitMove({ characterId, x, y });
+    },
+    [handleCommitMove, isInteractive]
+  );
+
+  const handleBackgroundPlacement = useCallback(
+    ({ x, y }) => {
+      if (!isInteractive || placementPending) {
+        return;
+      }
+
+      if (!normalizedCurrentCharacterId || currentToken) {
+        return;
+      }
+
+      handleCommitMove({ characterId: normalizedCurrentCharacterId, x, y });
+    },
+    [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
+  );
+
+  const canClickToPlace = useMemo(
+    () =>
+      Boolean(
+        isInteractive &&
+          !placementPending &&
+          normalizedCurrentCharacterId &&
+          !currentToken
+      ),
+    [currentToken, isInteractive, normalizedCurrentCharacterId, placementPending]
+  );
 
   const handleSelectMap = useCallback(
     (mapId) => {
@@ -238,6 +520,49 @@ const MapModal = ({
     );
   };
 
+  const renderPreviewContent = () => {
+    if (!previewMap) {
+      return <p className="text-muted mb-0">No map image available.</p>;
+    }
+
+    if (!isInteractive) {
+      return <MapDisplay map={previewMap} />;
+    }
+
+    return (
+      <>
+        <CampaignMapBoard
+          map={previewMap}
+          tokens={boardTokens}
+          disabled={placementPending}
+          onTokenPositionChange={handleTokenPositionChange}
+          onBackgroundClick={handleBackgroundPlacement}
+        />
+        {canClickToPlace && (
+          <div className="text-info small mt-3" data-testid="map-modal-placement-hint">
+            Click the map to place your figurine.
+          </div>
+        )}
+        {placementPending && (
+          <div
+            className="d-flex align-items-center gap-2 mt-3 text-muted small"
+            data-testid="map-modal-placement-pending"
+          >
+            <Spinner animation="border" role="status" size="sm">
+              <span className="visually-hidden">Saving figurine position…</span>
+            </Spinner>
+            <span>Saving figurine position…</span>
+          </div>
+        )}
+        {placementError && (
+          <Alert variant="danger" className="mt-3" data-testid="map-modal-placement-error">
+            {placementError}
+          </Alert>
+        )}
+      </>
+    );
+  };
+
   return (
     <Modal
       show={show}
@@ -257,18 +582,14 @@ const MapModal = ({
               {renderMapList()}
             </div>
             <div className="flex-grow-1" data-testid="map-modal-preview">
-              {previewMap ? (
-                <MapDisplay map={previewMap} />
-              ) : (
+              {previewMap ? renderPreviewContent() : (
                 <p className="text-muted mb-0">No map selected.</p>
               )}
             </div>
           </div>
         ) : (
           <div data-testid="map-modal-preview">
-            {previewMap ? (
-              <MapDisplay map={previewMap} />
-            ) : (
+            {previewMap ? renderPreviewContent() : (
               <p className="text-muted mb-0">No map image available.</p>
             )}
           </div>
@@ -297,6 +618,16 @@ MapModal.propTypes = {
   actionInProgressId: PropTypes.string,
   emptyMessage: PropTypes.node,
   title: PropTypes.node,
+  tokensByMapId: PropTypes.object,
+  currentCharacterId: PropTypes.string,
+  characterLookup: PropTypes.objectOf(
+    PropTypes.shape({
+      color: PropTypes.string,
+      label: PropTypes.string,
+    })
+  ),
+  onTokenMove: PropTypes.func,
+  readOnly: PropTypes.bool,
 };
 
 MapModal.defaultProps = {
@@ -313,6 +644,11 @@ MapModal.defaultProps = {
   actionInProgressId: null,
   emptyMessage: 'No maps saved yet.',
   title: 'Campaign Map',
+  tokensByMapId: null,
+  currentCharacterId: null,
+  characterLookup: {},
+  onTokenMove: null,
+  readOnly: true,
 };
 
 export default MapModal;

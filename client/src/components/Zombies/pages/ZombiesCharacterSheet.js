@@ -134,6 +134,136 @@ const mapCharactersById = (characters) => {
   }, {});
 };
 
+const clamp01 = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  if (parsed < 0) {
+    return 0;
+  }
+  if (parsed > 1) {
+    return 1;
+  }
+  return parsed;
+};
+
+const sanitizeToken = (tokenValue, fallbackId) => {
+  if (!tokenValue || typeof tokenValue !== 'object') {
+    return null;
+  }
+
+  const candidate = { ...tokenValue };
+  const candidateId =
+    (typeof candidate.characterId === 'string' && candidate.characterId.trim()) ||
+    (typeof fallbackId === 'string' && fallbackId.trim()) ||
+    null;
+
+  if (!candidateId) {
+    return null;
+  }
+
+  const x = clamp01(candidate.x);
+  const y = clamp01(candidate.y);
+
+  if (x === null || y === null) {
+    return null;
+  }
+
+  return { ...candidate, characterId: candidateId, x, y };
+};
+
+const sanitizeTokenDictionary = (tokens) => {
+  if (!tokens || typeof tokens !== 'object') {
+    return {};
+  }
+
+  if (Array.isArray(tokens)) {
+    return tokens.reduce((acc, entry) => {
+      const token = sanitizeToken(entry);
+      if (token) {
+        acc[token.characterId] = token;
+      }
+      return acc;
+    }, {});
+  }
+
+  return Object.entries(tokens).reduce((acc, [key, value]) => {
+    const token = sanitizeToken(value, key);
+    if (token) {
+      acc[token.characterId] = token;
+    }
+    return acc;
+  }, {});
+};
+
+const sanitizeTokensByMapId = (tokensByMapId) => {
+  if (!tokensByMapId || typeof tokensByMapId !== 'object') {
+    return {};
+  }
+
+  return Object.entries(tokensByMapId).reduce((acc, [mapId, tokens]) => {
+    if (typeof mapId !== 'string') {
+      return acc;
+    }
+
+    const trimmed = mapId.trim();
+    if (!trimmed) {
+      return acc;
+    }
+
+    acc[trimmed] = sanitizeTokenDictionary(tokens);
+    return acc;
+  }, {});
+};
+
+const collectTokensFromMaps = (maps) => {
+  if (!Array.isArray(maps)) {
+    return {};
+  }
+
+  return maps.reduce((acc, entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return acc;
+    }
+
+    const mapId =
+      typeof entry.mapId === 'string' && entry.mapId.trim() !== '' ? entry.mapId.trim() : null;
+
+    if (!mapId) {
+      return acc;
+    }
+
+    const tokens = sanitizeTokenDictionary(entry.tokens);
+    if (Object.keys(tokens).length === 0) {
+      return acc;
+    }
+
+    acc[mapId] = tokens;
+    return acc;
+  }, {});
+};
+
+const parseErrorMessage = async (response, fallbackMessage) => {
+  if (!response || typeof response !== 'object') {
+    return fallbackMessage;
+  }
+
+  try {
+    const data = await response.json();
+    if (typeof data === 'string' && data.trim() !== '') {
+      return data.trim();
+    }
+    if (data && typeof data.message === 'string' && data.message.trim() !== '') {
+      return data.message.trim();
+    }
+  } catch (error) {
+    // Ignore JSON parsing errors
+  }
+
+  return fallbackMessage;
+};
+
 function CombatTurnHeader({ participants }) {
   const headerRef = useRef(null);
   const isDraggingRef = useRef(false);
@@ -480,6 +610,8 @@ export default function ZombiesCharacterSheet() {
   const [campaignMaps, setCampaignMaps] = useState([]);
   const [campaignActiveMapId, setCampaignActiveMapId] = useState(null);
   const [campaignMap, setCampaignMap] = useState(null);
+  const [campaignMapTokens, setCampaignMapTokens] = useState({});
+  const [activeMapTokens, setActiveMapTokens] = useState({});
   const [showMapModal, setShowMapModal] = useState(false);
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -511,6 +643,140 @@ export default function ZombiesCharacterSheet() {
     bonus: initCircleState(),
   });
   const [isPassingTurn, setIsPassingTurn] = useState(false);
+
+  const campaignMapTokensRef = useRef({});
+  const activeMapTokensRef = useRef({});
+  const campaignMapRef = useRef(null);
+  const campaignMapsRef = useRef([]);
+  const campaignActiveMapIdRef = useRef(null);
+
+  useEffect(() => {
+    campaignMapTokensRef.current = campaignMapTokens || {};
+  }, [campaignMapTokens]);
+
+  useEffect(() => {
+    activeMapTokensRef.current = activeMapTokens || {};
+  }, [activeMapTokens]);
+
+  useEffect(() => {
+    campaignMapRef.current = campaignMap;
+  }, [campaignMap]);
+
+  useEffect(() => {
+    campaignMapsRef.current = campaignMaps || [];
+  }, [campaignMaps]);
+
+  useEffect(() => {
+    campaignActiveMapIdRef.current =
+      typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== ''
+        ? campaignActiveMapId.trim()
+        : null;
+  }, [campaignActiveMapId]);
+
+  const applyMapPayload = useCallback(
+    (payload = {}) => {
+      const normalizedMaps = Array.isArray(payload?.maps)
+        ? payload.maps.filter((entry) => entry && typeof entry === 'object')
+        : [];
+
+      const sanitizedMaps = normalizedMaps.map((entry) => {
+        const sanitizedTokens = sanitizeTokenDictionary(entry.tokens);
+        if (Object.keys(sanitizedTokens).length > 0) {
+          return { ...entry, tokens: sanitizedTokens };
+        }
+        return entry;
+      });
+
+      const normalizedActiveId =
+        typeof payload?.activeMapId === 'string' && payload.activeMapId.trim() !== ''
+          ? payload.activeMapId.trim()
+          : null;
+
+      const payloadMap =
+        payload && typeof payload.map === 'object' && !Array.isArray(payload.map)
+          ? payload.map
+          : null;
+
+      const resolvedMap =
+        payloadMap ||
+        (normalizedActiveId
+          ? sanitizedMaps.find((entry) => entry?.mapId === normalizedActiveId)
+          : null) ||
+        (sanitizedMaps.length === 1 ? sanitizedMaps[0] : null) ||
+        null;
+
+      const hasTokensByMapIdProp =
+        payload && Object.prototype.hasOwnProperty.call(payload, 'tokensByMapId');
+      const hasActiveTokensProp =
+        payload && Object.prototype.hasOwnProperty.call(payload, 'activeMapTokens');
+
+      const tokensFromPayload = hasTokensByMapIdProp
+        ? sanitizeTokensByMapId(payload.tokensByMapId)
+        : null;
+
+      const tokensFromMaps = collectTokensFromMaps(sanitizedMaps);
+
+      let nextTokensByMapId = tokensFromPayload
+        ? { ...tokensFromPayload }
+        : { ...(campaignMapTokensRef.current || {}) };
+
+      if (!tokensFromPayload) {
+        const mapIds = new Set(
+          sanitizedMaps
+            .map((entry) =>
+              typeof entry?.mapId === 'string' && entry.mapId.trim() !== ''
+                ? entry.mapId.trim()
+                : null
+            )
+            .filter(Boolean)
+        );
+
+        Object.keys(nextTokensByMapId).forEach((mapId) => {
+          if (!mapIds.has(mapId)) {
+            delete nextTokensByMapId[mapId];
+          }
+        });
+      }
+
+      Object.entries(tokensFromMaps).forEach(([mapId, tokens]) => {
+        nextTokensByMapId[mapId] = tokens;
+      });
+
+      const resolvedMapId =
+        typeof resolvedMap?.mapId === 'string' && resolvedMap.mapId.trim() !== ''
+          ? resolvedMap.mapId.trim()
+          : null;
+
+      const activeTokensFromPayload = hasActiveTokensProp
+        ? sanitizeTokenDictionary(payload.activeMapTokens)
+        : null;
+
+      let nextActiveTokens =
+        activeTokensFromPayload ||
+        (resolvedMapId && nextTokensByMapId[resolvedMapId]
+          ? nextTokensByMapId[resolvedMapId]
+          : resolvedMap
+            ? sanitizeTokenDictionary(resolvedMap.tokens)
+            : normalizedActiveId && nextTokensByMapId[normalizedActiveId]
+              ? nextTokensByMapId[normalizedActiveId]
+              : {});
+
+      if (resolvedMapId && !nextTokensByMapId[resolvedMapId] && Object.keys(nextActiveTokens).length > 0) {
+        nextTokensByMapId = { ...nextTokensByMapId, [resolvedMapId]: nextActiveTokens };
+      }
+
+      setCampaignMaps(sanitizedMaps);
+      setCampaignActiveMapId(normalizedActiveId);
+      setCampaignMapTokens(nextTokensByMapId);
+      setActiveMapTokens(nextActiveTokens);
+
+      const nextCampaignMap = resolvedMap
+        ? { ...resolvedMap, tokens: nextActiveTokens }
+        : null;
+      setCampaignMap(nextCampaignMap);
+    },
+    [campaignMapTokensRef]
+  );
 
   const participantsWithDetails = useMemo(() => {
     const sourceParticipants = Array.isArray(combatState?.participants)
@@ -624,7 +890,7 @@ export default function ZombiesCharacterSheet() {
     }
     const trimmed = campaignId.trim();
     return trimmed ? encodeURIComponent(trimmed) : null;
-  }, [campaignId]);
+  }, [campaignId, applyMapPayload]);
 
   const playerCharacterIdSet = useMemo(() => {
     const set = new Set();
@@ -975,9 +1241,7 @@ export default function ZombiesCharacterSheet() {
         if (!normalizedCampaign) {
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
-          setCampaignMaps([]);
-          setCampaignActiveMapId(null);
-          setCampaignMap(null);
+          applyMapPayload({ maps: [], activeMapId: null, map: null });
           return;
         }
 
@@ -1004,6 +1268,8 @@ export default function ZombiesCharacterSheet() {
           let mapsList = [];
           let activeMapIdValue = null;
           let mapData = null;
+          let tokensByMapIdPayload = null;
+          let activeMapTokensPayload = null;
 
           if (mapsRes.ok) {
             try {
@@ -1020,6 +1286,14 @@ export default function ZombiesCharacterSheet() {
                     ? mapsPayload.activeMapId.trim()
                     : null;
                 activeMapIdValue = normalizedActiveId;
+
+                if (Object.prototype.hasOwnProperty.call(mapsPayload, 'tokensByMapId')) {
+                  tokensByMapIdPayload = mapsPayload.tokensByMapId;
+                }
+
+                if (Object.prototype.hasOwnProperty.call(mapsPayload, 'activeMapTokens')) {
+                  activeMapTokensPayload = mapsPayload.activeMapTokens;
+                }
 
                 const payloadMap =
                   mapsPayload.map &&
@@ -1084,18 +1358,22 @@ export default function ZombiesCharacterSheet() {
           if (!isCancelled) {
             setCombatState(combatData);
             setCampaignCharacters(characterMap);
-            setCampaignMaps(mapsList);
-            setCampaignActiveMapId(activeMapIdValue);
-            setCampaignMap(mapData);
+            applyMapPayload({
+              maps: mapsList,
+              activeMapId: activeMapIdValue,
+              map: mapData,
+              ...(tokensByMapIdPayload !== null ? { tokensByMapId: tokensByMapIdPayload } : {}),
+              ...(activeMapTokensPayload !== null
+                ? { activeMapTokens: activeMapTokensPayload }
+                : {}),
+            });
           }
         } catch (err) {
           console.error(err);
           if (!isCancelled) {
             setCombatState(createEmptyCombatState());
             setCampaignCharacters({});
-            setCampaignMaps([]);
-            setCampaignActiveMapId(null);
-            setCampaignMap(null);
+            applyMapPayload({ maps: [], activeMapId: null, map: null });
           }
         }
       } catch (error) {
@@ -1104,9 +1382,7 @@ export default function ZombiesCharacterSheet() {
           setCampaignId(null);
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
-          setCampaignMaps([]);
-          setCampaignActiveMapId(null);
-          setCampaignMap(null);
+          applyMapPayload({ maps: [], activeMapId: null, map: null });
         }
       }
     }
@@ -1116,7 +1392,7 @@ export default function ZombiesCharacterSheet() {
     return () => {
       isCancelled = true;
     };
-  }, [characterId]);
+  }, [characterId, applyMapPayload]);
 
   useEffect(() => {
     if (!campaignId) {
@@ -1124,9 +1400,7 @@ export default function ZombiesCharacterSheet() {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
-      setCampaignMaps([]);
-      setCampaignActiveMapId(null);
-      setCampaignMap(null);
+      applyMapPayload({ maps: [], activeMapId: null, map: null });
       setShowMapModal(false);
       return undefined;
     }
@@ -1239,9 +1513,7 @@ export default function ZombiesCharacterSheet() {
 
     const handleCampaignMapUpdate = (update) => {
       if (update === null) {
-        setCampaignMaps([]);
-        setCampaignActiveMapId(null);
-        setCampaignMap(null);
+        applyMapPayload({ maps: [], activeMapId: null, map: null });
         return;
       }
 
@@ -1249,56 +1521,70 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
-      const hasMapCollection = Array.isArray(update.maps) || 'activeMapId' in update;
+      const hasTokensByMapIdProp = Object.prototype.hasOwnProperty.call(update, 'tokensByMapId');
+      const hasActiveTokensProp = Object.prototype.hasOwnProperty.call(update, 'activeMapTokens');
+      const hasMapsProp = Array.isArray(update.maps);
+      const hasMapProp =
+        update.map && typeof update.map === 'object' && !Array.isArray(update.map);
+      const hasMapExplicitNull = Object.prototype.hasOwnProperty.call(update, 'map') && update.map === null;
+      const hasActiveIdProp = Object.prototype.hasOwnProperty.call(update, 'activeMapId');
 
-      if (hasMapCollection) {
-        const normalizedMaps = Array.isArray(update.maps)
-          ? update.maps.filter((entry) => entry && typeof entry === 'object')
-          : [];
-        setCampaignMaps(normalizedMaps);
-
-        const normalizedActiveId =
-          typeof update.activeMapId === 'string' && update.activeMapId.trim() !== ''
-            ? update.activeMapId.trim()
+      if (
+        !hasMapsProp &&
+        !hasMapProp &&
+        !hasMapExplicitNull &&
+        !hasActiveIdProp &&
+        !hasTokensByMapIdProp &&
+        !hasActiveTokensProp
+      ) {
+        const normalizedMap = hasMapProp ? update.map : update;
+        const normalizedMapId =
+          typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
+            ? normalizedMap.mapId.trim()
             : null;
-        setCampaignActiveMapId(normalizedActiveId);
-
-        const payloadMap =
-          update.map && typeof update.map === 'object' && !Array.isArray(update.map)
-            ? update.map
-            : null;
-
-        const resolvedMap =
-          payloadMap ||
-          (normalizedActiveId
-            ? normalizedMaps.find((entry) => entry?.mapId === normalizedActiveId)
-            : null) ||
-          (normalizedMaps.length === 1 ? normalizedMaps[0] : null) ||
-          null;
-
-        setCampaignMap(resolvedMap);
+        applyMapPayload({
+          maps: normalizedMap ? [normalizedMap] : campaignMapsRef.current,
+          activeMapId: normalizedMapId || campaignActiveMapIdRef.current,
+          map: normalizedMap,
+        });
         return;
       }
 
-      const normalizedMap =
-        update.map && typeof update.map === 'object' && !Array.isArray(update.map)
-          ? update.map
-          : update;
-
-      if (normalizedMap === null) {
-        setCampaignMaps([]);
-        setCampaignActiveMapId(null);
-        setCampaignMap(null);
-        return;
-      }
-
-      setCampaignMaps(normalizedMap ? [normalizedMap] : []);
-      const normalizedActiveId =
-        typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
-          ? normalizedMap.mapId.trim()
+      const normalizedIncomingActiveId =
+        hasActiveIdProp &&
+        typeof update.activeMapId === 'string' &&
+        update.activeMapId.trim() !== ''
+          ? update.activeMapId.trim()
           : null;
-      setCampaignActiveMapId(normalizedActiveId);
-      setCampaignMap(normalizedMap);
+
+      let mapFromList = null;
+      if (hasMapsProp && normalizedIncomingActiveId) {
+        mapFromList = (update.maps || []).find((entry) => {
+          if (!entry || typeof entry !== 'object') {
+            return false;
+          }
+
+          const entryId =
+            typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
+              ? entry.mapId.trim()
+              : null;
+          return entryId === normalizedIncomingActiveId;
+        }) || null;
+      }
+
+      const workingPayload = {
+        maps: hasMapsProp ? update.maps : campaignMapsRef.current,
+        activeMapId: normalizedIncomingActiveId || campaignActiveMapIdRef.current,
+        map: hasMapProp
+          ? update.map
+          : hasMapExplicitNull
+            ? null
+            : mapFromList || campaignMapRef.current,
+        ...(hasTokensByMapIdProp ? { tokensByMapId: update.tokensByMapId } : {}),
+        ...(hasActiveTokensProp ? { activeMapTokens: update.activeMapTokens } : {}),
+      };
+
+      applyMapPayload(workingPayload);
     };
 
     socket.on('combat:update', handleCombatUpdate);
@@ -1314,7 +1600,7 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [campaignId]);
+  }, [campaignId, applyMapPayload]);
 
   const handleShowCharacterInfo = () => setShowCharacterInfo(true);
   const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
@@ -1780,6 +2066,217 @@ export default function ZombiesCharacterSheet() {
 
   const raceBonus = form?.race?.abilities || {};
 
+  const resolvedCharacterId = useMemo(() => {
+    const candidates = [];
+    if (typeof form?._id === 'string' && form._id.trim() !== '') {
+      candidates.push(form._id.trim());
+    }
+    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
+      candidates.push(form.characterId.trim());
+    }
+    if (typeof characterId === 'string' && characterId.trim() !== '') {
+      candidates.push(characterId.trim());
+    }
+    return candidates.find(Boolean) || null;
+  }, [characterId, form]);
+
+  const tokenMetaById = useMemo(() => {
+    const lookup = {};
+
+    if (campaignCharacters && typeof campaignCharacters === 'object') {
+      Object.entries(campaignCharacters).forEach(([key, value]) => {
+        if (typeof key !== 'string') {
+          return;
+        }
+
+        const trimmed = key.trim();
+        if (!trimmed) {
+          return;
+        }
+
+        const label =
+          (typeof value?.characterName === 'string' && value.characterName.trim() !== ''
+            ? value.characterName.trim()
+            : null) ||
+          (typeof value?.name === 'string' && value.name.trim() !== ''
+            ? value.name.trim()
+            : null) ||
+          (typeof value?.displayName === 'string' && value.displayName.trim() !== ''
+            ? value.displayName.trim()
+            : null);
+
+        const color =
+          typeof value?.diceColor === 'string' && value.diceColor.trim() !== ''
+            ? value.diceColor.trim()
+            : null;
+
+        lookup[trimmed] = { color, label };
+      });
+    }
+
+    if (resolvedCharacterId && !lookup[resolvedCharacterId]) {
+      const color =
+        typeof form?.diceColor === 'string' && form.diceColor.trim() !== ''
+          ? form.diceColor.trim()
+          : null;
+      const label =
+        (typeof form?.characterName === 'string' && form.characterName.trim() !== ''
+          ? form.characterName.trim()
+          : null) ||
+        (typeof form?.name === 'string' && form.name.trim() !== ''
+          ? form.name.trim()
+          : null);
+
+      lookup[resolvedCharacterId] = { color, label };
+    }
+
+    return lookup;
+  }, [campaignCharacters, form, resolvedCharacterId]);
+
+  const modalTokensByMapId = useMemo(() => {
+    const base = { ...(campaignMapTokens || {}) };
+    const mapId =
+      typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
+        ? campaignMap.mapId.trim()
+        : null;
+
+    if (mapId) {
+      const existing = { ...(base[mapId] || {}) };
+
+      if (activeMapTokens && typeof activeMapTokens === 'object') {
+        Object.entries(activeMapTokens).forEach(([key, value]) => {
+          const sanitized = sanitizeToken(value, key);
+          if (!sanitized) {
+            return;
+          }
+          existing[sanitized.characterId] = {
+            ...(existing[sanitized.characterId] || {}),
+            ...sanitized,
+          };
+        });
+      }
+
+      base[mapId] = existing;
+    }
+
+    return base;
+  }, [activeMapTokens, campaignMap, campaignMapTokens]);
+
+  const handleTokenMove = useCallback(
+    async ({ mapId, characterId: tokenCharacterId, x, y }) => {
+      const normalizedCampaign =
+        typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
+      const normalizedMapId =
+        typeof mapId === 'string' && mapId.trim() !== ''
+          ? mapId.trim()
+          : typeof campaignMapRef.current?.mapId === 'string' &&
+              campaignMapRef.current.mapId.trim() !== ''
+            ? campaignMapRef.current.mapId.trim()
+            : null;
+      const normalizedCharacterId =
+        typeof tokenCharacterId === 'string' && tokenCharacterId.trim() !== ''
+          ? tokenCharacterId.trim()
+          : null;
+      const clampedX = clamp01(x);
+      const clampedY = clamp01(y);
+
+      if (
+        !normalizedCampaign ||
+        !normalizedMapId ||
+        !normalizedCharacterId ||
+        clampedX === null ||
+        clampedY === null
+      ) {
+        return false;
+      }
+
+      try {
+        const encodedCampaign = encodeURIComponent(normalizedCampaign);
+        const encodedMapId = encodeURIComponent(normalizedMapId);
+        const encodedCharacterId = encodeURIComponent(normalizedCharacterId);
+
+        const response = await apiFetch(
+          `/campaigns/${encodedCampaign}/maps/${encodedMapId}/tokens/${encodedCharacterId}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ x: clampedX, y: clampedY }),
+          }
+        );
+
+        if (!response.ok) {
+          const message = await parseErrorMessage(
+            response,
+            'Failed to update figurine position.'
+          );
+          throw new Error(message);
+        }
+
+        const nextToken = {
+          characterId: normalizedCharacterId,
+          x: clampedX,
+          y: clampedY,
+          updatedAt: new Date().toISOString(),
+        };
+
+        setCampaignMapTokens((prev) => {
+          const next = { ...(prev || {}) };
+          const existing = { ...(next[normalizedMapId] || {}) };
+          existing[normalizedCharacterId] = {
+            ...(existing[normalizedCharacterId] || {}),
+            ...nextToken,
+          };
+          next[normalizedMapId] = existing;
+          return next;
+        });
+
+        if (campaignActiveMapIdRef.current === normalizedMapId) {
+          setActiveMapTokens((prev) => ({
+            ...(prev || {}),
+            [normalizedCharacterId]: {
+              ...(prev?.[normalizedCharacterId] || {}),
+              ...nextToken,
+            },
+          }));
+        }
+
+        setCampaignMap((prev) => {
+          if (!prev) {
+            return prev;
+          }
+
+          const prevMapId =
+            typeof prev.mapId === 'string' && prev.mapId.trim() !== ''
+              ? prev.mapId.trim()
+              : null;
+
+          if (prevMapId !== normalizedMapId) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            tokens: {
+              ...(prev.tokens || {}),
+              [normalizedCharacterId]: {
+                ...(prev.tokens?.[normalizedCharacterId] || {}),
+                ...nextToken,
+              },
+            },
+          };
+        });
+
+        return true;
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          throw error;
+        }
+        throw new Error('Failed to update figurine position.');
+      }
+    },
+    [campaignId]
+  );
+
   const computedStats = STAT_KEYS.reduce((acc, key) => {
     const base = Number(form?.[key] || 0);
     const total =
@@ -2237,6 +2734,10 @@ const spellsGold =
         map={campaignMap}
         maps={campaignMaps}
         activeMapId={campaignActiveMapId}
+        tokensByMapId={modalTokensByMapId}
+        currentCharacterId={resolvedCharacterId}
+        characterLookup={tokenMetaById}
+        onTokenMove={handleTokenMove}
       />
   </div>
 );

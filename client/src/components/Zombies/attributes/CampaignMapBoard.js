@@ -42,6 +42,7 @@ const CampaignMapBoard = ({
   onTokenDrag,
   onTokenDragEnd,
   onTokenPositionChange,
+  onBackgroundClick,
   disabled,
   className,
   children,
@@ -239,6 +240,28 @@ const CampaignMapBoard = ({
     [finalizeDrag]
   );
 
+  const handleLayerPointerDown = useCallback(
+    (event) => {
+      if (interactionDisabled || typeof onBackgroundClick !== 'function') {
+        return;
+      }
+
+      if (event.target !== event.currentTarget) {
+        return;
+      }
+
+      const coords = getNormalizedCoordinates(event.clientX, event.clientY);
+      if (!coords) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      onBackgroundClick(coords);
+    },
+    [getNormalizedCoordinates, interactionDisabled, onBackgroundClick]
+  );
+
   return (
     <div className={classNames('campaign-map-board', className, interactionDisabled && 'campaign-map-board--disabled')}>
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
@@ -246,7 +269,11 @@ const CampaignMapBoard = ({
         <div className="campaign-map-board__stage">
           <div className="campaign-map-board__image-wrapper">
             <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
-            <div className="campaign-map-board__tokens-layer" ref={layerRef}>
+            <div
+              className="campaign-map-board__tokens-layer"
+              ref={layerRef}
+              onPointerDown={handleLayerPointerDown}
+            >
               {tokenPositions.map((token) => {
                 const { characterId, position, color, label } = token;
                 const draggable = !interactionDisabled && token.isMovable !== false;
@@ -312,6 +339,7 @@ CampaignMapBoard.propTypes = {
   onTokenDrag: PropTypes.func,
   onTokenDragEnd: PropTypes.func,
   onTokenPositionChange: PropTypes.func,
+  onBackgroundClick: PropTypes.func,
   disabled: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,
@@ -324,6 +352,7 @@ CampaignMapBoard.defaultProps = {
   onTokenDrag: null,
   onTokenDragEnd: null,
   onTokenPositionChange: null,
+  onBackgroundClick: null,
   disabled: false,
   className: '',
   children: null,
