@@ -14,6 +14,7 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
 });
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
+  emitMapUpdate: jest.fn(),
 }));
 jest.mock('../utils/dnd5eApi', () => ({
   getMonsterByIndex: jest.fn(),
@@ -21,7 +22,7 @@ jest.mock('../utils/dnd5eApi', () => ({
 jest.mock('../utils/monsters', () => ({
   buildEnemyRecord: jest.fn(),
 }));
-const { emitCombatUpdate } = require('../utils/socket');
+const { emitCombatUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
 const registerCampaignRoutes = require('../routes/campaigns');
@@ -69,6 +70,7 @@ describe('Campaign routes', () => {
     expect(insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
         players: [],
+        map: null,
         enemies: [],
         combat: { participants: [], activeTurn: null },
       })
@@ -152,6 +154,147 @@ describe('Campaign routes', () => {
     });
     const res = await request(app).get('/campaigns/dm/DM/Test');
     expect(res.status).toBe(500);
+  });
+
+  describe('map routes', () => {
+    const baseMap = {
+      title: 'Dungeon',
+      summary: 'An underground lair',
+      environment: 'Underground',
+      cellSizeFeet: 5,
+      grid: [
+        ['S', 'E'],
+        ['S', 'S'],
+      ],
+      legend: [
+        { symbol: 'S', description: 'Stone floor' },
+        { symbol: 'E', description: 'Entrance' },
+      ],
+    };
+
+    test('get map success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => ({ campaignName: 'Test', map: baseMap }),
+        }),
+      });
+
+      const res = await request(app).get('/campaigns/Test/map');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(baseMap);
+    });
+
+    test('get map missing campaign', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => null,
+        }),
+      });
+
+      const res = await request(app).get('/campaigns/Test/map');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Campaign not found');
+    });
+
+    test('get map missing map', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => ({ campaignName: 'Test', map: null }),
+        }),
+      });
+
+      const res = await request(app).get('/campaigns/Test/map');
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Map not found');
+    });
+
+    test('save map success', async () => {
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => ({ campaignName: 'Test', dm: 'DM' }),
+          updateOne,
+        }),
+      });
+
+      const res = await request(app)
+        .put('/campaigns/Test/map')
+        .send({ map: baseMap, prompt: 'Create a dungeon map' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          title: baseMap.title,
+          originalPrompt: 'Create a dungeon map',
+          updatedAt: expect.any(String),
+        })
+      );
+      expect(updateOne).toHaveBeenCalledWith(
+        { campaignName: 'Test' },
+        {
+          $set: {
+            map: expect.objectContaining({
+              title: baseMap.title,
+              originalPrompt: 'Create a dungeon map',
+              updatedAt: expect.any(String),
+            }),
+          },
+        }
+      );
+      expect(emitMapUpdate).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({ title: baseMap.title })
+      );
+    });
+
+    test('save map validation failure', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => ({ campaignName: 'Test', dm: 'DM' }),
+        }),
+      });
+
+      const res = await request(app)
+        .put('/campaigns/Test/map')
+        .send({
+          map: { ...baseMap, grid: [] },
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBeDefined();
+      expect(emitMapUpdate).not.toHaveBeenCalled();
+    });
+
+    test('save map forbidden for non-DM', async () => {
+      mockUser = { username: 'Player' };
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => ({ campaignName: 'Test', dm: 'DM' }),
+        }),
+      });
+
+      const res = await request(app)
+        .put('/campaigns/Test/map')
+        .send({ map: baseMap });
+
+      expect(res.status).toBe(403);
+      expect(emitMapUpdate).not.toHaveBeenCalled();
+    });
+
+    test('save map missing campaign', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => null,
+        }),
+      });
+
+      const res = await request(app)
+        .put('/campaigns/Test/map')
+        .send({ map: baseMap });
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Campaign not found');
+    });
   });
 
   test('get combat state success', async () => {
