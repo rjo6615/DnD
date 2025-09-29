@@ -5,6 +5,13 @@ import apiFetch from '../../../utils/apiFetch';
 import useUser from '../../../hooks/useUser';
 jest.mock('../../../utils/apiFetch');
 jest.mock('../../../hooks/useUser');
+jest.mock('../attributes/CampaignMapBoard', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: jest.fn(() => React.createElement('div', { 'data-testid': 'campaign-map-board' })),
+  };
+});
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ campaign: 'Camp1' }),
@@ -18,6 +25,7 @@ jest.mock(
 );
 
 const socketModule = require('socket.io-client');
+const CampaignMapBoard = require('../attributes/CampaignMapBoard').default;
 
 const ZombiesDM = require('./ZombiesDM').default;
 
@@ -57,6 +65,7 @@ describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
     useUser.mockReturnValue({ username: 'dm' });
+    CampaignMapBoard.mockClear();
     const sockets = socketModule.__getMockSockets();
     sockets.length = 0;
     const ioMock = socketModule.__getIoMock();
@@ -729,6 +738,121 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => {
       const list = within(mapCard).getByTestId('map-list');
       expect(within(list).getByText('Updated Map')).toBeInTheDocument();
+    });
+  });
+
+  test('passes campaign tokens to the board component and updates on socket events', async () => {
+    const characters = [
+      { _id: 'hero-1', characterName: 'Hero One', diceColor: '#3366ff' },
+      { _id: 'hero-2', characterName: 'Hero Two', diceColor: '#cc0000' },
+    ];
+
+    const mapTokens = {
+      'map-1': {
+        'hero-1': { characterId: 'hero-1', x: 0.1, y: 0.2 },
+      },
+    };
+
+    const activeMap = {
+      mapId: 'map-1',
+      title: 'Active Map',
+      tokens: mapTokens['map-1'],
+    };
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [activeMap],
+              activeMapId: activeMap.mapId,
+              map: activeMap,
+              tokensByMapId: mapTokens,
+              activeMapTokens: mapTokens['map-1'],
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    await waitFor(() => {
+      expect(CampaignMapBoard).toHaveBeenCalled();
+    });
+
+    const initialBoardCall = CampaignMapBoard.mock.calls
+      .map(([props]) => props)
+      .find((props) => props && props.map && props.map.mapId === 'map-1');
+
+    expect(initialBoardCall).toBeDefined();
+    expect(initialBoardCall.disabled).toBe(false);
+    expect(initialBoardCall.tokens).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          characterId: 'hero-1',
+          x: 0.1,
+          y: 0.2,
+          color: '#3366ff',
+        }),
+      ])
+    );
+
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    const mapUpdateHandler = socketInstance.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:map:update'
+    )[1];
+
+    mapUpdateHandler({
+      tokensByMapId: {
+        'map-1': {
+          'hero-1': { characterId: 'hero-1', x: 0.25, y: 0.5 },
+          'hero-2': { characterId: 'hero-2', x: 0.75, y: 0.8 },
+        },
+      },
+      activeMapTokens: {
+        'hero-1': { characterId: 'hero-1', x: 0.25, y: 0.5 },
+        'hero-2': { characterId: 'hero-2', x: 0.75, y: 0.8 },
+      },
+    });
+
+    await waitFor(() => {
+      const latestCall = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      expect(latestCall.tokens).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            characterId: 'hero-1',
+            x: 0.25,
+            y: 0.5,
+            color: '#3366ff',
+          }),
+          expect.objectContaining({
+            characterId: 'hero-2',
+            x: 0.75,
+            y: 0.8,
+            color: '#cc0000',
+          }),
+        ])
+      );
     });
   });
 
