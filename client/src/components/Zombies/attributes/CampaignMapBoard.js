@@ -16,6 +16,29 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatHpValue = (value) => {
+  if (!Number.isFinite(value)) {
+    return '0';
+  }
+
+  const clamped = value < 0 ? 0 : value;
+  if (Number.isInteger(clamped)) {
+    return `${clamped}`;
+  }
+
+  const precision = Math.abs(clamped) >= 100 ? 0 : 1;
+  return clamped.toFixed(precision);
+};
+
 const buildImageSource = ({ imageUrl, imageBase64, imageType }) => {
   if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
     return imageUrl.trim();
@@ -275,8 +298,20 @@ const CampaignMapBoard = ({
               onPointerDown={handleLayerPointerDown}
             >
               {tokenPositions.map((token) => {
-                const { characterId, position, color, label } = token;
+                const { characterId, position, color, label, currentHp, maxHp } = token;
                 const draggable = !interactionDisabled && token.isMovable !== false;
+                const numericCurrentHp = toFiniteNumberOrNull(currentHp);
+                const numericMaxHp = toFiniteNumberOrNull(maxHp);
+                const hasHealth =
+                  numericCurrentHp !== null && numericMaxHp !== null && numericMaxHp > 0;
+                const safeCurrentHp = hasHealth ? Math.max(0, numericCurrentHp) : null;
+                const safeMaxHp = hasHealth ? Math.max(0, numericMaxHp) : null;
+                const ratio =
+                  hasHealth && safeMaxHp && safeMaxHp > 0
+                    ? Math.min(1, Math.max(0, safeCurrentHp / safeMaxHp))
+                    : 0;
+                const fillPercent = Math.round(ratio * 10000) / 100;
+                const healthColor = color || '#51cf66';
                 return (
                   <div
                     key={characterId}
@@ -297,6 +332,22 @@ const CampaignMapBoard = ({
                     onPointerCancel={handlePointerCancel}
                     data-token-id={characterId}
                   >
+                    {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
+                      <div
+                        className="campaign-map-board__health"
+                        style={{ '--campaign-map-board-health-color': healthColor }}
+                      >
+                        <span className="visually-hidden">{`HP: ${formatHpValue(
+                          safeCurrentHp
+                        )}/${formatHpValue(safeMaxHp)}`}</span>
+                        <div className="campaign-map-board__health-track">
+                          <div
+                            className="campaign-map-board__health-fill"
+                            style={{ width: `${Math.max(0, Math.min(100, fillPercent))}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div
                       className={classNames(
                         'campaign-map-board__figurine',
@@ -342,6 +393,8 @@ CampaignMapBoard.propTypes = {
       color: PropTypes.string,
       label: PropTypes.string,
       isMovable: PropTypes.bool,
+      currentHp: PropTypes.number,
+      maxHp: PropTypes.number,
     })
   ),
   onTokenDragStart: PropTypes.func,
