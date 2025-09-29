@@ -6,10 +6,20 @@ const { buildEnemyRecord } = require('../utils/monsters');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const logger = require('../utils/logger');
-const { emitCombatUpdate } = require('../utils/socket');
+const { emitCombatUpdate, emitMapUpdate } = require('../utils/socket');
+const createMapSchema = require('../schemas/map');
 
 module.exports = (router) => {
   const campaignRouter = express.Router();
+
+  let mapSchema;
+  const getMapSchema = () => {
+    if (!mapSchema) {
+      const { z } = require('zod');
+      mapSchema = createMapSchema(z);
+    }
+    return mapSchema;
+  };
 
   const createDefaultCombatState = () => ({
     participants: [],
@@ -263,6 +273,103 @@ module.exports = (router) => {
     }
   });
 
+  campaignRouter
+    .route('/:campaign/map')
+    .get(
+      [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const db_connect = req.db;
+          const campaign = await db_connect
+            .collection('Campaigns')
+            .findOne({ campaignName: req.params.campaign });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!campaign.map) {
+            return res.status(404).json({ message: 'Map not found' });
+          }
+
+          return res.json(campaign.map);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .put(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        body('map')
+          .custom((value) => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) {
+              throw new Error('map must be an object');
+            }
+            return true;
+          })
+          .withMessage('map must be provided'),
+        body('prompt')
+          .optional({ nullable: true })
+          .custom((value) => {
+            if (value === null || value === undefined) {
+              return true;
+            }
+            if (typeof value !== 'string') {
+              throw new Error('prompt must be a string');
+            }
+            return true;
+          }),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const db_connect = req.db;
+          const campaignName = req.params.campaign;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!req.user || campaign.dm !== req.user.username) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const schema = getMapSchema();
+          const parsed = schema.safeParse(req.body.map);
+          if (!parsed.success) {
+            return res
+              .status(400)
+              .json({ message: parsed.error?.message || 'Invalid map data' });
+          }
+
+          const timestamp = new Date().toISOString();
+          const mapRecord = {
+            ...parsed.data,
+            updatedAt: timestamp,
+          };
+
+          if (typeof req.body.prompt === 'string' && req.body.prompt.trim() !== '') {
+            mapRecord.originalPrompt = req.body.prompt;
+          }
+
+          await collection.updateOne(
+            { campaignName },
+            { $set: { map: mapRecord } }
+          );
+
+          emitMapUpdate(campaignName, mapRecord);
+
+          return res.json(mapRecord);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
   // This section will create a new campaign.
   campaignRouter.route('/add').post(async (req, response, next) => {
     const db_connect = req.db;
@@ -271,6 +378,7 @@ module.exports = (router) => {
       gameMode: req.body.gameMode,
       dm: req.body.dm,
       players: Array.isArray(req.body.players) ? req.body.players : [],
+      map: null,
       combat: createDefaultCombatState(),
       enemies: [],
     };

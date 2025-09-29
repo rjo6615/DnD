@@ -15,6 +15,7 @@ const {
   slotKeys: accessorySlotKeys,
 } = require('../data/accessories');
 const { skillNames } = require('./fieldConstants');
+const createMapSchema = require('../schemas/map');
 
 const resolveOpenAI = () => {
   if (!OpenAI) {
@@ -69,6 +70,14 @@ module.exports = (router) => {
       });
       return { name, schema: {} };
     }
+  };
+
+  let mapSchema;
+  const getMapSchema = (Z) => {
+    if (!mapSchema) {
+      mapSchema = createMapSchema(Z);
+    }
+    return mapSchema;
   };
 
   aiRouter.post('/weapon', async (req, res) => {
@@ -270,6 +279,48 @@ module.exports = (router) => {
       if (!Array.isArray(parsed.data.targetSlots) || parsed.data.targetSlots.length === 0) {
         return res.status(500).json({ message: 'targetSlots must be a non-empty array' });
       }
+      return res.json(parsed.data);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  aiRouter.post('/map', async (req, res) => {
+    const { prompt } = req.body || {};
+    if (!prompt) {
+      return res.status(400).json({ message: 'Prompt is required' });
+    }
+
+    const OpenAIClient = resolveOpenAI();
+    const Z = resolveZod();
+    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) {
+      return res.status(500).json({ message: 'OpenAI not configured' });
+    }
+
+    const MapSchema = getMapSchema(Z);
+
+    try {
+      const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
+      const format = buildFormat(MapSchema, 'map');
+      const response = await openai.responses.parse({
+        model: 'gpt-4o-2024-08-06',
+        input: [
+          {
+            role: 'system',
+            content:
+              'Create a Dungeons and Dragons 5e battle map. Use a rectangular grid of 5-foot squares, always set "cellSizeFeet" to 5, and ensure every symbol used in the grid is documented in the legend with a description.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        text: { format },
+      });
+
+      const data = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = MapSchema.safeParse(data);
+      if (!parsed.success) {
+        return res.status(500).json({ message: parsed.error.message });
+      }
+
       return res.json(parsed.data);
     } catch (err) {
       return res.status(500).json({ message: err.message });

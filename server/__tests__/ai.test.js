@@ -248,3 +248,62 @@ describe('AI accessory route', () => {
   });
 });
 
+describe('AI map route', () => {
+  beforeEach(() => {
+    mockParse.mockReset();
+  });
+
+  const baseMap = {
+    title: 'Cavern',
+    summary: 'A twisting cavern system.',
+    environment: 'Underground',
+    cellSizeFeet: 5,
+    grid: [
+      ['S', 'E'],
+      ['S', 'S'],
+    ],
+    legend: [
+      { symbol: 'S', description: 'Stone' },
+      { symbol: 'E', description: 'Entrance' },
+    ],
+  };
+
+  test('returns validated map', async () => {
+    mockParse.mockResolvedValue({
+      output: [
+        {
+          content: [
+            {
+              parsed: baseMap,
+            },
+          ],
+        },
+      ],
+    });
+
+    const res = await request(app).post('/ai/map').send({ prompt: 'create a cavern map' });
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe(baseMap.title);
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('map');
+  });
+
+  test('rejects invalid map data from AI', async () => {
+    mockParse.mockResolvedValue({
+      output: [
+        {
+          content: [
+            {
+              parsed: { ...baseMap, grid: [] },
+            },
+          ],
+        },
+      ],
+    });
+
+    const res = await request(app).post('/ai/map').send({ prompt: 'bad map' });
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBeDefined();
+    expect(mockParse.mock.calls[0][0].text.format.name).toBe('map');
+  });
+});
+
