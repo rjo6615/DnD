@@ -500,7 +500,16 @@ describe('ZombiesDM AI generation', () => {
         case '/campaigns/Camp1/map':
           if (options.method === 'PUT') {
             savedPayload = JSON.parse(options.body);
-            return Promise.resolve({ ok: true, json: async () => savedPayload });
+            const responseMap = {
+              ...savedPayload.map,
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            };
+
+            if (savedPayload.prompt) {
+              responseMap.originalPrompt = savedPayload.prompt;
+            }
+
+            return Promise.resolve({ ok: true, json: async () => responseMap });
           }
           return Promise.resolve({ ok: true, json: async () => existingMap });
         case '/ai/map':
@@ -548,7 +557,10 @@ describe('ZombiesDM AI generation', () => {
     await screen.findByText('Map saved.');
 
     await waitFor(() => {
-      expect(savedPayload).toEqual(generatedMap);
+      expect(savedPayload).toEqual({
+        map: generatedMap,
+        prompt: 'dark forest',
+      });
     });
 
     await waitFor(() => {
