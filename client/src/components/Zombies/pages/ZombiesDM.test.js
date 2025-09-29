@@ -472,9 +472,11 @@ describe('ZombiesDM AI generation', () => {
     ).toBeInTheDocument();
   });
 
-  test('allows the DM to generate and save a campaign map', async () => {
+  test('allows the DM to generate and save a campaign map as a new entry', async () => {
     const existingMap = {
+      mapId: 'map-1',
       title: 'Existing Map',
+      summary: 'A well-traveled road.',
       imageUrl: 'https://example.com/existing-map.png',
       altText: 'Existing map illustration',
       caption: 'A previously saved battlefield.',
@@ -484,6 +486,11 @@ describe('ZombiesDM AI generation', () => {
       imageBase64: 'ZmFrZUJhdHRsZU1hcA==',
       imageType: 'image/png',
       altText: 'Generated map alt text',
+    };
+    const createdMap = {
+      ...generatedMap,
+      mapId: 'map-2',
+      summary: 'Dense forest terrain.',
     };
     let savedPayload;
 
@@ -499,21 +506,26 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/campaigns/Camp1/enemies':
           return Promise.resolve({ ok: true, json: async () => [] });
-        case '/campaigns/Camp1/map':
-          if (options.method === 'PUT') {
+        case '/campaigns/Camp1/maps':
+          if (options.method === 'POST') {
             savedPayload = JSON.parse(options.body);
-            const responseMap = {
-              ...savedPayload.map,
-              updatedAt: '2024-01-01T00:00:00.000Z',
-            };
-
-            if (savedPayload.prompt) {
-              responseMap.originalPrompt = savedPayload.prompt;
-            }
-
-            return Promise.resolve({ ok: true, json: async () => responseMap });
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                maps: [existingMap, createdMap],
+                activeMapId: createdMap.mapId,
+                map: createdMap,
+              }),
+            });
           }
-          return Promise.resolve({ ok: true, json: async () => existingMap });
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [existingMap],
+              activeMapId: existingMap.mapId,
+              map: existingMap,
+            }),
+          });
         case '/ai/map':
           return Promise.resolve({ ok: true, json: async () => generatedMap });
         default:
@@ -528,13 +540,12 @@ describe('ZombiesDM AI generation', () => {
 
     const mapCard = await screen.findByTestId('resource-map-card');
 
-    await waitFor(() => {
-      expect(within(mapCard).getByText('Existing Map')).toBeInTheDocument();
-      const existingImage = within(mapCard).getByRole('img', {
-        name: /Existing map illustration/i,
-      });
-      expect(existingImage).toHaveAttribute('src', existingMap.imageUrl);
-    });
+    const mapList = await within(mapCard).findByTestId('map-list');
+    const existingListItem = within(mapList).getByTestId('map-list-item-map-1');
+    expect(within(existingListItem).getByText('Existing Map')).toBeInTheDocument();
+    expect(
+      within(existingListItem).getByTestId('map-active-badge-map-1')
+    ).toBeInTheDocument();
 
     const promptInput = within(mapCard).getByPlaceholderText(
       'Describe the map you want to generate'
@@ -556,32 +567,175 @@ describe('ZombiesDM AI generation', () => {
       );
     });
 
-    expect(apiFetch).toHaveBeenCalledWith(
-      '/ai/map',
-      expect.objectContaining({
-        method: 'POST',
-      })
-    );
-
-    const saveButton = within(mapCard).getByRole('button', { name: /Save Map/i });
-    await userEvent.click(saveButton);
+    const saveNewButton = within(mapCard).getByTestId('save-map-new-button');
+    await userEvent.click(saveNewButton);
 
     await screen.findByText('Map saved.');
 
-    await waitFor(() => {
-      expect(savedPayload).toEqual({
-        map: generatedMap,
-        prompt: 'dark forest',
-      });
+    expect(savedPayload).toEqual({
+      map: generatedMap,
+      prompt: 'dark forest',
+      activate: true,
     });
 
     await waitFor(() => {
-      expect(within(mapCard).getByText('Generated Map')).toBeInTheDocument();
+      const updatedList = within(mapCard).getByTestId('map-list');
+      const newListItem = within(updatedList).getByTestId('map-list-item-map-2');
+      expect(within(newListItem).getByText('Generated Map')).toBeInTheDocument();
       expect(
-        within(mapCard).getByRole('img', {
-          name: /Generated map alt text/i,
-        })
+        within(newListItem).getByTestId('map-active-badge-map-2')
       ).toBeInTheDocument();
+    });
+  });
+
+  test('allows the DM to activate a different saved map', async () => {
+    const primaryMap = {
+      mapId: 'map-1',
+      title: 'Primary Map',
+      summary: 'The original battlefield.',
+    };
+    const secondaryMap = {
+      mapId: 'map-2',
+      title: 'Secondary Map',
+      summary: 'A hidden cavern.',
+    };
+    let activationPayload;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [primaryMap, secondaryMap],
+              activeMapId: primaryMap.mapId,
+              map: primaryMap,
+            }),
+          });
+        case '/campaigns/Camp1/maps/map-2':
+          activationPayload = JSON.parse(options.body);
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [primaryMap, secondaryMap],
+              activeMapId: secondaryMap.mapId,
+              map: secondaryMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+    const secondaryActivateButton = await within(mapCard).findByTestId(
+      'map-activate-button-map-2'
+    );
+
+    await userEvent.click(secondaryActivateButton);
+
+    await screen.findByText('Active map updated.');
+
+    expect(activationPayload).toEqual({ active: true });
+
+    const updatedListItem = within(mapCard).getByTestId('map-list-item-map-2');
+    const activeBadge = within(updatedListItem).getByTestId(
+      'map-active-badge-map-2'
+    );
+    expect(activeBadge).toBeInTheDocument();
+    const activeButton = within(updatedListItem).getByTestId('map-activate-button-map-2');
+    expect(activeButton).toBeDisabled();
+    const inactiveButton = within(mapCard).getByTestId('map-activate-button-map-1');
+    expect(inactiveButton).not.toBeDisabled();
+  });
+
+  test('updates the map list when a socket event is received', async () => {
+    const initialMap = {
+      mapId: 'map-1',
+      title: 'Initial Map',
+      summary: 'Original battleground.',
+    };
+    const socketMaps = [initialMap];
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: socketMaps,
+              activeMapId: initialMap.mapId,
+              map: initialMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+    await waitFor(() => {
+      const sockets = socketModule.__getMockSockets();
+      expect(sockets.length).toBeGreaterThan(0);
+      const activeSocket = sockets[sockets.length - 1];
+      expect(activeSocket).toBeDefined();
+      const handlerCall = activeSocket.on.mock.calls.find(
+        ([eventName]) => eventName === 'campaign:map:update'
+      );
+      expect(handlerCall).toBeDefined();
+    });
+
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    const mapUpdateHandler = socketInstance.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:map:update'
+    )[1];
+
+    const updatedMap = {
+      mapId: 'map-2',
+      title: 'Updated Map',
+      summary: 'A mysterious valley.',
+    };
+
+    mapUpdateHandler({
+      maps: [updatedMap],
+      activeMapId: updatedMap.mapId,
+      map: updatedMap,
+    });
+
+    await waitFor(() => {
+      const list = within(mapCard).getByTestId('map-list');
+      expect(within(list).getByText('Updated Map')).toBeInTheDocument();
     });
   });
 
