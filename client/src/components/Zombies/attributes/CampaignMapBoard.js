@@ -304,10 +304,19 @@ const CampaignMapBoard = ({
                       )}
                       style={{ '--figurine-color': color || undefined }}
                     >
-                      <span className="campaign-map-board__figurine-body">
-                        {label ? label.charAt(0).toUpperCase() : ''}
+                      <span className="campaign-map-board__figurine-figure" aria-hidden="true">
+                        <span className="campaign-map-board__figurine-head" />
+                        <span className="campaign-map-board__figurine-torso">
+                          <span className="campaign-map-board__figurine-emblem">
+                            {label ? label.charAt(0).toUpperCase() : ''}
+                          </span>
+                        </span>
+                        <span className="campaign-map-board__figurine-cloak" />
                       </span>
-                      <span className="campaign-map-board__figurine-base" />
+                      <span className="campaign-map-board__figurine-base">
+                        <span className="campaign-map-board__figurine-base-top" />
+                        <span className="campaign-map-board__figurine-base-texture" />
+                      </span>
                     </div>
                   </div>
                 );
