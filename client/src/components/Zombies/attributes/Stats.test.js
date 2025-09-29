@@ -22,10 +22,12 @@ test('clicking view shows description and breakdown', async () => {
 
   render(<Stats form={form} showStats={true} handleCloseStats={() => {}} />);
 
-  const strengthRow = screen.getByText('STR').closest('tr');
+  const strengthKey = screen.getByText('STR');
+  const strengthCard = strengthKey.closest('.stat-card');
+  expect(strengthCard).not.toBeNull();
   await act(async () => {
     await userEvent.click(
-      within(strengthRow).getByRole('button', { name: /view/i })
+      within(strengthCard).getByRole('button', { name: /View Strength details/i })
     );
   });
 
@@ -33,18 +35,21 @@ test('clicking view shows description and breakdown', async () => {
     await screen.findByText('Physical power and carrying capacity.')
   ).toBeInTheDocument();
 
-  const baseRow = screen.getByText('Base').closest('tr');
-  expect(within(baseRow).getByText('9')).toBeInTheDocument();
-  const classRow = screen.getByText('Class').closest('tr');
-  expect(within(classRow).getByText('1')).toBeInTheDocument();
-  const raceRow = screen.getByText('Race').closest('tr');
-  expect(within(raceRow).getByText('2')).toBeInTheDocument();
-  const featRow = screen.getByText('Feat').closest('tr');
-  expect(within(featRow).getByText('1')).toBeInTheDocument();
-  const itemRow = screen.getByText('Item').closest('tr');
-  expect(within(itemRow).getByText('1')).toBeInTheDocument();
-  const totalRow = screen.getByText('Total').closest('tr');
-  expect(within(totalRow).getByText('14')).toBeInTheDocument();
+  const breakdownTable = screen.getByRole('table');
+  const rows = within(breakdownTable).getAllByRole('row');
+  const getAmountFromRow = (label) => {
+    const targetRow = rows.find((row) =>
+      within(row).queryByText(label, { exact: true })
+    );
+    expect(targetRow).toBeDefined();
+    return within(targetRow).getAllByRole('cell')[1];
+  };
+  expect(getAmountFromRow('Base')).toHaveTextContent('9');
+  expect(getAmountFromRow('Class')).toHaveTextContent('1');
+  expect(getAmountFromRow('Race')).toHaveTextContent('2');
+  expect(getAmountFromRow('Feat')).toHaveTextContent('1');
+  expect(getAmountFromRow('Item')).toHaveTextContent('1');
+  expect(getAmountFromRow('Total')).toHaveTextContent('14');
 });
 
 test('equipped stat overrides raise ability score to minimum value', async () => {
@@ -70,22 +75,24 @@ test('equipped stat overrides raise ability score to minimum value', async () =>
 
   render(<Stats form={form} showStats={true} handleCloseStats={() => {}} />);
 
-  const strengthRow = screen.getByText('STR').closest('tr');
-  const cells = within(strengthRow).getAllByRole('cell');
-  expect(cells[1]).toHaveTextContent('21');
-  expect(cells[2]).toHaveTextContent('5');
+  const strengthKey = screen.getByText('STR');
+  const strengthCard = strengthKey.closest('.stat-card');
+  expect(strengthCard).not.toBeNull();
+  const totalLabel = within(strengthCard).getByText('Total');
+  const modifierLabel = within(strengthCard).getByText('Modifier');
+  expect(totalLabel.nextElementSibling).toHaveTextContent('21');
+  expect(modifierLabel.nextElementSibling).toHaveTextContent('5');
 
   await act(async () => {
     await userEvent.click(
-      within(strengthRow).getByRole('button', { name: /view/i })
+      within(strengthCard).getByRole('button', { name: /View Strength details/i })
     );
   });
 
   const overrideRow = await screen.findByText('Override');
   const overrideCells = within(overrideRow.closest('tr')).getAllByRole('cell');
   expect(overrideCells[1]).toHaveTextContent('21');
-  const totalRow = screen.getByText('Total').closest('tr');
-  expect(within(totalRow).getByText('21')).toBeInTheDocument();
+  expect(totalLabel.nextElementSibling).toHaveTextContent('21');
 });
 
 test('stat overrides do not lower higher native scores', async () => {
@@ -111,18 +118,20 @@ test('stat overrides do not lower higher native scores', async () => {
 
   render(<Stats form={form} showStats={true} handleCloseStats={() => {}} />);
 
-  const strengthRow = screen.getByText('STR').closest('tr');
-  const cells = within(strengthRow).getAllByRole('cell');
-  expect(cells[1]).toHaveTextContent('22');
-  expect(cells[2]).toHaveTextContent('6');
+  const strengthKey = screen.getByText('STR');
+  const strengthCard = strengthKey.closest('.stat-card');
+  expect(strengthCard).not.toBeNull();
+  const totalLabel = within(strengthCard).getByText('Total');
+  const modifierLabel = within(strengthCard).getByText('Modifier');
+  expect(totalLabel.nextElementSibling).toHaveTextContent('22');
+  expect(modifierLabel.nextElementSibling).toHaveTextContent('6');
 
   await act(async () => {
     await userEvent.click(
-      within(strengthRow).getByRole('button', { name: /view/i })
+      within(strengthCard).getByRole('button', { name: /View Strength details/i })
     );
   });
 
   expect(screen.queryByText('Override')).not.toBeInTheDocument();
-  const totalRow = screen.getByText('Total').closest('tr');
-  expect(within(totalRow).getByText('22')).toBeInTheDocument();
+  expect(totalLabel.nextElementSibling).toHaveTextContent('22');
 });

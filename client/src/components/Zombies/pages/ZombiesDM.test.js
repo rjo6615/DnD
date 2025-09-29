@@ -475,13 +475,15 @@ describe('ZombiesDM AI generation', () => {
   test('allows the DM to generate and save a campaign map', async () => {
     const existingMap = {
       title: 'Existing Map',
-      grid: [['A', 'B'], ['C', 'D']],
-      legend: [{ symbol: 'A', description: 'Start' }],
+      imageUrl: 'https://example.com/existing-map.png',
+      altText: 'Existing map illustration',
+      caption: 'A previously saved battlefield.',
     };
     const generatedMap = {
       title: 'Generated Map',
-      grid: [['X', 'Y']],
-      legend: [{ symbol: 'X', description: 'Enemy' }],
+      imageBase64: 'ZmFrZUJhdHRsZU1hcA==',
+      imageType: 'image/png',
+      altText: 'Generated map alt text',
     };
     let savedPayload;
 
@@ -528,6 +530,10 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => {
       expect(within(mapCard).getByText('Existing Map')).toBeInTheDocument();
+      const existingImage = within(mapCard).getByRole('img', {
+        name: /Existing map illustration/i,
+      });
+      expect(existingImage).toHaveAttribute('src', existingMap.imageUrl);
     });
 
     const promptInput = within(mapCard).getByPlaceholderText(
@@ -542,6 +548,12 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => {
       expect(within(mapCard).getByText('Generated Map')).toBeInTheDocument();
+      const generatedImage = within(mapCard).getByRole('img', {
+        name: /Generated map alt text/i,
+      });
+      expect(generatedImage.getAttribute('src')).toContain(
+        generatedMap.imageBase64
+      );
     });
 
     expect(apiFetch).toHaveBeenCalledWith(
@@ -565,6 +577,11 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => {
       expect(within(mapCard).getByText('Generated Map')).toBeInTheDocument();
+      expect(
+        within(mapCard).getByRole('img', {
+          name: /Generated map alt text/i,
+        })
+      ).toBeInTheDocument();
     });
   });
 

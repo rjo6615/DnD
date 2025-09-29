@@ -305,15 +305,9 @@ test('map footer button toggles the campaign map modal', async () => {
       ok: true,
       json: async () => ({
         title: 'Wilds Overview',
-        grid: [
-          ['S', '.'],
-          ['.', 'E'],
-        ],
-        legend: {
-          S: 'Starting position',
-          E: 'Objective',
-        },
-        summary: 'Navigate from S to E.',
+        imageUrl: 'https://example.com/wilds-map.png',
+        altText: 'Wilds overview map',
+        summary: 'Navigate from start to end.',
       }),
     });
 
@@ -325,6 +319,10 @@ test('map footer button toggles the campaign map modal', async () => {
 
   await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
   expect(mockMapModalProps.current.show).toBe(false);
+  expect(mockMapModalProps.current.map).toMatchObject({
+    title: 'Wilds Overview',
+    imageUrl: 'https://example.com/wilds-map.png',
+  });
 
   await userEvent.click(mapButton);
   await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
