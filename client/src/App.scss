@@ -335,49 +335,11 @@
   margin-top: auto;
   display: flex;
   justify-content: flex-end;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.attack-card__mastery {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  margin-right: 0.25rem;
-  border-radius: 50%;
-  color: #2e1b00;
-  background: linear-gradient(135deg, #f8e16c, #d29c0f);
-  box-shadow: 0 0 0 2px rgba(250, 217, 97, 0.6), 0 0 8px rgba(248, 225, 108, 0.85);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.attack-card__mastery:hover,
-.attack-card__mastery:focus {
-  color: #1d1300;
-  text-decoration: none;
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 2px rgba(255, 223, 128, 0.85), 0 0 12px rgba(255, 223, 128, 0.95);
-}
-
-.attack-card__mastery:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-}
-
-.attack-card__mastery-description {
-  margin-bottom: 0;
 }
 
 .attack-card__roll {
   font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.85);
-  margin-left: 0.25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .attack-card__roll:hover,

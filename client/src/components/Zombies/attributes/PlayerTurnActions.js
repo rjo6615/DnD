@@ -11,7 +11,6 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
-import weaponMasteryProperties from '../../../data/weaponMasteryProperties';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -256,10 +255,6 @@ const [isFumble, setIsFumble] = useState(false);
     () => typeof form?.equipment === 'object' && form.equipment !== null,
     [form.equipment]
   );
-  const weaponMasteryCapability =
-    form?.capabilities?.weaponMastery === true ||
-    form?.weaponMastery === true ||
-    form?.features?.weaponMastery === true;
   const normalizedEquipment = useMemo(
     () => normalizeEquipmentMap(form.equipment),
     [form.equipment]
@@ -878,16 +873,6 @@ const showSparklesEffect = () => {
                       ? propertyLabels.join(', ')
                       : 'None';
                   const popoverId = `weapon-properties-${slot}`;
-                  const rawMastery =
-                    typeof weapon?.mastery === 'string' ? weapon.mastery.trim() : '';
-                  const masteryName = rawMastery ? toTitleCase(rawMastery) : '';
-                  const masteryDescription = masteryName
-                    ? weaponMasteryProperties[masteryName] || 'Description not available.'
-                    : '';
-                  const masteryPopoverId = `weapon-mastery-${slot}`;
-                  const hasWeaponMastery = Boolean(
-                    masteryName && weaponMasteryCapability
-                  );
 
                   const propertiesPopover = (
                     <Popover id={popoverId}>
@@ -955,32 +940,6 @@ const showSparklesEffect = () => {
                         </div>
                       </div>
                       <div className="attack-card__actions">
-                        {hasWeaponMastery && (
-                          <OverlayTrigger
-                            trigger="click"
-                            placement="auto"
-                            overlay={
-                              <Popover id={masteryPopoverId}>
-                                <Popover.Header as="h3">{masteryName}</Popover.Header>
-                                <Popover.Body>
-                                  <p className="attack-card__mastery-description">
-                                    {masteryDescription}
-                                  </p>
-                                </Popover.Body>
-                              </Popover>
-                            }
-                            rootClose
-                          >
-                            <Button
-                              type="button"
-                              variant="link"
-                              className="attack-card__mastery"
-                              aria-label={`View ${masteryName} weapon mastery details`}
-                            >
-                              <i className="fa-solid fa-crown" aria-hidden="true"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        )}
                         <Button
                           onClick={() => {
                             handleWeaponAttack(weapon);
