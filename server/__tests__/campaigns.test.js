@@ -73,6 +73,7 @@ describe('Campaign routes', () => {
         maps: [],
         activeMapId: null,
         map: null,
+        mapTokens: {},
         enemies: [],
         combat: { participants: [], activeTurn: null },
       })
@@ -173,14 +174,18 @@ describe('Campaign routes', () => {
       updatedAt: '2023-01-01T00:00:00.000Z',
     };
 
-    const buildCampaignWithMap = (overrides = {}) => {
-      const mapRecord = { ...storedMap, ...overrides };
+    const buildCampaignWithMap = (mapOverrides = {}, campaignOverrides = {}) => {
+      const mapRecord = { ...storedMap, ...mapOverrides };
+      const { mapTokens: overrideTokens, ...restCampaignOverrides } =
+        campaignOverrides || {};
       return {
         campaignName: 'Test',
         dm: 'DM',
         maps: [mapRecord],
         activeMapId: mapRecord.mapId,
         map: mapRecord,
+        mapTokens: overrideTokens !== undefined ? overrideTokens : {},
+        ...restCampaignOverrides,
       };
     };
 
@@ -193,10 +198,11 @@ describe('Campaign routes', () => {
         }),
       });
 
-      const res = await request(app).get('/campaigns/Test/map');
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual(expect.objectContaining({ mapId: storedMap.mapId }));
-    });
+    const res = await request(app).get('/campaigns/Test/map');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(expect.objectContaining({ mapId: storedMap.mapId }));
+    expect(res.body.tokens).toEqual({});
+  });
 
     test('get map missing campaign', async () => {
       dbo.mockResolvedValue({
@@ -237,14 +243,17 @@ describe('Campaign routes', () => {
         }),
       });
 
-      const res = await request(app).get('/campaigns/Test/maps');
-      expect(res.status).toBe(200);
-      expect(res.body.activeMapId).toBe(storedMap.mapId);
-      expect(res.body.map).toEqual(expect.objectContaining({ mapId: storedMap.mapId }));
-      expect(res.body.maps).toEqual(
-        expect.arrayContaining([expect.objectContaining({ mapId: storedMap.mapId })])
-      );
-    });
+    const res = await request(app).get('/campaigns/Test/maps');
+    expect(res.status).toBe(200);
+    expect(res.body.activeMapId).toBe(storedMap.mapId);
+    expect(res.body.map).toEqual(expect.objectContaining({ mapId: storedMap.mapId }));
+    expect(res.body.map.tokens).toEqual({});
+    expect(res.body.activeMapTokens).toEqual({});
+    expect(res.body.tokensByMapId).toEqual({});
+    expect(res.body.maps).toEqual(
+      expect.arrayContaining([expect.objectContaining({ mapId: storedMap.mapId })])
+    );
+  });
 
     test('create map success', async () => {
       const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
@@ -265,43 +274,49 @@ describe('Campaign routes', () => {
         .post('/campaigns/Test/maps')
         .send({ map: baseMap, prompt: 'Create a dungeon map' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.activeMapId).toEqual(expect.any(String));
-      expect(res.body.map).toEqual(
-        expect.objectContaining({
-          title: baseMap.title,
-          originalPrompt: 'Create a dungeon map',
-          mapId: res.body.activeMapId,
-        })
-      );
-      expect(res.body.maps).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
-        ])
-      );
-      const lastUpdate = updateOne.mock.calls[updateOne.mock.calls.length - 1]?.[1];
-      expect(lastUpdate).toEqual(
-        expect.objectContaining({
-          $set: expect.objectContaining({
-            activeMapId: res.body.activeMapId,
-            map: expect.objectContaining({ mapId: res.body.activeMapId }),
-            maps: expect.arrayContaining([
-              expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
-            ]),
-          }),
-        })
-      );
-      expect(emitMapUpdate).toHaveBeenCalledWith(
-        'Test',
-        expect.objectContaining({
+    expect(res.status).toBe(200);
+    expect(res.body.activeMapId).toEqual(expect.any(String));
+    expect(res.body.map).toEqual(
+      expect.objectContaining({
+        title: baseMap.title,
+        originalPrompt: 'Create a dungeon map',
+        mapId: res.body.activeMapId,
+      })
+    );
+    expect(res.body.map.tokens).toEqual({});
+    expect(res.body.activeMapTokens).toEqual({});
+    expect(res.body.tokensByMapId).toEqual({});
+    expect(res.body.maps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+      ])
+    );
+    const lastUpdate = updateOne.mock.calls[updateOne.mock.calls.length - 1]?.[1];
+    expect(lastUpdate).toEqual(
+      expect.objectContaining({
+        $set: expect.objectContaining({
           activeMapId: res.body.activeMapId,
           map: expect.objectContaining({ mapId: res.body.activeMapId }),
           maps: expect.arrayContaining([
             expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
           ]),
-        })
-      );
-    });
+          mapTokens: {},
+        }),
+      })
+    );
+    expect(emitMapUpdate).toHaveBeenCalledWith(
+      'Test',
+      expect.objectContaining({
+        activeMapId: res.body.activeMapId,
+        map: expect.objectContaining({ mapId: res.body.activeMapId }),
+        maps: expect.arrayContaining([
+          expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+        ]),
+        tokensByMapId: {},
+        activeMapTokens: {},
+      })
+    );
+  });
 
     test('legacy map update success', async () => {
       const updatedAtBefore = '2023-01-02T00:00:00.000Z';
@@ -325,6 +340,7 @@ describe('Campaign routes', () => {
           originalPrompt: 'Create a dungeon map',
           mapId: storedMap.mapId,
           updatedAt: expect.any(String),
+          tokens: {},
         })
       );
       const lastUpdate = updateOne.mock.calls[updateOne.mock.calls.length - 1]?.[1];
@@ -339,6 +355,7 @@ describe('Campaign routes', () => {
             maps: expect.arrayContaining([
               expect.objectContaining({ mapId: storedMap.mapId, title: baseMap.title }),
             ]),
+            mapTokens: {},
           }),
         })
       );
@@ -347,6 +364,8 @@ describe('Campaign routes', () => {
         expect.objectContaining({
           activeMapId: storedMap.mapId,
           map: expect.objectContaining({ mapId: storedMap.mapId }),
+          tokensByMapId: {},
+          activeMapTokens: {},
         })
       );
     });
@@ -432,9 +451,16 @@ describe('Campaign routes', () => {
       expect(res.body.map).toEqual(
         expect.objectContaining({ mapId: secondaryMap.mapId, title: secondaryMap.title })
       );
+      expect(res.body.map.tokens).toEqual({});
+      expect(res.body.activeMapTokens).toEqual({});
+      expect(res.body.tokensByMapId).toEqual({});
       expect(emitMapUpdate).toHaveBeenCalledWith(
         'Test',
-        expect.objectContaining({ activeMapId: secondaryMap.mapId })
+        expect.objectContaining({
+          activeMapId: secondaryMap.mapId,
+          activeMapTokens: {},
+          tokensByMapId: {},
+        })
       );
     });
 
@@ -466,11 +492,250 @@ describe('Campaign routes', () => {
       expect(res.body.map).toEqual(
         expect.objectContaining({ mapId: storedMap.mapId, title: storedMap.title })
       );
+      expect(res.body.map.tokens).toEqual({});
+      expect(res.body.activeMapTokens).toEqual({});
+      expect(res.body.tokensByMapId).toEqual({});
       expect(res.body.maps).toHaveLength(1);
       expect(emitMapUpdate).toHaveBeenCalledWith(
         'Test',
-        expect.objectContaining({ activeMapId: storedMap.mapId })
+        expect.objectContaining({
+          activeMapId: storedMap.mapId,
+          activeMapTokens: {},
+          tokensByMapId: {},
+        })
       );
+    });
+
+    test('update map token success as DM', async () => {
+      const campaignDoc = buildCampaignWithMap();
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne,
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: jest.fn() };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app)
+        .put(`/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`)
+        .send({ x: 1.5, y: -0.25 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.tokensByMapId).toEqual({
+        [storedMap.mapId]: {
+          'hero-1': expect.objectContaining({
+            characterId: 'hero-1',
+            x: 1,
+            y: 0,
+            updatedAt: expect.any(String),
+          }),
+        },
+      });
+      expect(res.body.activeMapTokens).toEqual({
+        'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+      });
+      expect(updateOne).toHaveBeenCalledWith(
+        { campaignName: 'Test' },
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            mapTokens: {
+              [storedMap.mapId]: expect.objectContaining({
+                'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+              }),
+            },
+          }),
+        })
+      );
+      expect(emitMapUpdate).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({
+          tokensByMapId: expect.objectContaining({
+            [storedMap.mapId]: expect.objectContaining({
+              'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+            }),
+          }),
+          activeMapTokens: expect.objectContaining({
+            'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+          }),
+        })
+      );
+    });
+
+    test('update map token requires numeric coordinates', async () => {
+      const campaignDoc = buildCampaignWithMap();
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne: jest.fn(),
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: jest.fn() };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app)
+        .put(`/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`)
+        .send({ x: 'invalid', y: 0.2 });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('update map token success for character owner', async () => {
+      mockUser = { username: 'PlayerOwner' };
+      const campaignDoc = buildCampaignWithMap({}, { dm: 'DM' });
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      const charactersFindOne = jest
+        .fn()
+        .mockResolvedValue({ token: 'PlayerOwner' });
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne,
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: charactersFindOne };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app)
+        .put(`/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`)
+        .send({ x: 0.3, y: 0.7 });
+
+      expect(res.status).toBe(200);
+      expect(charactersFindOne).toHaveBeenCalled();
+      expect(res.body.tokensByMapId[storedMap.mapId]['hero-1']).toEqual(
+        expect.objectContaining({
+          characterId: 'hero-1',
+          x: 0.3,
+          y: 0.7,
+        })
+      );
+      expect(updateOne).toHaveBeenCalled();
+    });
+
+    test('update map token forbidden for non-owner', async () => {
+      mockUser = { username: 'OtherPlayer' };
+      const campaignDoc = buildCampaignWithMap({}, { dm: 'DM' });
+      const campaignsUpdate = jest.fn();
+      const charactersFindOne = jest.fn().mockResolvedValue({ token: 'PlayerOwner' });
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne: campaignsUpdate,
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: charactersFindOne };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app)
+        .put(`/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`)
+        .send({ x: 0.4, y: 0.4 });
+
+      expect(res.status).toBe(403);
+      expect(charactersFindOne).toHaveBeenCalled();
+      expect(campaignsUpdate).not.toHaveBeenCalled();
+    });
+
+    test('delete map token success', async () => {
+      const tokenRecord = {
+        characterId: 'hero-1',
+        x: 0.25,
+        y: 0.75,
+        updatedAt: '2023-01-01T00:00:00.000Z',
+      };
+      const campaignDoc = buildCampaignWithMap({}, {
+        mapTokens: {
+          [storedMap.mapId]: {
+            'hero-1': tokenRecord,
+          },
+        },
+      });
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne,
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: jest.fn() };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app).delete(
+        `/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.tokensByMapId).toEqual({});
+      expect(res.body.activeMapTokens).toEqual({});
+      expect(updateOne).toHaveBeenCalledWith(
+        { campaignName: 'Test' },
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            mapTokens: {},
+          }),
+        })
+      );
+      expect(emitMapUpdate).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({
+          tokensByMapId: {},
+          activeMapTokens: {},
+        })
+      );
+    });
+
+    test('delete map token missing entry returns 404', async () => {
+      const campaignDoc = buildCampaignWithMap();
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne: jest.fn(),
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: jest.fn() };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app).delete(
+        `/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`
+      );
+
+      expect(res.status).toBe(404);
     });
   });
 
