@@ -24,19 +24,6 @@ const resolveMapTitle = (map, index) => {
   return `Map ${index + 1}`;
 };
 
-const resolveMapSummary = (map) => {
-  if (!map || typeof map !== 'object') {
-    return '';
-  }
-
-  const { summary } = map;
-  if (typeof summary === 'string' && summary.trim() !== '') {
-    return summary.trim();
-  }
-
-  return '';
-};
-
 const findMapById = (maps, id) => {
   const normalizedId = normalizeMapId(id);
   if (!normalizedId) {
@@ -192,7 +179,6 @@ const MapModal = ({
           const isSelected = Boolean(resolvedSelectedId && mapId && resolvedSelectedId === mapId);
           const isProcessing = Boolean(mapId && normalizedActionId && normalizedActionId === mapId);
           const titleText = resolveMapTitle(mapItem, index);
-          const summaryText = resolveMapSummary(mapItem);
           const canSelect = typeof onSelectMap === 'function' && Boolean(mapId);
           const canActivate = typeof onActivateMap === 'function';
           const canDelete = typeof onDeleteMap === 'function';
@@ -212,10 +198,7 @@ const MapModal = ({
               data-testid={`map-modal-item-${key}`}
             >
               <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <div className="fw-semibold">{titleText}</div>
-                  {summaryText && <div className="text-muted small">{summaryText}</div>}
-                </div>
+                <div className="fw-semibold">{titleText}</div>
                 {isActive && (
                   <Badge bg="success" className="ms-2" data-testid={`map-modal-active-badge-${key}`}>
                     Active
