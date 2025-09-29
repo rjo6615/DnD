@@ -1451,10 +1451,14 @@ export default function ZombiesDM() {
 
       setMapSaving(true);
       try {
+        const trimmedPrompt = mapPrompt.trim();
         const response = await apiFetch(`/campaigns/${encodedCampaign}/map`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mapToSave),
+          body: JSON.stringify({
+            map: mapToSave,
+            prompt: trimmedPrompt || undefined,
+          }),
         });
 
         if (!response.ok) {
@@ -1472,10 +1476,19 @@ export default function ZombiesDM() {
         try {
           savedMap = await response.json();
         } catch (error) {
-          savedMap = mapToSave;
+          savedMap = null;
         }
 
-        setCampaignMap(savedMap && Object.keys(savedMap).length > 0 ? savedMap : mapToSave);
+        const normalizedMap =
+          savedMap && typeof savedMap === 'object' && !Array.isArray(savedMap)
+            ? savedMap
+            : mapToSave;
+
+        setCampaignMap(
+          normalizedMap && Object.keys(normalizedMap || {}).length > 0
+            ? normalizedMap
+            : mapToSave
+        );
         setGeneratedMap(null);
         setStatus({ type: 'success', message: 'Map saved.' });
       } catch (error) {
@@ -1487,7 +1500,7 @@ export default function ZombiesDM() {
       } finally {
         setMapSaving(false);
       }
-    }, [campaignId, encodedCampaign, campaignMap, generatedMap]);
+    }, [campaignId, encodedCampaign, campaignMap, generatedMap, mapPrompt]);
     //--------------------------------------------Currency Adjustments------------------------------
     const [currencyModalState, setCurrencyModalState] = useState({ show: false, character: null });
     const [currencyInputs, setCurrencyInputs] = useState({ cp: '0', sp: '0', gp: '0', pp: '0' });
