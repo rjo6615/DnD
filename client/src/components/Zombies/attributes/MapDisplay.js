@@ -40,6 +40,7 @@ const MapDisplay = ({ map }) => {
             alt={altText}
             className="map-display__image img-fluid rounded"
           />
+          <div className="map-display__grid-overlay" aria-hidden="true" />
         </div>
       ) : (
         <p className="text-muted mb-0">No map image available.</p>
