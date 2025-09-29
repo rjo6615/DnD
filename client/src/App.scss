@@ -2380,6 +2380,11 @@ h1 {
 }
 
 .campaign-map-board {
+  --map-square-size: var(--campaign-map-square-size, clamp(36px, 8vw, 64px));
+  --figurine-base-size: clamp(20px, calc(var(--map-square-size) * 0.5), 32px);
+  --figurine-body-width: clamp(12px, calc(var(--figurine-base-size) * 0.6), 20px);
+  --figurine-gap: clamp(0.08rem, calc(var(--figurine-base-size) * 0.16), 0.18rem);
+
   position: relative;
   background: rgba(18, 16, 14, 0.85);
   border-radius: 0.75rem;
@@ -2431,6 +2436,8 @@ h1 {
     justify-content: center;
     outline: none;
     touch-action: none;
+    width: var(--figurine-base-size);
+    height: calc(var(--figurine-base-size) * 1.6);
   }
 
   &__token--draggable {
@@ -2443,11 +2450,11 @@ h1 {
 
   &__figurine {
     --figurine-color: #adb5bd;
-    width: clamp(38px, 7vw, 74px);
+    width: var(--figurine-base-size);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: clamp(0.1rem, 0.35vw, 0.25rem);
+    gap: var(--figurine-gap);
     pointer-events: none;
     filter: drop-shadow(0 0.35rem 0.85rem rgba(6, 7, 10, 0.65))
       drop-shadow(0 0.05rem 0.25rem rgba(255, 255, 255, 0.12));
@@ -2462,7 +2469,7 @@ h1 {
 
   &__figurine-figure {
     position: relative;
-    width: clamp(22px, 4vw, 40px);
+    width: var(--figurine-body-width);
     aspect-ratio: 0.68 / 1;
     display: flex;
     align-items: flex-end;
@@ -2534,7 +2541,7 @@ h1 {
 
   &__figurine-base {
     position: relative;
-    width: clamp(36px, 6.2vw, 68px);
+    width: var(--figurine-base-size);
     aspect-ratio: 1 / 0.3;
     border-radius: 70% 70% 85% 85% / 65% 65% 100% 100%;
     background:
