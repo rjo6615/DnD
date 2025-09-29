@@ -21,6 +21,7 @@ import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative } from '../utils/derivedStats';
+import MapDisplay from '../attributes/MapDisplay';
 import {
   GiCharacter,
   GiStoneAxe,
@@ -252,6 +253,12 @@ export default function ZombiesDM() {
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
+    const [campaignMap, setCampaignMap] = useState(null);
+    const [mapPrompt, setMapPrompt] = useState('');
+    const [generatedMap, setGeneratedMap] = useState(null);
+    const [mapLoading, setMapLoading] = useState(false);
+    const [mapGenerating, setMapGenerating] = useState(false);
+    const [mapSaving, setMapSaving] = useState(false);
     const socketRef = useRef(null);
 
     const campaignId = params.campaign ?? '';
@@ -265,14 +272,20 @@ export default function ZombiesDM() {
         setRecords([]);
         setEnemies([]);
         setCombatState(createEmptyCombatState());
+        setCampaignMap(null);
+        setGeneratedMap(null);
+        setMapLoading(false);
         return;
       }
 
+      setMapLoading(true);
+
       try {
-        const [charactersResponse, combatResponse, enemiesResponse] = await Promise.all([
+        const [charactersResponse, combatResponse, enemiesResponse, mapResponse] = await Promise.all([
           apiFetch(`/campaigns/${encodedCampaign}/characters`),
           apiFetch(`/campaigns/${encodedCampaign}/combat`),
           apiFetch(`/campaigns/${encodedCampaign}/enemies`),
+          apiFetch(`/campaigns/${encodedCampaign}/map`),
         ]);
 
         if (!charactersResponse.ok) {
@@ -307,11 +320,34 @@ export default function ZombiesDM() {
             setStatus({ type: 'danger', message });
           }
         }
+
+        if (mapResponse.ok) {
+          let mapData = null;
+          try {
+            mapData = await mapResponse.json();
+          } catch (error) {
+            mapData = null;
+          }
+          setCampaignMap(mapData && Object.keys(mapData).length > 0 ? mapData : null);
+          setGeneratedMap(null);
+        } else if (mapResponse.status === 404) {
+          setCampaignMap(null);
+          setGeneratedMap(null);
+        } else {
+          setCampaignMap(null);
+          setGeneratedMap(null);
+          const message = `An error occurred: ${mapResponse.statusText}`;
+          setStatus({ type: 'danger', message });
+        }
       } catch (error) {
         console.error(error);
         setStatus({ type: 'danger', message: error.message || 'Failed to fetch records.' });
         setEnemies([]);
         setCombatState(createEmptyCombatState());
+        setCampaignMap(null);
+        setGeneratedMap(null);
+      } finally {
+        setMapLoading(false);
       }
     }, [campaignId, encodedCampaign]);
 
@@ -702,13 +738,26 @@ export default function ZombiesDM() {
         });
       };
 
+      const handleMapUpdate = (mapData) => {
+        const normalizedMap =
+          mapData && typeof mapData === 'object' ? mapData : null;
+        if (!normalizedMap || Object.keys(normalizedMap).length === 0) {
+          setCampaignMap(null);
+        } else {
+          setCampaignMap(normalizedMap);
+        }
+        setGeneratedMap(null);
+      };
+
       socket.on('combat:update', handleCombatUpdate);
       socket.on('character:health:update', handleCharacterHealthUpdate);
+      socket.on('campaign:map:update', handleMapUpdate);
       socket.emit('campaign:join', campaignId);
 
       return () => {
         socket.off('combat:update', handleCombatUpdate);
         socket.off('character:health:update', handleCharacterHealthUpdate);
+        socket.off('campaign:map:update', handleMapUpdate);
         socket.emit('campaign:leave', campaignId);
         socket.disconnect();
         socketRef.current = null;
@@ -1323,6 +1372,7 @@ export default function ZombiesDM() {
       () => [
         { key: 'characters', title: 'Characters' },
         { key: 'players', title: 'Players' },
+        { key: 'map', title: 'Map' },
         { key: 'enemies', title: 'Enemies' },
         { key: 'weapons', title: 'Weapons' },
         { key: 'armor', title: 'Armor' },
@@ -1352,6 +1402,92 @@ export default function ZombiesDM() {
         fetchMonsterCatalog();
       }
     }, [activeResourceTab, monsterCatalogLoaded, monsterCatalogLoading, fetchMonsterCatalog]);
+
+    const handleGenerateMap = useCallback(async () => {
+      const prompt = mapPrompt.trim();
+      setMapGenerating(true);
+      try {
+        const response = await apiFetch('/ai/map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, campaign: campaignId }),
+        });
+
+        if (!response.ok) {
+          let message = response.statusText || 'Failed to generate map.';
+          try {
+            const errorBody = await response.json();
+            message = errorBody?.message || message;
+          } catch (error) {
+            // ignore json parsing errors
+          }
+          throw new Error(message);
+        }
+
+        const mapData = await response.json();
+        setGeneratedMap(mapData || null);
+        setStatus({ type: 'success', message: 'Map generated.' });
+      } catch (error) {
+        console.error(error);
+        setStatus({
+          type: 'danger',
+          message: error.message || 'Failed to generate map.',
+        });
+      } finally {
+        setMapGenerating(false);
+      }
+    }, [mapPrompt, campaignId]);
+
+    const handleSaveMap = useCallback(async () => {
+      if (!campaignId || !encodedCampaign) {
+        return;
+      }
+
+      const mapToSave = generatedMap || campaignMap;
+      if (!mapToSave) {
+        setStatus({ type: 'danger', message: 'No map available to save.' });
+        return;
+      }
+
+      setMapSaving(true);
+      try {
+        const response = await apiFetch(`/campaigns/${encodedCampaign}/map`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mapToSave),
+        });
+
+        if (!response.ok) {
+          let message = response.statusText || 'Failed to save map.';
+          try {
+            const errorBody = await response.json();
+            message = errorBody?.message || message;
+          } catch (error) {
+            // ignore json parsing errors
+          }
+          throw new Error(message);
+        }
+
+        let savedMap = null;
+        try {
+          savedMap = await response.json();
+        } catch (error) {
+          savedMap = mapToSave;
+        }
+
+        setCampaignMap(savedMap && Object.keys(savedMap).length > 0 ? savedMap : mapToSave);
+        setGeneratedMap(null);
+        setStatus({ type: 'success', message: 'Map saved.' });
+      } catch (error) {
+        console.error(error);
+        setStatus({
+          type: 'danger',
+          message: error.message || 'Failed to save map.',
+        });
+      } finally {
+        setMapSaving(false);
+      }
+    }, [campaignId, encodedCampaign, campaignMap, generatedMap]);
     //--------------------------------------------Currency Adjustments------------------------------
     const [currencyModalState, setCurrencyModalState] = useState({ show: false, character: null });
     const [currencyInputs, setCurrencyInputs] = useState({ cp: '0', sp: '0', gp: '0', pp: '0' });
@@ -2125,12 +2261,16 @@ const [form2, setForm2] = useState({
         case 'players':
           setPlayersSearch('');
           break;
+        case 'map':
+          setGeneratedMap(null);
+          setMapPrompt('');
+          break;
         default:
           break;
       }
       setActiveResourceTab((current) => (current === key ? null : current));
     },
-    [setActiveResourceTab, setPlayersSearch]
+    [setActiveResourceTab, setPlayersSearch, setGeneratedMap, setMapPrompt]
   );
 
   const updateAccessoryForm = (value) => {
@@ -2801,6 +2941,108 @@ const resolveIcon = (category, iconMap, fallback) => {
                   </Card>
                 )}
               />
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="map">
+      {activeResourceTab === 'map' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-map-card">
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="d-flex flex-grow-1 justify-content-center">
+                  <CloseButton
+                    className="ms-auto"
+                    variant="white"
+                    onClick={() => handleCloseResourceTab('map')}
+                    aria-label="Close map tab"
+                  />
+                </div>
+              </div>
+            </Card.Header>
+            <Card.Body
+              className="resource-tab-safe-area"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
+              <Card className="bg-dark bg-opacity-75 border border-secondary text-start mb-4">
+                <Card.Header className="bg-transparent border-secondary text-light">
+                  <h3 className="h5 mb-0">Campaign Map</h3>
+                </Card.Header>
+                <Card.Body className="bg-transparent text-light">
+                  <div className="mb-4 p-3 bg-dark rounded">
+                    {mapLoading ? (
+                      <div className="d-flex justify-content-center py-4">
+                        <Spinner animation="border" role="status" size="sm">
+                          <span className="visually-hidden">Loading map…</span>
+                        </Spinner>
+                      </div>
+                    ) : (
+                      <MapDisplay map={generatedMap || campaignMap} />
+                    )}
+                  </div>
+                  <Form.Group className="mb-3" controlId="map-generation-prompt">
+                    <Form.Label className="text-light">Generation Prompt</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={4}
+                      placeholder="Describe the map you want to generate"
+                      value={mapPrompt}
+                      onChange={(event) => setMapPrompt(event.target.value)}
+                      disabled={mapGenerating}
+                    />
+                  </Form.Group>
+                  <div className="d-flex flex-wrap gap-2 justify-content-end">
+                    <Button
+                      variant="outline-light"
+                      className="rounded-pill"
+                      onClick={handleGenerateMap}
+                      disabled={mapGenerating || mapLoading}
+                    >
+                      {mapGenerating ? (
+                        <>
+                          <Spinner
+                            as="span"
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            aria-hidden="true"
+                            className="me-2"
+                          />
+                          Generating…
+                        </>
+                      ) : (
+                        'Generate Map'
+                      )}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      className="rounded-pill"
+                      onClick={handleSaveMap}
+                      disabled={
+                        mapSaving || mapLoading || (!campaignMap && !generatedMap)
+                      }
+                    >
+                      {mapSaving ? (
+                        <>
+                          <Spinner
+                            as="span"
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            aria-hidden="true"
+                            className="me-2"
+                          />
+                          Saving…
+                        </>
+                      ) : (
+                        'Save Map'
+                      )}
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
             </Card.Body>
           </Card>
         </div>

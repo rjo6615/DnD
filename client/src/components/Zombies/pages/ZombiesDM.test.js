@@ -472,6 +472,90 @@ describe('ZombiesDM AI generation', () => {
     ).toBeInTheDocument();
   });
 
+  test('allows the DM to generate and save a campaign map', async () => {
+    const existingMap = {
+      title: 'Existing Map',
+      grid: [['A', 'B'], ['C', 'D']],
+      legend: [{ symbol: 'A', description: 'Start' }],
+    };
+    const generatedMap = {
+      title: 'Generated Map',
+      grid: [['X', 'Y']],
+      legend: [{ symbol: 'X', description: 'Enemy' }],
+    };
+    let savedPayload;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/map':
+          if (options.method === 'PUT') {
+            savedPayload = JSON.parse(options.body);
+            return Promise.resolve({ ok: true, json: async () => savedPayload });
+          }
+          return Promise.resolve({ ok: true, json: async () => existingMap });
+        case '/ai/map':
+          return Promise.resolve({ ok: true, json: async () => generatedMap });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+
+    await waitFor(() => {
+      expect(within(mapCard).getByText('Existing Map')).toBeInTheDocument();
+    });
+
+    const promptInput = within(mapCard).getByPlaceholderText(
+      'Describe the map you want to generate'
+    );
+    await userEvent.type(promptInput, 'dark forest');
+
+    const generateButton = within(mapCard).getByRole('button', { name: /Generate Map/i });
+    await userEvent.click(generateButton);
+
+    await screen.findByText('Map generated.');
+
+    await waitFor(() => {
+      expect(within(mapCard).getByText('Generated Map')).toBeInTheDocument();
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/ai/map',
+      expect.objectContaining({
+        method: 'POST',
+      })
+    );
+
+    const saveButton = within(mapCard).getByRole('button', { name: /Save Map/i });
+    await userEvent.click(saveButton);
+
+    await screen.findByText('Map saved.');
+
+    await waitFor(() => {
+      expect(savedPayload).toEqual(generatedMap);
+    });
+
+    await waitFor(() => {
+      expect(within(mapCard).getByText('Generated Map')).toBeInTheDocument();
+    });
+  });
+
   test('submits normalized currency adjustments to the API', async () => {
     const characters = [
       {
