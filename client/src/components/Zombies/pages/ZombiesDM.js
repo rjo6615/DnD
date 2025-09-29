@@ -13,6 +13,8 @@ import {
   Nav,
   Tab,
   CloseButton,
+  ListGroup,
+  Badge,
 } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { useNavigate, useParams } from "react-router-dom";
@@ -254,11 +256,28 @@ export default function ZombiesDM() {
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const [campaignMap, setCampaignMap] = useState(null);
+    const [maps, setMaps] = useState([]);
+    const [activeMapId, setActiveMapId] = useState(null);
+    const [selectedMapId, setSelectedMapId] = useState(null);
+    const [mapEditorState, setMapEditorState] = useState({
+      show: false,
+      mode: 'create',
+      map: null,
+      title: '',
+      summary: '',
+      caption: '',
+      imageUrl: '',
+      altText: '',
+      activateOnSave: true,
+    });
+    const [mapEditorSaving, setMapEditorSaving] = useState(false);
+    const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
     const [mapPrompt, setMapPrompt] = useState('');
     const [generatedMap, setGeneratedMap] = useState(null);
     const [mapLoading, setMapLoading] = useState(false);
     const [mapGenerating, setMapGenerating] = useState(false);
     const [mapSaving, setMapSaving] = useState(false);
+    const [mapSaveMode, setMapSaveMode] = useState(null);
     const socketRef = useRef(null);
 
     const campaignId = params.campaign ?? '';
@@ -267,12 +286,94 @@ export default function ZombiesDM() {
       [campaignId]
     );
 
+    const applyMapPayload = useCallback(
+      (payload, options = {}) => {
+        const normalizedMaps = Array.isArray(payload?.maps)
+          ? payload.maps.filter((map) => map && typeof map === 'object')
+          : [];
+        setMaps(normalizedMaps);
+
+        const normalizedActiveId =
+          typeof payload?.activeMapId === 'string' && payload.activeMapId.trim() !== ''
+            ? payload.activeMapId.trim()
+            : null;
+        setActiveMapId(normalizedActiveId);
+
+        const payloadMap =
+          payload && typeof payload.map === 'object' && !Array.isArray(payload.map)
+            ? payload.map
+            : null;
+
+        const resolvedActiveMap =
+          payloadMap ||
+          (normalizedActiveId
+            ? normalizedMaps.find((map) => map?.mapId === normalizedActiveId)
+            : null) ||
+          null;
+
+        setCampaignMap(resolvedActiveMap);
+
+        setSelectedMapId((prevSelected) => {
+          const preferredId =
+            options.preferredSelectedId &&
+            normalizedMaps.some((map) => map?.mapId === options.preferredSelectedId)
+              ? options.preferredSelectedId
+              : null;
+
+          if (preferredId) {
+            return preferredId;
+          }
+
+          if (prevSelected && normalizedMaps.some((map) => map?.mapId === prevSelected)) {
+            return prevSelected;
+          }
+
+          if (
+            normalizedActiveId &&
+            normalizedMaps.some((map) => map?.mapId === normalizedActiveId)
+          ) {
+            return normalizedActiveId;
+          }
+
+          if (
+            payloadMap &&
+            payloadMap.mapId &&
+            normalizedMaps.some((map) => map?.mapId === payloadMap.mapId)
+          ) {
+            return payloadMap.mapId;
+          }
+
+          const firstMap = normalizedMaps.find((map) => map && map.mapId);
+          return firstMap ? firstMap.mapId : null;
+        });
+      },
+      [setMaps, setActiveMapId, setCampaignMap, setSelectedMapId]
+    );
+
+    const parseErrorMessage = useCallback(async (response, fallbackMessage) => {
+      let message = (response && response.statusText) || fallbackMessage;
+      if (response && typeof response.json === 'function') {
+        try {
+          const errorBody = await response.json();
+          if (errorBody && typeof errorBody === 'object' && errorBody.message) {
+            message = errorBody.message;
+          }
+        } catch (error) {
+          // ignore JSON parsing errors when reading error responses
+        }
+      }
+      return message;
+    }, []);
+
     const fetchRecords = useCallback(async () => {
       if (!campaignId || !encodedCampaign) {
         setRecords([]);
         setEnemies([]);
         setCombatState(createEmptyCombatState());
         setCampaignMap(null);
+        setMaps([]);
+        setActiveMapId(null);
+        setSelectedMapId(null);
         setGeneratedMap(null);
         setMapLoading(false);
         return;
@@ -281,11 +382,10 @@ export default function ZombiesDM() {
       setMapLoading(true);
 
       try {
-        const [charactersResponse, combatResponse, enemiesResponse, mapResponse] = await Promise.all([
+        const [charactersResponse, combatResponse, enemiesResponse] = await Promise.all([
           apiFetch(`/campaigns/${encodedCampaign}/characters`),
           apiFetch(`/campaigns/${encodedCampaign}/combat`),
           apiFetch(`/campaigns/${encodedCampaign}/enemies`),
-          apiFetch(`/campaigns/${encodedCampaign}/map`),
         ]);
 
         if (!charactersResponse.ok) {
@@ -321,23 +421,65 @@ export default function ZombiesDM() {
           }
         }
 
-        if (mapResponse.ok) {
-          let mapData = null;
-          try {
-            mapData = await mapResponse.json();
-          } catch (error) {
-            mapData = null;
+        let mapsPayload = null;
+        let fallbackMap = null;
+
+        try {
+          const mapsResponse = await apiFetch(`/campaigns/${encodedCampaign}/maps`);
+          if (mapsResponse.ok) {
+            mapsPayload = await mapsResponse.json();
+          } else if (mapsResponse.status === 404) {
+            try {
+              const legacyResponse = await apiFetch(`/campaigns/${encodedCampaign}/map`);
+              if (legacyResponse.ok) {
+                fallbackMap = await legacyResponse.json();
+              } else if (legacyResponse.status !== 404) {
+                const message = `An error occurred: ${legacyResponse.statusText}`;
+                setStatus({ type: 'danger', message });
+              }
+            } catch (legacyError) {
+              console.error(legacyError);
+              setStatus({
+                type: 'danger',
+                message: legacyError.message || 'Failed to load legacy map.',
+              });
+            }
+          } else {
+            const message = `An error occurred: ${mapsResponse.statusText}`;
+            setStatus({ type: 'danger', message });
           }
-          setCampaignMap(mapData && Object.keys(mapData).length > 0 ? mapData : null);
+        } catch (mapError) {
+          console.error(mapError);
+          setStatus({
+            type: 'danger',
+            message: mapError.message || 'Failed to load maps.',
+          });
+        }
+
+        if (mapsPayload) {
+          applyMapPayload(mapsPayload);
           setGeneratedMap(null);
-        } else if (mapResponse.status === 404) {
-          setCampaignMap(null);
+        } else if (fallbackMap) {
+          const normalizedFallback =
+            fallbackMap && typeof fallbackMap === 'object' ? fallbackMap : null;
+          if (normalizedFallback && Object.keys(normalizedFallback).length > 0) {
+            const fallbackActiveId =
+              typeof normalizedFallback.mapId === 'string' &&
+              normalizedFallback.mapId.trim() !== ''
+                ? normalizedFallback.mapId.trim()
+                : null;
+            applyMapPayload({
+              maps: fallbackActiveId ? [normalizedFallback] : [],
+              activeMapId: fallbackActiveId,
+              map: normalizedFallback,
+            });
+          } else {
+            applyMapPayload({ maps: [], activeMapId: null, map: null });
+          }
           setGeneratedMap(null);
         } else {
-          setCampaignMap(null);
+          applyMapPayload({ maps: [], activeMapId: null, map: null });
           setGeneratedMap(null);
-          const message = `An error occurred: ${mapResponse.statusText}`;
-          setStatus({ type: 'danger', message });
         }
       } catch (error) {
         console.error(error);
@@ -345,11 +487,14 @@ export default function ZombiesDM() {
         setEnemies([]);
         setCombatState(createEmptyCombatState());
         setCampaignMap(null);
+        setMaps([]);
+        setActiveMapId(null);
+        setSelectedMapId(null);
         setGeneratedMap(null);
       } finally {
         setMapLoading(false);
       }
-    }, [campaignId, encodedCampaign]);
+    }, [campaignId, encodedCampaign, applyMapPayload]);
 
     const fetchMonsterCatalog = useCallback(async () => {
       if (monsterCatalogLoading) {
@@ -739,12 +884,27 @@ export default function ZombiesDM() {
       };
 
       const handleMapUpdate = (mapData) => {
-        const normalizedMap =
-          mapData && typeof mapData === 'object' ? mapData : null;
-        if (!normalizedMap || Object.keys(normalizedMap).length === 0) {
-          setCampaignMap(null);
+        if (mapData && typeof mapData === 'object') {
+          if (
+            Array.isArray(mapData.maps) ||
+            mapData.activeMapId !== undefined ||
+            (mapData.map && typeof mapData.map === 'object')
+          ) {
+            applyMapPayload(mapData);
+          } else {
+            const normalizedMap = mapData;
+            const normalizedMapId =
+              typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
+                ? normalizedMap.mapId.trim()
+                : null;
+            applyMapPayload({
+              maps: normalizedMapId ? [normalizedMap] : [],
+              activeMapId: normalizedMapId,
+              map: normalizedMap,
+            });
+          }
         } else {
-          setCampaignMap(normalizedMap);
+          applyMapPayload({ maps: [], activeMapId: null, map: null });
         }
         setGeneratedMap(null);
       };
@@ -762,7 +922,7 @@ export default function ZombiesDM() {
         socket.disconnect();
         socketRef.current = null;
       };
-    }, [campaignId]);
+    }, [campaignId, applyMapPayload]);
 
     const persistCombatState = useCallback(
       async (nextState) => {
@@ -1368,6 +1528,21 @@ export default function ZombiesDM() {
       navigate(`/zombies-character-sheet/${id}`);
     }
 
+    const previewMap = useMemo(() => {
+      if (generatedMap) {
+        return generatedMap;
+      }
+
+      if (selectedMapId) {
+        const selected = maps.find((map) => map && map.mapId === selectedMapId);
+        if (selected) {
+          return selected;
+        }
+      }
+
+      return campaignMap;
+    }, [generatedMap, selectedMapId, maps, campaignMap]);
+
     const RESOURCE_TABS = useMemo(
       () => [
         { key: 'characters', title: 'Characters' },
@@ -1438,69 +1613,558 @@ export default function ZombiesDM() {
       }
     }, [mapPrompt, campaignId]);
 
-    const handleSaveMap = useCallback(async () => {
-      if (!campaignId || !encodedCampaign) {
-        return;
-      }
+    const handleSaveMap = useCallback(
+      async (mode = 'update', options = {}) => {
+        if (!campaignId || !encodedCampaign) {
+          return;
+        }
 
-      const mapToSave = generatedMap || campaignMap;
-      if (!mapToSave) {
-        setStatus({ type: 'danger', message: 'No map available to save.' });
-        return;
-      }
-
-      setMapSaving(true);
-      try {
         const trimmedPrompt = mapPrompt.trim();
-        const response = await apiFetch(`/campaigns/${encodedCampaign}/map`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            map: mapToSave,
-            prompt: trimmedPrompt || undefined,
-          }),
-        });
+        const isCreate = mode === 'create';
 
-        if (!response.ok) {
-          let message = response.statusText || 'Failed to save map.';
-          try {
-            const errorBody = await response.json();
-            message = errorBody?.message || message;
-          } catch (error) {
-            // ignore json parsing errors
+        const mapToSave = isCreate
+          ? generatedMap || previewMap || campaignMap
+          : generatedMap || campaignMap;
+
+        if (!mapToSave) {
+          setStatus({ type: 'danger', message: 'No map available to save.' });
+          return;
+        }
+
+        setMapSaveMode(mode);
+        const shouldActivateNewMap =
+          options.activate === undefined ? true : Boolean(options.activate);
+
+        const saveViaLegacyEndpoint = async () => {
+          const response = await apiFetch(`/campaigns/${encodedCampaign}/map`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              map: mapToSave,
+              prompt: trimmedPrompt || undefined,
+            }),
+          });
+
+          if (!response.ok) {
+            const message = await parseErrorMessage(response, 'Failed to save map.');
+            throw new Error(message);
           }
-          throw new Error(message);
-        }
 
-        let savedMap = null;
+          let savedMap = null;
+          try {
+            savedMap = await response.json();
+          } catch (error) {
+            savedMap = null;
+          }
+
+          const normalizedMap =
+            savedMap && typeof savedMap === 'object' && !Array.isArray(savedMap)
+              ? savedMap
+              : mapToSave;
+
+          const normalizedMapId =
+            typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
+              ? normalizedMap.mapId.trim()
+              : null;
+
+          applyMapPayload(
+            {
+              maps: normalizedMapId ? [normalizedMap] : [],
+              activeMapId: normalizedMapId,
+              map: normalizedMap,
+            },
+            { preferredSelectedId: normalizedMapId }
+          );
+          setGeneratedMap(null);
+          setStatus({ type: 'success', message: 'Map saved.' });
+        };
+
+        setMapSaving(true);
         try {
-          savedMap = await response.json();
+          if (isCreate) {
+            const mapPayload = { ...mapToSave };
+            delete mapPayload.mapId;
+            delete mapPayload.createdAt;
+            delete mapPayload.updatedAt;
+
+            const response = await apiFetch(`/campaigns/${encodedCampaign}/maps`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                map: mapPayload,
+                prompt: trimmedPrompt || undefined,
+                activate: shouldActivateNewMap,
+              }),
+            });
+
+            if (!response.ok) {
+              if (response.status === 404) {
+                await saveViaLegacyEndpoint();
+                return;
+              }
+              const message = await parseErrorMessage(response, 'Failed to save map.');
+              throw new Error(message);
+            }
+
+            let payload = null;
+            try {
+              payload = await response.json();
+            } catch (error) {
+              payload = null;
+            }
+
+            if (payload && typeof payload === 'object') {
+              let preferredId =
+                (payload.map && payload.map.mapId) || payload.activeMapId || null;
+
+              if (!preferredId && Array.isArray(payload.maps)) {
+                const matchingMap = payload.maps.find((map) => {
+                  if (!map || typeof map !== 'object') {
+                    return false;
+                  }
+                  if (map.mapId && map.mapId === mapToSave.mapId) {
+                    return true;
+                  }
+                  return (
+                    map.title === mapToSave.title &&
+                    map.imageUrl === mapToSave.imageUrl &&
+                    map.imageBase64 === mapToSave.imageBase64
+                  );
+                });
+                preferredId = matchingMap?.mapId || null;
+              }
+
+              applyMapPayload(payload, {
+                preferredSelectedId: preferredId || null,
+              });
+            } else {
+              applyMapPayload({ maps: [], activeMapId: null, map: null });
+            }
+
+            setGeneratedMap(null);
+            setStatus({ type: 'success', message: 'Map saved.' });
+          } else {
+            const activeId =
+              activeMapId ||
+              (typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
+                ? campaignMap.mapId.trim()
+                : null);
+
+            if (!activeId) {
+              setStatus({
+                type: 'danger',
+                message: 'No active map available to overwrite.',
+              });
+              return;
+            }
+
+            const mapPayload = { ...mapToSave };
+            if (mapPayload.mapId && mapPayload.mapId !== activeId) {
+              delete mapPayload.mapId;
+            }
+
+            const response = await apiFetch(
+              `/campaigns/${encodedCampaign}/maps/${encodeURIComponent(activeId)}`,
+              {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  map: mapPayload,
+                  prompt: trimmedPrompt || undefined,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              if (response.status === 404) {
+                await saveViaLegacyEndpoint();
+                return;
+              }
+              const message = await parseErrorMessage(response, 'Failed to save map.');
+              throw new Error(message);
+            }
+
+            let payload = null;
+            try {
+              payload = await response.json();
+            } catch (error) {
+              payload = null;
+            }
+
+            if (payload && typeof payload === 'object') {
+              applyMapPayload(payload, { preferredSelectedId: activeId });
+            }
+
+            setGeneratedMap(null);
+            setStatus({ type: 'success', message: 'Map saved.' });
+          }
         } catch (error) {
-          savedMap = null;
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error.message || 'Failed to save map.',
+          });
+        } finally {
+          setMapSaving(false);
+          setMapSaveMode(null);
+        }
+      },
+      [
+        campaignId,
+        encodedCampaign,
+        generatedMap,
+        previewMap,
+        campaignMap,
+        mapPrompt,
+        applyMapPayload,
+        activeMapId,
+        parseErrorMessage,
+      ]
+    );
+
+    const handleSelectMap = useCallback(
+      (mapId) => {
+        const normalizedId =
+          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+        setSelectedMapId(normalizedId);
+        setGeneratedMap(null);
+      },
+      []
+    );
+
+    const openCreateMapModal = useCallback(() => {
+      setMapEditorSaving(false);
+      const sourceMap =
+        generatedMap ||
+        (selectedMapId
+          ? maps.find((map) => map && map.mapId === selectedMapId)
+          : campaignMap) ||
+        {};
+
+      const safeMap = sourceMap && typeof sourceMap === 'object' ? sourceMap : {};
+
+      setMapEditorState({
+        show: true,
+        mode: 'create',
+        map: safeMap,
+        title: typeof safeMap.title === 'string' ? safeMap.title : '',
+        summary: typeof safeMap.summary === 'string' ? safeMap.summary : '',
+        caption: typeof safeMap.caption === 'string' ? safeMap.caption : '',
+        imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
+        altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        activateOnSave: maps.length === 0,
+      });
+    }, [generatedMap, selectedMapId, maps, campaignMap]);
+
+    const openRenameMapModal = useCallback((map) => {
+      if (!map || typeof map !== 'object') {
+        return;
+      }
+
+      setMapEditorSaving(false);
+      const safeMap = map;
+
+      setMapEditorState({
+        show: true,
+        mode: 'rename',
+        map: safeMap,
+        title: typeof safeMap.title === 'string' ? safeMap.title : '',
+        summary: typeof safeMap.summary === 'string' ? safeMap.summary : '',
+        caption: typeof safeMap.caption === 'string' ? safeMap.caption : '',
+        imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
+        altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        activateOnSave: false,
+      });
+    }, []);
+
+    const handleCloseMapEditor = useCallback(() => {
+      setMapEditorSaving(false);
+      setMapEditorState((prev) => ({ ...prev, show: false }));
+    }, []);
+
+    const handleMapEditorInputChange = useCallback(
+      (field) => (event) => {
+        const value = event?.target?.value ?? '';
+        setMapEditorState((prev) => ({ ...prev, [field]: value }));
+      },
+      []
+    );
+
+    const handleMapEditorActivateChange = useCallback((event) => {
+      const checked = Boolean(event?.target?.checked);
+      setMapEditorState((prev) => ({ ...prev, activateOnSave: checked }));
+    }, []);
+
+    const handleSubmitMapEditor = useCallback(
+      async (event) => {
+        event.preventDefault();
+        if (!campaignId || !encodedCampaign) {
+          return;
         }
 
-        const normalizedMap =
-          savedMap && typeof savedMap === 'object' && !Array.isArray(savedMap)
-            ? savedMap
-            : mapToSave;
+        const {
+          mode,
+          map: editorMap,
+          title,
+          summary,
+          caption,
+          imageUrl,
+          altText,
+          activateOnSave,
+        } = mapEditorState;
 
-        setCampaignMap(
-          normalizedMap && Object.keys(normalizedMap || {}).length > 0
-            ? normalizedMap
-            : mapToSave
-        );
-        setGeneratedMap(null);
-        setStatus({ type: 'success', message: 'Map saved.' });
-      } catch (error) {
-        console.error(error);
-        setStatus({
-          type: 'danger',
-          message: error.message || 'Failed to save map.',
-        });
-      } finally {
-        setMapSaving(false);
-      }
-    }, [campaignId, encodedCampaign, campaignMap, generatedMap, mapPrompt]);
+        const baseMap =
+          mode === 'rename'
+            ? editorMap || {}
+            : editorMap || generatedMap || previewMap || {};
+
+        const trimmedTitle = typeof title === 'string' ? title.trim() : '';
+        const trimmedSummary = typeof summary === 'string' ? summary.trim() : '';
+        const trimmedCaption = typeof caption === 'string' ? caption.trim() : '';
+        const trimmedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
+
+        const normalizedTitle =
+          trimmedTitle ||
+          (typeof baseMap.title === 'string' && baseMap.title.trim() !== ''
+            ? baseMap.title.trim()
+            : 'Untitled Map');
+
+        const payloadMap = {
+          ...baseMap,
+          title: normalizedTitle,
+          summary: trimmedSummary,
+          caption: trimmedCaption,
+          imageUrl: trimmedImageUrl,
+          altText: trimmedAltText,
+        };
+
+        if (mode === 'create') {
+          delete payloadMap.mapId;
+          delete payloadMap.createdAt;
+          delete payloadMap.updatedAt;
+        }
+
+        const trimmedPrompt = mapPrompt.trim();
+
+        setMapEditorSaving(true);
+        try {
+          if (mode === 'create') {
+            const response = await apiFetch(`/campaigns/${encodedCampaign}/maps`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                map: payloadMap,
+                prompt: trimmedPrompt || undefined,
+                activate: Boolean(activateOnSave),
+              }),
+            });
+
+            if (!response.ok) {
+              const message = await parseErrorMessage(response, 'Failed to save map.');
+              throw new Error(message);
+            }
+
+            let payload = null;
+            try {
+              payload = await response.json();
+            } catch (error) {
+              payload = null;
+            }
+
+            if (payload && typeof payload === 'object') {
+              let preferredId =
+                (payload.map && payload.map.mapId) || payload.activeMapId || null;
+
+              if (!preferredId && Array.isArray(payload.maps)) {
+                const matchingMap = payload.maps.find((map) => {
+                  if (!map || typeof map !== 'object') {
+                    return false;
+                  }
+                  if (payloadMap.imageUrl && map.imageUrl === payloadMap.imageUrl) {
+                    return true;
+                  }
+                  if (payloadMap.imageBase64 && map.imageBase64 === payloadMap.imageBase64) {
+                    return true;
+                  }
+                  return map.title === payloadMap.title && map.summary === payloadMap.summary;
+                });
+                preferredId = matchingMap?.mapId || null;
+              }
+
+              applyMapPayload(payload, { preferredSelectedId: preferredId || null });
+            } else {
+              applyMapPayload({ maps: [], activeMapId: null, map: null });
+            }
+
+            setStatus({ type: 'success', message: 'Map saved.' });
+          } else {
+            const targetMapId =
+              typeof editorMap?.mapId === 'string' && editorMap.mapId.trim() !== ''
+                ? editorMap.mapId.trim()
+                : null;
+
+            if (!targetMapId) {
+              throw new Error('Map identifier is missing.');
+            }
+
+            const response = await apiFetch(
+              `/campaigns/${encodedCampaign}/maps/${encodeURIComponent(targetMapId)}`,
+              {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  map: payloadMap,
+                  prompt: trimmedPrompt || undefined,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const message = await parseErrorMessage(response, 'Failed to update map.');
+              throw new Error(message);
+            }
+
+            let payload = null;
+            try {
+              payload = await response.json();
+            } catch (error) {
+              payload = null;
+            }
+
+            if (payload && typeof payload === 'object') {
+              applyMapPayload(payload, { preferredSelectedId: targetMapId });
+            }
+
+            setStatus({ type: 'success', message: 'Map updated.' });
+          }
+
+          setGeneratedMap(null);
+          setMapEditorState((prev) => ({ ...prev, show: false }));
+        } catch (error) {
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error.message || 'Failed to save map.',
+          });
+        } finally {
+          setMapEditorSaving(false);
+        }
+      },
+      [
+        campaignId,
+        encodedCampaign,
+        mapEditorState,
+        mapPrompt,
+        generatedMap,
+        previewMap,
+        applyMapPayload,
+        parseErrorMessage,
+      ]
+    );
+
+    const handleActivateMap = useCallback(
+      async (mapId) => {
+        const normalizedId =
+          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+        if (!campaignId || !encodedCampaign || !normalizedId || normalizedId === activeMapId) {
+          return;
+        }
+
+        setMapActionLoadingId(normalizedId);
+        try {
+          const response = await apiFetch(
+            `/campaigns/${encodedCampaign}/maps/${encodeURIComponent(normalizedId)}`,
+            {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ active: true }),
+            }
+          );
+
+          if (!response.ok) {
+            const message = await parseErrorMessage(response, 'Failed to activate map.');
+            throw new Error(message);
+          }
+
+          let payload = null;
+          try {
+            payload = await response.json();
+          } catch (error) {
+            payload = null;
+          }
+
+          if (payload && typeof payload === 'object') {
+            applyMapPayload(payload, { preferredSelectedId: normalizedId });
+          }
+
+          setStatus({ type: 'success', message: 'Active map updated.' });
+        } catch (error) {
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error.message || 'Failed to activate map.',
+          });
+        } finally {
+          setMapActionLoadingId(null);
+        }
+      },
+      [campaignId, encodedCampaign, activeMapId, applyMapPayload, parseErrorMessage]
+    );
+
+    const handleDeleteMap = useCallback(
+      async (mapId) => {
+        const normalizedId =
+          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+        if (!campaignId || !encodedCampaign || !normalizedId) {
+          return;
+        }
+
+        const confirmed = window.confirm('Are you sure you want to delete this map?');
+        if (!confirmed) {
+          return;
+        }
+
+        setMapActionLoadingId(normalizedId);
+        try {
+          const response = await apiFetch(
+            `/campaigns/${encodedCampaign}/maps/${encodeURIComponent(normalizedId)}`,
+            {
+              method: 'DELETE',
+            }
+          );
+
+          if (!response.ok) {
+            const message = await parseErrorMessage(response, 'Failed to delete map.');
+            throw new Error(message);
+          }
+
+          let payload = null;
+          try {
+            payload = await response.json();
+          } catch (error) {
+            payload = null;
+          }
+
+          if (payload && typeof payload === 'object') {
+            applyMapPayload(payload);
+          } else {
+            applyMapPayload({ maps: [], activeMapId: null, map: null });
+          }
+
+          setStatus({ type: 'success', message: 'Map deleted.' });
+        } catch (error) {
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error.message || 'Failed to delete map.',
+          });
+        } finally {
+          setMapActionLoadingId(null);
+        }
+      },
+      [campaignId, encodedCampaign, applyMapPayload, parseErrorMessage]
+    );
     //--------------------------------------------Currency Adjustments------------------------------
     const [currencyModalState, setCurrencyModalState] = useState({ show: false, character: null });
     const [currencyInputs, setCurrencyInputs] = useState({ cp: '0', sp: '0', gp: '0', pp: '0' });
@@ -2981,79 +3645,238 @@ const resolveIcon = (category, iconMap, fallback) => {
             >
               <Card className="bg-dark bg-opacity-75 border border-secondary text-start mb-4">
                 <Card.Header className="bg-transparent border-secondary text-light">
-                  <h3 className="h5 mb-0">Campaign Map</h3>
+                  <h3 className="h5 mb-0">Campaign Maps</h3>
                 </Card.Header>
                 <Card.Body className="bg-transparent text-light">
-                  <div className="mb-4 p-3 bg-dark rounded">
-                    {mapLoading ? (
-                      <div className="d-flex justify-content-center py-4">
-                        <Spinner animation="border" role="status" size="sm">
-                          <span className="visually-hidden">Loading map…</span>
-                        </Spinner>
-                      </div>
-                    ) : (
-                      <MapDisplay map={generatedMap || campaignMap} />
-                    )}
-                  </div>
-                  <Form.Group className="mb-3" controlId="map-generation-prompt">
-                    <Form.Label className="text-light">Generation Prompt</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={4}
-                      placeholder="Describe the map you want to generate"
-                      value={mapPrompt}
-                      onChange={(event) => setMapPrompt(event.target.value)}
-                      disabled={mapGenerating}
-                    />
-                  </Form.Group>
-                  <div className="d-flex flex-wrap gap-2 justify-content-end">
-                    <Button
-                      variant="outline-light"
-                      className="rounded-pill"
-                      onClick={handleGenerateMap}
-                      disabled={mapGenerating || mapLoading}
-                    >
-                      {mapGenerating ? (
-                        <>
-                          <Spinner
-                            as="span"
-                            animation="border"
+                  {mapLoading ? (
+                    <div className="d-flex justify-content-center py-4">
+                      <Spinner animation="border" role="status" size="sm">
+                        <span className="visually-hidden">Loading maps…</span>
+                      </Spinner>
+                    </div>
+                  ) : (
+                    <Row className="g-4 align-items-start">
+                      <Col md={4} className="text-start">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h4 className="h6 mb-0">Saved Maps</h4>
+                          <Button
+                            variant="outline-light"
                             size="sm"
-                            role="status"
-                            aria-hidden="true"
-                            className="me-2"
+                            className="rounded-pill d-flex align-items-center"
+                            onClick={openCreateMapModal}
+                            disabled={mapGenerating}
+                            data-testid="create-map-button"
+                          >
+                            <FiPlus className="me-1" aria-hidden="true" />
+                            New Map
+                          </Button>
+                        </div>
+                        {Array.isArray(maps) && maps.length > 0 ? (
+                          <ListGroup
+                            variant="flush"
+                            className="bg-transparent map-list"
+                            data-testid="map-list"
+                          >
+                            {maps.map((mapItem, index) => {
+                              const mapIdValue =
+                                typeof mapItem?.mapId === 'string' && mapItem.mapId.trim() !== ''
+                                  ? mapItem.mapId.trim()
+                                  : null;
+                              const mapKey = mapIdValue || `map-${index}`;
+                              const isActive = Boolean(mapIdValue && mapIdValue === activeMapId);
+                              const isSelected = Boolean(
+                                mapIdValue && selectedMapId === mapIdValue
+                              );
+                              const isProcessing =
+                                Boolean(mapIdValue && mapActionLoadingId === mapIdValue);
+                              const title =
+                                typeof mapItem?.title === 'string' && mapItem.title.trim() !== ''
+                                  ? mapItem.title.trim()
+                                  : 'Untitled Map';
+                              const summaryText =
+                                typeof mapItem?.summary === 'string'
+                                  ? mapItem.summary.trim()
+                                  : '';
+                              return (
+                                <ListGroup.Item
+                                  key={mapKey}
+                                  action={Boolean(mapIdValue)}
+                                  active={isSelected}
+                                  onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
+                                  className="bg-dark text-light border-secondary"
+                                  data-testid={`map-list-item-${mapKey}`}
+                                >
+                                  <div className="d-flex justify-content-between align-items-start">
+                                    <div>
+                                      <div className="fw-semibold">{title}</div>
+                                      {summaryText && (
+                                        <div className="text-muted small">{summaryText}</div>
+                                      )}
+                                    </div>
+                                    {isActive && (
+                                      <Badge
+                                        bg="success"
+                                        className="ms-2"
+                                        data-testid={`map-active-badge-${mapKey}`}
+                                      >
+                                        Active
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="d-flex flex-wrap gap-2 mt-3">
+                                    <Button
+                                      variant="outline-light"
+                                      size="sm"
+                                      disabled={!mapIdValue || isProcessing}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (mapIdValue) {
+                                          openRenameMapModal(mapItem);
+                                        }
+                                      }}
+                                      data-testid={`map-rename-button-${mapKey}`}
+                                    >
+                                      Rename
+                                    </Button>
+                                    <Button
+                                      variant="outline-light"
+                                      size="sm"
+                                      disabled={!mapIdValue || isActive || isProcessing}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (mapIdValue) {
+                                          handleActivateMap(mapIdValue);
+                                        }
+                                      }}
+                                      data-testid={`map-activate-button-${mapKey}`}
+                                    >
+                                      {isActive ? 'Active' : 'Set Active'}
+                                    </Button>
+                                    <Button
+                                      variant="outline-danger"
+                                      size="sm"
+                                      disabled={!mapIdValue || isProcessing}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (mapIdValue) {
+                                          handleDeleteMap(mapIdValue);
+                                        }
+                                      }}
+                                      data-testid={`map-delete-button-${mapKey}`}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </ListGroup.Item>
+                              );
+                            })}
+                          </ListGroup>
+                        ) : (
+                          <div className="text-muted small" data-testid="map-list-empty">
+                            No maps saved yet.
+                          </div>
+                        )}
+                      </Col>
+                      <Col md={8} className="text-start">
+                        <div className="mb-4 p-3 bg-dark rounded" data-testid="map-preview-card">
+                          {generatedMap || previewMap || campaignMap ? (
+                            <MapDisplay map={generatedMap || previewMap || campaignMap} />
+                          ) : (
+                            <p className="text-muted mb-0">No map selected.</p>
+                          )}
+                        </div>
+                        <Form.Group className="mb-3" controlId="map-generation-prompt">
+                          <Form.Label className="text-light">Generation Prompt</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={4}
+                            placeholder="Describe the map you want to generate"
+                            value={mapPrompt}
+                            onChange={(event) => setMapPrompt(event.target.value)}
+                            disabled={mapGenerating}
                           />
-                          Generating…
-                        </>
-                      ) : (
-                        'Generate Map'
-                      )}
-                    </Button>
-                    <Button
-                      variant="primary"
-                      className="rounded-pill"
-                      onClick={handleSaveMap}
-                      disabled={
-                        mapSaving || mapLoading || (!campaignMap && !generatedMap)
-                      }
-                    >
-                      {mapSaving ? (
-                        <>
-                          <Spinner
-                            as="span"
-                            animation="border"
-                            size="sm"
-                            role="status"
-                            aria-hidden="true"
-                            className="me-2"
-                          />
-                          Saving…
-                        </>
-                      ) : (
-                        'Save Map'
-                      )}
-                    </Button>
-                  </div>
+                        </Form.Group>
+                        <div className="d-flex flex-wrap gap-2 justify-content-end">
+                          <Button
+                            variant="outline-light"
+                            className="rounded-pill"
+                            onClick={handleGenerateMap}
+                            disabled={mapGenerating || mapLoading}
+                          >
+                            {mapGenerating ? (
+                              <>
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                  role="status"
+                                  aria-hidden="true"
+                                  className="me-2"
+                                />
+                                Generating…
+                              </>
+                            ) : (
+                              'Generate Map'
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline-light"
+                            className="rounded-pill"
+                            onClick={() => handleSaveMap('create')}
+                            disabled={
+                              mapSaving ||
+                              mapLoading ||
+                              !(generatedMap || previewMap || campaignMap)
+                            }
+                            data-testid="save-map-new-button"
+                          >
+                            {mapSaving && mapSaveMode === 'create' ? (
+                              <>
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                  role="status"
+                                  aria-hidden="true"
+                                  className="me-2"
+                                />
+                                Saving…
+                              </>
+                            ) : (
+                              'Save as New Map'
+                            )}
+                          </Button>
+                          <Button
+                            variant="primary"
+                            className="rounded-pill"
+                            onClick={() => handleSaveMap('update')}
+                            disabled={
+                              mapSaving ||
+                              mapLoading ||
+                              (!generatedMap && !campaignMap)
+                            }
+                            data-testid="save-map-update-button"
+                          >
+                            {mapSaving && mapSaveMode === 'update' ? (
+                              <>
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                  role="status"
+                                  aria-hidden="true"
+                                  className="me-2"
+                                />
+                                Saving…
+                              </>
+                            ) : (
+                              'Overwrite Active Map'
+                            )}
+                          </Button>
+                        </div>
+                      </Col>
+                    </Row>
+                  )}
                 </Card.Body>
               </Card>
             </Card.Body>
@@ -4460,6 +5283,118 @@ const resolveIcon = (category, iconMap, fallback) => {
   </Tab.Content>
         </Tab.Container>
       </Container>
+
+      <Modal
+        show={mapEditorState.show}
+        onHide={handleCloseMapEditor}
+        centered
+        data-testid="map-editor-modal"
+        contentClassName="bg-dark text-light"
+      >
+        <Form onSubmit={handleSubmitMapEditor}>
+          <Modal.Header closeButton closeVariant="white">
+            <Modal.Title>
+              {mapEditorState.mode === 'rename' ? 'Rename Map' : 'Create Map'}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3" controlId="map-editor-title">
+              <Form.Label>Title</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter map title"
+                value={mapEditorState.title}
+                onChange={handleMapEditorInputChange('title')}
+                disabled={mapEditorSaving}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-summary">
+              <Form.Label>Summary</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                placeholder="Provide a short summary"
+                value={mapEditorState.summary}
+                onChange={handleMapEditorInputChange('summary')}
+                disabled={mapEditorSaving}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-caption">
+              <Form.Label>Caption</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Optional caption"
+                value={mapEditorState.caption}
+                onChange={handleMapEditorInputChange('caption')}
+                disabled={mapEditorSaving}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-image-url">
+              <Form.Label>Image URL</Form.Label>
+              <Form.Control
+                type="url"
+                placeholder="https://example.com/map.png"
+                value={mapEditorState.imageUrl}
+                onChange={handleMapEditorInputChange('imageUrl')}
+                disabled={mapEditorSaving}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-alt-text">
+              <Form.Label>Alt Text</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Describe the map image"
+                value={mapEditorState.altText}
+                onChange={handleMapEditorInputChange('altText')}
+                disabled={mapEditorSaving}
+              />
+            </Form.Group>
+            {mapEditorState.mode === 'create' && (
+              <Form.Check
+                type="switch"
+                id="map-editor-activate"
+                label="Activate after saving"
+                checked={Boolean(mapEditorState.activateOnSave)}
+                onChange={handleMapEditorActivateChange}
+                disabled={mapEditorSaving}
+              />
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="outline-light"
+              onClick={handleCloseMapEditor}
+              disabled={mapEditorSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={mapEditorSaving}
+              data-testid="map-editor-submit-button"
+            >
+              {mapEditorSaving ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Saving…
+                </>
+              ) : mapEditorState.mode === 'rename' ? (
+                'Save Changes'
+              ) : (
+                'Create Map'
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
 
       <Modal
       className="dnd-modal"
