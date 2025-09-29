@@ -355,6 +355,11 @@ export default function ZombiesDM() {
     const [showMapManager, setShowMapManager] = useState(false);
     const [mapTokens, setMapTokens] = useState({});
     const [activeMapTokens, setActiveMapTokens] = useState({});
+    const [mapPlacementState, setMapPlacementState] = useState({
+      show: false,
+      enemyId: null,
+      enemyName: null,
+    });
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
     const activeMapTokensRef = useRef(activeMapTokens);
@@ -1907,11 +1912,56 @@ export default function ZombiesDM() {
     }, [records, enemies]);
 
     const shouldShowCampaignTokens = useMemo(() => {
-      return Boolean(!generatedMap && !previewMap && campaignMap && campaignMap.mapId);
-    }, [campaignMap, generatedMap, previewMap]);
+      if (!campaignMap || !campaignMap.mapId) {
+        return false;
+      }
+
+      if (generatedMap) {
+        return false;
+      }
+
+      return true;
+    }, [campaignMap, generatedMap]);
+
+    const modalTokensByMapId = useMemo(() => {
+      const sanitizedMapTokens = sanitizeTokensByMapId(mapTokens);
+      const merged = { ...sanitizedMapTokens };
+
+      const campaignMapId =
+        typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
+          ? campaignMap.mapId.trim()
+          : null;
+
+      if (campaignMapId) {
+        const campaignTokens = sanitizeTokenDictionary(campaignMap?.tokens);
+        if (Object.keys(campaignTokens).length > 0) {
+          merged[campaignMapId] = {
+            ...(merged[campaignMapId] || {}),
+            ...campaignTokens,
+          };
+        }
+      }
+
+      const normalizedActiveMapId =
+        typeof activeMapId === 'string' && activeMapId.trim() !== ''
+          ? activeMapId.trim()
+          : null;
+
+      if (normalizedActiveMapId) {
+        const normalizedActiveTokens = sanitizeTokenDictionary(activeMapTokens);
+        if (Object.keys(normalizedActiveTokens).length > 0) {
+          merged[normalizedActiveMapId] = {
+            ...(merged[normalizedActiveMapId] || {}),
+            ...normalizedActiveTokens,
+          };
+        }
+      }
+
+      return merged;
+    }, [activeMapId, activeMapTokens, campaignMap, mapTokens]);
 
     const boardTokens = useMemo(() => {
-      if (!shouldShowCampaignTokens || !campaignMap?.mapId) {
+      if (!campaignMap?.mapId) {
         return [];
       }
 
@@ -1961,13 +2011,7 @@ export default function ZombiesDM() {
           const labelB = (b.label || b.characterId || '').toLowerCase();
           return labelA.localeCompare(labelB);
         });
-    }, [
-      activeMapTokens,
-      campaignMap,
-      mapTokens,
-      shouldShowCampaignTokens,
-      tokenMetaById,
-    ]);
+    }, [activeMapTokens, campaignMap, mapTokens, tokenMetaById]);
 
     const displayedMap = generatedMap || previewMap || campaignMap;
 
@@ -1985,6 +2029,55 @@ export default function ZombiesDM() {
         });
       },
       [campaignMap, persistTokenPosition, shouldShowCampaignTokens]
+    );
+
+    const handleOpenMapPlacement = useCallback((enemyId, enemyName) => {
+      const normalizedId =
+        typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
+
+      if (!normalizedId) {
+        return;
+      }
+
+      const normalizedName =
+        typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
+
+      setMapPlacementState({
+        show: true,
+        enemyId: normalizedId,
+        enemyName: normalizedName,
+      });
+    }, []);
+
+    const handleCloseMapPlacement = useCallback(() => {
+      setMapPlacementState({ show: false, enemyId: null, enemyName: null });
+    }, []);
+
+    const handleMapModalTokenMove = useCallback(
+      async ({ mapId, characterId, x, y }) => {
+        const normalizedMapId =
+          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+        const normalizedCharacterId =
+          typeof characterId === 'string' && characterId.trim() !== ''
+            ? characterId.trim()
+            : mapPlacementState.enemyId;
+        const clampedX = clamp01(x);
+        const clampedY = clamp01(y);
+
+        if (!normalizedMapId || !normalizedCharacterId || clampedX === null || clampedY === null) {
+          return false;
+        }
+
+        await persistTokenPosition({
+          mapId: normalizedMapId,
+          characterId: normalizedCharacterId,
+          x: clampedX,
+          y: clampedY,
+        });
+
+        return true;
+      },
+      [mapPlacementState.enemyId, persistTokenPosition]
     );
 
 
@@ -4706,6 +4799,18 @@ const resolveIcon = (category, iconMap, fallback) => {
                           {inCombat ? 'Remove from Combat' : 'Add to Combat'}
                         </Button>
                         <Button
+                          variant="outline-light"
+                          size="sm"
+                          onClick={() =>
+                            handleOpenMapPlacement(
+                              enemy.enemyId,
+                              enemy.name || enemy.displayType || enemy.enemyId
+                            )
+                          }
+                        >
+                          Place on Map
+                        </Button>
+                        <Button
                           variant="danger"
                           size="sm"
                           onClick={() => handleRemoveEnemy(enemy.enemyId)}
@@ -5873,6 +5978,26 @@ const resolveIcon = (category, iconMap, fallback) => {
         onDeleteMap={handleDeleteMap}
         isLoading={mapLoading}
         actionInProgressId={mapActionLoadingId}
+      />
+
+      <MapModal
+        show={mapPlacementState.show}
+        onHide={handleCloseMapPlacement}
+        title={
+          mapPlacementState.enemyName
+            ? `Place ${mapPlacementState.enemyName}`
+            : 'Place Enemy on Map'
+        }
+        maps={maps}
+        map={campaignMap}
+        activeMapId={activeMapId}
+        selectedMapId={selectedMapId}
+        onSelectMap={handleSelectMap}
+        tokensByMapId={modalTokensByMapId}
+        currentCharacterId={mapPlacementState.enemyId}
+        characterLookup={tokenMetaById}
+        onTokenMove={handleMapModalTokenMove}
+        readOnly={false}
       />
 
       <Modal
