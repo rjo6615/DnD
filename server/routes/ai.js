@@ -307,8 +307,15 @@ module.exports = (router) => {
       const quality = process.env.OPENAI_IMAGE_QUALITY;
       const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'b64_json';
 
-      const generationPrompt =
-        `Top-down tactical battle map for Dungeons & Dragons 5th Edition. Create a square, gridless map measuring 120 feet by 120 feet (24 by 24 five-foot squares). Include clear terrain features and obstacles sized for miniatures, ensuring all placements align to five-foot increments so the scene matches a 24-by-24 overlay. Do not draw any grid lines. ${prompt.trim()}`;
+      const generationPrompt = [
+        'Top-down tactical battle map for Dungeons & Dragons 5th Edition.',
+        'Requirements:',
+        '• Depict exactly a 120 ft by 120 ft square (24 by 24 five-foot increments) and keep every terrain or object placement aligned to that spacing.',
+        '• Absolutely forbid visible grids, coordinate overlays, tick marks, perspective or isometric rendering, and any marks that resemble grid lines.',
+        '• Ensure buildings, walls, and other structures span multiple five-foot increments; never compress a full structure into a single five-foot square.',
+        '',
+        prompt.trim(),
+      ].join('\n');
 
       const requestPayload = {
         model,
