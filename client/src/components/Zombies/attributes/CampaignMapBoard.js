@@ -16,6 +16,16 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const getHealthColor = (ratio) => {
+  const clampedRatio = clamp01(ratio);
+  if (clampedRatio === null) {
+    return '#51cf66';
+  }
+
+  const hue = Math.round(120 * clampedRatio);
+  return `hsl(${hue}, 70%, 45%)`;
+};
+
 const toFiniteNumberOrNull = (value) => {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -311,7 +321,7 @@ const CampaignMapBoard = ({
                     ? Math.min(1, Math.max(0, safeCurrentHp / safeMaxHp))
                     : 0;
                 const fillPercent = Math.round(ratio * 10000) / 100;
-                const healthColor = color || '#51cf66';
+                const healthColor = getHealthColor(ratio);
                 return (
                   <div
                     key={characterId}
