@@ -9,6 +9,8 @@
 
 .map-display__image-wrapper {
   position: relative;
+  border-radius: var(--bs-border-radius);
+  overflow: hidden;
 }
 
 .map-display__grid-overlay,
