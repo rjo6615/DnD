@@ -476,10 +476,8 @@ describe('ZombiesDM AI generation', () => {
     const existingMap = {
       mapId: 'map-1',
       title: 'Existing Map',
-      summary: 'A well-traveled road.',
       imageUrl: 'https://example.com/existing-map.png',
       altText: 'Existing map illustration',
-      caption: 'A previously saved battlefield.',
     };
     const generatedMap = {
       title: 'Generated Map',
@@ -490,7 +488,6 @@ describe('ZombiesDM AI generation', () => {
     const createdMap = {
       ...generatedMap,
       mapId: 'map-2',
-      summary: 'Dense forest terrain.',
     };
     let savedPayload;
 
@@ -592,12 +589,10 @@ describe('ZombiesDM AI generation', () => {
     const primaryMap = {
       mapId: 'map-1',
       title: 'Primary Map',
-      summary: 'The original battlefield.',
     };
     const secondaryMap = {
       mapId: 'map-2',
       title: 'Secondary Map',
-      summary: 'A hidden cavern.',
     };
     let activationPayload;
 
@@ -668,7 +663,6 @@ describe('ZombiesDM AI generation', () => {
     const initialMap = {
       mapId: 'map-1',
       title: 'Initial Map',
-      summary: 'Original battleground.',
     };
     const socketMaps = [initialMap];
 
@@ -724,7 +718,6 @@ describe('ZombiesDM AI generation', () => {
     const updatedMap = {
       mapId: 'map-2',
       title: 'Updated Map',
-      summary: 'A mysterious valley.',
     };
 
     mapUpdateHandler({

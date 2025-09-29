@@ -92,7 +92,7 @@ const prepareStoredMap = ({
     };
   }
 
-  const base = parsedInput.data;
+  const { summary: _summary, caption: _caption, ...base } = parsedInput.data;
   const now = new Date().toISOString();
   const existing = existingMap && typeof existingMap === 'object' ? existingMap : {};
 

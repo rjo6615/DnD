@@ -354,7 +354,6 @@ module.exports = (router) => {
 
       const mapPayload = {
         title: 'Generated Battle Map',
-        summary: image.revised_prompt || undefined,
         prompt: prompt.trim(),
         provider: 'openai',
         model,

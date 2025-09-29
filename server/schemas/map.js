@@ -65,7 +65,7 @@ const createMapSchema = (z) => {
       }
 
       if (!map.altText) {
-        const derivedAltText = map.title || map.summary || map.caption || map.prompt;
+        const derivedAltText = map.title || map.prompt;
         if (derivedAltText && typeof derivedAltText === 'string') {
           map.altText = derivedAltText;
         } else {

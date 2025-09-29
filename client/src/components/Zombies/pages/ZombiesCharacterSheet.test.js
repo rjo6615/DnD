@@ -314,7 +314,6 @@ test('map footer button toggles the campaign map modal', async () => {
             title: 'Wilds Overview',
             imageUrl: 'https://example.com/wilds-map.png',
             altText: 'Wilds overview map',
-            summary: 'Navigate from start to end.',
           },
         ],
         activeMapId: 'wilds-map',

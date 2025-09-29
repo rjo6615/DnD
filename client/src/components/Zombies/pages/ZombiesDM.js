@@ -265,8 +265,6 @@ export default function ZombiesDM() {
       mode: 'create',
       map: null,
       title: '',
-      summary: '',
-      caption: '',
       imageUrl: '',
       altText: '',
       activateOnSave: true,
@@ -1858,8 +1856,6 @@ export default function ZombiesDM() {
         mode: 'create',
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
-        summary: typeof safeMap.summary === 'string' ? safeMap.summary : '',
-        caption: typeof safeMap.caption === 'string' ? safeMap.caption : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: maps.length === 0,
@@ -1879,8 +1875,6 @@ export default function ZombiesDM() {
         mode: 'rename',
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
-        summary: typeof safeMap.summary === 'string' ? safeMap.summary : '',
-        caption: typeof safeMap.caption === 'string' ? safeMap.caption : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: false,
@@ -1916,8 +1910,6 @@ export default function ZombiesDM() {
           mode,
           map: editorMap,
           title,
-          summary,
-          caption,
           imageUrl,
           altText,
           activateOnSave,
@@ -1929,8 +1921,6 @@ export default function ZombiesDM() {
             : editorMap || generatedMap || previewMap || {};
 
         const trimmedTitle = typeof title === 'string' ? title.trim() : '';
-        const trimmedSummary = typeof summary === 'string' ? summary.trim() : '';
-        const trimmedCaption = typeof caption === 'string' ? caption.trim() : '';
         const trimmedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
 
@@ -1940,11 +1930,14 @@ export default function ZombiesDM() {
             ? baseMap.title.trim()
             : 'Untitled Map');
 
+        const sanitizedBaseMap =
+          baseMap && typeof baseMap === 'object' ? { ...baseMap } : {};
+        delete sanitizedBaseMap.summary;
+        delete sanitizedBaseMap.caption;
+
         const payloadMap = {
-          ...baseMap,
+          ...sanitizedBaseMap,
           title: normalizedTitle,
-          summary: trimmedSummary,
-          caption: trimmedCaption,
           imageUrl: trimmedImageUrl,
           altText: trimmedAltText,
         };
@@ -1997,7 +1990,37 @@ export default function ZombiesDM() {
                   if (payloadMap.imageBase64 && map.imageBase64 === payloadMap.imageBase64) {
                     return true;
                   }
-                  return map.title === payloadMap.title && map.summary === payloadMap.summary;
+                  const normalizedPayloadTitle =
+                    typeof payloadMap.title === 'string' ? payloadMap.title : '';
+                  const normalizedMapTitle =
+                    typeof map.title === 'string' ? map.title : '';
+                  if (!normalizedPayloadTitle || normalizedMapTitle !== normalizedPayloadTitle) {
+                    return false;
+                  }
+
+                  const normalizedPayloadPrompt =
+                    typeof payloadMap.prompt === 'string' ? payloadMap.prompt : '';
+                  const normalizedMapPrompt =
+                    typeof map.prompt === 'string' ? map.prompt : '';
+                  if (
+                    normalizedPayloadPrompt &&
+                    normalizedMapPrompt === normalizedPayloadPrompt
+                  ) {
+                    return true;
+                  }
+
+                  const normalizedPayloadAltText =
+                    typeof payloadMap.altText === 'string' ? payloadMap.altText : '';
+                  const normalizedMapAltText =
+                    typeof map.altText === 'string' ? map.altText : '';
+                  if (
+                    normalizedPayloadAltText &&
+                    normalizedMapAltText === normalizedPayloadAltText
+                  ) {
+                    return true;
+                  }
+
+                  return !normalizedPayloadPrompt && !normalizedPayloadAltText;
                 });
                 preferredId = matchingMap?.mapId || null;
               }
@@ -3716,10 +3739,6 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 typeof mapItem?.title === 'string' && mapItem.title.trim() !== ''
                                   ? mapItem.title.trim()
                                   : 'Untitled Map';
-                              const summaryText =
-                                typeof mapItem?.summary === 'string'
-                                  ? mapItem.summary.trim()
-                                  : '';
                               return (
                                 <ListGroup.Item
                                   key={mapKey}
@@ -3730,12 +3749,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   data-testid={`map-list-item-${mapKey}`}
                                 >
                                   <div className="d-flex justify-content-between align-items-start">
-                                    <div>
-                                      <div className="fw-semibold">{title}</div>
-                                      {summaryText && (
-                                        <div className="text-muted small">{summaryText}</div>
-                                      )}
-                                    </div>
+                                    <div className="fw-semibold">{title}</div>
                                     {isActive && (
                                       <Badge
                                         bg="success"
@@ -5328,27 +5342,6 @@ const resolveIcon = (category, iconMap, fallback) => {
                 placeholder="Enter map title"
                 value={mapEditorState.title}
                 onChange={handleMapEditorInputChange('title')}
-                disabled={mapEditorSaving}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="map-editor-summary">
-              <Form.Label>Summary</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Provide a short summary"
-                value={mapEditorState.summary}
-                onChange={handleMapEditorInputChange('summary')}
-                disabled={mapEditorSaving}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="map-editor-caption">
-              <Form.Label>Caption</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Optional caption"
-                value={mapEditorState.caption}
-                onChange={handleMapEditorInputChange('caption')}
                 disabled={mapEditorSaving}
               />
             </Form.Group>
