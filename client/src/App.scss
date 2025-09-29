@@ -3,6 +3,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 
+.map-modal__board-wrapper {
+  position: relative;
+}
+
+.map-modal__saving-indicator {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: center;
+  padding-block: 0.75rem;
+}
+
 .zombies-dm-container {
   padding-left: 1rem;
   padding-right: 1rem;

@@ -531,27 +531,29 @@ const MapModal = ({
 
     return (
       <>
-        <CampaignMapBoard
-          map={previewMap}
-          tokens={boardTokens}
-          disabled={placementPending}
-          onTokenPositionChange={handleTokenPositionChange}
-          onBackgroundClick={handleBackgroundPlacement}
-        />
+        <div className="map-modal__board-wrapper">
+          <CampaignMapBoard
+            map={previewMap}
+            tokens={boardTokens}
+            disabled={placementPending}
+            onTokenPositionChange={handleTokenPositionChange}
+            onBackgroundClick={handleBackgroundPlacement}
+          />
+          {placementPending && (
+            <div
+              className="map-modal__saving-indicator d-flex align-items-center gap-2 text-muted small"
+              data-testid="map-modal-placement-pending"
+            >
+              <Spinner animation="border" role="status" size="sm">
+                <span className="visually-hidden">Saving figurine position…</span>
+              </Spinner>
+              <span>Saving figurine position…</span>
+            </div>
+          )}
+        </div>
         {canClickToPlace && (
           <div className="text-info small mt-3" data-testid="map-modal-placement-hint">
             Click the map to place your figurine.
-          </div>
-        )}
-        {placementPending && (
-          <div
-            className="d-flex align-items-center gap-2 mt-3 text-muted small"
-            data-testid="map-modal-placement-pending"
-          >
-            <Spinner animation="border" role="status" size="sm">
-              <span className="visually-hidden">Saving figurine position…</span>
-            </Spinner>
-            <span>Saving figurine position…</span>
           </div>
         )}
         {placementError && (
