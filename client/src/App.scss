@@ -2418,7 +2418,7 @@ h1 {
   &__tokens-layer {
     position: absolute;
     inset: 0;
-    pointer-events: none;
+    pointer-events: auto;
   }
 
   &__token {
