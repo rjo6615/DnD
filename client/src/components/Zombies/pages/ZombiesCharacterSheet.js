@@ -477,6 +477,8 @@ export default function ZombiesCharacterSheet() {
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
   const [campaignCharacters, setCampaignCharacters] = useState({});
+  const [campaignMaps, setCampaignMaps] = useState([]);
+  const [campaignActiveMapId, setCampaignActiveMapId] = useState(null);
   const [campaignMap, setCampaignMap] = useState(null);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
@@ -973,16 +975,18 @@ export default function ZombiesCharacterSheet() {
         if (!normalizedCampaign) {
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
+          setCampaignMaps([]);
+          setCampaignActiveMapId(null);
           setCampaignMap(null);
           return;
         }
 
         try {
           const encodedCampaign = encodeURIComponent(normalizedCampaign);
-          const [combatRes, charactersRes, mapRes] = await Promise.all([
+          const [combatRes, charactersRes, mapsRes] = await Promise.all([
             apiFetch(`/campaigns/${encodedCampaign}/combat`),
             apiFetch(`/campaigns/${encodedCampaign}/characters`),
-            apiFetch(`/campaigns/${encodedCampaign}/map`),
+            apiFetch(`/campaigns/${encodedCampaign}/maps`),
           ]);
 
           let combatData = createEmptyCombatState();
@@ -997,23 +1001,91 @@ export default function ZombiesCharacterSheet() {
             characterMap = mapCharactersById(charactersJson);
           }
 
+          let mapsList = [];
+          let activeMapIdValue = null;
           let mapData = null;
-          if (mapRes.ok) {
+
+          if (mapsRes.ok) {
             try {
-              const mapJson = await mapRes.json();
-              if (mapJson && typeof mapJson === "object") {
-                mapData = mapJson.map && typeof mapJson.map === "object" ? mapJson.map : mapJson;
+              const mapsPayload = await mapsRes.json();
+              if (mapsPayload && typeof mapsPayload === 'object') {
+                const normalizedMaps = Array.isArray(mapsPayload.maps)
+                  ? mapsPayload.maps.filter((entry) => entry && typeof entry === 'object')
+                  : [];
+                mapsList = normalizedMaps;
+
+                const normalizedActiveId =
+                  typeof mapsPayload.activeMapId === 'string' &&
+                  mapsPayload.activeMapId.trim() !== ''
+                    ? mapsPayload.activeMapId.trim()
+                    : null;
+                activeMapIdValue = normalizedActiveId;
+
+                const payloadMap =
+                  mapsPayload.map &&
+                  typeof mapsPayload.map === 'object' &&
+                  !Array.isArray(mapsPayload.map)
+                    ? mapsPayload.map
+                    : null;
+
+                if (payloadMap) {
+                  mapData = payloadMap;
+                } else if (normalizedActiveId) {
+                  mapData =
+                    normalizedMaps.find((entry) => entry?.mapId === normalizedActiveId) || null;
+                } else if (normalizedMaps.length === 1) {
+                  mapData = normalizedMaps[0];
+                }
               }
             } catch (mapError) {
               console.error(mapError);
             }
-          } else if (mapRes?.status === 404) {
-            mapData = null;
+          }
+
+          let shouldLoadLegacyMap = false;
+          if (!mapsRes || mapsRes.status === 404) {
+            shouldLoadLegacyMap = true;
+          } else if (!mapsRes.ok) {
+            shouldLoadLegacyMap = true;
+          }
+
+          if (shouldLoadLegacyMap) {
+            try {
+              const legacyMapRes = await apiFetch(`/campaigns/${encodedCampaign}/map`);
+              if (legacyMapRes.ok) {
+                const mapJson = await legacyMapRes.json();
+                if (mapJson && typeof mapJson === 'object') {
+                  mapData =
+                    mapJson.map && typeof mapJson.map === 'object' ? mapJson.map : mapJson;
+                } else {
+                  mapData = null;
+                }
+              } else if (legacyMapRes.status === 404) {
+                mapData = null;
+              }
+            } catch (legacyMapError) {
+              console.error(legacyMapError);
+            }
+          }
+
+          if (!mapData && mapsList.length > 0) {
+            mapData = mapsList[0];
+          }
+
+          if (!activeMapIdValue && mapData && typeof mapData.mapId === 'string') {
+            const candidateId = mapData.mapId.trim();
+            activeMapIdValue = candidateId !== '' ? candidateId : null;
+          }
+
+          if (mapsList.length === 0 && mapData) {
+            mapsList = [mapData];
           }
 
           if (!isCancelled) {
             setCombatState(combatData);
             setCampaignCharacters(characterMap);
+            setCampaignMaps(mapsList);
+            setCampaignActiveMapId(activeMapIdValue);
             setCampaignMap(mapData);
           }
         } catch (err) {
@@ -1021,6 +1093,8 @@ export default function ZombiesCharacterSheet() {
           if (!isCancelled) {
             setCombatState(createEmptyCombatState());
             setCampaignCharacters({});
+            setCampaignMaps([]);
+            setCampaignActiveMapId(null);
             setCampaignMap(null);
           }
         }
@@ -1030,6 +1104,8 @@ export default function ZombiesCharacterSheet() {
           setCampaignId(null);
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
+          setCampaignMaps([]);
+          setCampaignActiveMapId(null);
           setCampaignMap(null);
         }
       }
@@ -1048,6 +1124,8 @@ export default function ZombiesCharacterSheet() {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      setCampaignMaps([]);
+      setCampaignActiveMapId(null);
       setCampaignMap(null);
       setShowMapModal(false);
       return undefined;
@@ -1161,16 +1239,65 @@ export default function ZombiesCharacterSheet() {
 
     const handleCampaignMapUpdate = (update) => {
       if (update === null) {
+        setCampaignMaps([]);
+        setCampaignActiveMapId(null);
         setCampaignMap(null);
         return;
       }
 
-      if (!update || typeof update !== "object") {
+      if (!update || typeof update !== 'object') {
+        return;
+      }
+
+      const hasMapCollection = Array.isArray(update.maps) || 'activeMapId' in update;
+
+      if (hasMapCollection) {
+        const normalizedMaps = Array.isArray(update.maps)
+          ? update.maps.filter((entry) => entry && typeof entry === 'object')
+          : [];
+        setCampaignMaps(normalizedMaps);
+
+        const normalizedActiveId =
+          typeof update.activeMapId === 'string' && update.activeMapId.trim() !== ''
+            ? update.activeMapId.trim()
+            : null;
+        setCampaignActiveMapId(normalizedActiveId);
+
+        const payloadMap =
+          update.map && typeof update.map === 'object' && !Array.isArray(update.map)
+            ? update.map
+            : null;
+
+        const resolvedMap =
+          payloadMap ||
+          (normalizedActiveId
+            ? normalizedMaps.find((entry) => entry?.mapId === normalizedActiveId)
+            : null) ||
+          (normalizedMaps.length === 1 ? normalizedMaps[0] : null) ||
+          null;
+
+        setCampaignMap(resolvedMap);
         return;
       }
 
       const normalizedMap =
-        update.map && typeof update.map === "object" ? update.map : update;
+        update.map && typeof update.map === 'object' && !Array.isArray(update.map)
+          ? update.map
+          : update;
+
+      if (normalizedMap === null) {
+        setCampaignMaps([]);
+        setCampaignActiveMapId(null);
+        setCampaignMap(null);
+        return;
+      }
+
+      setCampaignMaps(normalizedMap ? [normalizedMap] : []);
+      const normalizedActiveId =
+        typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
+          ? normalizedMap.mapId.trim()
+          : null;
+      setCampaignActiveMapId(normalizedActiveId);
       setCampaignMap(normalizedMap);
     };
 
@@ -2099,12 +2226,18 @@ const spellsGold =
         availableSlots={availableSlots}
       />
     )}
-    <Help
-      form={form}
-      showHelpModal={showHelpModal}
-      handleCloseHelpModal={handleCloseHelpModal}
-    />
-    <MapModal show={showMapModal} onHide={handleCloseMapModal} map={campaignMap} />
+      <Help
+        form={form}
+        showHelpModal={showHelpModal}
+        handleCloseHelpModal={handleCloseHelpModal}
+      />
+      <MapModal
+        show={showMapModal}
+        onHide={handleCloseMapModal}
+        map={campaignMap}
+        maps={campaignMaps}
+        activeMapId={campaignActiveMapId}
+      />
   </div>
 );
 }

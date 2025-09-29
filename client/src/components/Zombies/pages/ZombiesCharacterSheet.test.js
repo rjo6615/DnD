@@ -65,6 +65,7 @@ jest.mock('../attributes/MapModal', () => (props) => {
 });
 const mockOnCastSpell = { current: null };
 const mockHandleClose = { current: null };
+let socketStub;
 jest.mock('../attributes/SpellSelector', () => (props) => {
   mockOnCastSpell.current = props.onCastSpell;
   mockHandleClose.current = props.handleClose;
@@ -77,6 +78,9 @@ import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 beforeEach(() => {
   apiFetch.mockReset();
   apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/maps')) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
     if (typeof url === 'string' && url.includes('/map')) {
       return Promise.resolve({ ok: false, status: 404 });
     }
@@ -84,7 +88,7 @@ beforeEach(() => {
     return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
   });
   mockSocketIo.mockReset();
-  const socketStub = {
+  socketStub = {
     on: jest.fn(),
     off: jest.fn(),
     emit: jest.fn(),
@@ -304,10 +308,16 @@ test('map footer button toggles the campaign map modal', async () => {
     .mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        title: 'Wilds Overview',
-        imageUrl: 'https://example.com/wilds-map.png',
-        altText: 'Wilds overview map',
-        summary: 'Navigate from start to end.',
+        maps: [
+          {
+            mapId: 'wilds-map',
+            title: 'Wilds Overview',
+            imageUrl: 'https://example.com/wilds-map.png',
+            altText: 'Wilds overview map',
+            summary: 'Navigate from start to end.',
+          },
+        ],
+        activeMapId: 'wilds-map',
       }),
     });
 
@@ -320,9 +330,12 @@ test('map footer button toggles the campaign map modal', async () => {
   await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
   expect(mockMapModalProps.current.show).toBe(false);
   expect(mockMapModalProps.current.map).toMatchObject({
+    mapId: 'wilds-map',
     title: 'Wilds Overview',
     imageUrl: 'https://example.com/wilds-map.png',
   });
+  expect(mockMapModalProps.current.maps).toHaveLength(1);
+  expect(mockMapModalProps.current.activeMapId).toBe('wilds-map');
 
   await userEvent.click(mapButton);
   await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
@@ -332,6 +345,96 @@ test('map footer button toggles the campaign map modal', async () => {
   });
 
   await waitFor(() => expect(mockMapModalProps.current.show).toBe(false));
+});
+
+test('campaign map update events synchronize active map and list', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+        campaign: 'The Wilds',
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ participants: [], activeTurn: null }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        maps: [
+          {
+            mapId: 'old-map',
+            title: 'Old Map',
+            imageUrl: 'https://example.com/old-map.png',
+          },
+        ],
+        activeMapId: 'old-map',
+      }),
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockMapModalProps.current?.map?.mapId).toBe('old-map'));
+  await waitFor(() =>
+    expect(socketStub.on).toHaveBeenCalledWith(
+      'campaign:map:update',
+      expect.any(Function)
+    )
+  );
+
+  const mapUpdateCall = socketStub.on.mock.calls.find(
+    ([eventName]) => eventName === 'campaign:map:update'
+  );
+  expect(mapUpdateCall).toBeTruthy();
+  const [, mapUpdateHandler] = mapUpdateCall;
+  expect(typeof mapUpdateHandler).toBe('function');
+
+  act(() => {
+    mapUpdateHandler({
+      maps: [
+        {
+          mapId: 'old-map',
+          title: 'Old Map',
+          imageUrl: 'https://example.com/old-map.png',
+        },
+        {
+          mapId: 'new-map',
+          title: 'New Map',
+          imageUrl: 'https://example.com/new-map.png',
+        },
+      ],
+      activeMapId: 'new-map',
+    });
+  });
+
+  await waitFor(() =>
+    expect(mockMapModalProps.current.map).toMatchObject({
+      mapId: 'new-map',
+      title: 'New Map',
+    })
+  );
+  expect(mockMapModalProps.current.activeMapId).toBe('new-map');
+  expect(mockMapModalProps.current.maps).toHaveLength(2);
 });
 
 test('renders SpellSlots for non-spellcasting characters', async () => {
