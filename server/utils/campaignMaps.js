@@ -123,6 +123,23 @@ const prepareStoredMap = ({
     updatedAt,
   };
 
+  if (typeof storedMap.title === 'string') {
+    const trimmedTitle = storedMap.title.trim();
+    if (trimmedTitle) {
+      storedMap.title = trimmedTitle;
+    } else {
+      delete storedMap.title;
+    }
+  }
+
+  if (
+    !storedMap.title &&
+    typeof existing.title === 'string' &&
+    existing.title.trim() !== ''
+  ) {
+    storedMap.title = existing.title.trim();
+  }
+
   if (typeof prompt === 'string' && prompt.trim() !== '') {
     storedMap.originalPrompt = prompt.trim();
   } else if (

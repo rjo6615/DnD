@@ -316,7 +316,7 @@ describe('AI map route', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      title: 'Generated Battle Map',
+      title: 'Reimagined Cavern Layout',
       imageUrl: 'https://example.com/map.png',
       prompt: 'create a cavern map',
       provider: 'openai',
@@ -328,6 +328,23 @@ describe('AI map route', () => {
         prompt: expect.stringContaining('create a cavern map'),
       })
     );
+  });
+
+  test('derives a title from the user prompt when no revision is provided', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/prompt-only-map.png',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'haunted crypt with flickering torches. include secret doors' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Haunted Crypt With Flickering Torches');
   });
 
   test('omits response_format for models that do not require it', async () => {
