@@ -24,6 +24,7 @@ import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative } from '../utils/derivedStats';
+import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import {
@@ -1834,6 +1835,23 @@ export default function ZombiesDM() {
             (typeof record.characterId === 'string' && record.characterId.trim()) ||
             null;
 
+          const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
+            calculateCharacterHitPoints(record);
+
+          const fallbackCurrentHp = toFiniteNumberOrNull(
+            record.currentHp ?? record.hpCurrent ?? record.tempHealth ?? record.health
+          );
+          const fallbackMaxHp = toFiniteNumberOrNull(
+            record.maxHp ?? record.hpMax ?? record.health
+          );
+
+          const normalizedCurrentHp = Number.isFinite(derivedCurrentHp)
+            ? derivedCurrentHp
+            : fallbackCurrentHp;
+          const normalizedMaxHp = Number.isFinite(derivedMaxHp)
+            ? derivedMaxHp
+            : fallbackMaxHp;
+
           const identifiers = [record.characterId, record._id, record.token].filter(
             (value) => typeof value === 'string' && value.trim() !== ''
           );
@@ -1842,6 +1860,8 @@ export default function ZombiesDM() {
             lookup[identifier.trim()] = {
               color,
               label,
+              ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
+              ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
             };
           });
         });
@@ -1866,12 +1886,19 @@ export default function ZombiesDM() {
             (typeof enemy.enemyType === 'string' && enemy.enemyType.trim()) ||
             enemyId;
 
+          const enemyCurrentHp = toFiniteNumberOrNull(
+            enemy.currentHp ?? enemy.maxHp ?? enemy.hitPoints
+          );
+          const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+
           lookup[enemyId] = {
             color:
               typeof enemy.diceColor === 'string' && enemy.diceColor.trim() !== ''
                 ? enemy.diceColor.trim()
                 : null,
             label,
+            ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
+            ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
           };
         });
       }
@@ -1914,11 +1941,19 @@ export default function ZombiesDM() {
           const meta = tokenMetaById[token.characterId] || {};
           const rawLabel = meta.label || token.label || token.characterId;
           const label = typeof rawLabel === 'string' ? rawLabel.trim() : '';
+          const normalizedCurrentHp = toFiniteNumberOrNull(
+            meta.currentHp ?? token.currentHp ?? token.hpCurrent ?? token.health
+          );
+          const normalizedMaxHp = toFiniteNumberOrNull(
+            meta.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
+          );
           return {
             ...token,
             label,
             color: meta.color || token.color || null,
             isMovable: true,
+            ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
+            ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
           };
         })
         .sort((a, b) => {

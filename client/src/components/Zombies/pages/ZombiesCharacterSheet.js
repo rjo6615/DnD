@@ -2110,7 +2110,14 @@ export default function ZombiesCharacterSheet() {
             ? value.diceColor.trim()
             : null;
 
-        lookup[trimmed] = { color, label };
+        const { currentHp, maxHp } = calculateCharacterHitPoints(value);
+
+        lookup[trimmed] = {
+          color,
+          label,
+          currentHp: Number.isFinite(currentHp) ? currentHp : null,
+          maxHp: Number.isFinite(maxHp) ? maxHp : null,
+        };
       });
     }
 
@@ -2127,7 +2134,14 @@ export default function ZombiesCharacterSheet() {
           ? form.name.trim()
           : null);
 
-      lookup[resolvedCharacterId] = { color, label };
+      const { currentHp, maxHp } = calculateCharacterHitPoints(form);
+
+      lookup[resolvedCharacterId] = {
+        color,
+        label,
+        currentHp: Number.isFinite(currentHp) ? currentHp : null,
+        maxHp: Number.isFinite(maxHp) ? maxHp : null,
+      };
     }
 
     return lookup;

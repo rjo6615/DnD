@@ -18,6 +18,15 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const sanitizeToken = (tokenValue, fallbackId) => {
   if (!tokenValue || typeof tokenValue !== 'object') {
     return null;
@@ -195,8 +204,15 @@ const MapModal = ({
         typeof value?.label === 'string' && value.label.trim() !== ''
           ? value.label.trim()
           : null;
+      const currentHp = toFiniteNumberOrNull(value?.currentHp);
+      const maxHp = toFiniteNumberOrNull(value?.maxHp);
 
-      acc[trimmedKey] = { color, label };
+      acc[trimmedKey] = {
+        color,
+        label,
+        ...(currentHp !== null ? { currentHp } : {}),
+        ...(maxHp !== null ? { maxHp } : {}),
+      };
       return acc;
     }, {});
   }, [characterLookup]);
@@ -257,6 +273,13 @@ const MapModal = ({
             ? token.color.trim()
             : null);
 
+        const currentHp = toFiniteNumberOrNull(
+          lookup.currentHp ?? token.currentHp ?? token.hpCurrent ?? token.health
+        );
+        const maxHp = toFiniteNumberOrNull(
+          lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
+        );
+
         const isMovable =
           isInteractive &&
           !placementPending &&
@@ -267,6 +290,8 @@ const MapModal = ({
           label: typeof rawLabel === 'string' ? rawLabel : token.characterId,
           color,
           isMovable,
+          ...(currentHp !== null ? { currentHp } : {}),
+          ...(maxHp !== null ? { maxHp } : {}),
         };
       })
       .sort((a, b) => {
