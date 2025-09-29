@@ -48,7 +48,139 @@ const sortMaps = (maps) => {
   });
 };
 
-const buildCampaignMapPayload = (maps, activeMapId) => {
+const clampPercentage = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  if (parsed < 0) {
+    return 0;
+  }
+  if (parsed > 1) {
+    return 1;
+  }
+  return parsed;
+};
+
+const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
+  const normalizedTokens = {};
+  let didMutate = false;
+
+  if (!mapTokens || typeof mapTokens !== 'object' || Array.isArray(mapTokens)) {
+    if (mapTokens && typeof mapTokens === 'object') {
+      didMutate = true;
+    }
+    return { tokensByMapId: normalizedTokens, didMutate };
+  }
+
+  const timestamp = toIsoDate(now, new Date().toISOString()) || new Date().toISOString();
+
+  Object.keys(mapTokens).forEach((rawMapId) => {
+    const value = mapTokens[rawMapId];
+    if (typeof rawMapId !== 'string') {
+      didMutate = true;
+      return;
+    }
+
+    const mapId = rawMapId.trim();
+    if (!mapId) {
+      didMutate = true;
+      return;
+    }
+
+    if (validMapIds.size > 0 && !validMapIds.has(mapId)) {
+      didMutate = true;
+      return;
+    }
+
+    if (!value || typeof value !== 'object') {
+      if (value !== undefined && value !== null) {
+        didMutate = true;
+      }
+      return;
+    }
+
+    const tokenEntries = Array.isArray(value)
+      ? value.map((entry) => [null, entry])
+      : Object.entries(value);
+
+    const sanitizedForMap = {};
+
+    tokenEntries.forEach(([rawKey, rawValue]) => {
+      if (!rawValue || typeof rawValue !== 'object') {
+        didMutate = true;
+        return;
+      }
+
+      const candidate = { ...rawValue };
+      let characterId =
+        typeof candidate.characterId === 'string' && candidate.characterId.trim() !== ''
+          ? candidate.characterId.trim()
+          : null;
+
+      if (!characterId && typeof rawKey === 'string' && rawKey.trim() !== '') {
+        characterId = rawKey.trim();
+        didMutate = true;
+      }
+
+      if (!characterId) {
+        didMutate = true;
+        return;
+      }
+
+      const clampedX = clampPercentage(candidate.x);
+      const clampedY = clampPercentage(candidate.y);
+
+      if (clampedX === null || clampedY === null) {
+        didMutate = true;
+        return;
+      }
+
+      if (clampedX !== candidate.x || clampedY !== candidate.y) {
+        didMutate = true;
+      }
+
+      const updatedAt = toIsoDate(candidate.updatedAt, null);
+      const resolvedUpdatedAt = updatedAt || timestamp;
+      if (!updatedAt || updatedAt !== candidate.updatedAt) {
+        didMutate = true;
+      }
+
+      const sanitizedToken = {
+        characterId,
+        x: clampedX,
+        y: clampedY,
+        updatedAt: resolvedUpdatedAt,
+      };
+
+      const originalComparable = JSON.stringify({
+        characterId: rawValue.characterId,
+        x: rawValue.x,
+        y: rawValue.y,
+        updatedAt: rawValue.updatedAt,
+      });
+      const sanitizedComparable = JSON.stringify(sanitizedToken);
+      if (originalComparable !== sanitizedComparable) {
+        didMutate = true;
+      }
+
+      sanitizedForMap[characterId] = sanitizedToken;
+    });
+
+    if (Object.keys(sanitizedForMap).length > 0) {
+      normalizedTokens[mapId] = sanitizedForMap;
+    } else if (
+      (Array.isArray(value) && value.length > 0) ||
+      (!Array.isArray(value) && Object.keys(value).length > 0)
+    ) {
+      didMutate = true;
+    }
+  });
+
+  return { tokensByMapId: normalizedTokens, didMutate };
+};
+
+const buildCampaignMapPayload = (maps, activeMapId, mapTokens = {}) => {
   const sorted = sortMaps(Array.isArray(maps) ? maps : []);
   let resolvedActiveId =
     typeof activeMapId === 'string' && activeMapId.trim() !== ''
@@ -66,14 +198,30 @@ const buildCampaignMapPayload = (maps, activeMapId) => {
     resolvedActiveId = sorted[0].mapId;
   }
 
-  const activeMap = resolvedActiveId
+  const validMapIds = new Set(sorted.map((map) => map.mapId));
+  const { tokensByMapId } = normalizeMapTokens({
+    mapTokens,
+    validMapIds,
+    now: new Date().toISOString(),
+  });
+
+  const activeMapTokens = resolvedActiveId
+    ? tokensByMapId[resolvedActiveId] || {}
+    : {};
+
+  const activeMapBase = resolvedActiveId
     ? sorted.find((map) => map.mapId === resolvedActiveId) || null
+    : null;
+  const activeMap = activeMapBase
+    ? { ...activeMapBase, tokens: activeMapTokens }
     : null;
 
   return {
     maps: sorted,
     activeMapId: activeMap ? activeMap.mapId : null,
-    map: activeMap || null,
+    map: activeMap,
+    tokensByMapId,
+    activeMapTokens,
   };
 };
 
@@ -164,7 +312,13 @@ const normalizeCampaignMapState = async ({ campaign, collection }) => {
   if (!campaign || typeof campaign !== 'object') {
     return {
       campaign: null,
-      payload: { maps: [], activeMapId: null, map: null },
+      payload: {
+        maps: [],
+        activeMapId: null,
+        map: null,
+        tokensByMapId: {},
+        activeMapTokens: {},
+      },
       updated: false,
     };
   }
@@ -234,18 +388,37 @@ const normalizeCampaignMapState = async ({ campaign, collection }) => {
     }
   }
 
-  const payload = buildCampaignMapPayload(normalizedMaps, campaign.activeMapId);
+  const validMapIds = new Set(normalizedMaps.map((map) => map.mapId));
+  const { tokensByMapId: normalizedTokens, didMutate: tokensMutated } =
+    normalizeMapTokens({
+      mapTokens: campaign.mapTokens,
+      validMapIds,
+      now,
+    });
+
+  if (tokensMutated) {
+    didMutate = true;
+  }
+
+  const payload = buildCampaignMapPayload(
+    normalizedMaps,
+    campaign.activeMapId,
+    normalizedTokens
+  );
 
   const existingMapString = JSON.stringify(campaign.map ?? null);
   const payloadMapString = JSON.stringify(payload.map ?? null);
   const existingMapsString = JSON.stringify(campaign.maps ?? []);
   const payloadMapsString = JSON.stringify(payload.maps);
+  const existingTokensString = JSON.stringify(campaign.mapTokens ?? {});
+  const payloadTokensString = JSON.stringify(payload.tokensByMapId);
 
   const shouldUpdate =
     didMutate ||
     campaign.activeMapId !== payload.activeMapId ||
     existingMapString !== payloadMapString ||
-    existingMapsString !== payloadMapsString;
+    existingMapsString !== payloadMapsString ||
+    existingTokensString !== payloadTokensString;
 
   if (shouldUpdate && collection) {
     await collection.updateOne(
@@ -255,6 +428,7 @@ const normalizeCampaignMapState = async ({ campaign, collection }) => {
           maps: payload.maps,
           activeMapId: payload.activeMapId,
           map: payload.map || null,
+          mapTokens: payload.tokensByMapId,
         },
       }
     );
@@ -265,6 +439,7 @@ const normalizeCampaignMapState = async ({ campaign, collection }) => {
     maps: payload.maps,
     activeMapId: payload.activeMapId,
     map: payload.map || null,
+    mapTokens: payload.tokensByMapId,
   };
 
   return { campaign: normalizedCampaign, payload, updated: shouldUpdate };
@@ -275,4 +450,5 @@ module.exports = {
   prepareStoredMap,
   normalizeCampaignMapState,
   getMapSchemas,
+  normalizeMapTokens,
 };

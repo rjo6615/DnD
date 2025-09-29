@@ -150,8 +150,20 @@ const emitMapUpdate = (campaignId, payload) => {
   const normalizedId = campaignId.trim();
   io.to(getCampaignRoom(normalizedId)).emit('campaign:map:update', payload);
 
-  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'map')) {
-    io.to(getCampaignRoom(normalizedId)).emit('map:update', payload.map);
+  if (payload && typeof payload === 'object') {
+    if (Object.prototype.hasOwnProperty.call(payload, 'map') && payload.map) {
+      const mapPayload =
+        typeof payload.map === 'object'
+          ? { ...payload.map, tokens: payload.map.tokens || payload.activeMapTokens || {} }
+          : payload.map;
+      io.to(getCampaignRoom(normalizedId)).emit('map:update', mapPayload);
+    }
+
+    io.to(getCampaignRoom(normalizedId)).emit('map:tokens:update', {
+      tokensByMapId: payload.tokensByMapId || {},
+      activeMapId: payload.activeMapId || null,
+      activeMapTokens: payload.activeMapTokens || {},
+    });
   }
 };
 

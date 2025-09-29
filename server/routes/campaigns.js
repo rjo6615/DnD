@@ -1,6 +1,7 @@
 const { param, body } = require('express-validator');
 const express = require('express');
 const { randomUUID } = require('crypto');
+const { ObjectId } = require('mongodb');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
 const authenticateToken = require('../middleware/auth');
@@ -11,6 +12,7 @@ const {
   normalizeCampaignMapState,
   prepareStoredMap,
   buildCampaignMapPayload,
+  normalizeMapTokens,
 } = require('../utils/campaignMaps');
 
 module.exports = (router) => {
@@ -192,6 +194,29 @@ module.exports = (router) => {
     return withDefaultCombat(campaigns);
   };
 
+  const cloneMapTokens = (tokensByMapId = {}) => {
+    if (!tokensByMapId || typeof tokensByMapId !== 'object') {
+      return {};
+    }
+
+    return Object.keys(tokensByMapId).reduce((acc, mapId) => {
+      const mapTokens = tokensByMapId[mapId];
+      if (!mapTokens || typeof mapTokens !== 'object' || Array.isArray(mapTokens)) {
+        return acc;
+      }
+
+      acc[mapId] = Object.keys(mapTokens).reduce((tokenAcc, characterId) => {
+        const entry = mapTokens[characterId];
+        if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+          tokenAcc[characterId] = { ...entry };
+        }
+        return tokenAcc;
+      }, {});
+
+      return acc;
+    }, {});
+  };
+
   // Apply authentication to all campaign routes
   campaignRouter.use(authenticateToken);
 
@@ -367,7 +392,13 @@ module.exports = (router) => {
             : [];
           nextMaps.push(storedMap);
 
-          const payload = buildCampaignMapPayload(nextMaps, storedMap.mapId);
+          const nextTokens = cloneMapTokens(normalizedCampaign.mapTokens);
+
+          const payload = buildCampaignMapPayload(
+            nextMaps,
+            storedMap.mapId,
+            nextTokens
+          );
 
           await collection.updateOne(
             { campaignName },
@@ -376,6 +407,7 @@ module.exports = (router) => {
                 maps: payload.maps,
                 activeMapId: payload.activeMapId,
                 map: payload.map || null,
+                mapTokens: payload.tokensByMapId,
               },
             }
           );
@@ -494,9 +526,12 @@ module.exports = (router) => {
             ? storedMap.mapId
             : normalizedCampaign.activeMapId;
 
+          const nextTokens = cloneMapTokens(normalizedCampaign.mapTokens);
+
           const payload = buildCampaignMapPayload(
             nextMaps,
-            desiredActiveId || storedMap.mapId
+            desiredActiveId || storedMap.mapId,
+            nextTokens
           );
 
           await collection.updateOne(
@@ -506,6 +541,7 @@ module.exports = (router) => {
                 maps: payload.maps,
                 activeMapId: payload.activeMapId,
                 map: payload.map || null,
+                mapTokens: payload.tokensByMapId,
               },
             }
           );
@@ -617,7 +653,13 @@ module.exports = (router) => {
             ? mapId
             : normalizedCampaign.activeMapId;
 
-          const payload = buildCampaignMapPayload(nextMaps, desiredActiveId);
+          const nextTokens = cloneMapTokens(normalizedCampaign.mapTokens);
+
+          const payload = buildCampaignMapPayload(
+            nextMaps,
+            desiredActiveId,
+            nextTokens
+          );
 
           await collection.updateOne(
             { campaignName },
@@ -626,6 +668,7 @@ module.exports = (router) => {
                 maps: payload.maps,
                 activeMapId: payload.activeMapId,
                 map: payload.map || null,
+                mapTokens: payload.tokensByMapId,
               },
             }
           );
@@ -682,12 +725,251 @@ module.exports = (router) => {
               ? null
               : normalizedCampaign.activeMapId;
 
-          const payload = buildCampaignMapPayload(remainingMaps, desiredActiveId);
+          const nextTokens = cloneMapTokens(normalizedCampaign.mapTokens);
+          delete nextTokens[mapId];
+
+          const payload = buildCampaignMapPayload(
+            remainingMaps,
+            desiredActiveId,
+            nextTokens
+          );
 
           await collection.updateOne(
             { campaignName },
             {
               $set: {
+                maps: payload.maps,
+                activeMapId: payload.activeMapId,
+                map: payload.map || null,
+                mapTokens: payload.tokensByMapId,
+              },
+            }
+          );
+
+          emitMapUpdate(campaignName, payload);
+
+          return res.json(payload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/maps/:mapId/tokens/:characterId')
+    .put(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        param('mapId').trim().notEmpty().withMessage('mapId is required'),
+        param('characterId')
+          .trim()
+          .notEmpty()
+          .withMessage('characterId is required'),
+        body('x').isFloat().withMessage('x must be a number').toFloat(),
+        body('y').isFloat().withMessage('y must be a number').toFloat(),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const mapId = req.params.mapId;
+          const characterId = req.params.characterId;
+          const db_connect = req.db;
+          const campaignsCollection = db_connect.collection('Campaigns');
+          const campaign = await campaignsCollection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const trimmedCharacterId = characterId.trim();
+
+          const isDm = req.user && campaign.dm === req.user.username;
+          if (!isDm) {
+            const charactersCollection = db_connect.collection('Characters');
+            const orConditions = [{ characterId: trimmedCharacterId }];
+            if (ObjectId.isValid(trimmedCharacterId)) {
+              orConditions.push({ _id: new ObjectId(trimmedCharacterId) });
+            }
+
+            const character = await charactersCollection.findOne(
+              {
+                campaign: campaignName,
+                $or: orConditions,
+              },
+              { projection: { token: 1 } }
+            );
+
+            if (!character || character.token !== req.user?.username) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+          }
+
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection: campaignsCollection,
+          });
+
+          const targetMap = Array.isArray(normalizedCampaign.maps)
+            ? normalizedCampaign.maps.find((map) => map.mapId === mapId)
+            : null;
+
+          if (!targetMap) {
+            return res.status(404).json({ message: 'Map not found' });
+          }
+
+          const nextTokens = cloneMapTokens(normalizedCampaign.mapTokens);
+          const now = new Date().toISOString();
+
+          if (!nextTokens[mapId] || typeof nextTokens[mapId] !== 'object') {
+            nextTokens[mapId] = {};
+          }
+
+          nextTokens[mapId][trimmedCharacterId] = {
+            characterId: trimmedCharacterId,
+            x: req.body.x,
+            y: req.body.y,
+            updatedAt: now,
+          };
+
+          const { tokensByMapId } = normalizeMapTokens({
+            mapTokens: nextTokens,
+            validMapIds: new Set(
+              Array.isArray(normalizedCampaign.maps)
+                ? normalizedCampaign.maps.map((map) => map.mapId)
+                : []
+            ),
+            now,
+          });
+
+          const payload = buildCampaignMapPayload(
+            normalizedCampaign.maps,
+            normalizedCampaign.activeMapId,
+            tokensByMapId
+          );
+
+          await campaignsCollection.updateOne(
+            { campaignName },
+            {
+              $set: {
+                mapTokens: payload.tokensByMapId,
+                maps: payload.maps,
+                activeMapId: payload.activeMapId,
+                map: payload.map || null,
+              },
+            }
+          );
+
+          emitMapUpdate(campaignName, payload);
+
+          return res.json(payload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .delete(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        param('mapId').trim().notEmpty().withMessage('mapId is required'),
+        param('characterId')
+          .trim()
+          .notEmpty()
+          .withMessage('characterId is required'),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const mapId = req.params.mapId;
+          const characterId = req.params.characterId;
+          const db_connect = req.db;
+          const campaignsCollection = db_connect.collection('Campaigns');
+          const campaign = await campaignsCollection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const trimmedCharacterId = characterId.trim();
+
+          const isDm = req.user && campaign.dm === req.user.username;
+          if (!isDm) {
+            const charactersCollection = db_connect.collection('Characters');
+            const orConditions = [{ characterId: trimmedCharacterId }];
+            if (ObjectId.isValid(trimmedCharacterId)) {
+              orConditions.push({ _id: new ObjectId(trimmedCharacterId) });
+            }
+
+            const character = await charactersCollection.findOne(
+              {
+                campaign: campaignName,
+                $or: orConditions,
+              },
+              { projection: { token: 1 } }
+            );
+
+            if (!character || character.token !== req.user?.username) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+          }
+
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection: campaignsCollection,
+          });
+
+          const targetMap = Array.isArray(normalizedCampaign.maps)
+            ? normalizedCampaign.maps.find((map) => map.mapId === mapId)
+            : null;
+
+          if (!targetMap) {
+            return res.status(404).json({ message: 'Map not found' });
+          }
+
+          const existingTokens =
+            normalizedCampaign.mapTokens &&
+            typeof normalizedCampaign.mapTokens === 'object'
+              ? normalizedCampaign.mapTokens[mapId]
+              : null;
+
+          if (
+            !existingTokens ||
+            typeof existingTokens !== 'object' ||
+            !existingTokens[trimmedCharacterId]
+          ) {
+            return res.status(404).json({ message: 'Token not found' });
+          }
+
+          const nextTokens = cloneMapTokens(normalizedCampaign.mapTokens);
+          if (nextTokens[mapId]) {
+            delete nextTokens[mapId][trimmedCharacterId];
+            if (Object.keys(nextTokens[mapId]).length === 0) {
+              delete nextTokens[mapId];
+            }
+          }
+
+          const { tokensByMapId } = normalizeMapTokens({
+            mapTokens: nextTokens,
+            validMapIds: new Set(
+              Array.isArray(normalizedCampaign.maps)
+                ? normalizedCampaign.maps.map((map) => map.mapId)
+                : []
+            ),
+            now: new Date().toISOString(),
+          });
+
+          const payload = buildCampaignMapPayload(
+            normalizedCampaign.maps,
+            normalizedCampaign.activeMapId,
+            tokensByMapId
+          );
+
+          await campaignsCollection.updateOne(
+            { campaignName },
+            {
+              $set: {
+                mapTokens: payload.tokensByMapId,
                 maps: payload.maps,
                 activeMapId: payload.activeMapId,
                 map: payload.map || null,
@@ -715,6 +997,7 @@ module.exports = (router) => {
       maps: [],
       activeMapId: null,
       map: null,
+      mapTokens: {},
       combat: createDefaultCombatState(),
       enemies: [],
     };
