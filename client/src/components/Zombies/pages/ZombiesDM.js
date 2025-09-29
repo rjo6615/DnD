@@ -24,6 +24,7 @@ import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative } from '../utils/derivedStats';
 import MapDisplay from '../attributes/MapDisplay';
+import MapModal from '../attributes/MapModal';
 import {
   GiCharacter,
   GiStoneAxe,
@@ -278,6 +279,7 @@ export default function ZombiesDM() {
     const [mapGenerating, setMapGenerating] = useState(false);
     const [mapSaving, setMapSaving] = useState(false);
     const [mapSaveMode, setMapSaveMode] = useState(null);
+    const [showMapManager, setShowMapManager] = useState(false);
     const socketRef = useRef(null);
 
     const campaignId = params.campaign ?? '';
@@ -1831,6 +1833,14 @@ export default function ZombiesDM() {
       },
       []
     );
+
+    const handleOpenMapManager = useCallback(() => {
+      setShowMapManager(true);
+    }, []);
+
+    const handleCloseMapManager = useCallback(() => {
+      setShowMapManager(false);
+    }, []);
 
     const openCreateMapModal = useCallback(() => {
       setMapEditorSaving(false);
@@ -3659,17 +3669,30 @@ const resolveIcon = (category, iconMap, fallback) => {
                       <Col md={4} className="text-start">
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <h4 className="h6 mb-0">Saved Maps</h4>
-                          <Button
-                            variant="outline-light"
-                            size="sm"
-                            className="rounded-pill d-flex align-items-center"
-                            onClick={openCreateMapModal}
-                            disabled={mapGenerating}
-                            data-testid="create-map-button"
-                          >
-                            <FiPlus className="me-1" aria-hidden="true" />
-                            New Map
-                          </Button>
+                          <div className="d-flex flex-wrap gap-2">
+                            <Button
+                              variant="outline-light"
+                              size="sm"
+                              className="rounded-pill d-flex align-items-center"
+                              onClick={handleOpenMapManager}
+                              disabled={mapLoading}
+                              data-testid="open-map-manager-button"
+                            >
+                              <FiList className="me-1" aria-hidden="true" />
+                              Manage
+                            </Button>
+                            <Button
+                              variant="outline-light"
+                              size="sm"
+                              className="rounded-pill d-flex align-items-center"
+                              onClick={openCreateMapModal}
+                              disabled={mapGenerating}
+                              data-testid="create-map-button"
+                            >
+                              <FiPlus className="me-1" aria-hidden="true" />
+                              New Map
+                            </Button>
+                          </div>
                         </div>
                         {Array.isArray(maps) && maps.length > 0 ? (
                           <ListGroup
@@ -5395,6 +5418,21 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      <MapModal
+        show={showMapManager}
+        onHide={handleCloseMapManager}
+        title="Campaign Map Manager"
+        maps={maps}
+        map={previewMap || campaignMap}
+        activeMapId={activeMapId}
+        selectedMapId={selectedMapId}
+        onSelectMap={handleSelectMap}
+        onActivateMap={handleActivateMap}
+        onDeleteMap={handleDeleteMap}
+        isLoading={mapLoading}
+        actionInProgressId={mapActionLoadingId}
+      />
 
       <Modal
       className="dnd-modal"
