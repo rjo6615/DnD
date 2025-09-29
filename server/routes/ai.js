@@ -313,8 +313,12 @@ module.exports = (router) => {
         prompt: generationPrompt,
         size,
         n: 1,
-        response_format: responseFormat,
       };
+
+      const shouldIncludeResponseFormat = responseFormat === 'b64_json';
+      if (shouldIncludeResponseFormat) {
+        requestPayload.response_format = responseFormat;
+      }
 
       const configuredStyle = process.env.OPENAI_IMAGE_STYLE || 'vivid';
       const styleModelList = (process.env.OPENAI_IMAGE_STYLE_MODELS || '')
