@@ -308,14 +308,16 @@ module.exports = (router) => {
       const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'b64_json';
 
       const generationPrompt = [
-        'Top-down tactical battle map for Dungeons & Dragons 5th Edition.',
-        'Requirements:',
-        '• Depict exactly a 120 ft by 120 ft square (24 by 24 five-foot increments) and keep every terrain or object placement aligned to that spacing.',
-        '• Absolutely forbid visible grids, coordinate overlays, tick marks, perspective or isometric rendering, and any marks that resemble grid lines.',
-        '• Ensure buildings, walls, and other structures span multiple five-foot increments; never compress a full structure into a single five-foot square.',
-        '',
-        prompt.trim(),
-      ].join('\n');
+      'Top-down tactical battle map for Dungeons & Dragons 5th Edition.',
+      'Requirements:',
+      '• Depict exactly a 120 ft by 120 ft square (24 by 24 five-foot increments).',
+      '• Every terrain feature, object, or structure must be placed and scaled to align with that 5 ft increment spacing.',
+      '• Do NOT display any visible grids, tick marks, coordinate overlays, faint lines, textures, or anything that resembles a grid.',
+      '• Forbid any perspective or isometric rendering — flat top-down view only.',
+      '• Ensure that buildings, walls, and large features span multiple five-foot increments; never compress a full structure into a single square.',
+      '',
+      prompt.trim(),
+    ].join('\n');
 
       const requestPayload = {
         model,
