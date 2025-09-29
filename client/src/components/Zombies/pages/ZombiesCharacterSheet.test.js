@@ -84,6 +84,9 @@ beforeEach(() => {
     if (typeof url === 'string' && url.includes('/map')) {
       return Promise.resolve({ ok: false, status: 404 });
     }
+    if (typeof url === 'string' && url.includes('/classes/')) {
+      return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
+    }
 
     return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
   });
@@ -426,12 +429,13 @@ test('campaign map update events synchronize active map and list', async () => {
     });
   });
 
-  await waitFor(() =>
+  await waitFor(() => {
+    expect(mockMapModalProps.current.map).toBeTruthy();
     expect(mockMapModalProps.current.map).toMatchObject({
       mapId: 'new-map',
       title: 'New Map',
-    })
-  );
+    });
+  });
   expect(mockMapModalProps.current.activeMapId).toBe('new-map');
   expect(mockMapModalProps.current.maps).toHaveLength(2);
 });
@@ -1584,4 +1588,103 @@ test('action and bonus markers cycle through states', async () => {
   expect(bonus).toHaveClass('slot-active');
   fireEvent.click(bonus);
   expect(bonus).toHaveClass('slot-used');
+});
+
+test('loads campaign map tokens and updates them after placement', async () => {
+  const campaignId = 'camp-1';
+  const mapId = 'map-1';
+  const character = {
+    _id: 'char-1',
+    characterId: 'char-1',
+    characterName: 'Hero',
+    campaign: campaignId,
+    occupation: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    item: [],
+    accessories: [],
+    diceColor: '#3366ff',
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+  };
+
+  apiFetch.mockImplementation((url, options = {}) => {
+    if (url === '/characters/1') {
+      return Promise.resolve({ ok: true, json: async () => character });
+    }
+
+    if (url === `/campaigns/${campaignId}/combat`) {
+      return Promise.resolve({ ok: true, json: async () => ({ participants: [] }) });
+    }
+
+    if (url === `/campaigns/${campaignId}/characters`) {
+      return Promise.resolve({ ok: true, json: async () => [character] });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps`) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          maps: [
+            {
+              mapId,
+              title: 'Dungeon',
+              tokens: {
+                'char-1': { characterId: 'char-1', x: 0.2, y: 0.4 },
+              },
+            },
+          ],
+          activeMapId: mapId,
+          tokensByMapId: {
+            [mapId]: {
+              'char-1': { characterId: 'char-1', x: 0.2, y: 0.4 },
+            },
+          },
+        }),
+      });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1`) {
+      expect(options.method).toBe('PUT');
+      expect(JSON.parse(options.body)).toEqual({ x: 0.5, y: 0.6 });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    }
+
+    return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
+
+  expect(mockMapModalProps.current.tokensByMapId).toMatchObject({
+    'map-1': {
+      'char-1': expect.objectContaining({ characterId: 'char-1', x: 0.2, y: 0.4 }),
+    },
+  });
+  expect(mockMapModalProps.current.currentCharacterId).toBe('char-1');
+  expect(mockMapModalProps.current.characterLookup['char-1']).toMatchObject({
+    color: '#3366ff',
+    label: 'Hero',
+  });
+
+  await act(async () => {
+    const result = await mockMapModalProps.current.onTokenMove({
+      mapId,
+      characterId: 'char-1',
+      x: 0.5,
+      y: 0.6,
+    });
+    expect(result).toBe(true);
+  });
+
+  await waitFor(() => {
+    const updatedToken =
+      mockMapModalProps.current.tokensByMapId?.[mapId]?.['char-1'];
+    expect(updatedToken).toBeDefined();
+    expect(updatedToken.x).toBeCloseTo(0.5);
+    expect(updatedToken.y).toBeCloseTo(0.6);
+  });
 });
