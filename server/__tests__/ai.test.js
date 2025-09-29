@@ -274,6 +274,7 @@ describe('AI map route', () => {
   const originalImageModel = process.env.OPENAI_IMAGE_MODEL;
   const originalImageStyle = process.env.OPENAI_IMAGE_STYLE;
   const originalImageStyleModels = process.env.OPENAI_IMAGE_STYLE_MODELS;
+  const originalImageResponseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT;
 
   beforeEach(() => {
     mockParse.mockReset();
@@ -281,6 +282,7 @@ describe('AI map route', () => {
     process.env.OPENAI_IMAGE_MODEL = 'gpt-image-1';
     process.env.OPENAI_IMAGE_STYLE = 'vivid';
     delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+    delete process.env.OPENAI_IMAGE_RESPONSE_FORMAT;
   });
 
   afterAll(() => {
@@ -290,6 +292,11 @@ describe('AI map route', () => {
       delete process.env.OPENAI_IMAGE_STYLE_MODELS;
     } else {
       process.env.OPENAI_IMAGE_STYLE_MODELS = originalImageStyleModels;
+    }
+    if (originalImageResponseFormat === undefined) {
+      delete process.env.OPENAI_IMAGE_RESPONSE_FORMAT;
+    } else {
+      process.env.OPENAI_IMAGE_RESPONSE_FORMAT = originalImageResponseFormat;
     }
   });
 
@@ -321,6 +328,40 @@ describe('AI map route', () => {
         prompt: expect.stringContaining('create a cavern map'),
       })
     );
+  });
+
+  test('omits response_format for models that do not require it', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'standard map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.response_format).toBeUndefined();
+  });
+
+  test('includes response_format when requesting base64 output', async () => {
+    process.env.OPENAI_IMAGE_RESPONSE_FORMAT = 'b64_json';
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          b64_json: 'ZGF0YQ==',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'base64 map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.response_format).toBe('b64_json');
   });
 
   test('returns error when the provider returns no image', async () => {
