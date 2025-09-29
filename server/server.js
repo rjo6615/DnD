@@ -54,6 +54,9 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         connectSrc,
+        imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
+        mediaSrc: ["'self'", 'https:', 'data:', 'blob:'],
+        fontSrc: ["'self'", 'https:', 'data:', 'blob:'],
       },
     },
   })
