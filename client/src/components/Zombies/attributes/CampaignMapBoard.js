@@ -302,6 +302,7 @@ const CampaignMapBoard = ({
         <div className="campaign-map-board__stage">
           <div className="campaign-map-board__image-wrapper">
             <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
+            <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
             <div
               className="campaign-map-board__tokens-layer"
               ref={layerRef}
