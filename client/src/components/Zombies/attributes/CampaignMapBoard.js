@@ -94,6 +94,7 @@ const CampaignMapBoard = ({
   const layerRef = useRef(null);
   const dragStateRef = useRef({ tokenId: null, pointerId: null });
   const [dragPositions, setDragPositions] = useState({});
+  const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
 
   const tokenPositions = useMemo(() => {
     if (!Array.isArray(tokens)) {
@@ -275,6 +276,7 @@ const CampaignMapBoard = ({
 
   const handleLayerPointerDown = useCallback(
     (event) => {
+      setActiveLabelTokenId(null);
       if (interactionDisabled || typeof onBackgroundClick !== 'function') {
         return;
       }
@@ -292,7 +294,12 @@ const CampaignMapBoard = ({
       event.stopPropagation();
       onBackgroundClick(coords);
     },
-    [getNormalizedCoordinates, interactionDisabled, onBackgroundClick]
+    [
+      getNormalizedCoordinates,
+      interactionDisabled,
+      onBackgroundClick,
+      setActiveLabelTokenId,
+    ]
   );
 
   return (
@@ -311,6 +318,9 @@ const CampaignMapBoard = ({
               {tokenPositions.map((token) => {
                 const { characterId, position, color, label, currentHp, maxHp } = token;
                 const draggable = !interactionDisabled && token.isMovable !== false;
+                const normalizedLabel = normalizeText(label);
+                const displayLabel = normalizedLabel || normalizeText(characterId) || characterId;
+                const isLabelActive = activeLabelTokenId === characterId;
                 const numericCurrentHp = toFiniteNumberOrNull(currentHp);
                 const numericMaxHp = toFiniteNumberOrNull(maxHp);
                 const hasHealth =
@@ -328,19 +338,36 @@ const CampaignMapBoard = ({
                     key={characterId}
                     role={draggable ? 'button' : undefined}
                     tabIndex={draggable ? 0 : -1}
-                    aria-label={label || characterId}
+                    aria-label={displayLabel}
                     className={classNames(
                       'campaign-map-board__token',
-                      draggable && 'campaign-map-board__token--draggable'
+                      draggable && 'campaign-map-board__token--draggable',
+                      isLabelActive && 'campaign-map-board__token--label-active'
                     )}
                     style={{
                       left: `${(position?.x ?? 0) * 100}%`,
                       top: `${(position?.y ?? 0) * 100}%`,
                     }}
-                    onPointerDown={(event) => handlePointerDown(event, token)}
+                    title={displayLabel || undefined}
+                    onPointerDown={(event) => {
+                      if (characterId) {
+                        setActiveLabelTokenId(characterId);
+                      }
+                      handlePointerDown(event, token);
+                    }}
                     onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onPointerCancel={handlePointerCancel}
+                    onPointerUp={(event) => {
+                      setActiveLabelTokenId((prev) =>
+                        prev === characterId ? null : prev
+                      );
+                      handlePointerUp(event);
+                    }}
+                    onPointerCancel={(event) => {
+                      setActiveLabelTokenId((prev) =>
+                        prev === characterId ? null : prev
+                      );
+                      handlePointerCancel(event);
+                    }}
                     data-token-id={characterId}
                   >
                     {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
@@ -368,11 +395,7 @@ const CampaignMapBoard = ({
                     >
                       <span className="campaign-map-board__figurine-figure" aria-hidden="true">
                         <span className="campaign-map-board__figurine-head" />
-                        <span className="campaign-map-board__figurine-torso">
-                          <span className="campaign-map-board__figurine-emblem">
-                            {label ? label.charAt(0).toUpperCase() : ''}
-                          </span>
-                        </span>
+                        <span className="campaign-map-board__figurine-torso" />
                         <span className="campaign-map-board__figurine-cloak" />
                       </span>
                       <span className="campaign-map-board__figurine-base">
@@ -380,6 +403,14 @@ const CampaignMapBoard = ({
                         <span className="campaign-map-board__figurine-base-texture" />
                       </span>
                     </div>
+                    {displayLabel && (
+                      <span
+                        className="campaign-map-board__figurine-label"
+                        aria-hidden="true"
+                      >
+                        {displayLabel}
+                      </span>
+                    )}
                   </div>
                 );
               })}
