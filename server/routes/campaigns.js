@@ -7,19 +7,14 @@ const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const logger = require('../utils/logger');
 const { emitCombatUpdate, emitMapUpdate } = require('../utils/socket');
-const createMapSchema = require('../schemas/map');
+const {
+  normalizeCampaignMapState,
+  prepareStoredMap,
+  buildCampaignMapPayload,
+} = require('../utils/campaignMaps');
 
 module.exports = (router) => {
   const campaignRouter = express.Router();
-
-  let mapSchema;
-  const getMapSchema = () => {
-    if (!mapSchema) {
-      const { z } = require('zod');
-      mapSchema = createMapSchema(z);
-    }
-    return mapSchema;
-  };
 
   const createDefaultCombatState = () => ({
     participants: [],
@@ -288,12 +283,17 @@ module.exports = (router) => {
           if (!campaign) {
             return res.status(404).json({ message: 'Campaign not found' });
           }
+          const collection = db_connect.collection('Campaigns');
+          const { payload } = await normalizeCampaignMapState({
+            campaign,
+            collection,
+          });
 
-          if (!campaign.map) {
+          if (!payload.map) {
             return res.status(404).json({ message: 'Map not found' });
           }
 
-          return res.json(campaign.map);
+          return res.json(payload.map);
         } catch (err) {
           next(err);
         }
@@ -338,32 +338,366 @@ module.exports = (router) => {
             return res.status(403).json({ message: 'Forbidden' });
           }
 
-          const schema = getMapSchema();
-          const parsed = schema.safeParse(req.body.map);
-          if (!parsed.success) {
-            return res
-              .status(400)
-              .json({ message: parsed.error?.message || 'Invalid map data' });
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection,
+          });
+
+          const existingMap = normalizedCampaign?.activeMapId
+            ? normalizedCampaign.maps.find((map) => map.mapId === normalizedCampaign.activeMapId)
+            : null;
+
+          const prepared = prepareStoredMap({
+            mapInput: req.body.map,
+            existingMap,
+            prompt:
+              typeof req.body.prompt === 'string' && req.body.prompt.trim() !== ''
+                ? req.body.prompt
+                : undefined,
+          });
+
+          if (!prepared.success) {
+            return res.status(400).json({ message: prepared.error });
           }
 
-          const timestamp = new Date().toISOString();
-          const mapRecord = {
-            ...parsed.data,
-            updatedAt: timestamp,
-          };
+          const storedMap = prepared.data;
 
-          if (typeof req.body.prompt === 'string' && req.body.prompt.trim() !== '') {
-            mapRecord.originalPrompt = req.body.prompt;
-          }
+          const nextMaps = Array.isArray(normalizedCampaign.maps)
+            ? normalizedCampaign.maps.filter((map) => map.mapId !== storedMap.mapId)
+            : [];
+          nextMaps.push(storedMap);
+
+          const payload = buildCampaignMapPayload(nextMaps, storedMap.mapId);
 
           await collection.updateOne(
             { campaignName },
-            { $set: { map: mapRecord } }
+            {
+              $set: {
+                maps: payload.maps,
+                activeMapId: payload.activeMapId,
+                map: payload.map || null,
+              },
+            }
           );
 
-          emitMapUpdate(campaignName, mapRecord);
+          emitMapUpdate(campaignName, payload);
 
-          return res.json(mapRecord);
+          return res.json(payload.map);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/maps')
+    .get(
+      [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({
+            campaignName: req.params.campaign,
+          });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const { payload } = await normalizeCampaignMapState({
+            campaign,
+            collection,
+          });
+
+          return res.json(payload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .post(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        body('map')
+          .custom((value) => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) {
+              throw new Error('map must be an object');
+            }
+            return true;
+          })
+          .withMessage('map must be provided'),
+        body('prompt')
+          .optional({ nullable: true })
+          .custom((value) => {
+            if (value === null || value === undefined) {
+              return true;
+            }
+            if (typeof value !== 'string') {
+              throw new Error('prompt must be a string');
+            }
+            return true;
+          }),
+        body('activate')
+          .optional()
+          .isBoolean()
+          .withMessage('activate must be a boolean')
+          .toBoolean(),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const db_connect = req.db;
+          const campaignName = req.params.campaign;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!req.user || campaign.dm !== req.user.username) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection,
+          });
+
+          const prepared = prepareStoredMap({
+            mapInput: req.body.map,
+            existingMap: null,
+            prompt:
+              typeof req.body.prompt === 'string' && req.body.prompt.trim() !== ''
+                ? req.body.prompt
+                : undefined,
+          });
+
+          if (!prepared.success) {
+            return res.status(400).json({ message: prepared.error });
+          }
+
+          const storedMap = prepared.data;
+
+          const nextMaps = Array.isArray(normalizedCampaign.maps)
+            ? [...normalizedCampaign.maps, storedMap]
+            : [storedMap];
+
+          const requestedActivation =
+            req.body.activate === undefined
+              ? !normalizedCampaign.activeMapId
+              : Boolean(req.body.activate);
+
+          const desiredActiveId = requestedActivation
+            ? storedMap.mapId
+            : normalizedCampaign.activeMapId;
+
+          const payload = buildCampaignMapPayload(
+            nextMaps,
+            desiredActiveId || storedMap.mapId
+          );
+
+          await collection.updateOne(
+            { campaignName },
+            {
+              $set: {
+                maps: payload.maps,
+                activeMapId: payload.activeMapId,
+                map: payload.map || null,
+              },
+            }
+          );
+
+          emitMapUpdate(campaignName, payload);
+
+          return res.json(payload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/maps/:mapId')
+    .patch(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        param('mapId').trim().notEmpty().withMessage('mapId is required'),
+        body('map')
+          .optional()
+          .custom((value) => {
+            if (value === undefined) {
+              return true;
+            }
+            if (!value || typeof value !== 'object' || Array.isArray(value)) {
+              throw new Error('map must be an object');
+            }
+            return true;
+          }),
+        body('prompt')
+          .optional({ nullable: true })
+          .custom((value) => {
+            if (value === null || value === undefined) {
+              return true;
+            }
+            if (typeof value !== 'string') {
+              throw new Error('prompt must be a string');
+            }
+            return true;
+          }),
+        body('active')
+          .optional()
+          .isBoolean()
+          .withMessage('active must be a boolean')
+          .toBoolean(),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const mapId = req.params.mapId;
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!req.user || campaign.dm !== req.user.username) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const wantsActivation = req.body.active === true;
+          const hasMapUpdate = req.body.map !== undefined;
+
+          if (!wantsActivation && !hasMapUpdate) {
+            return res.status(400).json({ message: 'No updates provided' });
+          }
+
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection,
+          });
+
+          const targetMap = Array.isArray(normalizedCampaign.maps)
+            ? normalizedCampaign.maps.find((map) => map.mapId === mapId)
+            : null;
+
+          if (!targetMap) {
+            return res.status(404).json({ message: 'Map not found' });
+          }
+
+          let storedMap = targetMap;
+
+          if (hasMapUpdate) {
+            const prepared = prepareStoredMap({
+              mapInput: req.body.map,
+              existingMap: targetMap,
+              prompt:
+                typeof req.body.prompt === 'string' && req.body.prompt.trim() !== ''
+                  ? req.body.prompt
+                  : undefined,
+            });
+
+            if (!prepared.success) {
+              return res.status(400).json({ message: prepared.error });
+            }
+
+            storedMap = prepared.data;
+          }
+
+          const nextMaps = normalizedCampaign.maps.map((map) =>
+            map.mapId === mapId ? storedMap : map
+          );
+
+          const desiredActiveId = wantsActivation
+            ? mapId
+            : normalizedCampaign.activeMapId;
+
+          const payload = buildCampaignMapPayload(nextMaps, desiredActiveId);
+
+          await collection.updateOne(
+            { campaignName },
+            {
+              $set: {
+                maps: payload.maps,
+                activeMapId: payload.activeMapId,
+                map: payload.map || null,
+              },
+            }
+          );
+
+          emitMapUpdate(campaignName, payload);
+
+          return res.json(payload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .delete(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        param('mapId').trim().notEmpty().withMessage('mapId is required'),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const mapId = req.params.mapId;
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!req.user || campaign.dm !== req.user.username) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection,
+          });
+
+          const existingMap = Array.isArray(normalizedCampaign.maps)
+            ? normalizedCampaign.maps.find((map) => map.mapId === mapId)
+            : null;
+
+          if (!existingMap) {
+            return res.status(404).json({ message: 'Map not found' });
+          }
+
+          const remainingMaps = normalizedCampaign.maps.filter(
+            (map) => map.mapId !== mapId
+          );
+
+          const desiredActiveId =
+            normalizedCampaign.activeMapId === mapId
+              ? null
+              : normalizedCampaign.activeMapId;
+
+          const payload = buildCampaignMapPayload(remainingMaps, desiredActiveId);
+
+          await collection.updateOne(
+            { campaignName },
+            {
+              $set: {
+                maps: payload.maps,
+                activeMapId: payload.activeMapId,
+                map: payload.map || null,
+              },
+            }
+          );
+
+          emitMapUpdate(campaignName, payload);
+
+          return res.json(payload);
         } catch (err) {
           next(err);
         }
@@ -378,6 +712,8 @@ module.exports = (router) => {
       gameMode: req.body.gameMode,
       dm: req.body.dm,
       players: Array.isArray(req.body.players) ? req.body.players : [],
+      maps: [],
+      activeMapId: null,
       map: null,
       combat: createDefaultCombatState(),
       enemies: [],
