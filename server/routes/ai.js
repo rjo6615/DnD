@@ -305,7 +305,7 @@ module.exports = (router) => {
       const model = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
       const size = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
       const quality = process.env.OPENAI_IMAGE_QUALITY;
-      const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'url';
+      const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'b64_json';
 
       const generationPrompt = `Top-down tactical battle map for Dungeons & Dragons 5th Edition. Include clear terrain features, obstacles, and space for miniatures on a grid, but do not draw grid labels. ${prompt.trim()}`;
 
@@ -316,8 +316,7 @@ module.exports = (router) => {
         n: 1,
       };
 
-      const shouldIncludeResponseFormat = responseFormat === 'b64_json';
-      if (shouldIncludeResponseFormat) {
+      if (responseFormat === 'b64_json') {
         requestPayload.response_format = responseFormat;
       }
 
@@ -363,7 +362,13 @@ module.exports = (router) => {
         model,
         ...(image.url ? { imageUrl: image.url } : {}),
         ...(image.b64_json
-          ? { imageBase64: image.b64_json, imageType: 'image/png' }
+          ? {
+              imageBase64: image.b64_json,
+              imageType:
+                typeof image.mime_type === 'string' && image.mime_type.trim() !== ''
+                  ? image.mime_type.trim()
+                  : 'image/png',
+            }
           : {}),
       };
 

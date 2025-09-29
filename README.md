@@ -34,6 +34,7 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 |----------|-------------|
 | `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
 | `OPENAI_API_KEY` | API key used by the server to access OpenAI for item generation. |
+| `OPENAI_IMAGE_RESPONSE_FORMAT` | Optional override for the battle map response format. Defaults to `b64_json`, which stores generated maps as base64 strings in the `imageBase64` field. Set to `url` only if you plan to manage persistent image hosting yourself. |
 
 ### Client Environment Variables
 
