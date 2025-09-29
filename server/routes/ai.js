@@ -16,6 +16,7 @@ const {
 } = require('../data/accessories');
 const { skillNames } = require('./fieldConstants');
 const createMapSchema = require('../schemas/map');
+const { deriveMapTitle } = require('../utils/mapTitle');
 
 const resolveOpenAI = () => {
   if (!OpenAI) {
@@ -353,7 +354,10 @@ module.exports = (router) => {
       }
 
       const mapPayload = {
-        title: 'Generated Battle Map',
+        title: deriveMapTitle({
+          revisedPrompt: image.revised_prompt,
+          prompt: prompt.trim(),
+        }),
         prompt: prompt.trim(),
         provider: 'openai',
         model,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import apiFetch from '../../../utils/apiFetch';
+import { DEFAULT_MAP_TITLE, getMapDisplayTitle } from '../../../utils/mapTitle';
 import { io } from "socket.io-client";
 import {
   Button,
@@ -1924,11 +1925,7 @@ export default function ZombiesDM() {
         const trimmedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
 
-        const normalizedTitle =
-          trimmedTitle ||
-          (typeof baseMap.title === 'string' && baseMap.title.trim() !== ''
-            ? baseMap.title.trim()
-            : 'Untitled Map');
+        const normalizedTitle = trimmedTitle || getMapDisplayTitle(baseMap, DEFAULT_MAP_TITLE);
 
         const sanitizedBaseMap =
           baseMap && typeof baseMap === 'object' ? { ...baseMap } : {};
@@ -3735,10 +3732,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                               );
                               const isProcessing =
                                 Boolean(mapIdValue && mapActionLoadingId === mapIdValue);
-                              const title =
-                                typeof mapItem?.title === 'string' && mapItem.title.trim() !== ''
-                                  ? mapItem.title.trim()
-                                  : 'Untitled Map';
+                              const title = getMapDisplayTitle(
+                                mapItem,
+                                DEFAULT_MAP_TITLE
+                              );
                               return (
                                 <ListGroup.Item
                                   key={mapKey}
