@@ -313,9 +313,27 @@ module.exports = (router) => {
         prompt: generationPrompt,
         size,
         n: 1,
-        style: process.env.OPENAI_IMAGE_STYLE || 'vivid',
         response_format: responseFormat,
       };
+
+      const configuredStyle = process.env.OPENAI_IMAGE_STYLE || 'vivid';
+      const styleModelList = (process.env.OPENAI_IMAGE_STYLE_MODELS || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      let includeStyle = Boolean(configuredStyle);
+      if (includeStyle) {
+        if (styleModelList.length > 0) {
+          includeStyle = styleModelList.includes(model);
+        } else {
+          includeStyle = model !== 'gpt-image-1';
+        }
+      }
+
+      if (includeStyle) {
+        requestPayload.style = configuredStyle;
+      }
 
       if (quality) {
         requestPayload.quality = quality;

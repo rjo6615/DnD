@@ -271,9 +271,26 @@ describe('AI accessory route', () => {
 });
 
 describe('AI map route', () => {
+  const originalImageModel = process.env.OPENAI_IMAGE_MODEL;
+  const originalImageStyle = process.env.OPENAI_IMAGE_STYLE;
+  const originalImageStyleModels = process.env.OPENAI_IMAGE_STYLE_MODELS;
+
   beforeEach(() => {
     mockParse.mockReset();
     mockGenerate.mockReset();
+    process.env.OPENAI_IMAGE_MODEL = 'gpt-image-1';
+    process.env.OPENAI_IMAGE_STYLE = 'vivid';
+    delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+  });
+
+  afterAll(() => {
+    process.env.OPENAI_IMAGE_MODEL = originalImageModel;
+    process.env.OPENAI_IMAGE_STYLE = originalImageStyle;
+    if (originalImageStyleModels === undefined) {
+      delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+    } else {
+      process.env.OPENAI_IMAGE_STYLE_MODELS = originalImageStyleModels;
+    }
   });
 
   test('returns generated image metadata', async () => {
@@ -328,6 +345,45 @@ describe('AI map route', () => {
 
     expect(res.status).toBe(500);
     expect(res.body.message).toBe('Generated map was invalid');
+  });
+
+  test('omits style for models without style support', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'gpt-image-1';
+    delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'no-style map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.style).toBeUndefined();
+  });
+
+  test('includes style when explicitly enabled for model', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'dall-e-3';
+    process.env.OPENAI_IMAGE_STYLE_MODELS = 'dall-e-3, gpt-image-1';
+    process.env.OPENAI_IMAGE_STYLE = 'natural';
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'styled map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.style).toBe('natural');
   });
 });
 
