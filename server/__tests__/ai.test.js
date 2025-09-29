@@ -300,11 +300,12 @@ describe('AI map route', () => {
     }
   });
 
-  test('returns generated image metadata', async () => {
+  test('returns generated image metadata with base64 output', async () => {
     mockGenerate.mockResolvedValue({
       data: [
         {
-          url: 'https://example.com/map.png',
+          b64_json: 'ZGF0YQ==',
+          mime_type: 'image/webp',
           revised_prompt: 'Reimagined cavern layout',
         },
       ],
@@ -317,7 +318,8 @@ describe('AI map route', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       title: 'Reimagined Cavern Layout',
-      imageUrl: 'https://example.com/map.png',
+      imageBase64: 'ZGF0YQ==',
+      imageType: 'image/webp',
       prompt: 'create a cavern map',
       provider: 'openai',
     });
@@ -326,6 +328,7 @@ describe('AI map route', () => {
       expect.objectContaining({
         model: expect.any(String),
         prompt: expect.stringContaining('create a cavern map'),
+        response_format: 'b64_json',
       })
     );
   });
@@ -334,7 +337,7 @@ describe('AI map route', () => {
     mockGenerate.mockResolvedValue({
       data: [
         {
-          url: 'https://example.com/prompt-only-map.png',
+          b64_json: 'YmFzZTY0',
         },
       ],
     });
@@ -345,9 +348,13 @@ describe('AI map route', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.title).toBe('Haunted Crypt With Flickering Torches');
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockGenerate.mock.calls[0][0].response_format).toBe('b64_json');
   });
 
-  test('omits response_format for models that do not require it', async () => {
+  test('allows url responses when configured', async () => {
+    process.env.OPENAI_IMAGE_RESPONSE_FORMAT = 'url';
+
     mockGenerate.mockResolvedValue({
       data: [
         {
@@ -356,29 +363,17 @@ describe('AI map route', () => {
       ],
     });
 
-    await request(app).post('/ai/map').send({ prompt: 'standard map' });
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'standard map' });
 
     expect(mockGenerate).toHaveBeenCalledTimes(1);
     const payload = mockGenerate.mock.calls[0][0];
     expect(payload.response_format).toBeUndefined();
-  });
 
-  test('includes response_format when requesting base64 output', async () => {
-    process.env.OPENAI_IMAGE_RESPONSE_FORMAT = 'b64_json';
-
-    mockGenerate.mockResolvedValue({
-      data: [
-        {
-          b64_json: 'ZGF0YQ==',
-        },
-      ],
-    });
-
-    await request(app).post('/ai/map').send({ prompt: 'base64 map' });
-
-    expect(mockGenerate).toHaveBeenCalledTimes(1);
-    const payload = mockGenerate.mock.calls[0][0];
-    expect(payload.response_format).toBe('b64_json');
+    expect(res.status).toBe(200);
+    expect(res.body.imageUrl).toBe('https://example.com/map.png');
+    expect(res.body.imageBase64).toBeUndefined();
   });
 
   test('returns error when the provider returns no image', async () => {
