@@ -12,6 +12,15 @@ jest.mock('../attributes/CampaignMapBoard', () => {
     default: jest.fn(() => React.createElement('div', { 'data-testid': 'campaign-map-board' })),
   };
 });
+jest.mock('../attributes/MapModal', () => {
+  const React = require('react');
+  const actual = jest.requireActual('../attributes/MapModal');
+  const mockFn = jest.fn((props) => React.createElement(actual.default, props));
+  return {
+    __esModule: true,
+    default: mockFn,
+  };
+});
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ campaign: 'Camp1' }),
@@ -26,6 +35,7 @@ jest.mock(
 
 const socketModule = require('socket.io-client');
 const CampaignMapBoard = require('../attributes/CampaignMapBoard').default;
+const MapModal = require('../attributes/MapModal').default;
 
 const ZombiesDM = require('./ZombiesDM').default;
 
@@ -66,6 +76,7 @@ describe('ZombiesDM AI generation', () => {
     apiFetch.mockReset();
     useUser.mockReturnValue({ username: 'dm' });
     CampaignMapBoard.mockClear();
+    MapModal.mockClear();
     const sockets = socketModule.__getMockSockets();
     sockets.length = 0;
     const ioMock = socketModule.__getIoMock();
@@ -1025,5 +1036,101 @@ describe('ZombiesDM AI generation', () => {
     expect(
       screen.getByText(/Active Turn:/i).textContent
     ).toContain('Hero');
+  });
+
+  test('opens map placement modal for enemies and persists placement moves', async () => {
+    const enemies = [
+      {
+        enemyId: 'enemy-1',
+        name: 'Goblin',
+        displayType: 'Humanoid',
+      },
+    ];
+    const mapsPayload = {
+      maps: [
+        {
+          mapId: 'map-123',
+          title: 'Dungeon',
+          tokens: {},
+        },
+      ],
+      activeMapId: 'map-123',
+      map: {
+        mapId: 'map-123',
+        title: 'Dungeon',
+        tokens: {},
+      },
+      tokensByMapId: {
+        'map-123': {},
+      },
+    };
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => enemies });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({ ok: true, json: async () => mapsPayload });
+        case '/monsters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        default:
+          if (
+            url.startsWith('/campaigns/Camp1/maps/') &&
+            options.method === 'PUT'
+          ) {
+            return Promise.resolve({ ok: true, json: async () => ({}) });
+          }
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const enemiesCard = await openResourceCard('Enemies', 'resource-enemies-card');
+
+    await waitFor(() => expect(within(enemiesCard).getByText('Goblin')).toBeInTheDocument());
+
+    const placeButton = within(enemiesCard).getByRole('button', { name: 'Place on Map' });
+
+    MapModal.mockClear();
+
+    await userEvent.click(placeButton);
+
+    let placementProps;
+    await waitFor(() => {
+      const placementCalls = MapModal.mock.calls
+        .map(([props]) => props)
+        .filter((props) => props && props.readOnly === false && typeof props.onTokenMove === 'function');
+      expect(placementCalls.length).toBeGreaterThan(0);
+      placementProps = placementCalls[placementCalls.length - 1];
+      expect(placementProps.show).toBe(true);
+      expect(placementProps.currentCharacterId).toBe('enemy-1');
+    });
+
+    apiFetch.mockClear();
+
+    await expect(
+      placementProps.onTokenMove({
+        mapId: 'map-123',
+        characterId: 'enemy-1',
+        x: 1.7,
+        y: -0.3,
+      })
+    ).resolves.toBe(true);
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/map-123/tokens/enemy-1',
+        expect.objectContaining({
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ x: 1, y: 0 }),
+        })
+      );
+    });
   });
 });
