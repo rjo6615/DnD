@@ -287,42 +287,76 @@ module.exports = (router) => {
 
   aiRouter.post('/map', async (req, res) => {
     const { prompt } = req.body || {};
-    if (!prompt) {
+    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
       return res.status(400).json({ message: 'Prompt is required' });
     }
 
     const OpenAIClient = resolveOpenAI();
-    const Z = resolveZod();
-    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) {
+    if (!OpenAIClient) {
       return res.status(500).json({ message: 'OpenAI not configured' });
     }
 
-    const MapSchema = getMapSchema(Z);
+    const Z = resolveZod();
+    const MapSchema = Z ? getMapSchema(Z) : null;
 
     try {
       const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY });
-      const format = buildFormat(MapSchema, 'map');
-      const response = await openai.responses.parse({
-        model: 'gpt-4o-2024-08-06',
-        input: [
-          {
-            role: 'system',
-            content:
-              'Create a Dungeons and Dragons 5e battle map. Use a rectangular grid of 5-foot squares, always set "cellSizeFeet" to 5, and ensure every symbol used in the grid is documented in the legend with a description.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        text: { format },
-      });
+      const model = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
+      const size = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
+      const quality = process.env.OPENAI_IMAGE_QUALITY;
+      const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'url';
 
-      const data = response.output?.[0]?.content?.[0]?.parsed;
-      const parsed = MapSchema.safeParse(data);
+      const generationPrompt = `Top-down tactical battle map for Dungeons & Dragons 5th Edition. Include clear terrain features, obstacles, and space for miniatures on a grid, but do not draw grid labels. ${prompt.trim()}`;
+
+      const requestPayload = {
+        model,
+        prompt: generationPrompt,
+        size,
+        n: 1,
+        style: process.env.OPENAI_IMAGE_STYLE || 'vivid',
+        response_format: responseFormat,
+      };
+
+      if (quality) {
+        requestPayload.quality = quality;
+      }
+
+      const response = await openai.images.generate(requestPayload);
+      const image = Array.isArray(response?.data) ? response.data[0] : null;
+
+      if (!image) {
+        return res
+          .status(502)
+          .json({ message: 'No image returned from the image provider' });
+      }
+
+      const mapPayload = {
+        title: 'Generated Battle Map',
+        summary: image.revised_prompt || undefined,
+        prompt: prompt.trim(),
+        provider: 'openai',
+        model,
+        ...(image.url ? { imageUrl: image.url } : {}),
+        ...(image.b64_json
+          ? { imageBase64: image.b64_json, imageType: 'image/png' }
+          : {}),
+      };
+
+      if (!MapSchema) {
+        return res.json(mapPayload);
+      }
+
+      const parsed = MapSchema.safeParse(mapPayload);
       if (!parsed.success) {
-        return res.status(500).json({ message: parsed.error.message });
+        logger.error('Image payload failed schema validation', {
+          error: parsed.error?.message,
+        });
+        return res.status(500).json({ message: 'Generated map was invalid' });
       }
 
       return res.json(parsed.data);
     } catch (err) {
+      logger.error('Failed to generate battle map image', { error: err.message });
       return res.status(500).json({ message: err.message });
     }
   });

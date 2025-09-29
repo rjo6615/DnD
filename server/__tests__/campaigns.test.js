@@ -160,16 +160,8 @@ describe('Campaign routes', () => {
     const baseMap = {
       title: 'Dungeon',
       summary: 'An underground lair',
-      environment: 'Underground',
-      cellSizeFeet: 5,
-      grid: [
-        ['S', 'E'],
-        ['S', 'S'],
-      ],
-      legend: [
-        { symbol: 'S', description: 'Stone floor' },
-        { symbol: 'E', description: 'Entrance' },
-      ],
+      imageUrl: 'https://example.com/dungeon.png',
+      altText: 'Dungeon entrance map',
     };
 
     test('get map success', async () => {
@@ -257,7 +249,7 @@ describe('Campaign routes', () => {
       const res = await request(app)
         .put('/campaigns/Test/map')
         .send({
-          map: { ...baseMap, grid: [] },
+          map: { title: 'Invalid map with no image' },
         });
 
       expect(res.status).toBe(400);

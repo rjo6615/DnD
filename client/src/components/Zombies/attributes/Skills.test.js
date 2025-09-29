@@ -67,8 +67,11 @@ describe('Skills expertise toggle', () => {
       />
     );
 
-    const row = await screen.findByText('Acrobatics');
-    const expertiseCheckbox = within(row.closest('tr')).getAllByRole('checkbox')[1];
+    const skillLabel = await screen.findByText('Acrobatics');
+    const skillCard = skillLabel.closest('.skill-card');
+    expect(skillCard).not.toBeNull();
+    const checkboxes = within(skillCard).getAllByRole('checkbox');
+    const expertiseCheckbox = checkboxes[1];
     expect(expertiseCheckbox.disabled).toBe(false);
 
     await userEvent.click(expertiseCheckbox);
@@ -101,8 +104,11 @@ describe('item skill bonuses', () => {
       />
     );
 
-    const row = await screen.findByText('Acrobatics');
-    expect(within(row.closest('tr')).getByText('2')).toBeInTheDocument();
+    const skillLabel = await screen.findByText('Acrobatics');
+    const skillCard = skillLabel.closest('.skill-card');
+    expect(skillCard).not.toBeNull();
+    const totalLabel = within(skillCard).getByText('Total');
+    expect(totalLabel.nextElementSibling).toHaveTextContent('2');
   });
 
 });

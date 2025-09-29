@@ -15,9 +15,11 @@ jest.mock(
     class OpenAI {
       constructor() {
         this.responses = { parse: (...a) => OpenAI.__parse(...a) };
+        this.images = { generate: (...a) => OpenAI.__generate(...a) };
       }
     }
     OpenAI.__parse = jest.fn();
+    OpenAI.__generate = jest.fn();
     return OpenAI;
   },
   { virtual: true }
@@ -40,6 +42,24 @@ jest.mock(
         nullable() {
           return makeSchema((v) => v === null || check(v));
         },
+        trim() {
+          return makeSchema((v) => typeof v === 'string' && check(v.trim ? v.trim() : v));
+        },
+        min() {
+          return makeSchema(check);
+        },
+        regex() {
+          return makeSchema(check);
+        },
+        url() {
+          return makeSchema(check);
+        },
+        int() {
+          return makeSchema(check);
+        },
+        positive() {
+          return makeSchema(check);
+        },
       };
     }
     const z = {
@@ -58,6 +78,7 @@ jest.mock(
           }
           return { success: true, data: d };
         };
+        schema.passthrough = () => schema;
         schema.partial = () => {
           const newShape = {};
           for (const k in shape) {
@@ -90,6 +111,7 @@ jest.mock(
 
 const OpenAI = require('openai');
 const mockParse = OpenAI.__parse;
+const mockGenerate = OpenAI.__generate;
 
 const routes = require('../routes');
 const {
@@ -251,59 +273,61 @@ describe('AI accessory route', () => {
 describe('AI map route', () => {
   beforeEach(() => {
     mockParse.mockReset();
+    mockGenerate.mockReset();
   });
 
-  const baseMap = {
-    title: 'Cavern',
-    summary: 'A twisting cavern system.',
-    environment: 'Underground',
-    cellSizeFeet: 5,
-    grid: [
-      ['S', 'E'],
-      ['S', 'S'],
-    ],
-    legend: [
-      { symbol: 'S', description: 'Stone' },
-      { symbol: 'E', description: 'Entrance' },
-    ],
-  };
-
-  test('returns validated map', async () => {
-    mockParse.mockResolvedValue({
-      output: [
+  test('returns generated image metadata', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
         {
-          content: [
-            {
-              parsed: baseMap,
-            },
-          ],
+          url: 'https://example.com/map.png',
+          revised_prompt: 'Reimagined cavern layout',
         },
       ],
     });
 
-    const res = await request(app).post('/ai/map').send({ prompt: 'create a cavern map' });
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'create a cavern map' });
+
     expect(res.status).toBe(200);
-    expect(res.body.title).toBe(baseMap.title);
-    expect(mockParse.mock.calls[0][0].text.format.name).toBe('map');
+    expect(res.body).toMatchObject({
+      title: 'Generated Battle Map',
+      imageUrl: 'https://example.com/map.png',
+      prompt: 'create a cavern map',
+      provider: 'openai',
+    });
+    expect(res.body.altText).toBeTruthy();
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: expect.any(String),
+        prompt: expect.stringContaining('create a cavern map'),
+      })
+    );
   });
 
-  test('rejects invalid map data from AI', async () => {
-    mockParse.mockResolvedValue({
-      output: [
+  test('returns error when the provider returns no image', async () => {
+    mockGenerate.mockResolvedValue({ data: [] });
+
+    const res = await request(app).post('/ai/map').send({ prompt: 'empty map' });
+
+    expect(res.status).toBe(502);
+    expect(res.body.message).toBe('No image returned from the image provider');
+  });
+
+  test('rejects invalid map payloads', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
         {
-          content: [
-            {
-              parsed: { ...baseMap, grid: [] },
-            },
-          ],
+          revised_prompt: 'Map without any image assets',
         },
       ],
     });
 
-    const res = await request(app).post('/ai/map').send({ prompt: 'bad map' });
+    const res = await request(app).post('/ai/map').send({ prompt: 'broken map' });
+
     expect(res.status).toBe(500);
-    expect(res.body.message).toBeDefined();
-    expect(mockParse.mock.calls[0][0].text.format.name).toBe('map');
+    expect(res.body.message).toBe('Generated map was invalid');
   });
 });
 
