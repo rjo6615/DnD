@@ -308,13 +308,12 @@ module.exports = (router) => {
       const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'b64_json';
 
       const generationPrompt = [
-      'Top-down tactical battle map for Dungeons & Dragons 5th Edition.',
+      'fantasy map',
       'Requirements:',
-      '• Depict exactly a 120 ft by 120 ft square (24 by 24 five-foot increments).',
-      '• Every terrain feature, object, or structure must be placed and scaled to align with that 5 ft increment spacing.',
-      '• Do NOT display any visible grids, tick marks, coordinate overlays, faint lines, textures, or anything that resembles a grid.',
+      '• Every terrain feature, object, or structure must be placed and scaled to align with the 120ft by 120ft map size, inlcuding the map itself.',
+      '• THE FULL IMAGE OF THE MAP IS ONLY 120 FEET BY 120 FEET. Make the map to this scale.',
       '• Forbid any perspective or isometric rendering — flat top-down view only.',
-      '• Ensure that buildings, walls, and large features span multiple five-foot increments; never compress a full structure into a single square.',
+      '• DO NOT SHOW ANY GRID LINES OF ANY SORT!!!!!!',
       '',
       prompt.trim(),
     ].join('\n');
