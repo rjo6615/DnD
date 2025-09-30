@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useCallback } from 'react';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
@@ -135,6 +135,44 @@ const CampaignMapBoard = ({
   const dragStateRef = useRef({ tokenId: null, pointerId: null });
   const [dragPositions, setDragPositions] = useState({});
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
+  const [squareSize, setSquareSize] = useState(null);
+
+  useEffect(() => {
+    const element = layerRef.current;
+    const ResizeObserverCtor =
+      typeof window !== 'undefined' && window.ResizeObserver
+        ? window.ResizeObserver
+        : typeof ResizeObserver !== 'undefined'
+        ? ResizeObserver
+        : null;
+
+    if (!element || !ResizeObserverCtor) {
+      setSquareSize((prev) => (prev === null ? prev : null));
+      return undefined;
+    }
+
+    const observer = new ResizeObserverCtor((entries) => {
+      entries.forEach((entry) => {
+        const width = entry?.contentRect?.width;
+        if (!Number.isFinite(width) || width <= 0) {
+          return;
+        }
+
+        const nextSquareSize = width / 24;
+        if (!Number.isFinite(nextSquareSize) || nextSquareSize <= 0) {
+          return;
+        }
+
+        setSquareSize((prev) => (prev === nextSquareSize ? prev : nextSquareSize));
+      });
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [imageSrc]);
 
   const tokenPositions = useMemo(() => {
     if (!Array.isArray(tokens)) {
@@ -354,6 +392,11 @@ const CampaignMapBoard = ({
               className="campaign-map-board__tokens-layer"
               ref={layerRef}
               onPointerDown={handleLayerPointerDown}
+              style={
+                Number.isFinite(squareSize) && squareSize > 0
+                  ? { '--campaign-map-square-size': `${squareSize}px` }
+                  : undefined
+              }
             >
               {tokenPositions.map((token) => {
                 const {
