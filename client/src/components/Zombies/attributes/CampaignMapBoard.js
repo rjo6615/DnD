@@ -136,9 +136,15 @@ const CampaignMapBoard = ({
   const [dragPositions, setDragPositions] = useState({});
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
   const [squareSize, setSquareSize] = useState(null);
+  const [layerElement, setLayerElement] = useState(null);
+
+  const handleLayerRef = useCallback((node) => {
+    layerRef.current = node;
+    setLayerElement((prev) => (prev === node ? prev : node));
+  }, []);
 
   useEffect(() => {
-    const element = layerRef.current;
+    const element = layerElement;
     const ResizeObserverCtor =
       typeof window !== 'undefined' && window.ResizeObserver
         ? window.ResizeObserver
@@ -172,7 +178,7 @@ const CampaignMapBoard = ({
     return () => {
       observer.disconnect();
     };
-  }, [imageSrc]);
+  }, [layerElement]);
 
   const tokenPositions = useMemo(() => {
     if (!Array.isArray(tokens)) {
@@ -390,7 +396,7 @@ const CampaignMapBoard = ({
             <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
             <div
               className="campaign-map-board__tokens-layer"
-              ref={layerRef}
+              ref={handleLayerRef}
               onPointerDown={handleLayerPointerDown}
               style={
                 Number.isFinite(squareSize) && squareSize > 0
