@@ -1323,10 +1323,72 @@ export default function ZombiesDM() {
         setEnemies(sanitized);
       };
 
+      const handleCharacterMetadataUpdate = (update) => {
+        if (!update || typeof update !== 'object') {
+          return;
+        }
+
+        const normalizedCharacterId =
+          typeof update.characterId === 'string' && update.characterId.trim() !== ''
+            ? update.characterId.trim()
+            : null;
+
+        if (!normalizedCharacterId) {
+          return;
+        }
+
+        const normalizedDiceColor =
+          typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+            ? update.diceColor.trim()
+            : null;
+
+        if (!normalizedDiceColor) {
+          return;
+        }
+
+        setRecords((prev) => {
+          if (!Array.isArray(prev) || prev.length === 0) {
+            return prev;
+          }
+
+          let didUpdate = false;
+          const next = prev.map((record) => {
+            if (!record || typeof record !== 'object') {
+              return record;
+            }
+
+            const identifiers = [];
+            if (typeof record._id === 'string' && record._id.trim() !== '') {
+              identifiers.push(record._id.trim());
+            }
+            if (typeof record.characterId === 'string' && record.characterId.trim() !== '') {
+              identifiers.push(record.characterId.trim());
+            }
+
+            if (!identifiers.includes(normalizedCharacterId)) {
+              return record;
+            }
+
+            if (
+              typeof record.diceColor === 'string' &&
+              record.diceColor.trim() === normalizedDiceColor
+            ) {
+              return record;
+            }
+
+            didUpdate = true;
+            return { ...record, diceColor: normalizedDiceColor };
+          });
+
+          return didUpdate ? next : prev;
+        });
+      };
+
       socket.on('combat:update', handleCombatUpdate);
       socket.on('character:health:update', handleCharacterHealthUpdate);
       socket.on('campaign:map:update', handleMapUpdate);
       socket.on('campaign:enemies:update', handleEnemiesUpdate);
+      socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
       socket.emit('campaign:join', campaignId);
 
       return () => {
@@ -1334,6 +1396,7 @@ export default function ZombiesDM() {
         socket.off('character:health:update', handleCharacterHealthUpdate);
         socket.off('campaign:map:update', handleMapUpdate);
         socket.off('campaign:enemies:update', handleEnemiesUpdate);
+        socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
         socket.emit('campaign:leave', campaignId);
         socket.disconnect();
         socketRef.current = null;

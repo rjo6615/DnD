@@ -245,11 +245,50 @@ const emitCharacterHealthUpdate = ({ campaignId, characterId, tempHealth, health
   io.to(getCampaignRoom(normalizedCampaignId)).emit('character:health:update', payload);
 };
 
+const emitCharacterMetadataUpdate = (campaignId, payload) => {
+  if (!io) {
+    logger.warn('Socket.io server not initialized; cannot emit character metadata update');
+    return;
+  }
+
+  if (typeof campaignId !== 'string' || campaignId.trim() === '') {
+    logger.warn('Invalid campaign id provided for character metadata update', {
+      campaignId,
+    });
+    return;
+  }
+
+  const normalizedId = campaignId.trim();
+  const outgoingPayload =
+    payload && typeof payload === 'object'
+      ? { ...payload, campaignId: payload.campaignId || normalizedId }
+      : { campaignId: normalizedId };
+
+  if (
+    typeof outgoingPayload.characterId === 'string' &&
+    outgoingPayload.characterId.trim() !== ''
+  ) {
+    outgoingPayload.characterId = outgoingPayload.characterId.trim();
+  }
+
+  if (
+    typeof outgoingPayload.diceColor === 'string' &&
+    outgoingPayload.diceColor.trim() !== ''
+  ) {
+    outgoingPayload.diceColor = outgoingPayload.diceColor.trim();
+  }
+
+  outgoingPayload.campaignId = normalizedId;
+
+  io.to(getCampaignRoom(normalizedId)).emit('campaign:characters:update', outgoingPayload);
+};
+
 module.exports = {
   initializeSocket,
   emitCombatUpdate,
   emitMapUpdate,
   emitEnemiesUpdate,
   emitCharacterHealthUpdate,
+  emitCharacterMetadataUpdate,
 };
 
