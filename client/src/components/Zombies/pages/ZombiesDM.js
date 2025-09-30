@@ -739,6 +739,171 @@ export default function ZombiesDM() {
       [selectedMonsterIndex, encodedCampaign, customEnemyName, fetchRecords]
     );
 
+    const removeCharacterTokensFromMaps = useCallback(
+      async (characterId) => {
+        const normalizedCharacterId =
+          typeof characterId === 'string' && characterId.trim() !== ''
+            ? characterId.trim()
+            : null;
+
+        if (!normalizedCharacterId || !encodedCampaign) {
+          return true;
+        }
+
+        const mapsWithToken = new Set();
+        const currentTokensByMap = mapTokensRef.current || {};
+        Object.entries(currentTokensByMap).forEach(([mapId, tokens]) => {
+          if (
+            typeof mapId === 'string' &&
+            mapId.trim() !== '' &&
+            tokens &&
+            typeof tokens === 'object' &&
+            Object.prototype.hasOwnProperty.call(tokens, normalizedCharacterId)
+          ) {
+            mapsWithToken.add(mapId);
+          }
+        });
+
+        if (
+          campaignMap &&
+          typeof campaignMap === 'object' &&
+          typeof campaignMap.mapId === 'string' &&
+          campaignMap.mapId.trim() !== '' &&
+          campaignMap.tokens &&
+          Object.prototype.hasOwnProperty.call(
+            campaignMap.tokens,
+            normalizedCharacterId
+          )
+        ) {
+          mapsWithToken.add(campaignMap.mapId);
+        }
+
+        if (
+          typeof activeMapId === 'string' &&
+          activeMapId.trim() !== '' &&
+          activeMapTokensRef.current &&
+          Object.prototype.hasOwnProperty.call(
+            activeMapTokensRef.current,
+            normalizedCharacterId
+          )
+        ) {
+          mapsWithToken.add(activeMapId);
+        }
+
+        const shouldClosePlacement =
+          mapPlacementState?.enemyId === normalizedCharacterId;
+
+        if (mapsWithToken.size === 0 && !shouldClosePlacement) {
+          return true;
+        }
+
+        const previousMapTokens = mapTokensRef.current || {};
+        const previousActiveTokens = activeMapTokensRef.current || {};
+        const previousCampaignMap = campaignMap;
+        const previousMapPlacementState = mapPlacementState;
+
+        if (mapsWithToken.size > 0) {
+          setMapTokens((prev) => {
+            const next = { ...(prev || {}) };
+            mapsWithToken.forEach((mapId) => {
+              if (typeof mapId !== 'string' || mapId.trim() === '') {
+                return;
+              }
+              if (!next[mapId]) {
+                return;
+              }
+              const updated = { ...next[mapId] };
+              delete updated[normalizedCharacterId];
+              if (Object.keys(updated).length === 0) {
+                delete next[mapId];
+              } else {
+                next[mapId] = updated;
+              }
+            });
+            return next;
+          });
+
+          setActiveMapTokens((prev) => {
+            if (!prev || !prev[normalizedCharacterId]) {
+              return prev;
+            }
+            const next = { ...prev };
+            delete next[normalizedCharacterId];
+            return next;
+          });
+
+          setCampaignMap((prev) => {
+            if (!prev || !mapsWithToken.has(prev.mapId)) {
+              return prev;
+            }
+            const nextTokens = { ...(prev.tokens || {}) };
+            delete nextTokens[normalizedCharacterId];
+            return { ...prev, tokens: nextTokens };
+          });
+        }
+
+        if (shouldClosePlacement) {
+          setMapPlacementState({ show: false, enemyId: null, enemyName: null });
+        }
+
+        const mapIds = Array.from(mapsWithToken).filter(
+          (mapId) => typeof mapId === 'string' && mapId.trim() !== ''
+        );
+
+        if (mapIds.length === 0) {
+          return true;
+        }
+
+        try {
+          const encodedCharacterId = encodeURIComponent(normalizedCharacterId);
+          for (const mapId of mapIds) {
+            const encodedMapId = encodeURIComponent(mapId);
+            const response = await apiFetch(
+              `/campaigns/${encodedCampaign}/maps/${encodedMapId}/tokens/${encodedCharacterId}`,
+              {
+                method: 'DELETE',
+              }
+            );
+
+            if (response && response.status === 404) {
+              continue;
+            }
+
+            if (!response || !response.ok) {
+              const message = await parseErrorMessage(
+                response,
+                'Failed to remove token from map.'
+              );
+              throw new Error(message);
+            }
+          }
+        } catch (error) {
+          console.error(error);
+          setStatus({
+            type: 'danger',
+            message: error?.message || 'Failed to remove token from map.',
+          });
+          setMapTokens(previousMapTokens || {});
+          setActiveMapTokens(previousActiveTokens || {});
+          setCampaignMap(previousCampaignMap || null);
+          setMapPlacementState(
+            previousMapPlacementState || { show: false, enemyId: null, enemyName: null }
+          );
+          return false;
+        }
+
+        return true;
+      },
+      [
+        activeMapId,
+        campaignMap,
+        encodedCampaign,
+        mapPlacementState,
+        parseErrorMessage,
+        setStatus,
+      ]
+    );
+
     const handleRemoveEnemy = useCallback(
       async (enemyId) => {
         if (!enemyId || !encodedCampaign) {
@@ -762,8 +927,11 @@ export default function ZombiesDM() {
             throw new Error(message);
           }
 
+          const tokensRemoved = await removeCharacterTokensFromMaps(enemyId);
           await fetchRecords();
-          setStatus({ type: 'success', message: 'Enemy removed.' });
+          if (tokensRemoved) {
+            setStatus({ type: 'success', message: 'Enemy removed.' });
+          }
         } catch (error) {
           console.error(error);
           setStatus({ type: 'danger', message: error.message || 'Failed to remove enemy.' });
@@ -771,7 +939,7 @@ export default function ZombiesDM() {
           setRemovingEnemyId(null);
         }
       },
-      [encodedCampaign, fetchRecords]
+      [encodedCampaign, fetchRecords, removeCharacterTokensFromMaps]
     );
 
     const handleEnemyAdjustmentInputChange = useCallback((enemyId, value) => {
