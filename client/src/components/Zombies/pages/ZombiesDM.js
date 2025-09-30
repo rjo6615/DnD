@@ -2154,8 +2154,23 @@ export default function ZombiesDM() {
       return lookup;
     }, [records, enemies]);
 
+    const displayedMap = generatedMap || previewMap || campaignMap;
+
     const shouldShowCampaignTokens = useMemo(() => {
-      if (!campaignMap || !campaignMap.mapId) {
+      const normalizedDisplayedMapId =
+        typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
+          ? displayedMap.mapId.trim()
+          : null;
+      const normalizedCampaignMapId =
+        typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
+          ? campaignMap.mapId.trim()
+          : null;
+      const normalizedActiveMapId =
+        typeof activeMapId === 'string' && activeMapId.trim() !== ''
+          ? activeMapId.trim()
+          : null;
+
+      if (!normalizedDisplayedMapId || !normalizedCampaignMapId) {
         return false;
       }
 
@@ -2163,8 +2178,11 @@ export default function ZombiesDM() {
         return false;
       }
 
-      return true;
-    }, [campaignMap, generatedMap]);
+      return (
+        normalizedDisplayedMapId === normalizedCampaignMapId &&
+        normalizedDisplayedMapId === normalizedActiveMapId
+      );
+    }, [activeMapId, campaignMap, displayedMap, generatedMap]);
 
     const modalTokensByMapId = useMemo(() => {
       const sanitizedMapTokens = sanitizeTokensByMapId(mapTokens);
@@ -2204,16 +2222,29 @@ export default function ZombiesDM() {
     }, [activeMapId, activeMapTokens, campaignMap, mapTokens]);
 
     const boardTokens = useMemo(() => {
-      if (!campaignMap?.mapId) {
+      const normalizedDisplayedMapId =
+        typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
+          ? displayedMap.mapId.trim()
+          : null;
+      if (!normalizedDisplayedMapId) {
         return [];
       }
 
-      const mapId = campaignMap.mapId;
       const combinedTokens = {
-        ...(mapTokens?.[mapId] || {}),
+        ...(mapTokens?.[normalizedDisplayedMapId] || {}),
       };
 
-      if (activeMapTokens && typeof activeMapTokens === 'object') {
+      const normalizedActiveMapId =
+        typeof activeMapId === 'string' && activeMapId.trim() !== ''
+          ? activeMapId.trim()
+          : null;
+
+      if (
+        normalizedActiveMapId &&
+        normalizedActiveMapId === normalizedDisplayedMapId &&
+        activeMapTokens &&
+        typeof activeMapTokens === 'object'
+      ) {
         Object.entries(activeMapTokens).forEach(([key, value]) => {
           if (!value || typeof value !== 'object') {
             return;
@@ -2287,24 +2318,36 @@ export default function ZombiesDM() {
           const labelB = (b.label || b.characterId || '').toLowerCase();
           return labelA.localeCompare(labelB);
         });
-    }, [activeMapTokens, campaignMap, mapTokens, tokenMetaById]);
-
-    const displayedMap = generatedMap || previewMap || campaignMap;
+    }, [activeMapId, activeMapTokens, displayedMap, mapTokens, tokenMetaById]);
 
     const handleTokenPositionChange = useCallback(
       ({ characterId, x, y }) => {
-        if (!shouldShowCampaignTokens || !campaignMap?.mapId) {
+        const normalizedDisplayedMapId =
+          typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
+            ? displayedMap.mapId.trim()
+            : null;
+        const normalizedCampaignMapId =
+          typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
+            ? campaignMap.mapId.trim()
+            : null;
+
+        if (
+          !shouldShowCampaignTokens ||
+          !normalizedDisplayedMapId ||
+          !normalizedCampaignMapId ||
+          normalizedDisplayedMapId !== normalizedCampaignMapId
+        ) {
           return;
         }
 
         persistTokenPosition({
-          mapId: campaignMap.mapId,
+          mapId: normalizedDisplayedMapId,
           characterId,
           x,
           y,
         });
       },
-      [campaignMap, persistTokenPosition, shouldShowCampaignTokens]
+      [campaignMap, displayedMap, persistTokenPosition, shouldShowCampaignTokens]
     );
 
     const handleOpenMapPlacement = useCallback((enemyId, enemyName) => {
