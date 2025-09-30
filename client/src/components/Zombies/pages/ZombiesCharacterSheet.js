@@ -41,6 +41,7 @@ import {
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import MapModal from "../attributes/MapModal";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
+import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 
 const HEADER_PADDING = 16;
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
@@ -1550,6 +1551,42 @@ export default function ZombiesCharacterSheet() {
       const hasMapExplicitNull = Object.prototype.hasOwnProperty.call(update, 'map') && update.map === null;
       const hasActiveIdProp = Object.prototype.hasOwnProperty.call(update, 'activeMapId');
 
+      const sanitizedTokens = hasTokensByMapIdProp
+        ? sanitizeTokensByMapId(update.tokensByMapId)
+        : {};
+      const sanitizedActiveTokens = hasActiveTokensProp
+        ? sanitizeTokenDictionary(update.activeMapTokens)
+        : {};
+
+      const normalizedIncomingActiveId =
+        hasActiveIdProp && typeof update.activeMapId === 'string' && update.activeMapId.trim() !== ''
+          ? update.activeMapId.trim()
+          : null;
+
+      const tokenKeys = ['tokensByMapId', 'activeMapTokens', 'activeMapId'];
+      const payloadKeys = Object.keys(update);
+      const tokenOnlyUpdate =
+        payloadKeys.length > 0 &&
+        payloadKeys.every((key) => tokenKeys.includes(key)) &&
+        (hasTokensByMapIdProp || hasActiveTokensProp || hasActiveIdProp);
+
+      if (tokenOnlyUpdate) {
+        const merged = mergeTokenPayload({
+          incomingTokensByMapId: sanitizedTokens,
+          incomingActiveMapTokens: sanitizedActiveTokens,
+          incomingActiveMapId: normalizedIncomingActiveId,
+          previousActiveMapId: campaignActiveMapIdRef.current,
+          previousCampaignMap: campaignMapRef.current,
+          previousMapTokens: campaignMapTokensRef.current || {},
+        });
+
+        setCampaignActiveMapId(merged.activeMapId);
+        setCampaignMapTokens(merged.mapTokens);
+        setActiveMapTokens(merged.activeMapTokens);
+        setCampaignMap(merged.campaignMap);
+        return;
+      }
+
       if (
         !hasMapsProp &&
         !hasMapProp &&
@@ -1570,13 +1607,6 @@ export default function ZombiesCharacterSheet() {
         });
         return;
       }
-
-      const normalizedIncomingActiveId =
-        hasActiveIdProp &&
-        typeof update.activeMapId === 'string' &&
-        update.activeMapId.trim() !== ''
-          ? update.activeMapId.trim()
-          : null;
 
       let mapFromList = null;
       if (hasMapsProp && normalizedIncomingActiveId) {
@@ -1601,8 +1631,8 @@ export default function ZombiesCharacterSheet() {
           : hasMapExplicitNull
             ? null
             : mapFromList || campaignMapRef.current,
-        ...(hasTokensByMapIdProp ? { tokensByMapId: update.tokensByMapId } : {}),
-        ...(hasActiveTokensProp ? { activeMapTokens: update.activeMapTokens } : {}),
+        ...(hasTokensByMapIdProp ? { tokensByMapId: sanitizedTokens } : {}),
+        ...(hasActiveTokensProp ? { activeMapTokens: sanitizedActiveTokens } : {}),
       };
 
       applyMapPayload(workingPayload);
