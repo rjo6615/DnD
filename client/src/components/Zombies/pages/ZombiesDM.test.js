@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import apiFetch from '../../../utils/apiFetch';
 import useUser from '../../../hooks/useUser';
@@ -258,6 +258,130 @@ describe('ZombiesDM AI generation', () => {
       'Select slot',
       ...armorSlotOptions.map((slot) => slot.label),
     ]);
+  });
+
+  test('removes enemy tokens from maps before success status', async () => {
+    const enemies = [{ enemyId: 'enemy-1', name: 'Goblin', type: 'humanoid' }];
+    let enemiesFetchCount = 0;
+    const mapDeleteResolvers = {};
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          enemiesFetchCount += 1;
+          if (enemiesFetchCount === 1) {
+            return Promise.resolve({ ok: true, json: async () => enemies });
+          }
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies/enemy-1':
+          if (options.method === 'DELETE') {
+            return Promise.resolve({ ok: true, status: 204 });
+          }
+          break;
+        case '/campaigns/Camp1/maps/Map%20Alpha/tokens/enemy-1':
+          if (options.method === 'DELETE') {
+            return new Promise((resolve) => {
+              mapDeleteResolvers.alpha = () => resolve({ ok: true, status: 204 });
+            });
+          }
+          break;
+        case '/campaigns/Camp1/maps/Map%20Beta/tokens/enemy-1':
+          if (options.method === 'DELETE') {
+            return new Promise((resolve) => {
+              mapDeleteResolvers.beta = () => resolve({ ok: true, status: 204 });
+            });
+          }
+          break;
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
+
+    const sockets = socketModule.__getMockSockets();
+    const componentSocket = sockets[sockets.length - 1];
+    expect(componentSocket).toBeDefined();
+    const mapUpdateHandlerEntry = componentSocket.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:map:update'
+    );
+    expect(mapUpdateHandlerEntry).toBeDefined();
+    const mapUpdateHandler = mapUpdateHandlerEntry[1];
+
+    const primaryToken = { characterId: 'enemy-1', x: 0.25, y: 0.5 };
+    const secondaryToken = { characterId: 'enemy-1', x: 0.6, y: 0.7 };
+
+    await act(async () => {
+      mapUpdateHandler({
+        maps: [
+          { mapId: 'Map Alpha', tokens: { 'enemy-1': primaryToken } },
+          { mapId: 'Map Beta', tokens: { 'enemy-1': secondaryToken } },
+        ],
+        activeMapId: 'Map Alpha',
+        tokensByMapId: {
+          'Map Alpha': { 'enemy-1': primaryToken },
+          'Map Beta': { 'enemy-1': secondaryToken },
+        },
+        activeMapTokens: { 'enemy-1': primaryToken },
+        map: { mapId: 'Map Alpha', tokens: { 'enemy-1': primaryToken } },
+      });
+    });
+
+    const removeButton = await screen.findByRole('button', { name: 'Remove' });
+    await userEvent.click(removeButton);
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/enemies/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    );
+
+    await waitFor(() => {
+      expect(mapDeleteResolvers.alpha).toBeInstanceOf(Function);
+      expect(mapDeleteResolvers.beta).toBeInstanceOf(Function);
+    });
+
+    expect(screen.queryByText('Enemy removed.')).not.toBeInTheDocument();
+
+    await act(async () => {
+      mapDeleteResolvers.alpha();
+      mapDeleteResolvers.beta();
+    });
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/Map%20Alpha/tokens/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    );
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/Map%20Beta/tokens/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText('Enemy removed.')).toBeInTheDocument()
+    );
   });
 
   test('generates item via AI and populates bonus fields', async () => {
