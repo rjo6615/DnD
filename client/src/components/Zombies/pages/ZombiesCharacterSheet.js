@@ -55,6 +55,37 @@ const toFiniteNumberOrNull = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
+
+const normalizeCreatureSize = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  const directMatch = CREATURE_SIZE_KEYS.find((size) => trimmed === size);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
+  const tokenMatch = CREATURE_SIZE_KEYS.find((size) => tokens.includes(size));
+  if (tokenMatch) {
+    return tokenMatch;
+  }
+
+  const prefixMatch = CREATURE_SIZE_KEYS.find((size) => trimmed.startsWith(size));
+  if (prefixMatch) {
+    return prefixMatch;
+  }
+
+  return null;
+};
+
 const normalizeCombatState = (state) => {
   if (!state || typeof state !== "object") {
     return createEmptyCombatState();
@@ -2314,12 +2345,24 @@ export default function ZombiesCharacterSheet() {
 
         const { currentHp, maxHp } = calculateCharacterHitPoints(value);
 
+        const recordSize = normalizeCreatureSize(
+          value?.size ??
+            value?.characterSize ??
+            value?.character?.size ??
+            value?.creature?.size ??
+            value?.profile?.size ??
+            value?.race?.size ??
+            value?.attributes?.size ??
+            value?.displayType
+        );
+
         lookup[trimmed] = {
           color,
           label,
           entityType,
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
+          ...(recordSize ? { size: recordSize } : {}),
         };
       });
     }
@@ -2354,12 +2397,17 @@ export default function ZombiesCharacterSheet() {
         );
         const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
+        const enemySize = normalizeCreatureSize(
+          enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
+        );
+
         lookup[enemyId] = {
           color: ENEMY_FIGURINE_COLOR,
           label,
           entityType: 'enemy',
           currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
           maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
+          ...(enemySize ? { size: enemySize } : {}),
         };
       });
     }
@@ -2380,21 +2428,51 @@ export default function ZombiesCharacterSheet() {
 
         const { currentHp, maxHp } = calculateCharacterHitPoints(form);
 
+        const fallbackSize = normalizeCreatureSize(
+          form?.size ??
+            form?.characterSize ??
+            form?.character?.size ??
+            form?.creature?.size ??
+            form?.profile?.size ??
+            form?.race?.size ??
+            form?.attributes?.size ??
+            form?.displayType
+        );
+
         lookup[resolvedCharacterId] = {
           color,
           label,
           entityType: 'character',
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
+          ...(fallbackSize ? { size: fallbackSize } : {}),
         };
-      } else if (
-        typeof lookup[resolvedCharacterId].entityType !== 'string' ||
-        lookup[resolvedCharacterId].entityType.trim() === ''
-      ) {
-        lookup[resolvedCharacterId] = {
-          ...lookup[resolvedCharacterId],
-          entityType: 'character',
-        };
+      } else {
+        const fallbackSize = normalizeCreatureSize(
+          form?.size ??
+            form?.characterSize ??
+            form?.character?.size ??
+            form?.creature?.size ??
+            form?.profile?.size ??
+            form?.race?.size ??
+            form?.attributes?.size ??
+            form?.displayType
+        );
+
+        const nextEntry = { ...lookup[resolvedCharacterId] };
+
+        if (
+          typeof nextEntry.entityType !== 'string' ||
+          nextEntry.entityType.trim() === ''
+        ) {
+          nextEntry.entityType = 'character';
+        }
+
+        if (fallbackSize) {
+          nextEntry.size = fallbackSize;
+        }
+
+        lookup[resolvedCharacterId] = nextEntry;
       }
     }
 
