@@ -2476,6 +2476,8 @@ h1 {
   }
 
   &__tokens-layer {
+    --map-square-size: calc(100% / 24);
+
     position: absolute;
     inset: 0;
     pointer-events: auto;
