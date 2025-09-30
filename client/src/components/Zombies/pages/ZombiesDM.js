@@ -1261,15 +1261,27 @@ export default function ZombiesDM() {
         setGeneratedMap(null);
       };
 
+      const handleEnemiesUpdate = (roster) => {
+        if (!Array.isArray(roster)) {
+          setEnemies([]);
+          return;
+        }
+
+        const sanitized = roster.filter((entry) => entry && typeof entry === 'object');
+        setEnemies(sanitized);
+      };
+
       socket.on('combat:update', handleCombatUpdate);
       socket.on('character:health:update', handleCharacterHealthUpdate);
       socket.on('campaign:map:update', handleMapUpdate);
+      socket.on('campaign:enemies:update', handleEnemiesUpdate);
       socket.emit('campaign:join', campaignId);
 
       return () => {
         socket.off('combat:update', handleCombatUpdate);
         socket.off('character:health:update', handleCharacterHealthUpdate);
         socket.off('campaign:map:update', handleMapUpdate);
+        socket.off('campaign:enemies:update', handleEnemiesUpdate);
         socket.emit('campaign:leave', campaignId);
         socket.disconnect();
         socketRef.current = null;
