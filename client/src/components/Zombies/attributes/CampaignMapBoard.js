@@ -69,6 +69,45 @@ const buildImageSource = ({ imageUrl, imageBase64, imageType }) => {
 const normalizeText = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
+const FIGURINE_SIZE_MULTIPLIERS = {
+  tiny: 0.25,
+  small: 0.5,
+  medium: 1,
+  large: 2,
+  huge: 3,
+  gargantuan: 4,
+};
+
+const resolveFigurineSizeKey = (value) => {
+  if (typeof value !== 'string') {
+    return 'medium';
+  }
+
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return 'medium';
+  }
+
+  if (FIGURINE_SIZE_MULTIPLIERS[trimmed]) {
+    return trimmed;
+  }
+
+  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
+  const tokenMatch = tokens.find((token) => FIGURINE_SIZE_MULTIPLIERS[token]);
+  if (tokenMatch) {
+    return tokenMatch;
+  }
+
+  const prefixMatch = Object.keys(FIGURINE_SIZE_MULTIPLIERS).find((key) =>
+    trimmed.startsWith(key)
+  );
+  if (prefixMatch) {
+    return prefixMatch;
+  }
+
+  return 'medium';
+};
+
 const CampaignMapBoard = ({
   map,
   tokens,
@@ -326,6 +365,7 @@ const CampaignMapBoard = ({
                   maxHp,
                   variant,
                   isActiveTurn,
+                  size,
                 } = token;
                 const draggable = !interactionDisabled && token.isMovable !== false;
                 const normalizedLabel = normalizeText(label);
@@ -348,6 +388,10 @@ const CampaignMapBoard = ({
                     ? variant.trim().toLowerCase()
                     : null;
 
+                const sizeKey = resolveFigurineSizeKey(size);
+                const figurineScale =
+                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] || FIGURINE_SIZE_MULTIPLIERS.medium;
+
                 const figurineColor =
                   normalizedVariant === 'enemy'
                     ? ENEMY_FIGURINE_COLOR
@@ -368,11 +412,13 @@ const CampaignMapBoard = ({
                       'campaign-map-board__token',
                       draggable && 'campaign-map-board__token--draggable',
                       isLabelActive && 'campaign-map-board__token--label-active',
-                      isActiveTurn && 'campaign-map-board__token--active-turn'
+                      isActiveTurn && 'campaign-map-board__token--active-turn',
+                      `campaign-map-board__token--size-${sizeKey}`
                     )}
                     style={{
                       left: `${(position?.x ?? 0) * 100}%`,
                       top: `${(position?.y ?? 0) * 100}%`,
+                      '--figurine-size-scale': figurineScale,
                     }}
                     title={displayLabel || undefined}
                     onPointerDown={(event) => {
@@ -463,6 +509,7 @@ CampaignMapBoard.propTypes = {
       currentHp: PropTypes.number,
       maxHp: PropTypes.number,
       isActiveTurn: PropTypes.bool,
+      size: PropTypes.string,
     })
   ),
   onTokenDragStart: PropTypes.func,

@@ -98,6 +98,37 @@ const toFiniteNumberOrNull = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
+
+const normalizeCreatureSize = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  const directMatch = CREATURE_SIZE_KEYS.find((size) => trimmed === size);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
+  const tokenMatch = CREATURE_SIZE_KEYS.find((size) => tokens.includes(size));
+  if (tokenMatch) {
+    return tokenMatch;
+  }
+
+  const prefixMatch = CREATURE_SIZE_KEYS.find((size) => trimmed.startsWith(size));
+  if (prefixMatch) {
+    return prefixMatch;
+  }
+
+  return null;
+};
+
 const sortParticipantsDescending = (participantsWithMeta) =>
   participantsWithMeta
     .slice()
@@ -2163,6 +2194,17 @@ export default function ZombiesDM() {
             (value) => typeof value === 'string' && value.trim() !== ''
           );
 
+          const recordSize = normalizeCreatureSize(
+            record.size ??
+              record.characterSize ??
+              record?.character?.size ??
+              record?.creature?.size ??
+              record?.profile?.size ??
+              record?.race?.size ??
+              record?.attributes?.size ??
+              record?.displayType
+          );
+
           identifiers.forEach((identifier) => {
             const trimmed = identifier.trim();
             if (!trimmed) {
@@ -2175,6 +2217,7 @@ export default function ZombiesDM() {
               entityType,
               ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
               ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
+              ...(recordSize ? { size: recordSize } : {}),
             };
           });
         });
@@ -2204,12 +2247,17 @@ export default function ZombiesDM() {
           );
           const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
+          const enemySize = normalizeCreatureSize(
+            enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
+          );
+
           lookup[enemyId] = {
             color: ENEMY_FIGURINE_COLOR,
             label,
             entityType: 'enemy',
             ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
             ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
+            ...(enemySize ? { size: enemySize } : {}),
           };
         });
       }
@@ -2365,6 +2413,16 @@ export default function ZombiesDM() {
               : null;
           const entityType = metaEntityType || tokenEntityType || null;
 
+          const metaSize =
+            typeof meta.size === 'string' && meta.size.trim() !== ''
+              ? meta.size.trim().toLowerCase()
+              : null;
+          const tokenSize =
+            typeof token.size === 'string' && token.size.trim() !== ''
+              ? token.size.trim().toLowerCase()
+              : null;
+          const size = metaSize || tokenSize || null;
+
           let variant = metaVariant || tokenVariant || null;
           if (!variant && entityType) {
             if (entityType === 'enemy') {
@@ -2388,6 +2446,7 @@ export default function ZombiesDM() {
             ...(isActiveTurn ? { isActiveTurn: true } : {}),
             ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
             ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
+            ...(size ? { size } : {}),
           };
         })
         .sort((a, b) => {

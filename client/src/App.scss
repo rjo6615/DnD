@@ -2436,8 +2436,7 @@ h1 {
 
 .campaign-map-board {
   --map-square-size: var(--campaign-map-square-size, clamp(36px, 8vw, 64px));
-  --figurine-base-size: clamp(20px, calc(var(--map-square-size) * 0.5), 32px);
-  --figurine-body-width: clamp(12px, calc(var(--figurine-base-size) * 0.6), 20px);
+  --figurine-size-scale: 1;
 
   position: relative;
   background: rgba(18, 16, 14, 0.85);
@@ -2484,6 +2483,8 @@ h1 {
   }
 
   &__token {
+    --figurine-base-size: calc(var(--map-square-size) * var(--figurine-size-scale, 1));
+    --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
@@ -2492,11 +2493,35 @@ h1 {
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    gap: clamp(2px, calc(var(--figurine-base-size) * 0.08), 0.25rem);
+    gap: clamp(2px, calc(var(--figurine-base-size) * 0.08), 0.4rem);
     outline: none;
     touch-action: none;
     width: var(--figurine-base-size);
     height: calc(var(--figurine-base-size) * 1.6);
+  }
+
+  &__token--size-tiny {
+    --figurine-size-scale: 0.25;
+  }
+
+  &__token--size-small {
+    --figurine-size-scale: 0.5;
+  }
+
+  &__token--size-medium {
+    --figurine-size-scale: 1;
+  }
+
+  &__token--size-large {
+    --figurine-size-scale: 2;
+  }
+
+  &__token--size-huge {
+    --figurine-size-scale: 3;
+  }
+
+  &__token--size-gargantuan {
+    --figurine-size-scale: 4;
   }
 
   &__health {
@@ -2620,18 +2645,19 @@ h1 {
 
   &__figurine-label {
     position: absolute;
-    bottom: calc(100% + clamp(0.35rem, 1vw, 0.55rem));
+    bottom: calc(100% + clamp(0.25rem, calc(var(--figurine-base-size) * 0.3), 1.1rem));
     left: 50%;
-    transform: translate(-50%, 0.35rem) scale(0.96);
+    transform: translate(-50%, calc(var(--figurine-base-size) * 0.12)) scale(0.96);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: clamp(0.18rem, 0.6vw, 0.35rem) clamp(0.4rem, 1.2vw, 0.75rem);
+    padding: clamp(0.18rem, calc(var(--figurine-base-size) * 0.18), 0.6rem)
+      clamp(0.4rem, calc(var(--figurine-base-size) * 0.35), 1.1rem);
     border-radius: 999px;
     background: linear-gradient(180deg, rgba(18, 21, 29, 0.95), rgba(18, 21, 29, 0.85));
     color: #f8f9fa;
     font-weight: 600;
-    font-size: clamp(0.65rem, 1.5vw, 0.95rem);
+    font-size: clamp(0.6rem, calc(var(--figurine-base-size) * 0.28), 1.05rem);
     line-height: 1.2;
     white-space: nowrap;
     pointer-events: none;
@@ -2641,7 +2667,7 @@ h1 {
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.25s ease;
     transform-origin: center bottom;
-    max-width: clamp(8rem, 24vw, 14rem);
+    max-width: clamp(8rem, calc(var(--figurine-base-size) * 3.5), 16rem);
     text-overflow: ellipsis;
     overflow: hidden;
     z-index: 5;
