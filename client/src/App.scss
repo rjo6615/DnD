@@ -2731,6 +2731,21 @@ h1 {
       drop-shadow(0 0.2rem 0.45rem rgba(255, 255, 255, 0.25));
   }
 
+  &__token--active-turn {
+    filter: drop-shadow(0 0.3rem 0.75rem rgba(209, 143, 0, 0.35));
+
+    .campaign-map-board__figurine {
+      filter: drop-shadow(0 0.45rem 1.2rem rgba(255, 214, 102, 0.55))
+        drop-shadow(0 0.1rem 0.4rem rgba(255, 248, 220, 0.6));
+    }
+
+    .campaign-map-board__figurine-base,
+    .campaign-map-board__figurine-base-top {
+      box-shadow: 0 0 0.55rem rgba(255, 214, 102, 0.65),
+        inset 0 0.08rem 0.22rem rgba(255, 255, 255, 0.55);
+    }
+  }
+
   &--disabled &__token--draggable {
     cursor: default;
   }
