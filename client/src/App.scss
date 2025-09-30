@@ -2476,7 +2476,11 @@ h1 {
   }
 
   &__tokens-layer {
-    --map-square-size: calc(100% / 24);
+    --tokens-layer-square-size: calc(100% / 24);
+    --map-square-size: max(
+      var(--campaign-map-square-size, clamp(36px, 8vw, 64px)),
+      var(--tokens-layer-square-size)
+    );
 
     position: absolute;
     inset: 0;
