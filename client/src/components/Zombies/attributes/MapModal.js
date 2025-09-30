@@ -206,10 +206,20 @@ const MapModal = ({
           : null;
       const currentHp = toFiniteNumberOrNull(value?.currentHp);
       const maxHp = toFiniteNumberOrNull(value?.maxHp);
+      const entityType =
+        typeof value?.entityType === 'string' && value.entityType.trim() !== ''
+          ? value.entityType.trim().toLowerCase()
+          : null;
+      const variant =
+        typeof value?.variant === 'string' && value.variant.trim() !== ''
+          ? value.variant.trim().toLowerCase()
+          : null;
 
       acc[trimmedKey] = {
         color,
         label,
+        ...(entityType ? { entityType } : {}),
+        ...(variant ? { variant } : {}),
         ...(currentHp !== null ? { currentHp } : {}),
         ...(maxHp !== null ? { maxHp } : {}),
       };
@@ -267,12 +277,6 @@ const MapModal = ({
           (typeof token.label === 'string' && token.label.trim() !== '' ? token.label.trim() : null) ||
           token.characterId;
 
-        const color =
-          lookup.color ||
-          (typeof token.color === 'string' && token.color.trim() !== ''
-            ? token.color.trim()
-            : null);
-
         const currentHp = toFiniteNumberOrNull(
           lookup.currentHp ?? token.currentHp ?? token.hpCurrent ?? token.health
         );
@@ -285,11 +289,53 @@ const MapModal = ({
           !placementPending &&
           (!readOnly || token.characterId === normalizedCurrentCharacterId);
 
+        const lookupVariant =
+          typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
+            ? lookup.variant.trim().toLowerCase()
+            : null;
+        const tokenVariant =
+          typeof token.variant === 'string' && token.variant.trim() !== ''
+            ? token.variant.trim().toLowerCase()
+            : null;
+        const lookupEntityType =
+          typeof lookup.entityType === 'string' && lookup.entityType.trim() !== ''
+            ? lookup.entityType.trim().toLowerCase()
+            : null;
+        const tokenEntityType =
+          typeof token.entityType === 'string' && token.entityType.trim() !== ''
+            ? token.entityType.trim().toLowerCase()
+            : null;
+
+        const entityType = lookupEntityType || tokenEntityType || null;
+
+        let variant = lookupVariant || tokenVariant || null;
+        if (!variant && entityType) {
+          if (entityType === 'enemy') {
+            variant = 'enemy';
+          } else if (
+            entityType === 'character' &&
+            normalizedCurrentCharacterId &&
+            token.characterId === normalizedCurrentCharacterId
+          ) {
+            variant = 'self';
+          } else if (entityType === 'character') {
+            variant = 'ally';
+          } else if (entityType !== 'enemy') {
+            variant = 'ally';
+          }
+        }
+
+        const baseColor = lookup.color || token.color || null;
+        const normalizedColor =
+          typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
+
         return {
           ...token,
           label: typeof rawLabel === 'string' ? rawLabel : token.characterId,
-          color,
+          color: normalizedColor,
           isMovable,
+          ...(entityType ? { entityType } : {}),
+          ...(variant ? { variant } : {}),
           ...(currentHp !== null ? { currentHp } : {}),
           ...(maxHp !== null ? { maxHp } : {}),
         };
@@ -300,9 +346,9 @@ const MapModal = ({
         return labelA.localeCompare(labelB);
       });
   }, [
-    currentCharacterId,
     isInteractive,
     normalizedCharacterLookup,
+    normalizedCurrentCharacterId,
     placementPending,
     readOnly,
     tokensDictionary,

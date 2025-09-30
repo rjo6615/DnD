@@ -2639,12 +2639,33 @@ h1 {
     letter-spacing: 0.01em;
     filter: drop-shadow(0 0.35rem 0.65rem rgba(0, 0, 0, 0.65));
     border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.25s ease;
     transform-origin: center bottom;
     max-width: clamp(8rem, 24vw, 14rem);
     text-overflow: ellipsis;
     overflow: hidden;
     z-index: 5;
+
+    &--enemy {
+      box-shadow:
+        0 0.35rem 0.75rem rgba(0, 0, 0, 0.45),
+        0 0 0.85rem rgba(255, 77, 79, 0.55),
+        0 0 1.75rem rgba(255, 77, 79, 0.75);
+    }
+
+    &--ally {
+      box-shadow:
+        0 0.35rem 0.75rem rgba(0, 0, 0, 0.45),
+        0 0 0.85rem rgba(81, 207, 102, 0.5),
+        0 0 1.75rem rgba(81, 207, 102, 0.7);
+    }
+
+    &--self {
+      box-shadow:
+        0 0.35rem 0.75rem rgba(0, 0, 0, 0.45),
+        0 0 0.85rem rgba(51, 154, 240, 0.5),
+        0 0 1.75rem rgba(51, 154, 240, 0.75);
+    }
   }
 
   &__figurine-base {
