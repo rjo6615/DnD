@@ -2732,17 +2732,37 @@ h1 {
   }
 
   &__token--active-turn {
-    filter: drop-shadow(0 0.3rem 0.75rem rgba(209, 143, 0, 0.35));
+    filter:
+      drop-shadow(0 0.45rem 1.2rem rgba(209, 143, 0, 0.55))
+      drop-shadow(0 0 1.85rem rgba(255, 214, 102, 0.45));
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: calc(var(--figurine-base-size) * -0.15);
+      border-radius: 999px;
+      pointer-events: none;
+      box-shadow:
+        0 0 0.65rem rgba(255, 214, 102, 0.45),
+        0 0 1.6rem rgba(255, 239, 153, 0.55),
+        inset 0 0 0.35rem rgba(255, 248, 220, 0.4);
+      opacity: 0.85;
+      z-index: -1;
+    }
 
     .campaign-map-board__figurine {
-      filter: drop-shadow(0 0.45rem 1.2rem rgba(255, 214, 102, 0.55))
-        drop-shadow(0 0.1rem 0.4rem rgba(255, 248, 220, 0.6));
+      filter:
+        drop-shadow(0 0.55rem 1.6rem rgba(255, 214, 102, 0.7))
+        drop-shadow(0 0.25rem 0.6rem rgba(255, 248, 220, 0.75))
+        drop-shadow(0 0 2.1rem rgba(255, 239, 153, 0.55));
     }
 
     .campaign-map-board__figurine-base,
     .campaign-map-board__figurine-base-top {
-      box-shadow: 0 0 0.55rem rgba(255, 214, 102, 0.65),
-        inset 0 0.08rem 0.22rem rgba(255, 255, 255, 0.55);
+      box-shadow:
+        0 0 0.55rem rgba(255, 214, 102, 0.75),
+        0 0 1.25rem rgba(255, 198, 0, 0.65),
+        inset 0 0.12rem 0.28rem rgba(255, 255, 255, 0.65);
     }
   }
 
