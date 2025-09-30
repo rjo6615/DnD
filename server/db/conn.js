@@ -19,6 +19,16 @@ async function connectToDatabase() {
   await db.collection('users').createIndex({ username: 1 }, { unique: true });
   logger.info('Ensured unique index on users.username.');
 
+  // Ensure indexes used by common Campaign lookups
+  await db.collection('Campaigns').createIndex({ dm: 1 });
+  logger.info('Ensured index on Campaigns.dm.');
+
+  await db.collection('Campaigns').createIndex({ players: 1 });
+  logger.info('Ensured index on Campaigns.players.');
+
+  await db.collection('Campaigns').createIndex({ campaignName: 1 });
+  logger.info('Ensured index on Campaigns.campaignName.');
+
   return db;
 }
 
