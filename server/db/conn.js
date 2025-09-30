@@ -29,6 +29,9 @@ async function connectToDatabase() {
   await db.collection('Campaigns').createIndex({ campaignName: 1 });
   logger.info('Ensured index on Campaigns.campaignName.');
 
+  await db.collection('Characters').createIndex({ campaign: 1, token: 1 }, { background: true });
+  logger.info('Ensured compound index on Characters.campaign and Characters.token.');
+
   return db;
 }
 
