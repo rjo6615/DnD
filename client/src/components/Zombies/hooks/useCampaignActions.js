@@ -3,6 +3,56 @@ import { useNavigate } from "react-router-dom";
 import apiFetch from "../../../utils/apiFetch";
 import useUser from "../../../hooks/useUser";
 
+const normalizeCampaignSummaries = (campaigns) => {
+  if (!Array.isArray(campaigns)) {
+    return [];
+  }
+
+  return campaigns
+    .map((campaign) => {
+      if (!campaign || typeof campaign !== "object") {
+        return null;
+      }
+
+      const campaignName =
+        typeof campaign.campaignName === "string"
+          ? campaign.campaignName.trim()
+          : "";
+
+      if (!campaignName) {
+        return null;
+      }
+
+      const dm =
+        typeof campaign.dm === "string" && campaign.dm.trim() !== ""
+          ? campaign.dm.trim()
+          : null;
+
+      const players = Array.isArray(campaign.players)
+        ? campaign.players
+            .filter(
+              (player) =>
+                typeof player === "string" && player.trim() !== ""
+            )
+            .map((player) => player.trim())
+        : [];
+
+      const gameMode =
+        typeof campaign.gameMode === "string" &&
+        campaign.gameMode.trim() !== ""
+          ? campaign.gameMode.trim()
+          : null;
+
+      return {
+        campaignName,
+        players,
+        ...(dm ? { dm } : {}),
+        ...(gameMode ? { gameMode } : {}),
+      };
+    })
+    .filter(Boolean);
+};
+
 export default function useCampaignActions() {
   const navigate = useNavigate();
   const user = useUser();
@@ -46,15 +96,16 @@ export default function useCampaignActions() {
         return [];
       }
 
-      const record = await response.json();
-      if (!record) {
+      const payload = await response.json();
+      if (!payload) {
         setNotification("Record not found");
         navigate("/");
         return [];
       }
 
-      setPlayerCampaigns(record);
-      return record;
+      const normalized = normalizeCampaignSummaries(payload);
+      setPlayerCampaigns(normalized);
+      return normalized;
     } catch (error) {
       setNotification(error.message || "An unexpected error has occurred");
       return [];
@@ -75,15 +126,16 @@ export default function useCampaignActions() {
         return [];
       }
 
-      const record = await response.json();
-      if (!record) {
+      const payload = await response.json();
+      if (!payload) {
         setNotification("Record not found");
         navigate("/");
         return [];
       }
 
-      setDmCampaigns(record);
-      return record;
+      const normalized = normalizeCampaignSummaries(payload);
+      setDmCampaigns(normalized);
+      return normalized;
     } catch (error) {
       setNotification(error.message || "An unexpected error has occurred");
       return [];
