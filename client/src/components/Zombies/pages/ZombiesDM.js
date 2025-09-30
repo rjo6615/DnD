@@ -4967,7 +4967,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           {inCombat ? 'Remove from Combat' : 'Add to Combat'}
                         </Button>
                         <Button
-                          variant="outline-light"
+                          variant="outline-primary"
                           size="sm"
                           onClick={() =>
                             handleOpenMapPlacement(
