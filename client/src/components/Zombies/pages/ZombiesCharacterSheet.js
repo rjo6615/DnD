@@ -40,6 +40,7 @@ import {
 } from "../attributes/inventoryNormalization";
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import MapModal from "../attributes/MapModal";
+import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 
 const HEADER_PADDING = 16;
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
@@ -607,6 +608,7 @@ export default function ZombiesCharacterSheet() {
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
   const [campaignCharacters, setCampaignCharacters] = useState({});
+  const [enemies, setEnemies] = useState([]);
   const [campaignMaps, setCampaignMaps] = useState([]);
   const [campaignActiveMapId, setCampaignActiveMapId] = useState(null);
   const [campaignMap, setCampaignMap] = useState(null);
@@ -1237,20 +1239,23 @@ export default function ZombiesCharacterSheet() {
         });
 
         setCampaignId(normalizedCampaign);
+        setEnemies([]);
 
         if (!normalizedCampaign) {
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
+          setEnemies([]);
           applyMapPayload({ maps: [], activeMapId: null, map: null });
           return;
         }
 
         try {
           const encodedCampaign = encodeURIComponent(normalizedCampaign);
-          const [combatRes, charactersRes, mapsRes] = await Promise.all([
+          const [combatRes, charactersRes, mapsRes, enemiesRes] = await Promise.all([
             apiFetch(`/campaigns/${encodedCampaign}/combat`),
             apiFetch(`/campaigns/${encodedCampaign}/characters`),
             apiFetch(`/campaigns/${encodedCampaign}/maps`),
+            apiFetch(`/campaigns/${encodedCampaign}/enemies`),
           ]);
 
           let combatData = createEmptyCombatState();
@@ -1263,6 +1268,19 @@ export default function ZombiesCharacterSheet() {
           if (charactersRes.ok) {
             const charactersJson = await charactersRes.json();
             characterMap = mapCharactersById(charactersJson);
+          }
+
+          let enemyList = [];
+          if (enemiesRes.ok) {
+            try {
+              const enemiesJson = await enemiesRes.json();
+              if (Array.isArray(enemiesJson)) {
+                enemyList = enemiesJson.filter((entry) => entry && typeof entry === 'object');
+              }
+            } catch (enemyParseError) {
+              console.error(enemyParseError);
+              enemyList = [];
+            }
           }
 
           let mapsList = [];
@@ -1358,6 +1376,7 @@ export default function ZombiesCharacterSheet() {
           if (!isCancelled) {
             setCombatState(combatData);
             setCampaignCharacters(characterMap);
+            setEnemies(enemyList);
             applyMapPayload({
               maps: mapsList,
               activeMapId: activeMapIdValue,
@@ -1373,6 +1392,7 @@ export default function ZombiesCharacterSheet() {
           if (!isCancelled) {
             setCombatState(createEmptyCombatState());
             setCampaignCharacters({});
+            setEnemies([]);
             applyMapPayload({ maps: [], activeMapId: null, map: null });
           }
         }
@@ -1382,6 +1402,7 @@ export default function ZombiesCharacterSheet() {
           setCampaignId(null);
           setCombatState(createEmptyCombatState());
           setCampaignCharacters({});
+          setEnemies([]);
           applyMapPayload({ maps: [], activeMapId: null, map: null });
         }
       }
@@ -2128,6 +2149,46 @@ export default function ZombiesCharacterSheet() {
       });
     }
 
+    if (Array.isArray(enemies)) {
+      enemies.forEach((enemy) => {
+        if (!enemy || typeof enemy !== 'object') {
+          return;
+        }
+
+        const enemyId =
+          (typeof enemy.enemyId === 'string' && enemy.enemyId.trim() !== ''
+            ? enemy.enemyId.trim()
+            : null) ||
+          (typeof enemy._id === 'string' && enemy._id.trim() !== '' ? enemy._id.trim() : null);
+
+        if (!enemyId) {
+          return;
+        }
+
+        const label =
+          (typeof enemy.name === 'string' && enemy.name.trim() !== ''
+            ? enemy.name.trim()
+            : null) ||
+          (typeof enemy.enemyType === 'string' && enemy.enemyType.trim() !== ''
+            ? enemy.enemyType.trim()
+            : null) ||
+          enemyId;
+
+        const enemyCurrentHp = toFiniteNumberOrNull(
+          enemy.currentHp ?? enemy.maxHp ?? enemy.hitPoints
+        );
+        const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+
+        lookup[enemyId] = {
+          color: ENEMY_FIGURINE_COLOR,
+          label,
+          entityType: 'enemy',
+          currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
+          maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
+        };
+      });
+    }
+
     if (resolvedCharacterId) {
       if (!lookup[resolvedCharacterId]) {
         const color =
@@ -2163,7 +2224,7 @@ export default function ZombiesCharacterSheet() {
     }
 
     return lookup;
-  }, [campaignCharacters, form, resolvedCharacterId]);
+  }, [campaignCharacters, enemies, form, resolvedCharacterId]);
 
   const modalTokensByMapId = useMemo(() => {
     const base = { ...(campaignMapTokens || {}) };
