@@ -38,7 +38,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 const apiHost = process.env.API_ORIGIN || 'https://realmtracker.org';
 const connectSrc = ["'self'", apiHost];
