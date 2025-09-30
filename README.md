@@ -26,6 +26,17 @@ Example gif is listed below:
 
 Run `npm run build` to generate the production build of the client. The `npm start` script runs this build step before launching the server so deployments always serve the latest assets from `client/build`.
 
+## Database Indexes
+
+The server ensures critical MongoDB indexes at startup so common lookups stay performant:
+
+- `users.username` (unique)
+- `Campaigns.dm`
+- `Campaigns.players` (multikey)
+- `Campaigns.campaignName`
+
+If you run manual migrations or restore data, re-running the server will recreate any missing indexes automatically.
+
 ## Environment Variables
 
 The server uses a `config.env` file for configuration. Ensure the following variable is set:
