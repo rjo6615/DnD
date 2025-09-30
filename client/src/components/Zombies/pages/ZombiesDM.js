@@ -6318,6 +6318,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         onDeleteMap={handleDeleteMap}
         isLoading={mapLoading}
         actionInProgressId={mapActionLoadingId}
+        activeCharacterId={activeParticipant?.characterId}
       />
 
       <MapModal
@@ -6335,6 +6336,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         onSelectMap={handleSelectMap}
         tokensByMapId={modalTokensByMapId}
         currentCharacterId={mapPlacementState.enemyId}
+        activeCharacterId={activeParticipant?.characterId}
         characterLookup={tokenMetaById}
         onTokenMove={handleMapModalTokenMove}
         readOnly={false}

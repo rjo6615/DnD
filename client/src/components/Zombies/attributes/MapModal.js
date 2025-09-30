@@ -122,6 +122,7 @@ const MapModal = ({
   title,
   tokensByMapId,
   currentCharacterId,
+  activeCharacterId,
   characterLookup,
   onTokenMove,
   readOnly,
@@ -179,6 +180,11 @@ const MapModal = ({
   const normalizedCurrentCharacterId = useMemo(
     () => normalizeMapId(currentCharacterId),
     [currentCharacterId]
+  );
+
+  const normalizedActiveCharacterId = useMemo(
+    () => normalizeMapId(activeCharacterId),
+    [activeCharacterId]
   );
 
   const normalizedCharacterLookup = useMemo(() => {
@@ -334,6 +340,9 @@ const MapModal = ({
           label: typeof rawLabel === 'string' ? rawLabel : token.characterId,
           color: normalizedColor,
           isMovable,
+          isActiveTurn:
+            Boolean(normalizedActiveCharacterId) &&
+            token.characterId === normalizedActiveCharacterId,
           ...(entityType ? { entityType } : {}),
           ...(variant ? { variant } : {}),
           ...(currentHp !== null ? { currentHp } : {}),
@@ -349,6 +358,7 @@ const MapModal = ({
     isInteractive,
     normalizedCharacterLookup,
     normalizedCurrentCharacterId,
+    normalizedActiveCharacterId,
     placementPending,
     readOnly,
     tokensDictionary,
@@ -693,6 +703,7 @@ MapModal.propTypes = {
   title: PropTypes.node,
   tokensByMapId: PropTypes.object,
   currentCharacterId: PropTypes.string,
+  activeCharacterId: PropTypes.string,
   characterLookup: PropTypes.objectOf(
     PropTypes.shape({
       color: PropTypes.string,
@@ -719,6 +730,7 @@ MapModal.defaultProps = {
   title: 'Campaign Map',
   tokensByMapId: null,
   currentCharacterId: null,
+  activeCharacterId: null,
   characterLookup: {},
   onTokenMove: null,
   readOnly: true,

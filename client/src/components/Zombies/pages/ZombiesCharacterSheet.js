@@ -2881,6 +2881,7 @@ const spellsGold =
         activeMapId={campaignActiveMapId}
         tokensByMapId={modalTokensByMapId}
         currentCharacterId={resolvedCharacterId}
+        activeCharacterId={activeTurnParticipantId}
         characterLookup={tokenMetaById}
         onTokenMove={handleTokenMove}
       />
