@@ -220,6 +220,10 @@ const MapModal = ({
         typeof value?.variant === 'string' && value.variant.trim() !== ''
           ? value.variant.trim().toLowerCase()
           : null;
+      const size =
+        typeof value?.size === 'string' && value.size.trim() !== ''
+          ? value.size.trim().toLowerCase()
+          : null;
 
       acc[trimmedKey] = {
         color,
@@ -228,6 +232,7 @@ const MapModal = ({
         ...(variant ? { variant } : {}),
         ...(currentHp !== null ? { currentHp } : {}),
         ...(maxHp !== null ? { maxHp } : {}),
+        ...(size ? { size } : {}),
       };
       return acc;
     }, {});
@@ -314,6 +319,16 @@ const MapModal = ({
 
         const entityType = lookupEntityType || tokenEntityType || null;
 
+        const lookupSize =
+          typeof lookup.size === 'string' && lookup.size.trim() !== ''
+            ? lookup.size.trim().toLowerCase()
+            : null;
+        const tokenSize =
+          typeof token.size === 'string' && token.size.trim() !== ''
+            ? token.size.trim().toLowerCase()
+            : null;
+        const size = lookupSize || tokenSize || null;
+
         let variant = lookupVariant || tokenVariant || null;
         if (!variant && entityType) {
           if (entityType === 'enemy') {
@@ -347,6 +362,7 @@ const MapModal = ({
           ...(variant ? { variant } : {}),
           ...(currentHp !== null ? { currentHp } : {}),
           ...(maxHp !== null ? { maxHp } : {}),
+          ...(size ? { size } : {}),
         };
       })
       .sort((a, b) => {
