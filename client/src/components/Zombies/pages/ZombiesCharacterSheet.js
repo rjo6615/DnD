@@ -1416,255 +1416,6 @@ export default function ZombiesCharacterSheet() {
     };
   }, [characterId, applyMapPayload]);
 
-  useEffect(() => {
-    if (!campaignId) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-      applyMapPayload({ maps: [], activeMapId: null, map: null });
-      setShowMapModal(false);
-      return undefined;
-    }
-
-    const socketUrl = process.env.REACT_APP_API_URL || undefined;
-    const socket = io(socketUrl, { withCredentials: true });
-    socketRef.current = socket;
-
-    const handleCombatUpdate = (state) => {
-      setCombatState(normalizeCombatState(state));
-    };
-
-    const handleCharacterHealthUpdate = (update) => {
-      if (!update || typeof update !== 'object') {
-        return;
-      }
-
-      const rawCharacterId = update.characterId;
-      const normalizedCharacterId =
-        typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
-          ? rawCharacterId.trim()
-          : null;
-
-      if (!normalizedCharacterId) {
-        return;
-      }
-
-      const nextTempHealthValue =
-        update.tempHealth !== undefined && update.tempHealth !== null
-          ? (() => {
-              const numeric = Number(update.tempHealth);
-              return Number.isFinite(numeric) ? numeric : update.tempHealth;
-            })()
-          : undefined;
-
-      const nextHealthValue =
-        update.health !== undefined && update.health !== null
-          ? (() => {
-              const numeric = Number(update.health);
-              return Number.isFinite(numeric) ? numeric : update.health;
-            })()
-          : undefined;
-
-      setCampaignCharacters((prev) => {
-        if (!prev || typeof prev !== 'object') {
-          return prev;
-        }
-
-        const existing = prev[normalizedCharacterId];
-        if (!existing) {
-          return prev;
-        }
-
-        let didUpdate = false;
-        const updatedCharacter = { ...existing };
-
-        if (nextTempHealthValue !== undefined && existing.tempHealth !== nextTempHealthValue) {
-          updatedCharacter.tempHealth = nextTempHealthValue;
-          didUpdate = true;
-        }
-
-        if (nextHealthValue !== undefined && existing.health !== nextHealthValue) {
-          updatedCharacter.health = nextHealthValue;
-          didUpdate = true;
-        }
-
-        if (!didUpdate) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          [normalizedCharacterId]: updatedCharacter,
-        };
-      });
-
-      setForm((prev) => {
-        if (!prev || typeof prev !== 'object') {
-          return prev;
-        }
-
-        const candidateIds = [];
-        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
-          candidateIds.push(prev._id.trim());
-        }
-        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
-          candidateIds.push(prev.characterId.trim());
-        }
-
-        if (!candidateIds.includes(normalizedCharacterId)) {
-          return prev;
-        }
-
-        let didUpdate = false;
-        const updatedForm = { ...prev };
-
-        if (nextTempHealthValue !== undefined && prev.tempHealth !== nextTempHealthValue) {
-          updatedForm.tempHealth = nextTempHealthValue;
-          didUpdate = true;
-        }
-
-        if (nextHealthValue !== undefined && prev.health !== nextHealthValue) {
-          updatedForm.health = nextHealthValue;
-          didUpdate = true;
-        }
-
-        return didUpdate ? updatedForm : prev;
-      });
-    };
-
-    const handleCampaignMapUpdate = (update) => {
-      if (update === null) {
-        applyMapPayload({ maps: [], activeMapId: null, map: null });
-        return;
-      }
-
-      if (!update || typeof update !== 'object') {
-        return;
-      }
-
-      const hasTokensByMapIdProp = Object.prototype.hasOwnProperty.call(update, 'tokensByMapId');
-      const hasActiveTokensProp = Object.prototype.hasOwnProperty.call(update, 'activeMapTokens');
-      const hasMapsProp = Array.isArray(update.maps);
-      const hasMapProp =
-        update.map && typeof update.map === 'object' && !Array.isArray(update.map);
-      const hasMapExplicitNull = Object.prototype.hasOwnProperty.call(update, 'map') && update.map === null;
-      const hasActiveIdProp = Object.prototype.hasOwnProperty.call(update, 'activeMapId');
-
-      const sanitizedTokens = hasTokensByMapIdProp
-        ? sanitizeTokensByMapId(update.tokensByMapId)
-        : {};
-      const sanitizedActiveTokens = hasActiveTokensProp
-        ? sanitizeTokenDictionary(update.activeMapTokens)
-        : {};
-
-      const normalizedIncomingActiveId =
-        hasActiveIdProp && typeof update.activeMapId === 'string' && update.activeMapId.trim() !== ''
-          ? update.activeMapId.trim()
-          : null;
-
-      const tokenKeys = ['tokensByMapId', 'activeMapTokens', 'activeMapId'];
-      const payloadKeys = Object.keys(update);
-      const tokenOnlyUpdate =
-        payloadKeys.length > 0 &&
-        payloadKeys.every((key) => tokenKeys.includes(key)) &&
-        (hasTokensByMapIdProp || hasActiveTokensProp || hasActiveIdProp);
-
-      if (tokenOnlyUpdate) {
-        const merged = mergeTokenPayload({
-          incomingTokensByMapId: sanitizedTokens,
-          incomingActiveMapTokens: sanitizedActiveTokens,
-          incomingActiveMapId: normalizedIncomingActiveId,
-          previousActiveMapId: campaignActiveMapIdRef.current,
-          previousCampaignMap: campaignMapRef.current,
-          previousMapTokens: campaignMapTokensRef.current || {},
-        });
-
-        setCampaignActiveMapId(merged.activeMapId);
-        setCampaignMapTokens(merged.mapTokens);
-        setActiveMapTokens(merged.activeMapTokens);
-        setCampaignMap(merged.campaignMap);
-        return;
-      }
-
-      if (
-        !hasMapsProp &&
-        !hasMapProp &&
-        !hasMapExplicitNull &&
-        !hasActiveIdProp &&
-        !hasTokensByMapIdProp &&
-        !hasActiveTokensProp
-      ) {
-        const normalizedMap = hasMapProp ? update.map : update;
-        const normalizedMapId =
-          typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
-            ? normalizedMap.mapId.trim()
-            : null;
-        applyMapPayload({
-          maps: normalizedMap ? [normalizedMap] : campaignMapsRef.current,
-          activeMapId: normalizedMapId || campaignActiveMapIdRef.current,
-          map: normalizedMap,
-        });
-        return;
-      }
-
-      let mapFromList = null;
-      if (hasMapsProp && normalizedIncomingActiveId) {
-        mapFromList = (update.maps || []).find((entry) => {
-          if (!entry || typeof entry !== 'object') {
-            return false;
-          }
-
-          const entryId =
-            typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
-              ? entry.mapId.trim()
-              : null;
-          return entryId === normalizedIncomingActiveId;
-        }) || null;
-      }
-
-      const workingPayload = {
-        maps: hasMapsProp ? update.maps : campaignMapsRef.current,
-        activeMapId: normalizedIncomingActiveId || campaignActiveMapIdRef.current,
-        map: hasMapProp
-          ? update.map
-          : hasMapExplicitNull
-            ? null
-            : mapFromList || campaignMapRef.current,
-        ...(hasTokensByMapIdProp ? { tokensByMapId: sanitizedTokens } : {}),
-        ...(hasActiveTokensProp ? { activeMapTokens: sanitizedActiveTokens } : {}),
-      };
-
-      applyMapPayload(workingPayload);
-    };
-
-    const handleEnemiesUpdate = (roster) => {
-      if (!Array.isArray(roster)) {
-        setEnemies([]);
-        return;
-      }
-
-      const sanitized = roster.filter((entry) => entry && typeof entry === 'object');
-      setEnemies(sanitized);
-    };
-
-    socket.on('combat:update', handleCombatUpdate);
-    socket.on('character:health:update', handleCharacterHealthUpdate);
-    socket.on('campaign:map:update', handleCampaignMapUpdate);
-    socket.on('campaign:enemies:update', handleEnemiesUpdate);
-    socket.emit('campaign:join', campaignId);
-
-    return () => {
-      socket.off('combat:update', handleCombatUpdate);
-      socket.off('character:health:update', handleCharacterHealthUpdate);
-      socket.off('campaign:map:update', handleCampaignMapUpdate);
-      socket.off('campaign:enemies:update', handleEnemiesUpdate);
-      socket.emit('campaign:leave', campaignId);
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [campaignId, applyMapPayload]);
-
   const handleShowCharacterInfo = () => setShowCharacterInfo(true);
   const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
   const handleShowStats = () => setShowStats(true);
@@ -2142,6 +1893,388 @@ export default function ZombiesCharacterSheet() {
     }
     return candidates.find(Boolean) || null;
   }, [characterId, form]);
+
+  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
+
+  useEffect(() => {
+    resolvedCharacterIdRef.current = resolvedCharacterId;
+  }, [resolvedCharacterId]);
+
+  const updateLocalDiceColor = useCallback(
+    (incomingCharacterId, nextColor) => {
+      const normalizedCharacterId =
+        typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
+          ? incomingCharacterId.trim()
+          : null;
+      const normalizedColor =
+        typeof nextColor === 'string' && nextColor.trim() !== '' ? nextColor.trim() : null;
+
+      if (!normalizedCharacterId || !normalizedColor) {
+        return;
+      }
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object' || Object.keys(prev).length === 0) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const next = { ...prev };
+
+        Object.entries(prev).forEach(([key, value]) => {
+          if (!value || typeof value !== 'object') {
+            return;
+          }
+
+          const identifiers = new Set();
+          if (typeof key === 'string' && key.trim() !== '') {
+            identifiers.add(key.trim());
+          }
+          if (typeof value._id === 'string' && value._id.trim() !== '') {
+            identifiers.add(value._id.trim());
+          }
+          if (typeof value.characterId === 'string' && value.characterId.trim() !== '') {
+            identifiers.add(value.characterId.trim());
+          }
+
+          if (!identifiers.has(normalizedCharacterId)) {
+            return;
+          }
+
+          const existingColor =
+            typeof value.diceColor === 'string' && value.diceColor.trim() !== ''
+              ? value.diceColor.trim()
+              : null;
+
+          if (existingColor === normalizedColor) {
+            return;
+          }
+
+          next[key] = { ...value, diceColor: normalizedColor };
+          didUpdate = true;
+        });
+
+        return didUpdate ? next : prev;
+      });
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const identifiers = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          identifiers.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          identifiers.push(prev.characterId.trim());
+        }
+        const resolvedId = resolvedCharacterIdRef.current;
+        if (typeof resolvedId === 'string' && resolvedId.trim() !== '') {
+          identifiers.push(resolvedId.trim());
+        }
+
+        if (!identifiers.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        if (typeof prev.diceColor === 'string' && prev.diceColor.trim() === normalizedColor) {
+          return prev;
+        }
+
+        return { ...prev, diceColor: normalizedColor };
+      });
+    },
+    [setCampaignCharacters, setForm]
+  );
+
+  useEffect(() => {
+    if (!campaignId) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      applyMapPayload({ maps: [], activeMapId: null, map: null });
+      setShowMapModal(false);
+      return undefined;
+    }
+
+    const socketUrl = process.env.REACT_APP_API_URL || undefined;
+    const socket = io(socketUrl, { withCredentials: true });
+    socketRef.current = socket;
+
+    const handleCombatUpdate = (state) => {
+      setCombatState(normalizeCombatState(state));
+    };
+
+    const handleCharacterHealthUpdate = (update) => {
+      if (!update || typeof update !== 'object') {
+        return;
+      }
+
+      const rawCharacterId = update.characterId;
+      const normalizedCharacterId =
+        typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
+          ? rawCharacterId.trim()
+          : null;
+
+      if (!normalizedCharacterId) {
+        return;
+      }
+
+      const nextTempHealthValue =
+        update.tempHealth !== undefined && update.tempHealth !== null
+          ? (() => {
+              const numeric = Number(update.tempHealth);
+              return Number.isFinite(numeric) ? numeric : update.tempHealth;
+            })()
+          : undefined;
+
+      const nextHealthValue =
+        update.health !== undefined && update.health !== null
+          ? (() => {
+              const numeric = Number(update.health);
+              return Number.isFinite(numeric) ? numeric : update.health;
+            })()
+          : undefined;
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object') {
+          return prev;
+        }
+
+        const existing = prev[normalizedCharacterId];
+        if (!existing) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const updatedCharacter = { ...existing };
+
+        if (nextTempHealthValue !== undefined && existing.tempHealth !== nextTempHealthValue) {
+          updatedCharacter.tempHealth = nextTempHealthValue;
+          didUpdate = true;
+        }
+
+        if (nextHealthValue !== undefined && existing.health !== nextHealthValue) {
+          updatedCharacter.health = nextHealthValue;
+          didUpdate = true;
+        }
+
+        if (!didUpdate) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [normalizedCharacterId]: updatedCharacter,
+        };
+      });
+
+      setForm((prev) => {
+        if (!prev || typeof prev !== 'object') {
+          return prev;
+        }
+
+        const candidateIds = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          candidateIds.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          candidateIds.push(prev.characterId.trim());
+        }
+
+        if (!candidateIds.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const updatedForm = { ...prev };
+
+        if (nextTempHealthValue !== undefined && prev.tempHealth !== nextTempHealthValue) {
+          updatedForm.tempHealth = nextTempHealthValue;
+          didUpdate = true;
+        }
+
+        if (nextHealthValue !== undefined && prev.health !== nextHealthValue) {
+          updatedForm.health = nextHealthValue;
+          didUpdate = true;
+        }
+
+        return didUpdate ? updatedForm : prev;
+      });
+    };
+
+    const handleCampaignMapUpdate = (update) => {
+      if (update === null) {
+        applyMapPayload({ maps: [], activeMapId: null, map: null });
+        return;
+      }
+
+      if (!update || typeof update !== 'object') {
+        return;
+      }
+
+      const hasTokensByMapIdProp = Object.prototype.hasOwnProperty.call(update, 'tokensByMapId');
+      const hasActiveTokensProp = Object.prototype.hasOwnProperty.call(update, 'activeMapTokens');
+      const hasMapsProp = Array.isArray(update.maps);
+      const hasMapProp =
+        update.map && typeof update.map === 'object' && !Array.isArray(update.map);
+      const hasMapExplicitNull = Object.prototype.hasOwnProperty.call(update, 'map') && update.map === null;
+      const hasActiveIdProp = Object.prototype.hasOwnProperty.call(update, 'activeMapId');
+
+      const sanitizedTokens = hasTokensByMapIdProp
+        ? sanitizeTokensByMapId(update.tokensByMapId)
+        : {};
+      const sanitizedActiveTokens = hasActiveTokensProp
+        ? sanitizeTokenDictionary(update.activeMapTokens)
+        : {};
+
+      const normalizedIncomingActiveId =
+        hasActiveIdProp && typeof update.activeMapId === 'string' && update.activeMapId.trim() !== ''
+          ? update.activeMapId.trim()
+          : null;
+
+      const tokenKeys = ['tokensByMapId', 'activeMapTokens', 'activeMapId'];
+      const payloadKeys = Object.keys(update);
+      const tokenOnlyUpdate =
+        payloadKeys.length > 0 &&
+        payloadKeys.every((key) => tokenKeys.includes(key)) &&
+        (hasTokensByMapIdProp || hasActiveTokensProp || hasActiveIdProp);
+
+      if (tokenOnlyUpdate) {
+        const merged = mergeTokenPayload({
+          incomingTokensByMapId: sanitizedTokens,
+          incomingActiveMapTokens: sanitizedActiveTokens,
+          incomingActiveMapId: normalizedIncomingActiveId,
+          previousActiveMapId: campaignActiveMapIdRef.current,
+          previousCampaignMap: campaignMapRef.current,
+          previousMapTokens: campaignMapTokensRef.current || {},
+        });
+
+        setCampaignActiveMapId(merged.activeMapId);
+        setCampaignMapTokens(merged.mapTokens);
+        setActiveMapTokens(merged.activeMapTokens);
+        setCampaignMap(merged.campaignMap);
+        return;
+      }
+
+      if (
+        !hasMapsProp &&
+        !hasMapProp &&
+        !hasMapExplicitNull &&
+        !hasActiveIdProp &&
+        !hasTokensByMapIdProp &&
+        !hasActiveTokensProp
+      ) {
+        const normalizedMap = hasMapProp ? update.map : update;
+        const normalizedMapId =
+          typeof normalizedMap?.mapId === 'string' && normalizedMap.mapId.trim() !== ''
+            ? normalizedMap.mapId.trim()
+            : null;
+        applyMapPayload({
+          maps: normalizedMap ? [normalizedMap] : campaignMapsRef.current,
+          activeMapId: normalizedMapId || campaignActiveMapIdRef.current,
+          map: normalizedMap,
+        });
+        return;
+      }
+
+      let mapFromList = null;
+      if (hasMapsProp && normalizedIncomingActiveId) {
+        mapFromList = (update.maps || []).find((entry) => {
+          if (!entry || typeof entry !== 'object') {
+            return false;
+          }
+
+          const entryId =
+            typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
+              ? entry.mapId.trim()
+              : null;
+          return entryId === normalizedIncomingActiveId;
+        }) || null;
+      }
+
+      const workingPayload = {
+        maps: hasMapsProp ? update.maps : campaignMapsRef.current,
+        activeMapId: normalizedIncomingActiveId || campaignActiveMapIdRef.current,
+        map: hasMapProp
+          ? update.map
+          : hasMapExplicitNull
+            ? null
+            : mapFromList || campaignMapRef.current,
+        ...(hasTokensByMapIdProp ? { tokensByMapId: sanitizedTokens } : {}),
+        ...(hasActiveTokensProp ? { activeMapTokens: sanitizedActiveTokens } : {}),
+      };
+
+      applyMapPayload(workingPayload);
+    };
+
+    const handleEnemiesUpdate = (roster) => {
+      if (!Array.isArray(roster)) {
+        setEnemies([]);
+        return;
+      }
+
+      const sanitized = roster.filter((entry) => entry && typeof entry === 'object');
+      setEnemies(sanitized);
+    };
+
+    const handleCharacterMetadataUpdate = (update) => {
+      if (!update || typeof update !== 'object') {
+        return;
+      }
+
+      const normalizedCharacterId =
+        typeof update.characterId === 'string' && update.characterId.trim() !== ''
+          ? update.characterId.trim()
+          : null;
+
+      if (!normalizedCharacterId) {
+        return;
+      }
+
+      const normalizedDiceColor =
+        typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+          ? update.diceColor.trim()
+          : null;
+
+      if (!normalizedDiceColor) {
+        return;
+      }
+
+      updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
+    };
+
+    socket.on('combat:update', handleCombatUpdate);
+    socket.on('character:health:update', handleCharacterHealthUpdate);
+    socket.on('campaign:map:update', handleCampaignMapUpdate);
+    socket.on('campaign:enemies:update', handleEnemiesUpdate);
+    socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
+    socket.emit('campaign:join', campaignId);
+
+    return () => {
+      socket.off('combat:update', handleCombatUpdate);
+      socket.off('character:health:update', handleCharacterHealthUpdate);
+      socket.off('campaign:map:update', handleCampaignMapUpdate);
+      socket.off('campaign:enemies:update', handleEnemiesUpdate);
+      socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
+      socket.emit('campaign:leave', campaignId);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [campaignId, applyMapPayload, updateLocalDiceColor]);
+
+  const handleDiceColorChange = useCallback(
+    (nextColor) => {
+      const currentId = resolvedCharacterIdRef.current;
+      if (!currentId) {
+        return;
+      }
+      updateLocalDiceColor(currentId, nextColor);
+    },
+    [updateLocalDiceColor]
+  );
 
   const tokenMetaById = useMemo(() => {
     const lookup = {};
@@ -2872,6 +3005,7 @@ const spellsGold =
         form={form}
         showHelpModal={showHelpModal}
         handleCloseHelpModal={handleCloseHelpModal}
+        onDiceColorChange={handleDiceColorChange}
       />
       <MapModal
         show={showMapModal}

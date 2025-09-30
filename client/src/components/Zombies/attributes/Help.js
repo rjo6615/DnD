@@ -1,11 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react'; // Import useState and React
+import React, { useState, useEffect, useCallback } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import CampaignModals from "../components/CampaignModals";
 import useCampaignActions from "../hooks/useCampaignActions";
 
-export default function Help({ form, showHelpModal, handleCloseHelpModal }) {
+const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+const DEFAULT_DICE_COLOR = '#000000';
+
+const normalizeDiceColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return HEX_COLOR_PATTERN.test(trimmed) ? trimmed : null;
+};
+
+export default function Help({
+  form,
+  showHelpModal,
+  handleCloseHelpModal,
+  onDiceColorChange,
+}) {
   const params = useParams();
   const navigate = useNavigate();
   const {
@@ -28,65 +45,94 @@ export default function Help({ form, showHelpModal, handleCloseHelpModal }) {
   } = useCampaignActions();
   const [showDeleteCharacter, setShowDeleteCharacter] = useState(false);
   const handleCloseDeleteCharacter = () => setShowDeleteCharacter(false);
- const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
- // This method will delete a record
- async function deleteRecord() {
- await apiFetch(`/characters/delete-character/${params.id}`, {
-   method: "DELETE",
-  });
-  navigate(`/zombies-character-select/${form.campaign}`);
-}
+  const handleShowDeleteCharacter = () => setShowDeleteCharacter(true);
 
- async function handleLogout() {
-  await apiFetch("/logout", { method: "POST" });
-  window.location.assign("/");
- }
-  //-------------------------------------------Help Module--------------------------------------------------------------------
-// Color Picker
-document.documentElement.style.setProperty('--dice-face-color', form.diceColor);
-const colorPickerRef = useRef(null);
-const [newColor, setNewColor] = useState(form.diceColor);
-
-useEffect(() => {
-  const colorPicker = colorPickerRef.current;
-
-  if (colorPicker) {
-    colorPicker.addEventListener('input', (e) => {
-      const selectedColor = e.target.value;
-      setNewColor(selectedColor); // Update the state with the new color
-      document.documentElement.style.setProperty('--dice-face-color', selectedColor);
+  // This method will delete a record
+  async function deleteRecord() {
+    await apiFetch(`/characters/delete-character/${params.id}`, {
+      method: 'DELETE',
     });
+    navigate(`/zombies-character-select/${form.campaign}`);
   }
-}, []); // Empty dependency array ensures this runs after component mounts
 
-const handleColorChange = (e) => {
-  const selectedColor = e.target.value;
-  setNewColor(selectedColor); // Update the state with the new color
-  document.documentElement.style.setProperty('--dice-face-color', selectedColor);
-};
+  async function handleLogout() {
+    await apiFetch('/logout', { method: 'POST' });
+    window.location.assign('/');
+  }
+  //-------------------------------------------Help Module--------------------------------------------------------------------
+  const initialColor = normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR;
+  const [newColor, setNewColor] = useState(initialColor);
 
-const opacity = 0.85;
-// Calculate RGBA color with opacity
-const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
+  const applyDiceFaceColor = useCallback((color) => {
+    if (typeof document === 'undefined') {
+      return;
+    }
 
-// Apply the calculated RGBA color to the element
-document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
+    const normalized = normalizeDiceColor(color) || DEFAULT_DICE_COLOR;
+    const r = parseInt(normalized.slice(1, 3), 16);
+    const g = parseInt(normalized.slice(3, 5), 16);
+    const b = parseInt(normalized.slice(5, 7), 16);
+    const opacity = 0.85;
+    const rgbaColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
+  }, []);
 
- // Sends dice color update to database
- async function diceColorUpdate(){
-   await apiFetch(`/characters/update-dice-color/${params.id}`, {
-     method: "PUT",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({diceColor: newColor}),
-   })
-   .catch(error => {
-    //  window.alert(error);
-     return;
-   });
-   navigate(0);
- } 
+  useEffect(() => {
+    applyDiceFaceColor(newColor);
+  }, [applyDiceFaceColor, newColor]);
+
+  useEffect(() => {
+    const normalized = normalizeDiceColor(form?.diceColor);
+    if (normalized) {
+      setNewColor((prev) => (prev === normalized ? prev : normalized));
+    } else if (form?.diceColor === undefined || form?.diceColor === null) {
+      setNewColor((prev) => (prev === DEFAULT_DICE_COLOR ? prev : DEFAULT_DICE_COLOR));
+    }
+  }, [form?.diceColor]);
+
+  const handleColorChange = (event) => {
+    const selectedColor = event?.target?.value;
+    if (typeof selectedColor === 'string') {
+      setNewColor(selectedColor);
+    }
+  };
+
+  async function diceColorUpdate() {
+    const normalizedColor = normalizeDiceColor(newColor);
+    if (!normalizedColor) {
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/characters/update-dice-color/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ diceColor: normalizedColor }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = null;
+      }
+
+      const nextColor = normalizeDiceColor(payload?.diceColor) || normalizedColor;
+      setNewColor(nextColor);
+
+      if (typeof onDiceColorChange === 'function') {
+        onDiceColorChange(nextColor);
+      }
+    } catch (error) {
+      // Swallow fetch errors silently for now.
+    }
+  }
   return (
     <div>
       <Modal
@@ -124,7 +170,6 @@ document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
                       <input
                         type="color"
                         id="colorPicker"
-                        ref={colorPickerRef}
                         value={newColor}
                         onChange={handleColorChange}
                       />

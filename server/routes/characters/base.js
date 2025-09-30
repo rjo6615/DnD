@@ -9,6 +9,7 @@ const proficiencyBonus = require('../../utils/proficiency');
 const collectAllowedSkills = require('../../utils/collectAllowedSkills');
 const collectAllowedExpertise = require('../../utils/collectAllowedExpertise');
 const { normalizeEquipmentMap } = require('../../constants/equipmentSlots');
+const { emitCharacterMetadataUpdate } = require('../../utils/socket');
 
 const countFeatProficiencies = (feat = []) => {
   const profs = new Set();
@@ -418,11 +419,45 @@ module.exports = (router) => {
       const db_connect = req.db;
       const { diceColor } = matchedData(req, { locations: ['body'] });
       try {
-        await db_connect.collection('Characters').updateOne(id, {
-          $set: { diceColor },
-        });
+        const updateResult = await db_connect.collection('Characters').findOneAndUpdate(
+          id,
+          {
+            $set: { diceColor },
+          },
+          { returnDocument: 'after' }
+        );
+
+        const updatedCharacter = updateResult && updateResult.value ? updateResult.value : null;
+        if (!updatedCharacter) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+
+        const rawCampaignId =
+          typeof updatedCharacter.campaign === 'string'
+            ? updatedCharacter.campaign
+            : typeof updatedCharacter.campaignId === 'string'
+              ? updatedCharacter.campaignId
+              : null;
+        const campaignId = rawCampaignId && rawCampaignId.trim() !== '' ? rawCampaignId.trim() : null;
+        const characterId =
+          updatedCharacter._id && typeof updatedCharacter._id.toString === 'function'
+            ? updatedCharacter._id.toString()
+            : typeof updatedCharacter.characterId === 'string'
+              ? updatedCharacter.characterId
+              : null;
+
+        const payload = {
+          campaignId,
+          characterId,
+          diceColor,
+        };
+
+        if (campaignId && characterId) {
+          emitCharacterMetadataUpdate(campaignId, payload);
+        }
+
         logger.info('Dice Color updated');
-        res.json({ message: 'User updated successfully' });
+        res.json(payload);
       } catch (err) {
         next(err);
       }
