@@ -281,13 +281,22 @@ module.exports = (router) => {
     }
   );
 
-    // This section will get a list of all the campaigns.
+  const CAMPAIGN_SUMMARY_PROJECTION = {
+    projection: {
+      campaignName: 1,
+      dm: 1,
+      players: 1,
+      gameMode: 1,
+    },
+  };
+
+  // This section will get a list of all the campaigns.
   campaignRouter.route('/player/:player').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
         .collection("Campaigns")
-        .find({ players: { $in: [req.params.player] } })
+        .find({ players: { $in: [req.params.player] } }, CAMPAIGN_SUMMARY_PROJECTION)
         .toArray();
       res.json(applyDefaultCombat(result));
     } catch (err) {
@@ -295,19 +304,19 @@ module.exports = (router) => {
     }
   });
 
-    // This section will be for the DM
+  // This section will be for the DM
   campaignRouter.route('/dm/:DM').get(async (req, res, next) => {
     try {
       const db_connect = req.db;
       const result = await db_connect
         .collection("Campaigns")
-        .find({ dm: req.params.DM })
+        .find({ dm: req.params.DM }, CAMPAIGN_SUMMARY_PROJECTION)
         .toArray();
       res.json(applyDefaultCombat(result));
     } catch (err) {
       next(err);
     }
-   });
+  });
 
   campaignRouter.route('/dm/:DM/:campaign').get(async (req, res, next) => {
     try {
