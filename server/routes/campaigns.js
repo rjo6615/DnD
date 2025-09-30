@@ -7,7 +7,7 @@ const { buildEnemyRecord } = require('../utils/monsters');
 const authenticateToken = require('../middleware/auth');
 const handleValidationErrors = require('../middleware/validation');
 const logger = require('../utils/logger');
-const { emitCombatUpdate, emitMapUpdate } = require('../utils/socket');
+const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const {
   normalizeCampaignMapState,
   prepareStoredMap,
@@ -1076,6 +1076,8 @@ module.exports = (router) => {
             return res.status(404).json({ message: 'Campaign not found' });
           }
 
+          emitEnemiesUpdate(campaignName, result.value.enemies);
+
           res.json(enemyRecord);
         } catch (err) {
           if (err.statusCode === 404) {
@@ -1132,6 +1134,7 @@ module.exports = (router) => {
             { $set: { enemies: updatedEnemies, combat: combatState } }
           );
 
+          emitEnemiesUpdate(campaignName, updatedEnemies);
           emitCombatUpdate(campaignName, combatState);
 
           res.json({ success: true, enemies: updatedEnemies, combat: combatState });
@@ -1233,6 +1236,7 @@ module.exports = (router) => {
             { $set: { enemies: updatedEnemies, combat: combatState } }
           );
 
+          emitEnemiesUpdate(campaignName, updatedEnemies);
           emitCombatUpdate(campaignName, combatState);
 
           res.json({ success: true, enemy: updatedEnemy, combat: combatState });

@@ -14,6 +14,7 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
 });
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
+  emitEnemiesUpdate: jest.fn(),
   emitMapUpdate: jest.fn(),
 }));
 jest.mock('../utils/dnd5eApi', () => ({
@@ -22,7 +23,7 @@ jest.mock('../utils/dnd5eApi', () => ({
 jest.mock('../utils/monsters', () => ({
   buildEnemyRecord: jest.fn(),
 }));
-const { emitCombatUpdate, emitMapUpdate } = require('../utils/socket');
+const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
 const registerCampaignRoutes = require('../routes/campaigns');
@@ -901,7 +902,12 @@ describe('Campaign routes', () => {
   test('add enemy success', async () => {
     getMonsterByIndex.mockResolvedValue({ index: 'goblin' });
     buildEnemyRecord.mockImplementation((monster, enemyId, providedName) => ({ enemyId, name: 'Goblin', providedName }));
-    const findOneAndUpdate = jest.fn().mockResolvedValue({ value: { campaignName: 'Test' } });
+    const findOneAndUpdate = jest.fn().mockImplementation(async (query, update) => ({
+      value: {
+        campaignName: 'Test',
+        enemies: [update.$push.enemies],
+      },
+    }));
     dbo.mockResolvedValue({
       collection: () => ({
         findOneAndUpdate,
@@ -917,6 +923,10 @@ describe('Campaign routes', () => {
     expect(typeof res.body.enemyId).toBe('string');
     expect(getMonsterByIndex).toHaveBeenCalledWith('goblin');
     expect(buildEnemyRecord).toHaveBeenCalledWith({ index: 'goblin' }, res.body.enemyId, undefined);
+    expect(emitEnemiesUpdate).toHaveBeenCalledWith(
+      'Test',
+      [expect.objectContaining({ enemyId: res.body.enemyId, name: 'Goblin' })]
+    );
   });
 
   test('delete enemy success', async () => {
@@ -950,6 +960,7 @@ describe('Campaign routes', () => {
         },
       }
     );
+    expect(emitEnemiesUpdate).toHaveBeenCalledWith('Test', []);
     expect(emitCombatUpdate).toHaveBeenCalledWith('Test', {
       participants: [{ characterId: 'char-1', initiative: 12 }],
       activeTurn: 0,
@@ -1005,6 +1016,10 @@ describe('Campaign routes', () => {
       }
     );
     expect(res.body.enemy.currentHp).toBe(12);
+    expect(emitEnemiesUpdate).toHaveBeenCalledWith(
+      'Test',
+      [expect.objectContaining({ enemyId: 'enemy-1', currentHp: 12 })]
+    );
     expect(emitCombatUpdate).toHaveBeenCalledWith('Test', {
       participants: [
         {
