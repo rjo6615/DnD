@@ -2222,6 +2222,11 @@ export default function ZombiesDM() {
     }, [activeMapId, activeMapTokens, campaignMap, mapTokens]);
 
     const boardTokens = useMemo(() => {
+      const activeCharacterId =
+        typeof activeParticipant?.characterId === 'string' &&
+        activeParticipant.characterId.trim() !== ''
+          ? activeParticipant.characterId.trim()
+          : null;
       const normalizedDisplayedMapId =
         typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
           ? displayedMap.mapId.trim()
@@ -2265,6 +2270,14 @@ export default function ZombiesDM() {
           const meta = tokenMetaById[token.characterId] || {};
           const rawLabel = meta.label || token.label || token.characterId;
           const label = typeof rawLabel === 'string' ? rawLabel.trim() : '';
+          const normalizedTokenCharacterId =
+            typeof token.characterId === 'string' && token.characterId.trim() !== ''
+              ? token.characterId.trim()
+              : null;
+          const isActiveTurn =
+            normalizedTokenCharacterId &&
+            activeCharacterId &&
+            normalizedTokenCharacterId === activeCharacterId;
           const normalizedCurrentHp = toFiniteNumberOrNull(
             meta.currentHp ?? token.currentHp ?? token.hpCurrent ?? token.health
           );
@@ -2309,6 +2322,7 @@ export default function ZombiesDM() {
             isMovable: true,
             ...(entityType ? { entityType } : {}),
             ...(variant ? { variant } : {}),
+            ...(isActiveTurn ? { isActiveTurn: true } : {}),
             ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
             ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
           };
@@ -2318,7 +2332,14 @@ export default function ZombiesDM() {
           const labelB = (b.label || b.characterId || '').toLowerCase();
           return labelA.localeCompare(labelB);
         });
-    }, [activeMapId, activeMapTokens, displayedMap, mapTokens, tokenMetaById]);
+    }, [
+      activeMapId,
+      activeMapTokens,
+      activeParticipant,
+      displayedMap,
+      mapTokens,
+      tokenMetaById,
+    ]);
 
     const handleTokenPositionChange = useCallback(
       ({ characterId, x, y }) => {

@@ -317,7 +317,16 @@ const CampaignMapBoard = ({
               onPointerDown={handleLayerPointerDown}
             >
               {tokenPositions.map((token) => {
-                const { characterId, position, color, label, currentHp, maxHp, variant } = token;
+                const {
+                  characterId,
+                  position,
+                  color,
+                  label,
+                  currentHp,
+                  maxHp,
+                  variant,
+                  isActiveTurn,
+                } = token;
                 const draggable = !interactionDisabled && token.isMovable !== false;
                 const normalizedLabel = normalizeText(label);
                 const displayLabel = normalizedLabel || normalizeText(characterId) || characterId;
@@ -358,7 +367,8 @@ const CampaignMapBoard = ({
                     className={classNames(
                       'campaign-map-board__token',
                       draggable && 'campaign-map-board__token--draggable',
-                      isLabelActive && 'campaign-map-board__token--label-active'
+                      isLabelActive && 'campaign-map-board__token--label-active',
+                      isActiveTurn && 'campaign-map-board__token--active-turn'
                     )}
                     style={{
                       left: `${(position?.x ?? 0) * 100}%`,
@@ -405,7 +415,8 @@ const CampaignMapBoard = ({
                     <div
                       className={classNames(
                         'campaign-map-board__figurine',
-                        draggable && 'campaign-map-board__figurine--active'
+                        draggable && 'campaign-map-board__figurine--active',
+                        isActiveTurn && 'campaign-map-board__figurine--active-turn'
                       )}
                       style={{ '--figurine-color': figurineColor }}
                     >
@@ -451,6 +462,7 @@ CampaignMapBoard.propTypes = {
       isMovable: PropTypes.bool,
       currentHp: PropTypes.number,
       maxHp: PropTypes.number,
+      isActiveTurn: PropTypes.bool,
     })
   ),
   onTokenDragStart: PropTypes.func,
