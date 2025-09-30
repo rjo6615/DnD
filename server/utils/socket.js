@@ -136,6 +136,25 @@ const emitCombatUpdate = (campaignId, combatState) => {
   io.to(getCampaignRoom(normalizedId)).emit('combat:update', combatState);
 };
 
+const TOKEN_PAYLOAD_KEYS = new Set([
+  'activeMapId',
+  'tokensByMapId',
+  'activeMapTokens',
+]);
+
+const isTokenOnlyPayload = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+
+  const keys = Object.keys(payload);
+  if (keys.length === 0) {
+    return false;
+  }
+
+  return keys.every((key) => TOKEN_PAYLOAD_KEYS.has(key));
+};
+
 const emitMapUpdate = (campaignId, payload) => {
   if (!io) {
     logger.warn('Socket.io server not initialized; cannot emit map update');
@@ -148,10 +167,11 @@ const emitMapUpdate = (campaignId, payload) => {
   }
 
   const normalizedId = campaignId.trim();
+  const tokenOnly = isTokenOnlyPayload(payload);
   io.to(getCampaignRoom(normalizedId)).emit('campaign:map:update', payload);
 
   if (payload && typeof payload === 'object') {
-    if (Object.prototype.hasOwnProperty.call(payload, 'map') && payload.map) {
+    if (!tokenOnly && Object.prototype.hasOwnProperty.call(payload, 'map') && payload.map) {
       const mapPayload =
         typeof payload.map === 'object'
           ? { ...payload.map, tokens: payload.map.tokens || payload.activeMapTokens || {} }

@@ -848,6 +848,12 @@ module.exports = (router) => {
             tokensByMapId
           );
 
+          const tokenPayload = {
+            activeMapId: payload.activeMapId,
+            tokensByMapId: payload.tokensByMapId,
+            activeMapTokens: payload.activeMapTokens,
+          };
+
           await campaignsCollection.updateOne(
             { campaignName },
             {
@@ -860,9 +866,9 @@ module.exports = (router) => {
             }
           );
 
-          emitMapUpdate(campaignName, payload);
+          emitMapUpdate(campaignName, tokenPayload);
 
-          return res.json(payload);
+          return res.json(tokenPayload);
         } catch (err) {
           next(err);
         }
@@ -965,6 +971,12 @@ module.exports = (router) => {
             tokensByMapId
           );
 
+          const tokenPayload = {
+            activeMapId: payload.activeMapId,
+            tokensByMapId: payload.tokensByMapId,
+            activeMapTokens: payload.activeMapTokens,
+          };
+
           await campaignsCollection.updateOne(
             { campaignName },
             {
@@ -977,9 +989,9 @@ module.exports = (router) => {
             }
           );
 
-          emitMapUpdate(campaignName, payload);
+          emitMapUpdate(campaignName, tokenPayload);
 
-          return res.json(payload);
+          return res.json(tokenPayload);
         } catch (err) {
           next(err);
         }

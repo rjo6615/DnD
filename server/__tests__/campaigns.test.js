@@ -530,6 +530,9 @@ describe('Campaign routes', () => {
         .send({ x: 1.5, y: -0.25 });
 
       expect(res.status).toBe(200);
+      expect(res.body).not.toHaveProperty('map');
+      expect(res.body).not.toHaveProperty('maps');
+      expect(res.body).toHaveProperty('activeMapId', storedMap.mapId);
       expect(res.body.tokensByMapId).toEqual({
         [storedMap.mapId]: {
           'hero-1': expect.objectContaining({
@@ -555,17 +558,21 @@ describe('Campaign routes', () => {
           }),
         })
       );
-      expect(emitMapUpdate).toHaveBeenCalledWith(
-        'Test',
+      expect(emitMapUpdate).toHaveBeenCalledWith('Test', expect.any(Object));
+      const emittedPayload = emitMapUpdate.mock.calls[0][1];
+      expect(Object.keys(emittedPayload).sort()).toEqual(
+        ['activeMapId', 'activeMapTokens', 'tokensByMapId'].sort()
+      );
+      expect(emittedPayload.tokensByMapId).toEqual(
         expect.objectContaining({
-          tokensByMapId: expect.objectContaining({
-            [storedMap.mapId]: expect.objectContaining({
-              'hero-1': expect.objectContaining({ x: 1, y: 0 }),
-            }),
-          }),
-          activeMapTokens: expect.objectContaining({
+          [storedMap.mapId]: expect.objectContaining({
             'hero-1': expect.objectContaining({ x: 1, y: 0 }),
           }),
+        })
+      );
+      expect(emittedPayload.activeMapTokens).toEqual(
+        expect.objectContaining({
+          'hero-1': expect.objectContaining({ x: 1, y: 0 }),
         })
       );
     });
@@ -621,6 +628,8 @@ describe('Campaign routes', () => {
         .send({ x: 0.3, y: 0.7 });
 
       expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('activeMapId', storedMap.mapId);
+      expect(res.body).not.toHaveProperty('map');
       expect(charactersFindOne).toHaveBeenCalled();
       expect(res.body.tokensByMapId[storedMap.mapId]['hero-1']).toEqual(
         expect.objectContaining({
@@ -696,6 +705,11 @@ describe('Campaign routes', () => {
       );
 
       expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        activeMapId: storedMap.mapId,
+        tokensByMapId: {},
+        activeMapTokens: {},
+      });
       expect(res.body.tokensByMapId).toEqual({});
       expect(res.body.activeMapTokens).toEqual({});
       expect(updateOne).toHaveBeenCalledWith(

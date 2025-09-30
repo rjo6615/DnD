@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import apiFetch from '../../../utils/apiFetch';
 import { DEFAULT_MAP_TITLE, getMapDisplayTitle } from '../../../utils/mapTitle';
 import { io } from "socket.io-client";
+import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import {
   Button,
   Col,
@@ -364,6 +365,8 @@ export default function ZombiesDM() {
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
     const activeMapTokensRef = useRef(activeMapTokens);
+    const campaignMapRef = useRef(campaignMap);
+    const activeMapIdRef = useRef(activeMapId);
 
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
@@ -378,6 +381,14 @@ export default function ZombiesDM() {
     useEffect(() => {
       activeMapTokensRef.current = activeMapTokens;
     }, [activeMapTokens]);
+
+    useEffect(() => {
+      campaignMapRef.current = campaignMap;
+    }, [campaignMap]);
+
+    useEffect(() => {
+      activeMapIdRef.current = activeMapId;
+    }, [activeMapId]);
 
     const applyMapPayload = useCallback(
       (payload, options = {}) => {
@@ -1185,7 +1196,6 @@ export default function ZombiesDM() {
 
       const handleMapUpdate = (mapData) => {
         if (mapData && typeof mapData === 'object') {
-          let workingPayload = mapData;
           const hasTokensByMapIdProp = Object.prototype.hasOwnProperty.call(
             mapData,
             'tokensByMapId'
@@ -1194,9 +1204,52 @@ export default function ZombiesDM() {
             mapData,
             'activeMapTokens'
           );
+          const hasActiveIdProp = Object.prototype.hasOwnProperty.call(
+            mapData,
+            'activeMapId'
+          );
+
+          const sanitizedTokens = hasTokensByMapIdProp
+            ? sanitizeTokensByMapId(mapData.tokensByMapId)
+            : {};
+          const sanitizedActiveTokens = hasActiveTokensProp
+            ? sanitizeTokenDictionary(mapData.activeMapTokens)
+            : {};
+          const normalizedIncomingActiveId =
+            hasActiveIdProp &&
+            typeof mapData.activeMapId === 'string' &&
+            mapData.activeMapId.trim() !== ''
+              ? mapData.activeMapId.trim()
+              : null;
+
+          const tokenKeys = ['tokensByMapId', 'activeMapTokens', 'activeMapId'];
+          const payloadKeys = Object.keys(mapData);
+          const tokenOnlyUpdate =
+            payloadKeys.length > 0 &&
+            payloadKeys.every((key) => tokenKeys.includes(key)) &&
+            (hasTokensByMapIdProp || hasActiveTokensProp || hasActiveIdProp);
+
+          if (tokenOnlyUpdate) {
+            const merged = mergeTokenPayload({
+              incomingTokensByMapId: sanitizedTokens,
+              incomingActiveMapTokens: sanitizedActiveTokens,
+              incomingActiveMapId: normalizedIncomingActiveId,
+              previousActiveMapId: activeMapIdRef.current,
+              previousCampaignMap: campaignMapRef.current,
+              previousMapTokens: mapTokensRef.current || {},
+            });
+
+            setActiveMapId(merged.activeMapId);
+            setMapTokens(merged.mapTokens);
+            setActiveMapTokens(merged.activeMapTokens);
+            setCampaignMap(merged.campaignMap);
+            setGeneratedMap(null);
+            return;
+          }
+
+          let workingPayload = mapData;
 
           if (hasTokensByMapIdProp) {
-            const sanitizedTokens = sanitizeTokensByMapId(mapData.tokensByMapId);
             const incomingKeys = Object.keys(mapData.tokensByMapId || {}).reduce(
               (acc, key) => {
                 if (typeof key !== 'string') {
@@ -1227,12 +1280,11 @@ export default function ZombiesDM() {
           }
 
           if (hasActiveTokensProp) {
-            const sanitizedActive = sanitizeTokenDictionary(mapData.activeMapTokens);
-            workingPayload = { ...workingPayload, activeMapTokens: sanitizedActive };
+            workingPayload = { ...workingPayload, activeMapTokens: sanitizedActiveTokens };
             if (workingPayload.map && typeof workingPayload.map === 'object') {
               workingPayload = {
                 ...workingPayload,
-                map: { ...workingPayload.map, tokens: sanitizedActive },
+                map: { ...workingPayload.map, tokens: sanitizedActiveTokens },
               };
             }
           }
