@@ -1,6 +1,7 @@
 import React, { useRef, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import classNames from '../../../utils/classNames';
+import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -316,7 +317,7 @@ const CampaignMapBoard = ({
               onPointerDown={handleLayerPointerDown}
             >
               {tokenPositions.map((token) => {
-                const { characterId, position, color, label, currentHp, maxHp } = token;
+                const { characterId, position, color, label, currentHp, maxHp, variant } = token;
                 const draggable = !interactionDisabled && token.isMovable !== false;
                 const normalizedLabel = normalizeText(label);
                 const displayLabel = normalizedLabel || normalizeText(characterId) || characterId;
@@ -333,6 +334,21 @@ const CampaignMapBoard = ({
                     : 0;
                 const fillPercent = Math.round(ratio * 10000) / 100;
                 const healthColor = getHealthColor(ratio);
+                const normalizedVariant =
+                  typeof variant === 'string' && variant.trim() !== ''
+                    ? variant.trim().toLowerCase()
+                    : null;
+
+                const figurineColor =
+                  normalizedVariant === 'enemy'
+                    ? ENEMY_FIGURINE_COLOR
+                    : normalizeText(color) || undefined;
+
+                const labelClassName = classNames(
+                  'campaign-map-board__figurine-label',
+                  normalizedVariant ? `campaign-map-board__figurine-label--${normalizedVariant}` : null
+                );
+
                 return (
                   <div
                     key={characterId}
@@ -391,7 +407,7 @@ const CampaignMapBoard = ({
                         'campaign-map-board__figurine',
                         draggable && 'campaign-map-board__figurine--active'
                       )}
-                      style={{ '--figurine-color': color || undefined }}
+                      style={{ '--figurine-color': figurineColor }}
                     >
                       <span className="campaign-map-board__figurine-figure" aria-hidden="true">
                         <span className="campaign-map-board__figurine-head" />
@@ -404,10 +420,7 @@ const CampaignMapBoard = ({
                       </span>
                     </div>
                     {displayLabel && (
-                      <span
-                        className="campaign-map-board__figurine-label"
-                        aria-hidden="true"
-                      >
+                      <span className={labelClassName} aria-hidden="true">
                         {displayLabel}
                       </span>
                     )}
@@ -434,6 +447,7 @@ CampaignMapBoard.propTypes = {
       y: PropTypes.number,
       color: PropTypes.string,
       label: PropTypes.string,
+      variant: PropTypes.oneOf(['enemy', 'ally', 'self']),
       isMovable: PropTypes.bool,
       currentHp: PropTypes.number,
       maxHp: PropTypes.number,

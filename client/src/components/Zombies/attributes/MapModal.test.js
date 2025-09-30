@@ -73,8 +73,8 @@ describe('MapModal', () => {
         }}
         currentCharacterId="hero"
         characterLookup={{
-          hero: { color: '#123456', label: 'Hero' },
-          ally: { color: '#654321', label: 'Ally' },
+          hero: { color: '#123456', label: 'Hero', entityType: 'character' },
+          ally: { color: '#654321', label: 'Ally', entityType: 'character' },
         }}
         onTokenMove={jest.fn().mockResolvedValue(true)}
       />
@@ -88,11 +88,13 @@ describe('MapModal', () => {
           characterId: 'hero',
           isMovable: true,
           color: '#123456',
+          variant: 'self',
         }),
         expect.objectContaining({
           characterId: 'ally',
           isMovable: false,
           color: '#654321',
+          variant: 'ally',
         }),
       ])
     );
@@ -111,7 +113,7 @@ describe('MapModal', () => {
         activeMapId="map-1"
         tokensByMapId={{ 'map-1': {} }}
         currentCharacterId="hero"
-        characterLookup={{ hero: { color: '#111111', label: 'Hero' } }}
+        characterLookup={{ hero: { color: '#111111', label: 'Hero', entityType: 'character' } }}
         onTokenMove={onTokenMove}
       />
     );

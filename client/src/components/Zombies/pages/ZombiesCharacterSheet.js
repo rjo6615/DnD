@@ -2110,38 +2110,56 @@ export default function ZombiesCharacterSheet() {
             ? value.diceColor.trim()
             : null;
 
+        const entityTypeRaw =
+          typeof value?.entityType === 'string' && value.entityType.trim() !== ''
+            ? value.entityType.trim()
+            : 'character';
+        const entityType = entityTypeRaw.toLowerCase();
+
         const { currentHp, maxHp } = calculateCharacterHitPoints(value);
 
         lookup[trimmed] = {
           color,
           label,
+          entityType,
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
         };
       });
     }
 
-    if (resolvedCharacterId && !lookup[resolvedCharacterId]) {
-      const color =
-        typeof form?.diceColor === 'string' && form.diceColor.trim() !== ''
-          ? form.diceColor.trim()
-          : null;
-      const label =
-        (typeof form?.characterName === 'string' && form.characterName.trim() !== ''
-          ? form.characterName.trim()
-          : null) ||
-        (typeof form?.name === 'string' && form.name.trim() !== ''
-          ? form.name.trim()
-          : null);
+    if (resolvedCharacterId) {
+      if (!lookup[resolvedCharacterId]) {
+        const color =
+          typeof form?.diceColor === 'string' && form.diceColor.trim() !== ''
+            ? form.diceColor.trim()
+            : null;
+        const label =
+          (typeof form?.characterName === 'string' && form.characterName.trim() !== ''
+            ? form.characterName.trim()
+            : null) ||
+          (typeof form?.name === 'string' && form.name.trim() !== ''
+            ? form.name.trim()
+            : null);
 
-      const { currentHp, maxHp } = calculateCharacterHitPoints(form);
+        const { currentHp, maxHp } = calculateCharacterHitPoints(form);
 
-      lookup[resolvedCharacterId] = {
-        color,
-        label,
-        currentHp: Number.isFinite(currentHp) ? currentHp : null,
-        maxHp: Number.isFinite(maxHp) ? maxHp : null,
-      };
+        lookup[resolvedCharacterId] = {
+          color,
+          label,
+          entityType: 'character',
+          currentHp: Number.isFinite(currentHp) ? currentHp : null,
+          maxHp: Number.isFinite(maxHp) ? maxHp : null,
+        };
+      } else if (
+        typeof lookup[resolvedCharacterId].entityType !== 'string' ||
+        lookup[resolvedCharacterId].entityType.trim() === ''
+      ) {
+        lookup[resolvedCharacterId] = {
+          ...lookup[resolvedCharacterId],
+          entityType: 'character',
+        };
+      }
     }
 
     return lookup;

@@ -27,6 +27,7 @@ import { calculateCharacterInitiative } from '../utils/derivedStats';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
+import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import {
   GiCharacter,
   GiStoneAxe,
@@ -2008,6 +2009,12 @@ export default function ZombiesDM() {
             (typeof record.characterId === 'string' && record.characterId.trim()) ||
             null;
 
+          const entityTypeRaw =
+            typeof record.entityType === 'string' && record.entityType.trim() !== ''
+              ? record.entityType.trim()
+              : 'character';
+          const entityType = entityTypeRaw.toLowerCase();
+
           const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
             calculateCharacterHitPoints(record);
 
@@ -2030,9 +2037,15 @@ export default function ZombiesDM() {
           );
 
           identifiers.forEach((identifier) => {
-            lookup[identifier.trim()] = {
+            const trimmed = identifier.trim();
+            if (!trimmed) {
+              return;
+            }
+
+            lookup[trimmed] = {
               color,
               label,
+              entityType,
               ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
               ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
             };
@@ -2065,11 +2078,9 @@ export default function ZombiesDM() {
           const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
           lookup[enemyId] = {
-            color:
-              typeof enemy.diceColor === 'string' && enemy.diceColor.trim() !== ''
-                ? enemy.diceColor.trim()
-                : null,
+            color: ENEMY_FIGURINE_COLOR,
             label,
+            entityType: 'enemy',
             ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
             ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
           };
@@ -2165,11 +2176,44 @@ export default function ZombiesDM() {
           const normalizedMaxHp = toFiniteNumberOrNull(
             meta.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
           );
+          const metaVariant =
+            typeof meta.variant === 'string' && meta.variant.trim() !== ''
+              ? meta.variant.trim().toLowerCase()
+              : null;
+          const tokenVariant =
+            typeof token.variant === 'string' && token.variant.trim() !== ''
+              ? token.variant.trim().toLowerCase()
+              : null;
+          const metaEntityType =
+            typeof meta.entityType === 'string' && meta.entityType.trim() !== ''
+              ? meta.entityType.trim().toLowerCase()
+              : null;
+          const tokenEntityType =
+            typeof token.entityType === 'string' && token.entityType.trim() !== ''
+              ? token.entityType.trim().toLowerCase()
+              : null;
+          const entityType = metaEntityType || tokenEntityType || null;
+
+          let variant = metaVariant || tokenVariant || null;
+          if (!variant && entityType) {
+            if (entityType === 'enemy') {
+              variant = 'enemy';
+            } else if (entityType === 'character') {
+              variant = 'ally';
+            }
+          }
+
+          const baseColor = meta.color || token.color || null;
+          const normalizedColor =
+            typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
+
           return {
             ...token,
             label,
-            color: meta.color || token.color || null,
+            color: normalizedColor,
             isMovable: true,
+            ...(entityType ? { entityType } : {}),
+            ...(variant ? { variant } : {}),
             ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
             ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
           };
