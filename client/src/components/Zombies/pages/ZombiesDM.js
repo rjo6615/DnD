@@ -4995,6 +4995,17 @@ const resolveIcon = (category, iconMap, fallback) => {
                         </Card.Subtitle>
                         <div className="d-grid gap-1">
                           <Card.Text className="small mb-1 text-light fw-semibold text-break">
+                            <span
+                              className="text-white-50 text-uppercase fw-semibold me-1"
+                              aria-hidden="true"
+                            >
+                              Size:
+                            </span>
+                            <span aria-hidden="true">
+                              {selectedMonster.size || selectedMonster.type || '—'}
+                            </span>
+                          </Card.Text>
+                          <Card.Text className="small mb-1 text-light fw-semibold text-break">
                             <span className="text-white-50 text-uppercase fw-semibold me-1" aria-hidden="true">
                               AC:
                             </span>
@@ -5076,6 +5087,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                       : maxHpValue !== null
                         ? maxHpValue
                         : null;
+                  const sizeDisplay = enemy.size || enemy.displayType || '—';
                   const healthSummary =
                     maxHpValue !== null
                       ? `${resolvedCurrentHp !== null ? resolvedCurrentHp : '—'} / ${maxHpValue}`
@@ -5093,6 +5105,12 @@ const resolveIcon = (category, iconMap, fallback) => {
                           {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
                         </Card.Subtitle>
                         <div className="d-grid gap-1">
+                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
+                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
+                              Size:
+                            </span>
+                            <span aria-hidden="true">{sizeDisplay}</span>
+                          </Card.Text>
                           <Card.Text className="small mb-1 text-body fw-semibold text-break">
                             <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
                               AC:
