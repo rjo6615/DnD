@@ -217,6 +217,34 @@ module.exports = (router) => {
     }, {});
   };
 
+  const resolveActiveMapState = ({
+    maps,
+    requestedActiveMapId,
+    tokensByMapId = {},
+  }) => {
+    const availableMaps = Array.isArray(maps) ? maps : [];
+    const trimmedActiveId =
+      typeof requestedActiveMapId === 'string' && requestedActiveMapId.trim() !== ''
+        ? requestedActiveMapId.trim()
+        : null;
+
+    let activeMapId =
+      trimmedActiveId && availableMaps.some((map) => map.mapId === trimmedActiveId)
+        ? trimmedActiveId
+        : null;
+
+    if (!activeMapId && availableMaps.length > 0) {
+      activeMapId = availableMaps[0].mapId;
+    }
+
+    const activeMapTokens =
+      activeMapId && tokensByMapId && typeof tokensByMapId === 'object'
+        ? tokensByMapId[activeMapId] || {}
+        : {};
+
+    return { activeMapId, activeMapTokens };
+  };
+
   // Apply authentication to all campaign routes
   campaignRouter.use(authenticateToken);
 
@@ -842,27 +870,35 @@ module.exports = (router) => {
             now,
           });
 
-          const payload = buildCampaignMapPayload(
-            normalizedCampaign.maps,
-            normalizedCampaign.activeMapId,
-            tokensByMapId
-          );
+          const { activeMapId: resolvedActiveMapId, activeMapTokens } =
+            resolveActiveMapState({
+              maps: normalizedCampaign.maps,
+              requestedActiveMapId: normalizedCampaign.activeMapId,
+              tokensByMapId,
+            });
 
           const tokenPayload = {
-            activeMapId: payload.activeMapId,
-            tokensByMapId: payload.tokensByMapId,
-            activeMapTokens: payload.activeMapTokens,
+            activeMapId: resolvedActiveMapId,
+            tokensByMapId,
+            activeMapTokens,
           };
+
+          const setDocument = {
+            mapTokens: tokensByMapId,
+          };
+
+          if (resolvedActiveMapId !== normalizedCampaign.activeMapId) {
+            setDocument.activeMapId = resolvedActiveMapId;
+          }
+
+          if (resolvedActiveMapId) {
+            setDocument['map.tokens'] = activeMapTokens;
+          }
 
           await campaignsCollection.updateOne(
             { campaignName },
             {
-              $set: {
-                mapTokens: payload.tokensByMapId,
-                maps: payload.maps,
-                activeMapId: payload.activeMapId,
-                map: payload.map || null,
-              },
+              $set: setDocument,
             }
           );
 
@@ -965,27 +1001,35 @@ module.exports = (router) => {
             now: new Date().toISOString(),
           });
 
-          const payload = buildCampaignMapPayload(
-            normalizedCampaign.maps,
-            normalizedCampaign.activeMapId,
-            tokensByMapId
-          );
+          const { activeMapId: resolvedActiveMapId, activeMapTokens } =
+            resolveActiveMapState({
+              maps: normalizedCampaign.maps,
+              requestedActiveMapId: normalizedCampaign.activeMapId,
+              tokensByMapId,
+            });
 
           const tokenPayload = {
-            activeMapId: payload.activeMapId,
-            tokensByMapId: payload.tokensByMapId,
-            activeMapTokens: payload.activeMapTokens,
+            activeMapId: resolvedActiveMapId,
+            tokensByMapId,
+            activeMapTokens,
           };
+
+          const setDocument = {
+            mapTokens: tokensByMapId,
+          };
+
+          if (resolvedActiveMapId !== normalizedCampaign.activeMapId) {
+            setDocument.activeMapId = resolvedActiveMapId;
+          }
+
+          if (resolvedActiveMapId) {
+            setDocument['map.tokens'] = activeMapTokens;
+          }
 
           await campaignsCollection.updateOne(
             { campaignName },
             {
-              $set: {
-                mapTokens: payload.tokensByMapId,
-                maps: payload.maps,
-                activeMapId: payload.activeMapId,
-                map: payload.map || null,
-              },
+              $set: setDocument,
             }
           );
 

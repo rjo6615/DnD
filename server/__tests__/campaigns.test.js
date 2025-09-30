@@ -546,18 +546,29 @@ describe('Campaign routes', () => {
       expect(res.body.activeMapTokens).toEqual({
         'hero-1': expect.objectContaining({ x: 1, y: 0 }),
       });
-      expect(updateOne).toHaveBeenCalledWith(
-        { campaignName: 'Test' },
+      const lastUpdateCall =
+        updateOne.mock.calls[updateOne.mock.calls.length - 1];
+      expect(lastUpdateCall[0]).toEqual({ campaignName: 'Test' });
+      const updateDoc = lastUpdateCall[1];
+      expect(updateDoc).toEqual(
         expect.objectContaining({
-          $set: expect.objectContaining({
-            mapTokens: {
-              [storedMap.mapId]: expect.objectContaining({
-                'hero-1': expect.objectContaining({ x: 1, y: 0 }),
-              }),
-            },
+          $set: expect.any(Object),
+        })
+      );
+      expect(updateDoc.$set).toEqual(
+        expect.objectContaining({
+          mapTokens: {
+            [storedMap.mapId]: expect.objectContaining({
+              'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+            }),
+          },
+          'map.tokens': expect.objectContaining({
+            'hero-1': expect.objectContaining({ x: 1, y: 0 }),
           }),
         })
       );
+      expect(updateDoc.$set).not.toHaveProperty('map');
+      expect(updateDoc.$set).not.toHaveProperty('maps');
       expect(emitMapUpdate).toHaveBeenCalledWith('Test', expect.any(Object));
       const emittedPayload = emitMapUpdate.mock.calls[0][1];
       expect(Object.keys(emittedPayload).sort()).toEqual(
@@ -712,14 +723,23 @@ describe('Campaign routes', () => {
       });
       expect(res.body.tokensByMapId).toEqual({});
       expect(res.body.activeMapTokens).toEqual({});
-      expect(updateOne).toHaveBeenCalledWith(
-        { campaignName: 'Test' },
+      const lastUpdateCall =
+        updateOne.mock.calls[updateOne.mock.calls.length - 1];
+      expect(lastUpdateCall[0]).toEqual({ campaignName: 'Test' });
+      const updateDoc = lastUpdateCall[1];
+      expect(updateDoc).toEqual(
         expect.objectContaining({
-          $set: expect.objectContaining({
-            mapTokens: {},
-          }),
+          $set: expect.any(Object),
         })
       );
+      expect(updateDoc.$set).toEqual(
+        expect.objectContaining({
+          mapTokens: {},
+          'map.tokens': {},
+        })
+      );
+      expect(updateDoc.$set).not.toHaveProperty('map');
+      expect(updateDoc.$set).not.toHaveProperty('maps');
       expect(emitMapUpdate).toHaveBeenCalledWith(
         'Test',
         expect.objectContaining({
