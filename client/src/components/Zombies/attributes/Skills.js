@@ -194,6 +194,26 @@ export default function Skills({
   const selectableSkills = new Set(safeForm.allowedSkills || []);
   const selectableExpertise = new Set(safeForm.allowedExpertise || []);
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--skills');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked && typeof onDockClose === 'function') {
+      onDockClose();
+    }
+    handleCloseSkill?.();
+  }, [isDocked, onDockClose, handleCloseSkill]);
+
   if (!form) {
     return <div>Loading...</div>;
   }
@@ -291,26 +311,6 @@ export default function Skills({
   const handleCloseSkillInfo = () => {
     setShowSkillInfo(false);
   };
-
-  const dialogClassName = useMemo(() => {
-    if (!isDocked) {
-      return undefined;
-    }
-
-    const classes = ['docked-modal'];
-    if (dockedSide) {
-      classes.push(`docked-modal--${dockedSide}`);
-    }
-    classes.push('docked-modal--skills');
-    return classes.join(' ');
-  }, [isDocked, dockedSide]);
-
-  const handleModalHide = useCallback(() => {
-    if (isDocked && typeof onDockClose === 'function') {
-      onDockClose();
-    }
-    handleCloseSkill?.();
-  }, [isDocked, onDockClose, handleCloseSkill]);
 
   return (
     <>
