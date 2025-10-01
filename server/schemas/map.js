@@ -25,6 +25,7 @@ const createMapSchema = (z) => {
       .regex(/^[A-Za-z0-9+/=]+$/, 'imageBase64 must be a base64-encoded string')
       .optional(),
     imageType: z.string().trim().min(1).optional(),
+    cloudinaryPublicId: z.string().trim().min(1).optional(),
     width: z.number().int().positive().optional(),
     height: z.number().int().positive().optional(),
     provider: z.string().trim().min(1).optional(),
@@ -84,6 +85,18 @@ const createMapSchema = (z) => {
           delete map.imageType;
         } else {
           map.imageType = trimmedType;
+        }
+      }
+
+      if (
+        map.cloudinaryPublicId &&
+        typeof map.cloudinaryPublicId === 'string'
+      ) {
+        const trimmedId = map.cloudinaryPublicId.trim();
+        if (trimmedId) {
+          map.cloudinaryPublicId = trimmedId;
+        } else {
+          delete map.cloudinaryPublicId;
         }
       }
 

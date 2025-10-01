@@ -288,6 +288,23 @@ const prepareStoredMap = ({
     storedMap.title = existing.title.trim();
   }
 
+  if (typeof storedMap.cloudinaryPublicId === 'string') {
+    const trimmedId = storedMap.cloudinaryPublicId.trim();
+    if (trimmedId) {
+      storedMap.cloudinaryPublicId = trimmedId;
+    } else {
+      delete storedMap.cloudinaryPublicId;
+    }
+  }
+
+  if (
+    storedMap.cloudinaryPublicId === undefined &&
+    typeof existing.cloudinaryPublicId === 'string' &&
+    existing.cloudinaryPublicId.trim() !== ''
+  ) {
+    storedMap.cloudinaryPublicId = existing.cloudinaryPublicId.trim();
+  }
+
   if (typeof prompt === 'string' && prompt.trim() !== '') {
     storedMap.originalPrompt = prompt.trim();
   } else if (

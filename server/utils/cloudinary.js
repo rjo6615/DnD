@@ -46,7 +46,21 @@ const uploadMapImage = async (image, options = {}) => {
   });
 };
 
+const deleteMapImage = async (publicId, options = {}) => {
+  if (!publicId || typeof publicId !== 'string') {
+    throw new Error('A Cloudinary public ID is required to delete an image');
+  }
+
+  configure();
+  const sdk = resolveCloudinary();
+  return sdk.uploader.destroy(publicId, {
+    resource_type: 'image',
+    ...options,
+  });
+};
+
 module.exports = {
   uploadMapImage,
+  deleteMapImage,
   getMapFolder,
 };

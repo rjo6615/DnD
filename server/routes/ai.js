@@ -397,6 +397,14 @@ module.exports = (router) => {
             delete mapPayload.imageBase64;
             delete mapPayload.imageType;
           }
+
+          const publicIdCandidate =
+            typeof uploadResult?.public_id === 'string'
+              ? uploadResult.public_id.trim()
+              : '';
+          if (publicIdCandidate) {
+            mapPayload.cloudinaryPublicId = publicIdCandidate;
+          }
         } catch (uploadError) {
           logger.warn('Failed to upload map image to Cloudinary', {
             error: uploadError.message,

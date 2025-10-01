@@ -344,6 +344,7 @@ describe('AI map route', () => {
   test('uploads generated maps to Cloudinary when available', async () => {
     mockUploadMapImage.mockResolvedValue({
       secure_url: 'https://res.cloudinary.com/demo/map.png',
+      public_id: 'maps/demo/map',
     });
     mockGenerate.mockResolvedValue({
       data: [
@@ -365,6 +366,7 @@ describe('AI map route', () => {
     expect(res.body.imageUrl).toBe('https://res.cloudinary.com/demo/map.png');
     expect(res.body.imageBase64).toBeUndefined();
     expect(res.body.prompt).toBe('cloud-hosted map');
+    expect(res.body.cloudinaryPublicId).toBe('maps/demo/map');
   });
 
   test('falls back to base64 data when Cloudinary upload fails', async () => {
@@ -385,6 +387,7 @@ describe('AI map route', () => {
     expect(res.status).toBe(200);
     expect(res.body.imageBase64).toBe('QUJD');
     expect(res.body.imageUrl).toBeUndefined();
+    expect(res.body.cloudinaryPublicId).toBeUndefined();
   });
 
   test('derives a title from the user prompt when no revision is provided', async () => {
