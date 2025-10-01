@@ -236,6 +236,51 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(necrotic.textContent).toBe('2d8 Necrotic');
   });
 
+  test('healing spells roll for numeric totals', async () => {
+    const spell = {
+      name: 'Healing Word',
+      level: 1,
+      damage: '1d4',
+      castingTime: '1 bonus action',
+      range: '60 feet',
+      duration: 'Instantaneous',
+      casterType: 'Cleric',
+    };
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      render(
+        <PlayerTurnActions
+          form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+          strMod={0}
+          dexMod={0}
+        />
+      );
+      act(() => {
+        fireEvent.click(screen.getByTitle('Attack'));
+      });
+      const card = screen.getByText('Healing Word').closest('.attack-card');
+      expect(card).not.toBeNull();
+      const rollButton = within(card).getByLabelText('roll');
+      await act(async () => {
+        fireEvent.click(rollButton);
+      });
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value');
+        const text = valueNode.textContent;
+        if (!text || text === '0' || !/^\d+$/.test(text)) {
+          throw new Error('waiting');
+        }
+      });
+      const result = document.getElementById('damageValue').textContent;
+      expect(result).toMatch(/^\d+$/);
+      expect(result).not.toBe('0');
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
   test('shows breath attack details for dragonborn ancestry', () => {
     const ancestry = {
       label: 'Gold (Fire)',
