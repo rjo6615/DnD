@@ -679,11 +679,13 @@ const MapModal = ({
   }, [isDocked, dockedSide]);
 
   const modalClassName = useMemo(() => {
-    if (!isDocked) {
-      return undefined;
+    const classes = ['dnd-modal', 'modern-modal'];
+
+    if (isDocked) {
+      classes.push('docked-modal-container');
     }
 
-    return 'docked-modal-container';
+    return classes.join(' ');
   }, [isDocked]);
 
   const handleModalHide = useCallback(() => {
