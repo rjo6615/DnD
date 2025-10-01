@@ -201,8 +201,11 @@
 
 .dock-selector {
   position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
+  top: clamp(
+    1rem,
+    calc(var(--docked-modal-top-offset, 0) - 2.75rem),
+    calc(100vh - 4rem)
+  );
   display: flex;
   flex-direction: column;
   align-items: center;
