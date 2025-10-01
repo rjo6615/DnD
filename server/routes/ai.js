@@ -17,7 +17,6 @@ const {
 const { skillNames } = require('./fieldConstants');
 const createMapSchema = require('../schemas/map');
 const { deriveMapTitle } = require('../utils/mapTitle');
-const { uploadMapImage } = require('../utils/cloudinary');
 
 const resolveOpenAI = () => {
   if (!OpenAI) {
@@ -381,36 +380,6 @@ module.exports = (router) => {
             }
           : {}),
       };
-
-      if (typeof uploadMapImage === 'function' && (image.url || image.b64_json)) {
-        try {
-          const mimeType =
-            (typeof image.mime_type === 'string' && image.mime_type.trim() !== ''
-              ? image.mime_type.trim()
-              : mapPayload.imageType) || 'image/png';
-          const uploadSource = image.url
-            ? image.url
-            : `data:${mimeType};base64,${image.b64_json}`;
-          const uploadResult = await uploadMapImage(uploadSource);
-          if (uploadResult?.secure_url) {
-            mapPayload.imageUrl = uploadResult.secure_url;
-            delete mapPayload.imageBase64;
-            delete mapPayload.imageType;
-          }
-
-          const publicIdCandidate =
-            typeof uploadResult?.public_id === 'string'
-              ? uploadResult.public_id.trim()
-              : '';
-          if (publicIdCandidate) {
-            mapPayload.cloudinaryPublicId = publicIdCandidate;
-          }
-        } catch (uploadError) {
-          logger.warn('Failed to upload map image to Cloudinary', {
-            error: uploadError.message,
-          });
-        }
-      }
 
       if (!mapSchemas) {
         return res.json(mapPayload);
