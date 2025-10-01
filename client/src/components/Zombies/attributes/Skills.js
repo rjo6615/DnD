@@ -208,9 +208,13 @@ export default function Skills({
   }, [isDocked, dockedSide]);
 
   const handleModalHide = useCallback(() => {
-    if (isDocked && typeof onDockClose === 'function') {
-      onDockClose();
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
     }
+
     handleCloseSkill?.();
   }, [isDocked, onDockClose, handleCloseSkill]);
 
@@ -300,7 +304,9 @@ export default function Skills({
       })
     );
 
-    handleCloseSkill?.();
+    if (!isDocked) {
+      handleCloseSkill?.();
+    }
   };
 
   const handleView = (skill) => {

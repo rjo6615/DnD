@@ -679,9 +679,13 @@ const MapModal = ({
   }, [isDocked, dockedSide]);
 
   const handleModalHide = useCallback(() => {
-    if (isDocked && typeof onDockClose === 'function') {
-      onDockClose();
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
     }
+
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
