@@ -5,6 +5,7 @@ import React, {
   useMemo,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover } from "react-bootstrap";
+import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -532,13 +533,6 @@ const sortedSpells = useMemo(() => {
 }, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
-const opacity = 0.85;
-// Calculate RGBA color with opacity
-const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
-
-// Apply the calculated RGBA color to the element
-document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
 const [damageLog, setDamageLog] = useState([]);
@@ -597,74 +591,6 @@ useEffect(() => {
     return () => clearTimeout(timer);
   }
 }, [loading]);
-//-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
-const [sides] = useState(20);
-const [initialSide] = useState(1);
-const [timeoutId, setTimeoutId] = useState(null);
-const [animationDuration] = useState('3000ms');
-const [activeFace, setActiveFace] = useState(null);
-const [rolling, setRolling] = useState(false);
-const face = Math.floor(Math.random() * sides) + initialSide;
-
-const randomFace = () => {
-  return face === activeFace ? randomFace() : face;
-};
-
-const rollTo = (face) => {
-  clearTimeout(timeoutId);
-  setActiveFace(face);
-  setRolling(false);
-
-  if (face === 20 || face === 1) {
-    showSparklesEffect({ x: 100 / 2, y: 100 / 2 });
-    setTimeout(() => {
-      showSparklesEffect();
-    }, 5000);
-  }
-};
-
-const handleRandomizeClick = (e) => {
-  e.preventDefault(); // Prevent page refresh
-  setRolling(true);
-  clearTimeout(timeoutId);
-
-  const newTimeoutId = setTimeout(() => {
-    setRolling(false);
-    rollTo(randomFace());
-  }, parseInt(animationDuration, 10));
-
-  setTimeoutId(newTimeoutId);
-};
-
-useEffect(() => {
-  // Cleanup effect
-  return () => clearTimeout(timeoutId);
-}, [timeoutId]);
-
-const faceElements = [];
-for (let i = 1; i <= 20; i++) {
-  faceElements.push(
-    <figure className={`face face-${i}`} key={i}></figure>
-  );
-}
-const [showSparkles, setShowSparkles] = useState(false);
-const [showSparkles1, setShowSparkles1] = useState(false);
-
-// Create a function to display sparkles
-const showSparklesEffect = () => {
-  if (face === 20) {
-    setShowSparkles(true);
-    setTimeout(() => {
-      setShowSparkles(false);
-    }, 2000);
-  } else if (face === 1) {
-    setShowSparkles1(true);
-    setTimeout(() => {
-      setShowSparkles1(false);
-    }, 2000);
-  }
-};
-//-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
   const passDisabled = !canPassTurn || isPassTurnInProgress;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -830,23 +756,7 @@ const showSparklesEffect = () => {
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             title="Attack"
           />
-          <div className="attack-roll-controls__die">
-            <div className="content">
-              {showSparkles && (
-                <div className="sparkle"></div>
-              )}
-              {showSparkles1 && (
-                <div className="sparkle1"></div>
-              )}
-              <div
-                onClick={handleRandomizeClick}
-                className={`die ${rolling ? 'rolling' : ''}`}
-                data-face={activeFace}
-              >
-                {faceElements}
-              </div>
-            </div>
-          </div>
+          <D20RollerModal renderInline diceColor={form?.diceColor} />
         </div>
       </div>
 {/* Attack Modal */}
