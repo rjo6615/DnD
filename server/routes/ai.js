@@ -308,7 +308,7 @@ module.exports = (router) => {
       const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'b64_json';
 
       const FEET_PER_SIDE = 120;
-      const PIXELS_PER_FOOT = 10;      // 1 ft = 10 px  → final = 1200×1200
+      const PIXELS_PER_FOOT = 8.5;      // 1 ft = 10 px  → final = 1200×1200
       const OUTPUT_SIZE = FEET_PER_SIDE * PIXELS_PER_FOOT; // 1200
 
       const generationPrompt = [
