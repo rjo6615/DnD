@@ -1205,6 +1205,7 @@ export default function ZombiesCharacterSheet() {
   const rootContainerRef = useRef(null);
   const contentColumnRef = useRef(null);
   const headerRef = useRef(null);
+  const combatHeaderRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
 
@@ -1269,9 +1270,14 @@ export default function ZombiesCharacterSheet() {
 
     const contentRect = contentElement.getBoundingClientRect();
     const headerElement = headerRef.current;
+    const combatHeaderElement = combatHeaderRef.current;
     const headerRect =
       headerElement && typeof headerElement.getBoundingClientRect === 'function'
         ? headerElement.getBoundingClientRect()
+        : null;
+    const combatHeaderRect =
+      combatHeaderElement && typeof combatHeaderElement.getBoundingClientRect === 'function'
+        ? combatHeaderElement.getBoundingClientRect()
         : null;
     const rootRect =
       typeof rootElement.getBoundingClientRect === 'function'
@@ -1280,9 +1286,15 @@ export default function ZombiesCharacterSheet() {
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
 
     const rootTop = rootRect?.top ?? 0;
-    const topOffset = headerRect?.bottom != null
-      ? Math.max(0, headerRect.bottom - rootTop)
-      : Math.max(0, contentRect.top - rootTop);
+    const TRACKER_BUFFER = 12;
+    const trackerOffset =
+      combatHeaderRect?.bottom != null
+        ? Math.max(0, combatHeaderRect.bottom - rootTop + TRACKER_BUFFER)
+        : null;
+    const topOffset = trackerOffset ??
+      (headerRect?.bottom != null
+        ? Math.max(0, headerRect.bottom - rootTop)
+        : Math.max(0, contentRect.top - rootTop));
 
     const leftGutter = Math.max(0, contentRect.left);
     const rightGutter = Math.max(0, viewportWidth - contentRect.right);
@@ -1333,6 +1345,11 @@ export default function ZombiesCharacterSheet() {
       window.removeEventListener('resize', handleResize);
       if (resizeObserver) {
         resizeObserver.disconnect();
+      }
+
+      const dockingScopeElement = document.documentElement || document.body;
+      if (dockingScopeElement) {
+        dockingScopeElement.style.removeProperty('--docked-modal-top-offset');
       }
     };
   }, [updateDockedModalMetrics]);
@@ -3030,7 +3047,9 @@ const spellsGold =
         </>
       )}
       <div ref={headerRef}>
-        <CombatTurnHeader participants={participantsWithDetails} />
+        <div ref={combatHeaderRef}>
+          <CombatTurnHeader participants={participantsWithDetails} />
+        </div>
         <h1
           style={{
             fontSize: "28px",
