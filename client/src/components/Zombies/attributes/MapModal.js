@@ -737,7 +737,7 @@ const MapModal = ({
         )}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide} data-testid="map-modal-close">
+        <Button className="action-btn close-btn" onClick={handleModalHide} data-testid="map-modal-close">
           Close
         </Button>
       </Modal.Footer>
