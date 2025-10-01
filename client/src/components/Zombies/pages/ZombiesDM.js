@@ -29,6 +29,7 @@ import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import { calculateDamage } from '../attributes/PlayerTurnActions';
+import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import {
   GiCharacter,
@@ -395,6 +396,7 @@ export default function ZombiesDM() {
       enemyId: null,
       enemyName: null,
     });
+    const [showDiceRoller, setShowDiceRoller] = useState(false);
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
     const activeMapTokensRef = useRef(activeMapTokens);
@@ -2195,6 +2197,35 @@ export default function ZombiesDM() {
 
       return { ...combatState.participants[activeTurn], index: activeTurn };
     }, [combatState]);
+
+    const activeDiceColor = useMemo(() => {
+      const normalizeColor = (value) => {
+        if (typeof value !== 'string') {
+          return null;
+        }
+        const trimmed = value.trim();
+        return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed : null;
+      };
+
+      if (activeParticipant) {
+        const character = characterLookup.get(activeParticipant.characterId);
+        const color = normalizeColor(character?.diceColor);
+        if (color) {
+          return color;
+        }
+      }
+
+      if (Array.isArray(records)) {
+        for (const record of records) {
+          const color = normalizeColor(record?.diceColor);
+          if (color) {
+            return color;
+          }
+        }
+      }
+
+      return DEFAULT_DICE_COLOR;
+    }, [activeParticipant, characterLookup, records]);
 
     const activeTurnDisplayName = useMemo(() => {
       if (!activeParticipant) {
@@ -5094,23 +5125,33 @@ const resolveIcon = (category, iconMap, fallback) => {
                       </Form.Group>
                     </Col>
                     <Col md={6} className="d-flex justify-content-center justify-content-md-end">
-                      <Button
-                        type="submit"
-                        variant="outline-light"
-                        className="rounded-pill mt-3 mt-md-0"
-                        disabled={!selectedMonsterIndex || addingEnemy}
-                      >
-                        {addingEnemy && (
-                          <Spinner
-                            animation="border"
-                            size="sm"
-                            role="status"
-                            aria-hidden="true"
-                            className="me-2"
-                          />
-                        )}
-                        Add Enemy
-                      </Button>
+                      <div className="d-flex flex-column flex-md-row gap-2 mt-3 mt-md-0">
+                        <Button
+                          type="submit"
+                          variant="outline-light"
+                          className="rounded-pill"
+                          disabled={!selectedMonsterIndex || addingEnemy}
+                        >
+                          {addingEnemy && (
+                            <Spinner
+                              animation="border"
+                              size="sm"
+                              role="status"
+                              aria-hidden="true"
+                              className="me-2"
+                            />
+                          )}
+                          Add Enemy
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline-light"
+                          className="rounded-pill"
+                          onClick={() => setShowDiceRoller(true)}
+                        >
+                          Roll
+                        </Button>
+                      </div>
                     </Col>
                   </Row>
                 </Form>
@@ -6493,6 +6534,11 @@ const resolveIcon = (category, iconMap, fallback) => {
     </Tab.Pane>
   </Tab.Content>
         </Tab.Container>
+        <D20RollerModal
+          show={showDiceRoller}
+          onHide={() => setShowDiceRoller(false)}
+          diceColor={activeDiceColor}
+        />
       </Container>
 
       <Modal

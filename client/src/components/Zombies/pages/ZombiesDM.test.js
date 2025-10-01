@@ -1257,4 +1257,63 @@ describe('ZombiesDM AI generation', () => {
       );
     });
   });
+  test('opens the d20 roller modal when clicking the Roll button in enemies form', async () => {
+    const characters = [
+      { _id: 'hero-1', characterName: 'Hero One', diceColor: '#3366ff' },
+    ];
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              participants: [{ characterId: 'hero-1', initiative: 15 }],
+              activeTurn: 0,
+            }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [],
+              activeMapId: null,
+              map: null,
+              tokensByMapId: {},
+              activeMapTokens: {},
+            }),
+          });
+        case '/monsters':
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ index: 'goblin', name: 'Goblin' }],
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const enemiesTab = await screen.findByRole('tab', { name: 'Enemies' });
+    await userEvent.click(enemiesTab);
+
+    const rollButton = await screen.findByRole('button', { name: /^Roll$/i });
+    await userEvent.click(rollButton);
+
+    const modal = await screen.findByRole('dialog', { name: /Roll D20/i });
+    expect(
+      within(modal).getByRole('button', { name: /roll a d20/i })
+    ).toBeInTheDocument();
+  });
+
+
 });
