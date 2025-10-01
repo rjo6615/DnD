@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { Modal, Button } from "react-bootstrap";
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
@@ -15,7 +15,14 @@ const createEmptyStatMap = () => ({
   cha: 0,
 });
 
-export default function Stats({ form, showStats, handleCloseStats }) {
+export default function Stats({
+  form,
+  showStats,
+  handleCloseStats,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
+}) {
   const [stats] = useState({
     str: form.str || 0,
     dex: form.dex || 0,
@@ -127,15 +134,51 @@ export default function Stats({ form, showStats, handleCloseStats }) {
     setShowBreakdown(false);
   };
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--stats');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleCloseStats?.();
+  }, [handleCloseStats, isDocked, onDockClose]);
+
   return (
     <>
       <Modal
         show={showStats}
-        onHide={handleCloseStats}
+        onHide={handleModalHide}
         size="lg"
         scrollable
-        centered
-        className="dnd-modal modern-modal"
+        centered={!isDocked}
+        className={modalClassName}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
       >
         <Modal.Header className="modal-header">
           <Modal.Title className="modal-title">Stats</Modal.Title>
@@ -173,7 +216,7 @@ export default function Stats({ form, showStats, handleCloseStats }) {
           </div>
         </Modal.Body>
         <Modal.Footer className="modal-footer">
-          <Button className="action-btn close-btn" onClick={handleCloseStats}>Close</Button>
+          <Button className="action-btn close-btn" onClick={handleModalHide}>Close</Button>
         </Modal.Footer>
       </Modal>
       <StatBreakdownModal

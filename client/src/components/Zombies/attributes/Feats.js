@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Col, Row, Alert } from 'react-bootstrap';
 import { useNavigate, useParams } from "react-router-dom";
@@ -55,7 +55,14 @@ const ALL_SKILLS = [...SKILLS, ...TOOL_OPTIONS];
 // Maximum number of selectable proficiencies a feat may grant.
 const SKILL_SELECT_LIMIT = 3;
 
-export default function Feats({ form, showFeats, handleCloseFeats }) {
+export default function Feats({
+  form,
+  showFeats,
+  handleCloseFeats,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
+}) {
   const params = useParams();
   const navigate = useNavigate();
   //----------------------------------------------Feats Section-----------------------------------------------------------------
@@ -286,6 +293,38 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
     { label: 'HP Max Bonus/Level', key: 'hpMaxBonusPerLevel' },
   ];
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--feats');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleCloseFeats?.();
+  }, [handleCloseFeats, isDocked, onDockClose]);
+
   return (
     <div>
       {notification && (
@@ -294,7 +333,17 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
         </Alert>
       )}
       {/* -----------------------------------------Feats Render------------------------------------------------------------------------------------------------------------------------------------ */}
-      <Modal className="dnd-modal modern-modal" show={showFeats} onHide={handleCloseFeats} size="lg" centered>
+      <Modal
+        className={modalClassName}
+        show={showFeats}
+        onHide={handleModalHide}
+        size="lg"
+        centered={!isDocked}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
+      >
         <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
@@ -514,7 +563,7 @@ export default function Feats({ form, showFeats, handleCloseFeats }) {
               </Row>
             </Card.Body>
             <Card.Footer className="modal-footer">
-              <Button className="action-btn close-btn" onClick={handleCloseFeats}>
+              <Button className="action-btn close-btn" onClick={handleModalHide}>
                 Close
               </Button>
             </Card.Footer>

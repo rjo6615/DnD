@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Import useState and React
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Table, Button, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
@@ -22,6 +22,9 @@ export default function Help({
   showHelpModal,
   handleCloseHelpModal,
   onDiceColorChange,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -133,16 +136,53 @@ export default function Help({
       // Swallow fetch errors silently for now.
     }
   }
+
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--help');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal', 'text-center'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleCloseHelpModal?.();
+  }, [handleCloseHelpModal, isDocked, onDockClose]);
+
   return (
     <div>
       <Modal
-        className="dnd-modal modern-modal text-center"
+        className={modalClassName}
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
-        centered
+        centered={!isDocked}
         scrollable
         show={showHelpModal}
-        onHide={handleCloseHelpModal}
+        onHide={handleModalHide}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
       >
         <Card className="modern-card text-center">
           <Card.Header className="modal-header">
@@ -221,7 +261,7 @@ export default function Help({
             <Button className="action-btn btn-danger" onClick={handleShowDeleteCharacter}>
               Delete Character
             </Button>
-            <Button className="action-btn close-btn" onClick={handleCloseHelpModal}>
+            <Button className="action-btn close-btn" onClick={handleModalHide}>
               Close
             </Button>
           </Card.Footer>

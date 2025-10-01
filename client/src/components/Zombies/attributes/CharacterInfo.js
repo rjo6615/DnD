@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Card, Modal, Button } from "react-bootstrap";
 import levelup from "../../../images/levelup.png";
 import LevelUp from "./LevelUp"; // Import LevelUp component
@@ -10,6 +10,9 @@ export default function CharacterInfo({
   onShowBackground,
   onLongRest = () => {},
   onShortRest = () => {},
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -26,14 +29,50 @@ export default function CharacterInfo({
     .filter((language) => language && !language.includes("Choice"))
     .join(", ");
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--characterInfo');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleClose?.();
+  }, [handleClose, isDocked, onDockClose]);
+
   return (
     <Modal
-      className="dnd-modal modern-modal"
+      className={modalClassName}
       show={show}
-      onHide={handleClose}
+      onHide={handleModalHide}
       size="lg"
-      centered
+      centered={!isDocked}
       scrollable
+      backdrop={isDocked ? false : true}
+      enforceFocus={!isDocked}
+      restoreFocus={!isDocked}
+      dialogClassName={dialogClassName}
     >
       <Card className="modern-card text-center">
         <Card.Header className="modal-header">
@@ -127,7 +166,7 @@ export default function CharacterInfo({
           <Button
             className="action-btn close-btn"
             variant="primary"
-            onClick={handleClose}
+            onClick={handleModalHide}
           >
             Close
           </Button>
