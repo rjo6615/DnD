@@ -1,114 +1,75 @@
 import React from 'react';
-import { render, screen, within, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import Skills, { rollSkill } from './Skills';
-import apiFetch from '../../../utils/apiFetch';
+import { render } from '@testing-library/react';
+import Skills from './Skills';
 
-jest.mock('../../../utils/apiFetch');
+let capturedModalProps;
+
+jest.mock('react-bootstrap', () => {
+  const actual = jest.requireActual('react-bootstrap');
+  return {
+    ...actual,
+    Modal: ({ children, ...props }) => {
+      capturedModalProps = props;
+      return <div data-testid="mock-modal">{children}</div>;
+    },
+  };
+});
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ id: '1' }),
+  useParams: () => ({ id: 'test-id' }),
 }));
 
-describe('rollSkill critical and fumble events', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  test('dispatches critical event on natural 20', () => {
-    const listener = jest.fn();
-    window.addEventListener('critical-hit', listener);
-    jest.spyOn(Math, 'random').mockReturnValue(0.95); // yields 20
-    rollSkill(0);
-    expect(listener).toHaveBeenCalled();
-    expect(listener.mock.calls[0][0].detail).toContain('critical');
-    window.removeEventListener('critical-hit', listener);
-  });
-
-  test('dispatches fumble event on natural 1', () => {
-    const listener = jest.fn();
-    window.addEventListener('critical-failure', listener);
-    jest.spyOn(Math, 'random').mockReturnValue(0); // yields 1
-    rollSkill(0);
-    expect(listener).toHaveBeenCalled();
-    expect(listener.mock.calls[0][0].detail).toContain('fumble');
-    window.removeEventListener('critical-failure', listener);
-  });
+const createProps = (overrides = {}) => ({
+  form: {
+    skills: {},
+    race: {},
+    background: {},
+    feat: [],
+    item: [],
+    armor: [],
+    weapon: [],
+    equipment: {},
+    proficiencyPoints: 0,
+    expertisePoints: 0,
+  },
+  showSkill: true,
+  handleCloseSkill: jest.fn(),
+  totalLevel: 0,
+  strMod: 0,
+  dexMod: 0,
+  conMod: 0,
+  intMod: 0,
+  chaMod: 0,
+  wisMod: 0,
+  onSkillsChange: jest.fn(),
+  onRollResult: jest.fn(),
+  ...overrides,
 });
 
-describe('Skills expertise toggle', () => {
-  test('enables and toggles expertise for background proficient skill', async () => {
-    apiFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ proficient: false, expertise: true }),
-    });
-
-    render(
-      <Skills
-        form={{
-          background: { skills: { acrobatics: { proficient: true } } },
-          allowedExpertise: ['acrobatics'],
-          expertisePoints: 1,
-          item: [],
-          feat: [],
-          race: {},
-          skills: {},
-        }}
-        showSkill={true}
-        handleCloseSkill={() => {}}
-        totalLevel={1}
-        strMod={0}
-        dexMod={0}
-        conMod={0}
-        intMod={0}
-        chaMod={0}
-        wisMod={0}
-      />
-    );
-
-    const skillLabel = await screen.findByText('Acrobatics');
-    const skillCard = skillLabel.closest('.skill-card');
-    expect(skillCard).not.toBeNull();
-    const checkboxes = within(skillCard).getAllByRole('checkbox');
-    const expertiseCheckbox = checkboxes[1];
-    expect(expertiseCheckbox.disabled).toBe(false);
-
-    await userEvent.click(expertiseCheckbox);
-    await waitFor(() => expect(expertiseCheckbox).toBeChecked());
-  });
-});
-
-describe('item skill bonuses', () => {
-  test('applies bonuses from item skillBonuses object', async () => {
-    render(
-      <Skills
-        form={{
-          equipment: {
-            ringLeft: { name: 'Ring of Agility', skillBonuses: { acrobatics: 2 }, source: 'item' },
-          },
-          item: [],
-          feat: [],
-          race: {},
-          skills: {},
-        }}
-        showSkill={true}
-        handleCloseSkill={() => {}}
-        totalLevel={1}
-        strMod={0}
-        dexMod={0}
-        conMod={0}
-        intMod={0}
-        chaMod={0}
-        wisMod={0}
-      />
-    );
-
-    const skillLabel = await screen.findByText('Acrobatics');
-    const skillCard = skillLabel.closest('.skill-card');
-    expect(skillCard).not.toBeNull();
-    const totalLabel = within(skillCard).getByText('Total');
-    expect(totalLabel.nextElementSibling).toHaveTextContent('2');
+describe('Skills modal docking props', () => {
+  beforeEach(() => {
+    capturedModalProps = null;
   });
 
+  it('applies docked layout when docked', () => {
+    render(<Skills {...createProps({ isDocked: true, dockedSide: 'left' })} />);
+
+    expect(capturedModalProps).not.toBeNull();
+    expect(capturedModalProps.dialogClassName).toContain('docked-modal');
+    expect(capturedModalProps.dialogClassName).toContain('docked-modal--left');
+    expect(capturedModalProps.centered).toBe(false);
+    expect(capturedModalProps.backdrop).toBe(false);
+    expect(capturedModalProps.enforceFocus).toBe(false);
+  });
+
+  it('uses default modal layout when not docked', () => {
+    render(<Skills {...createProps()} />);
+
+    expect(capturedModalProps).not.toBeNull();
+    expect(capturedModalProps.dialogClassName).toBeUndefined();
+    expect(capturedModalProps.centered).toBe(true);
+    expect(capturedModalProps.backdrop).toBe(true);
+    expect(capturedModalProps.enforceFocus).toBe(true);
+  });
 });

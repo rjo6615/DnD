@@ -126,6 +126,9 @@ const MapModal = ({
   characterLookup,
   onTokenMove,
   readOnly,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) => {
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
@@ -662,12 +665,36 @@ const MapModal = ({
     );
   };
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--map');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked && typeof onDockClose === 'function') {
+      onDockClose();
+    }
+    onHide?.();
+  }, [isDocked, onDockClose, onHide]);
+
   return (
     <Modal
       show={show}
-      onHide={onHide}
+      onHide={handleModalHide}
       size={hasManagementFeatures ? 'xl' : 'lg'}
-      centered
+      centered={!isDocked}
+      backdrop={isDocked ? false : true}
+      enforceFocus={!isDocked}
+      restoreFocus={!isDocked}
+      dialogClassName={dialogClassName}
       data-testid="map-modal-wrapper"
     >
       <Modal.Header closeButton>
@@ -728,6 +755,9 @@ MapModal.propTypes = {
   ),
   onTokenMove: PropTypes.func,
   readOnly: PropTypes.bool,
+  isDocked: PropTypes.bool,
+  dockedSide: PropTypes.oneOf(['left', 'right']),
+  onDockClose: PropTypes.func,
 };
 
 MapModal.defaultProps = {
@@ -750,6 +780,9 @@ MapModal.defaultProps = {
   characterLookup: {},
   onTokenMove: null,
   readOnly: true,
+  isDocked: false,
+  dockedSide: null,
+  onDockClose: null,
 };
 
 export default MapModal;

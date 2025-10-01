@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button, Form } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -44,6 +44,12 @@ import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 
 const HEADER_PADDING = 16;
+const DOCKABLE_MODAL_OPTIONS = [
+  { key: null, label: 'None' },
+  { key: 'skills', label: 'Skills' },
+  { key: 'map', label: 'Campaign Map' },
+];
+const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
 const toFiniteNumberOrNull = (value) => {
@@ -683,6 +689,34 @@ export default function ZombiesCharacterSheet() {
   const campaignMapRef = useRef(null);
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
+  const [dockedModals, setDockedModals] = useState({ left: null, right: null });
+  const [isWideScreen, setIsWideScreen] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+    return window.matchMedia(WIDE_SCREEN_QUERY).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mediaQueryList = window.matchMedia(WIDE_SCREEN_QUERY);
+      const listener = (event) => {
+        setIsWideScreen(event.matches);
+      };
+
+      if (typeof mediaQueryList.addEventListener === 'function') {
+        mediaQueryList.addEventListener('change', listener);
+        return () => mediaQueryList.removeEventListener('change', listener);
+      }
+
+      if (typeof mediaQueryList.addListener === 'function') {
+        mediaQueryList.addListener(listener);
+        return () => mediaQueryList.removeListener(listener);
+      }
+    }
+
+    return undefined;
+  }, []);
 
   useEffect(() => {
     campaignMapTokensRef.current = campaignMapTokens || {};
@@ -1451,8 +1485,48 @@ export default function ZombiesCharacterSheet() {
   const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
   const handleShowStats = () => setShowStats(true);
   const handleCloseStats = () => setShowStats(false);
+  const handleDockClose = useCallback((modalKey) => {
+    setDockedModals((prev) => {
+      const leftMatch = prev.left === modalKey;
+      const rightMatch = prev.right === modalKey;
+
+      if (!leftMatch && !rightMatch) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        ...(leftMatch ? { left: null } : {}),
+        ...(rightMatch ? { right: null } : {}),
+      };
+    });
+  }, []);
+
+  const handleDockSelectionChange = useCallback((side, value) => {
+    const normalizedValue = value || null;
+    setDockedModals((prev) => {
+      const next = { ...prev, [side]: normalizedValue };
+      if (normalizedValue) {
+        const otherSide = side === 'left' ? 'right' : 'left';
+        if (prev[otherSide] === normalizedValue) {
+          next[otherSide] = null;
+        }
+      }
+      return next;
+    });
+
+    if (normalizedValue === 'skills') {
+      setShowSkill(true);
+    } else if (normalizedValue === 'map') {
+      setShowMapModal(true);
+    }
+  }, []);
+
   const handleShowSkill = () => setShowSkill(true); // Handler to show skills modal
-  const handleCloseSkill = () => setShowSkill(false); // Handler to close skills modal
+  const handleCloseSkill = useCallback(() => {
+    setShowSkill(false);
+    handleDockClose('skills');
+  }, [handleDockClose]); // Handler to close skills modal
   const handleShowFeats = () => setShowFeats(true);
   const handleCloseFeats = () => setShowFeats(false);
   const handleShowFeatures = () => setShowFeatures(true);
@@ -1476,7 +1550,35 @@ export default function ZombiesCharacterSheet() {
   const handleShowBackground = () => setShowBackground(true);
   const handleCloseBackground = () => setShowBackground(false);
   const handleShowMapModal = () => setShowMapModal(true);
-  const handleCloseMapModal = () => setShowMapModal(false);
+  const handleCloseMapModal = useCallback(() => {
+    setShowMapModal(false);
+    handleDockClose('map');
+  }, [handleDockClose]);
+
+  const skillsDockedSide = useMemo(() => {
+    if (dockedModals.left === 'skills') {
+      return 'left';
+    }
+    if (dockedModals.right === 'skills') {
+      return 'right';
+    }
+    return null;
+  }, [dockedModals.left, dockedModals.right]);
+
+  const mapDockedSide = useMemo(() => {
+    if (dockedModals.left === 'map') {
+      return 'left';
+    }
+    if (dockedModals.right === 'map') {
+      return 'right';
+    }
+    return null;
+  }, [dockedModals.left, dockedModals.right]);
+
+  const isSkillsDocked = Boolean(skillsDockedSide);
+  const isMapDocked = Boolean(mapDockedSide);
+  const shouldShowSkillsModal = showSkill || isSkillsDocked;
+  const shouldShowMapModal = showMapModal || isMapDocked;
 
   const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
@@ -2772,41 +2874,91 @@ const spellsGold =
         flexDirection: 'column',
       }}
     >
-    <div ref={headerRef}>
-      <CombatTurnHeader participants={participantsWithDetails} />
-      <h1
-        style={{
-          fontSize: "28px",
-          fontWeight: 600,
-          color: "#FFFFFF",
-          padding: "8px 0",
-          textAlign: "center",
-          letterSpacing: "1px",
-          textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-          fontFamily: "'Merriweather', serif",
-          textTransform: "capitalize",
-          borderBottom: "2px solid #555", // Subtle underline for structure
-          display: "inline-block",
-        }}
-        className="mx-auto"
-      >
-        {form.characterName}
-      </h1>
+      {isWideScreen && (
+        <>
+          <div className="dock-selector dock-selector--left">
+            <label
+              className="dock-selector__label"
+              htmlFor="dock-selector-left"
+            >
+              Dock left modal
+            </label>
+            <Form.Select
+              id="dock-selector-left"
+              size="sm"
+              className="dock-selector__control"
+              value={dockedModals.left ?? ''}
+              onChange={(event) =>
+                handleDockSelectionChange('left', event.target.value)
+              }
+            >
+              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => (
+                <option key={key ?? 'none'} value={key ?? ''}>
+                  {label}
+                </option>
+              ))}
+            </Form.Select>
+          </div>
+          <div className="dock-selector dock-selector--right">
+            <label
+              className="dock-selector__label"
+              htmlFor="dock-selector-right"
+            >
+              Dock right modal
+            </label>
+            <Form.Select
+              id="dock-selector-right"
+              size="sm"
+              className="dock-selector__control"
+              value={dockedModals.right ?? ''}
+              onChange={(event) =>
+                handleDockSelectionChange('right', event.target.value)
+              }
+            >
+              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => (
+                <option key={key ?? 'none'} value={key ?? ''}>
+                  {label}
+                </option>
+              ))}
+            </Form.Select>
+          </div>
+        </>
+      )}
+      <div ref={headerRef}>
+        <CombatTurnHeader participants={participantsWithDetails} />
+        <h1
+          style={{
+            fontSize: "28px",
+            fontWeight: 600,
+            color: "#FFFFFF",
+            padding: "8px 0",
+            textAlign: "center",
+            letterSpacing: "1px",
+            textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
+            fontFamily: "'Merriweather', serif",
+            textTransform: "capitalize",
+            borderBottom: "2px solid #555", // Subtle underline for structure
+            display: "inline-block",
+          }}
+          className="mx-auto"
+        >
+          {form.characterName}
+        </h1>
 
-      <HealthDefense
-        form={form}
-        totalLevel={totalLevel}
-        dexMod={statMods.dex}
-        conMod={statMods.con}
-        initiative={featBonuses.initiative}
-        speed={featBonuses.speed}
-        ac={featBonuses.ac}
-        hpMaxBonus={featBonuses.hpMaxBonus}
-        hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-        onTempHealthChange={handleHealthChange}
-        {...(spellAbilityMod !== null && { spellAbilityMod })}
-      />
-    </div>
+        <HealthDefense
+          form={form}
+          totalLevel={totalLevel}
+          dexMod={statMods.dex}
+          conMod={statMods.con}
+          initiative={featBonuses.initiative}
+          speed={featBonuses.speed}
+          ac={featBonuses.ac}
+          hpMaxBonus={featBonuses.hpMaxBonus}
+          hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+          onTempHealthChange={handleHealthChange}
+          {...(spellAbilityMod !== null && { spellAbilityMod })}
+        />
+      </div>
     <div
       style={{
         height: `calc(100vh - ${headerHeight}px)`,
@@ -3005,7 +3157,7 @@ const spellsGold =
     />
     <Skills
       form={form}
-      showSkill={showSkill}
+      showSkill={shouldShowSkillsModal}
       handleCloseSkill={handleCloseSkill}
       totalLevel={totalLevel}
       strMod={statMods.str}
@@ -3016,6 +3168,9 @@ const spellsGold =
       wisMod={statMods.wis}
       onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
       onRollResult={handleRollResult}
+      isDocked={isSkillsDocked}
+      dockedSide={skillsDockedSide}
+      onDockClose={() => handleDockClose('skills')}
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <BackgroundModal
@@ -3086,7 +3241,7 @@ const spellsGold =
         onDiceColorChange={handleDiceColorChange}
       />
       <MapModal
-        show={showMapModal}
+        show={shouldShowMapModal}
         onHide={handleCloseMapModal}
         map={campaignMap}
         maps={campaignMaps}
@@ -3096,6 +3251,9 @@ const spellsGold =
         activeCharacterId={activeTurnParticipantId}
         characterLookup={tokenMetaById}
         onTokenMove={handleTokenMove}
+        isDocked={isMapDocked}
+        dockedSide={mapDockedSide}
+        onDockClose={() => handleDockClose('map')}
       />
   </div>
 );

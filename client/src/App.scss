@@ -199,6 +199,100 @@
   scrollbar-width: none;
 }
 
+.dock-selector {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 1060;
+  pointer-events: none;
+
+  &--left {
+    left: 1.5rem;
+  }
+
+  &--right {
+    right: 1.5rem;
+  }
+
+  &__label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.45);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    pointer-events: auto;
+  }
+
+  &__control {
+    min-width: 11rem;
+    pointer-events: auto;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.docked-modal.modal-dialog {
+  position: fixed;
+  inset: 0 auto 0 0;
+  margin: 0;
+  width: min(420px, 32vw);
+  max-width: min(420px, 32vw);
+  display: flex;
+  align-items: stretch;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.docked-modal--left {
+  inset: 0 auto 0 0;
+}
+
+.docked-modal--right {
+  inset: 0 0 0 auto;
+}
+
+.docked-modal.modal-dialog .modal-content {
+  height: 100vh;
+  border-radius: 0;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.docked-modal.modal-dialog.modal-dialog-scrollable .modal-content {
+  overflow: hidden;
+}
+
+.docked-modal.modal-dialog.modal-dialog-scrollable .modal-body,
+.docked-modal.modal-dialog .modal-body {
+  overflow-y: auto;
+}
+
+@media (max-width: 1199.98px) {
+  .dock-selector {
+    display: none;
+  }
+
+  .docked-modal.modal-dialog {
+    position: static;
+    inset: auto;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5rem auto;
+    pointer-events: auto;
+  }
+
+  .docked-modal.modal-dialog .modal-content {
+    height: auto;
+    border-radius: var(--bs-modal-border-radius, var(--bs-border-radius-lg));
+  }
+}
+
 .spell-slot-tabs::-webkit-scrollbar {
   display: none;
 }
