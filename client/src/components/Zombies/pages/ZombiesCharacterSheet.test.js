@@ -18,7 +18,11 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../attributes/CharacterInfo', () => () => null);
 jest.mock('../attributes/Stats', () => () => null);
-jest.mock('../attributes/Skills', () => () => null);
+const mockSkillsModalProps = { current: null };
+jest.mock('../attributes/Skills', () => (props) => {
+  mockSkillsModalProps.current = props;
+  return props.showSkill ? <div data-testid="skills-modal" /> : null;
+});
 jest.mock('../attributes/Feats', () => () => null);
 jest.mock('../../Weapons/WeaponList', () => () => null);
 var mockUpdateDamage;
@@ -75,6 +79,9 @@ jest.mock('../attributes/HealthDefense', () => () => null);
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
+const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
+const matchMediaState = {};
+
 beforeEach(() => {
   apiFetch.mockReset();
   apiFetch.mockImplementation((url) => {
@@ -86,6 +93,18 @@ beforeEach(() => {
     }
     if (typeof url === 'string' && url.includes('/classes/')) {
       return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
+    }
+    if (typeof url === 'string' && url.includes('/combat')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ participants: [], activeTurn: null }),
+      });
+    }
+    if (typeof url === 'string' && url.includes('/characters')) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+    if (typeof url === 'string' && url.includes('/enemies')) {
+      return Promise.resolve({ ok: true, json: async () => [] });
     }
 
     return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
@@ -106,6 +125,21 @@ beforeEach(() => {
   mockInventoryModalProps.current = null;
   mockEquipmentModalProps.current = null;
   mockMapModalProps.current = null;
+  mockSkillsModalProps.current = null;
+  window.matchMedia = jest.fn().mockImplementation((query) => {
+    const matches = matchMediaState[query] ?? false;
+    return {
+      matches,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    };
+  });
+  matchMediaState[WIDE_SCREEN_QUERY] = false;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -197,6 +231,74 @@ test('warlock character renders spells button', async () => {
   const buttons = await screen.findAllByRole('button');
   const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   expect(spellButton).toBeInTheDocument();
+});
+
+test('wide screens expose dock selectors and pass docking props', async () => {
+  matchMediaState[WIDE_SCREEN_QUERY] = true;
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      expertisePoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const leftSelector = await screen.findByLabelText(/Dock left modal/i);
+  expect(leftSelector).toBeInTheDocument();
+  expect(leftSelector).toHaveValue('');
+
+  await userEvent.selectOptions(leftSelector, 'skills');
+
+  await waitFor(() => {
+    expect(mockSkillsModalProps.current).not.toBeNull();
+    expect(mockSkillsModalProps.current.isDocked).toBe(true);
+    expect(mockSkillsModalProps.current.dockedSide).toBe('left');
+    expect(mockSkillsModalProps.current.showSkill).toBe(true);
+  });
+
+  const rightSelector = screen.getByLabelText(/Dock right modal/i);
+  await userEvent.selectOptions(rightSelector, 'map');
+
+  await waitFor(() => {
+    expect(mockMapModalProps.current).not.toBeNull();
+    expect(mockMapModalProps.current.isDocked).toBe(true);
+    expect(mockMapModalProps.current.dockedSide).toBe('right');
+    expect(mockMapModalProps.current.show).toBe(true);
+  });
+
+  act(() => {
+    mockSkillsModalProps.current.handleCloseSkill();
+  });
+
+  await waitFor(() => {
+    expect(leftSelector).toHaveValue('');
+    expect(mockSkillsModalProps.current.isDocked).toBe(false);
+  });
+
+  act(() => {
+    mockMapModalProps.current.onHide();
+  });
+
+  await waitFor(() => {
+    expect(rightSelector).toHaveValue('');
+    expect(mockMapModalProps.current.isDocked).toBe(false);
+  });
 });
 
 test('footer renders equipment button after spells button for spellcasters', async () => {
@@ -1623,6 +1725,10 @@ test('loads campaign map tokens and updates them after placement', async () => {
       return Promise.resolve({ ok: true, json: async () => [character] });
     }
 
+    if (url === `/campaigns/${campaignId}/enemies`) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
     if (url === `/campaigns/${campaignId}/maps`) {
       return Promise.resolve({
         ok: true,
@@ -1659,10 +1765,12 @@ test('loads campaign map tokens and updates them after placement', async () => {
 
   await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
 
-  expect(mockMapModalProps.current.tokensByMapId).toMatchObject({
-    'map-1': {
-      'char-1': expect.objectContaining({ characterId: 'char-1', x: 0.2, y: 0.4 }),
-    },
+  await waitFor(() => {
+    expect(mockMapModalProps.current.tokensByMapId).toMatchObject({
+      'map-1': {
+        'char-1': expect.objectContaining({ characterId: 'char-1', x: 0.2, y: 0.4 }),
+      },
+    });
   });
   expect(mockMapModalProps.current.currentCharacterId).toBe('char-1');
   expect(mockMapModalProps.current.characterLookup['char-1']).toMatchObject({

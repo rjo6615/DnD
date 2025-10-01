@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Modal, Card, Button, Form, Alert } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
@@ -34,6 +34,9 @@ export default function Skills({
   wisMod,
   onSkillsChange,
   onRollResult,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const params = useParams();
   const safeForm = form ?? {};
@@ -289,15 +292,39 @@ export default function Skills({
     setShowSkillInfo(false);
   };
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--skills');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked && typeof onDockClose === 'function') {
+      onDockClose();
+    }
+    handleCloseSkill?.();
+  }, [isDocked, onDockClose, handleCloseSkill]);
+
   return (
     <>
       <Modal
         className="dnd-modal modern-modal"
         show={showSkill}
-        onHide={handleCloseSkill}
+        onHide={handleModalHide}
         size="lg"
         scrollable
-        centered
+        centered={!isDocked}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
       >
         <Card className="modern-card text-center">
           <Card.Header className="modal-header">
