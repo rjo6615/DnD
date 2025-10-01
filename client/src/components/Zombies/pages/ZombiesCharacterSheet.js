@@ -1853,7 +1853,7 @@ export default function ZombiesCharacterSheet() {
 
   const availableSlots = useMemo(() => {
     if (!form) return {};
-    const occupations = form.occupation || [];
+    const occupations = form?.occupation || [];
     let casterLevel = 0;
     let warlockLevel = 0;
     occupations.forEach((occ) => {
@@ -2911,7 +2911,10 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     async function calculateSpellPoints() {
-      if (!form) return;
+      if (!form) {
+        setSpellPointsLeft(0);
+        return;
+      }
       if (typeof form.spellPoints === 'number') {
         setSpellPointsLeft(form.spellPoints);
         return;
@@ -2951,40 +2954,44 @@ export default function ZombiesCharacterSheet() {
     calculateSpellPoints();
   }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
 
-  if (!form) {
-    return <div style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", minHeight: "100vh"}}>Loading...</div>;
-  }
-
   const statNames = [...STAT_KEYS];
-  const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
-  const statTotal = statNames.reduce((sum, stat) => sum + form[stat], 0);
+  const occupations = form?.occupation || [];
+  const totalLevel = occupations.reduce((total, el) => {
+    const level = Number(el?.Level);
+    return total + (Number.isFinite(level) ? level : 0);
+  }, 0);
+  const statTotal = statNames.reduce((sum, stat) => {
+    const value = Number(form?.[stat]);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
   // Characters no longer receive stat points from leveling
-  const statPointsLeft = form.startStatTotal - statTotal;
+  const startStatTotal = Number(form?.startStatTotal) || 0;
+  const statPointsLeft = startStatTotal - statTotal;
 
-  const proficientSkillsCount = Object.values(form.skills || {}).filter(
+  const proficientSkillsCount = Object.values(form?.skills || {}).filter(
     (skill) => skill?.proficient
   ).length;
-  const expertiseSkillsCount = Object.values(form.skills || {}).filter(
+  const expertiseSkillsCount = Object.values(form?.skills || {}).filter(
     (skill) => skill?.expertise
   ).length;
   const skillPointsLeft = Math.max(
     0,
-    (form.proficiencyPoints || 0) - proficientSkillsCount
+    (form?.proficiencyPoints || 0) - proficientSkillsCount
   );
   const expertisePointsLeft = Math.max(
     0,
-    (form.expertisePoints || 0) - expertiseSkillsCount
+    (form?.expertisePoints || 0) - expertiseSkillsCount
   );
   const skillsGold =
     skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'gold' : '#6C757D';
 
-// ---------------------------------------Feats and bonuses----------------------------------------------
-const featBonuses = collectFeatNumericBonuses(form?.feat);
+  // ---------------------------------------Feats and bonuses----------------------------------------------
+  const featBonuses = collectFeatNumericBonuses(form?.feat);
 
-const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
-const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
-const spellsGold =
-  hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
+  const featPointsLeft = calculateFeatPointsLeft(occupations, form?.feat || []);
+  const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
+  const spellsGold =
+    hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
 
   const isFormReady = Boolean(form);
 
@@ -3330,320 +3337,350 @@ const spellsGold =
           </div>
         </>
       )}
-      <div ref={headerRef}>
-        <div ref={combatHeaderRef}>
-          <CombatTurnHeader participants={participantsWithDetails} />
-        </div>
-        <h1
-          style={{
-            fontSize: "28px",
-            fontWeight: 600,
-            color: "#FFFFFF",
-            padding: "8px 0",
-            textAlign: "center",
-            letterSpacing: "1px",
-            textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-            fontFamily: "'Merriweather', serif",
-            textTransform: "capitalize",
-            borderBottom: "2px solid #555", // Subtle underline for structure
-            display: "inline-block",
-          }}
-          className="mx-auto"
-        >
-          {form.characterName}
-        </h1>
+      {isFormReady ? (
+        <>
+          <div ref={headerRef}>
+            <div ref={combatHeaderRef}>
+              <CombatTurnHeader participants={participantsWithDetails} />
+            </div>
+            <h1
+              style={{
+                fontSize: "28px",
+                fontWeight: 600,
+                color: "#FFFFFF",
+                padding: "8px 0",
+                textAlign: "center",
+                letterSpacing: "1px",
+                textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
+                fontFamily: "'Merriweather', serif",
+                textTransform: "capitalize",
+                borderBottom: "2px solid #555", // Subtle underline for structure
+                display: "inline-block",
+              }}
+              className="mx-auto"
+            >
+              {form?.characterName || 'Loading Character'}
+            </h1>
 
-        <HealthDefense
+            <HealthDefense
+              form={form}
+              totalLevel={totalLevel}
+              dexMod={statMods.dex}
+              conMod={statMods.con}
+              initiative={featBonuses.initiative}
+              speed={featBonuses.speed}
+              ac={featBonuses.ac}
+              hpMaxBonus={featBonuses.hpMaxBonus}
+              hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+              onTempHealthChange={handleHealthChange}
+              {...(spellAbilityMod !== null && { spellAbilityMod })}
+            />
+          </div>
+          <div
+            style={{
+              height: `calc(100vh - ${headerHeight}px)`,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <StatusEffectBar effects={activeEffects} />
+            </div>
+            <PlayerTurnActions
+              form={form}
+              dexMod={statMods.dex}
+              strMod={statMods.str}
+              conMod={statMods.con}
+              ref={playerTurnActionsRef}
+              onCastSpell={handleCastSpell}
+              availableSlots={availableSlots}
+              longRestCount={longRestCount}
+              shortRestCount={shortRestCount}
+              onPassTurn={handlePassTurn}
+              canPassTurn={canPassTurn}
+              isPassTurnInProgress={isPassingTurn}
+            />
+          </div>
+          {form && (
+            <SpellSlots
+              form={form}
+              used={usedSlots}
+              onToggleSlot={handleCastSpell}
+              actionCount={actionCount}
+              longRestCount={longRestCount}
+              shortRestCount={shortRestCount}
+              onActionSurge={handleActionSurge}
+            />
+          )}
+          <Navbar
+            fixed="bottom"
+            data-bs-theme="dark"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          >
+            <Container style={{ backgroundColor: 'transparent' }}>
+              <Nav
+                className="w-100 align-items-center"
+                style={{ backgroundColor: 'transparent' }}
+              >
+                <div
+                  className="d-flex justify-content-center flex-wrap flex-grow-1"
+                  style={{ backgroundColor: 'transparent' }}
+                >
+                  <Button
+                    onClick={handleShowCharacterInfo}
+                    style={{ color: "black" }}
+                    className="footer-btn"
+                    variant="secondary"
+                  >
+                    <i className="fas fa-image-portrait" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={handleShowStats}
+                    style={{
+                      color: "black",
+                      backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
+                    }}
+                    className="footer-btn"
+                    variant="secondary"
+                  >
+                    <i className="fas fa-scroll" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={handleShowSkill}
+                    style={{
+                      color: "black",
+                      backgroundColor: skillsGold,
+                    }}
+                    className={`footer-btn ${
+                      skillPointsLeft > 0 || expertisePointsLeft > 0
+                        ? 'points-glow'
+                        : ''
+                    }`}
+                    variant="secondary"
+                  >
+                    <i className="fas fa-book-open" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={handleShowFeats}
+                    style={{
+                      color: "black",
+                      backgroundColor: featsGold,
+                    }}
+                    className={`footer-btn ${
+                      featPointsLeft > 0 ? 'points-glow' : ''
+                    }`}
+                    variant="secondary"
+                  >
+                    <i className="fas fa-hand-fist" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={handleShowFeatures}
+                    style={{
+                      color: "black",
+                      backgroundColor: "#6C757D",
+                    }}
+                    className="footer-btn"
+                    variant="secondary"
+                  >
+                    <i className="fas fa-star" aria-hidden="true"></i>
+                  </Button>
+                  {hasSpellcasting && (
+                    <Button
+                      onClick={handleShowSpells}
+                      style={{
+                        color: 'black',
+                        backgroundColor: spellsGold,
+                      }}
+                      className={`footer-btn ${
+                        spellPointsLeft > 0 ? 'points-glow' : ''
+                      }`}
+                      variant="secondary"
+                    >
+                      <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleShowEquipment}
+                    style={{
+                      color: 'black',
+                      backgroundColor: '#6C757D',
+                    }}
+                    className="footer-btn"
+                    variant="secondary"
+                  >
+                    <i className="fas fa-toolbox" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={() => handleShowInventory()}
+                    style={{
+                      color: "black",
+                      backgroundColor: "#6C757D",
+                    }}
+                    className="footer-btn"
+                    variant="secondary"
+                  >
+                    <i className="fas fa-box-open" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={() => handleShowShop()}
+                    style={{
+                      color: "black",
+                      backgroundColor: "#6C757D",
+                    }}
+                    className="footer-btn"
+                    variant="secondary"
+                  >
+                    <i className="fas fa-store" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={handleShowMapModal}
+                    style={{
+                      color: "black",
+                      backgroundColor: "#6C757D",
+                    }}
+                    className="footer-btn"
+                    variant="secondary"
+                    aria-label="Show campaign map"
+                  >
+                    <i className="fas fa-map" aria-hidden="true"></i>
+                  </Button>
+                  <Button
+                    onClick={handleShowHelpModal}
+                    style={{ color: "white" }}
+                    className="footer-btn"
+                    variant="primary"
+                  >
+                    <i className="fas fa-info" aria-hidden="true"></i>
+                  </Button>
+                </div>
+              </Nav>
+            </Container>
+          </Navbar>
+        </>
+      ) : (
+        <div
+          style={{
+            flex: '1 1 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontWeight: 600,
+            padding: '16px',
+          }}
+        >
+          Loading...
+        </div>
+      )}
+      </div>
+    {isFormReady && (
+      <>
+        <CharacterInfo
           form={form}
+          show={showCharacterInfo}
+          handleClose={handleCloseCharacterInfo}
+          onShowBackground={handleShowBackground}
+          onLongRest={handleLongRest}
+          onShortRest={handleShortRest}
+        />
+        <Skills
+          form={form}
+          showSkill={shouldShowSkillsModal}
+          handleCloseSkill={handleCloseSkill}
           totalLevel={totalLevel}
+          strMod={statMods.str}
           dexMod={statMods.dex}
           conMod={statMods.con}
-          initiative={featBonuses.initiative}
-          speed={featBonuses.speed}
-          ac={featBonuses.ac}
-          hpMaxBonus={featBonuses.hpMaxBonus}
-          hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-          onTempHealthChange={handleHealthChange}
-          {...(spellAbilityMod !== null && { spellAbilityMod })}
+          intMod={statMods.int}
+          chaMod={statMods.cha}
+          wisMod={statMods.wis}
+          onSkillsChange={handleSkillsChange}
+          onRollResult={handleRollResult}
         />
-      </div>
-    <div
-      style={{
-        height: `calc(100vh - ${headerHeight}px)`,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <StatusEffectBar effects={activeEffects} />
-      </div>
-      <PlayerTurnActions
-        form={form}
-        dexMod={statMods.dex}
-        strMod={statMods.str}
-        conMod={statMods.con}
-        ref={playerTurnActionsRef}
-        onCastSpell={handleCastSpell}
-        availableSlots={availableSlots}
-        longRestCount={longRestCount}
-        shortRestCount={shortRestCount}
-        onPassTurn={handlePassTurn}
-        canPassTurn={canPassTurn}
-        isPassTurnInProgress={isPassingTurn}
-      />
-    </div>
-    {form && (
-      <SpellSlots
-        form={form}
-        used={usedSlots}
-        onToggleSlot={handleCastSpell}
-        actionCount={actionCount}
-        longRestCount={longRestCount}
-        shortRestCount={shortRestCount}
-        onActionSurge={handleActionSurge}
-      />
+        <Stats
+          form={form}
+          showStats={showStats}
+          handleCloseStats={handleCloseStats}
+        />
+        <BackgroundModal
+          show={showBackground}
+          onHide={handleCloseBackground}
+          background={form?.background}
+        />
+        <Feats
+          form={form}
+          showFeats={showFeats}
+          handleCloseFeats={handleCloseFeats}
+        />
+        <Features
+          form={form}
+          showFeatures={showFeatures}
+          handleCloseFeatures={handleCloseFeatures}
+          onActionSurge={handleActionSurge}
+          longRestCount={longRestCount}
+          shortRestCount={shortRestCount}
+          actionCount={actionCount}
+        />
+        <InventoryModal
+          show={showInventory}
+          activeTab={inventoryTab}
+          onHide={handleCloseInventory}
+          onTabChange={setInventoryTab}
+          form={form}
+          characterId={characterId}
+        />
+        <EquipmentModal
+          show={showEquipment}
+          onHide={handleCloseEquipment}
+          form={form}
+          onEquipmentChange={handleEquipmentChange}
+        />
+        <ShopModal
+          show={showShop}
+          activeTab={shopTab}
+          onHide={handleCloseShop}
+          onTabChange={setShopTab}
+          form={form}
+          characterId={characterId}
+          strength={computedStats.str}
+          onWeaponsChange={handleWeaponsChange}
+          onArmorChange={handleArmorChange}
+          onItemsChange={handleItemsChange}
+          onAccessoriesChange={handleAccessoriesChange}
+          currency={{
+            cp: form?.cp ?? 0,
+            sp: form?.sp ?? 0,
+            gp: form?.gp ?? 0,
+            pp: form?.pp ?? 0,
+          }}
+          onPurchase={handleShopPurchase}
+        />
+        {hasSpellcasting && (
+          <SpellSelector
+            form={form}
+            show={showSpells}
+            handleClose={handleCloseSpells}
+            onSpellsChange={handleSpellsChange}
+            onCastSpell={handleCastSpell}
+            availableSlots={availableSlots}
+          />
+        )}
+        <Help
+          form={form}
+          showHelpModal={showHelpModal}
+          handleCloseHelpModal={handleCloseHelpModal}
+          onDiceColorChange={handleDiceColorChange}
+        />
+      </>
     )}
-        <Navbar
-      fixed="bottom"
-      data-bs-theme="dark"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-    >
-      <Container style={{ backgroundColor: 'transparent' }}>
-        <Nav
-          className="w-100 align-items-center"
-          style={{ backgroundColor: 'transparent' }}
-        >
-          <div
-            className="d-flex justify-content-center flex-wrap flex-grow-1"
-            style={{ backgroundColor: 'transparent' }}
-          >
-            <Button
-              onClick={handleShowCharacterInfo}
-              style={{ color: "black" }}
-              className="footer-btn"
-              variant="secondary"
-            >
-              <i className="fas fa-image-portrait" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={handleShowStats}
-              style={{
-                color: "black",
-                backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-              }}
-              className="footer-btn"
-              variant="secondary"
-            >
-              <i className="fas fa-scroll" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={handleShowSkill}
-              style={{
-                color: "black",
-                backgroundColor: skillsGold,
-              }}
-              className={`footer-btn ${
-                skillPointsLeft > 0 || expertisePointsLeft > 0
-                  ? 'points-glow'
-                  : ''
-              }`}
-              variant="secondary"
-            >
-              <i className="fas fa-book-open" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={handleShowFeats}
-              style={{
-                color: "black",
-                backgroundColor: featsGold,
-              }}
-              className={`footer-btn ${
-                featPointsLeft > 0 ? 'points-glow' : ''
-              }`}
-              variant="secondary"
-            >
-              <i className="fas fa-hand-fist" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={handleShowFeatures}
-              style={{
-                color: "black",
-                backgroundColor: "#6C757D",
-              }}
-              className="footer-btn"
-              variant="secondary"
-            >
-              <i className="fas fa-star" aria-hidden="true"></i>
-            </Button>
-            {hasSpellcasting && (
-              <Button
-                onClick={handleShowSpells}
-                style={{
-                  color: 'black',
-                  backgroundColor: spellsGold,
-                }}
-                className={`footer-btn ${
-                  spellPointsLeft > 0 ? 'points-glow' : ''
-                }`}
-                variant="secondary"
-              >
-                <i className="fas fa-hat-wizard" aria-hidden="true"></i>
-              </Button>
-            )}
-            <Button
-              onClick={handleShowEquipment}
-              style={{
-                color: 'black',
-                backgroundColor: '#6C757D',
-              }}
-              className="footer-btn"
-              variant="secondary"
-            >
-              <i className="fas fa-toolbox" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={() => handleShowInventory()}
-              style={{
-                color: "black",
-                backgroundColor: "#6C757D",
-              }}
-              className="footer-btn"
-              variant="secondary"
-            >
-              <i className="fas fa-box-open" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={() => handleShowShop()}
-              style={{
-                color: "black",
-                backgroundColor: "#6C757D",
-              }}
-              className="footer-btn"
-              variant="secondary"
-            >
-              <i className="fas fa-store" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={handleShowMapModal}
-              style={{
-                color: "black",
-                backgroundColor: "#6C757D",
-              }}
-              className="footer-btn"
-              variant="secondary"
-              aria-label="Show campaign map"
-            >
-              <i className="fas fa-map" aria-hidden="true"></i>
-            </Button>
-            <Button
-              onClick={handleShowHelpModal}
-              style={{ color: "white" }}
-              className="footer-btn"
-              variant="primary"
-            >
-              <i className="fas fa-info" aria-hidden="true"></i>
-            </Button>
-          </div>
-        </Nav>
-      </Container>
-    </Navbar>
-      </div>
-    <CharacterInfo
-      form={form}
-      show={showCharacterInfo}
-      handleClose={handleCloseCharacterInfo}
-      onShowBackground={handleShowBackground}
-      onLongRest={handleLongRest}
-      onShortRest={handleShortRest}
-    />
-    <Skills
-      form={form}
-      showSkill={shouldShowSkillsModal}
-      handleCloseSkill={handleCloseSkill}
-      totalLevel={totalLevel}
-      strMod={statMods.str}
-      dexMod={statMods.dex}
-      conMod={statMods.con}
-      intMod={statMods.int}
-      chaMod={statMods.cha}
-      wisMod={statMods.wis}
-      onSkillsChange={handleSkillsChange}
-      onRollResult={handleRollResult}
-    />
-    <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
-    <BackgroundModal
-      show={showBackground}
-      onHide={handleCloseBackground}
-      background={form.background}
-    />
-    <Feats form={form} showFeats={showFeats} handleCloseFeats={handleCloseFeats} />
-    <Features
-      form={form}
-      showFeatures={showFeatures}
-      handleCloseFeatures={handleCloseFeatures}
-      onActionSurge={handleActionSurge}
-      longRestCount={longRestCount}
-      shortRestCount={shortRestCount}
-      actionCount={actionCount}
-    />
-    <InventoryModal
-      show={showInventory}
-      activeTab={inventoryTab}
-      onHide={handleCloseInventory}
-      onTabChange={setInventoryTab}
-      form={form}
-      characterId={characterId}
-    />
-    <EquipmentModal
-      show={showEquipment}
-      onHide={handleCloseEquipment}
-      form={form}
-      onEquipmentChange={handleEquipmentChange}
-    />
-    <ShopModal
-      show={showShop}
-      activeTab={shopTab}
-      onHide={handleCloseShop}
-      onTabChange={setShopTab}
-      form={form}
-      characterId={characterId}
-      strength={computedStats.str}
-      onWeaponsChange={handleWeaponsChange}
-      onArmorChange={handleArmorChange}
-      onItemsChange={handleItemsChange}
-      onAccessoriesChange={handleAccessoriesChange}
-      currency={{
-        cp: form?.cp ?? 0,
-        sp: form?.sp ?? 0,
-        gp: form?.gp ?? 0,
-        pp: form?.pp ?? 0,
-      }}
-      onPurchase={handleShopPurchase}
-    />
-    {hasSpellcasting && (
-      <SpellSelector
-        form={form}
-        show={showSpells}
-        handleClose={handleCloseSpells}
-        onSpellsChange={handleSpellsChange}
-        onCastSpell={handleCastSpell}
-        availableSlots={availableSlots}
-      />
-    )}
-    <Help
-      form={form}
-      showHelpModal={showHelpModal}
-      handleCloseHelpModal={handleCloseHelpModal}
-      onDiceColorChange={handleDiceColorChange}
-    />
     <MapModal
       show={shouldShowMapModal}
       onHide={handleCloseMapModal}
