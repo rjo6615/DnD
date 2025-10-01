@@ -23,9 +23,13 @@ jest.mock('../utils/dnd5eApi', () => ({
 jest.mock('../utils/monsters', () => ({
   buildEnemyRecord: jest.fn(),
 }));
+jest.mock('../utils/cloudinary', () => ({
+  deleteMapImage: jest.fn(),
+}));
 const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
+const { deleteMapImage } = require('../utils/cloudinary');
 const registerCampaignRoutes = require('../routes/campaigns');
 
 const app = express();
@@ -53,6 +57,8 @@ describe('Campaign routes', () => {
     dbo.mockReset();
     getMonsterByIndex.mockReset();
     buildEnemyRecord.mockReset();
+    deleteMapImage.mockReset();
+    deleteMapImage.mockResolvedValue({ result: 'ok' });
     mockUser = { username: 'DM' };
   });
 
@@ -166,6 +172,7 @@ describe('Campaign routes', () => {
       summary: 'An underground lair',
       imageUrl: 'https://example.com/dungeon.png',
       altText: 'Dungeon entrance map',
+      cloudinaryPublicId: 'maps/base/dungeon-1111',
     };
 
     const storedMap = {
@@ -470,6 +477,7 @@ describe('Campaign routes', () => {
         ...storedMap,
         mapId: '22222222-2222-4222-8222-222222222222',
         title: 'Forest',
+        cloudinaryPublicId: 'maps/forest/secondary-map',
       };
       const campaignDoc = {
         campaignName: 'Test',
@@ -491,12 +499,18 @@ describe('Campaign routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.activeMapId).toBe(storedMap.mapId);
       expect(res.body.map).toEqual(
-        expect.objectContaining({ mapId: storedMap.mapId, title: storedMap.title })
+        expect.objectContaining({
+          mapId: storedMap.mapId,
+          title: storedMap.title,
+          cloudinaryPublicId: storedMap.cloudinaryPublicId,
+        })
       );
       expect(res.body.map.tokens).toEqual({});
       expect(res.body.activeMapTokens).toEqual({});
       expect(res.body.tokensByMapId).toEqual({});
       expect(res.body.maps).toHaveLength(1);
+      expect(deleteMapImage).toHaveBeenCalledTimes(1);
+      expect(deleteMapImage).toHaveBeenCalledWith('maps/forest/secondary-map');
       expect(emitMapUpdate).toHaveBeenCalledWith(
         'Test',
         expect.objectContaining({
@@ -505,6 +519,68 @@ describe('Campaign routes', () => {
           tokensByMapId: {},
         })
       );
+    });
+
+    test('delete map tolerates Cloudinary deletion failures', async () => {
+      deleteMapImage.mockRejectedValueOnce(new Error('Delete failed'));
+      const secondaryMap = {
+        ...storedMap,
+        mapId: '33333333-3333-4333-8333-333333333333',
+        title: 'Cavern',
+        cloudinaryPublicId: 'maps/cavern/secondary-map',
+      };
+      const campaignDoc = {
+        campaignName: 'Test',
+        dm: 'DM',
+        maps: [storedMap, secondaryMap],
+        activeMapId: secondaryMap.mapId,
+        map: secondaryMap,
+      };
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => campaignDoc,
+          updateOne,
+        }),
+      });
+
+      const res = await request(app).delete(`/campaigns/Test/maps/${secondaryMap.mapId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.activeMapId).toBe(storedMap.mapId);
+      expect(deleteMapImage).toHaveBeenCalledWith('maps/cavern/secondary-map');
+      expect(emitMapUpdate).toHaveBeenCalled();
+    });
+
+    test('delete map derives Cloudinary public id from URL when available', async () => {
+      const secondaryMap = {
+        ...storedMap,
+        mapId: '44444444-4444-4444-8444-444444444444',
+        title: 'Citadel',
+        imageUrl:
+          'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/test-citadel.png',
+      };
+      delete secondaryMap.cloudinaryPublicId;
+      const campaignDoc = {
+        campaignName: 'Test',
+        dm: 'DM',
+        maps: [storedMap, secondaryMap],
+        activeMapId: secondaryMap.mapId,
+        map: secondaryMap,
+      };
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => campaignDoc,
+          updateOne,
+        }),
+      });
+
+      const res = await request(app).delete(`/campaigns/Test/maps/${secondaryMap.mapId}`);
+
+      expect(res.status).toBe(200);
+      expect(deleteMapImage).toHaveBeenCalledWith('maps/test-citadel');
+      expect(emitMapUpdate).toHaveBeenCalled();
     });
 
     test('update map token success as DM', async () => {

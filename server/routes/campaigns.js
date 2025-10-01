@@ -14,6 +14,62 @@ const {
   buildCampaignMapPayload,
   normalizeMapTokens,
 } = require('../utils/campaignMaps');
+const { deleteMapImage } = require('../utils/cloudinary');
+
+const deriveCloudinaryPublicIdFromUrl = (url) => {
+  if (typeof url !== 'string' || url.trim() === '') {
+    return null;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(url.trim());
+  } catch (error) {
+    return null;
+  }
+
+  if (!parsed.hostname || !parsed.hostname.includes('cloudinary.com')) {
+    return null;
+  }
+
+  const segments = parsed.pathname.split('/').filter(Boolean).map((segment) => {
+    try {
+      return decodeURIComponent(segment);
+    } catch (error) {
+      return segment;
+    }
+  });
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  const uploadIndex = segments.findIndex((segment) => segment === 'upload');
+  if (uploadIndex === -1) {
+    return null;
+  }
+
+  let remainder = segments.slice(uploadIndex + 1);
+
+  const versionIndex = remainder.findIndex((segment) => /^v\d+$/.test(segment));
+  if (versionIndex !== -1) {
+    remainder = remainder.slice(versionIndex + 1);
+  }
+
+  while (remainder.length > 0 && /[,=]/.test(remainder[0])) {
+    remainder = remainder.slice(1);
+  }
+
+  if (remainder.length === 0) {
+    return null;
+  }
+
+  const lastIndex = remainder.length - 1;
+  remainder[lastIndex] = remainder[lastIndex].replace(/\.[^.]+$/, '');
+
+  const publicId = remainder.join('/').trim();
+  return publicId || null;
+};
 
 module.exports = (router) => {
   const campaignRouter = express.Router();
@@ -752,6 +808,37 @@ module.exports = (router) => {
           if (!existingMap) {
             return res.status(404).json({ message: 'Map not found' });
           }
+
+          const attemptCloudinaryDeletion = async () => {
+            if (typeof deleteMapImage !== 'function') {
+              return;
+            }
+
+            const explicitId =
+              typeof existingMap.cloudinaryPublicId === 'string'
+                ? existingMap.cloudinaryPublicId.trim()
+                : '';
+            const derivedId =
+              !explicitId && typeof existingMap.imageUrl === 'string'
+                ? deriveCloudinaryPublicIdFromUrl(existingMap.imageUrl)
+                : null;
+            const targetPublicId = explicitId || derivedId;
+
+            if (!targetPublicId) {
+              return;
+            }
+
+            try {
+              await deleteMapImage(targetPublicId);
+            } catch (cloudinaryError) {
+              logger.warn('Failed to delete map image from Cloudinary', {
+                error: cloudinaryError.message,
+                publicId: targetPublicId,
+              });
+            }
+          };
+
+          await attemptCloudinaryDeletion();
 
           const remainingMaps = normalizedCampaign.maps.filter(
             (map) => map.mapId !== mapId
