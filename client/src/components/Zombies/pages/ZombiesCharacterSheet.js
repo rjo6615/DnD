@@ -1202,6 +1202,8 @@ export default function ZombiesCharacterSheet() {
   const playerTurnActionsRef = useRef(null);
   const socketRef = useRef(null);
 
+  const rootContainerRef = useRef(null);
+  const contentColumnRef = useRef(null);
   const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
@@ -1246,6 +1248,92 @@ export default function ZombiesCharacterSheet() {
       setHeaderHeight(headerRef.current.offsetHeight + navHeight + HEADER_PADDING);
     }
   }, [form, navHeight, participantsWithDetails]);
+
+  const updateDockedModalMetrics = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const rootElement = rootContainerRef.current;
+    const contentElement = contentColumnRef.current;
+
+    if (!rootElement || !contentElement || typeof contentElement.getBoundingClientRect !== 'function') {
+      return;
+    }
+
+    const contentRect = contentElement.getBoundingClientRect();
+    const headerElement = headerRef.current;
+    const headerRect =
+      headerElement && typeof headerElement.getBoundingClientRect === 'function'
+        ? headerElement.getBoundingClientRect()
+        : null;
+    const rootRect =
+      typeof rootElement.getBoundingClientRect === 'function'
+        ? rootElement.getBoundingClientRect()
+        : { top: 0 };
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+
+    const rootTop = rootRect?.top ?? 0;
+    const topOffset = headerRect?.bottom != null
+      ? Math.max(0, headerRect.bottom - rootTop)
+      : Math.max(0, contentRect.top - rootTop);
+
+    const leftGutter = Math.max(0, contentRect.left);
+    const rightGutter = Math.max(0, viewportWidth - contentRect.right);
+    const largestGutter = Math.max(leftGutter, rightGutter);
+    const BUFFER = 24;
+    const computedMaxWidth = largestGutter > BUFFER ? largestGutter - BUFFER : 0;
+
+    rootElement.style.setProperty('--docked-modal-top-offset', `${Math.round(topOffset)}px`);
+
+    if (computedMaxWidth > 0) {
+      rootElement.style.setProperty('--docked-modal-max-width', `${Math.round(computedMaxWidth)}px`);
+    } else {
+      rootElement.style.removeProperty('--docked-modal-max-width');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    updateDockedModalMetrics();
+
+    const handleResize = () => {
+      updateDockedModalMetrics();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    let resizeObserver;
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver(() => {
+        updateDockedModalMetrics();
+      });
+
+      const contentElement = contentColumnRef.current;
+      if (contentElement) {
+        resizeObserver.observe(contentElement);
+      }
+
+      const headerElement = headerRef.current;
+      if (headerElement) {
+        resizeObserver.observe(headerElement);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [updateDockedModalMetrics]);
+
+  useEffect(() => {
+    updateDockedModalMetrics();
+  }, [updateDockedModalMetrics, headerHeight, isWideScreen]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -1514,19 +1602,12 @@ export default function ZombiesCharacterSheet() {
       }
       return next;
     });
-
-    if (normalizedValue === 'skills') {
-      setShowSkill(true);
-    } else if (normalizedValue === 'map') {
-      setShowMapModal(true);
-    }
   }, []);
 
   const handleShowSkill = () => setShowSkill(true); // Handler to show skills modal
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
-    handleDockClose('skills');
-  }, [handleDockClose]); // Handler to close skills modal
+  }, []); // Handler to close skills modal
   const handleShowFeats = () => setShowFeats(true);
   const handleCloseFeats = () => setShowFeats(false);
   const handleShowFeatures = () => setShowFeatures(true);
@@ -1552,6 +1633,13 @@ export default function ZombiesCharacterSheet() {
   const handleShowMapModal = () => setShowMapModal(true);
   const handleCloseMapModal = useCallback(() => {
     setShowMapModal(false);
+  }, []);
+
+  const handleCloseDockedSkill = useCallback(() => {
+    handleDockClose('skills');
+  }, [handleDockClose]);
+
+  const handleCloseDockedMap = useCallback(() => {
     handleDockClose('map');
   }, [handleDockClose]);
 
@@ -1577,8 +1665,8 @@ export default function ZombiesCharacterSheet() {
 
   const isSkillsDocked = Boolean(skillsDockedSide);
   const isMapDocked = Boolean(mapDockedSide);
-  const shouldShowSkillsModal = showSkill || isSkillsDocked;
-  const shouldShowMapModal = showMapModal || isMapDocked;
+  const shouldShowSkillsModal = showSkill;
+  const shouldShowMapModal = showMapModal;
 
   const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
@@ -2861,6 +2949,7 @@ const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
   return (
     <div
+      ref={rootContainerRef}
       className="text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
@@ -2874,7 +2963,17 @@ const spellsGold =
         flexDirection: 'column',
       }}
     >
-      {isWideScreen && (
+      <div
+        ref={contentColumnRef}
+        className="zombies-character-sheet__content"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
+          minHeight: 0,
+        }}
+      >
+        {isWideScreen && (
         <>
           <div className="dock-selector dock-selector--left">
             <label
@@ -3003,7 +3102,7 @@ const spellsGold =
         onActionSurge={handleActionSurge}
       />
     )}
-    <Navbar
+        <Navbar
       fixed="bottom"
       data-bs-theme="dark"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
@@ -3147,6 +3246,7 @@ const spellsGold =
         </Nav>
       </Container>
     </Navbar>
+      </div>
     <CharacterInfo
       form={form}
       show={showCharacterInfo}
@@ -3168,9 +3268,23 @@ const spellsGold =
       wisMod={statMods.wis}
       onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
       onRollResult={handleRollResult}
+    />
+    <Skills
+      form={form}
+      showSkill={Boolean(skillsDockedSide)}
+      handleCloseSkill={handleCloseDockedSkill}
+      totalLevel={totalLevel}
+      strMod={statMods.str}
+      dexMod={statMods.dex}
+      conMod={statMods.con}
+      intMod={statMods.int}
+      chaMod={statMods.cha}
+      wisMod={statMods.wis}
+      onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+      onRollResult={handleRollResult}
       isDocked={isSkillsDocked}
       dockedSide={skillsDockedSide}
-      onDockClose={() => handleDockClose('skills')}
+      onDockClose={handleCloseDockedSkill}
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <BackgroundModal
@@ -3234,27 +3348,39 @@ const spellsGold =
         availableSlots={availableSlots}
       />
     )}
-      <Help
-        form={form}
-        showHelpModal={showHelpModal}
-        handleCloseHelpModal={handleCloseHelpModal}
-        onDiceColorChange={handleDiceColorChange}
-      />
-      <MapModal
-        show={shouldShowMapModal}
-        onHide={handleCloseMapModal}
-        map={campaignMap}
-        maps={campaignMaps}
-        activeMapId={campaignActiveMapId}
-        tokensByMapId={modalTokensByMapId}
-        currentCharacterId={resolvedCharacterId}
-        activeCharacterId={activeTurnParticipantId}
-        characterLookup={tokenMetaById}
-        onTokenMove={handleTokenMove}
-        isDocked={isMapDocked}
-        dockedSide={mapDockedSide}
-        onDockClose={() => handleDockClose('map')}
-      />
+    <Help
+      form={form}
+      showHelpModal={showHelpModal}
+      handleCloseHelpModal={handleCloseHelpModal}
+      onDiceColorChange={handleDiceColorChange}
+    />
+    <MapModal
+      show={shouldShowMapModal}
+      onHide={handleCloseMapModal}
+      map={campaignMap}
+      maps={campaignMaps}
+      activeMapId={campaignActiveMapId}
+      tokensByMapId={modalTokensByMapId}
+      currentCharacterId={resolvedCharacterId}
+      activeCharacterId={activeTurnParticipantId}
+      characterLookup={tokenMetaById}
+      onTokenMove={handleTokenMove}
+    />
+    <MapModal
+      show={Boolean(mapDockedSide)}
+      onHide={handleCloseDockedMap}
+      map={campaignMap}
+      maps={campaignMaps}
+      activeMapId={campaignActiveMapId}
+      tokensByMapId={modalTokensByMapId}
+      currentCharacterId={resolvedCharacterId}
+      activeCharacterId={activeTurnParticipantId}
+      characterLookup={tokenMetaById}
+      onTokenMove={handleTokenMove}
+      isDocked={isMapDocked}
+      dockedSide={mapDockedSide}
+      onDockClose={handleCloseDockedMap}
+    />
   </div>
 );
 }
