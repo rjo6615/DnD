@@ -1250,14 +1250,20 @@ export default function ZombiesCharacterSheet() {
   }, [form, navHeight, participantsWithDetails]);
 
   const updateDockedModalMetrics = useCallback(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
       return;
     }
 
+    const dockingScopeElement = document.documentElement || document.body;
     const rootElement = rootContainerRef.current;
     const contentElement = contentColumnRef.current;
 
-    if (!rootElement || !contentElement || typeof contentElement.getBoundingClientRect !== 'function') {
+    if (
+      !dockingScopeElement ||
+      !rootElement ||
+      !contentElement ||
+      typeof contentElement.getBoundingClientRect !== 'function'
+    ) {
       return;
     }
 
@@ -1284,12 +1290,12 @@ export default function ZombiesCharacterSheet() {
     const BUFFER = 24;
     const computedMaxWidth = largestGutter > BUFFER ? largestGutter - BUFFER : 0;
 
-    rootElement.style.setProperty('--docked-modal-top-offset', `${Math.round(topOffset)}px`);
+    dockingScopeElement.style.setProperty('--docked-modal-top-offset', `${Math.round(topOffset)}px`);
 
     if (computedMaxWidth > 0) {
-      rootElement.style.setProperty('--docked-modal-max-width', `${Math.round(computedMaxWidth)}px`);
+      dockingScopeElement.style.setProperty('--docked-modal-max-width', `${Math.round(computedMaxWidth)}px`);
     } else {
-      rootElement.style.removeProperty('--docked-modal-max-width');
+      dockingScopeElement.style.removeProperty('--docked-modal-max-width');
     }
   }, []);
 
