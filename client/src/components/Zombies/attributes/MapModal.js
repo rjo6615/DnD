@@ -678,6 +678,14 @@ const MapModal = ({
     return classes.join(' ');
   }, [isDocked, dockedSide]);
 
+  const modalClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    return 'docked-modal-container';
+  }, [isDocked]);
+
   const handleModalHide = useCallback(() => {
     if (isDocked) {
       if (typeof onDockClose === 'function') {
@@ -691,6 +699,7 @@ const MapModal = ({
 
   return (
     <Modal
+      className={modalClassName}
       show={show}
       onHide={handleModalHide}
       size={hasManagementFeatures ? 'xl' : 'lg'}
