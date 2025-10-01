@@ -56,6 +56,13 @@ describe('Spells routes', () => {
     expect(res.body.damage).toBe('8d6');
   });
 
+  test('healing spells include parsed damage field', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app).get('/spells/healing-word');
+    expect(res.status).toBe(200);
+    expect(res.body.damage).toBe('1d4');
+  });
+
   test('upcastable spells include higherLevels field', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app).get('/spells/burning-hands');
