@@ -24,12 +24,13 @@ jest.mock('../utils/monsters', () => ({
   buildEnemyRecord: jest.fn(),
 }));
 jest.mock('../utils/cloudinary', () => ({
+  uploadMapImage: jest.fn(),
   deleteMapImage: jest.fn(),
 }));
 const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
-const { deleteMapImage } = require('../utils/cloudinary');
+const { uploadMapImage, deleteMapImage } = require('../utils/cloudinary');
 const registerCampaignRoutes = require('../routes/campaigns');
 
 const app = express();
@@ -57,7 +58,13 @@ describe('Campaign routes', () => {
     dbo.mockReset();
     getMonsterByIndex.mockReset();
     buildEnemyRecord.mockReset();
+    uploadMapImage.mockReset();
     deleteMapImage.mockReset();
+    uploadMapImage.mockResolvedValue({
+      secure_url:
+        'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/default.png',
+      public_id: 'maps/default/map',
+    });
     deleteMapImage.mockResolvedValue({ result: 'ok' });
     mockUser = { username: 'DM' };
   });
@@ -170,7 +177,8 @@ describe('Campaign routes', () => {
     const baseMap = {
       title: 'Dungeon',
       summary: 'An underground lair',
-      imageUrl: 'https://example.com/dungeon.png',
+      imageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/base/dungeon.png',
       altText: 'Dungeon entrance map',
       cloudinaryPublicId: 'maps/base/dungeon-1111',
     };
@@ -278,52 +286,69 @@ describe('Campaign routes', () => {
         }),
       });
 
+      uploadMapImage.mockResolvedValueOnce({
+        secure_url:
+          'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/new-map.png',
+        public_id: 'maps/demo/new-map',
+      });
+
+      const incomingMap = {
+        title: 'Dungeon',
+        summary: 'An underground lair',
+        imageBase64: 'QUJD',
+        imageType: 'image/png',
+      };
+
       const res = await request(app)
         .post('/campaigns/Test/maps')
-        .send({ map: baseMap, prompt: 'Create a dungeon map' });
+        .send({ map: incomingMap, prompt: 'Create a dungeon map' });
 
-    expect(res.status).toBe(200);
-    expect(res.body.activeMapId).toEqual(expect.any(String));
-    expect(res.body.map).toEqual(
-      expect.objectContaining({
-        title: baseMap.title,
-        originalPrompt: 'Create a dungeon map',
-        mapId: res.body.activeMapId,
-      })
-    );
-    expect(res.body.map.tokens).toEqual({});
-    expect(res.body.activeMapTokens).toEqual({});
-    expect(res.body.tokensByMapId).toEqual({});
-    expect(res.body.maps).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
-      ])
-    );
-    const lastUpdate = updateOne.mock.calls[updateOne.mock.calls.length - 1]?.[1];
-    expect(lastUpdate).toEqual(
-      expect.objectContaining({
-        $set: expect.objectContaining({
+      expect(res.status).toBe(200);
+      expect(res.body.activeMapId).toEqual(expect.any(String));
+      expect(res.body.map).toEqual(
+        expect.objectContaining({
+          title: baseMap.title,
+          originalPrompt: 'Create a dungeon map',
+          mapId: res.body.activeMapId,
+          imageUrl:
+            'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/new-map.png',
+          cloudinaryPublicId: 'maps/demo/new-map',
+        })
+      );
+      expect(res.body.map.tokens).toEqual({});
+      expect(res.body.activeMapTokens).toEqual({});
+      expect(res.body.tokensByMapId).toEqual({});
+      expect(res.body.maps).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+        ])
+      );
+      expect(uploadMapImage).toHaveBeenCalledWith('data:image/png;base64,QUJD');
+      const lastUpdate = updateOne.mock.calls[updateOne.mock.calls.length - 1]?.[1];
+      expect(lastUpdate).toEqual(
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            activeMapId: res.body.activeMapId,
+            map: expect.objectContaining({ mapId: res.body.activeMapId }),
+            maps: expect.arrayContaining([
+              expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+            ]),
+            mapTokens: {},
+          }),
+        })
+      );
+      expect(emitMapUpdate).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({
           activeMapId: res.body.activeMapId,
           map: expect.objectContaining({ mapId: res.body.activeMapId }),
           maps: expect.arrayContaining([
             expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
           ]),
-          mapTokens: {},
-        }),
-      })
-    );
-    expect(emitMapUpdate).toHaveBeenCalledWith(
-      'Test',
-      expect.objectContaining({
-        activeMapId: res.body.activeMapId,
-        map: expect.objectContaining({ mapId: res.body.activeMapId }),
-        maps: expect.arrayContaining([
-          expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
-        ]),
-        tokensByMapId: {},
-        activeMapTokens: {},
-      })
-    );
+          tokensByMapId: {},
+          activeMapTokens: {},
+        })
+      );
   });
 
     test('legacy map update success', async () => {
@@ -468,6 +493,56 @@ describe('Campaign routes', () => {
           activeMapId: secondaryMap.mapId,
           activeMapTokens: {},
           tokensByMapId: {},
+        })
+      );
+    });
+
+    test('update map uploads new assets when provided', async () => {
+      const campaignDoc = buildCampaignWithMap();
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: () => ({
+          findOne: async () => campaignDoc,
+          updateOne,
+        }),
+      });
+
+      uploadMapImage.mockResolvedValueOnce({
+        secure_url:
+          'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/updated-map.png',
+        public_id: 'maps/demo/updated-map',
+      });
+
+      const res = await request(app)
+        .patch(`/campaigns/Test/maps/${storedMap.mapId}`)
+        .send({
+          map: {
+            title: 'Updated Dungeon',
+            imageBase64: 'Rk9P',
+            imageType: 'image/jpeg',
+          },
+          prompt: 'Updated map prompt',
+        });
+
+      expect(res.status).toBe(200);
+      expect(uploadMapImage).toHaveBeenCalledWith('data:image/jpeg;base64,Rk9P');
+      expect(res.body.maps).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            mapId: storedMap.mapId,
+            title: 'Updated Dungeon',
+            imageUrl:
+              'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/updated-map.png',
+            cloudinaryPublicId: 'maps/demo/updated-map',
+          }),
+        ])
+      );
+      expect(res.body.map).toEqual(
+        expect.objectContaining({
+          mapId: storedMap.mapId,
+          title: 'Updated Dungeon',
+          originalPrompt: 'Updated map prompt',
+          cloudinaryPublicId: 'maps/demo/updated-map',
         })
       );
     });

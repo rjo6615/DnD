@@ -14,7 +14,7 @@ const {
   buildCampaignMapPayload,
   normalizeMapTokens,
 } = require('../utils/campaignMaps');
-const { deleteMapImage } = require('../utils/cloudinary');
+const { uploadMapImage, deleteMapImage } = require('../utils/cloudinary');
 
 const deriveCloudinaryPublicIdFromUrl = (url) => {
   if (typeof url !== 'string' || url.trim() === '') {
@@ -69,6 +69,115 @@ const deriveCloudinaryPublicIdFromUrl = (url) => {
 
   const publicId = remainder.join('/').trim();
   return publicId || null;
+};
+
+const isCloudinaryUrl = (url) => {
+  const publicId = deriveCloudinaryPublicIdFromUrl(url);
+  return typeof publicId === 'string' && publicId.trim() !== '';
+};
+
+const prepareMapAssetsForStorage = async (mapInput) => {
+  if (!mapInput || typeof mapInput !== 'object') {
+    return mapInput;
+  }
+
+  const prepared = { ...mapInput };
+
+  const rawBase64 =
+    typeof prepared.imageBase64 === 'string' ? prepared.imageBase64.trim() : '';
+  const rawType =
+    typeof prepared.imageType === 'string' ? prepared.imageType.trim() : '';
+  const rawUrl =
+    typeof prepared.imageUrl === 'string' ? prepared.imageUrl.trim() : '';
+
+  const hasCloudinaryUrl = rawUrl ? isCloudinaryUrl(rawUrl) : false;
+  if (hasCloudinaryUrl && !prepared.cloudinaryPublicId) {
+    const derivedId = deriveCloudinaryPublicIdFromUrl(rawUrl);
+    if (derivedId) {
+      prepared.cloudinaryPublicId = derivedId;
+    }
+  }
+
+  if (typeof uploadMapImage !== 'function') {
+    if (rawUrl) {
+      prepared.imageUrl = rawUrl;
+    }
+    if (rawBase64) {
+      prepared.imageBase64 = rawBase64;
+    }
+    if (rawType) {
+      prepared.imageType = rawType;
+    }
+    return prepared;
+  }
+
+  const shouldUploadFromBase64 = rawBase64 !== '';
+  const shouldUploadFromUrl =
+    !shouldUploadFromBase64 && rawUrl && (!hasCloudinaryUrl || rawUrl.startsWith('data:'));
+
+  if (!shouldUploadFromBase64 && !shouldUploadFromUrl) {
+    if (rawUrl) {
+      prepared.imageUrl = rawUrl;
+    }
+    if (rawBase64) {
+      prepared.imageBase64 = rawBase64;
+    }
+    if (rawType) {
+      prepared.imageType = rawType;
+    }
+    return prepared;
+  }
+
+  let uploadSource = rawUrl;
+  if (shouldUploadFromBase64) {
+    const mimeType = rawType || 'image/png';
+    uploadSource = `data:${mimeType};base64,${rawBase64}`;
+  }
+
+  try {
+    const uploadResult = await uploadMapImage(uploadSource);
+    const secureUrl =
+      typeof uploadResult?.secure_url === 'string' ? uploadResult.secure_url : null;
+    const publicId =
+      typeof uploadResult?.public_id === 'string'
+        ? uploadResult.public_id.trim()
+        : '';
+
+    if (secureUrl) {
+      prepared.imageUrl = secureUrl;
+      delete prepared.imageBase64;
+      delete prepared.imageType;
+    } else {
+      if (rawUrl) {
+        prepared.imageUrl = rawUrl;
+      }
+      if (rawBase64) {
+        prepared.imageBase64 = rawBase64;
+      }
+      if (rawType) {
+        prepared.imageType = rawType;
+      }
+    }
+
+    if (publicId) {
+      prepared.cloudinaryPublicId = publicId;
+    }
+  } catch (error) {
+    logger.warn('Failed to upload map image to Cloudinary', {
+      error: error.message,
+    });
+    if (rawUrl) {
+      prepared.imageUrl = rawUrl;
+    }
+    if (rawBase64) {
+      prepared.imageBase64 = rawBase64;
+    }
+    if (rawType) {
+      prepared.imageType = rawType;
+    }
+  }
+
+  return prepared;
 };
 
 module.exports = (router) => {
@@ -591,8 +700,10 @@ module.exports = (router) => {
             collection,
           });
 
+          const mapInput = await prepareMapAssetsForStorage(req.body.map);
+
           const prepared = prepareStoredMap({
-            mapInput: req.body.map,
+            mapInput,
             existingMap: null,
             prompt:
               typeof req.body.prompt === 'string' && req.body.prompt.trim() !== ''
@@ -722,8 +833,10 @@ module.exports = (router) => {
           let storedMap = targetMap;
 
           if (hasMapUpdate) {
+            const mapInput = await prepareMapAssetsForStorage(req.body.map);
+
             const prepared = prepareStoredMap({
-              mapInput: req.body.map,
+              mapInput,
               existingMap: targetMap,
               prompt:
                 typeof req.body.prompt === 'string' && req.body.prompt.trim() !== ''
