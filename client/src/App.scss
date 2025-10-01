@@ -235,6 +235,14 @@
   }
 }
 
+.docked-modal-container {
+  pointer-events: none;
+}
+
+.docked-modal-container .modal-dialog {
+  pointer-events: auto;
+}
+
 .docked-modal.modal-dialog {
   position: fixed;
   top: var(--docked-modal-top-offset, 0);
@@ -250,7 +258,6 @@
   );
   display: flex;
   align-items: stretch;
-  pointer-events: none;
   transition: transform 0.2s ease;
 }
 
@@ -297,12 +304,15 @@
     max-width: 100%;
     height: auto;
     margin: 1.5rem auto;
-    pointer-events: auto;
   }
 
   .docked-modal.modal-dialog .modal-content {
     height: auto;
     border-radius: var(--bs-modal-border-radius, var(--bs-border-radius-lg));
+  }
+
+  .docked-modal-container {
+    pointer-events: auto;
   }
 }
 

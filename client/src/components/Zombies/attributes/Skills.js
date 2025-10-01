@@ -207,6 +207,14 @@ export default function Skills({
     return classes.join(' ');
   }, [isDocked, dockedSide]);
 
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
   const handleModalHide = useCallback(() => {
     if (isDocked) {
       if (typeof onDockClose === 'function') {
@@ -321,7 +329,7 @@ export default function Skills({
   return (
     <>
       <Modal
-        className="dnd-modal modern-modal"
+        className={modalClassName}
         show={showSkill}
         onHide={handleModalHide}
         size="lg"
