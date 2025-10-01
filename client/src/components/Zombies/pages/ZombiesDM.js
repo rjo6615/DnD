@@ -28,6 +28,7 @@ import { calculateCharacterInitiative } from '../utils/derivedStats';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
+import { calculateDamage } from '../attributes/PlayerTurnActions';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import {
   GiCharacter,
@@ -362,6 +363,7 @@ export default function ZombiesDM() {
     const [removingEnemyId, setRemovingEnemyId] = useState(null);
     const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
+    const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const [campaignMap, setCampaignMap] = useState(null);
@@ -1118,6 +1120,95 @@ export default function ZombiesDM() {
         updateEnemyHealth(enemyId, maxHp);
       },
       [enemies, updateEnemyHealth]
+    );
+
+    const formatAttackBonus = useCallback((bonus) => {
+      if (bonus === null || bonus === undefined || bonus === '') {
+        return null;
+      }
+
+      const parsed = Number(bonus);
+      if (!Number.isFinite(parsed)) {
+        return null;
+      }
+
+      return parsed >= 0 ? `+${parsed}` : `${parsed}`;
+    }, []);
+
+    const getEnemyActionDamageString = useCallback((action) => {
+      if (!action) {
+        return null;
+      }
+
+      if (Array.isArray(action.damage) && action.damage.length > 0) {
+        const parts = action.damage
+          .map((damageEntry) => {
+            if (!damageEntry || !damageEntry.damage_dice) {
+              return null;
+            }
+
+            const typeName = damageEntry.damage_type?.name
+              ? String(damageEntry.damage_type.name).toLowerCase()
+              : '';
+            return [damageEntry.damage_dice, typeName].filter(Boolean).join(' ');
+          })
+          .filter(Boolean);
+
+        if (parts.length > 0) {
+          return parts.join(' + ');
+        }
+      }
+
+      if (action.damage_dice) {
+        const typeName = action.damage_type?.name
+          ? String(action.damage_type.name).toLowerCase()
+          : '';
+        return [action.damage_dice, typeName].filter(Boolean).join(' ');
+      }
+
+      return null;
+    }, []);
+
+    const handleEnemyDamageRoll = useCallback(
+      (enemy, action) => {
+        if (!enemy || !action) {
+          return;
+        }
+
+        const damageString = getEnemyActionDamageString(action);
+        if (!damageString) {
+          setStatus({
+            type: 'warning',
+            message: 'No damage dice available for this action.',
+          });
+          return;
+        }
+
+        const result = calculateDamage(damageString);
+        if (!result) {
+          setStatus({
+            type: 'warning',
+            message: 'Unable to roll damage for this action.',
+          });
+          return;
+        }
+
+        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
+        const actionName = action.name || 'Action';
+        const message = `${enemyName} deals ${result.total} damage with ${actionName} (${result.breakdown}).`;
+
+        setLatestEnemyRoll({
+          enemyId: enemy.enemyId,
+          enemyName,
+          actionName,
+          total: result.total,
+          breakdown: result.breakdown,
+          damageFormula: damageString,
+        });
+
+        setStatus({ type: 'info', message });
+      },
+      [getEnemyActionDamageString, setStatus]
     );
 
     const filteredMonsterCatalog = useMemo(() => {
@@ -5155,6 +5246,9 @@ const resolveIcon = (category, iconMap, fallback) => {
                         : '—';
                   const adjustmentValue = enemyHealthAdjustments[enemy.enemyId] ?? '';
                   const isSavingHealth = Boolean(enemyHealthSaving[enemy.enemyId]);
+                  const damagingActions = Array.isArray(enemy.actions)
+                    ? enemy.actions.filter((action) => Boolean(getEnemyActionDamageString(action)))
+                    : [];
 
                   return (
                     <Card className="resource-card h-100 w-100 text-start">
@@ -5207,6 +5301,53 @@ const resolveIcon = (category, iconMap, fallback) => {
                             <span aria-hidden="true">{languagesDisplay}</span>
                           </Card.Text>
                         </div>
+                        {damagingActions.length > 0 && (
+                          <div className="mt-2">
+                            <h6 className="text-uppercase text-muted small fw-semibold mb-1">Actions</h6>
+                            <div className="d-flex flex-column gap-2">
+                              {damagingActions.map((action, actionIndex) => {
+                                const attackBonusDisplay = formatAttackBonus(action?.attack_bonus);
+                                const damageLine = getEnemyActionDamageString(action);
+                                const actionLabel = action?.name || 'Action';
+                                const actionKey = `${enemy.enemyId || 'enemy'}-${actionLabel}-${actionIndex}`;
+                                const isLatestRoll =
+                                  latestEnemyRoll?.enemyId === enemy.enemyId &&
+                                  latestEnemyRoll?.actionName === actionLabel;
+
+                                return (
+                                  <div
+                                    key={actionKey}
+                                    className="border rounded p-2 bg-dark bg-opacity-10 text-body"
+                                  >
+                                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                                      <div className="flex-grow-1">
+                                        <div className="fw-semibold small text-body">{actionLabel}</div>
+                                        <div className="small text-muted">
+                                          Attack Bonus: {attackBonusDisplay ?? '—'}
+                                        </div>
+                                        <div className="small text-muted">Damage: {damageLine || '—'}</div>
+                                      </div>
+                                      <div className="d-flex justify-content-start justify-content-sm-end">
+                                        <Button
+                                          variant="outline-primary"
+                                          size="sm"
+                                          onClick={() => handleEnemyDamageRoll(enemy, action)}
+                                        >
+                                          Roll
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    {isLatestRoll && latestEnemyRoll?.breakdown && (
+                                      <div className="mt-2 small fw-semibold text-primary">
+                                        {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                         <div className="mt-2">
                           <h6 className="text-uppercase text-muted small fw-semibold mb-1">Health</h6>
                           <div className="d-flex flex-column gap-2">
