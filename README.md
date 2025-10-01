@@ -45,7 +45,11 @@ The server uses a `config.env` file for configuration. Ensure the following vari
 |----------|-------------|
 | `CLIENT_ORIGINS` | Comma-separated list of client application URLs allowed to make cross-origin requests, e.g., `http://localhost,http://example.com`. |
 | `OPENAI_API_KEY` | API key used by the server to access OpenAI for item generation. |
-| `OPENAI_IMAGE_RESPONSE_FORMAT` | Optional override for the battle map response format. Defaults to `b64_json`, which stores generated maps as base64 strings in the `imageBase64` field. Set to `url` only if you plan to manage persistent image hosting yourself. |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name used when uploading generated battle maps. Required for Cloudinary hosting. |
+| `CLOUDINARY_API_KEY` | Cloudinary API key used for authenticating uploads. |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret used for authenticating uploads. |
+| `CLOUDINARY_MAP_FOLDER` | Optional Cloudinary folder for generated maps. Defaults to `Realm Tracker Maps` when omitted. |
+| `OPENAI_IMAGE_RESPONSE_FORMAT` | Optional override for the battle map response format. Defaults to `b64_json`, which stores generated maps as base64 strings in the `imageBase64` field when Cloudinary upload is unavailable. Set to `url` only if you plan to manage persistent image hosting yourself. |
 
 ### Client Environment Variables
 
