@@ -109,9 +109,15 @@ jest.mock(
   { virtual: true }
 );
 
+jest.mock('../utils/cloudinary', () => ({
+  uploadMapImage: jest.fn(),
+}));
+
 const OpenAI = require('openai');
 const mockParse = OpenAI.__parse;
 const mockGenerate = OpenAI.__generate;
+
+const { uploadMapImage: mockUploadMapImage } = require('../utils/cloudinary');
 
 const routes = require('../routes');
 const {
@@ -279,6 +285,8 @@ describe('AI map route', () => {
   beforeEach(() => {
     mockParse.mockReset();
     mockGenerate.mockReset();
+    mockUploadMapImage.mockReset();
+    mockUploadMapImage.mockRejectedValue(new Error('Cloudinary disabled'));
     process.env.OPENAI_IMAGE_MODEL = 'gpt-image-1';
     process.env.OPENAI_IMAGE_STYLE = 'vivid';
     delete process.env.OPENAI_IMAGE_STYLE_MODELS;
@@ -331,6 +339,52 @@ describe('AI map route', () => {
         response_format: 'b64_json',
       })
     );
+  });
+
+  test('uploads generated maps to Cloudinary when available', async () => {
+    mockUploadMapImage.mockResolvedValue({
+      secure_url: 'https://res.cloudinary.com/demo/map.png',
+    });
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          b64_json: 'ZGF0YQ==',
+          mime_type: 'image/png',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'cloud-hosted map' });
+
+    expect(res.status).toBe(200);
+    expect(mockUploadMapImage).toHaveBeenCalledWith(
+      'data:image/png;base64,ZGF0YQ=='
+    );
+    expect(res.body.imageUrl).toBe('https://res.cloudinary.com/demo/map.png');
+    expect(res.body.imageBase64).toBeUndefined();
+    expect(res.body.prompt).toBe('cloud-hosted map');
+  });
+
+  test('falls back to base64 data when Cloudinary upload fails', async () => {
+    mockUploadMapImage.mockRejectedValue(new Error('Upload failed'));
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          b64_json: 'QUJD',
+          mime_type: 'image/png',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'base64 fallback map' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.imageBase64).toBe('QUJD');
+    expect(res.body.imageUrl).toBeUndefined();
   });
 
   test('derives a title from the user prompt when no revision is provided', async () => {
