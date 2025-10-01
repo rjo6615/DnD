@@ -416,6 +416,9 @@ export default function ShopModal({
   onTabChange,
   currency = {},
   onPurchase = () => {},
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
@@ -640,17 +643,53 @@ export default function ShopModal({
     ]
   );
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--shop');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    onHide?.();
+  }, [isDocked, onDockClose, onHide]);
+
   return (
     <>
       <Modal
-      className="dnd-modal modern-modal"
-      show={show}
-      onHide={onHide}
-      size="lg"
-      centered
-      scrollable
-      fullscreen="sm-down"
-    >
+        className={modalClassName}
+        show={show}
+        onHide={handleModalHide}
+        size="lg"
+        centered={!isDocked}
+        scrollable
+        fullscreen="sm-down"
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
+      >
       <Card className="modern-card">
         <Card.Header className="modal-header">
           <Card.Title className="modal-title">Shop</Card.Title>
@@ -700,7 +739,7 @@ export default function ShopModal({
           </Tab.Container>
         </Card.Body>
         <Card.Footer className="modal-footer">
-          <Button className="action-btn close-btn" onClick={onHide}>
+          <Button className="action-btn close-btn" onClick={handleModalHide}>
             Close
           </Button>
         </Card.Footer>

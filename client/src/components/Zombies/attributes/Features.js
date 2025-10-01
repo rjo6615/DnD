@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
@@ -11,6 +11,9 @@ export default function Features({
   onActionSurge,
   longRestCount,
   shortRestCount,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
@@ -136,14 +139,50 @@ export default function Features({
     setSurgeUsed(false);
   }, [longRestCount, shortRestCount]);
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--features');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleCloseFeatures?.();
+  }, [handleCloseFeatures, isDocked, onDockClose]);
+
   return (
     <>
       <Modal
-        className="dnd-modal modern-modal"
+        className={modalClassName}
         show={showFeatures}
-        onHide={handleCloseFeatures}
+        onHide={handleModalHide}
         size="lg"
-        centered
+        centered={!isDocked}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
       >
         <div className="text-center">
           <Card className="modern-card">
@@ -239,7 +278,7 @@ export default function Features({
             <Card.Footer className="modal-footer">
               <Button
                 className="action-btn close-btn"
-                onClick={handleCloseFeatures}
+                onClick={handleModalHide}
               >
                 Close
               </Button>

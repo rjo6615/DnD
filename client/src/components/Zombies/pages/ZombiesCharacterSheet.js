@@ -44,10 +44,25 @@ import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 
 const HEADER_PADDING = 16;
+const DOCKABLE_MODAL_DEFINITIONS = {
+  characterInfo: { label: 'Character Info', component: CharacterInfo },
+  stats: { label: 'Stats', component: Stats },
+  skills: { label: 'Skills', component: Skills },
+  feats: { label: 'Feats', component: Feats },
+  features: { label: 'Features', component: Features },
+  spells: { label: 'Spells', component: SpellSelector },
+  equipment: { label: 'Equipment', component: EquipmentModal },
+  inventory: { label: 'Inventory', component: InventoryModal },
+  shop: { label: 'Shop', component: ShopModal },
+  map: { label: 'Campaign Map', component: MapModal },
+  help: { label: 'Help', component: Help },
+};
 const DOCKABLE_MODAL_OPTIONS = [
   { key: null, label: 'None' },
-  { key: 'skills', label: 'Skills' },
-  { key: 'map', label: 'Campaign Map' },
+  ...Object.entries(DOCKABLE_MODAL_DEFINITIONS).map(([key, { label }]) => ({
+    key,
+    label,
+  })),
 ];
 const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
@@ -1592,10 +1607,13 @@ export default function ZombiesCharacterSheet() {
     };
   }, [characterId, applyMapPayload]);
 
-  const handleShowCharacterInfo = () => setShowCharacterInfo(true);
-  const handleCloseCharacterInfo = () => setShowCharacterInfo(false);
-  const handleShowStats = () => setShowStats(true);
-  const handleCloseStats = () => setShowStats(false);
+  const handleShowCharacterInfo = useCallback(() => setShowCharacterInfo(true), []);
+  const handleCloseCharacterInfo = useCallback(
+    () => setShowCharacterInfo(false),
+    []
+  );
+  const handleShowStats = useCallback(() => setShowStats(true), []);
+  const handleCloseStats = useCallback(() => setShowStats(false), []);
   const handleDockClose = useCallback((modalKey) => {
     setDockedModals((prev) => {
       const leftMatch = prev.left === modalKey;
@@ -1627,67 +1645,56 @@ export default function ZombiesCharacterSheet() {
     });
   }, []);
 
-  const handleShowSkill = () => setShowSkill(true); // Handler to show skills modal
+  const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
-  }, []); // Handler to close skills modal
-  const handleShowFeats = () => setShowFeats(true);
-  const handleCloseFeats = () => setShowFeats(false);
-  const handleShowFeatures = () => setShowFeatures(true);
-  const handleCloseFeatures = () => setShowFeatures(false);
-  const handleShowShop = (tab) => {
+  }, []);
+  const handleShowFeats = useCallback(() => setShowFeats(true), []);
+  const handleCloseFeats = useCallback(() => setShowFeats(false), []);
+  const handleShowFeatures = useCallback(() => setShowFeatures(true), []);
+  const handleCloseFeatures = useCallback(() => setShowFeatures(false), []);
+  const handleShowShop = useCallback((tab) => {
     setShopTab((prevTab) => tab ?? prevTab ?? 'weapons');
     setShowShop(true);
-  };
-  const handleCloseShop = () => setShowShop(false);
-  const handleShowInventory = (tab) => {
+  }, []);
+  const handleCloseShop = useCallback(() => setShowShop(false), []);
+  const handleShowInventory = useCallback((tab) => {
     setInventoryTab((prevTab) => tab ?? prevTab ?? 'weapons');
     setShowInventory(true);
-  };
-  const handleCloseInventory = () => setShowInventory(false);
-  const handleShowEquipment = () => setShowEquipment(true);
-  const handleCloseEquipment = () => setShowEquipment(false);
-  const handleShowSpells = () => setShowSpells(true);
-  const handleCloseSpells = () => setShowSpells(false);
-  const handleShowHelpModal = () => setShowHelpModal(true);
-  const handleCloseHelpModal = () => setShowHelpModal(false);
-  const handleShowBackground = () => setShowBackground(true);
-  const handleCloseBackground = () => setShowBackground(false);
-  const handleShowMapModal = () => setShowMapModal(true);
+  }, []);
+  const handleCloseInventory = useCallback(() => setShowInventory(false), []);
+  const handleShowEquipment = useCallback(() => setShowEquipment(true), []);
+  const handleCloseEquipment = useCallback(() => setShowEquipment(false), []);
+  const handleShowSpells = useCallback(() => setShowSpells(true), []);
+  const handleCloseSpells = useCallback(() => setShowSpells(false), []);
+  const handleShowHelpModal = useCallback(() => setShowHelpModal(true), []);
+  const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
+  const handleShowBackground = useCallback(() => setShowBackground(true), []);
+  const handleCloseBackground = useCallback(() => setShowBackground(false), []);
+  const handleShowMapModal = useCallback(() => setShowMapModal(true), []);
   const handleCloseMapModal = useCallback(() => {
     setShowMapModal(false);
   }, []);
 
-  const handleCloseDockedSkill = useCallback(() => {
-    handleDockClose('skills');
-  }, [handleDockClose]);
+  const getDockedSide = useCallback(
+    (modalKey) => {
+      if (!modalKey) {
+        return null;
+      }
 
-  const handleCloseDockedMap = useCallback(() => {
-    handleDockClose('map');
-  }, [handleDockClose]);
+      if (dockedModals.left === modalKey) {
+        return 'left';
+      }
 
-  const skillsDockedSide = useMemo(() => {
-    if (dockedModals.left === 'skills') {
-      return 'left';
-    }
-    if (dockedModals.right === 'skills') {
-      return 'right';
-    }
-    return null;
-  }, [dockedModals.left, dockedModals.right]);
+      if (dockedModals.right === modalKey) {
+        return 'right';
+      }
 
-  const mapDockedSide = useMemo(() => {
-    if (dockedModals.left === 'map') {
-      return 'left';
-    }
-    if (dockedModals.right === 'map') {
-      return 'right';
-    }
-    return null;
-  }, [dockedModals.left, dockedModals.right]);
+      return null;
+    },
+    [dockedModals.left, dockedModals.right]
+  );
 
-  const isSkillsDocked = Boolean(skillsDockedSide);
-  const isMapDocked = Boolean(mapDockedSide);
   const shouldShowSkillsModal = showSkill;
   const shouldShowMapModal = showMapModal;
 
@@ -1699,13 +1706,21 @@ export default function ZombiesCharacterSheet() {
     );
   };
 
-  const handleLongRest = () => {
-    setLongRestCount((c) => c + 1);
-  };
+  const handleSkillsChange = useCallback((skills) => {
+    setForm((prev) => ({ ...prev, skills }));
+  }, []);
 
-  const handleShortRest = () => {
+  const handleSpellsChange = useCallback((spells, spellPoints) => {
+    setForm((prev) => ({ ...prev, spells, spellPoints }));
+  }, []);
+
+  const handleLongRest = useCallback(() => {
+    setLongRestCount((c) => c + 1);
+  }, []);
+
+  const handleShortRest = useCallback(() => {
     setShortRestCount((c) => c + 1);
-  };
+  }, []);
 
   const handleCastSpell = useCallback(
     (arg, lvl, idx) => {
@@ -2970,6 +2985,259 @@ const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
 const featsGold = featPointsLeft > 0 ? "gold" : "#6C757D";
 const spellsGold =
   hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
+
+  const isFormReady = Boolean(form);
+
+  const DOCKABLE_MODAL_CONFIG = useMemo(
+    () => ({
+      characterInfo: {
+        ...DOCKABLE_MODAL_DEFINITIONS.characterInfo,
+        showProp: 'show',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          handleClose: handleCloseCharacterInfo,
+          onShowBackground: handleShowBackground,
+          onLongRest: handleLongRest,
+          onShortRest: handleShortRest,
+        }),
+      },
+      stats: {
+        ...DOCKABLE_MODAL_DEFINITIONS.stats,
+        showProp: 'showStats',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          handleCloseStats,
+        }),
+      },
+      skills: {
+        ...DOCKABLE_MODAL_DEFINITIONS.skills,
+        showProp: 'showSkill',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          handleCloseSkill,
+          totalLevel,
+          strMod: statMods.str,
+          dexMod: statMods.dex,
+          conMod: statMods.con,
+          intMod: statMods.int,
+          chaMod: statMods.cha,
+          wisMod: statMods.wis,
+          onSkillsChange: handleSkillsChange,
+          onRollResult: handleRollResult,
+        }),
+      },
+      feats: {
+        ...DOCKABLE_MODAL_DEFINITIONS.feats,
+        showProp: 'showFeats',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          handleCloseFeats,
+        }),
+      },
+      features: {
+        ...DOCKABLE_MODAL_DEFINITIONS.features,
+        showProp: 'showFeatures',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          handleCloseFeatures,
+          onActionSurge: handleActionSurge,
+          longRestCount,
+          shortRestCount,
+        }),
+      },
+      spells: {
+        ...DOCKABLE_MODAL_DEFINITIONS.spells,
+        showProp: 'show',
+        isEnabled: isFormReady && hasSpellcasting,
+        getBaseProps: () => ({
+          form,
+          handleClose: handleCloseSpells,
+          onSpellsChange: handleSpellsChange,
+          onCastSpell: handleCastSpell,
+          availableSlots,
+        }),
+      },
+      equipment: {
+        ...DOCKABLE_MODAL_DEFINITIONS.equipment,
+        showProp: 'show',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          onHide: handleCloseEquipment,
+          onEquipmentChange: handleEquipmentChange,
+        }),
+      },
+      inventory: {
+        ...DOCKABLE_MODAL_DEFINITIONS.inventory,
+        showProp: 'show',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          activeTab: inventoryTab,
+          onHide: handleCloseInventory,
+          onTabChange: setInventoryTab,
+          characterId,
+        }),
+      },
+      shop: {
+        ...DOCKABLE_MODAL_DEFINITIONS.shop,
+        showProp: 'show',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          activeTab: shopTab,
+          onHide: handleCloseShop,
+          onTabChange: setShopTab,
+          characterId,
+          strength: computedStats.str,
+          onWeaponsChange: handleWeaponsChange,
+          onArmorChange: handleArmorChange,
+          onItemsChange: handleItemsChange,
+          onAccessoriesChange: handleAccessoriesChange,
+          currency: {
+            cp: form?.cp ?? 0,
+            sp: form?.sp ?? 0,
+            gp: form?.gp ?? 0,
+            pp: form?.pp ?? 0,
+          },
+          onPurchase: handleShopPurchase,
+        }),
+      },
+      map: {
+        ...DOCKABLE_MODAL_DEFINITIONS.map,
+        showProp: 'show',
+        isEnabled: true,
+        getBaseProps: () => ({
+          map: campaignMap,
+          maps: campaignMaps,
+          activeMapId: campaignActiveMapId,
+          tokensByMapId: modalTokensByMapId,
+          currentCharacterId: resolvedCharacterId,
+          activeCharacterId: activeTurnParticipantId,
+          characterLookup: tokenMetaById,
+          onTokenMove: handleTokenMove,
+          onHide: handleCloseMapModal,
+        }),
+      },
+      help: {
+        ...DOCKABLE_MODAL_DEFINITIONS.help,
+        showProp: 'showHelpModal',
+        isEnabled: isFormReady,
+        getBaseProps: () => ({
+          form,
+          handleCloseHelpModal,
+          onDiceColorChange: handleDiceColorChange,
+        }),
+      },
+    }),
+    [
+      activeTurnParticipantId,
+      availableSlots,
+      campaignActiveMapId,
+      campaignMap,
+      campaignMaps,
+      characterId,
+      computedStats.str,
+      form,
+      handleAccessoriesChange,
+      handleActionSurge,
+      handleArmorChange,
+      handleCastSpell,
+      handleCloseCharacterInfo,
+      handleCloseEquipment,
+      handleCloseFeatures,
+      handleCloseFeats,
+      handleCloseHelpModal,
+      handleCloseInventory,
+      handleCloseMapModal,
+      handleCloseShop,
+      handleCloseSkill,
+      handleCloseSpells,
+      handleCloseStats,
+      handleDiceColorChange,
+      handleEquipmentChange,
+      handleItemsChange,
+      handleLongRest,
+      handleRollResult,
+      handleShortRest,
+      handleShopPurchase,
+      handleShowBackground,
+      handleSkillsChange,
+      handleSpellsChange,
+      handleTokenMove,
+      handleWeaponsChange,
+      hasSpellcasting,
+      inventoryTab,
+      isFormReady,
+      longRestCount,
+      modalTokensByMapId,
+      resolvedCharacterId,
+      setInventoryTab,
+      setShopTab,
+      shopTab,
+      shortRestCount,
+      statMods.cha,
+      statMods.con,
+      statMods.dex,
+      statMods.int,
+      statMods.str,
+      statMods.wis,
+      totalLevel,
+      tokenMetaById,
+    ]
+  );
+
+  useEffect(() => {
+    setDockedModals((prev) => {
+      let nextState = prev;
+      ['left', 'right'].forEach((side) => {
+        const modalKey = prev[side];
+        if (modalKey && DOCKABLE_MODAL_CONFIG[modalKey]?.isEnabled === false) {
+          if (nextState === prev) {
+            nextState = { ...prev };
+          }
+          nextState[side] = null;
+        }
+      });
+      return nextState;
+    });
+  }, [DOCKABLE_MODAL_CONFIG]);
+
+  const dockedModalElements = useMemo(() => {
+    return Object.entries(DOCKABLE_MODAL_CONFIG)
+      .map(([modalKey, config]) => {
+        if (config.isEnabled === false) {
+          return null;
+        }
+
+        const dockedSide = getDockedSide(modalKey);
+        if (!dockedSide) {
+          return null;
+        }
+
+        const Component = config.component;
+        const baseProps =
+          typeof config.getBaseProps === 'function' ? config.getBaseProps() : {};
+
+        return (
+          <Component
+            key={`docked-${modalKey}`}
+            {...baseProps}
+            {...{ [config.showProp]: true }}
+            isDocked
+            dockedSide={dockedSide}
+            onDockClose={() => handleDockClose(modalKey)}
+          />
+        );
+      })
+      .filter(Boolean);
+  }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockClose]);
+
   return (
     <div
       ref={rootContainerRef}
@@ -3014,11 +3282,19 @@ const spellsGold =
                 handleDockSelectionChange('left', event.target.value)
               }
             >
-              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => (
-                <option key={key ?? 'none'} value={key ?? ''}>
-                  {label}
-                </option>
-              ))}
+              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => {
+                const config = key ? DOCKABLE_MODAL_CONFIG[key] : null;
+                const isDisabled = key ? config?.isEnabled === false : false;
+                return (
+                  <option
+                    key={key ?? 'none'}
+                    value={key ?? ''}
+                    disabled={isDisabled}
+                  >
+                    {label}
+                  </option>
+                );
+              })}
             </Form.Select>
           </div>
           <div className="dock-selector dock-selector--right">
@@ -3037,11 +3313,19 @@ const spellsGold =
                 handleDockSelectionChange('right', event.target.value)
               }
             >
-              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => (
-                <option key={key ?? 'none'} value={key ?? ''}>
-                  {label}
-                </option>
-              ))}
+              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => {
+                const config = key ? DOCKABLE_MODAL_CONFIG[key] : null;
+                const isDisabled = key ? config?.isEnabled === false : false;
+                return (
+                  <option
+                    key={key ?? 'none'}
+                    value={key ?? ''}
+                    disabled={isDisabled}
+                  >
+                    {label}
+                  </option>
+                );
+              })}
             </Form.Select>
           </div>
         </>
@@ -3291,25 +3575,8 @@ const spellsGold =
       intMod={statMods.int}
       chaMod={statMods.cha}
       wisMod={statMods.wis}
-      onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+      onSkillsChange={handleSkillsChange}
       onRollResult={handleRollResult}
-    />
-    <Skills
-      form={form}
-      showSkill={Boolean(skillsDockedSide)}
-      handleCloseSkill={handleCloseDockedSkill}
-      totalLevel={totalLevel}
-      strMod={statMods.str}
-      dexMod={statMods.dex}
-      conMod={statMods.con}
-      intMod={statMods.int}
-      chaMod={statMods.cha}
-      wisMod={statMods.wis}
-      onSkillsChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
-      onRollResult={handleRollResult}
-      isDocked={isSkillsDocked}
-      dockedSide={skillsDockedSide}
-      onDockClose={handleCloseDockedSkill}
     />
     <Stats form={form} showStats={showStats} handleCloseStats={handleCloseStats} />
     <BackgroundModal
@@ -3366,9 +3633,7 @@ const spellsGold =
         form={form}
         show={showSpells}
         handleClose={handleCloseSpells}
-        onSpellsChange={(spells, spellPoints) =>
-          setForm((prev) => ({ ...prev, spells, spellPoints }))
-        }
+        onSpellsChange={handleSpellsChange}
         onCastSpell={handleCastSpell}
         availableSlots={availableSlots}
       />
@@ -3391,21 +3656,7 @@ const spellsGold =
       characterLookup={tokenMetaById}
       onTokenMove={handleTokenMove}
     />
-    <MapModal
-      show={Boolean(mapDockedSide)}
-      onHide={handleCloseDockedMap}
-      map={campaignMap}
-      maps={campaignMaps}
-      activeMapId={campaignActiveMapId}
-      tokensByMapId={modalTokensByMapId}
-      currentCharacterId={resolvedCharacterId}
-      activeCharacterId={activeTurnParticipantId}
-      characterLookup={tokenMetaById}
-      onTokenMove={handleTokenMove}
-      isDocked={isMapDocked}
-      dockedSide={mapDockedSide}
-      onDockClose={handleCloseDockedMap}
-    />
+    {dockedModalElements}
   </div>
 );
 }

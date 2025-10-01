@@ -111,6 +111,9 @@ export default function SpellSelector({
   onSpellsChange,
   onCastSpell,
   availableSlots = { regular: {}, warlock: {} },
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const params = useParams();
 
@@ -261,7 +264,7 @@ export default function SpellSelector({
     });
     setShowUpcast(false);
     setPendingSpell(null);
-    handleClose();
+    handleModalHide();
   };
 
   const chaMod = useMemo(() => {
@@ -447,7 +450,7 @@ export default function SpellSelector({
                           castingTime: spell.castingTime,
                           name: spell.name,
                         });
-                        handleClose();
+                        handleModalHide();
                       }
                     }}
                   >
@@ -531,14 +534,50 @@ export default function SpellSelector({
     }
   }
 
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--spells');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleClose?.();
+  }, [handleClose, isDocked, onDockClose]);
+
   return (
     <>
       <Modal
-        className="dnd-modal modern-modal"
+        className={modalClassName}
         show={show}
-        onHide={handleClose}
+        onHide={handleModalHide}
         size="lg"
-        centered
+        centered={!isDocked}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
       >
         <Card className="modern-card">
           <Card.Header className="modal-header">
@@ -638,9 +677,10 @@ export default function SpellSelector({
             )}
           </Card.Body>
           <Card.Footer className="modal-footer">
-            <Button 
-            className="action-btn close-btn"
-            onClick={handleClose}>
+            <Button
+              className="action-btn close-btn"
+              onClick={handleModalHide}
+            >
               Close
             </Button>
           </Card.Footer>
