@@ -80,6 +80,8 @@ export default function CharacterInfo({
       goliathAncestry.label ||
       "Giant Ancestry"
     : null;
+  const displaySize =
+    form?.temporarySize || form?.size || form?.height || "—";
 
   return (
     <Modal
@@ -156,7 +158,7 @@ export default function CharacterInfo({
             </div>
             <div className="character-info-item">
               <div className="character-info-label">Size</div>
-              <div className="character-info-value">{form.size || form.height || "—"}</div>
+              <div className="character-info-value">{displaySize}</div>
             </div>
             <div className="character-info-item">
               <div className="character-info-label">Weight</div>
