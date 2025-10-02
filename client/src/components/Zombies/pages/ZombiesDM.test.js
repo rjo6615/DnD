@@ -98,7 +98,7 @@ describe('ZombiesDM AI generation', () => {
   });
 
   test.skip('generates armor via AI and populates form', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -186,7 +186,7 @@ describe('ZombiesDM AI generation', () => {
     const armorRecords = [
       { _id: 'armor1', armorName: 'Custom Armor', slot: 'chest' },
     ];
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -385,7 +385,7 @@ describe('ZombiesDM AI generation', () => {
   });
 
   test('generates item via AI and populates bonus fields', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -446,7 +446,7 @@ describe('ZombiesDM AI generation', () => {
   });
 
   test('normalizes AI bonuses with full names', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -507,7 +507,7 @@ describe('ZombiesDM AI generation', () => {
   });
 
   test('generates accessory via AI and populates slots and bonuses', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -588,7 +588,7 @@ describe('ZombiesDM AI generation', () => {
       },
     ];
 
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => characters });
@@ -810,7 +810,7 @@ describe('ZombiesDM AI generation', () => {
     };
     const socketMaps = [initialMap];
 
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -894,7 +894,7 @@ describe('ZombiesDM AI generation', () => {
       tokens: mapTokens['map-1'],
     };
 
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => characters });
@@ -920,9 +920,16 @@ describe('ZombiesDM AI generation', () => {
               activeMapTokens: mapTokens['map-1'],
             }),
           });
+        case '/campaigns/Camp1/maps/map-1/tokens/hero-1':
+          if (options.method === 'DELETE') {
+            return Promise.resolve({ ok: true });
+          }
+          break;
         default:
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
     });
 
     render(<ZombiesDM />);
@@ -988,6 +995,34 @@ describe('ZombiesDM AI generation', () => {
           }),
         ])
       );
+    });
+
+    apiFetch.mockClear();
+
+    const latestBoardProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+    expect(typeof latestBoardProps.onTokenRemove).toBe('function');
+
+    await act(async () => {
+      const result = await latestBoardProps.onTokenRemove({
+        characterId: 'hero-1',
+        mapId: 'map-1',
+      });
+      expect(result).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/map-1/tokens/hero-1',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    await waitFor(() => {
+      const updatedProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      const hasHeroToken = (updatedProps.tokens || []).some(
+        (token) => token.characterId === 'hero-1'
+      );
+      expect(hasHeroToken).toBe(false);
     });
   });
 
@@ -1208,6 +1243,12 @@ describe('ZombiesDM AI generation', () => {
           ) {
             return Promise.resolve({ ok: true, json: async () => ({}) });
           }
+          if (
+            url.startsWith('/campaigns/Camp1/maps/') &&
+            options.method === 'DELETE'
+          ) {
+            return Promise.resolve({ ok: true });
+          }
           return Promise.resolve({ ok: true, json: async () => ({}) });
       }
     });
@@ -1256,13 +1297,29 @@ describe('ZombiesDM AI generation', () => {
         })
       );
     });
+
+    apiFetch.mockClear();
+
+    await expect(
+      placementProps.onTokenRemove({
+        mapId: 'map-123',
+        characterId: 'enemy-1',
+      })
+    ).resolves.toBe(true);
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/map-123/tokens/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
   });
   test('opens the d20 roller modal when clicking the Roll button in enemies form', async () => {
     const characters = [
       { _id: 'hero-1', characterName: 'Hero One', diceColor: '#3366ff' },
     ];
 
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => characters });

@@ -787,10 +787,19 @@ export default function ZombiesDM() {
     );
 
     const removeCharacterTokensFromMaps = useCallback(
-      async (characterId) => {
+      async (character) => {
         const normalizedCharacterId =
-          typeof characterId === 'string' && characterId.trim() !== ''
-            ? characterId.trim()
+          typeof character === 'string'
+            ? character.trim()
+            : typeof character?.characterId === 'string' && character.characterId.trim() !== ''
+            ? character.characterId.trim()
+            : null;
+
+        const normalizedMapHint =
+          typeof character === 'object' &&
+          typeof character?.mapId === 'string' &&
+          character.mapId.trim() !== ''
+            ? character.mapId.trim()
             : null;
 
         if (!normalizedCharacterId || !encodedCampaign) {
@@ -835,6 +844,10 @@ export default function ZombiesDM() {
           )
         ) {
           mapsWithToken.add(activeMapId);
+        }
+
+        if (normalizedMapHint) {
+          mapsWithToken.add(normalizedMapHint);
         }
 
         const shouldClosePlacement =
@@ -949,6 +962,22 @@ export default function ZombiesDM() {
         parseErrorMessage,
         setStatus,
       ]
+    );
+
+    const handleMapTokenRemove = useCallback(
+      async ({ characterId, mapId }) => {
+        if (typeof characterId !== 'string' || characterId.trim() === '') {
+          return false;
+        }
+
+        const payload = { characterId: characterId.trim() };
+        if (typeof mapId === 'string' && mapId.trim() !== '') {
+          payload.mapId = mapId.trim();
+        }
+
+        return removeCharacterTokensFromMaps(payload);
+      },
+      [removeCharacterTokensFromMaps]
     );
 
     const handleRemoveEnemy = useCallback(
@@ -4942,6 +4971,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               onTokenPositionChange={
                                 shouldShowCampaignTokens ? handleTokenPositionChange : undefined
                               }
+                              onTokenRemove={handleMapTokenRemove}
                             />
                           ) : (
                             <p className="text-muted mb-0">No map selected.</p>
@@ -6666,6 +6696,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         activeCharacterId={activeParticipant?.characterId}
         characterLookup={tokenMetaById}
         onTokenMove={handleMapModalTokenMove}
+        onTokenRemove={handleMapTokenRemove}
         readOnly={false}
       />
 

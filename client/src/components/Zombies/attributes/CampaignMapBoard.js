@@ -116,6 +116,7 @@ const CampaignMapBoard = ({
   onTokenDragEnd,
   onTokenPositionChange,
   onBackgroundClick,
+  onTokenRemove,
   disabled,
   className,
   children,
@@ -489,6 +490,26 @@ const CampaignMapBoard = ({
                       );
                       handlePointerCancel(event);
                     }}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (
+                        interactionDisabled ||
+                        typeof onTokenRemove !== 'function' ||
+                        !characterId
+                      ) {
+                        return;
+                      }
+
+                      onTokenRemove({
+                        characterId,
+                        token,
+                        mapId:
+                          typeof safeMap?.mapId === 'string' && safeMap.mapId.trim() !== ''
+                            ? safeMap.mapId.trim()
+                            : null,
+                      });
+                    }}
                     data-token-id={characterId}
                   >
                     {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
@@ -566,6 +587,7 @@ CampaignMapBoard.propTypes = {
   onTokenDragEnd: PropTypes.func,
   onTokenPositionChange: PropTypes.func,
   onBackgroundClick: PropTypes.func,
+  onTokenRemove: PropTypes.func,
   disabled: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,
@@ -579,6 +601,7 @@ CampaignMapBoard.defaultProps = {
   onTokenDragEnd: null,
   onTokenPositionChange: null,
   onBackgroundClick: null,
+  onTokenRemove: null,
   disabled: false,
   className: '',
   children: null,
