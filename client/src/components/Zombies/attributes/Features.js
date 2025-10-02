@@ -22,30 +22,6 @@ export default function Features({
   const [error, setError] = useState(null);
   const [surgeUsed, setSurgeUsed] = useState(false);
 
-  const dragonbornAncestry = useMemo(() => {
-    const race = form?.race;
-    if (!race) return null;
-
-    const raceName =
-      typeof race?.name === 'string' ? race.name.toLowerCase() : '';
-    if (raceName !== 'dragonborn') return null;
-
-    if (race.selectedAncestry) return race.selectedAncestry;
-
-    if (race.selectedAncestryKey && race.dragonAncestries) {
-      const selected = race.dragonAncestries[race.selectedAncestryKey];
-      if (selected) return selected;
-    }
-
-    if (form?.dragonAncestry) return form.dragonAncestry;
-
-    if (form?.dragonAncestryKey && race.dragonAncestries) {
-      return race.dragonAncestries[form.dragonAncestryKey] || null;
-    }
-
-    return null;
-  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey]);
-
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
     return form.occupation.reduce((sum, occ) => {
@@ -57,40 +33,118 @@ export default function Features({
   }, [form?.occupation]);
 
   const ancestryFeatures = useMemo(() => {
-    if (!dragonbornAncestry) return [];
+    const race = form?.race;
+    if (!race) return [];
 
-    const ancestryLabel =
-      dragonbornAncestry.label || dragonbornAncestry.name || 'Dragonborn';
-    const damageType = dragonbornAncestry.damageType || '';
-    const damageTypeLower = damageType.toLowerCase();
-    const resistanceDescription = damageTypeLower
-      ? `You have resistance to ${damageTypeLower} damage.`
-      : 'You have resistance to the damage type associated with your draconic ancestry.';
+    const raceName =
+      typeof race?.name === 'string' ? race.name.toLowerCase() : '';
 
-    const resistanceFeature = {
-      id: 'dragonborn-damage-resistance',
-      name: 'Damage Resistance',
-      meta: `Dragon Subrace (${ancestryLabel})`,
-      description: resistanceDescription,
-      hideUseButton: true,
-    };
+    if (raceName === 'dragonborn') {
+      const ancestry =
+        race.selectedAncestry ||
+        (race.selectedAncestryKey && race.dragonAncestries
+          ? race.dragonAncestries[race.selectedAncestryKey]
+          : null) ||
+        form?.dragonAncestry ||
+        (form?.dragonAncestryKey && race.dragonAncestries
+          ? race.dragonAncestries[form.dragonAncestryKey]
+          : null);
 
-    const flightFeatures = [];
+      if (!ancestry) return [];
 
-    if (totalCharacterLevel >= 5) {
-      const draconicFlightDescription =
-        'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
-      flightFeatures.push({
-        id: 'dragonborn-draconic-flight',
-        name: 'Draconic Flight',
+      const ancestryLabel = ancestry.label || ancestry.name || 'Dragonborn';
+      const damageType = ancestry.damageType || '';
+      const damageTypeLower = damageType.toLowerCase();
+      const resistanceDescription = damageTypeLower
+        ? `You have resistance to ${damageTypeLower} damage.`
+        : 'You have resistance to the damage type associated with your draconic ancestry.';
+
+      const resistanceFeature = {
+        id: 'dragonborn-damage-resistance',
+        name: 'Damage Resistance',
         meta: `Dragon Subrace (${ancestryLabel})`,
-        description: draconicFlightDescription,
+        description: resistanceDescription,
+        desc: resistanceDescription,
         hideUseButton: true,
-      });
+      };
+
+      const flightFeatures = [];
+
+      if (totalCharacterLevel >= 5) {
+        const draconicFlightDescription =
+          'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
+        flightFeatures.push({
+          id: 'dragonborn-draconic-flight',
+          name: 'Draconic Flight',
+          meta: `Dragon Subrace (${ancestryLabel})`,
+          description: draconicFlightDescription,
+          desc: draconicFlightDescription,
+          hideUseButton: true,
+        });
+      }
+
+      return [resistanceFeature, ...flightFeatures];
     }
 
-    return [resistanceFeature, ...flightFeatures];
-  }, [dragonbornAncestry, totalCharacterLevel]);
+    if (raceName === 'goliath') {
+      const ancestry =
+        race.selectedAncestry ||
+        (race.selectedAncestryKey && race.giantAncestries
+          ? race.giantAncestries[race.selectedAncestryKey]
+          : null) ||
+        form?.giantAncestry ||
+        (form?.giantAncestryKey && race.giantAncestries
+          ? race.giantAncestries[form.giantAncestryKey]
+          : null);
+
+      if (!ancestry) return [];
+
+      const ancestryLabel = ancestry.label || ancestry.name || 'Giant Boon';
+      const ancestryDescription = ancestry.description || '';
+      const usageText = ancestry.usage ? ` ${ancestry.usage}` : '';
+      const combinedDescription = `${ancestryDescription}${usageText}`.trim();
+
+      const features = [
+        {
+          id: `goliath-ancestry-${
+            race.selectedAncestryKey || form?.giantAncestryKey || 'boon'
+          }`,
+          name: ancestryLabel,
+          meta: 'Giant Ancestry',
+          description: combinedDescription || ancestryDescription,
+          desc: combinedDescription || ancestryDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'goliath-powerful-build',
+          name: 'Powerful Build',
+          meta: 'Goliath',
+          description:
+            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+          desc:
+            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+          hideUseButton: true,
+        },
+      ];
+
+      if (totalCharacterLevel >= 5) {
+        const largeFormDescription =
+          "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest.";
+        features.push({
+          id: 'goliath-large-form',
+          name: 'Large Form',
+          meta: 'Goliath (Level 5)',
+          description: largeFormDescription,
+          desc: largeFormDescription,
+          hideUseButton: true,
+        });
+      }
+
+      return features;
+    }
+
+    return [];
+  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey, form?.giantAncestry, form?.giantAncestryKey, totalCharacterLevel]);
 
   const displayFeatures = useMemo(() => {
     if (ancestryFeatures.length === 0) return features;
