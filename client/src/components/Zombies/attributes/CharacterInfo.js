@@ -115,14 +115,13 @@ export default function CharacterInfo({
             </div>
             <div className="character-info-item">
               <div className="character-info-label">Race</div>
-              <div className="character-info-value">{form.race?.name || "—"}</div>
-            </div>
-            {goliathAncestryLabel && (
-              <div className="character-info-item">
-                <div className="character-info-label">Subrace</div>
-                <div className="character-info-value">{goliathAncestryLabel}</div>
+              <div className="character-info-value character-info-value--stacked">
+                <span>{form.race?.name || "—"}</span>
+                {isGoliath && goliathAncestryLabel && (
+                  <span className="character-info-subtext">{goliathAncestryLabel}</span>
+                )}
               </div>
-            )}
+            </div>
             <div className="character-info-item">
               <div className="character-info-label">Background</div>
               <div className="character-info-value">
