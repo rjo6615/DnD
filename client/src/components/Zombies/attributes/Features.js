@@ -3,12 +3,14 @@ import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
+import largeFormIcon from '../../../images/large-form-icon.png';
 
 export default function Features({
   form,
   showFeatures,
   handleCloseFeatures,
   onActionSurge,
+  onLargeForm,
   longRestCount,
   shortRestCount,
   isDocked = false,
@@ -21,6 +23,7 @@ export default function Features({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [surgeUsed, setSurgeUsed] = useState(false);
+  const [largeFormUsed, setLargeFormUsed] = useState(false);
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -191,6 +194,7 @@ export default function Features({
 
   useEffect(() => {
     setSurgeUsed(false);
+    setLargeFormUsed(false);
   }, [longRestCount, shortRestCount]);
 
   const dialogClassName = useMemo(() => {
@@ -256,6 +260,7 @@ export default function Features({
                   {displayFeatures.map((feat, idx) => {
                     const featKey = feat.id || `${feat.name}-${idx}`;
                     const isActionSurge = feat.name?.includes('Action Surge');
+                    const isLargeForm = feat.id === 'goliath-large-form';
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -291,6 +296,26 @@ export default function Features({
                                 <img
                                   src={actionSurgeIcon}
                                   alt="Action Surge"
+                                  width={36}
+                                  height={36}
+                                />
+                              </Button>
+                            ) : isLargeForm ? (
+                              <Button
+                                aria-label="use feature"
+                                variant="link"
+                                className={`p-0 border-0 ${largeFormUsed ? 'opacity-50' : ''}`}
+                                onClick={() => {
+                                  if (!largeFormUsed) {
+                                    onLargeForm?.();
+                                    setLargeFormUsed(true);
+                                  }
+                                }}
+                                disabled={largeFormUsed}
+                              >
+                                <img
+                                  src={largeFormIcon}
+                                  alt="Large Form"
                                   width={36}
                                   height={36}
                                 />
