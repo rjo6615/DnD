@@ -1752,10 +1752,13 @@ test('loads campaign map tokens and updates them after placement', async () => {
       });
     }
 
-    if (url === `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1`) {
-      expect(options.method).toBe('PUT');
+    if (url === `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1` && options.method === 'PUT') {
       expect(JSON.parse(options.body)).toEqual({ x: 0.5, y: 0.6 });
       return Promise.resolve({ ok: true, json: async () => ({}) });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1` && options.method === 'DELETE') {
+      return Promise.resolve({ ok: true });
     }
 
     return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
@@ -1794,5 +1797,28 @@ test('loads campaign map tokens and updates them after placement', async () => {
     expect(updatedToken).toBeDefined();
     expect(updatedToken.x).toBeCloseTo(0.5);
     expect(updatedToken.y).toBeCloseTo(0.6);
+  });
+
+  apiFetch.mockClear();
+
+  await act(async () => {
+    const result = await mockMapModalProps.current.onTokenRemove({
+      mapId,
+      characterId: 'char-1',
+    });
+    expect(result).toBe(true);
+  });
+
+  await waitFor(() => {
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1`,
+      expect.objectContaining({ method: 'DELETE' })
+    );
+  });
+
+  await waitFor(() => {
+    const remainingToken =
+      mockMapModalProps.current.tokensByMapId?.[mapId]?.['char-1'];
+    expect(remainingToken).toBeUndefined();
   });
 });

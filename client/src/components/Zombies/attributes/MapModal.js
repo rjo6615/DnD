@@ -125,6 +125,7 @@ const MapModal = ({
   activeCharacterId,
   characterLookup,
   onTokenMove,
+  onTokenRemove,
   readOnly,
   isDocked = false,
   dockedSide = null,
@@ -464,6 +465,49 @@ const MapModal = ({
     [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
   );
 
+  const handleTokenRemove = useCallback(
+    ({ characterId, token }) => {
+      if (!isInteractive || placementPending) {
+        return false;
+      }
+
+      if (typeof onTokenRemove !== 'function' || !previewMapId) {
+        return false;
+      }
+
+      const normalizedCharacterId = normalizeMapId(characterId);
+      if (!normalizedCharacterId) {
+        return false;
+      }
+
+      if (readOnly && normalizedCharacterId !== normalizedCurrentCharacterId) {
+        return false;
+      }
+
+      const payload = {
+        mapId: previewMapId,
+        characterId: normalizedCharacterId,
+      };
+
+      if (token) {
+        payload.token = token;
+      } else if (tokensDictionary[normalizedCharacterId]) {
+        payload.token = tokensDictionary[normalizedCharacterId];
+      }
+
+      return onTokenRemove(payload);
+    },
+    [
+      isInteractive,
+      placementPending,
+      onTokenRemove,
+      previewMapId,
+      readOnly,
+      normalizedCurrentCharacterId,
+      tokensDictionary,
+    ]
+  );
+
   const canClickToPlace = useMemo(
     () =>
       Boolean(
@@ -638,6 +682,7 @@ const MapModal = ({
             disabled={placementPending}
             onTokenPositionChange={handleTokenPositionChange}
             onBackgroundClick={handleBackgroundPlacement}
+            onTokenRemove={handleTokenRemove}
           />
           {placementPending && (
             <div
@@ -769,6 +814,7 @@ MapModal.propTypes = {
     })
   ),
   onTokenMove: PropTypes.func,
+  onTokenRemove: PropTypes.func,
   readOnly: PropTypes.bool,
   isDocked: PropTypes.bool,
   dockedSide: PropTypes.oneOf(['left', 'right']),
@@ -794,6 +840,7 @@ MapModal.defaultProps = {
   activeCharacterId: null,
   characterLookup: {},
   onTokenMove: null,
+  onTokenRemove: null,
   readOnly: true,
   isDocked: false,
   dockedSide: null,

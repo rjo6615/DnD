@@ -2791,7 +2791,12 @@ export default function ZombiesCharacterSheet() {
         return next;
       });
 
-      if (campaignActiveMapIdRef.current === normalizedMapId) {
+      const shouldUpdateActiveTokens =
+        campaignActiveMapIdRef.current === normalizedMapId ||
+        campaignActiveMapIdRef.current === null ||
+        Boolean(activeMapTokensRef.current?.[normalizedCharacterId]);
+
+      if (shouldUpdateActiveTokens) {
         setActiveMapTokens((prev) => ({
           ...(prev || {}),
           [normalizedCharacterId]: {
@@ -2856,6 +2861,127 @@ export default function ZombiesCharacterSheet() {
         }
 
         throw new Error('Failed to update figurine position.');
+      }
+    },
+    [campaignId]
+  );
+
+  const handleTokenRemove = useCallback(
+    async ({ mapId, characterId: tokenCharacterId }) => {
+      const normalizedCampaign =
+        typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
+      const normalizedMapId =
+        typeof mapId === 'string' && mapId.trim() !== ''
+          ? mapId.trim()
+          : typeof campaignMapRef.current?.mapId === 'string' &&
+              campaignMapRef.current.mapId.trim() !== ''
+            ? campaignMapRef.current.mapId.trim()
+            : null;
+      const normalizedCharacterId =
+        typeof tokenCharacterId === 'string' && tokenCharacterId.trim() !== ''
+          ? tokenCharacterId.trim()
+          : null;
+      const resolvedId = resolvedCharacterIdRef.current;
+
+      if (
+        !normalizedCampaign ||
+        !normalizedMapId ||
+        !normalizedCharacterId ||
+        !resolvedId ||
+        normalizedCharacterId !== resolvedId
+      ) {
+        return false;
+      }
+
+      const previousCampaignTokens = campaignMapTokensRef.current || {};
+      const previousActiveTokens = activeMapTokensRef.current || {};
+      const previousCampaignMap = campaignMapRef.current || null;
+      const existingMapTokens = previousCampaignTokens?.[normalizedMapId] || {};
+
+      if (!Object.prototype.hasOwnProperty.call(existingMapTokens, normalizedCharacterId)) {
+        return true;
+      }
+
+      const encodedCampaign = encodeURIComponent(normalizedCampaign);
+      const encodedMapId = encodeURIComponent(normalizedMapId);
+      const encodedCharacterId = encodeURIComponent(normalizedCharacterId);
+
+      setCampaignMapTokens((prev) => {
+        if (!prev || !prev[normalizedMapId]?.[normalizedCharacterId]) {
+          return prev;
+        }
+        const next = { ...(prev || {}) };
+        const mapTokens = { ...(next[normalizedMapId] || {}) };
+        delete mapTokens[normalizedCharacterId];
+        if (Object.keys(mapTokens).length === 0) {
+          delete next[normalizedMapId];
+        } else {
+          next[normalizedMapId] = mapTokens;
+        }
+        return next;
+      });
+
+      if (campaignActiveMapIdRef.current === normalizedMapId) {
+        setActiveMapTokens((prev) => {
+          if (!prev || !prev[normalizedCharacterId]) {
+            return prev;
+          }
+          const next = { ...(prev || {}) };
+          delete next[normalizedCharacterId];
+          return next;
+        });
+      }
+
+      setCampaignMap((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const prevMapId =
+          typeof prev.mapId === 'string' && prev.mapId.trim() !== '' ? prev.mapId.trim() : null;
+
+        if (prevMapId !== normalizedMapId) {
+          return prev;
+        }
+
+        if (!prev.tokens || !prev.tokens[normalizedCharacterId]) {
+          return prev;
+        }
+
+        const nextTokens = { ...(prev.tokens || {}) };
+        delete nextTokens[normalizedCharacterId];
+        return { ...prev, tokens: nextTokens };
+      });
+
+      try {
+        const response = await apiFetch(
+          `/campaigns/${encodedCampaign}/maps/${encodedMapId}/tokens/${encodedCharacterId}`,
+          { method: 'DELETE' }
+        );
+
+        if (response && response.status === 404) {
+          return true;
+        }
+
+        if (!response || !response.ok) {
+          const message = await parseErrorMessage(
+            response,
+            'Failed to remove figurine from map.'
+          );
+          throw new Error(message);
+        }
+
+        return true;
+      } catch (error) {
+        setCampaignMapTokens(previousCampaignTokens || {});
+        setActiveMapTokens(previousActiveTokens || {});
+        setCampaignMap(previousCampaignMap || null);
+
+        if (error instanceof Error && error.message) {
+          throw error;
+        }
+
+        throw new Error('Failed to remove figurine from map.');
       }
     },
     [campaignId]
@@ -3692,6 +3818,7 @@ export default function ZombiesCharacterSheet() {
       activeCharacterId={activeTurnParticipantId}
       characterLookup={tokenMetaById}
       onTokenMove={handleTokenMove}
+      onTokenRemove={handleTokenRemove}
     />
     {dockedModalElements}
   </div>
