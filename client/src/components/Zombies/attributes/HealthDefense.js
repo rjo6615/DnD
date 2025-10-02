@@ -177,6 +177,10 @@ export default function HealthDefense({
       : healthValue >= 0
         ? "#2ecc71"
         : "#c0392b";
+  const totalSpeed =
+    Number(form?.speed ?? 0) +
+    Number(speed ?? 0) +
+    Number(form?.temporarySpeedBonus ?? 0);
 
 return (
 <div
@@ -327,7 +331,7 @@ return (
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
     <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
     <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
-    <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
+    <div><strong>Speed:</strong> {totalSpeed}</div>
   </div>
 
   {/* Second row */}

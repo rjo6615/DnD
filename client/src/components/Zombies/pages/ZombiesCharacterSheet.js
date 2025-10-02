@@ -1118,6 +1118,53 @@ export default function ZombiesCharacterSheet() {
     });
   }, [baseActionCount, activeEffects]);
 
+  const temporarySize = form?.temporarySize;
+  const temporarySpeedBonus = form?.temporarySpeedBonus;
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const hasLargeForm = activeEffects.some(
+        (effect) => effect && effect.name === 'Large Form'
+      );
+
+      if (hasLargeForm) {
+        const desiredSize = 'Large';
+        const desiredSpeedBonus = 10;
+        const nextSize = prev.temporarySize;
+        const nextSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
+
+        if (
+          nextSize === desiredSize &&
+          nextSpeedBonus === desiredSpeedBonus
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          temporarySize: desiredSize,
+          temporarySpeedBonus: desiredSpeedBonus,
+        };
+      }
+
+      const hasTemporaryFields =
+        Object.prototype.hasOwnProperty.call(prev, 'temporarySize') ||
+        Object.prototype.hasOwnProperty.call(prev, 'temporarySpeedBonus');
+
+      if (!hasTemporaryFields) {
+        return prev;
+      }
+
+      const { temporarySize: _ignoredSize, temporarySpeedBonus: _ignoredSpeed, ...rest } =
+        prev;
+      return rest;
+    });
+  }, [activeEffects, temporarySize, temporarySpeedBonus]);
+
   const consumeCircle = useCallback(
     (type, index) => {
       setUsedSlots((prev) => {
@@ -2598,7 +2645,8 @@ export default function ZombiesCharacterSheet() {
         const { currentHp, maxHp } = calculateCharacterHitPoints(value);
 
         const recordSize = normalizeCreatureSize(
-          value?.size ??
+          value?.temporarySize ??
+            value?.size ??
             value?.characterSize ??
             value?.character?.size ??
             value?.creature?.size ??
@@ -2681,7 +2729,8 @@ export default function ZombiesCharacterSheet() {
         const { currentHp, maxHp } = calculateCharacterHitPoints(form);
 
         const fallbackSize = normalizeCreatureSize(
-          form?.size ??
+          form?.temporarySize ??
+            form?.size ??
             form?.characterSize ??
             form?.character?.size ??
             form?.creature?.size ??
@@ -2701,7 +2750,8 @@ export default function ZombiesCharacterSheet() {
         };
       } else {
         const fallbackSize = normalizeCreatureSize(
-          form?.size ??
+          form?.temporarySize ??
+            form?.size ??
             form?.characterSize ??
             form?.character?.size ??
             form?.creature?.size ??
