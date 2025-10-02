@@ -59,6 +59,10 @@ test('renders features and opens modal with description', async () => {
     name: /view feature/i
   });
 
+  expect(
+    screen.queryByText('You can take one additional action.')
+  ).not.toBeInTheDocument();
+
   await act(async () => {
     await userEvent.click(actionSurgeButton);
   });
@@ -115,14 +119,21 @@ test('dragonborn always has damage resistance and gains draconic flight at level
     name: /view feature/i,
   });
 
+  expect(
+    screen.queryByText(
+      'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
+    )
+  ).not.toBeInTheDocument();
+
   await act(async () => {
     await userEvent.click(viewButton);
   });
 
-  const descriptions = await screen.findAllByText(
-    'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
-  );
-  expect(descriptions.length).toBeGreaterThan(0);
+  expect(
+    await screen.findByText(
+      'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
+    )
+  ).toBeInTheDocument();
 });
 
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
@@ -158,11 +169,33 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
 
   const boonCard = boon.closest('.feature-card');
   expect(boonCard).not.toBeNull();
+  const boonViewButton = within(boonCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
   expect(
-    within(boonCard).getByText((content) =>
-      content.includes('Bonus action • Proficiency bonus per long rest')
+    screen.queryByText(
+      "As a bonus action, teleport up to 30 feet to an unoccupied space you can see. Bonus action • Proficiency bonus per long rest"
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(boonViewButton);
+  });
+
+  expect(
+    await screen.findByText(
+      "As a bonus action, teleport up to 30 feet to an unoccupied space you can see. Bonus action • Proficiency bonus per long rest"
     )
   ).toBeInTheDocument();
+
+  const boonModals = screen.getAllByRole('dialog');
+  const boonModal = boonModals[boonModals.length - 1];
+  const boonClose = within(boonModal).getByRole('button', { name: /close/i });
+
+  await act(async () => {
+    await userEvent.click(boonClose);
+  });
 
   expect(screen.queryByText('Large Form')).not.toBeInTheDocument();
 
@@ -183,14 +216,21 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
     name: /view feature/i,
   });
 
+  expect(
+    screen.queryByText(
+      "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest."
+    )
+  ).not.toBeInTheDocument();
+
   await act(async () => {
     await userEvent.click(largeFormView);
   });
 
-  const largeFormDescriptions = await screen.findAllByText(
-    'Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can\'t use it again until you finish a long rest.'
-  );
-  expect(largeFormDescriptions.length).toBeGreaterThan(0);
+  expect(
+    await screen.findByText(
+      "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest."
+    )
+  ).toBeInTheDocument();
 });
 
 test('features are sorted by class then level', async () => {

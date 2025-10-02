@@ -314,13 +314,6 @@ export default function Features({
                             </Button>
                           </div>
                         </div>
-                        {feat.desc && (
-                          <div className="feature-card-body">
-                            {Array.isArray(feat.desc)
-                              ? feat.desc.join(' ')
-                              : feat.desc}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
