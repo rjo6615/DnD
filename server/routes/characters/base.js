@@ -4,7 +4,12 @@ const express = require('express');
 const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
-const { numericFields, skillFields, skillNames } = require('../fieldConstants');
+const {
+  numericFields,
+  stringFields,
+  skillFields,
+  skillNames,
+} = require('../fieldConstants');
 const proficiencyBonus = require('../../utils/proficiency');
 const collectAllowedSkills = require('../../utils/collectAllowedSkills');
 const collectAllowedExpertise = require('../../utils/collectAllowedExpertise');
@@ -217,6 +222,7 @@ module.exports = (router) => {
   // This section will create a new character.
   // Includes numeric stats like initiative, AC, speed, passive scores, and HP bonuses.
   const numericCharacterFields = [...numericFields];
+  const stringCharacterFields = [...stringFields];
   const currencyFields = ['cp', 'sp', 'gp', 'pp'];
 
   characterRouter.post(
@@ -253,6 +259,9 @@ module.exports = (router) => {
       body('diceColor').optional().trim(),
       ...currencyFields.map((field) => body(field).optional().isInt().toInt()),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
+      ...stringCharacterFields.map((field) =>
+        body(field).optional().isString().trim()
+      ),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -264,6 +273,10 @@ module.exports = (router) => {
           myobj[field] = 0;
         }
       });
+
+      if (!myobj.size && myobj.race && typeof myobj.race.size === 'string') {
+        myobj.size = myobj.race.size;
+      }
 
       // initialize skills structure with proficiency/expertise flags if not provided
       if (!myobj.skills) {
