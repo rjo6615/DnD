@@ -13,6 +13,7 @@ const {
   prepareStoredMap,
   buildCampaignMapPayload,
   normalizeMapTokens,
+  normalizeCreatureSize,
 } = require('../utils/campaignMaps');
 const { uploadMapImage, deleteMapImage } = require('../utils/cloudinary');
 
@@ -1004,6 +1005,10 @@ module.exports = (router) => {
           .withMessage('characterId is required'),
         body('x').isFloat().withMessage('x must be a number').toFloat(),
         body('y').isFloat().withMessage('y must be a number').toFloat(),
+        body('size')
+          .optional({ nullable: true, checkFalsy: true })
+          .isString()
+          .withMessage('size must be a string'),
       ],
       handleValidationErrors,
       async (req, res, next) => {
@@ -1062,11 +1067,23 @@ module.exports = (router) => {
             nextTokens[mapId] = {};
           }
 
+          const existingToken =
+            nextTokens[mapId][trimmedCharacterId] &&
+            typeof nextTokens[mapId][trimmedCharacterId] === 'object'
+              ? nextTokens[mapId][trimmedCharacterId]
+              : null;
+
+          const sizeInput = typeof req.body.size === 'string' ? req.body.size : null;
+          const normalizedSize =
+            normalizeCreatureSize(sizeInput) ||
+            normalizeCreatureSize(existingToken?.size);
+
           nextTokens[mapId][trimmedCharacterId] = {
             characterId: trimmedCharacterId,
             x: req.body.x,
             y: req.body.y,
             updatedAt: now,
+            ...(normalizedSize ? { size: normalizedSize } : {}),
           };
 
           const { tokensByMapId } = normalizeMapTokens({

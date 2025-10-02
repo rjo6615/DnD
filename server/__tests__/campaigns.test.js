@@ -678,7 +678,7 @@ describe('Campaign routes', () => {
 
       const res = await request(app)
         .put(`/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`)
-        .send({ x: 1.5, y: -0.25 });
+        .send({ x: 1.5, y: -0.25, size: ' Large ' });
 
       expect(res.status).toBe(200);
       expect(res.body).not.toHaveProperty('map');
@@ -690,12 +690,13 @@ describe('Campaign routes', () => {
             characterId: 'hero-1',
             x: 1,
             y: 0,
+            size: 'large',
             updatedAt: expect.any(String),
           }),
         },
       });
       expect(res.body.activeMapTokens).toEqual({
-        'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+        'hero-1': expect.objectContaining({ x: 1, y: 0, size: 'large' }),
       });
       const lastUpdateCall =
         updateOne.mock.calls[updateOne.mock.calls.length - 1];
@@ -710,13 +711,13 @@ describe('Campaign routes', () => {
         expect.objectContaining({
           mapTokens: {
             [storedMap.mapId]: expect.objectContaining({
-              'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+              'hero-1': expect.objectContaining({ x: 1, y: 0, size: 'large' }),
             }),
           },
           'map.tokens': expect.objectContaining({
-            'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+            'hero-1': expect.objectContaining({ x: 1, y: 0, size: 'large' }),
           }),
-        })
+      })
       );
       expect(updateDoc.$set).not.toHaveProperty('map');
       expect(updateDoc.$set).not.toHaveProperty('maps');
@@ -728,13 +729,13 @@ describe('Campaign routes', () => {
       expect(emittedPayload.tokensByMapId).toEqual(
         expect.objectContaining({
           [storedMap.mapId]: expect.objectContaining({
-            'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+            'hero-1': expect.objectContaining({ x: 1, y: 0, size: 'large' }),
           }),
         })
       );
       expect(emittedPayload.activeMapTokens).toEqual(
         expect.objectContaining({
-          'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+          'hero-1': expect.objectContaining({ x: 1, y: 0, size: 'large' }),
         })
       );
     });
