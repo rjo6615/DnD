@@ -79,6 +79,19 @@ const toFiniteNumberOrNull = (value) => {
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 
+const getActiveEffectStorageKey = (characterId) => {
+  if (typeof characterId !== 'string') {
+    return null;
+  }
+
+  const trimmedId = characterId.trim();
+  if (!trimmedId) {
+    return null;
+  }
+
+  return `zombies-character-${trimmedId}-active-effects`;
+};
+
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
     return null;
@@ -771,6 +784,33 @@ export default function ZombiesCharacterSheet() {
         : null;
   }, [campaignActiveMapId]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !characterId) {
+      return;
+    }
+
+    const storageKey = getActiveEffectStorageKey(characterId);
+    if (!storageKey || typeof window.localStorage === 'undefined') {
+      return;
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(storageKey);
+      if (!storedValue) {
+        return;
+      }
+
+      const parsed = JSON.parse(storedValue);
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      setActiveEffects(parsed);
+    } catch (error) {
+      // Ignore hydration errors and fall back to the current state
+    }
+  }, [characterId]);
+
   const applyMapPayload = useCallback(
     (payload = {}) => {
       const normalizedMaps = Array.isArray(payload?.maps)
@@ -1164,6 +1204,28 @@ export default function ZombiesCharacterSheet() {
       return rest;
     });
   }, [activeEffects, temporarySize, temporarySpeedBonus]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+      return;
+    }
+
+    const storageKey = getActiveEffectStorageKey(characterId);
+    if (!storageKey) {
+      return;
+    }
+
+    if (!Array.isArray(activeEffects) || activeEffects.length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(activeEffects));
+    } catch (error) {
+      // Ignore persistence errors
+    }
+  }, [characterId, activeEffects]);
 
   const consumeCircle = useCallback(
     (type, index) => {
