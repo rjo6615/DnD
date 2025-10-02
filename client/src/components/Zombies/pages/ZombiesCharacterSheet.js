@@ -708,6 +708,10 @@ export default function ZombiesCharacterSheet() {
   const [activeEffects, setActiveEffects] = useState(() =>
     getStoredActiveEffects(characterId)
   );
+  const previousRestCountsRef = useRef({
+    long: longRestCount,
+    short: shortRestCount,
+  });
   const handleRemoveEffect = useCallback((effectKey) => {
     setActiveEffects((prev) =>
       prev.filter((effect, index) => {
@@ -1143,6 +1147,19 @@ export default function ZombiesCharacterSheet() {
   }, []);
 
   useEffect(() => {
+    const previousCounts = previousRestCountsRef.current;
+    const didLongRestIncrement = longRestCount > previousCounts.long;
+    const didShortRestIncrement = shortRestCount > previousCounts.short;
+
+    previousRestCountsRef.current = {
+      long: longRestCount,
+      short: shortRestCount,
+    };
+
+    if (!didLongRestIncrement && !didShortRestIncrement) {
+      return;
+    }
+
     // Clear effects on rest
     setActiveEffects([]);
   }, [longRestCount, shortRestCount]);
