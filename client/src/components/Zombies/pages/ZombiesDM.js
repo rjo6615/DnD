@@ -216,6 +216,64 @@ const normalizeCombatState = (state) => {
   return { participants: sortedParticipants, activeTurn };
 };
 
+const applyDerivedInitiativesToParticipants = (participants, initiativeMap) => {
+  if (!Array.isArray(participants) || !initiativeMap || initiativeMap.size === 0) {
+    return participants;
+  }
+
+  let changed = false;
+
+  const updated = participants.map((participant) => {
+    if (!participant || typeof participant !== 'object') {
+      return participant;
+    }
+
+    const { characterId } = participant;
+    if (typeof characterId !== 'string' || characterId.trim() === '') {
+      return participant;
+    }
+
+    const numericInitiative = Number(participant.initiative);
+    if (Number.isFinite(numericInitiative)) {
+      return participant;
+    }
+
+    const derivedValue = initiativeMap.get(characterId);
+    const numericDerived = Number(derivedValue);
+    if (!Number.isFinite(numericDerived)) {
+      return participant;
+    }
+
+    changed = true;
+    return { ...participant, initiative: numericDerived };
+  });
+
+  return changed ? updated : participants;
+};
+
+const applyDerivedInitiativesToState = (state, initiativeMap) => {
+  if (!state || typeof state !== 'object') {
+    return state;
+  }
+
+  const participants = Array.isArray(state.participants)
+    ? state.participants
+    : [];
+  const updatedParticipants = applyDerivedInitiativesToParticipants(
+    participants,
+    initiativeMap
+  );
+
+  if (updatedParticipants === participants) {
+    return state;
+  }
+
+  return {
+    ...state,
+    participants: updatedParticipants,
+  };
+};
+
 const clamp01 = (value) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -1851,37 +1909,6 @@ export default function ZombiesDM() {
       return map;
     }, [combinedRecords, calculateEntityInitiative, getEntityId]);
 
-    useEffect(() => {
-      if (!characterInitiativeMap.size) {
-        return;
-      }
-
-      let nextState = null;
-      setCombatState((prevState) => {
-        const normalized = normalizeCombatState(prevState);
-        let changed = false;
-        const updatedParticipants = normalized.participants.map((participant) => {
-          const derived = characterInitiativeMap.get(participant.characterId);
-          if (derived === undefined || derived === participant.initiative) {
-            return participant;
-          }
-          changed = true;
-          return { ...participant, initiative: derived };
-        });
-
-        if (!changed) {
-          return prevState;
-        }
-
-        nextState = { participants: updatedParticipants, activeTurn: normalized.activeTurn };
-        return nextState;
-      });
-
-      if (nextState) {
-        persistCombatState(nextState);
-      }
-    }, [characterInitiativeMap, persistCombatState]);
-
     const handleToggleParticipant = useCallback(
       (characterId) => {
         if (!characterId) {
@@ -1908,10 +1935,14 @@ export default function ZombiesDM() {
             ...(displayName ? { displayName } : {}),
             ...resolveParticipantHealth(characterId),
           };
-          nextState = normalizeCombatState({
-            participants: [...participants, participant],
-            activeTurn: combatState.activeTurn,
-          });
+          const stateWithDerived = applyDerivedInitiativesToState(
+            {
+              participants: [...participants, participant],
+              activeTurn: combatState.activeTurn,
+            },
+            characterInitiativeMap
+          );
+          nextState = normalizeCombatState(stateWithDerived);
         } else {
           const updatedParticipants = participants.filter((_, index) => index !== existingIndex);
           let nextActiveTurn = combatState.activeTurn;
