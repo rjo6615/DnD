@@ -2002,6 +2002,32 @@ export default function ZombiesDM() {
       [combatState, persistCombatState]
     );
 
+    const handleResetInitiative = useCallback(() => {
+      if (!Array.isArray(combatState.participants) || combatState.participants.length === 0) {
+        return;
+      }
+
+      const stateWithClearedInitiatives = {
+        participants: combatState.participants.map((participant) => {
+          if (!participant || typeof participant.characterId !== 'string') {
+            return participant;
+          }
+
+          return { ...participant, initiative: undefined };
+        }),
+        activeTurn: combatState.activeTurn,
+      };
+
+      const stateWithDerived = applyDerivedInitiativesToState(
+        stateWithClearedInitiatives,
+        characterInitiativeMap
+      );
+      const nextState = normalizeCombatState(stateWithDerived);
+
+      setCombatState(nextState);
+      persistCombatState(nextState);
+    }, [combatState, characterInitiativeMap, persistCombatState]);
+
     const handleRollInitiative = useCallback(() => {
       if (!Array.isArray(combatState.participants) || combatState.participants.length === 0) {
         return;
@@ -4498,6 +4524,14 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </Card.Header>
                 <Card.Body className="bg-transparent text-light">
                   <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      onClick={handleResetInitiative}
+                      disabled={combatParticipantCount === 0}
+                    >
+                      Clear Initiative
+                    </Button>
                     <Button
                       variant="outline-light"
                       size="sm"
