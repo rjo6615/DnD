@@ -147,36 +147,42 @@ const races = {
     giantAncestries: {
       cloud: {
         label: "Cloud's Jaunt",
+        ancestryName: "Cloud Giant",
         description:
           "As a bonus action, teleport up to 30 feet to an unoccupied space you can see.",
         usage: "Bonus action • Proficiency bonus per long rest",
       },
       fire: {
         label: "Fire's Burn",
+        ancestryName: "Fire Giant",
         description:
           "When you hit a target, deal an extra 1d10 fire damage. The extra damage can be applied once per turn.",
         usage: "No action • Proficiency bonus per long rest",
       },
       frost: {
         label: "Frost's Chill",
+        ancestryName: "Frost Giant",
         description:
           "When you hit a target, reduce its speed by 10 feet until the start of your next turn. The effect can be applied once per turn.",
         usage: "No action • Proficiency bonus per long rest",
       },
       hill: {
         label: "Hill's Tumble",
+        ancestryName: "Hill Giant",
         description:
           "When you hit a Large or smaller target, it must succeed on a Strength save or be knocked prone.",
         usage: "No action • Proficiency bonus per long rest",
       },
       stone: {
         label: "Stone's Endurance",
+        ancestryName: "Stone Giant",
         description:
           "As a reaction when you take damage, roll a d12 and add your Constitution modifier to reduce the incoming damage.",
         usage: "Reaction • Proficiency bonus per long rest",
       },
       storm: {
         label: "Storm's Thunder",
+        ancestryName: "Storm Giant",
         description:
           "As a reaction when you take damage, force the attacker within 60 feet to make a Constitution save or take 1d8 thunder damage.",
         usage: "Reaction • Proficiency bonus per long rest",

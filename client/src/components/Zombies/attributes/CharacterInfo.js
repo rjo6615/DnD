@@ -74,8 +74,11 @@ export default function CharacterInfo({
         ? giantAncestries[form.giantAncestryKey]
         : null)
     : null;
-  const goliathAncestryLabel = goliathAncestry
-    ? goliathAncestry.label || goliathAncestry.name || 'Giant Boon'
+  const goliathAncestryName = goliathAncestry
+    ? goliathAncestry.ancestryName ||
+      goliathAncestry.name ||
+      goliathAncestry.label ||
+      "Giant Ancestry"
     : null;
 
   return (
@@ -117,8 +120,8 @@ export default function CharacterInfo({
               <div className="character-info-label">Race</div>
               <div className="character-info-value character-info-value--stacked">
                 <span>{form.race?.name || "—"}</span>
-                {isGoliath && goliathAncestryLabel && (
-                  <span className="character-info-subtext">{goliathAncestryLabel}</span>
+                {isGoliath && goliathAncestryName && (
+                  <span className="character-info-subtext">{goliathAncestryName}</span>
                 )}
               </div>
             </div>

@@ -144,6 +144,7 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
 
   const ancestry = {
     label: "Cloud's Jaunt",
+    ancestryName: 'Cloud Giant',
     description: 'As a bonus action, teleport up to 30 feet to an unoccupied space you can see.',
     usage: 'Bonus action • Proficiency bonus per long rest',
   };

@@ -1060,7 +1060,9 @@ const getAvailableSkillOptions = (index) => {
             >
               <option value="" disabled>Select your giant ancestry</option>
               {Object.entries(form.race.giantAncestries || {}).map(([key, ancestry]) => (
-                <option key={key} value={key}>{ancestry.label}</option>
+                <option key={key} value={key}>
+                  {ancestry.ancestryName || ancestry.label || ancestry.name || "Giant Ancestry"}
+                </option>
               ))}
             </Form.Select>
           </>
