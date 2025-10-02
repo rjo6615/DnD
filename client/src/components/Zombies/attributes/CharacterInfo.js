@@ -61,6 +61,23 @@ export default function CharacterInfo({
     handleClose?.();
   }, [handleClose, isDocked, onDockClose]);
 
+  const raceName = form?.race?.name?.toLowerCase?.();
+  const isGoliath = raceName === 'goliath';
+  const giantAncestries = isGoliath ? form?.race?.giantAncestries || {} : {};
+  const goliathAncestry = isGoliath
+    ? form?.race?.selectedAncestry ||
+      (form?.race?.selectedAncestryKey && giantAncestries
+        ? giantAncestries[form.race.selectedAncestryKey]
+        : null) ||
+      form?.giantAncestry ||
+      (form?.giantAncestryKey && giantAncestries
+        ? giantAncestries[form.giantAncestryKey]
+        : null)
+    : null;
+  const goliathAncestryLabel = goliathAncestry
+    ? goliathAncestry.label || goliathAncestry.name || 'Giant Boon'
+    : null;
+
   return (
     <Modal
       className={modalClassName}
@@ -100,6 +117,12 @@ export default function CharacterInfo({
               <div className="character-info-label">Race</div>
               <div className="character-info-value">{form.race?.name || "—"}</div>
             </div>
+            {goliathAncestryLabel && (
+              <div className="character-info-item">
+                <div className="character-info-label">Subrace</div>
+                <div className="character-info-value">{goliathAncestryLabel}</div>
+              </div>
+            )}
             <div className="character-info-item">
               <div className="character-info-label">Background</div>
               <div className="character-info-value">

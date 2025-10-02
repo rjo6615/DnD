@@ -86,3 +86,31 @@ test('calls rest handlers when buttons clicked', () => {
   expect(onShortRest).toHaveBeenCalled();
 });
 
+test('renders goliath subrace when ancestry selected', () => {
+  const form = {
+    occupation: [],
+    race: {
+      name: 'Goliath',
+      languages: [],
+      selectedAncestryKey: 'cloud',
+      giantAncestries: {
+        cloud: { label: 'Cloud Giant' },
+      },
+    },
+  };
+
+  render(
+    <CharacterInfo
+      form={form}
+      show={true}
+      handleClose={() => {}}
+      onShowBackground={() => {}}
+      onLongRest={() => {}}
+      onShortRest={() => {}}
+    />
+  );
+
+  expect(screen.getByText('Subrace')).toBeInTheDocument();
+  expect(screen.getByText('Cloud Giant')).toBeInTheDocument();
+});
+
