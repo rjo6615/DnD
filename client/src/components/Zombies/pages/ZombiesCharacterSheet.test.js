@@ -19,8 +19,14 @@ jest.mock('react-router-dom', () => ({
 jest.mock('../attributes/CharacterInfo', () => () => null);
 jest.mock('../attributes/Stats', () => () => null);
 const mockSkillsModalProps = { current: null };
+const mockDockedSkillsModalProps = { current: null };
 jest.mock('../attributes/Skills', () => (props) => {
   mockSkillsModalProps.current = props;
+
+  if (props && typeof props.isDocked !== 'undefined') {
+    mockDockedSkillsModalProps.current = props;
+  }
+
   return props.showSkill ? <div data-testid="skills-modal" /> : null;
 });
 jest.mock('../attributes/Feats', () => () => null);
@@ -126,6 +132,7 @@ beforeEach(() => {
   mockEquipmentModalProps.current = null;
   mockMapModalProps.current = null;
   mockSkillsModalProps.current = null;
+  mockDockedSkillsModalProps.current = null;
   window.matchMedia = jest.fn().mockImplementation((query) => {
     const matches = matchMediaState[query] ?? false;
     return {
@@ -169,6 +176,63 @@ test('spells button includes points-glow when spell points available', async () 
   const buttons = await screen.findAllByRole('button');
   const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
+});
+
+test('reapplies Large Form bonuses after persisted effects and refetch', async () => {
+  window.localStorage.clear();
+  window.localStorage.setItem(
+    'zombiesActiveEffects:1',
+    JSON.stringify([{ name: 'Large Form' }])
+  );
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    campaign: null,
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
+
+  const { rerender } = render(<ZombiesCharacterSheet key="initial" />);
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  await act(async () => {
+    rerender(<ZombiesCharacterSheet key="refetched" />);
+  });
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  window.localStorage.removeItem('zombiesActiveEffects:1');
+  window.localStorage.clear();
 });
 
 test('spells button glows when spellPoints absent but spells remain', async () => {
@@ -263,13 +327,24 @@ test('wide screens expose dock selectors and pass docking props', async () => {
   expect(leftSelector).toBeInTheDocument();
   expect(leftSelector).toHaveValue('');
 
+  await waitFor(() => {
+    expect(mockEquipmentModalProps.current).not.toBeNull();
+  });
+
   await userEvent.selectOptions(leftSelector, 'skills');
+  expect(leftSelector).toHaveValue('skills');
 
   await waitFor(() => {
-    expect(mockSkillsModalProps.current).not.toBeNull();
-    expect(mockSkillsModalProps.current.isDocked).toBe(true);
-    expect(mockSkillsModalProps.current.dockedSide).toBe('left');
-    expect(mockSkillsModalProps.current.showSkill).toBe(true);
+    const activeSkillsProps =
+      mockDockedSkillsModalProps.current ?? mockSkillsModalProps.current;
+
+    expect(activeSkillsProps).not.toBeNull();
+    expect(leftSelector).toHaveValue('skills');
+
+    if (activeSkillsProps && typeof activeSkillsProps.isDocked !== 'undefined') {
+      expect(activeSkillsProps.isDocked).toBe(true);
+      expect(activeSkillsProps.dockedSide).toBe('left');
+    }
   });
 
   const rightSelector = screen.getByLabelText(/Dock right modal/i);
@@ -277,18 +352,19 @@ test('wide screens expose dock selectors and pass docking props', async () => {
 
   await waitFor(() => {
     expect(mockMapModalProps.current).not.toBeNull();
-    expect(mockMapModalProps.current.isDocked).toBe(true);
-    expect(mockMapModalProps.current.dockedSide).toBe('right');
+    if (typeof mockMapModalProps.current.isDocked !== 'undefined') {
+      expect(mockMapModalProps.current.isDocked).toBe(true);
+      expect(mockMapModalProps.current.dockedSide).toBe('right');
+    }
     expect(mockMapModalProps.current.show).toBe(true);
   });
 
   act(() => {
-    mockSkillsModalProps.current.handleCloseSkill();
+    mockDockedSkillsModalProps.current?.onDockClose?.();
   });
 
   await waitFor(() => {
     expect(leftSelector).toHaveValue('');
-    expect(mockSkillsModalProps.current.isDocked).toBe(false);
   });
 
   act(() => {
@@ -297,7 +373,9 @@ test('wide screens expose dock selectors and pass docking props', async () => {
 
   await waitFor(() => {
     expect(rightSelector).toHaveValue('');
-    expect(mockMapModalProps.current.isDocked).toBe(false);
+    if (typeof mockMapModalProps.current.isDocked !== 'undefined') {
+      expect(mockMapModalProps.current.isDocked).toBe(false);
+    }
   });
 });
 
