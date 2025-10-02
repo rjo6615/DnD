@@ -686,6 +686,20 @@ export default function ZombiesCharacterSheet() {
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
   const [activeEffects, setActiveEffects] = useState([]);
+  const handleRemoveEffect = useCallback((effectKey) => {
+    setActiveEffects((prev) =>
+      prev.filter((effect, index) => {
+        if (typeof effectKey === 'number') {
+          return index !== effectKey;
+        }
+        const name = typeof effect?.name === 'string' ? effect.name : null;
+        if (!name) {
+          return true;
+        }
+        return name !== effectKey;
+      })
+    );
+  }, []);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
   const initCircleState = () => ({
@@ -3529,7 +3543,10 @@ export default function ZombiesCharacterSheet() {
                 flexShrink: 0,
               }}
             >
-              <StatusEffectBar effects={activeEffects} />
+              <StatusEffectBar
+                effects={activeEffects}
+                onRemoveEffect={handleRemoveEffect}
+              />
             </div>
             <PlayerTurnActions
               form={form}
