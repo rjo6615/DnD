@@ -8,9 +8,16 @@ const express = require('express');
 jest.mock('../db/conn');
 const dbo = require('../db/conn');
 jest.mock('../middleware/auth', () => (req, res, next) => next());
+jest.mock('../utils/socket', () => ({
+  emitCharacterMetadataUpdate: jest.fn(),
+  emitMapUpdate: jest.fn(),
+  emitCombatUpdate: jest.fn(),
+}));
 const charactersRouter = require('../routes');
 const classes = require('../data/classes');
 const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
+const { emitMapUpdate, emitCombatUpdate } = require('../utils/socket');
+const { ObjectId } = require('mongodb');
 
 const app = express();
 app.use(express.json());
@@ -19,6 +26,11 @@ app.use((err, req, res, next) => {
   const status = err.status || 500;
   const message = status === 500 ? 'Internal Server Error' : err.message;
   res.status(status).json({ message });
+});
+
+beforeEach(() => {
+  dbo.mockReset();
+  jest.clearAllMocks();
 });
 
 describe('Character routes', () => {
@@ -776,6 +788,155 @@ describe('Character routes', () => {
     expect(captured.$set.feat).toEqual(newFeat);
     expect(captured.$set.skills.acrobatics.proficient).toBe(true);
     expect(captured.$set.allowedSkills).toEqual(['acrobatics']);
+  });
+
+  test('delete character returns 404 when not found', async () => {
+    const deletedId = new ObjectId('507f1f77bcf86cd799439011');
+    const charactersCollection = {
+      findOneAndDelete: jest.fn().mockResolvedValue({ value: null }),
+    };
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return charactersCollection;
+        }
+        return {};
+      },
+    });
+
+    const res = await request(app).delete(
+      `/characters/delete-character/${deletedId.toString()}`
+    );
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ message: 'Character not found' });
+  });
+
+  test('delete character updates campaign maps and combat', async () => {
+    const deletedId = new ObjectId('507f1f77bcf86cd799439011');
+    const mapId = '11111111-1111-4111-8111-111111111111';
+    const timestamp = new Date(0).toISOString();
+
+    const charactersCollection = {
+      findOneAndDelete: jest.fn().mockResolvedValue({
+        value: {
+          _id: deletedId,
+          campaign: 'Test Campaign',
+          characterId: 'char-123',
+        },
+      }),
+    };
+
+    const campaignDoc = {
+      campaignName: 'Test Campaign',
+      maps: [
+        {
+          mapId,
+          title: 'Dungeon',
+          imageUrl: 'https://example.com/map.png',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      activeMapId: mapId,
+      map: null,
+      mapTokens: {
+        [mapId]: {
+          [deletedId.toString()]: {
+            characterId: deletedId.toString(),
+            x: 0.5,
+            y: 0.5,
+            updatedAt: timestamp,
+          },
+          ally: {
+            characterId: 'ally',
+            x: 0.25,
+            y: 0.75,
+            updatedAt: timestamp,
+          },
+        },
+      },
+      combat: {
+        participants: [
+          { characterId: 'char-123', initiative: 18 },
+          { characterId: 'ally', initiative: 12 },
+        ],
+        activeTurn: 1,
+      },
+    };
+
+    const campaignsCollection = {
+      findOne: jest.fn().mockResolvedValue(campaignDoc),
+      updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+    };
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Characters') {
+          return charactersCollection;
+        }
+        if (name === 'Campaigns') {
+          return campaignsCollection;
+        }
+        return {};
+      },
+    });
+
+    const res = await request(app).delete(
+      `/characters/delete-character/${deletedId.toString()}`
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ acknowledged: true, deletedCount: 1 });
+
+    expect(charactersCollection.findOneAndDelete).toHaveBeenCalledWith({
+      _id: deletedId,
+    });
+
+    expect(campaignsCollection.updateOne).toHaveBeenCalled();
+    const updateCalls = campaignsCollection.updateOne.mock.calls;
+    const [filter, update] = updateCalls[updateCalls.length - 1];
+    expect(filter).toEqual({ campaignName: 'Test Campaign' });
+    expect(update).toHaveProperty('$set');
+
+    const { $set: updatedFields } = update;
+    const resolvedMapId = updatedFields.activeMapId;
+    expect(typeof resolvedMapId).toBe('string');
+    expect(updatedFields.map).toMatchObject({
+      mapId: resolvedMapId,
+      tokens: { ally: expect.any(Object) },
+    });
+    expect(Object.keys(updatedFields.mapTokens)).toEqual([resolvedMapId]);
+    expect(updatedFields.mapTokens[resolvedMapId]).toEqual({
+      ally: {
+        characterId: 'ally',
+        x: 0.25,
+        y: 0.75,
+        updatedAt: timestamp,
+      },
+    });
+    expect(updatedFields.combat).toEqual({
+      participants: [{ characterId: 'ally', initiative: 12 }],
+      activeTurn: 0,
+    });
+
+    expect(emitMapUpdate).toHaveBeenCalledTimes(1);
+    expect(emitMapUpdate).toHaveBeenCalledWith(
+      'Test Campaign',
+      expect.objectContaining({ activeMapId: resolvedMapId })
+    );
+    const emittedPayload = emitMapUpdate.mock.calls[0][1];
+    expect(emittedPayload.tokensByMapId).toEqual(updatedFields.mapTokens);
+    expect(emittedPayload.map.tokens).toEqual(
+      updatedFields.mapTokens[resolvedMapId]
+    );
+
+    expect(emitCombatUpdate).toHaveBeenCalledTimes(1);
+    expect(emitCombatUpdate).toHaveBeenCalledWith(
+      'Test Campaign',
+      updatedFields.combat
+    );
   });
 
   test('removing feat strips granted skills', async () => {
