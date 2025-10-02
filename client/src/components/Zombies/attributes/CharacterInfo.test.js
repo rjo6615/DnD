@@ -10,7 +10,7 @@ test('renders race languages', () => {
     race: { name: 'Elf', languages: ['Common', 'Elvish', 'Choice'] },
     age: 100,
     sex: 'M',
-    height: "6'",
+    size: 'Medium',
     weight: 180,
   };
 
@@ -26,6 +26,11 @@ test('renders race languages', () => {
   );
 
   expect(screen.getByText('Common, Elvish')).toBeInTheDocument();
+  const sizeItem = screen.getByText('Size').closest('.character-info-item');
+  expect(sizeItem).not.toBeNull();
+  if (sizeItem) {
+    expect(within(sizeItem).getByText('Medium')).toBeInTheDocument();
+  }
 });
 
 test('renders background name and calls onShowBackground', () => {
@@ -36,7 +41,7 @@ test('renders background name and calls onShowBackground', () => {
     background: { name: 'Soldier' },
     age: 100,
     sex: 'M',
-    height: "6'",
+    size: 'Medium',
     weight: 180,
   };
 
@@ -63,7 +68,7 @@ test('calls rest handlers when buttons clicked', () => {
     race: { languages: [] },
     age: 100,
     sex: 'M',
-    height: "6'",
+    size: 'Medium',
     weight: 180,
   };
   const onLongRest = jest.fn();
@@ -97,6 +102,7 @@ test('renders goliath subrace within race card when ancestry selected', () => {
         cloud: { label: "Cloud's Jaunt", ancestryName: 'Cloud Giant' },
       },
     },
+    size: 'Medium',
   };
 
   render(

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import Button from 'react-bootstrap/Button';
 import { Table, Form, Modal, Card } from 'react-bootstrap';
@@ -9,6 +9,21 @@ import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
 import { STATS } from "../statSchema";
 import { notify } from '../../../utils/notification';
+
+const DEFAULT_SIZE_OPTIONS = ["Tiny", "Small", "Medium", "Large"];
+
+const getRaceSizeOptions = (race) => {
+  if (!race) {
+    return [];
+  }
+  if (Array.isArray(race.sizeOptions) && race.sizeOptions.length) {
+    return race.sizeOptions;
+  }
+  if (race.size) {
+    return [race.size];
+  }
+  return [];
+};
 
 export default function RecordList() {
   const params = useParams();
@@ -65,7 +80,7 @@ const createDefaultForm = useCallback((campaign) => {
     item: [createEmptyArray(SKILLS.length + 8)],
     age: "",
     sex: "",
-    height: "",
+    size: "",
     weight: "",
     startStatTotal: "",
     health: "",
@@ -93,6 +108,29 @@ const [occupation, setOccupation] = useState({
 
 const [races, setRaces] = useState({});
 const [backgrounds, setBackgrounds] = useState({});
+
+const globalSizeOptions = useMemo(() => {
+  const collected = new Set();
+  Object.values(races || {}).forEach((race) => {
+    getRaceSizeOptions(race).forEach((size) => {
+      if (size) {
+        collected.add(size);
+      }
+    });
+  });
+  return collected.size ? Array.from(collected) : DEFAULT_SIZE_OPTIONS;
+}, [races]);
+
+const sizeOptionsForManual = useMemo(() => {
+  const baseOptions = form.race?.sizeOptions?.length
+    ? form.race.sizeOptions
+    : globalSizeOptions;
+  const optionsSet = new Set(baseOptions);
+  if (form.size && !optionsSet.has(form.size)) {
+    optionsSet.add(form.size);
+  }
+  return Array.from(optionsSet);
+}, [form.race, form.size, globalSizeOptions]);
 
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
@@ -298,6 +336,11 @@ function bigMaff() {
   if (raceKeys.length) {
     const randomRaceKey = raceKeys[Math.floor(Math.random() * raceKeys.length)];
     chosenRace = JSON.parse(JSON.stringify(races[randomRaceKey]));
+    const raceSizeOptions = getRaceSizeOptions(chosenRace);
+    const selectedSize =
+      raceSizeOptions.length > 1
+        ? raceSizeOptions[Math.floor(Math.random() * raceSizeOptions.length)]
+        : raceSizeOptions[0] || "";
     if (chosenRace.abilityChoices) {
       const { count, options } = chosenRace.abilityChoices;
       for (let i = 0; i < count; i++) {
@@ -361,6 +404,7 @@ function bigMaff() {
         ...prev,
         race: chosenRace,
         speed: chosenRace.speed,
+        size: selectedSize || prev.size || "",
         dragonAncestryKey: selectedDragonAncestry ? selectedDragonAncestryKey : "",
         dragonAncestry: selectedDragonAncestry || null,
         giantAncestryKey: selectedGiantAncestry ? selectedGiantAncestryKey : "",
@@ -404,9 +448,13 @@ function bigMaff() {
   let newSex = sexArr[randomSex];
   updateForm({ sex: newSex });
 
-  // Height Randomizer - store height as total inches to satisfy numeric validation
-  let randomHeight = Math.round(Math.random() * (76 - 60)) + 60;
-  updateForm({ height: randomHeight });
+  if (!chosenRace) {
+    const fallbackSizeOptions = globalSizeOptions;
+    if (fallbackSizeOptions.length) {
+      const randomIndex = Math.floor(Math.random() * fallbackSizeOptions.length);
+      updateForm({ size: fallbackSizeOptions[randomIndex] });
+    }
+  }
 
   // Weight Randomizer
   let randomWeight = Math.round(Math.random() * (220 - 120)) + 120;
@@ -472,6 +520,8 @@ useEffect(() => {
       ...baseCharacter,
       feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
     };
+
+    delete newCharacter.height;
 
     const raceWithAncestry = attachSelectedAncestryToRace(
       baseCharacter.race,
@@ -542,6 +592,7 @@ const handleRaceChange = (e) => {
         ...prev,
         race: null,
         speed: 0,
+        size: "",
         dragonAncestryKey: "",
         dragonAncestry: null,
         giantAncestryKey: "",
@@ -553,6 +604,13 @@ const handleRaceChange = (e) => {
     if (raceObj.skills) {
       Object.assign(updatedSkills, raceObj.skills);
     }
+
+    const sizeOptions = getRaceSizeOptions(raceObj);
+    const shouldRetainPreviousRace = prev.race?.name === raceObj.name;
+    const size =
+      shouldRetainPreviousRace && sizeOptions.includes(prev.size)
+        ? prev.size
+        : sizeOptions[0] || (shouldRetainPreviousRace ? prev.size : "");
 
     let dragonAncestryKey = "";
     let dragonAncestry = null;
@@ -591,6 +649,7 @@ const handleRaceChange = (e) => {
       ...prev,
       race: updatedRace,
       speed: raceObj.speed,
+      size,
       dragonAncestryKey,
       dragonAncestry,
       giantAncestryKey,
@@ -792,6 +851,7 @@ const sendManualToDb = useCallback(async (characterData) => {
     ...baseCharacter,
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
   };
+  delete newCharacter.height;
   const raceWithAncestry = attachSelectedAncestryToRace(
     baseCharacter.race,
     {
@@ -1080,9 +1140,19 @@ const getAvailableSkillOptions = (index) => {
          <Form.Label className="text-light">Sex</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ sex: e.target.value })}
         type="text"  placeholder="Enter sex" pattern="[^0-9]+" />
-        <Form.Label className="text-light">Height</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ height: e.target.value })}
-        type="number" placeholder="Enter height in inches" pattern="[0-9]*" />
+        <Form.Label className="text-light">Size</Form.Label>
+        <Form.Select
+          className="mb-2"
+          value={form.size || ""}
+          onChange={(e) => updateForm({ size: e.target.value })}
+        >
+          <option value="" disabled>Select your size</option>
+          {sizeOptionsForManual.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </Form.Select>
         <Form.Label className="text-light">Weight</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ weight: e.target.value })}
         type="number" placeholder="Enter weight" pattern="[0-9]*" />

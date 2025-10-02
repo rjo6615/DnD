@@ -155,8 +155,8 @@ export default function CharacterInfo({
               <div className="character-info-value">{form.sex || "—"}</div>
             </div>
             <div className="character-info-item">
-              <div className="character-info-label">Height</div>
-              <div className="character-info-value">{form.height || "—"}</div>
+              <div className="character-info-label">Size</div>
+              <div className="character-info-value">{form.size || form.height || "—"}</div>
             </div>
             <div className="character-info-item">
               <div className="character-info-label">Weight</div>
