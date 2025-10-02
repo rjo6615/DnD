@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import CharacterInfo from './CharacterInfo';
 
 jest.mock('./LevelUp', () => () => <div />);
@@ -86,7 +86,7 @@ test('calls rest handlers when buttons clicked', () => {
   expect(onShortRest).toHaveBeenCalled();
 });
 
-test('renders goliath subrace when ancestry selected', () => {
+test('renders goliath subrace within race card when ancestry selected', () => {
   const form = {
     occupation: [],
     race: {
@@ -110,7 +110,12 @@ test('renders goliath subrace when ancestry selected', () => {
     />
   );
 
-  expect(screen.getByText('Subrace')).toBeInTheDocument();
-  expect(screen.getByText('Cloud Giant')).toBeInTheDocument();
+  const raceItem = screen.getByText('Race').closest('.character-info-item');
+  expect(raceItem).not.toBeNull();
+
+  const { getByText, queryByText } = within(raceItem);
+  expect(getByText('Goliath')).toBeInTheDocument();
+  expect(getByText('Cloud Giant')).toBeInTheDocument();
+  expect(queryByText('Subrace')).not.toBeInTheDocument();
 });
 
