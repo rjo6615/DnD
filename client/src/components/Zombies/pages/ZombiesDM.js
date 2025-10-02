@@ -1638,23 +1638,12 @@ export default function ZombiesDM() {
         const previousActiveTokens = activeMapTokensRef.current || {};
         const previousCampaignMap = campaignMap;
 
-        const candidateSizes = [
-          tokenMetaById?.[normalizedCharacterId]?.size,
-          previousTokens?.[normalizedMapId]?.[normalizedCharacterId]?.size,
-          previousCampaignMap?.tokens?.[normalizedCharacterId]?.size,
-          previousActiveTokens?.[normalizedCharacterId]?.size,
-        ];
-        const normalizedSize = candidateSizes
-          .map((value) => normalizeCreatureSize(value))
-          .find(Boolean) || null;
-
         const optimisticToken = {
           ...(previousTokens?.[normalizedMapId]?.[normalizedCharacterId] || {}),
           characterId: normalizedCharacterId,
           x: clampedX,
           y: clampedY,
           updatedAt: new Date().toISOString(),
-          ...(normalizedSize ? { size: normalizedSize } : {}),
         };
 
         setMapTokens((prev) => {
@@ -1693,11 +1682,7 @@ export default function ZombiesDM() {
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(
-                normalizedSize
-                  ? { x: clampedX, y: clampedY, size: normalizedSize }
-                  : { x: clampedX, y: clampedY }
-              ),
+              body: JSON.stringify({ x: clampedX, y: clampedY }),
             }
           );
 
@@ -1719,14 +1704,7 @@ export default function ZombiesDM() {
           setCampaignMap(previousCampaignMap || null);
         }
       },
-      [
-        activeMapId,
-        campaignMap,
-        encodedCampaign,
-        parseErrorMessage,
-        setStatus,
-        tokenMetaById,
-      ]
+      [activeMapId, campaignMap, encodedCampaign, parseErrorMessage, setStatus]
     );
 
     const persistCombatState = useCallback(

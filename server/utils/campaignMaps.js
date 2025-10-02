@@ -6,36 +6,6 @@ let mapSchemas;
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
-
-const normalizeCreatureSize = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed) {
-    return null;
-  }
-
-  if (CREATURE_SIZE_KEYS.includes(trimmed)) {
-    return trimmed;
-  }
-
-  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
-  const tokenMatch = CREATURE_SIZE_KEYS.find((size) => tokens.includes(size));
-  if (tokenMatch) {
-    return tokenMatch;
-  }
-
-  const prefixMatch = CREATURE_SIZE_KEYS.find((size) => trimmed.startsWith(size));
-  if (prefixMatch) {
-    return prefixMatch;
-  }
-
-  return null;
-};
-
 const getMapSchemas = () => {
   if (!mapSchemas) {
     const { z } = require('zod');
@@ -176,14 +146,11 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         didMutate = true;
       }
 
-      const normalizedSize = normalizeCreatureSize(candidate.size);
-
       const sanitizedToken = {
         characterId,
         x: clampedX,
         y: clampedY,
         updatedAt: resolvedUpdatedAt,
-        ...(normalizedSize ? { size: normalizedSize } : {}),
       };
 
       const originalComparable = JSON.stringify({
@@ -191,7 +158,6 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         x: rawValue.x,
         y: rawValue.y,
         updatedAt: rawValue.updatedAt,
-        ...(rawValue.size !== undefined ? { size: rawValue.size } : {}),
       });
       const sanitizedComparable = JSON.stringify(sanitizedToken);
       if (originalComparable !== sanitizedComparable) {
@@ -502,5 +468,4 @@ module.exports = {
   normalizeCampaignMapState,
   getMapSchemas,
   normalizeMapTokens,
-  normalizeCreatureSize,
 };
