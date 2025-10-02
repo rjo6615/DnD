@@ -156,11 +156,14 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
     selectedAncestry: ancestry,
   };
 
+  const onLargeForm = jest.fn();
+
   const { rerender } = render(
     <Features
       form={{ race, occupation: [{ Name: 'Barbarian', Level: 4 }] }}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      onLargeForm={onLargeForm}
     />
   );
 
@@ -205,6 +208,7 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
       form={{ race, occupation: [{ Name: 'Barbarian', Level: 5 }] }}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      onLargeForm={onLargeForm}
     />
   );
 
@@ -216,6 +220,13 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
   const largeFormView = within(largeFormCard).getByRole('button', {
     name: /view feature/i,
   });
+
+  const largeFormUse = within(largeFormCard).getByRole('button', {
+    name: /use feature/i,
+  });
+
+  expect(largeFormUse).toBeEnabled();
+  expect(onLargeForm).not.toHaveBeenCalled();
 
   expect(
     screen.queryByText(
@@ -232,6 +243,13 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
       "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest."
     )
   ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(largeFormUse);
+  });
+
+  expect(onLargeForm).toHaveBeenCalledTimes(1);
+  expect(largeFormUse).toBeDisabled();
 });
 
 test('features are sorted by class then level', async () => {
