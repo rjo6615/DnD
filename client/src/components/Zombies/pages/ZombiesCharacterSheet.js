@@ -685,7 +685,29 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
-  const [activeEffects, setActiveEffects] = useState([]);
+
+  const getStoredActiveEffects = useCallback((id) => {
+    if (typeof window === 'undefined' || !id) {
+      return [];
+    }
+
+    try {
+      const raw = window.localStorage.getItem(`zombiesActiveEffects:${id}`);
+      if (!raw) {
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Failed to parse stored active effects', error);
+      return [];
+    }
+  }, []);
+
+  const [activeEffects, setActiveEffects] = useState(() =>
+    getStoredActiveEffects(characterId)
+  );
   const handleRemoveEffect = useCallback((effectKey) => {
     setActiveEffects((prev) =>
       prev.filter((effect, index) => {
@@ -726,6 +748,29 @@ export default function ZombiesCharacterSheet() {
     }
     return window.matchMedia(WIDE_SCREEN_QUERY).matches;
   });
+
+  useEffect(() => {
+    setActiveEffects(getStoredActiveEffects(characterId));
+  }, [characterId, getStoredActiveEffects]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !characterId) {
+      return;
+    }
+
+    const storageKey = `zombiesActiveEffects:${characterId}`;
+
+    if (!Array.isArray(activeEffects) || activeEffects.length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(activeEffects));
+    } catch (error) {
+      console.error('Failed to store active effects', error);
+    }
+  }, [activeEffects, characterId]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
