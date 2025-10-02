@@ -56,6 +56,8 @@ const createDefaultForm = useCallback((campaign) => {
     race: null,
     dragonAncestryKey: "",
     dragonAncestry: null,
+    giantAncestryKey: "",
+    giantAncestry: null,
     background: null,
     feat: [],
     weapon: [],
@@ -172,16 +174,26 @@ function updateForm(value) {
   });
 }
 
-const attachSelectedAncestryToRace = useCallback((race, ancestryKey, ancestry) => {
+const attachSelectedAncestryToRace = useCallback((race, {
+  dragonAncestryKey,
+  dragonAncestry,
+  giantAncestryKey,
+  giantAncestry,
+}) => {
   if (!race) return race;
   const updatedRace = { ...race };
-  if (ancestryKey && ancestry) {
-    updatedRace.selectedAncestryKey = ancestryKey;
-    updatedRace.selectedAncestry = ancestry;
-  } else {
-    delete updatedRace.selectedAncestryKey;
-    delete updatedRace.selectedAncestry;
+
+  delete updatedRace.selectedAncestryKey;
+  delete updatedRace.selectedAncestry;
+
+  if (race.dragonAncestries && dragonAncestryKey && dragonAncestry) {
+    updatedRace.selectedAncestryKey = dragonAncestryKey;
+    updatedRace.selectedAncestry = dragonAncestry;
+  } else if (race.giantAncestries && giantAncestryKey && giantAncestry) {
+    updatedRace.selectedAncestryKey = giantAncestryKey;
+    updatedRace.selectedAncestry = giantAncestry;
   }
+
   return updatedRace;
 }, []);
 
@@ -308,6 +320,8 @@ function bigMaff() {
     }
     let selectedDragonAncestryKey = "";
     let selectedDragonAncestry = null;
+    let selectedGiantAncestryKey = "";
+    let selectedGiantAncestry = null;
     if (chosenRace.name === "Dragonborn" && chosenRace.dragonAncestries) {
       const ancestryKeys = Object.keys(chosenRace.dragonAncestries);
       const alignmentLower = alignmentValue.toLowerCase();
@@ -329,6 +343,15 @@ function bigMaff() {
       chosenRace.selectedAncestryKey = selectedDragonAncestryKey;
       chosenRace.selectedAncestry = selectedDragonAncestry;
     }
+    if (chosenRace.name === "Goliath" && chosenRace.giantAncestries) {
+      const ancestryKeys = Object.keys(chosenRace.giantAncestries);
+      if (ancestryKeys.length) {
+        selectedGiantAncestryKey = ancestryKeys[Math.floor(Math.random() * ancestryKeys.length)];
+        selectedGiantAncestry = chosenRace.giantAncestries[selectedGiantAncestryKey];
+        chosenRace.selectedAncestryKey = selectedGiantAncestryKey;
+        chosenRace.selectedAncestry = selectedGiantAncestry;
+      }
+    }
     setForm((prev) => {
       const updatedSkills = { ...(prev.skills || {}) };
       if (chosenRace.skills) {
@@ -340,6 +363,8 @@ function bigMaff() {
         speed: chosenRace.speed,
         dragonAncestryKey: selectedDragonAncestry ? selectedDragonAncestryKey : "",
         dragonAncestry: selectedDragonAncestry || null,
+        giantAncestryKey: selectedGiantAncestry ? selectedGiantAncestryKey : "",
+        giantAncestry: selectedGiantAncestry || null,
       };
       if (Object.keys(updatedSkills).length) {
         nextForm.skills = updatedSkills;
@@ -450,8 +475,12 @@ useEffect(() => {
 
     const raceWithAncestry = attachSelectedAncestryToRace(
       baseCharacter.race,
-      baseCharacter.dragonAncestryKey,
-      baseCharacter.dragonAncestry
+      {
+        dragonAncestryKey: baseCharacter.dragonAncestryKey,
+        dragonAncestry: baseCharacter.dragonAncestry,
+        giantAncestryKey: baseCharacter.giantAncestryKey,
+        giantAncestry: baseCharacter.giantAncestry,
+      }
     );
     if (raceWithAncestry) {
       newCharacter.race = raceWithAncestry;
@@ -515,6 +544,8 @@ const handleRaceChange = (e) => {
         speed: 0,
         dragonAncestryKey: "",
         dragonAncestry: null,
+        giantAncestryKey: "",
+        giantAncestry: null,
       };
     }
 
@@ -525,6 +556,8 @@ const handleRaceChange = (e) => {
 
     let dragonAncestryKey = "";
     let dragonAncestry = null;
+    let giantAncestryKey = "";
+    let giantAncestry = null;
     if (raceObj.dragonAncestries) {
       const prevKey =
         prev.race?.name === raceObj.name && prev.dragonAncestryKey
@@ -534,16 +567,34 @@ const handleRaceChange = (e) => {
         dragonAncestryKey = prevKey;
         dragonAncestry = raceObj.dragonAncestries[prevKey];
       }
-      raceObj.selectedAncestryKey = dragonAncestryKey;
-      raceObj.selectedAncestry = dragonAncestry;
     }
+
+    if (raceObj.giantAncestries) {
+      const prevKey =
+        prev.race?.name === raceObj.name && prev.giantAncestryKey
+          ? prev.giantAncestryKey
+          : "";
+      if (prevKey && raceObj.giantAncestries[prevKey]) {
+        giantAncestryKey = prevKey;
+        giantAncestry = raceObj.giantAncestries[prevKey];
+      }
+    }
+
+    const updatedRace = attachSelectedAncestryToRace(raceObj, {
+      dragonAncestryKey,
+      dragonAncestry,
+      giantAncestryKey,
+      giantAncestry,
+    });
 
     const updatedForm = {
       ...prev,
-      race: raceObj,
+      race: updatedRace,
       speed: raceObj.speed,
       dragonAncestryKey,
       dragonAncestry,
+      giantAncestryKey,
+      giantAncestry,
     };
 
     if (Object.keys(updatedSkills).length) {
@@ -558,21 +609,76 @@ const handleDragonAncestryChange = (e) => {
   const key = e.target.value;
   setForm((prev) => {
     if (!prev.race?.dragonAncestries) {
-      return {
-        ...prev,
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
         dragonAncestryKey: "",
         dragonAncestry: null,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        dragonAncestryKey: "",
+        dragonAncestry: null,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
       };
     }
 
     const ancestry = prev.race.dragonAncestries[key];
-    const updatedRace = attachSelectedAncestryToRace(prev.race, ancestry ? key : "", ancestry || null);
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: ancestry ? key : "",
+      dragonAncestry: ancestry || null,
+      giantAncestryKey: "",
+      giantAncestry: null,
+    });
 
     return {
       ...prev,
       race: updatedRace,
       dragonAncestryKey: ancestry ? key : "",
       dragonAncestry: ancestry || null,
+      giantAncestryKey: "",
+      giantAncestry: null,
+    };
+  });
+};
+
+const handleGiantAncestryChange = (e) => {
+  const key = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.giantAncestries) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: "",
+        giantAncestry: null,
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: "",
+        giantAncestry: null,
+      };
+    }
+
+    const ancestry = prev.race.giantAncestries[key];
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: "",
+      dragonAncestry: null,
+      giantAncestryKey: ancestry ? key : "",
+      giantAncestry: ancestry || null,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      dragonAncestryKey: "",
+      dragonAncestry: null,
+      giantAncestryKey: ancestry ? key : "",
+      giantAncestry: ancestry || null,
     };
   });
 };
@@ -688,8 +794,12 @@ const sendManualToDb = useCallback(async (characterData) => {
   };
   const raceWithAncestry = attachSelectedAncestryToRace(
     baseCharacter.race,
-    baseCharacter.dragonAncestryKey,
-    baseCharacter.dragonAncestry
+    {
+      dragonAncestryKey: baseCharacter.dragonAncestryKey,
+      dragonAncestry: baseCharacter.dragonAncestry,
+      giantAncestryKey: baseCharacter.giantAncestryKey,
+      giantAncestry: baseCharacter.giantAncestry,
+    }
   );
   if (raceWithAncestry) {
     newCharacter.race = raceWithAncestry;
@@ -768,8 +878,12 @@ const handleAbilitySkillConfirm = () => {
 
   const updatedRace = attachSelectedAncestryToRace(
     raceObj,
-    form.dragonAncestryKey,
-    form.dragonAncestry
+    {
+      dragonAncestryKey: form.dragonAncestryKey,
+      dragonAncestry: form.dragonAncestry,
+      giantAncestryKey: form.giantAncestryKey,
+      giantAncestry: form.giantAncestry,
+    }
   );
   const updatedForm = { ...form, race: updatedRace };
   if (Object.keys(updatedSkills).length) {
@@ -932,6 +1046,20 @@ const getAvailableSkillOptions = (index) => {
             >
               <option value="" disabled>Select your dragon ancestry</option>
               {Object.entries(form.race.dragonAncestries || {}).map(([key, ancestry]) => (
+                <option key={key} value={key}>{ancestry.label}</option>
+              ))}
+            </Form.Select>
+          </>
+        )}
+        {form.race?.name === "Goliath" && (
+          <>
+            <Form.Label className="text-light">Giant Ancestry</Form.Label>
+            <Form.Select
+              value={form.giantAncestryKey || ""}
+              onChange={handleGiantAncestryChange}
+            >
+              <option value="" disabled>Select your giant ancestry</option>
+              {Object.entries(form.race.giantAncestries || {}).map(([key, ancestry]) => (
                 <option key={key} value={key}>{ancestry.label}</option>
               ))}
             </Form.Select>
