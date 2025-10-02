@@ -1184,24 +1184,35 @@ export default function ZombiesCharacterSheet() {
   const temporarySpeedBonus = form?.temporarySpeedBonus;
 
   useEffect(() => {
-    setForm((prev) => {
-      if (!prev) {
-        return prev;
+    if (!form) {
+      return;
+    }
+
+    const hasLargeForm = activeEffects.some(
+      (effect) => effect && effect.name === 'Large Form'
+    );
+
+    if (hasLargeForm) {
+      const desiredSize = 'Large';
+      const desiredSpeedBonus = 10;
+      const nextSize = form.temporarySize;
+      const nextSpeedBonus = Number(form.temporarySpeedBonus ?? 0);
+
+      if (nextSize === desiredSize && nextSpeedBonus === desiredSpeedBonus) {
+        return;
       }
 
-      const hasLargeForm = activeEffects.some(
-        (effect) => effect && effect.name === 'Large Form'
-      );
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
 
-      if (hasLargeForm) {
-        const desiredSize = 'Large';
-        const desiredSpeedBonus = 10;
-        const nextSize = prev.temporarySize;
-        const nextSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
+        const currentSize = prev.temporarySize;
+        const currentSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
 
         if (
-          nextSize === desiredSize &&
-          nextSpeedBonus === desiredSpeedBonus
+          currentSize === desiredSize &&
+          currentSpeedBonus === desiredSpeedBonus
         ) {
           return prev;
         }
@@ -1211,21 +1222,45 @@ export default function ZombiesCharacterSheet() {
           temporarySize: desiredSize,
           temporarySpeedBonus: desiredSpeedBonus,
         };
-      }
+      });
 
-      const hasTemporaryFields =
-        Object.prototype.hasOwnProperty.call(prev, 'temporarySize') ||
-        Object.prototype.hasOwnProperty.call(prev, 'temporarySpeedBonus');
+      return;
+    }
 
-      if (!hasTemporaryFields) {
+    const hasTemporaryFields =
+      Object.prototype.hasOwnProperty.call(form, 'temporarySize') ||
+      Object.prototype.hasOwnProperty.call(form, 'temporarySpeedBonus');
+
+    if (!hasTemporaryFields) {
+      return;
+    }
+
+    setForm((prev) => {
+      if (!prev) {
         return prev;
       }
 
-      const { temporarySize: _ignoredSize, temporarySpeedBonus: _ignoredSpeed, ...rest } =
-        prev;
+      const ownsTemporarySize = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySize'
+      );
+      const ownsTemporarySpeed = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySpeedBonus'
+      );
+
+      if (!ownsTemporarySize && !ownsTemporarySpeed) {
+        return prev;
+      }
+
+      const {
+        temporarySize: _ignoredSize,
+        temporarySpeedBonus: _ignoredSpeed,
+        ...rest
+      } = prev;
       return rest;
     });
-  }, [activeEffects, temporarySize, temporarySpeedBonus]);
+  }, [activeEffects, form]);
 
   const consumeCircle = useCallback(
     (type, index) => {
