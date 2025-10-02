@@ -1,6 +1,5 @@
 const numericFields = [
   'age',
-  'height',
   'weight',
   'str',
   'dex',
@@ -17,6 +16,8 @@ const numericFields = [
   'hpMaxBonus',
   'hpMaxBonusPerLevel',
 ];
+
+const stringFields = ['size'];
 
 // Define the list of available skills
 const skillNames = [
@@ -48,6 +49,7 @@ const skillFields = skillNames.reduce((acc, skill) => {
 
 module.exports = {
   numericFields,
+  stringFields,
   skillFields,
   skillNames,
 };

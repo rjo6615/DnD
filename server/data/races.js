@@ -1,6 +1,8 @@
 const races = {
   human: {
     name: "Human",
+    size: "Medium",
+    sizeOptions: ["Medium", "Small"],
     speed: 30,
     abilities: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
     skills: {},
@@ -8,6 +10,8 @@ const races = {
   },
   dwarf: {
     name: "Dwarf",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 25,
     abilities: { con: 2 },
     skills: {},
@@ -21,6 +25,8 @@ const races = {
   },
   elf: {
     name: "Elf",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { dex: 2 },
     skills: { perception: { proficient: true } },
@@ -34,6 +40,8 @@ const races = {
   },
   halfling: {
     name: "Halfling",
+    size: "Small",
+    sizeOptions: ["Small"],
     speed: 25,
     abilities: { dex: 2 },
     skills: {},
@@ -41,6 +49,8 @@ const races = {
   },
   dragonborn: {
     name: "Dragonborn",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { str: 2, cha: 1 },
     skills: {},
@@ -110,6 +120,8 @@ const races = {
   },
   gnome: {
     name: "Gnome",
+    size: "Small",
+    sizeOptions: ["Small"],
     speed: 25,
     abilities: { int: 2 },
     skills: {},
@@ -117,6 +129,8 @@ const races = {
   },
   "half-elf": {
     name: "Half-Elf",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { cha: 2 },
     abilityChoices: { count: 2, options: ["str", "dex", "con", "int", "wis"] },
@@ -124,8 +138,10 @@ const races = {
     skills: {},
     languages: ["Common", "Elvish", "Choice"],
   },
-  "half-orc": {
-    name: "Half-Orc",
+  orc: {
+    name: "Orc",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { str: 2, con: 1 },
     skills: { intimidation: { proficient: true } },
@@ -133,6 +149,8 @@ const races = {
   },
   tiefling: {
     name: "Tiefling",
+    size: "Medium",
+    sizeOptions: ["Medium", "Small"],
     speed: 30,
     abilities: { cha: 2, int: 1 },
     skills: {},
@@ -140,6 +158,8 @@ const races = {
   },
   goliath: {
     name: "Goliath",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 35,
     abilities: { str: 2, con: 1 },
     skills: {},
