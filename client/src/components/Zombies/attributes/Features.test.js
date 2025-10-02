@@ -125,6 +125,74 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   expect(descriptions.length).toBeGreaterThan(0);
 });
 
+test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const ancestry = {
+    label: "Cloud's Jaunt",
+    description: 'As a bonus action, teleport up to 30 feet to an unoccupied space you can see.',
+    usage: 'Bonus action • Proficiency bonus per long rest',
+  };
+
+  const race = {
+    name: 'Goliath',
+    giantAncestries: { cloud: ancestry },
+    selectedAncestryKey: 'cloud',
+    selectedAncestry: ancestry,
+  };
+
+  const { rerender } = render(
+    <Features
+      form={{ race, occupation: [{ Name: 'Barbarian', Level: 4 }] }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const boon = await screen.findByText("Cloud's Jaunt");
+  expect(boon).toBeInTheDocument();
+  expect(screen.getByText('Powerful Build')).toBeInTheDocument();
+
+  const boonCard = boon.closest('.feature-card');
+  expect(boonCard).not.toBeNull();
+  expect(
+    within(boonCard).getByText((content) =>
+      content.includes('Bonus action • Proficiency bonus per long rest')
+    )
+  ).toBeInTheDocument();
+
+  expect(screen.queryByText('Large Form')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{ race, occupation: [{ Name: 'Barbarian', Level: 5 }] }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const largeForm = await screen.findByText('Large Form');
+  expect(largeForm).toBeInTheDocument();
+
+  const largeFormCard = largeForm.closest('.feature-card');
+  expect(largeFormCard).not.toBeNull();
+  const largeFormView = within(largeFormCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(largeFormView);
+  });
+
+  const largeFormDescriptions = await screen.findAllByText(
+    'Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can\'t use it again until you finish a long rest.'
+  );
+  expect(largeFormDescriptions.length).toBeGreaterThan(0);
+});
+
 test('features are sorted by class then level', async () => {
   apiFetch.mockImplementation((url) => {
     const match = url.match(/classes\/(.*?)\/features\/(\d+)/);
