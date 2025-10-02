@@ -242,6 +242,10 @@ const CampaignMapBoard = ({
         return;
       }
 
+      if (typeof event?.button === 'number' && event.button !== 0) {
+        return;
+      }
+
       const { characterId } = token;
       if (typeof characterId !== 'string' || characterId.trim() === '') {
         return;
@@ -343,6 +347,11 @@ const CampaignMapBoard = ({
 
   const handlePointerUp = useCallback(
     (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || !dragState.tokenId) {
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
       finalizeDrag(event, false);
@@ -352,6 +361,11 @@ const CampaignMapBoard = ({
 
   const handlePointerCancel = useCallback(
     (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || !dragState.tokenId) {
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
       finalizeDrag(event, true);
