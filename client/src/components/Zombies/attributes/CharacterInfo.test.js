@@ -94,7 +94,7 @@ test('renders goliath subrace within race card when ancestry selected', () => {
       languages: [],
       selectedAncestryKey: 'cloud',
       giantAncestries: {
-        cloud: { label: 'Cloud Giant' },
+        cloud: { label: "Cloud's Jaunt", ancestryName: 'Cloud Giant' },
       },
     },
   };
