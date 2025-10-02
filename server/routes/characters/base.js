@@ -9,7 +9,15 @@ const proficiencyBonus = require('../../utils/proficiency');
 const collectAllowedSkills = require('../../utils/collectAllowedSkills');
 const collectAllowedExpertise = require('../../utils/collectAllowedExpertise');
 const { normalizeEquipmentMap } = require('../../constants/equipmentSlots');
-const { emitCharacterMetadataUpdate } = require('../../utils/socket');
+const {
+  emitCharacterMetadataUpdate,
+  emitMapUpdate,
+  emitCombatUpdate,
+} = require('../../utils/socket');
+const {
+  buildCampaignMapPayload,
+  normalizeCampaignMapState,
+} = require('../../utils/campaignMaps');
 
 const countFeatProficiencies = (feat = []) => {
   const profs = new Set();
@@ -336,16 +344,161 @@ module.exports = (router) => {
   );
 
   // This section will delete a character
-  characterRouter.route('/delete-character/:id').delete(async (req, response, next) => {
+  characterRouter.route('/delete-character/:id').delete(async (req, res, next) => {
     if (!ObjectId.isValid(req.params.id)) {
-      return response.status(400).json({ message: 'Invalid ID' });
+      return res.status(400).json({ message: 'Invalid ID' });
     }
+
     const db_connect = req.db;
-    const myquery = { _id: ObjectId(req.params.id) };
+    const charactersCollection = db_connect.collection('Characters');
+    const query = { _id: ObjectId(req.params.id) };
+
     try {
-      const obj = await db_connect.collection('Characters').deleteOne(myquery);
+      const result = await charactersCollection.findOneAndDelete(query);
+      const deletedCharacter = result.value;
+
+      if (!deletedCharacter) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      const deletedIds = new Set();
+      if (deletedCharacter._id) {
+        deletedIds.add(String(deletedCharacter._id));
+      }
+      if (
+        typeof deletedCharacter.characterId === 'string' &&
+        deletedCharacter.characterId.trim() !== ''
+      ) {
+        deletedIds.add(deletedCharacter.characterId.trim());
+      }
+
+      const campaignName =
+        typeof deletedCharacter.campaign === 'string' &&
+        deletedCharacter.campaign.trim() !== ''
+          ? deletedCharacter.campaign.trim()
+          : null;
+
+      if (campaignName) {
+        const campaignsCollection = db_connect.collection('Campaigns');
+        const campaign = await campaignsCollection.findOne({ campaignName });
+
+        if (campaign) {
+          const { campaign: normalizedCampaign } = await normalizeCampaignMapState({
+            campaign,
+            collection: campaignsCollection,
+          });
+
+          const nextTokens = {};
+
+          if (
+            normalizedCampaign.mapTokens &&
+            typeof normalizedCampaign.mapTokens === 'object'
+          ) {
+            Object.keys(normalizedCampaign.mapTokens).forEach((mapId) => {
+              const mapTokens = normalizedCampaign.mapTokens[mapId];
+              if (!mapTokens || typeof mapTokens !== 'object') {
+                return;
+              }
+
+              const filteredTokens = Object.keys(mapTokens).reduce(
+                (acc, tokenKey) => {
+                  const tokenEntry = mapTokens[tokenKey];
+                  if (!tokenEntry || typeof tokenEntry !== 'object') {
+                    return acc;
+                  }
+
+                  const candidateId =
+                    typeof tokenEntry.characterId === 'string' &&
+                    tokenEntry.characterId.trim() !== ''
+                      ? tokenEntry.characterId.trim()
+                      : typeof tokenKey === 'string' && tokenKey.trim() !== ''
+                      ? tokenKey.trim()
+                      : null;
+
+                  if (!candidateId) {
+                    return acc;
+                  }
+
+                  if (deletedIds.has(candidateId)) {
+                    return acc;
+                  }
+
+                  acc[candidateId] = { ...tokenEntry, characterId: candidateId };
+                  return acc;
+                },
+                {}
+              );
+
+              if (Object.keys(filteredTokens).length > 0) {
+                nextTokens[mapId] = filteredTokens;
+              }
+            });
+          }
+
+          const mapPayload = buildCampaignMapPayload(
+            normalizedCampaign.maps,
+            normalizedCampaign.activeMapId,
+            nextTokens
+          );
+
+          const existingParticipants = Array.isArray(
+            normalizedCampaign.combat?.participants
+          )
+            ? normalizedCampaign.combat.participants
+            : [];
+
+          const participants = existingParticipants.filter((participant) => {
+            if (!participant || typeof participant !== 'object') {
+              return false;
+            }
+
+            if (
+              typeof participant.characterId === 'string' &&
+              participant.characterId.trim() !== ''
+            ) {
+              return !deletedIds.has(participant.characterId.trim());
+            }
+
+            return true;
+          });
+
+          let activeTurn = Number(normalizedCampaign.combat?.activeTurn);
+          if (!Number.isInteger(activeTurn)) {
+            activeTurn = null;
+          }
+
+          if (activeTurn !== null) {
+            if (activeTurn < 0) {
+              activeTurn = participants.length > 0 ? 0 : null;
+            } else if (activeTurn >= participants.length) {
+              activeTurn =
+                participants.length > 0
+                  ? Math.min(activeTurn, participants.length - 1)
+                  : null;
+            }
+          }
+
+          const combatState = { participants, activeTurn };
+
+          await campaignsCollection.updateOne(
+            { campaignName },
+            {
+              $set: {
+                mapTokens: mapPayload.tokensByMapId,
+                activeMapId: mapPayload.activeMapId,
+                map: mapPayload.map || null,
+                combat: combatState,
+              },
+            }
+          );
+
+          emitMapUpdate(campaignName, mapPayload);
+          emitCombatUpdate(campaignName, combatState);
+        }
+      }
+
       logger.info('1 character deleted');
-      response.json(obj);
+      return res.json({ acknowledged: true, deletedCount: 1 });
     } catch (err) {
       next(err);
     }
