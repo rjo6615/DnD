@@ -7,6 +7,7 @@ import actionSurgeIcon from '../../../images/action-surge-icon.png';
 import largeFormIcon from '../../../images/large-form-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
 import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
+import speakWithAnimalIcon from '../../../images/speak-with-animal.png';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function Features({
@@ -818,7 +819,12 @@ export default function Features({
                                       !speakWithAnimalsHasSlot)
                                   }
                                 >
-                                  <i className="fa-solid fa-wand-sparkles" />
+                                  <img
+                                    src={speakWithAnimalIcon}
+                                    alt="Speak with Animals"
+                                    width={36}
+                                    height={36}
+                                  />
                                 </Button>
                               </div>
                             ) : !feat.hideUseButton ? (
