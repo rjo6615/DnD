@@ -88,12 +88,15 @@ test('dragonborn always has damage resistance and gains draconic flight at level
     },
   };
 
+  const onDraconicFlight = jest.fn();
+
   const renderFeatures = (occupation) =>
     render(
       <Features
         form={{ ...baseForm, occupation }}
         showFeatures={true}
         handleCloseFeatures={() => {}}
+        onDraconicFlight={onDraconicFlight}
       />
     );
 
@@ -118,6 +121,9 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   const viewButton = within(flightCard).getByRole('button', {
     name: /view feature/i,
   });
+  const useButton = within(flightCard).getByRole('button', {
+    name: /use feature/i,
+  });
 
   expect(
     screen.queryByText(
@@ -134,6 +140,16 @@ test('dragonborn always has damage resistance and gains draconic flight at level
       'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
     )
   ).toBeInTheDocument();
+
+  expect(useButton).toBeEnabled();
+  expect(onDraconicFlight).not.toHaveBeenCalled();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+
+  expect(onDraconicFlight).toHaveBeenCalledTimes(1);
+  expect(useButton).toBeDisabled();
 });
 
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {

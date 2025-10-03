@@ -32,6 +32,7 @@ import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
+import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
@@ -1521,6 +1522,15 @@ export default function ZombiesCharacterSheet() {
         return prev;
       }
       return [...prev, { name: 'Large Form', icon: largeFormIcon }];
+    });
+  }, [setActiveEffects]);
+
+  const handleDraconicFlight = useCallback(() => {
+    setActiveEffects((prev) => {
+      if (prev.some((effect) => effect.name === 'Draconic Flight')) {
+        return prev;
+      }
+      return [...prev, { name: 'Draconic Flight', icon: dragonWingsIcon }];
     });
   }, [setActiveEffects]);
 
@@ -4180,6 +4190,7 @@ export default function ZombiesCharacterSheet() {
           handleCloseFeatures={handleCloseFeatures}
           onActionSurge={handleActionSurge}
           onLargeForm={handleLargeForm}
+          onDraconicFlight={handleDraconicFlight}
           longRestCount={longRestCount}
           shortRestCount={shortRestCount}
           actionCount={actionCount}
