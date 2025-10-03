@@ -81,6 +81,7 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   const baseForm = {
     race: {
       name: 'Dragonborn',
+      darkvisionRange: 60,
       selectedAncestry: {
         label: 'Gold',
         damageType: 'Fire',
@@ -101,6 +102,27 @@ test('dragonborn always has damage resistance and gains draconic flight at level
     );
 
   const firstRender = renderFeatures([]);
+
+  const darkvisionTitle = await screen.findByText('Darkvision');
+  const darkvisionCard = darkvisionTitle.closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+  expect(within(darkvisionCard).getByText('Dragonborn')).toBeInTheDocument();
+
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(/You can see in dim light within 60 feet of you/i)
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  expect(
+    await screen.findByText(/You can see in dim light within 60 feet of you/i)
+  ).toBeInTheDocument();
 
   expect(await screen.findByText('Damage Resistance')).toBeInTheDocument();
   expect(screen.queryByText('Draconic Flight')).not.toBeInTheDocument();
