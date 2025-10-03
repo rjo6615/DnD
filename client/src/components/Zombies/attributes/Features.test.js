@@ -537,6 +537,90 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
   });
 });
 
+test('Speak with Animals is available to forest gnomes at level 1 using proficiency', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const baseRace = {
+    name: 'Gnome',
+    darkvisionRange: 60,
+    gnomeLineages: {
+      forest: { label: 'Forest Gnome' },
+    },
+  };
+
+  const onCastSpell = jest.fn();
+
+  render(
+    <Features
+      form={{
+        race: baseRace,
+        gnomeLineageKey: 'forest',
+        gnomeLineage: { label: 'Forest Gnome' },
+        occupation: [{ Name: 'Wizard', Level: 1 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      availableSlots={{ regular: {}, warlock: {} }}
+      onCastSpell={onCastSpell}
+      longRestCount={0}
+      shortRestCount={0}
+    />
+  );
+
+  const speakTitle = await screen.findByText('Speak with Animals');
+  const speakCard = speakTitle.closest('.feature-card');
+  expect(speakCard).not.toBeNull();
+
+  const speakWithin = within(speakCard);
+
+  await waitFor(() =>
+    expect(
+      speakWithin.getByText('Uses remaining: 2')
+    ).toBeInTheDocument()
+  );
+
+  const wandButton = speakWithin.getByRole('button', {
+    name: /cast speak with animals using a spell slot/i,
+  });
+  expect(wandButton).toBeEnabled();
+
+  await act(async () => {
+    await userEvent.click(wandButton);
+  });
+
+  const dialogs = await screen.findAllByRole('dialog');
+  const dialog = dialogs[dialogs.length - 1];
+  expect(dialog).toBeTruthy();
+  const upcastWithin = within(dialog);
+
+  expect(
+    upcastWithin.getByText('No spell slots of this level available.')
+  ).toBeInTheDocument();
+
+  const proficiencyButton = upcastWithin.getByRole('button', {
+    name: /cast speak with animals using proficiency/i,
+  });
+  expect(proficiencyButton).toBeEnabled();
+
+  await act(async () => {
+    await userEvent.click(proficiencyButton);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenCalledWith('action');
+  expect(
+    speakWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+});
+
 test('Speak with Animals wand button respects available uses and slots', async () => {
   apiFetch.mockResolvedValue({
     ok: true,

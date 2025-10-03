@@ -123,8 +123,8 @@ export default function Features({
   }, [gnomeLineageKey]);
 
   const canUseSpeakWithAnimals = useMemo(() => {
-    return isForestGnomeLineage && totalCharacterLevel >= 3;
-  }, [isForestGnomeLineage, totalCharacterLevel]);
+    return isForestGnomeLineage;
+  }, [isForestGnomeLineage]);
 
   const speakWithAnimalsMaxUses = useMemo(() => {
     if (!canUseSpeakWithAnimals) return 0;
