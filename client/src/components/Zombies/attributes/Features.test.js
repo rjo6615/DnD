@@ -359,7 +359,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
     },
     gnomeLineageAbility: 'Wisdom',
     occupation: [{ Name: 'Wizard', Level: 3 }],
-    proficiencyBonus: 2,
+    proficiencyBonus: 3,
   };
 
   const { rerender } = render(
@@ -389,12 +389,32 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
     speakWithin.getByText('Spellcasting ability: Wisdom')
   ).toBeInTheDocument();
   expect(
-    speakWithin.getByText('Uses remaining: 2')
+    speakWithin.getByText('Uses remaining: 3')
   ).toBeInTheDocument();
+
+  const speakViewButton = speakWithin.getByRole('button', {
+    name: /view feature/i,
+  });
+  await act(async () => {
+    await userEvent.click(speakViewButton);
+  });
+  const speakDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Speak with Animals without expending a spell slot/i
+  );
+  expect(speakDescription).toHaveTextContent(
+    /This lineage uses Wisdom for its spells\./i
+  );
+  const speakModal = speakDescription.closest('.modal-content');
+  expect(speakModal).not.toBeNull();
+  const speakClose = within(speakModal).getByRole('button', { name: /close/i });
+  await act(async () => {
+    await userEvent.click(speakClose);
+  });
 
   const freeCastButton = speakWithin.getByRole('button', {
     name: /cast speak with animals using proficiency/i,
   });
+  expect(freeCastButton).toBeEnabled();
 
   await act(async () => {
     await userEvent.click(freeCastButton);
@@ -402,12 +422,13 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
 
   expect(onCastSpell).toHaveBeenCalledWith('action');
   expect(
-    speakWithin.getByText('Uses remaining: 1')
+    speakWithin.getByText('Uses remaining: 2')
   ).toBeInTheDocument();
 
   const slotButton = speakWithin.getByRole('button', {
     name: /cast speak with animals using a spell slot/i,
   });
+  expect(slotButton).toBeEnabled();
 
   await act(async () => {
     await userEvent.click(slotButton);
@@ -436,7 +457,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
   });
 
   expect(
-    speakWithin.getByText('Uses remaining: 1')
+    speakWithin.getByText('Uses remaining: 2')
   ).toBeInTheDocument();
 
   rerender(
@@ -455,7 +476,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
     (await screen.findByText('Speak with Animals')).closest('.feature-card')
   ).not.toBeNull();
   expect(
-    await screen.findByText('Uses remaining: 2')
+    await screen.findByText('Uses remaining: 3')
   ).toBeInTheDocument();
 
   const minorIllusionTitle = await screen.findByText('Minor Illusion');
@@ -466,6 +487,24 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
       /forest gnome • spellcasting ability: wisdom/i
     )
   ).toBeInTheDocument();
+  const minorViewButton = within(minorIllusionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+  await act(async () => {
+    await userEvent.click(minorViewButton);
+  });
+  const minorDescription = await screen.findByText(
+    /You know the Minor Illusion cantrip\./i
+  );
+  expect(minorDescription).toHaveTextContent(
+    /This lineage uses Wisdom for its spells\./i
+  );
+  const minorModal = minorDescription.closest('.modal-content');
+  expect(minorModal).not.toBeNull();
+  const minorClose = within(minorModal).getByRole('button', { name: /close/i });
+  await act(async () => {
+    await userEvent.click(minorClose);
+  });
 });
 
 test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
