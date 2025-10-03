@@ -385,6 +385,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
   const speakCard = speakTitle.closest('.feature-card');
   expect(speakCard).not.toBeNull();
   const speakWithin = within(speakCard);
+  expect(speakWithin.getByAltText('Speak with Animals')).toBeInTheDocument();
   expect(
     speakWithin.getByText('Spellcasting ability: Wisdom')
   ).toBeInTheDocument();
