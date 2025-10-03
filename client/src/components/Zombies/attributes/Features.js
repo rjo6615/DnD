@@ -221,6 +221,49 @@ export default function Features({
           });
         }
       }
+    } else if (raceName === 'halfling') {
+      raceFeatures.push(
+        {
+          id: 'halfling-brave',
+          name: 'Brave',
+          meta: 'Halfling',
+          description:
+            'You have advantage on saving throws you make to avoid or end the Frightened condition.',
+          desc:
+            'You have advantage on saving throws you make to avoid or end the Frightened condition.',
+          hideUseButton: true,
+        },
+        {
+          id: 'halfling-nimbleness',
+          name: 'Halfling Nimbleness',
+          meta: 'Halfling',
+          description:
+            'You can move through the space of any creature that is of a size larger than yours.',
+          desc:
+            'You can move through the space of any creature that is of a size larger than yours.',
+          hideUseButton: true,
+        },
+        {
+          id: 'halfling-luck',
+          name: 'Luck',
+          meta: 'Halfling',
+          description:
+            'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
+          desc:
+            'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
+          hideUseButton: true,
+        },
+        {
+          id: 'halfling-naturally-stealthy',
+          name: 'Naturally Stealthy',
+          meta: 'Halfling',
+          description:
+            'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
+          desc:
+            'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
+          hideUseButton: true,
+        }
+      );
     }
 
     return raceFeatures;
