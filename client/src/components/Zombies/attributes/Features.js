@@ -165,9 +165,7 @@ export default function Features({
           hideUseButton: true,
         }
       );
-    }
-
-    if (raceName === 'gnome') {
+    } else if (raceName === 'gnome') {
       const gnomishCunningDescription =
         'You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic.';
 
