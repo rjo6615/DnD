@@ -125,3 +125,37 @@ test('renders goliath subrace within race card when ancestry selected', () => {
   expect(queryByText('Subrace')).not.toBeInTheDocument();
 });
 
+test('renders dragonborn ancestry within race card when ancestry selected', () => {
+  const form = {
+    occupation: [],
+    race: {
+      name: 'Dragonborn',
+      languages: [],
+      selectedAncestryKey: 'bronze',
+      dragonAncestries: {
+        bronze: { label: 'Bronze Dragon', ancestryName: 'Bronze' },
+      },
+    },
+    size: 'Medium',
+  };
+
+  render(
+    <CharacterInfo
+      form={form}
+      show={true}
+      handleClose={() => {}}
+      onShowBackground={() => {}}
+      onLongRest={() => {}}
+      onShortRest={() => {}}
+    />
+  );
+
+  const raceItem = screen.getByText('Race').closest('.character-info-item');
+  expect(raceItem).not.toBeNull();
+
+  const { getByText, queryByText } = within(raceItem);
+  expect(getByText('Dragonborn')).toBeInTheDocument();
+  expect(getByText('Bronze Dragon')).toBeInTheDocument();
+  expect(queryByText('Subrace')).not.toBeInTheDocument();
+});
+
