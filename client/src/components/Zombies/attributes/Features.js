@@ -5,6 +5,8 @@ import FeatureModal from './FeatureModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
 import largeFormIcon from '../../../images/large-form-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
+import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function Features({
   form,
@@ -27,6 +29,7 @@ export default function Features({
   const [surgeUsed, setSurgeUsed] = useState(false);
   const [largeFormUsed, setLargeFormUsed] = useState(false);
   const [draconicFlightUsed, setDraconicFlightUsed] = useState(false);
+  const [adrenalineRushUses, setAdrenalineRushUses] = useState(0);
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -37,6 +40,24 @@ export default function Features({
       return sum + levelValue;
     }, 0);
   }, [form?.occupation]);
+
+  const profBonus = useMemo(() => {
+    const provided = Number(form?.proficiencyBonus);
+    if (Number.isFinite(provided) && provided > 0) {
+      return provided;
+    }
+    return proficiencyBonus(totalCharacterLevel);
+  }, [form?.proficiencyBonus, totalCharacterLevel]);
+
+  const adrenalineRushMaxUses = useMemo(() => {
+    return Number.isFinite(profBonus) && profBonus > 0
+      ? Math.floor(profBonus)
+      : 0;
+  }, [profBonus]);
+
+  useEffect(() => {
+    setAdrenalineRushUses(adrenalineRushMaxUses);
+  }, [adrenalineRushMaxUses]);
 
   const ancestryFeatures = useMemo(() => {
     const race = form?.race;
@@ -107,6 +128,39 @@ export default function Features({
           meta: 'Dwarf',
           description: stonecunningFullDescription,
           desc: stonecunningFullDescription,
+          hideUseButton: true,
+        }
+      );
+    } else if (raceName === 'orc') {
+      const darkvisionDescription =
+        'Thanks to your orc heritage, you can see in dim light within 120 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+      const adrenalineRushDescription =
+        'As a bonus action, you can take the Dash action and gain temporary hit points equal to your proficiency bonus. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.';
+      const relentlessEnduranceDescription =
+        "When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead. Once you use this trait, you can't use it again until you finish a long rest.";
+
+      raceFeatures.push(
+        {
+          id: 'orc-adrenaline-rush',
+          name: 'Adrenaline Rush',
+          meta: 'Orc',
+          description: adrenalineRushDescription,
+          desc: adrenalineRushDescription,
+        },
+        {
+          id: 'orc-darkvision',
+          name: 'Darkvision',
+          meta: 'Orc',
+          description: darkvisionDescription,
+          desc: darkvisionDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'orc-relentless-endurance',
+          name: 'Relentless Endurance',
+          meta: 'Orc',
+          description: relentlessEnduranceDescription,
+          desc: relentlessEnduranceDescription,
           hideUseButton: true,
         }
       );
@@ -323,7 +377,8 @@ export default function Features({
     setSurgeUsed(false);
     setLargeFormUsed(false);
     setDraconicFlightUsed(false);
-  }, [longRestCount, shortRestCount]);
+    setAdrenalineRushUses(adrenalineRushMaxUses);
+  }, [adrenalineRushMaxUses, longRestCount, shortRestCount]);
 
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
@@ -391,6 +446,7 @@ export default function Features({
                     const isLargeForm = feat.id === 'goliath-large-form';
                     const isDraconicFlight =
                       feat.id === 'dragonborn-draconic-flight';
+                    const isAdrenalineRush = feat.id === 'orc-adrenaline-rush';
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -426,6 +482,29 @@ export default function Features({
                                 <img
                                   src={actionSurgeIcon}
                                   alt="Action Surge"
+                                  width={36}
+                                  height={36}
+                                />
+                              </Button>
+                            ) : isAdrenalineRush ? (
+                              <Button
+                                aria-label="use feature"
+                                variant="link"
+                                className={`p-0 border-0 ${
+                                  adrenalineRushUses <= 0 ? 'opacity-50' : ''
+                                }`}
+                                onClick={() => {
+                                  if (adrenalineRushUses > 0) {
+                                    setAdrenalineRushUses((prev) =>
+                                      Math.max(0, prev - 1)
+                                    );
+                                  }
+                                }}
+                                disabled={adrenalineRushUses <= 0}
+                              >
+                                <img
+                                  src={adrenalineRushIcon}
+                                  alt="Adrenaline Rush"
                                   width={36}
                                   height={36}
                                 />
@@ -491,6 +570,11 @@ export default function Features({
                             </Button>
                           </div>
                         </div>
+                        {isAdrenalineRush && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            Uses remaining: {adrenalineRushUses}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

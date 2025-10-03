@@ -334,6 +334,89 @@ test('halfling characters display racial trait feature cards with descriptions',
   }
 });
 
+test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: { name: 'Orc' },
+    proficiencyBonus: 3,
+    occupation: [],
+  };
+
+  const { rerender } = render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      shortRestCount={0}
+      longRestCount={0}
+    />
+  );
+
+  expect(await screen.findByText('Adrenaline Rush')).toBeInTheDocument();
+  expect(await screen.findByText('Darkvision')).toBeInTheDocument();
+  expect(await screen.findByText('Relentless Endurance')).toBeInTheDocument();
+
+  const adrenalineCard = screen
+    .getByText('Adrenaline Rush')
+    .closest('.feature-card');
+  expect(adrenalineCard).not.toBeNull();
+
+  const adrenalineWithin = within(adrenalineCard);
+  const useButton = adrenalineWithin.getByRole('button', {
+    name: /use feature/i,
+  });
+  expect(useButton).toBeEnabled();
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+  expect(useButton).toBeDisabled();
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 0')
+  ).toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      shortRestCount={1}
+      longRestCount={0}
+    />
+  );
+
+  const refreshedCard = await screen.findByText('Adrenaline Rush');
+  const refreshedWithin = within(refreshedCard.closest('.feature-card'));
+  const refreshedUseButton = refreshedWithin.getByRole('button', {
+    name: /use feature/i,
+  });
+  expect(refreshedUseButton).toBeEnabled();
+  expect(
+    refreshedWithin.getByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+});
+
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
