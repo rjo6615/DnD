@@ -203,6 +203,117 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const createCircleState = () => ({
+  0: 'active',
+  1: 'active',
+  2: 'active',
+  3: 'active',
+});
+
+const createDefaultUsedSlots = () => ({
+  action: createCircleState(),
+  bonus: createCircleState(),
+});
+
+const mergeUsedSlotsWithDefaults = (stored) => {
+  const base = createDefaultUsedSlots();
+
+  if (!stored || typeof stored !== 'object') {
+    return base;
+  }
+
+  const result = { ...base };
+
+  Object.entries(stored).forEach(([key, value]) => {
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+
+    if (key === 'action' || key === 'bonus') {
+      const baseEntry = { ...result[key] };
+
+      Object.entries(value).forEach(([slotKey, slotValue]) => {
+        const index = Number(slotKey);
+        if (!Number.isInteger(index) || index < 0) {
+          return;
+        }
+
+        if (slotValue === 'used' || slotValue === true) {
+          baseEntry[index] = 'used';
+        } else if (slotValue === 'active') {
+          baseEntry[index] = 'active';
+        }
+      });
+
+      result[key] = baseEntry;
+      return;
+    }
+
+    const normalizedEntry = {};
+
+    Object.entries(value).forEach(([slotKey, slotValue]) => {
+      const index = Number(slotKey);
+      if (!Number.isInteger(index) || index < 0) {
+        return;
+      }
+
+      if (slotValue === true || slotValue === 'used') {
+        normalizedEntry[index] = true;
+      } else if (slotValue === false) {
+        normalizedEntry[index] = false;
+      }
+    });
+
+    if (Object.keys(normalizedEntry).length > 0) {
+      result[key] = normalizedEntry;
+    }
+  });
+
+  return result;
+};
+
+const serializeUsedSlotsForStorage = (slots) => {
+  if (!slots || typeof slots !== 'object') {
+    return {};
+  }
+
+  const payload = {};
+
+  Object.entries(slots).forEach(([key, value]) => {
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+
+    if (key === 'action' || key === 'bonus') {
+      const usedEntries = {};
+      Object.entries(value).forEach(([slotKey, slotValue]) => {
+        if (slotValue === 'used') {
+          usedEntries[slotKey] = 'used';
+        }
+      });
+
+      if (Object.keys(usedEntries).length > 0) {
+        payload[key] = usedEntries;
+      }
+
+      return;
+    }
+
+    const usedEntries = {};
+    Object.entries(value).forEach(([slotKey, slotValue]) => {
+      if (slotValue === true || slotValue === 'used') {
+        usedEntries[slotKey] = true;
+      }
+    });
+
+    if (Object.keys(usedEntries).length > 0) {
+      payload[key] = usedEntries;
+    }
+  });
+
+  return payload;
+};
+
 const sanitizeToken = (tokenValue, fallbackId) => {
   if (!tokenValue || typeof tokenValue !== 'object') {
     return null;
@@ -705,6 +816,85 @@ export default function ZombiesCharacterSheet() {
     }
   }, []);
 
+  const getStoredUsedSlots = useCallback((id) => {
+    if (typeof window === 'undefined' || !id) {
+      return null;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(`zombiesUsedSlots:${id}`);
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') {
+        return null;
+      }
+
+      const normalized = {};
+
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (!value || typeof value !== 'object') {
+          return;
+        }
+
+        if (key === 'action' || key === 'bonus') {
+          const entry = {};
+          Object.entries(value).forEach(([slotKey, slotValue]) => {
+            if (slotKey === '__proto__') {
+              return;
+            }
+            const index = Number(slotKey);
+            if (!Number.isInteger(index) || index < 0) {
+              return;
+            }
+
+            if (slotValue === 'used' || slotValue === true) {
+              entry[index] = 'used';
+            } else if (slotValue === 'active') {
+              entry[index] = 'active';
+            }
+          });
+
+          if (Object.keys(entry).length > 0) {
+            normalized[key] = entry;
+          }
+
+          return;
+        }
+
+        const entry = {};
+
+        Object.entries(value).forEach(([slotKey, slotValue]) => {
+          if (slotKey === '__proto__') {
+            return;
+          }
+
+          const index = Number(slotKey);
+          if (!Number.isInteger(index) || index < 0) {
+            return;
+          }
+
+          if (slotValue === true || slotValue === 'used') {
+            entry[index] = true;
+          } else if (slotValue === false) {
+            entry[index] = false;
+          }
+        });
+
+        if (Object.keys(entry).length > 0) {
+          normalized[key] = entry;
+        }
+      });
+
+      return normalized;
+    } catch (error) {
+      console.error('Failed to parse stored used slots', error);
+      return null;
+    }
+  }, []);
+
   const [activeEffects, setActiveEffects] = useState(() =>
     getStoredActiveEffects(characterId)
   );
@@ -728,15 +918,14 @@ export default function ZombiesCharacterSheet() {
   }, []);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
-  const initCircleState = () => ({
-    0: 'active',
-    1: 'active',
-    2: 'active',
-    3: 'active',
-  });
-  const [usedSlots, setUsedSlots] = useState({
-    action: initCircleState(),
-    bonus: initCircleState(),
+  const [usedSlots, setUsedSlots] = useState(() =>
+    mergeUsedSlotsWithDefaults(getStoredUsedSlots(characterId))
+  );
+  const usedSlotsHydrationRef = useRef(false);
+  const usageResetInitializedRef = useRef({
+    long: false,
+    short: false,
+    pass: false,
   });
   const [isPassingTurn, setIsPassingTurn] = useState(false);
 
@@ -758,6 +947,17 @@ export default function ZombiesCharacterSheet() {
   }, [characterId, getStoredActiveEffects]);
 
   useEffect(() => {
+    usageResetInitializedRef.current = { long: false, short: false, pass: false };
+    usedSlotsHydrationRef.current = false;
+
+    const stored = getStoredUsedSlots(characterId);
+    const nextState = mergeUsedSlotsWithDefaults(stored);
+
+    setUsedSlots(nextState);
+    usedSlotsHydrationRef.current = true;
+  }, [characterId, getStoredUsedSlots]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || !characterId) {
       return;
     }
@@ -775,6 +975,30 @@ export default function ZombiesCharacterSheet() {
       console.error('Failed to store active effects', error);
     }
   }, [activeEffects, characterId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !characterId) {
+      return;
+    }
+
+    if (!usedSlotsHydrationRef.current) {
+      return;
+    }
+
+    const storageKey = `zombiesUsedSlots:${characterId}`;
+    const payload = serializeUsedSlotsForStorage(usedSlots);
+
+    if (Object.keys(payload).length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (error) {
+      console.error('Failed to store used slots', error);
+    }
+  }, [characterId, usedSlots]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
@@ -1265,7 +1489,7 @@ export default function ZombiesCharacterSheet() {
   const consumeCircle = useCallback(
     (type, index) => {
       setUsedSlots((prev) => {
-        const currentState = prev[type] || initCircleState();
+        const currentState = prev[type] || createCircleState();
         const nextState = { ...currentState };
         if (typeof index === 'number') {
           const cur = currentState[index] || 'active';
@@ -1277,7 +1501,7 @@ export default function ZombiesCharacterSheet() {
         return { ...prev, [type]: nextState };
       });
     },
-    [initCircleState]
+    []
   );
 
   const handleActionSurge = useCallback(() => {
@@ -1393,13 +1617,31 @@ export default function ZombiesCharacterSheet() {
   const [navHeight, setNavHeight] = useState(0);
 
   useEffect(() => {
-    setUsedSlots({ action: initCircleState(), bonus: initCircleState() });
+    if (!usageResetInitializedRef.current.long) {
+      usageResetInitializedRef.current.long = true;
+      return;
+    }
+
+    if (!usedSlotsHydrationRef.current) {
+      return;
+    }
+
+    setUsedSlots(createDefaultUsedSlots());
     setActionCount(baseActionCount);
   }, [longRestCount, baseActionCount]);
 
   useEffect(() => {
+    if (!usageResetInitializedRef.current.short) {
+      usageResetInitializedRef.current.short = true;
+      return;
+    }
+
+    if (!usedSlotsHydrationRef.current) {
+      return;
+    }
+
     setUsedSlots((prev) => {
-      const updated = { ...prev, action: initCircleState(), bonus: initCircleState() };
+      const updated = { ...prev, action: createCircleState(), bonus: createCircleState() };
       Object.keys(updated).forEach((key) => {
         if (key.startsWith('warlock-')) delete updated[key];
       });
@@ -1410,10 +1652,21 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     const handler = () => {
+      if (!usageResetInitializedRef.current.pass) {
+        usageResetInitializedRef.current.pass = true;
+        if (!usedSlotsHydrationRef.current) {
+          return;
+        }
+      }
+
+      if (!usedSlotsHydrationRef.current) {
+        return;
+      }
+
       setUsedSlots((prev) => ({
         ...prev,
-        action: initCircleState(),
-        bonus: initCircleState(),
+        action: createCircleState(),
+        bonus: createCircleState(),
       }));
       const hasteActive = activeEffects.some((e) => e.name === 'Haste');
       setActionCount(baseActionCount + (hasteActive ? 1 : 0));
