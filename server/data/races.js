@@ -132,17 +132,6 @@ const races = {
     skills: {},
     languages: ["Common", "Gnomish"],
   },
-  "half-elf": {
-    name: "Half-Elf",
-    size: "Medium",
-    sizeOptions: ["Medium"],
-    speed: 30,
-    abilities: { cha: 2 },
-    abilityChoices: { count: 2, options: ["str", "dex", "con", "int", "wis"] },
-    skillChoices: { count: 2 },
-    skills: {},
-    languages: ["Common", "Elvish", "Choice"],
-  },
   orc: {
     name: "Orc",
     size: "Medium",

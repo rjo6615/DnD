@@ -1189,7 +1189,7 @@ const getAvailableSkillOptions = (index) => {
        <Modal className="dnd-modal" centered show={showAbilitySkillModal} onHide={() => setShowAbilitySkillModal(false)}>
        <div className="text-center">
         <Card className="dnd-background">
-          <Card.Title>Choose Half-Elf Bonuses</Card.Title>
+          <Card.Title>Choose Bonus Options</Card.Title>
         <Card.Body>
         {form.race?.abilityChoices && abilitySelections.map((sel, idx) => (
           <Form.Group className="mb-2" key={`ability-${idx}`}>
