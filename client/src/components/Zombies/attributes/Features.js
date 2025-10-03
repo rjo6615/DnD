@@ -40,11 +40,6 @@ export default function Features({
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
   const hasInitializedRestRef = useRef(false);
-  const hasHydratedSpeakWithAnimalsRef = useRef(false);
-  const previousRestCountsRef = useRef({
-    long: longRestCount,
-    short: shortRestCount,
-  });
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -193,7 +188,6 @@ export default function Features({
 
     if (!canUseSpeakWithAnimals) {
       setSpeakWithAnimalsUses((prev) => (prev === 0 ? prev : 0));
-      hasHydratedSpeakWithAnimalsRef.current = false;
       return;
     }
 
@@ -201,7 +195,6 @@ export default function Features({
       setSpeakWithAnimalsUses((prev) =>
         prev === fallbackUses ? prev : fallbackUses
       );
-      hasHydratedSpeakWithAnimalsRef.current = true;
       return;
     }
 
@@ -217,7 +210,6 @@ export default function Features({
     const clamped = Math.min(nextValue, fallbackUses);
 
     setSpeakWithAnimalsUses((prev) => (prev === clamped ? prev : clamped));
-    hasHydratedSpeakWithAnimalsRef.current = true;
   }, [
     canUseSpeakWithAnimals,
     speakWithAnimalsMaxUses,
@@ -626,27 +618,14 @@ export default function Features({
   }, [form.occupation, showFeatures]);
 
   useEffect(() => {
-    const previousRestCounts = previousRestCountsRef.current;
-    const restCountChanged =
-      previousRestCounts.long !== longRestCount ||
-      previousRestCounts.short !== shortRestCount;
-
     setSurgeUsed(false);
     setLargeFormUsed(false);
     setDraconicFlightUsed(false);
     setAdrenalineRushUses(adrenalineRushMaxUses);
-    if (
-      hasInitializedRestRef.current &&
-      hasHydratedSpeakWithAnimalsRef.current &&
-      restCountChanged
-    ) {
+    if (hasInitializedRestRef.current) {
       setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
     }
     hasInitializedRestRef.current = true;
-    previousRestCountsRef.current = {
-      long: longRestCount,
-      short: shortRestCount,
-    };
   }, [
     adrenalineRushMaxUses,
     longRestCount,
