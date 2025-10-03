@@ -6,8 +6,11 @@ import Features from './Features';
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
 
+const TEST_CHARACTER_ID = 'test-character-id';
+
 beforeEach(() => {
   apiFetch.mockReset();
+  window.localStorage.clear();
 });
 
 test('renders features and opens modal with description', async () => {
@@ -39,6 +42,7 @@ test('renders features and opens modal with description', async () => {
       form={form}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -98,6 +102,7 @@ test('dragonborn always has damage resistance and gains draconic flight at level
         showFeatures={true}
         handleCloseFeatures={() => {}}
         onDraconicFlight={onDraconicFlight}
+        characterId={TEST_CHARACTER_ID}
       />
     );
 
@@ -193,6 +198,7 @@ test('dwarf characters display racial trait feature cards', async () => {
       form={form}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -277,6 +283,7 @@ test('halfling characters display racial trait feature cards with descriptions',
       form={form}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -371,6 +378,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
       availableSlots={{ regular: { 1: 2 } }}
       longRestCount={0}
       shortRestCount={0}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -505,6 +513,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
       availableSlots={{ regular: { 1: 2 } }}
       longRestCount={1}
       shortRestCount={0}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -543,6 +552,53 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
   });
 });
 
+test('Speak with Animals uses restore from local storage when available', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  window.localStorage.setItem(
+    `zombiesSpeakWithAnimalsUses:${TEST_CHARACTER_ID}`,
+    '1'
+  );
+
+  const form = {
+    race: {
+      name: 'Gnome',
+      darkvisionRange: 60,
+      gnomeLineages: {
+        forest: { label: 'Forest Gnome', spellcastingAbilities: ['Wisdom'] },
+      },
+    },
+    gnomeLineageKey: 'forest',
+    gnomeLineage: { label: 'Forest Gnome' },
+    gnomeLineageAbility: 'Wisdom',
+    occupation: [{ Name: 'Wizard', Level: 3 }],
+    proficiencyBonus: 3,
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={jest.fn()}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={0}
+      shortRestCount={0}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const speakTitle = await screen.findByText('Speak with Animals');
+  const speakCard = speakTitle.closest('.feature-card');
+  expect(speakCard).not.toBeNull();
+  expect(
+    within(speakCard).getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+});
+
 test('Speak with Animals is available to forest gnomes at level 1 using proficiency', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
@@ -573,6 +629,7 @@ test('Speak with Animals is available to forest gnomes at level 1 using proficie
       onCastSpell={onCastSpell}
       longRestCount={0}
       shortRestCount={0}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -659,6 +716,7 @@ test('Speak with Animals wand button respects available uses and slots', async (
       showFeatures={true}
       handleCloseFeatures={() => {}}
       availableSlots={{ regular: { 1: 0 }, warlock: {} }}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -692,6 +750,7 @@ test('Speak with Animals wand button respects available uses and slots', async (
       showFeatures={true}
       handleCloseFeatures={() => {}}
       availableSlots={{ regular: { 1: 1 }, warlock: {} }}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -704,6 +763,7 @@ test('Speak with Animals wand button respects available uses and slots', async (
       showFeatures={true}
       handleCloseFeatures={() => {}}
       availableSlots={{ regular: { 1: 0 }, warlock: {} }}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -730,6 +790,7 @@ test('orc characters display racial traits and track Adrenaline Rush uses with r
       handleCloseFeatures={() => {}}
       shortRestCount={0}
       longRestCount={0}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -780,6 +841,7 @@ test('orc characters display racial traits and track Adrenaline Rush uses with r
       handleCloseFeatures={() => {}}
       shortRestCount={1}
       longRestCount={0}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -820,6 +882,7 @@ test('rock gnome lineage surfaces cantrips and clockwork device guidance', async
       form={form}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -890,6 +953,7 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
       showFeatures={true}
       handleCloseFeatures={() => {}}
       onLargeForm={onLargeForm}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -935,6 +999,7 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
       showFeatures={true}
       handleCloseFeatures={() => {}}
       onLargeForm={onLargeForm}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
@@ -1009,6 +1074,7 @@ test('features are sorted by class then level', async () => {
       form={form}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
     />
   );
 
