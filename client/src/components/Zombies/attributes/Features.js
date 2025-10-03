@@ -585,6 +585,11 @@ export default function Features({
   const handleSpeakWithAnimalsFreeCast = useCallback(() => {
     if (!canUseSpeakWithAnimals || speakWithAnimalsUses <= 0) return;
     setSpeakWithAnimalsUses((prev) => Math.max(0, prev - 1));
+    onCastSpell?.({
+      castingTime: '1 action',
+      name: 'Speak with Animals',
+      pendingEffectOnly: true,
+    });
     onCastSpell?.('action');
     setShowUpcast(false);
     setPendingSpell(null);
