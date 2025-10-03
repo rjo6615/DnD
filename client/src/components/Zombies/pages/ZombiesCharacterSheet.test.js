@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import hasteIcon from '../../../images/spell-haste-icon.png';
+import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
@@ -52,7 +53,6 @@ jest.mock('../../Armor/ArmorList', () => () => null);
 jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
-jest.mock('../attributes/Features', () => () => null);
 const mockInventoryModalProps = { current: null };
 jest.mock('../attributes/InventoryModal', () => (props) => {
   mockInventoryModalProps.current = props;
@@ -82,6 +82,12 @@ jest.mock('../attributes/SpellSelector', () => (props) => {
   return props.show ? <div data-testid="spell-selector" /> : null;
 });
 jest.mock('../attributes/HealthDefense', () => () => null);
+
+const mockFeaturesModalProps = { current: null };
+jest.mock('../attributes/Features', () => (props) => {
+  mockFeaturesModalProps.current = props;
+  return null;
+});
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
@@ -131,6 +137,7 @@ beforeEach(() => {
   mockInventoryModalProps.current = null;
   mockEquipmentModalProps.current = null;
   mockMapModalProps.current = null;
+  mockFeaturesModalProps.current = null;
   mockSkillsModalProps.current = null;
   mockDockedSkillsModalProps.current = null;
   window.matchMedia = jest.fn().mockImplementation((query) => {
@@ -230,6 +237,78 @@ test('reapplies Large Form bonuses after persisted effects and refetch', async (
     expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
   );
   expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  window.localStorage.removeItem('zombiesActiveEffects:1');
+  window.localStorage.clear();
+});
+
+test('activating Draconic Flight adds a persistent effect without duplicates', async () => {
+  window.localStorage.clear();
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    campaign: null,
+    race: { name: 'Dragonborn' },
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => {
+    expect(mockFeaturesModalProps.current).not.toBeNull();
+  });
+
+  expect(typeof mockFeaturesModalProps.current.onDraconicFlight).toBe('function');
+
+  await act(async () => {
+    mockFeaturesModalProps.current.onDraconicFlight();
+  });
+
+  await waitFor(() => {
+    const stored = window.localStorage.getItem('zombiesActiveEffects:1');
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored);
+    expect(parsed).toEqual([
+      { name: 'Draconic Flight', icon: dragonWingsIcon },
+    ]);
+  });
+
+  await act(async () => {
+    mockFeaturesModalProps.current.onDraconicFlight();
+  });
+
+  await waitFor(() => {
+    const stored = window.localStorage.getItem('zombiesActiveEffects:1');
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored);
+    expect(parsed).toEqual([
+      { name: 'Draconic Flight', icon: dragonWingsIcon },
+    ]);
+  });
 
   window.localStorage.removeItem('zombiesActiveEffects:1');
   window.localStorage.clear();
@@ -675,7 +754,8 @@ test('persists used spell slots and actions to localStorage', async () => {
     json: async () => baseCharacter,
   });
 
-  const user = userEvent.setup();
+  const user =
+    typeof userEvent.setup === 'function' ? userEvent.setup() : userEvent;
   const { container, unmount } = render(<ZombiesCharacterSheet />);
 
   await waitFor(() =>
@@ -1805,8 +1885,10 @@ test('pass-turn event resets action and bonus usage', async () => {
   await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
   const action = container.querySelector('.action-circle');
   const bonus = container.querySelector('.bonus-circle');
-  fireEvent.click(action);
-  fireEvent.click(bonus);
+  await act(async () => {
+    fireEvent.click(action);
+    fireEvent.click(bonus);
+  });
   expect(action).toHaveClass('slot-used');
   expect(bonus).toHaveClass('slot-used');
 
