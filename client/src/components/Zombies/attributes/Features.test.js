@@ -443,7 +443,12 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
     ).not.toBeInTheDocument()
   );
 
-  expect(onCastSpell).toHaveBeenCalledWith('action');
+  expect(onCastSpell).toHaveBeenNthCalledWith(1, {
+    castingTime: '1 action',
+    name: 'Speak with Animals',
+    pendingEffectOnly: true,
+  });
+  expect(onCastSpell).toHaveBeenNthCalledWith(2, 'action');
   expect(
     speakWithin.getByText('Uses remaining: 2')
   ).toBeInTheDocument();
@@ -616,7 +621,12 @@ test('Speak with Animals is available to forest gnomes at level 1 using proficie
     ).not.toBeInTheDocument()
   );
 
-  expect(onCastSpell).toHaveBeenCalledWith('action');
+  expect(onCastSpell).toHaveBeenNthCalledWith(1, {
+    castingTime: '1 action',
+    name: 'Speak with Animals',
+    pendingEffectOnly: true,
+  });
+  expect(onCastSpell).toHaveBeenNthCalledWith(2, 'action');
   expect(
     speakWithin.getByText('Uses remaining: 1')
   ).toBeInTheDocument();
