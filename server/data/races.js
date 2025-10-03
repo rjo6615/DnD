@@ -156,9 +156,23 @@ const races = {
       },
       rock: {
         label: "Rock Gnome",
-        description: "Additional lineage details coming soon.",
-        spells: [],
-        spellcastingAbilities: [],
+        description:
+          "You know the Mending and Prestidigitation cantrips. Whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.",
+        spells: [
+          {
+            name: "Mending",
+            description:
+              "You know the Mending cantrip, allowing you to repair a break or tear in an object you touch.",
+            usage: "At will",
+          },
+          {
+            name: "Prestidigitation",
+            description:
+              "You know the Prestidigitation cantrip, letting you create minor magical effects. Additionally, whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.",
+            usage: "At will",
+          },
+        ],
+        spellcastingAbilities: ["Intelligence"],
       },
     },
   },

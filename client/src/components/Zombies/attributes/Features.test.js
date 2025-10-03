@@ -699,6 +699,74 @@ test('orc characters display racial traits and track Adrenaline Rush uses with r
   ).toBeInTheDocument();
 });
 
+test('rock gnome lineage surfaces cantrips and clockwork device guidance', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const rockLineage = {
+    label: 'Rock Gnome',
+    spellcastingAbilities: ['Intelligence'],
+  };
+
+  const form = {
+    race: {
+      name: 'Gnome',
+      gnomeLineages: { rock: rockLineage },
+    },
+    gnomeLineage: rockLineage,
+    gnomeLineageKey: 'rock',
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const mendingTitle = await screen.findByText('Mending');
+  const mendingCard = mendingTitle.closest('.feature-card');
+  expect(mendingCard).not.toBeNull();
+  const mendingWithin = within(mendingCard);
+  expect(
+    mendingWithin.getByText('Rock Gnome • Spellcasting Ability: Intelligence')
+  ).toBeInTheDocument();
+  expect(
+    mendingWithin.getByRole('button', { name: /view feature/i })
+  ).toBeInTheDocument();
+  expect(
+    mendingWithin.queryByRole('button', { name: /use feature/i })
+  ).not.toBeInTheDocument();
+
+  const prestidigitationTitle = await screen.findByText('Prestidigitation');
+  const prestidigitationCard = prestidigitationTitle.closest('.feature-card');
+  expect(prestidigitationCard).not.toBeNull();
+  const prestidigitationWithin = within(prestidigitationCard);
+  expect(
+    prestidigitationWithin.getByText(
+      'Rock Gnome • Spellcasting Ability: Intelligence'
+    )
+  ).toBeInTheDocument();
+
+  const prestidigitationView = prestidigitationWithin.getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(prestidigitationView);
+  });
+
+  expect(
+    await screen.findByText(
+      /spend 10 minutes to create a Tiny clockwork device \(AC 5, 1 hp\)/i
+    )
+  ).toBeInTheDocument();
+});
+
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
   apiFetch.mockResolvedValue({
     ok: true,

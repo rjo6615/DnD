@@ -117,6 +117,11 @@ export default function Features({
     return gnomeLineageKey.toLowerCase() === 'forest';
   }, [gnomeLineageKey]);
 
+  const isRockGnomeLineage = useMemo(() => {
+    if (!gnomeLineageKey) return false;
+    return gnomeLineageKey.toLowerCase() === 'rock';
+  }, [gnomeLineageKey]);
+
   const canUseSpeakWithAnimals = useMemo(() => {
     return isForestGnomeLineage && totalCharacterLevel >= 3;
   }, [isForestGnomeLineage, totalCharacterLevel]);
@@ -316,6 +321,37 @@ export default function Features({
           }`,
           description: speakWithAnimalsDescription,
           desc: speakWithAnimalsDescription,
+        });
+      } else if (gnomeLineage && isRockGnomeLineage) {
+        const mendingDescription =
+          'You know the Mending cantrip, allowing you to repair small breaks or tears in objects.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-rock-mending',
+          name: 'Mending',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: mendingDescription,
+          desc: mendingDescription,
+          hideUseButton: true,
+        });
+
+        const prestidigitationDescription =
+          'You know the Prestidigitation cantrip, letting you create minor magical effects.' +
+          abilityText +
+          ' Additionally, whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.';
+
+        raceFeatures.push({
+          id: 'gnome-rock-prestidigitation',
+          name: 'Prestidigitation',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: prestidigitationDescription,
+          desc: prestidigitationDescription,
+          hideUseButton: true,
         });
       }
     }
