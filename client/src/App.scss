@@ -1103,6 +1103,31 @@
   transform: scale(1.1);
 }
 
+.upcast-proficiency-button {
+  background-color: #808080;
+  border-color: #808080;
+  color: #ffffff;
+}
+
+.upcast-proficiency-button:hover,
+.upcast-proficiency-button:focus,
+.upcast-proficiency-button:active {
+  background-color: #6f6f6f;
+  border-color: #6f6f6f;
+  color: #ffffff;
+}
+
+.upcast-proficiency-button:focus-visible {
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.35);
+}
+
+.upcast-proficiency-button:disabled,
+.upcast-proficiency-button.disabled {
+  background-color: #a0a0a0;
+  border-color: #a0a0a0;
+  color: #f5f5f5;
+}
+
 .skill-checkbox .form-check-input {
   width: 1.25rem;
   height: 1.25rem;

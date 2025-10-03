@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
+import UpcastModal from './UpcastModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
 import largeFormIcon from '../../../images/large-form-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
@@ -16,8 +17,10 @@ export default function Features({
   onAdrenalineRush,
   onLargeForm,
   onDraconicFlight,
+  onCastSpell,
   longRestCount,
   shortRestCount,
+  availableSlots = { regular: {}, warlock: {} },
   isDocked = false,
   dockedSide = null,
   onDockClose,
@@ -31,6 +34,9 @@ export default function Features({
   const [largeFormUsed, setLargeFormUsed] = useState(false);
   const [draconicFlightUsed, setDraconicFlightUsed] = useState(false);
   const [adrenalineRushUses, setAdrenalineRushUses] = useState(0);
+  const [speakWithAnimalsUses, setSpeakWithAnimalsUses] = useState(0);
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -56,9 +62,110 @@ export default function Features({
       : 0;
   }, [profBonus]);
 
+  const { gnomeLineage, gnomeLineageKey, gnomeLineageAbility } = useMemo(() => {
+    const race = form?.race || {};
+    const lineageFromForm =
+      typeof form?.gnomeLineage === 'object' ? form.gnomeLineage : null;
+    const lineageKeyFromForm =
+      typeof form?.gnomeLineageKey === 'string' ? form.gnomeLineageKey : '';
+    const abilityFromForm =
+      typeof form?.gnomeLineageAbility === 'string'
+        ? form.gnomeLineageAbility
+        : '';
+
+    let lineage = lineageFromForm;
+    let lineageKey = lineageKeyFromForm;
+    if (!lineage) {
+      if (lineageKey && race?.gnomeLineages?.[lineageKey]) {
+        lineage = race.gnomeLineages[lineageKey];
+      } else if (race?.selectedAncestry) {
+        lineage = race.selectedAncestry;
+        lineageKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.gnomeLineages?.[race.selectedAncestryKey]
+      ) {
+        lineage = race.gnomeLineages[race.selectedAncestryKey];
+        lineageKey = race.selectedAncestryKey;
+      }
+    }
+
+    let ability = abilityFromForm;
+    if (!ability) {
+      ability =
+        typeof race?.selectedLineageAbility === 'string'
+          ? race.selectedLineageAbility
+          : '';
+    }
+    if (!ability && lineage?.spellcastingAbilities?.length) {
+      ability = lineage.spellcastingAbilities[0];
+    }
+
+    return { gnomeLineage: lineage, gnomeLineageKey: lineageKey, gnomeLineageAbility: ability };
+  }, [form?.gnomeLineage, form?.gnomeLineageAbility, form?.gnomeLineageKey, form?.race]);
+
+  const gnomeSpellAbilityLabel = useMemo(() => {
+    if (typeof gnomeLineageAbility !== 'string') return '';
+    return gnomeLineageAbility.trim();
+  }, [gnomeLineageAbility]);
+
+  const isForestGnomeLineage = useMemo(() => {
+    if (!gnomeLineageKey) return false;
+    return gnomeLineageKey.toLowerCase() === 'forest';
+  }, [gnomeLineageKey]);
+
+  const isRockGnomeLineage = useMemo(() => {
+    if (!gnomeLineageKey) return false;
+    return gnomeLineageKey.toLowerCase() === 'rock';
+  }, [gnomeLineageKey]);
+
+  const canUseSpeakWithAnimals = useMemo(() => {
+    return isForestGnomeLineage && totalCharacterLevel >= 3;
+  }, [isForestGnomeLineage, totalCharacterLevel]);
+
+  const speakWithAnimalsMaxUses = useMemo(() => {
+    if (!canUseSpeakWithAnimals) return 0;
+    return Number.isFinite(profBonus) && profBonus > 0
+      ? Math.floor(profBonus)
+      : 0;
+  }, [canUseSpeakWithAnimals, profBonus]);
+
+  const hasAvailableSlotOfLevel = useMemo(() => {
+    const normalizedRegular = availableSlots?.regular || {};
+    const normalizedWarlock = availableSlots?.warlock || {};
+
+    return (minimumLevel = 1) => {
+      const hasRegularSlot = Object.entries(normalizedRegular).some(
+        ([level, count]) =>
+          Number(level) >= minimumLevel && Number(count) > 0
+      );
+
+      if (hasRegularSlot) {
+        return true;
+      }
+
+      return Object.entries(normalizedWarlock).some(
+        ([level, count]) =>
+          Number(level) >= minimumLevel && Number(count) > 0
+      );
+    };
+  }, [availableSlots]);
+
+  const speakWithAnimalsHasSlot = useMemo(
+    () => hasAvailableSlotOfLevel(1),
+    [hasAvailableSlotOfLevel]
+  );
+
   useEffect(() => {
     setAdrenalineRushUses(adrenalineRushMaxUses);
   }, [adrenalineRushMaxUses]);
+
+  useEffect(() => {
+    setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+  }, [speakWithAnimalsMaxUses]);
 
   const ancestryFeatures = useMemo(() => {
     const race = form?.race;
@@ -165,7 +272,91 @@ export default function Features({
           hideUseButton: true,
         }
       );
-    } else if (darkvisionRange) {
+    } else if (raceName === 'gnome') {
+      const gnomishCunningDescription =
+        'You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic.';
+
+      raceFeatures.push({
+        id: 'gnome-gnomish-cunning',
+        name: 'Gnomish Cunning',
+        meta: 'Gnome',
+        description: gnomishCunningDescription,
+        desc: gnomishCunningDescription,
+        hideUseButton: true,
+      });
+
+      const lineageLabel =
+        typeof gnomeLineage?.label === 'string'
+          ? gnomeLineage.label
+          : 'Gnome Lineage';
+      const abilityText = gnomeSpellAbilityLabel
+        ? ` This lineage uses ${gnomeSpellAbilityLabel} for its spells.`
+        : '';
+
+      if (gnomeLineage && isForestGnomeLineage) {
+        const minorIllusionDescription =
+          'You know the Minor Illusion cantrip. It creates a sound or an image of an object within range that lasts for the duration.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-forest-minor-illusion',
+          name: 'Minor Illusion',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: minorIllusionDescription,
+          desc: minorIllusionDescription,
+          hideUseButton: true,
+        });
+
+        const speakWithAnimalsDescription =
+          'Starting at 3rd level, you can cast Speak with Animals without expending a spell slot a number of times equal to your proficiency bonus. You regain all expended uses when you finish a long rest.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-forest-speak-with-animals',
+          name: 'Speak with Animals',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: speakWithAnimalsDescription,
+          desc: speakWithAnimalsDescription,
+        });
+      } else if (gnomeLineage && isRockGnomeLineage) {
+        const mendingDescription =
+          'You know the Mending cantrip, allowing you to repair small breaks or tears in objects.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-rock-mending',
+          name: 'Mending',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: mendingDescription,
+          desc: mendingDescription,
+          hideUseButton: true,
+        });
+
+        const prestidigitationDescription =
+          'You know the Prestidigitation cantrip, letting you create minor magical effects.' +
+          abilityText +
+          ' Additionally, whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.';
+
+        raceFeatures.push({
+          id: 'gnome-rock-prestidigitation',
+          name: 'Prestidigitation',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: prestidigitationDescription,
+          desc: prestidigitationDescription,
+          hideUseButton: true,
+        });
+      }
+    }
+
+    if (darkvisionRange && raceName !== 'dwarf' && raceName !== 'orc') {
       const darkvisionDescription =
         `You can see in dim light within ${darkvisionRange} ` +
         'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
@@ -329,6 +520,9 @@ export default function Features({
     form?.giantAncestry,
     form?.giantAncestryKey,
     totalCharacterLevel,
+    gnomeLineage,
+    gnomeSpellAbilityLabel,
+    isForestGnomeLineage,
   ]);
 
   const displayFeatures = useMemo(() => {
@@ -379,7 +573,44 @@ export default function Features({
     setLargeFormUsed(false);
     setDraconicFlightUsed(false);
     setAdrenalineRushUses(adrenalineRushMaxUses);
-  }, [adrenalineRushMaxUses, longRestCount, shortRestCount]);
+    setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+  }, [
+    adrenalineRushMaxUses,
+    longRestCount,
+    shortRestCount,
+    speakWithAnimalsMaxUses,
+  ]);
+
+  const handleSpeakWithAnimalsFreeCast = useCallback(() => {
+    if (!canUseSpeakWithAnimals || speakWithAnimalsUses <= 0) return;
+    setSpeakWithAnimalsUses((prev) => Math.max(0, prev - 1));
+    onCastSpell?.('action');
+    setShowUpcast(false);
+    setPendingSpell(null);
+  }, [canUseSpeakWithAnimals, onCastSpell, speakWithAnimalsUses]);
+
+  const handleSpeakWithAnimalsSlotCast = useCallback(
+    (level, slotType) => {
+      if (!canUseSpeakWithAnimals) {
+        setShowUpcast(false);
+        setPendingSpell(null);
+        return;
+      }
+      onCastSpell?.({
+        level: 1,
+        slotLevel: level,
+        slotType,
+        castingTime: '1 action',
+        name: 'Speak with Animals',
+      });
+      setShowUpcast(false);
+      setPendingSpell(null);
+    },
+    [canUseSpeakWithAnimals, onCastSpell]
+  );
+
+  const speakWithAnimalsAbilityMeta =
+    gnomeSpellAbilityLabel || 'Spellcasting ability not set';
 
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
@@ -448,6 +679,8 @@ export default function Features({
                     const isDraconicFlight =
                       feat.id === 'dragonborn-draconic-flight';
                     const isAdrenalineRush = feat.id === 'orc-adrenaline-rush';
+                    const isSpeakWithAnimals =
+                      feat.id === 'gnome-forest-speak-with-animals';
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -553,6 +786,41 @@ export default function Features({
                                   height={36}
                                 />
                               </Button>
+                            ) : isSpeakWithAnimals ? (
+                              <div className="d-flex align-items-center gap-1">
+                                <Button
+                                  aria-label="cast Speak with Animals using a spell slot"
+                                  variant="link"
+                                  className="p-0 border-0"
+                                  onClick={() => {
+                                    if (
+                                      !canUseSpeakWithAnimals ||
+                                      (speakWithAnimalsUses <= 0 &&
+                                        !speakWithAnimalsHasSlot)
+                                    ) {
+                                      return;
+                                    }
+                                    setPendingSpell({
+                                      name: 'Speak with Animals',
+                                      level: 1,
+                                      supportsProficiency: true,
+                                      proficiencyLabel: 'P',
+                                      proficiencyAriaLabel:
+                                        'cast Speak with Animals using proficiency',
+                                      proficiencyRemainingLabel: 'Uses remaining',
+                                      onFreeCast: handleSpeakWithAnimalsFreeCast,
+                                    });
+                                    setShowUpcast(true);
+                                  }}
+                                  disabled={
+                                    !canUseSpeakWithAnimals ||
+                                    (speakWithAnimalsUses <= 0 &&
+                                      !speakWithAnimalsHasSlot)
+                                  }
+                                >
+                                  <i className="fa-solid fa-wand-sparkles" />
+                                </Button>
+                              </div>
                             ) : !feat.hideUseButton ? (
                               <Button aria-label="use feature" variant="outline-light" size="sm">
                                 Use
@@ -575,6 +843,16 @@ export default function Features({
                         {isAdrenalineRush && (
                           <div className="feature-card-uses text-muted small mt-2">
                             Uses remaining: {adrenalineRushUses}
+                          </div>
+                        )}
+                        {isSpeakWithAnimals && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            Uses remaining: {speakWithAnimalsUses}
+                          </div>
+                        )}
+                        {isSpeakWithAnimals && (
+                          <div className="feature-card-uses text-muted small">
+                            Spellcasting ability: {speakWithAnimalsAbilityMeta}
                           </div>
                         )}
                       </div>
@@ -600,6 +878,31 @@ export default function Features({
         show={showModal}
         onHide={() => setShowModal(false)}
         feature={modalFeature}
+      />
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => {
+          setShowUpcast(false);
+          setPendingSpell(null);
+        }}
+        baseLevel={pendingSpell?.level || 1}
+        slots={availableSlots}
+        onSelect={handleSpeakWithAnimalsSlotCast}
+        proficiencyAction={
+          pendingSpell?.supportsProficiency
+            ? {
+                label: pendingSpell?.proficiencyLabel || 'P',
+                ariaLabel:
+                  pendingSpell?.proficiencyAriaLabel ||
+                  'cast using proficiency feature',
+                remainingText: pendingSpell?.proficiencyRemainingLabel
+                  ? `${pendingSpell.proficiencyRemainingLabel}: ${speakWithAnimalsUses}`
+                  : `Uses remaining: ${speakWithAnimalsUses}`,
+                disabled: speakWithAnimalsUses <= 0,
+                onClick: pendingSpell?.onFreeCast,
+              }
+            : undefined
+        }
       />
     </>
   );
