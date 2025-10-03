@@ -165,7 +165,23 @@ export default function Features({
           hideUseButton: true,
         }
       );
-    } else if (darkvisionRange) {
+    }
+
+    if (raceName === 'gnome') {
+      const gnomishCunningDescription =
+        'You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic.';
+
+      raceFeatures.push({
+        id: 'gnome-gnomish-cunning',
+        name: 'Gnomish Cunning',
+        meta: 'Gnome',
+        description: gnomishCunningDescription,
+        desc: gnomishCunningDescription,
+        hideUseButton: true,
+      });
+    }
+
+    if (darkvisionRange && raceName !== 'dwarf' && raceName !== 'orc') {
       const darkvisionDescription =
         `You can see in dim light within ${darkvisionRange} ` +
         'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
