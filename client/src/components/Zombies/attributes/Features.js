@@ -13,6 +13,7 @@ export default function Features({
   showFeatures,
   handleCloseFeatures,
   onActionSurge,
+  onAdrenalineRush,
   onLargeForm,
   onDraconicFlight,
   longRestCount,
@@ -495,6 +496,7 @@ export default function Features({
                                 }`}
                                 onClick={() => {
                                   if (adrenalineRushUses > 0) {
+                                    onAdrenalineRush?.();
                                     setAdrenalineRushUses((prev) =>
                                       Math.max(0, prev - 1)
                                     );
