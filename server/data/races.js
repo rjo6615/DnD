@@ -12,7 +12,7 @@ const races = {
     name: "Dwarf",
     size: "Medium",
     sizeOptions: ["Medium"],
-    speed: 25,
+    speed: 30,
     abilities: { con: 2 },
     skills: {},
     languages: ["Common", "Dwarvish"],
