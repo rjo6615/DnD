@@ -45,6 +45,63 @@ export default function Features({
     const raceName =
       typeof race?.name === 'string' ? race.name.toLowerCase() : '';
 
+    if (raceName === 'dwarf') {
+      const darkvisionRange =
+        Number.isFinite(race?.darkvisionRange) && race.darkvisionRange > 0
+          ? race.darkvisionRange
+          : 60;
+
+      const darkvisionDescription =
+        `Accustomed to life underground, you can see in dim light within ${darkvisionRange} ` +
+        'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+
+      const resilienceDescription =
+        'You have resistance to poison damage, and you have advantage on saving throws you make to avoid or end the Poisoned condition.';
+
+      const toughnessDescription =
+        'Your hit point maximum increases by 1, and it increases by 1 again whenever you gain a level.';
+
+      const stonecunningUsage = 'Bonus action • Proficiency bonus per long rest';
+      const stonecunningDescription =
+        'As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes. You can use this bonus action a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.';
+      const stonecunningFullDescription = `${stonecunningDescription} ${stonecunningUsage}`;
+
+      return [
+        {
+          id: 'dwarf-darkvision',
+          name: 'Darkvision',
+          meta: 'Dwarf',
+          description: darkvisionDescription,
+          desc: darkvisionDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'dwarf-resilience',
+          name: 'Dwarven Resilience',
+          meta: 'Dwarf',
+          description: resilienceDescription,
+          desc: resilienceDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'dwarf-toughness',
+          name: 'Dwarven Toughness',
+          meta: 'Dwarf',
+          description: toughnessDescription,
+          desc: toughnessDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'dwarf-stonecunning',
+          name: 'Stonecunning',
+          meta: 'Dwarf',
+          description: stonecunningFullDescription,
+          desc: stonecunningFullDescription,
+          hideUseButton: true,
+        },
+      ];
+    }
+
     if (raceName === 'dragonborn') {
       const ancestry =
         race.selectedAncestry ||

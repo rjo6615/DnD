@@ -28,6 +28,21 @@ describe('calculateCharacterHitPoints', () => {
     expect(result).toEqual({ currentHp: 35, maxHp: 40 });
   });
 
+  it('includes race hp bonuses when present', () => {
+    const character = {
+      health: 24,
+      tempHealth: 24,
+      con: 14,
+      occupation: [{ Level: 2 }, { Level: 1 }],
+      race: { name: 'Dwarf', hpMaxBonusPerLevel: 1 },
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    // Base 24 + (Con mod 2 * 3 levels) + 1 per level racial bonus
+    expect(result).toEqual({ currentHp: 24, maxHp: 33 });
+  });
+
   it('respects override values when provided', () => {
     const character = {
       health: 1,

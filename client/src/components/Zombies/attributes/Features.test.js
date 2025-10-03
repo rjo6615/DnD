@@ -152,6 +152,91 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   expect(useButton).toBeDisabled();
 });
 
+test('dwarf characters display racial trait feature cards', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Dwarf',
+      darkvisionRange: 120,
+    },
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const traitNames = [
+    'Darkvision',
+    'Dwarven Resilience',
+    'Dwarven Toughness',
+    'Stonecunning',
+  ];
+
+  for (const name of traitNames) {
+    // eslint-disable-next-line no-await-in-loop
+    expect(await screen.findByText(name)).toBeInTheDocument();
+  }
+
+  const stonecunningCard = screen.getByText('Stonecunning').closest('.feature-card');
+  expect(stonecunningCard).not.toBeNull();
+
+  const stonecunningViewButton = within(stonecunningCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(
+      /As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes\./
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(stonecunningViewButton);
+  });
+
+  const stonecunningDescription = await screen.findByText(
+    /As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes\./
+  );
+  const stonecunningModal = stonecunningDescription.closest('.modal-content');
+  expect(stonecunningModal).not.toBeNull();
+  const stonecunningWithin = within(stonecunningModal);
+  expect(
+    stonecunningWithin.getByText(/Bonus action • Proficiency bonus per long rest/)
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(
+      stonecunningWithin.getByRole('button', { name: /close/i })
+    );
+  });
+
+  const darkvisionCard = screen.getByText('Darkvision').closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  expect(
+    await screen.findByText(
+      /dim light within 120 feet of you as if it were bright light/i
+    )
+  ).toBeInTheDocument();
+});
+
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
