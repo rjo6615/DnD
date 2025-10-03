@@ -16,6 +16,7 @@ export default function HealthDefense({
   hpMaxBonusPerLevel = 0,
   initiative = 0,
   speed = 0,
+  speedMultiplier = 1,
   spellAbilityMod,
   onTempHealthChange,
 }) {
@@ -188,10 +189,18 @@ export default function HealthDefense({
       : healthValue >= 0
         ? "#2ecc71"
         : "#c0392b";
-  const totalSpeed =
+  const numericSpeedMultiplier = Number(speedMultiplier);
+  const safeSpeedMultiplier =
+    Number.isFinite(numericSpeedMultiplier) && numericSpeedMultiplier > 0
+      ? numericSpeedMultiplier
+      : 1;
+
+  const baseSpeed =
     Number(form?.speed ?? 0) +
     Number(speed ?? 0) +
     Number(form?.temporarySpeedBonus ?? 0);
+
+  const totalSpeed = baseSpeed * safeSpeedMultiplier;
 
 return (
 <div

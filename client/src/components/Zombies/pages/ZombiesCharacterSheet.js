@@ -1415,6 +1415,16 @@ export default function ZombiesCharacterSheet() {
     });
   }, [baseActionCount, activeEffects]);
 
+  const adrenalineRushActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
+    [activeEffects]
+  );
+
+  const speedMultiplier = useMemo(
+    () => (adrenalineRushActive ? 2 : 1),
+    [adrenalineRushActive]
+  );
+
   const temporarySize = form?.temporarySize;
   const temporarySpeedBonus = form?.temporarySpeedBonus;
 
@@ -3975,6 +3985,7 @@ export default function ZombiesCharacterSheet() {
               hpMaxBonus={featBonuses.hpMaxBonus}
               hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
               onTempHealthChange={handleHealthChange}
+              speedMultiplier={speedMultiplier}
               {...(spellAbilityMod !== null && { spellAbilityMod })}
             />
           </div>
