@@ -16,6 +16,7 @@ export default function HealthDefense({
   hpMaxBonusPerLevel = 0,
   initiative = 0,
   speed = 0,
+  speedMultiplier = 1,
   spellAbilityMod,
   onTempHealthChange,
 }) {
@@ -84,16 +85,27 @@ export default function HealthDefense({
   const spellSaveDC =
     spellAbilityMod != null ? 8 + profBonus + spellAbilityMod : null;
 
-  const { currentHp: computedCurrentHp, maxHp } = useMemo(
-    () =>
-      calculateCharacterHitPoints(form, {
-        conMod,
-        totalLevel: derivedTotalLevel,
-        hpMaxBonus,
-        hpMaxBonusPerLevel,
-      }),
-    [form, conMod, derivedTotalLevel, hpMaxBonus, hpMaxBonusPerLevel]
-  );
+  const { currentHp: computedCurrentHp, maxHp } = useMemo(() => {
+    const overrides = {
+      conMod,
+      totalLevel: derivedTotalLevel,
+    };
+
+    const numericHpMaxBonus = Number(hpMaxBonus);
+    if (Number.isFinite(numericHpMaxBonus) && numericHpMaxBonus !== 0) {
+      overrides.hpMaxBonus = numericHpMaxBonus;
+    }
+
+    const numericHpMaxBonusPerLevel = Number(hpMaxBonusPerLevel);
+    if (
+      Number.isFinite(numericHpMaxBonusPerLevel) &&
+      numericHpMaxBonusPerLevel !== 0
+    ) {
+      overrides.hpMaxBonusPerLevel = numericHpMaxBonusPerLevel;
+    }
+
+    return calculateCharacterHitPoints(form, overrides);
+  }, [form, conMod, derivedTotalLevel, hpMaxBonus, hpMaxBonusPerLevel]);
 
   const safeInitialHealth = Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0;
   const [health, setHealth] = useState(safeInitialHealth);
@@ -177,10 +189,18 @@ export default function HealthDefense({
       : healthValue >= 0
         ? "#2ecc71"
         : "#c0392b";
-  const totalSpeed =
+  const numericSpeedMultiplier = Number(speedMultiplier);
+  const safeSpeedMultiplier =
+    Number.isFinite(numericSpeedMultiplier) && numericSpeedMultiplier > 0
+      ? numericSpeedMultiplier
+      : 1;
+
+  const baseSpeed =
     Number(form?.speed ?? 0) +
     Number(speed ?? 0) +
     Number(form?.temporarySpeedBonus ?? 0);
+
+  const totalSpeed = baseSpeed * safeSpeedMultiplier;
 
 return (
 <div

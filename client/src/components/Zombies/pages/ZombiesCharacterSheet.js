@@ -33,6 +33,7 @@ import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
+import adrenalineRushIcon from "../../../images/adrenaline-rush.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
@@ -44,6 +45,7 @@ import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import MapModal from "../attributes/MapModal";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 const HEADER_PADDING = 16;
 const DOCKABLE_MODAL_DEFINITIONS = {
@@ -917,6 +919,13 @@ export default function ZombiesCharacterSheet() {
       })
     );
   }, []);
+  const occupations = useMemo(() => form?.occupation || [], [form?.occupation]);
+  const totalLevel = useMemo(() => {
+    return occupations.reduce((total, el) => {
+      const level = Number(el?.Level);
+      return total + (Number.isFinite(level) ? level : 0);
+    }, 0);
+  }, [occupations]);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
   const [usedSlots, setUsedSlots] = useState(() =>
@@ -1387,7 +1396,8 @@ export default function ZombiesCharacterSheet() {
 
     // Clear effects on rest
     setActiveEffects([]);
-  }, [longRestCount, shortRestCount]);
+    handleHealthChange(0);
+  }, [handleHealthChange, longRestCount, shortRestCount]);
 
   useEffect(() => {
     const hasteActive = activeEffects.some((e) => e.name === 'Haste');
@@ -1404,6 +1414,16 @@ export default function ZombiesCharacterSheet() {
       return { ...used, action };
     });
   }, [baseActionCount, activeEffects]);
+
+  const adrenalineRushActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
+    [activeEffects]
+  );
+
+  const speedMultiplier = useMemo(
+    () => (adrenalineRushActive ? 2 : 1),
+    [adrenalineRushActive]
+  );
 
   const temporarySize = form?.temporarySize;
   const temporarySpeedBonus = form?.temporarySpeedBonus;
@@ -1533,6 +1553,41 @@ export default function ZombiesCharacterSheet() {
       return [...prev, { name: 'Draconic Flight', icon: dragonWingsIcon }];
     });
   }, [setActiveEffects]);
+
+  const handleAdrenalineRush = useCallback(() => {
+    consumeCircle('bonus');
+
+    setActiveEffects((prev = []) => {
+      const effectPayload = { name: 'Adrenaline Rush', icon: adrenalineRushIcon };
+      const existingIndex = prev.findIndex(
+        (effect) => effect && effect.name === 'Adrenaline Rush'
+      );
+
+      if (existingIndex === -1) {
+        return [...prev, effectPayload];
+      }
+
+      const existing = prev[existingIndex] || {};
+      if (existing.icon === adrenalineRushIcon) {
+        return prev;
+      }
+
+      const next = [...prev];
+      next[existingIndex] = { ...existing, ...effectPayload };
+      return next;
+    });
+
+    const providedProf = Number(form?.proficiencyBonus);
+    const profBonus = Number.isFinite(providedProf)
+      ? providedProf
+      : proficiencyBonus(totalLevel);
+    const currentTemp = Number(form?.tempHealth);
+    const safeCurrent = Number.isFinite(currentTemp) ? currentTemp : 0;
+    const nextTempHealth = safeCurrent + profBonus;
+    if (Number.isFinite(nextTempHealth)) {
+      handleHealthChange(nextTempHealth);
+    }
+  }, [consumeCircle, form, handleHealthChange, totalLevel]);
 
   const handlePassTurn = useCallback(async () => {
     if (isPassingTurn || !encodedCampaignId) {
@@ -2105,7 +2160,8 @@ export default function ZombiesCharacterSheet() {
   const handleShowMapModal = useCallback(() => setShowMapModal(true), []);
   const handleCloseMapModal = useCallback(() => {
     setShowMapModal(false);
-  }, []);
+    handleDockClose('map');
+  }, [handleDockClose]);
 
   const getDockedSide = useCallback(
     (modalKey) => {
@@ -3515,11 +3571,6 @@ export default function ZombiesCharacterSheet() {
   }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
 
   const statNames = [...STAT_KEYS];
-  const occupations = form?.occupation || [];
-  const totalLevel = occupations.reduce((total, el) => {
-    const level = Number(el?.Level);
-    return total + (Number.isFinite(level) ? level : 0);
-  }, 0);
   const statTotal = statNames.reduce((sum, stat) => {
     const value = Number(form?.[stat]);
     return sum + (Number.isFinite(value) ? value : 0);
@@ -3934,6 +3985,7 @@ export default function ZombiesCharacterSheet() {
               hpMaxBonus={featBonuses.hpMaxBonus}
               hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
               onTempHealthChange={handleHealthChange}
+              speedMultiplier={speedMultiplier}
               {...(spellAbilityMod !== null && { spellAbilityMod })}
             />
           </div>
@@ -4189,10 +4241,13 @@ export default function ZombiesCharacterSheet() {
           showFeatures={showFeatures}
           handleCloseFeatures={handleCloseFeatures}
           onActionSurge={handleActionSurge}
+          onAdrenalineRush={handleAdrenalineRush}
           onLargeForm={handleLargeForm}
           onDraconicFlight={handleDraconicFlight}
+          onCastSpell={handleCastSpell}
           longRestCount={longRestCount}
           shortRestCount={shortRestCount}
+          availableSlots={availableSlots}
           actionCount={actionCount}
         />
         <InventoryModal

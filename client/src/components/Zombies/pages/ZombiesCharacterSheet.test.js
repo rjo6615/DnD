@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent, act, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import hasteIcon from '../../../images/spell-haste-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
+import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
@@ -17,7 +18,11 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ id: '1' }),
 }));
 
-jest.mock('../attributes/CharacterInfo', () => () => null);
+const mockCharacterInfoProps = { current: null };
+jest.mock('../attributes/CharacterInfo', () => (props) => {
+  mockCharacterInfoProps.current = props;
+  return null;
+});
 jest.mock('../attributes/Stats', () => () => null);
 const mockSkillsModalProps = { current: null };
 const mockDockedSkillsModalProps = { current: null };
@@ -81,7 +86,11 @@ jest.mock('../attributes/SpellSelector', () => (props) => {
   mockHandleClose.current = props.handleClose;
   return props.show ? <div data-testid="spell-selector" /> : null;
 });
-jest.mock('../attributes/HealthDefense', () => () => null);
+const mockHealthDefenseProps = { current: null };
+jest.mock('../attributes/HealthDefense', () => (props) => {
+  mockHealthDefenseProps.current = props;
+  return null;
+});
 
 const mockFeaturesModalProps = { current: null };
 jest.mock('../attributes/Features', () => (props) => {
@@ -140,6 +149,9 @@ beforeEach(() => {
   mockFeaturesModalProps.current = null;
   mockSkillsModalProps.current = null;
   mockDockedSkillsModalProps.current = null;
+  mockCharacterInfoProps.current = null;
+  mockHealthDefenseProps.current = null;
+  window.localStorage.clear();
   window.matchMedia = jest.fn().mockImplementation((query) => {
     const matches = matchMediaState[query] ?? false;
     return {
@@ -282,6 +294,10 @@ test('activating Draconic Flight adds a persistent effect without duplicates', a
     expect(mockFeaturesModalProps.current).not.toBeNull();
   });
 
+  await waitFor(() => {
+    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
+  });
+
   expect(typeof mockFeaturesModalProps.current.onDraconicFlight).toBe('function');
 
   await act(async () => {
@@ -311,6 +327,115 @@ test('activating Draconic Flight adds a persistent effect without duplicates', a
   });
 
   window.localStorage.removeItem('zombiesActiveEffects:1');
+  window.localStorage.clear();
+});
+
+test('adrenaline rush consumes a bonus action, persists once, grants temp HP, and resets on rest', async () => {
+  window.localStorage.clear();
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [{ Name: 'Fighter', Level: 7 }],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    campaign: null,
+    race: { name: 'Orc' },
+    proficiencyBonus: 4,
+    tempHealth: 1,
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => {
+    expect(mockFeaturesModalProps.current).not.toBeNull();
+  });
+
+  expect(typeof mockFeaturesModalProps.current.onAdrenalineRush).toBe('function');
+
+  const initialTempHealth = Number(
+    mockFeaturesModalProps.current?.form?.tempHealth
+  );
+
+  await act(async () => {
+    mockFeaturesModalProps.current.onAdrenalineRush();
+  });
+
+  await waitFor(() => {
+    const stored = window.localStorage.getItem('zombiesActiveEffects:1');
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored);
+    expect(parsed).toEqual([
+      { name: 'Adrenaline Rush', icon: adrenalineRushIcon },
+    ]);
+  });
+
+  await waitFor(() => {
+    const slots = window.localStorage.getItem('zombiesUsedSlots:1');
+    expect(slots).toBeTruthy();
+    const parsed = JSON.parse(slots);
+    expect(parsed).toEqual({ bonus: { 0: 'used' } });
+  });
+
+  await waitFor(() => {
+    expect(mockFeaturesModalProps.current?.form?.tempHealth).toBe(
+      Number.isFinite(initialTempHealth) ? initialTempHealth + 4 : 4
+    );
+  });
+
+  await waitFor(() => {
+    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(2);
+  });
+
+  await waitFor(() => {
+    const stored = window.localStorage.getItem('zombiesActiveEffects:1');
+    const parsed = stored ? JSON.parse(stored) : [];
+    expect(parsed).toEqual([
+      { name: 'Adrenaline Rush', icon: adrenalineRushIcon },
+    ]);
+  });
+
+  await waitFor(() => {
+    expect(mockCharacterInfoProps.current).not.toBeNull();
+  });
+
+  await act(async () => {
+    mockCharacterInfoProps.current.onShortRest();
+  });
+
+  await waitFor(() => {
+    expect(window.localStorage.getItem('zombiesActiveEffects:1')).toBeNull();
+  });
+
+  await waitFor(() => {
+    expect(mockFeaturesModalProps.current?.form?.tempHealth).toBe(0);
+  });
+
+  await waitFor(() => {
+    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
+  });
+
   window.localStorage.clear();
 });
 

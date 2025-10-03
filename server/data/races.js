@@ -12,10 +12,13 @@ const races = {
     name: "Dwarf",
     size: "Medium",
     sizeOptions: ["Medium"],
-    speed: 25,
+    speed: 30,
     abilities: { con: 2 },
     skills: {},
     languages: ["Common", "Dwarvish"],
+    darkvisionRange: 120,
+    resistances: ["Poison"],
+    hpMaxBonusPerLevel: 1,
     weaponProficiencies: [
       "battleaxe",
       "handaxe",
@@ -42,7 +45,8 @@ const races = {
     name: "Halfling",
     size: "Small",
     sizeOptions: ["Small"],
-    speed: 25,
+    speed: 30,
+    creatureType: "Humanoid",
     abilities: { dex: 2 },
     skills: {},
     languages: ["Common", "Halfling"],
@@ -55,6 +59,7 @@ const races = {
     abilities: { str: 2, cha: 1 },
     skills: {},
     languages: ["Common", "Draconic"],
+    darkvisionRange: 60,
     dragonAncestries: {
       black: {
         label: "Black (Acid)",
@@ -122,21 +127,54 @@ const races = {
     name: "Gnome",
     size: "Small",
     sizeOptions: ["Small"],
-    speed: 25,
+    speed: 30,
     abilities: { int: 2 },
     skills: {},
     languages: ["Common", "Gnomish"],
-  },
-  "half-elf": {
-    name: "Half-Elf",
-    size: "Medium",
-    sizeOptions: ["Medium"],
-    speed: 30,
-    abilities: { cha: 2 },
-    abilityChoices: { count: 2, options: ["str", "dex", "con", "int", "wis"] },
-    skillChoices: { count: 2 },
-    skills: {},
-    languages: ["Common", "Elvish", "Choice"],
+    creatureType: "Humanoid",
+    darkvisionRange: 60,
+    gnomeLineages: {
+      forest: {
+        label: "Forest Gnome",
+        description:
+          "You know the Minor Illusion cantrip. Starting at 3rd level, you can also cast Speak with Animals with this trait once per long rest.",
+        spells: [
+          {
+            name: "Minor Illusion",
+            description:
+              "Create a sound or an image of an object within range that lasts for the duration.",
+            usage: "At will",
+          },
+          {
+            name: "Speak with Animals",
+            description:
+              "You gain the ability to comprehend and verbally communicate with beasts for the duration.",
+            usage: "1/long rest",
+          },
+        ],
+        spellcastingAbilities: ["Intelligence", "Wisdom"],
+      },
+      rock: {
+        label: "Rock Gnome",
+        description:
+          "You know the Mending and Prestidigitation cantrips. Whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.",
+        spells: [
+          {
+            name: "Mending",
+            description:
+              "You know the Mending cantrip, allowing you to repair a break or tear in an object you touch.",
+            usage: "At will",
+          },
+          {
+            name: "Prestidigitation",
+            description:
+              "You know the Prestidigitation cantrip, letting you create minor magical effects. Additionally, whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.",
+            usage: "At will",
+          },
+        ],
+        spellcastingAbilities: ["Intelligence"],
+      },
+    },
   },
   orc: {
     name: "Orc",
@@ -146,6 +184,7 @@ const races = {
     abilities: { str: 2, con: 1 },
     skills: { intimidation: { proficient: true } },
     languages: ["Common", "Orc"],
+    darkvisionRange: 120,
   },
   tiefling: {
     name: "Tiefling",

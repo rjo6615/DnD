@@ -2,19 +2,25 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
+import UpcastModal from './UpcastModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
 import largeFormIcon from '../../../images/large-form-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
+import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 
 export default function Features({
   form,
   showFeatures,
   handleCloseFeatures,
   onActionSurge,
+  onAdrenalineRush,
   onLargeForm,
   onDraconicFlight,
+  onCastSpell,
   longRestCount,
   shortRestCount,
+  availableSlots = { regular: {}, warlock: {} },
   isDocked = false,
   dockedSide = null,
   onDockClose,
@@ -27,6 +33,10 @@ export default function Features({
   const [surgeUsed, setSurgeUsed] = useState(false);
   const [largeFormUsed, setLargeFormUsed] = useState(false);
   const [draconicFlightUsed, setDraconicFlightUsed] = useState(false);
+  const [adrenalineRushUses, setAdrenalineRushUses] = useState(0);
+  const [speakWithAnimalsUses, setSpeakWithAnimalsUses] = useState(0);
+  const [showUpcast, setShowUpcast] = useState(false);
+  const [pendingSpell, setPendingSpell] = useState(null);
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -38,12 +48,328 @@ export default function Features({
     }, 0);
   }, [form?.occupation]);
 
+  const profBonus = useMemo(() => {
+    const provided = Number(form?.proficiencyBonus);
+    if (Number.isFinite(provided) && provided > 0) {
+      return provided;
+    }
+    return proficiencyBonus(totalCharacterLevel);
+  }, [form?.proficiencyBonus, totalCharacterLevel]);
+
+  const adrenalineRushMaxUses = useMemo(() => {
+    return Number.isFinite(profBonus) && profBonus > 0
+      ? Math.floor(profBonus)
+      : 0;
+  }, [profBonus]);
+
+  const { gnomeLineage, gnomeLineageKey, gnomeLineageAbility } = useMemo(() => {
+    const race = form?.race || {};
+    const lineageFromForm =
+      typeof form?.gnomeLineage === 'object' ? form.gnomeLineage : null;
+    const lineageKeyFromForm =
+      typeof form?.gnomeLineageKey === 'string' ? form.gnomeLineageKey : '';
+    const abilityFromForm =
+      typeof form?.gnomeLineageAbility === 'string'
+        ? form.gnomeLineageAbility
+        : '';
+
+    let lineage = lineageFromForm;
+    let lineageKey = lineageKeyFromForm;
+    if (!lineage) {
+      if (lineageKey && race?.gnomeLineages?.[lineageKey]) {
+        lineage = race.gnomeLineages[lineageKey];
+      } else if (race?.selectedAncestry) {
+        lineage = race.selectedAncestry;
+        lineageKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.gnomeLineages?.[race.selectedAncestryKey]
+      ) {
+        lineage = race.gnomeLineages[race.selectedAncestryKey];
+        lineageKey = race.selectedAncestryKey;
+      }
+    }
+
+    let ability = abilityFromForm;
+    if (!ability) {
+      ability =
+        typeof race?.selectedLineageAbility === 'string'
+          ? race.selectedLineageAbility
+          : '';
+    }
+    if (!ability && lineage?.spellcastingAbilities?.length) {
+      ability = lineage.spellcastingAbilities[0];
+    }
+
+    return { gnomeLineage: lineage, gnomeLineageKey: lineageKey, gnomeLineageAbility: ability };
+  }, [form?.gnomeLineage, form?.gnomeLineageAbility, form?.gnomeLineageKey, form?.race]);
+
+  const gnomeSpellAbilityLabel = useMemo(() => {
+    if (typeof gnomeLineageAbility !== 'string') return '';
+    return gnomeLineageAbility.trim();
+  }, [gnomeLineageAbility]);
+
+  const isForestGnomeLineage = useMemo(() => {
+    if (!gnomeLineageKey) return false;
+    return gnomeLineageKey.toLowerCase() === 'forest';
+  }, [gnomeLineageKey]);
+
+  const isRockGnomeLineage = useMemo(() => {
+    if (!gnomeLineageKey) return false;
+    return gnomeLineageKey.toLowerCase() === 'rock';
+  }, [gnomeLineageKey]);
+
+  const canUseSpeakWithAnimals = useMemo(() => {
+    return isForestGnomeLineage && totalCharacterLevel >= 3;
+  }, [isForestGnomeLineage, totalCharacterLevel]);
+
+  const speakWithAnimalsMaxUses = useMemo(() => {
+    if (!canUseSpeakWithAnimals) return 0;
+    return Number.isFinite(profBonus) && profBonus > 0
+      ? Math.floor(profBonus)
+      : 0;
+  }, [canUseSpeakWithAnimals, profBonus]);
+
+  const hasAvailableSlotOfLevel = useMemo(() => {
+    const normalizedRegular = availableSlots?.regular || {};
+    const normalizedWarlock = availableSlots?.warlock || {};
+
+    return (minimumLevel = 1) => {
+      const hasRegularSlot = Object.entries(normalizedRegular).some(
+        ([level, count]) =>
+          Number(level) >= minimumLevel && Number(count) > 0
+      );
+
+      if (hasRegularSlot) {
+        return true;
+      }
+
+      return Object.entries(normalizedWarlock).some(
+        ([level, count]) =>
+          Number(level) >= minimumLevel && Number(count) > 0
+      );
+    };
+  }, [availableSlots]);
+
+  const speakWithAnimalsHasSlot = useMemo(
+    () => hasAvailableSlotOfLevel(1),
+    [hasAvailableSlotOfLevel]
+  );
+
+  useEffect(() => {
+    setAdrenalineRushUses(adrenalineRushMaxUses);
+  }, [adrenalineRushMaxUses]);
+
+  useEffect(() => {
+    setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+  }, [speakWithAnimalsMaxUses]);
+
   const ancestryFeatures = useMemo(() => {
     const race = form?.race;
     if (!race) return [];
 
     const raceName =
       typeof race?.name === 'string' ? race.name.toLowerCase() : '';
+    const raceDisplayName =
+      typeof race?.name === 'string' && race.name.trim()
+        ? race.name.trim()
+        : raceName
+        ? raceName.charAt(0).toUpperCase() + raceName.slice(1)
+        : 'Race';
+
+    const darkvisionRange =
+      Number.isFinite(race?.darkvisionRange) && race.darkvisionRange > 0
+        ? race.darkvisionRange
+        : raceName === 'dwarf'
+        ? 60
+        : null;
+
+    const raceFeatures = [];
+
+    if (raceName === 'dwarf') {
+      const darkvisionDescription =
+        `Accustomed to life underground, you can see in dim light within ${darkvisionRange ?? 60} ` +
+        'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+
+      const resilienceDescription =
+        'You have resistance to poison damage, and you have advantage on saving throws you make to avoid or end the Poisoned condition.';
+
+      const toughnessDescription =
+        'Your hit point maximum increases by 1, and it increases by 1 again whenever you gain a level.';
+
+      const stonecunningUsage = 'Bonus action • Proficiency bonus per long rest';
+      const stonecunningDescription =
+        'As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes. You can use this bonus action a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.';
+      const stonecunningFullDescription = `${stonecunningDescription} ${stonecunningUsage}`;
+
+      raceFeatures.push(
+        {
+          id: 'dwarf-darkvision',
+          name: 'Darkvision',
+          meta: 'Dwarf',
+          description: darkvisionDescription,
+          desc: darkvisionDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'dwarf-resilience',
+          name: 'Dwarven Resilience',
+          meta: 'Dwarf',
+          description: resilienceDescription,
+          desc: resilienceDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'dwarf-toughness',
+          name: 'Dwarven Toughness',
+          meta: 'Dwarf',
+          description: toughnessDescription,
+          desc: toughnessDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'dwarf-stonecunning',
+          name: 'Stonecunning',
+          meta: 'Dwarf',
+          description: stonecunningFullDescription,
+          desc: stonecunningFullDescription,
+          hideUseButton: true,
+        }
+      );
+    } else if (raceName === 'orc') {
+      const darkvisionDescription =
+        'Thanks to your orc heritage, you can see in dim light within 120 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+      const adrenalineRushDescription =
+        'As a bonus action, you can take the Dash action and gain temporary hit points equal to your proficiency bonus. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.';
+      const relentlessEnduranceDescription =
+        "When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead. Once you use this trait, you can't use it again until you finish a long rest.";
+
+      raceFeatures.push(
+        {
+          id: 'orc-adrenaline-rush',
+          name: 'Adrenaline Rush',
+          meta: 'Orc',
+          description: adrenalineRushDescription,
+          desc: adrenalineRushDescription,
+        },
+        {
+          id: 'orc-darkvision',
+          name: 'Darkvision',
+          meta: 'Orc',
+          description: darkvisionDescription,
+          desc: darkvisionDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'orc-relentless-endurance',
+          name: 'Relentless Endurance',
+          meta: 'Orc',
+          description: relentlessEnduranceDescription,
+          desc: relentlessEnduranceDescription,
+          hideUseButton: true,
+        }
+      );
+    } else if (raceName === 'gnome') {
+      const gnomishCunningDescription =
+        'You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic.';
+
+      raceFeatures.push({
+        id: 'gnome-gnomish-cunning',
+        name: 'Gnomish Cunning',
+        meta: 'Gnome',
+        description: gnomishCunningDescription,
+        desc: gnomishCunningDescription,
+        hideUseButton: true,
+      });
+
+      const lineageLabel =
+        typeof gnomeLineage?.label === 'string'
+          ? gnomeLineage.label
+          : 'Gnome Lineage';
+      const abilityText = gnomeSpellAbilityLabel
+        ? ` This lineage uses ${gnomeSpellAbilityLabel} for its spells.`
+        : '';
+
+      if (gnomeLineage && isForestGnomeLineage) {
+        const minorIllusionDescription =
+          'You know the Minor Illusion cantrip. It creates a sound or an image of an object within range that lasts for the duration.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-forest-minor-illusion',
+          name: 'Minor Illusion',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: minorIllusionDescription,
+          desc: minorIllusionDescription,
+          hideUseButton: true,
+        });
+
+        const speakWithAnimalsDescription =
+          'Starting at 3rd level, you can cast Speak with Animals without expending a spell slot a number of times equal to your proficiency bonus. You regain all expended uses when you finish a long rest.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-forest-speak-with-animals',
+          name: 'Speak with Animals',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: speakWithAnimalsDescription,
+          desc: speakWithAnimalsDescription,
+        });
+      } else if (gnomeLineage && isRockGnomeLineage) {
+        const mendingDescription =
+          'You know the Mending cantrip, allowing you to repair small breaks or tears in objects.' +
+          abilityText;
+
+        raceFeatures.push({
+          id: 'gnome-rock-mending',
+          name: 'Mending',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: mendingDescription,
+          desc: mendingDescription,
+          hideUseButton: true,
+        });
+
+        const prestidigitationDescription =
+          'You know the Prestidigitation cantrip, letting you create minor magical effects.' +
+          abilityText +
+          ' Additionally, whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.';
+
+        raceFeatures.push({
+          id: 'gnome-rock-prestidigitation',
+          name: 'Prestidigitation',
+          meta: `${lineageLabel}${
+            gnomeSpellAbilityLabel ? ` • Spellcasting Ability: ${gnomeSpellAbilityLabel}` : ''
+          }`,
+          description: prestidigitationDescription,
+          desc: prestidigitationDescription,
+          hideUseButton: true,
+        });
+      }
+    }
+
+    if (darkvisionRange && raceName !== 'dwarf' && raceName !== 'orc') {
+      const darkvisionDescription =
+        `You can see in dim light within ${darkvisionRange} ` +
+        'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+
+      raceFeatures.push({
+        id: raceName ? `${raceName}-darkvision` : 'darkvision',
+        name: 'Darkvision',
+        meta: raceDisplayName,
+        description: darkvisionDescription,
+        desc: darkvisionDescription,
+        hideUseButton: true,
+      });
+    }
 
     if (raceName === 'dragonborn') {
       const ancestry =
@@ -56,40 +382,36 @@ export default function Features({
           ? race.dragonAncestries[form.dragonAncestryKey]
           : null);
 
-      if (!ancestry) return [];
+      if (ancestry) {
+        const ancestryLabel = ancestry.label || ancestry.name || 'Dragonborn';
+        const damageType = ancestry.damageType || '';
+        const damageTypeLower = damageType.toLowerCase();
+        const resistanceDescription = damageTypeLower
+          ? `You have resistance to ${damageTypeLower} damage.`
+          : 'You have resistance to the damage type associated with your draconic ancestry.';
 
-      const ancestryLabel = ancestry.label || ancestry.name || 'Dragonborn';
-      const damageType = ancestry.damageType || '';
-      const damageTypeLower = damageType.toLowerCase();
-      const resistanceDescription = damageTypeLower
-        ? `You have resistance to ${damageTypeLower} damage.`
-        : 'You have resistance to the damage type associated with your draconic ancestry.';
-
-      const resistanceFeature = {
-        id: 'dragonborn-damage-resistance',
-        name: 'Damage Resistance',
-        meta: `Dragon Subrace (${ancestryLabel})`,
-        description: resistanceDescription,
-        desc: resistanceDescription,
-        hideUseButton: true,
-      };
-
-      const flightFeatures = [];
-
-      if (totalCharacterLevel >= 5) {
-        const draconicFlightDescription =
-          'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
-        flightFeatures.push({
-          id: 'dragonborn-draconic-flight',
-          name: 'Draconic Flight',
+        raceFeatures.push({
+          id: 'dragonborn-damage-resistance',
+          name: 'Damage Resistance',
           meta: `Dragon Subrace (${ancestryLabel})`,
-          description: draconicFlightDescription,
-          desc: draconicFlightDescription,
+          description: resistanceDescription,
+          desc: resistanceDescription,
           hideUseButton: true,
         });
-      }
 
-      return [resistanceFeature, ...flightFeatures];
+        if (totalCharacterLevel >= 5) {
+          const draconicFlightDescription =
+            'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
+          raceFeatures.push({
+            id: 'dragonborn-draconic-flight',
+            name: 'Draconic Flight',
+            meta: `Dragon Subrace (${ancestryLabel})`,
+            description: draconicFlightDescription,
+            desc: draconicFlightDescription,
+            hideUseButton: true,
+          });
+        }
+      }
     }
 
     if (raceName === 'goliath') {
@@ -103,54 +425,105 @@ export default function Features({
           ? race.giantAncestries[form.giantAncestryKey]
           : null);
 
-      if (!ancestry) return [];
+      if (ancestry) {
+        const ancestryLabel = ancestry.label || ancestry.name || 'Giant Boon';
+        const ancestryDescription = ancestry.description || '';
+        const usageText = ancestry.usage ? ` ${ancestry.usage}` : '';
+        const combinedDescription = `${ancestryDescription}${usageText}`.trim();
 
-      const ancestryLabel = ancestry.label || ancestry.name || 'Giant Boon';
-      const ancestryDescription = ancestry.description || '';
-      const usageText = ancestry.usage ? ` ${ancestry.usage}` : '';
-      const combinedDescription = `${ancestryDescription}${usageText}`.trim();
+        raceFeatures.push(
+          {
+            id: `goliath-ancestry-${
+              race.selectedAncestryKey || form?.giantAncestryKey || 'boon'
+            }`,
+            name: ancestryLabel,
+            meta: 'Giant Ancestry',
+            description: combinedDescription || ancestryDescription,
+            desc: combinedDescription || ancestryDescription,
+            hideUseButton: true,
+          },
+          {
+            id: 'goliath-powerful-build',
+            name: 'Powerful Build',
+            meta: 'Goliath',
+            description:
+              'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+            desc:
+              'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+            hideUseButton: true,
+          }
+        );
 
-      const features = [
-        {
-          id: `goliath-ancestry-${
-            race.selectedAncestryKey || form?.giantAncestryKey || 'boon'
-          }`,
-          name: ancestryLabel,
-          meta: 'Giant Ancestry',
-          description: combinedDescription || ancestryDescription,
-          desc: combinedDescription || ancestryDescription,
-          hideUseButton: true,
-        },
-        {
-          id: 'goliath-powerful-build',
-          name: 'Powerful Build',
-          meta: 'Goliath',
-          description:
-            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
-          desc:
-            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
-          hideUseButton: true,
-        },
-      ];
-
-      if (totalCharacterLevel >= 5) {
-        const largeFormDescription =
-          "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest.";
-        features.push({
-          id: 'goliath-large-form',
-          name: 'Large Form',
-          meta: 'Goliath (Level 5)',
-          description: largeFormDescription,
-          desc: largeFormDescription,
-          hideUseButton: true,
-        });
+        if (totalCharacterLevel >= 5) {
+          const largeFormDescription =
+            "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest.";
+          raceFeatures.push({
+            id: 'goliath-large-form',
+            name: 'Large Form',
+            meta: 'Goliath (Level 5)',
+            description: largeFormDescription,
+            desc: largeFormDescription,
+            hideUseButton: true,
+          });
+        }
       }
-
-      return features;
+    } else if (raceName === 'halfling') {
+      raceFeatures.push(
+        {
+          id: 'halfling-brave',
+          name: 'Brave',
+          meta: 'Halfling',
+          description:
+            'You have advantage on saving throws you make to avoid or end the Frightened condition.',
+          desc:
+            'You have advantage on saving throws you make to avoid or end the Frightened condition.',
+          hideUseButton: true,
+        },
+        {
+          id: 'halfling-nimbleness',
+          name: 'Halfling Nimbleness',
+          meta: 'Halfling',
+          description:
+            'You can move through the space of any creature that is of a size larger than yours.',
+          desc:
+            'You can move through the space of any creature that is of a size larger than yours.',
+          hideUseButton: true,
+        },
+        {
+          id: 'halfling-luck',
+          name: 'Luck',
+          meta: 'Halfling',
+          description:
+            'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
+          desc:
+            'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
+          hideUseButton: true,
+        },
+        {
+          id: 'halfling-naturally-stealthy',
+          name: 'Naturally Stealthy',
+          meta: 'Halfling',
+          description:
+            'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
+          desc:
+            'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
+          hideUseButton: true,
+        }
+      );
     }
 
-    return [];
-  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey, form?.giantAncestry, form?.giantAncestryKey, totalCharacterLevel]);
+    return raceFeatures;
+  }, [
+    form?.race,
+    form?.dragonAncestry,
+    form?.dragonAncestryKey,
+    form?.giantAncestry,
+    form?.giantAncestryKey,
+    totalCharacterLevel,
+    gnomeLineage,
+    gnomeSpellAbilityLabel,
+    isForestGnomeLineage,
+  ]);
 
   const displayFeatures = useMemo(() => {
     if (ancestryFeatures.length === 0) return features;
@@ -199,7 +572,45 @@ export default function Features({
     setSurgeUsed(false);
     setLargeFormUsed(false);
     setDraconicFlightUsed(false);
-  }, [longRestCount, shortRestCount]);
+    setAdrenalineRushUses(adrenalineRushMaxUses);
+    setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+  }, [
+    adrenalineRushMaxUses,
+    longRestCount,
+    shortRestCount,
+    speakWithAnimalsMaxUses,
+  ]);
+
+  const handleSpeakWithAnimalsFreeCast = useCallback(() => {
+    if (!canUseSpeakWithAnimals || speakWithAnimalsUses <= 0) return;
+    setSpeakWithAnimalsUses((prev) => Math.max(0, prev - 1));
+    onCastSpell?.('action');
+    setShowUpcast(false);
+    setPendingSpell(null);
+  }, [canUseSpeakWithAnimals, onCastSpell, speakWithAnimalsUses]);
+
+  const handleSpeakWithAnimalsSlotCast = useCallback(
+    (level, slotType) => {
+      if (!canUseSpeakWithAnimals) {
+        setShowUpcast(false);
+        setPendingSpell(null);
+        return;
+      }
+      onCastSpell?.({
+        level: 1,
+        slotLevel: level,
+        slotType,
+        castingTime: '1 action',
+        name: 'Speak with Animals',
+      });
+      setShowUpcast(false);
+      setPendingSpell(null);
+    },
+    [canUseSpeakWithAnimals, onCastSpell]
+  );
+
+  const speakWithAnimalsAbilityMeta =
+    gnomeSpellAbilityLabel || 'Spellcasting ability not set';
 
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
@@ -267,6 +678,9 @@ export default function Features({
                     const isLargeForm = feat.id === 'goliath-large-form';
                     const isDraconicFlight =
                       feat.id === 'dragonborn-draconic-flight';
+                    const isAdrenalineRush = feat.id === 'orc-adrenaline-rush';
+                    const isSpeakWithAnimals =
+                      feat.id === 'gnome-forest-speak-with-animals';
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -302,6 +716,30 @@ export default function Features({
                                 <img
                                   src={actionSurgeIcon}
                                   alt="Action Surge"
+                                  width={36}
+                                  height={36}
+                                />
+                              </Button>
+                            ) : isAdrenalineRush ? (
+                              <Button
+                                aria-label="use feature"
+                                variant="link"
+                                className={`p-0 border-0 ${
+                                  adrenalineRushUses <= 0 ? 'opacity-50' : ''
+                                }`}
+                                onClick={() => {
+                                  if (adrenalineRushUses > 0) {
+                                    onAdrenalineRush?.();
+                                    setAdrenalineRushUses((prev) =>
+                                      Math.max(0, prev - 1)
+                                    );
+                                  }
+                                }}
+                                disabled={adrenalineRushUses <= 0}
+                              >
+                                <img
+                                  src={adrenalineRushIcon}
+                                  alt="Adrenaline Rush"
                                   width={36}
                                   height={36}
                                 />
@@ -348,6 +786,41 @@ export default function Features({
                                   height={36}
                                 />
                               </Button>
+                            ) : isSpeakWithAnimals ? (
+                              <div className="d-flex align-items-center gap-1">
+                                <Button
+                                  aria-label="cast Speak with Animals using a spell slot"
+                                  variant="link"
+                                  className="p-0 border-0"
+                                  onClick={() => {
+                                    if (
+                                      !canUseSpeakWithAnimals ||
+                                      (speakWithAnimalsUses <= 0 &&
+                                        !speakWithAnimalsHasSlot)
+                                    ) {
+                                      return;
+                                    }
+                                    setPendingSpell({
+                                      name: 'Speak with Animals',
+                                      level: 1,
+                                      supportsProficiency: true,
+                                      proficiencyLabel: 'P',
+                                      proficiencyAriaLabel:
+                                        'cast Speak with Animals using proficiency',
+                                      proficiencyRemainingLabel: 'Uses remaining',
+                                      onFreeCast: handleSpeakWithAnimalsFreeCast,
+                                    });
+                                    setShowUpcast(true);
+                                  }}
+                                  disabled={
+                                    !canUseSpeakWithAnimals ||
+                                    (speakWithAnimalsUses <= 0 &&
+                                      !speakWithAnimalsHasSlot)
+                                  }
+                                >
+                                  <i className="fa-solid fa-wand-sparkles" />
+                                </Button>
+                              </div>
                             ) : !feat.hideUseButton ? (
                               <Button aria-label="use feature" variant="outline-light" size="sm">
                                 Use
@@ -367,6 +840,21 @@ export default function Features({
                             </Button>
                           </div>
                         </div>
+                        {isAdrenalineRush && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            Uses remaining: {adrenalineRushUses}
+                          </div>
+                        )}
+                        {isSpeakWithAnimals && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            Uses remaining: {speakWithAnimalsUses}
+                          </div>
+                        )}
+                        {isSpeakWithAnimals && (
+                          <div className="feature-card-uses text-muted small">
+                            Spellcasting ability: {speakWithAnimalsAbilityMeta}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -390,6 +878,31 @@ export default function Features({
         show={showModal}
         onHide={() => setShowModal(false)}
         feature={modalFeature}
+      />
+      <UpcastModal
+        show={showUpcast}
+        onHide={() => {
+          setShowUpcast(false);
+          setPendingSpell(null);
+        }}
+        baseLevel={pendingSpell?.level || 1}
+        slots={availableSlots}
+        onSelect={handleSpeakWithAnimalsSlotCast}
+        proficiencyAction={
+          pendingSpell?.supportsProficiency
+            ? {
+                label: pendingSpell?.proficiencyLabel || 'P',
+                ariaLabel:
+                  pendingSpell?.proficiencyAriaLabel ||
+                  'cast using proficiency feature',
+                remainingText: pendingSpell?.proficiencyRemainingLabel
+                  ? `${pendingSpell.proficiencyRemainingLabel}: ${speakWithAnimalsUses}`
+                  : `Uses remaining: ${speakWithAnimalsUses}`,
+                disabled: speakWithAnimalsUses <= 0,
+                onClick: pendingSpell?.onFreeCast,
+              }
+            : undefined
+        }
       />
     </>
   );

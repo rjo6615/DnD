@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within, act } from '@testing-library/react';
+import { render, screen, within, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Features from './Features';
 
@@ -81,6 +81,7 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   const baseForm = {
     race: {
       name: 'Dragonborn',
+      darkvisionRange: 60,
       selectedAncestry: {
         label: 'Gold',
         damageType: 'Fire',
@@ -101,6 +102,27 @@ test('dragonborn always has damage resistance and gains draconic flight at level
     );
 
   const firstRender = renderFeatures([]);
+
+  const darkvisionTitle = await screen.findByText('Darkvision');
+  const darkvisionCard = darkvisionTitle.closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+  expect(within(darkvisionCard).getByText('Dragonborn')).toBeInTheDocument();
+
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(/You can see in dim light within 60 feet of you/i)
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  expect(
+    await screen.findByText(/You can see in dim light within 60 feet of you/i)
+  ).toBeInTheDocument();
 
   expect(await screen.findByText('Damage Resistance')).toBeInTheDocument();
   expect(screen.queryByText('Draconic Flight')).not.toBeInTheDocument();
@@ -150,6 +172,599 @@ test('dragonborn always has damage resistance and gains draconic flight at level
 
   expect(onDraconicFlight).toHaveBeenCalledTimes(1);
   expect(useButton).toBeDisabled();
+});
+
+test('dwarf characters display racial trait feature cards', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Dwarf',
+      darkvisionRange: 120,
+    },
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const traitNames = [
+    'Darkvision',
+    'Dwarven Resilience',
+    'Dwarven Toughness',
+    'Stonecunning',
+  ];
+
+  for (const name of traitNames) {
+    // eslint-disable-next-line no-await-in-loop
+    expect(await screen.findByText(name)).toBeInTheDocument();
+  }
+
+  const stonecunningCard = screen.getByText('Stonecunning').closest('.feature-card');
+  expect(stonecunningCard).not.toBeNull();
+
+  const stonecunningViewButton = within(stonecunningCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(
+      /As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes\./
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(stonecunningViewButton);
+  });
+
+  const stonecunningDescription = await screen.findByText(
+    /As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes\./
+  );
+  const stonecunningModal = stonecunningDescription.closest('.modal-content');
+  expect(stonecunningModal).not.toBeNull();
+  const stonecunningWithin = within(stonecunningModal);
+  expect(
+    stonecunningWithin.getByText(/Bonus action • Proficiency bonus per long rest/)
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(
+      stonecunningWithin.getByRole('button', { name: /close/i })
+    );
+  });
+
+  const darkvisionCard = screen.getByText('Darkvision').closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  expect(
+    await screen.findByText(
+      /dim light within 120 feet of you as if it were bright light/i
+    )
+  ).toBeInTheDocument();
+});
+
+test('halfling characters display racial trait feature cards with descriptions', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Halfling',
+    },
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const halflingTraits = [
+    {
+      name: 'Brave',
+      description:
+        'You have advantage on saving throws you make to avoid or end the Frightened condition.',
+    },
+    {
+      name: 'Halfling Nimbleness',
+      description:
+        'You can move through the space of any creature that is of a size larger than yours.',
+    },
+    {
+      name: 'Luck',
+      description:
+        'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
+    },
+    {
+      name: 'Naturally Stealthy',
+      description:
+        'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
+    },
+  ];
+
+  for (const { name, description } of halflingTraits) {
+    // eslint-disable-next-line no-await-in-loop
+    const traitTitle = await screen.findByText(name);
+    const traitCard = traitTitle.closest('.feature-card');
+    expect(traitCard).not.toBeNull();
+
+    const viewButton = within(traitCard).getByRole('button', {
+      name: /view feature/i,
+    });
+
+    expect(screen.queryByText(description)).not.toBeInTheDocument();
+
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      await userEvent.click(viewButton);
+    });
+
+    // eslint-disable-next-line no-await-in-loop
+    const descriptionText = await screen.findByText(description);
+    const modal = descriptionText.closest('.modal-content');
+    expect(modal).not.toBeNull();
+
+    const closeButton = within(modal).getByRole('button', { name: /close/i });
+
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      await userEvent.click(closeButton);
+    });
+  }
+});
+
+test('forest gnome lineage shows lineage spells with ability text and tracking', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const onCastSpell = jest.fn();
+  const form = {
+    race: {
+      name: 'Gnome',
+      darkvisionRange: 60,
+      gnomeLineages: {
+        forest: {
+          label: 'Forest Gnome',
+          spellcastingAbilities: ['Intelligence', 'Wisdom'],
+        },
+      },
+    },
+    gnomeLineageKey: 'forest',
+    gnomeLineage: {
+      label: 'Forest Gnome',
+      spellcastingAbilities: ['Intelligence', 'Wisdom'],
+    },
+    gnomeLineageAbility: 'Wisdom',
+    occupation: [{ Name: 'Wizard', Level: 3 }],
+    proficiencyBonus: 3,
+  };
+
+  const { rerender } = render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={0}
+      shortRestCount={0}
+    />
+  );
+
+  const darkvisionTitle = await screen.findByText('Darkvision');
+  const darkvisionCard = darkvisionTitle.closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+  expect(within(darkvisionCard).getByText('Gnome')).toBeInTheDocument();
+
+  expect(await screen.findByText('Gnomish Cunning')).toBeInTheDocument();
+
+  const speakTitle = await screen.findByText('Speak with Animals');
+  const speakCard = speakTitle.closest('.feature-card');
+  expect(speakCard).not.toBeNull();
+  const speakWithin = within(speakCard);
+  expect(
+    speakWithin.getByText('Spellcasting ability: Wisdom')
+  ).toBeInTheDocument();
+  expect(
+    speakWithin.getByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+
+  const speakViewButton = speakWithin.getByRole('button', {
+    name: /view feature/i,
+  });
+  await act(async () => {
+    await userEvent.click(speakViewButton);
+  });
+  const speakDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Speak with Animals without expending a spell slot/i
+  );
+  expect(speakDescription).toHaveTextContent(
+    /This lineage uses Wisdom for its spells\./i
+  );
+  const speakModal = speakDescription.closest('.modal-content');
+  expect(speakModal).not.toBeNull();
+  const speakClose = within(speakModal).getByRole('button', { name: /close/i });
+  await act(async () => {
+    await userEvent.click(speakClose);
+  });
+
+  const slotButton = speakWithin.getByRole('button', {
+    name: /cast speak with animals using a spell slot/i,
+  });
+  expect(slotButton).toBeEnabled();
+
+  await act(async () => {
+    await userEvent.click(slotButton);
+  });
+
+  let dialogs = await screen.findAllByRole('dialog');
+  let upcastModal = dialogs[dialogs.length - 1];
+  let upcastWithin = within(upcastModal);
+
+  const proficiencyButton = upcastWithin.getByRole('button', {
+    name: /cast speak with animals using proficiency/i,
+  });
+  expect(proficiencyButton).toBeEnabled();
+  expect(
+    upcastWithin.getByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(proficiencyButton);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenCalledWith('action');
+  expect(
+    speakWithin.getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(slotButton);
+  });
+
+  dialogs = await screen.findAllByRole('dialog');
+  upcastModal = dialogs[dialogs.length - 1];
+  upcastWithin = within(upcastModal);
+
+  expect(
+    upcastWithin.getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  const levelOneSlot = upcastWithin.getByText('I');
+
+  await act(async () => {
+    await userEvent.click(levelOneSlot);
+  });
+
+  const castButtons = upcastWithin.getAllByRole('button', { name: /^cast$/i });
+  const castConfirm = castButtons[castButtons.length - 1];
+
+  await act(async () => {
+    await userEvent.click(castConfirm);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenLastCalledWith({
+    level: 1,
+    slotLevel: 1,
+    slotType: 'regular',
+    castingTime: '1 action',
+    name: 'Speak with Animals',
+  });
+
+  expect(
+    speakWithin.getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={1}
+      shortRestCount={0}
+    />
+  );
+
+  expect(
+    (await screen.findByText('Speak with Animals')).closest('.feature-card')
+  ).not.toBeNull();
+  expect(
+    await screen.findByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+
+  const minorIllusionTitle = await screen.findByText('Minor Illusion');
+  const minorIllusionCard = minorIllusionTitle.closest('.feature-card');
+  expect(minorIllusionCard).not.toBeNull();
+  expect(
+    within(minorIllusionCard).getByText(
+      /forest gnome • spellcasting ability: wisdom/i
+    )
+  ).toBeInTheDocument();
+  const minorViewButton = within(minorIllusionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+  await act(async () => {
+    await userEvent.click(minorViewButton);
+  });
+  const minorDescription = await screen.findByText(
+    /You know the Minor Illusion cantrip\./i
+  );
+  expect(minorDescription).toHaveTextContent(
+    /This lineage uses Wisdom for its spells\./i
+  );
+  const minorModal = minorDescription.closest('.modal-content');
+  expect(minorModal).not.toBeNull();
+  const minorClose = within(minorModal).getByRole('button', { name: /close/i });
+  await act(async () => {
+    await userEvent.click(minorClose);
+  });
+});
+
+test('Speak with Animals wand button respects available uses and slots', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const baseRace = {
+    name: 'Gnome',
+    darkvisionRange: 60,
+    gnomeLineages: {
+      forest: { label: 'Forest Gnome' },
+    },
+  };
+
+  const baseForm = {
+    race: baseRace,
+    gnomeLineageKey: 'forest',
+    gnomeLineage: { label: 'Forest Gnome' },
+    occupation: [{ Name: 'Wizard', Level: 3 }],
+  };
+
+  const { rerender } = render(
+    <Features
+      form={{ ...baseForm, proficiencyBonus: 2 }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      availableSlots={{ regular: { 1: 0 }, warlock: {} }}
+    />
+  );
+
+  const getSpeakCard = () => {
+    const speakTitle = screen.getByText('Speak with Animals');
+    const speakCard = speakTitle.closest('.feature-card');
+    expect(speakCard).not.toBeNull();
+    return speakCard;
+  };
+
+  const getWandButton = () =>
+    within(getSpeakCard()).getByRole('button', {
+      name: /cast speak with animals using a spell slot/i,
+    });
+
+  const waitForUses = async (value) => {
+    await waitFor(() =>
+      expect(
+        within(getSpeakCard()).getByText(`Uses remaining: ${value}`)
+      ).toBeInTheDocument()
+    );
+  };
+
+  await screen.findByText('Speak with Animals');
+  await waitForUses(2);
+  await waitFor(() => expect(getWandButton()).toBeEnabled());
+
+  rerender(
+    <Features
+      form={{ ...baseForm, proficiencyBonus: 0.5 }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      availableSlots={{ regular: { 1: 1 }, warlock: {} }}
+    />
+  );
+
+  await waitForUses(0);
+  await waitFor(() => expect(getWandButton()).toBeEnabled());
+
+  rerender(
+    <Features
+      form={{ ...baseForm, proficiencyBonus: 0.5 }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      availableSlots={{ regular: { 1: 0 }, warlock: {} }}
+    />
+  );
+
+  await waitForUses(0);
+  await waitFor(() => expect(getWandButton()).toBeDisabled());
+});
+
+test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: { name: 'Orc' },
+    proficiencyBonus: 3,
+    occupation: [],
+  };
+
+  const { rerender } = render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      shortRestCount={0}
+      longRestCount={0}
+    />
+  );
+
+  expect(await screen.findByText('Adrenaline Rush')).toBeInTheDocument();
+  expect(await screen.findByText('Darkvision')).toBeInTheDocument();
+  expect(await screen.findByText('Relentless Endurance')).toBeInTheDocument();
+
+  const adrenalineCard = screen
+    .getByText('Adrenaline Rush')
+    .closest('.feature-card');
+  expect(adrenalineCard).not.toBeNull();
+
+  const adrenalineWithin = within(adrenalineCard);
+  const useButton = adrenalineWithin.getByRole('button', {
+    name: /use feature/i,
+  });
+  expect(useButton).toBeEnabled();
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(useButton);
+  });
+  expect(useButton).toBeDisabled();
+  expect(
+    adrenalineWithin.getByText('Uses remaining: 0')
+  ).toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      shortRestCount={1}
+      longRestCount={0}
+    />
+  );
+
+  const refreshedCard = await screen.findByText('Adrenaline Rush');
+  const refreshedWithin = within(refreshedCard.closest('.feature-card'));
+  const refreshedUseButton = refreshedWithin.getByRole('button', {
+    name: /use feature/i,
+  });
+  expect(refreshedUseButton).toBeEnabled();
+  expect(
+    refreshedWithin.getByText('Uses remaining: 3')
+  ).toBeInTheDocument();
+});
+
+test('rock gnome lineage surfaces cantrips and clockwork device guidance', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const rockLineage = {
+    label: 'Rock Gnome',
+    spellcastingAbilities: ['Intelligence'],
+  };
+
+  const form = {
+    race: {
+      name: 'Gnome',
+      gnomeLineages: { rock: rockLineage },
+    },
+    gnomeLineage: rockLineage,
+    gnomeLineageKey: 'rock',
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const mendingTitle = await screen.findByText('Mending');
+  const mendingCard = mendingTitle.closest('.feature-card');
+  expect(mendingCard).not.toBeNull();
+  const mendingWithin = within(mendingCard);
+  expect(
+    mendingWithin.getByText('Rock Gnome • Spellcasting Ability: Intelligence')
+  ).toBeInTheDocument();
+  expect(
+    mendingWithin.getByRole('button', { name: /view feature/i })
+  ).toBeInTheDocument();
+  expect(
+    mendingWithin.queryByRole('button', { name: /use feature/i })
+  ).not.toBeInTheDocument();
+
+  const prestidigitationTitle = await screen.findByText('Prestidigitation');
+  const prestidigitationCard = prestidigitationTitle.closest('.feature-card');
+  expect(prestidigitationCard).not.toBeNull();
+  const prestidigitationWithin = within(prestidigitationCard);
+  expect(
+    prestidigitationWithin.getByText(
+      'Rock Gnome • Spellcasting Ability: Intelligence'
+    )
+  ).toBeInTheDocument();
+
+  const prestidigitationView = prestidigitationWithin.getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(prestidigitationView);
+  });
+
+  expect(
+    await screen.findByText(
+      /spend 10 minutes to create a Tiny clockwork device \(AC 5, 1 hp\)/i
+    )
+  ).toBeInTheDocument();
 });
 
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
