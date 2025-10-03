@@ -599,6 +599,76 @@ test('Speak with Animals uses restore from local storage when available', async 
   ).toBeInTheDocument();
 });
 
+test('Speak with Animals stored uses persist when enabling the feature', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const baseForm = {
+    race: {
+      name: 'Gnome',
+      darkvisionRange: 60,
+      gnomeLineages: {
+        forest: { label: 'Forest Gnome', spellcastingAbilities: ['Wisdom'] },
+        rock: { label: 'Rock Gnome' },
+      },
+    },
+    occupation: [{ Name: 'Wizard', Level: 3 }],
+    proficiencyBonus: 3,
+  };
+
+  const { rerender } = render(
+    <Features
+      form={{
+        ...baseForm,
+        gnomeLineageKey: 'rock',
+        gnomeLineage: { label: 'Rock Gnome' },
+        gnomeLineageAbility: 'Intelligence',
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={jest.fn()}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={0}
+      shortRestCount={0}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(screen.queryByText('Speak with Animals')).toBeNull();
+
+  window.localStorage.setItem(
+    `zombiesSpeakWithAnimalsUses:${TEST_CHARACTER_ID}`,
+    '2'
+  );
+
+  rerender(
+    <Features
+      form={{
+        ...baseForm,
+        gnomeLineageKey: 'forest',
+        gnomeLineage: { label: 'Forest Gnome' },
+        gnomeLineageAbility: 'Wisdom',
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={jest.fn()}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={0}
+      shortRestCount={0}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const speakTitle = await screen.findByText('Speak with Animals');
+  const speakCard = speakTitle.closest('.feature-card');
+  expect(speakCard).not.toBeNull();
+  expect(
+    within(speakCard).getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+});
+
 test('Speak with Animals is available to forest gnomes at level 1 using proficiency', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
