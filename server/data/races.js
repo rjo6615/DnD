@@ -133,6 +133,34 @@ const races = {
     languages: ["Common", "Gnomish"],
     creatureType: "Humanoid",
     darkvisionRange: 60,
+    gnomeLineages: {
+      forest: {
+        label: "Forest Gnome",
+        description:
+          "You know the Minor Illusion cantrip. Starting at 3rd level, you can also cast Speak with Animals with this trait once per long rest.",
+        spells: [
+          {
+            name: "Minor Illusion",
+            description:
+              "Create a sound or an image of an object within range that lasts for the duration.",
+            usage: "At will",
+          },
+          {
+            name: "Speak with Animals",
+            description:
+              "You gain the ability to comprehend and verbally communicate with beasts for the duration.",
+            usage: "1/long rest",
+          },
+        ],
+        spellcastingAbilities: ["Intelligence", "Wisdom"],
+      },
+      rock: {
+        label: "Rock Gnome",
+        description: "Additional lineage details coming soon.",
+        spells: [],
+        spellcastingAbilities: [],
+      },
+    },
   },
   orc: {
     name: "Orc",
