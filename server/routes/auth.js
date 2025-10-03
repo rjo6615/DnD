@@ -27,7 +27,7 @@ module.exports = (router) => {
           return res.status(401).json({ message: 'Invalid username or password' });
         }
 
-        const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '1h' });
+        const token = jwt.sign({ username: user.username }, jwtSecretKey, { expiresIn: '12h' });
         res.cookie('token', token, {
           httpOnly: true,
           secure: isProd,

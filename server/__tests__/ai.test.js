@@ -15,9 +15,11 @@ jest.mock(
     class OpenAI {
       constructor() {
         this.responses = { parse: (...a) => OpenAI.__parse(...a) };
+        this.images = { generate: (...a) => OpenAI.__generate(...a) };
       }
     }
     OpenAI.__parse = jest.fn();
+    OpenAI.__generate = jest.fn();
     return OpenAI;
   },
   { virtual: true }
@@ -37,6 +39,27 @@ jest.mock(
         optional() {
           return makeSchema((v) => v === undefined || check(v));
         },
+        nullable() {
+          return makeSchema((v) => v === null || check(v));
+        },
+        trim() {
+          return makeSchema((v) => typeof v === 'string' && check(v.trim ? v.trim() : v));
+        },
+        min() {
+          return makeSchema(check);
+        },
+        regex() {
+          return makeSchema(check);
+        },
+        url() {
+          return makeSchema(check);
+        },
+        int() {
+          return makeSchema(check);
+        },
+        positive() {
+          return makeSchema(check);
+        },
       };
     }
     const z = {
@@ -55,6 +78,7 @@ jest.mock(
           }
           return { success: true, data: d };
         };
+        schema.passthrough = () => schema;
         schema.partial = () => {
           const newShape = {};
           for (const k in shape) {
@@ -85,8 +109,11 @@ jest.mock(
   { virtual: true }
 );
 
+jest.mock('../utils/cloudinary', () => ({}));
+
 const OpenAI = require('openai');
 const mockParse = OpenAI.__parse;
+const mockGenerate = OpenAI.__generate;
 
 const routes = require('../routes');
 const {
@@ -242,6 +269,176 @@ describe('AI accessory route', () => {
     expect(res.status).toBe(500);
     expect(res.body.message).toBeDefined();
     expect(mockParse.mock.calls[0][0].text.format.name).toBe('accessory');
+  });
+});
+
+describe('AI map route', () => {
+  const originalImageModel = process.env.OPENAI_IMAGE_MODEL;
+  const originalImageStyle = process.env.OPENAI_IMAGE_STYLE;
+  const originalImageStyleModels = process.env.OPENAI_IMAGE_STYLE_MODELS;
+  const originalImageResponseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT;
+
+  beforeEach(() => {
+    mockParse.mockReset();
+    mockGenerate.mockReset();
+    process.env.OPENAI_IMAGE_MODEL = 'gpt-image-1';
+    process.env.OPENAI_IMAGE_STYLE = 'vivid';
+    delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+    delete process.env.OPENAI_IMAGE_RESPONSE_FORMAT;
+  });
+
+  afterAll(() => {
+    process.env.OPENAI_IMAGE_MODEL = originalImageModel;
+    process.env.OPENAI_IMAGE_STYLE = originalImageStyle;
+    if (originalImageStyleModels === undefined) {
+      delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+    } else {
+      process.env.OPENAI_IMAGE_STYLE_MODELS = originalImageStyleModels;
+    }
+    if (originalImageResponseFormat === undefined) {
+      delete process.env.OPENAI_IMAGE_RESPONSE_FORMAT;
+    } else {
+      process.env.OPENAI_IMAGE_RESPONSE_FORMAT = originalImageResponseFormat;
+    }
+  });
+
+  test('returns generated image metadata with base64 output', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          b64_json: 'ZGF0YQ==',
+          mime_type: 'image/webp',
+          revised_prompt: 'Reimagined cavern layout',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'create a cavern map' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      title: 'Reimagined Cavern Layout',
+      imageBase64: 'ZGF0YQ==',
+      imageType: 'image/webp',
+      prompt: 'create a cavern map',
+      provider: 'openai',
+    });
+    expect(res.body.altText).toBeTruthy();
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: expect.any(String),
+        prompt: expect.stringContaining('create a cavern map'),
+        response_format: 'b64_json',
+      })
+    );
+  });
+
+  test('derives a title from the user prompt when no revision is provided', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          b64_json: 'YmFzZTY0',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'haunted crypt with flickering torches. include secret doors' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Haunted Crypt With Flickering Torches');
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockGenerate.mock.calls[0][0].response_format).toBe('b64_json');
+  });
+
+  test('allows url responses when configured', async () => {
+    process.env.OPENAI_IMAGE_RESPONSE_FORMAT = 'url';
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post('/ai/map')
+      .send({ prompt: 'standard map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.response_format).toBeUndefined();
+
+    expect(res.status).toBe(200);
+    expect(res.body.imageUrl).toBe('https://example.com/map.png');
+    expect(res.body.imageBase64).toBeUndefined();
+  });
+
+  test('returns error when the provider returns no image', async () => {
+    mockGenerate.mockResolvedValue({ data: [] });
+
+    const res = await request(app).post('/ai/map').send({ prompt: 'empty map' });
+
+    expect(res.status).toBe(502);
+    expect(res.body.message).toBe('No image returned from the image provider');
+  });
+
+  test('rejects invalid map payloads', async () => {
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          revised_prompt: 'Map without any image assets',
+        },
+      ],
+    });
+
+    const res = await request(app).post('/ai/map').send({ prompt: 'broken map' });
+
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBe('Generated map was invalid');
+  });
+
+  test('omits style for models without style support', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'gpt-image-1';
+    delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'no-style map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.style).toBeUndefined();
+  });
+
+  test('includes style when explicitly enabled for model', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'dall-e-3';
+    process.env.OPENAI_IMAGE_STYLE_MODELS = 'dall-e-3, gpt-image-1';
+    process.env.OPENAI_IMAGE_STYLE = 'natural';
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'styled map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.style).toBe('natural');
   });
 });
 

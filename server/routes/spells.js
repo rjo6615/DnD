@@ -2,10 +2,26 @@ const express = require('express');
 
 const SPELLS_MODULE_PATH = require.resolve('../data/spells');
 
-// Extract a basic damage dice string (e.g., "8d6" or "1d8+2") from spell descriptions
-function extractDamage(description = '') {
-  const match = description.match(/(\d+d\d+(?:\s*[+\-]\s*\d+)?)[^\n]*damage/i);
-  return match ? match[1].replace(/\s+/g, '') : undefined;
+// Extract a basic damage/healing dice string (e.g., "8d6" or "1d8+2") from spell descriptions
+function extractDiceExpression(description = '') {
+  const dicePattern = /\d+d\d+(?:\s*[+\-]\s*\d+)?/gi;
+  let match;
+  while ((match = dicePattern.exec(description))) {
+    const raw = match[0];
+    const sanitized = raw.replace(/\s+/g, '');
+    const start = Math.max(0, match.index - 80);
+    const end = Math.min(description.length, match.index + raw.length + 80);
+    const contextWindow = description.slice(start, end).toLowerCase();
+
+    if (contextWindow.includes('damage')) {
+      return sanitized;
+    }
+
+    if (/(regains|heals|gains)[\s\S]{0,100}hit points/.test(contextWindow)) {
+      return sanitized;
+    }
+  }
+  return undefined;
 }
 
 // Extract "At Higher Levels" text if present
@@ -28,7 +44,7 @@ function extractScaling(description = '') {
 function augmentSpell(spell = {}) {
   const enhanced = { ...spell };
   if (!enhanced.damage) {
-    const dmg = extractDamage(enhanced.description);
+    const dmg = extractDiceExpression(enhanced.description);
     if (dmg) enhanced.damage = dmg;
   }
   if (!enhanced.higherLevels) {

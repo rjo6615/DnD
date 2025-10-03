@@ -38,15 +38,7 @@ module.exports = (router) => {
       body('username').trim().notEmpty().withMessage('username is required'),
       body('password')
         .isLength({ min: 8 })
-        .withMessage('password must be at least 8 characters')
-        .matches(/[a-z]/)
-        .withMessage('password must contain at least one lowercase letter')
-        .matches(/[A-Z]/)
-        .withMessage('password must contain at least one uppercase letter')
-        .matches(/\d/)
-        .withMessage('password must contain at least one number')
-        .matches(/[^A-Za-z0-9]/)
-        .withMessage('password must contain at least one special character'),
+        .withMessage('password must be at least 8 characters'),
     ],
     handleValidationErrors,
     async (req, res, next) => {

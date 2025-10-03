@@ -1,6 +1,8 @@
 const races = {
   human: {
     name: "Human",
+    size: "Medium",
+    sizeOptions: ["Medium", "Small"],
     speed: 30,
     abilities: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
     skills: {},
@@ -8,6 +10,8 @@ const races = {
   },
   dwarf: {
     name: "Dwarf",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 25,
     abilities: { con: 2 },
     skills: {},
@@ -21,6 +25,8 @@ const races = {
   },
   elf: {
     name: "Elf",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { dex: 2 },
     skills: { perception: { proficient: true } },
@@ -34,6 +40,8 @@ const races = {
   },
   halfling: {
     name: "Halfling",
+    size: "Small",
+    sizeOptions: ["Small"],
     speed: 25,
     abilities: { dex: 2 },
     skills: {},
@@ -41,13 +49,79 @@ const races = {
   },
   dragonborn: {
     name: "Dragonborn",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { str: 2, cha: 1 },
     skills: {},
     languages: ["Common", "Draconic"],
+    dragonAncestries: {
+      black: {
+        label: "Black (Acid)",
+        damageType: "Acid",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "evil",
+      },
+      blue: {
+        label: "Blue (Lightning)",
+        damageType: "Lightning",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "evil",
+      },
+      brass: {
+        label: "Brass (Fire)",
+        damageType: "Fire",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      bronze: {
+        label: "Bronze (Lightning)",
+        damageType: "Lightning",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      copper: {
+        label: "Copper (Acid)",
+        damageType: "Acid",
+        breathWeapon: { shape: "5 by 30 ft. line", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      gold: {
+        label: "Gold (Fire)",
+        damageType: "Fire",
+        breathWeapon: { shape: "15 ft. cone", save: "Dexterity" },
+        moralAlignment: "good",
+      },
+      green: {
+        label: "Green (Poison)",
+        damageType: "Poison",
+        breathWeapon: { shape: "15 ft. cone", save: "Constitution" },
+        moralAlignment: "evil",
+      },
+      red: {
+        label: "Red (Fire)",
+        damageType: "Fire",
+        breathWeapon: { shape: "15 ft. cone", save: "Dexterity" },
+        moralAlignment: "evil",
+      },
+      silver: {
+        label: "Silver (Cold)",
+        damageType: "Cold",
+        breathWeapon: { shape: "15 ft. cone", save: "Constitution" },
+        moralAlignment: "good",
+      },
+      white: {
+        label: "White (Cold)",
+        damageType: "Cold",
+        breathWeapon: { shape: "15 ft. cone", save: "Constitution" },
+        moralAlignment: "evil",
+      },
+    },
   },
   gnome: {
     name: "Gnome",
+    size: "Small",
+    sizeOptions: ["Small"],
     speed: 25,
     abilities: { int: 2 },
     skills: {},
@@ -55,6 +129,8 @@ const races = {
   },
   "half-elf": {
     name: "Half-Elf",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { cha: 2 },
     abilityChoices: { count: 2, options: ["str", "dex", "con", "int", "wis"] },
@@ -62,8 +138,10 @@ const races = {
     skills: {},
     languages: ["Common", "Elvish", "Choice"],
   },
-  "half-orc": {
-    name: "Half-Orc",
+  orc: {
+    name: "Orc",
+    size: "Medium",
+    sizeOptions: ["Medium"],
     speed: 30,
     abilities: { str: 2, con: 1 },
     skills: { intimidation: { proficient: true } },
@@ -71,10 +149,65 @@ const races = {
   },
   tiefling: {
     name: "Tiefling",
+    size: "Medium",
+    sizeOptions: ["Medium", "Small"],
     speed: 30,
     abilities: { cha: 2, int: 1 },
     skills: {},
     languages: ["Common", "Infernal"],
+  },
+  goliath: {
+    name: "Goliath",
+    size: "Medium",
+    sizeOptions: ["Medium"],
+    speed: 35,
+    abilities: { str: 2, con: 1 },
+    skills: {},
+    languages: ["Common", "Giant"],
+    giantAncestries: {
+      cloud: {
+        label: "Cloud's Jaunt",
+        ancestryName: "Cloud Giant",
+        description:
+          "As a bonus action, teleport up to 30 feet to an unoccupied space you can see.",
+        usage: "Bonus action • Proficiency bonus per long rest",
+      },
+      fire: {
+        label: "Fire's Burn",
+        ancestryName: "Fire Giant",
+        description:
+          "When you hit a target, deal an extra 1d10 fire damage. The extra damage can be applied once per turn.",
+        usage: "No action • Proficiency bonus per long rest",
+      },
+      frost: {
+        label: "Frost's Chill",
+        ancestryName: "Frost Giant",
+        description:
+          "When you hit a target, reduce its speed by 10 feet until the start of your next turn. The effect can be applied once per turn.",
+        usage: "No action • Proficiency bonus per long rest",
+      },
+      hill: {
+        label: "Hill's Tumble",
+        ancestryName: "Hill Giant",
+        description:
+          "When you hit a Large or smaller target, it must succeed on a Strength save or be knocked prone.",
+        usage: "No action • Proficiency bonus per long rest",
+      },
+      stone: {
+        label: "Stone's Endurance",
+        ancestryName: "Stone Giant",
+        description:
+          "As a reaction when you take damage, roll a d12 and add your Constitution modifier to reduce the incoming damage.",
+        usage: "Reaction • Proficiency bonus per long rest",
+      },
+      storm: {
+        label: "Storm's Thunder",
+        ancestryName: "Storm Giant",
+        description:
+          "As a reaction when you take damage, force the attacker within 60 feet to make a Constitution save or take 1d8 thunder damage.",
+        usage: "Reaction • Proficiency bonus per long rest",
+      },
+    },
   },
 };
 

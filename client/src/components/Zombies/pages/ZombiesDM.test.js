@@ -1,16 +1,43 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import apiFetch from '../../../utils/apiFetch';
 import useUser from '../../../hooks/useUser';
-import ZombiesDM from './ZombiesDM';
 jest.mock('../../../utils/apiFetch');
 jest.mock('../../../hooks/useUser');
+jest.mock('../attributes/CampaignMapBoard', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: jest.fn(() => React.createElement('div', { 'data-testid': 'campaign-map-board' })),
+  };
+});
+jest.mock('../attributes/MapModal', () => {
+  const React = require('react');
+  const actual = jest.requireActual('../attributes/MapModal');
+  const mockFn = jest.fn((props) => React.createElement(actual.default, props));
+  return {
+    __esModule: true,
+    default: mockFn,
+  };
+});
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ campaign: 'Camp1' }),
   useNavigate: () => jest.fn(),
 }));
+
+jest.mock(
+  'socket.io-client',
+  () => require('../../../../__mocks__/socket.io-client.js'),
+  { virtual: true }
+);
+
+const socketModule = require('socket.io-client');
+const CampaignMapBoard = require('../attributes/CampaignMapBoard').default;
+const MapModal = require('../attributes/MapModal').default;
+
+const ZombiesDM = require('./ZombiesDM').default;
 
 const armorSlotOptions = [
   { key: 'head', label: 'Head' },
@@ -40,7 +67,7 @@ const openResourceCard = async (tabLabel, testId) => {
 };
 
 const openResourceCreateForm = async (card) => {
-  const toggleButton = within(card).getByRole('button', { name: /^Create$/i });
+  const toggleButton = within(card).getByRole('button', { name: /Create/i });
   await userEvent.click(toggleButton);
 };
 
@@ -48,16 +75,48 @@ describe('ZombiesDM AI generation', () => {
   beforeEach(() => {
     apiFetch.mockReset();
     useUser.mockReturnValue({ username: 'dm' });
+    CampaignMapBoard.mockClear();
+    MapModal.mockClear();
+    const sockets = socketModule.__getMockSockets();
+    sockets.length = 0;
+    const ioMock = socketModule.__getIoMock();
+    ioMock.mockClear();
+    ioMock.mockImplementation(() => {
+      const socket = {
+        on: jest.fn(),
+        off: jest.fn(),
+        emit: jest.fn(),
+        disconnect: jest.fn(),
+      };
+      sockets.push(socket);
+      return socket;
+    });
+    const testSocket = socketModule.io();
+    expect(testSocket).toBeDefined();
+    expect(typeof testSocket.on).toBe('function');
+    ioMock.mockClear();
   });
 
   test.skip('generates armor via AI and populates form', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/campaigns/dm/dm/Camp1':
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -127,13 +186,19 @@ describe('ZombiesDM AI generation', () => {
     const armorRecords = [
       { _id: 'armor1', armorName: 'Custom Armor', slot: 'chest' },
     ];
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/campaigns/dm/dm/Camp1':
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/equipment/armor/Camp1':
           return Promise.resolve({ ok: true, json: async () => armorRecords });
@@ -195,8 +260,12 @@ describe('ZombiesDM AI generation', () => {
     ]);
   });
 
-  test('generates item via AI and populates bonus fields', async () => {
-    apiFetch.mockImplementation((url) => {
+  test('removes enemy tokens from maps before success status', async () => {
+    const enemies = [{ enemyId: 'enemy-1', name: 'Goblin', type: 'humanoid' }];
+    let enemiesFetchCount = 0;
+    const mapDeleteResolvers = {};
+
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -204,6 +273,128 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          enemiesFetchCount += 1;
+          if (enemiesFetchCount === 1) {
+            return Promise.resolve({ ok: true, json: async () => enemies });
+          }
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/enemies/enemy-1':
+          if (options.method === 'DELETE') {
+            return Promise.resolve({ ok: true, status: 204 });
+          }
+          break;
+        case '/campaigns/Camp1/maps/Map%20Alpha/tokens/enemy-1':
+          if (options.method === 'DELETE') {
+            return new Promise((resolve) => {
+              mapDeleteResolvers.alpha = () => resolve({ ok: true, status: 204 });
+            });
+          }
+          break;
+        case '/campaigns/Camp1/maps/Map%20Beta/tokens/enemy-1':
+          if (options.method === 'DELETE') {
+            return new Promise((resolve) => {
+              mapDeleteResolvers.beta = () => resolve({ ok: true, status: 204 });
+            });
+          }
+          break;
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/characters')
+    );
+
+    const sockets = socketModule.__getMockSockets();
+    const componentSocket = sockets[sockets.length - 1];
+    expect(componentSocket).toBeDefined();
+    const mapUpdateHandlerEntry = componentSocket.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:map:update'
+    );
+    expect(mapUpdateHandlerEntry).toBeDefined();
+    const mapUpdateHandler = mapUpdateHandlerEntry[1];
+
+    const primaryToken = { characterId: 'enemy-1', x: 0.25, y: 0.5 };
+    const secondaryToken = { characterId: 'enemy-1', x: 0.6, y: 0.7 };
+
+    await act(async () => {
+      mapUpdateHandler({
+        maps: [
+          { mapId: 'Map Alpha', tokens: { 'enemy-1': primaryToken } },
+          { mapId: 'Map Beta', tokens: { 'enemy-1': secondaryToken } },
+        ],
+        activeMapId: 'Map Alpha',
+        tokensByMapId: {
+          'Map Alpha': { 'enemy-1': primaryToken },
+          'Map Beta': { 'enemy-1': secondaryToken },
+        },
+        activeMapTokens: { 'enemy-1': primaryToken },
+        map: { mapId: 'Map Alpha', tokens: { 'enemy-1': primaryToken } },
+      });
+    });
+
+    const removeButton = await screen.findByRole('button', { name: 'Remove' });
+    await userEvent.click(removeButton);
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/enemies/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    );
+
+    await waitFor(() => {
+      expect(mapDeleteResolvers.alpha).toBeInstanceOf(Function);
+      expect(mapDeleteResolvers.beta).toBeInstanceOf(Function);
+    });
+
+    expect(screen.queryByText('Enemy removed.')).not.toBeInTheDocument();
+
+    await act(async () => {
+      mapDeleteResolvers.alpha();
+      mapDeleteResolvers.beta();
+    });
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/Map%20Alpha/tokens/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    );
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/Map%20Beta/tokens/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText('Enemy removed.')).toBeInTheDocument()
+    );
+  });
+
+  test('generates item via AI and populates bonus fields', async () => {
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/items/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/items/options':
@@ -255,7 +446,7 @@ describe('ZombiesDM AI generation', () => {
   });
 
   test('normalizes AI bonuses with full names', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -263,6 +454,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/items/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/items/options':
@@ -314,7 +507,7 @@ describe('ZombiesDM AI generation', () => {
   });
 
   test('generates accessory via AI and populates slots and bonuses', async () => {
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => [] });
@@ -322,6 +515,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/equipment/accessories/Camp1':
           return Promise.resolve({ ok: true, json: async () => [] });
         case '/accessories/options':
@@ -393,7 +588,7 @@ describe('ZombiesDM AI generation', () => {
       },
     ];
 
-    apiFetch.mockImplementation((url) => {
+    apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
         case '/campaigns/Camp1/characters':
           return Promise.resolve({ ok: true, json: async () => characters });
@@ -401,6 +596,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/accessories/options':
           return Promise.resolve({
             ok: true,
@@ -417,6 +614,416 @@ describe('ZombiesDM AI generation', () => {
     expect(
       within(grid).getByRole('button', { name: /Adjust currency for Hero/i })
     ).toBeInTheDocument();
+  });
+
+  test('allows the DM to generate and save a campaign map as a new entry', async () => {
+    const existingMap = {
+      mapId: 'map-1',
+      title: 'Existing Map',
+      imageUrl: 'https://example.com/existing-map.png',
+      altText: 'Existing map illustration',
+    };
+    const generatedMap = {
+      title: 'Generated Map',
+      imageBase64: 'ZmFrZUJhdHRsZU1hcA==',
+      imageType: 'image/png',
+      altText: 'Generated map alt text',
+    };
+    const createdMap = {
+      ...generatedMap,
+      mapId: 'map-2',
+    };
+    let savedPayload;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          if (options.method === 'POST') {
+            savedPayload = JSON.parse(options.body);
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                maps: [existingMap, createdMap],
+                activeMapId: createdMap.mapId,
+                map: createdMap,
+              }),
+            });
+          }
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [existingMap],
+              activeMapId: existingMap.mapId,
+              map: existingMap,
+            }),
+          });
+        case '/ai/map':
+          return Promise.resolve({ ok: true, json: async () => generatedMap });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+
+    const mapList = await within(mapCard).findByTestId('map-list');
+    const existingListItem = within(mapList).getByTestId('map-list-item-map-1');
+    expect(within(existingListItem).getByText('Existing Map')).toBeInTheDocument();
+    expect(
+      within(existingListItem).getByTestId('map-active-badge-map-1')
+    ).toBeInTheDocument();
+
+    const promptInput = within(mapCard).getByPlaceholderText(
+      'Describe the map you want to generate'
+    );
+    await userEvent.type(promptInput, 'dark forest');
+
+    const generateButton = within(mapCard).getByRole('button', { name: /Generate Map/i });
+    await userEvent.click(generateButton);
+
+    await screen.findByText('Map generated.');
+
+    await waitFor(() => {
+      expect(within(mapCard).getByText('Generated Map')).toBeInTheDocument();
+      const generatedImage = within(mapCard).getByRole('img', {
+        name: /Generated map alt text/i,
+      });
+      expect(generatedImage.getAttribute('src')).toContain(
+        generatedMap.imageBase64
+      );
+    });
+
+    const saveNewButton = within(mapCard).getByTestId('save-map-new-button');
+    await userEvent.click(saveNewButton);
+
+    await screen.findByText('Map saved.');
+
+    expect(savedPayload).toEqual({
+      map: generatedMap,
+      prompt: 'dark forest',
+      activate: true,
+    });
+
+    await waitFor(() => {
+      const updatedList = within(mapCard).getByTestId('map-list');
+      const newListItem = within(updatedList).getByTestId('map-list-item-map-2');
+      expect(within(newListItem).getByText('Generated Map')).toBeInTheDocument();
+      expect(
+        within(newListItem).getByTestId('map-active-badge-map-2')
+      ).toBeInTheDocument();
+    });
+  });
+
+  test('allows the DM to activate a different saved map', async () => {
+    const primaryMap = {
+      mapId: 'map-1',
+      title: 'Primary Map',
+    };
+    const secondaryMap = {
+      mapId: 'map-2',
+      title: 'Secondary Map',
+    };
+    let activationPayload;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [primaryMap, secondaryMap],
+              activeMapId: primaryMap.mapId,
+              map: primaryMap,
+            }),
+          });
+        case '/campaigns/Camp1/maps/map-2':
+          activationPayload = JSON.parse(options.body);
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [primaryMap, secondaryMap],
+              activeMapId: secondaryMap.mapId,
+              map: secondaryMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+    const secondaryActivateButton = await within(mapCard).findByTestId(
+      'map-activate-button-map-2'
+    );
+
+    await userEvent.click(secondaryActivateButton);
+
+    await screen.findByText('Active map updated.');
+
+    expect(activationPayload).toEqual({ active: true });
+
+    const updatedListItem = within(mapCard).getByTestId('map-list-item-map-2');
+    const activeBadge = within(updatedListItem).getByTestId(
+      'map-active-badge-map-2'
+    );
+    expect(activeBadge).toBeInTheDocument();
+    const activeButton = within(updatedListItem).getByTestId('map-activate-button-map-2');
+    expect(activeButton).toBeDisabled();
+    const inactiveButton = within(mapCard).getByTestId('map-activate-button-map-1');
+    expect(inactiveButton).not.toBeDisabled();
+  });
+
+  test('updates the map list when a socket event is received', async () => {
+    const initialMap = {
+      mapId: 'map-1',
+      title: 'Initial Map',
+    };
+    const socketMaps = [initialMap];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: socketMaps,
+              activeMapId: initialMap.mapId,
+              map: initialMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+    await waitFor(() => {
+      const sockets = socketModule.__getMockSockets();
+      expect(sockets.length).toBeGreaterThan(0);
+      const activeSocket = sockets[sockets.length - 1];
+      expect(activeSocket).toBeDefined();
+      const handlerCall = activeSocket.on.mock.calls.find(
+        ([eventName]) => eventName === 'campaign:map:update'
+      );
+      expect(handlerCall).toBeDefined();
+    });
+
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    const mapUpdateHandler = socketInstance.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:map:update'
+    )[1];
+
+    const updatedMap = {
+      mapId: 'map-2',
+      title: 'Updated Map',
+    };
+
+    mapUpdateHandler({
+      maps: [updatedMap],
+      activeMapId: updatedMap.mapId,
+      map: updatedMap,
+    });
+
+    await waitFor(() => {
+      const list = within(mapCard).getByTestId('map-list');
+      expect(within(list).getByText('Updated Map')).toBeInTheDocument();
+    });
+  });
+
+  test('passes campaign tokens to the board component and updates on socket events', async () => {
+    const characters = [
+      { _id: 'hero-1', characterName: 'Hero One', diceColor: '#3366ff' },
+      { _id: 'hero-2', characterName: 'Hero Two', diceColor: '#cc0000' },
+    ];
+
+    const mapTokens = {
+      'map-1': {
+        'hero-1': { characterId: 'hero-1', x: 0.1, y: 0.2 },
+      },
+    };
+
+    const activeMap = {
+      mapId: 'map-1',
+      title: 'Active Map',
+      tokens: mapTokens['map-1'],
+    };
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [activeMap],
+              activeMapId: activeMap.mapId,
+              map: activeMap,
+              tokensByMapId: mapTokens,
+              activeMapTokens: mapTokens['map-1'],
+            }),
+          });
+        case '/campaigns/Camp1/maps/map-1/tokens/hero-1':
+          if (options.method === 'DELETE') {
+            return Promise.resolve({ ok: true });
+          }
+          break;
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    await waitFor(() => {
+      expect(CampaignMapBoard).toHaveBeenCalled();
+    });
+
+    const initialBoardCall = CampaignMapBoard.mock.calls
+      .map(([props]) => props)
+      .find((props) => props && props.map && props.map.mapId === 'map-1');
+
+    expect(initialBoardCall).toBeDefined();
+    expect(initialBoardCall.disabled).toBe(false);
+    expect(initialBoardCall.tokens).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          characterId: 'hero-1',
+          x: 0.1,
+          y: 0.2,
+          color: '#3366ff',
+        }),
+      ])
+    );
+
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    const mapUpdateHandler = socketInstance.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:map:update'
+    )[1];
+
+    mapUpdateHandler({
+      tokensByMapId: {
+        'map-1': {
+          'hero-1': { characterId: 'hero-1', x: 0.25, y: 0.5 },
+          'hero-2': { characterId: 'hero-2', x: 0.75, y: 0.8 },
+        },
+      },
+      activeMapTokens: {
+        'hero-1': { characterId: 'hero-1', x: 0.25, y: 0.5 },
+        'hero-2': { characterId: 'hero-2', x: 0.75, y: 0.8 },
+      },
+    });
+
+    await waitFor(() => {
+      const latestCall = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      expect(latestCall.tokens).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            characterId: 'hero-1',
+            x: 0.25,
+            y: 0.5,
+            color: '#3366ff',
+          }),
+          expect.objectContaining({
+            characterId: 'hero-2',
+            x: 0.75,
+            y: 0.8,
+            color: '#cc0000',
+          }),
+        ])
+      );
+    });
+
+    apiFetch.mockClear();
+
+    const latestBoardProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+    expect(typeof latestBoardProps.onTokenRemove).toBe('function');
+
+    await act(async () => {
+      const result = await latestBoardProps.onTokenRemove({
+        characterId: 'hero-1',
+        mapId: 'map-1',
+      });
+      expect(result).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/map-1/tokens/hero-1',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    await waitFor(() => {
+      const updatedProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      const hasHeroToken = (updatedProps.tokens || []).some(
+        (token) => token.characterId === 'hero-1'
+      );
+      expect(hasHeroToken).toBe(false);
+    });
   });
 
   test('submits normalized currency adjustments to the API', async () => {
@@ -440,6 +1047,8 @@ describe('ZombiesDM AI generation', () => {
           return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
         case '/users':
           return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
         case '/characters/char1/currency':
           currencyRequest = options;
           return Promise.resolve({ ok: true });
@@ -487,4 +1096,281 @@ describe('ZombiesDM AI generation', () => {
       expect(charactersRequestCount).toBeGreaterThanOrEqual(2);
     });
   });
+
+  test('allows the DM to manage combat participants', async () => {
+    const characters = [
+      {
+        _id: 'char1',
+        characterName: 'Hero',
+        token: 'Player1',
+        dex: 14,
+        feat: [{ initiative: 1 }],
+      },
+      { _id: 'char2', characterName: 'Rogue', token: 'Player2', dex: 12 },
+    ];
+    let combatState = { participants: [], activeTurn: null };
+    const combatUpdates = [];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/Camp1/combat':
+          if (options.method === 'PUT') {
+            const payload = JSON.parse(options.body);
+            combatUpdates.push(payload);
+            combatState = {
+              participants: payload.participants || [],
+              activeTurn:
+                payload.activeTurn === undefined || payload.activeTurn === null
+                  ? null
+                  : payload.activeTurn,
+            };
+            return Promise.resolve({ ok: true, json: async () => combatState });
+          }
+          return Promise.resolve({ ok: true, json: async () => combatState });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    await waitFor(() => expect(socketModule.__getIoMock()).toHaveBeenCalledTimes(1));
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    expect(socketInstance).toBeDefined();
+    expect(socketInstance.emit).toHaveBeenCalledWith('campaign:join', 'Camp1');
+
+    await screen.findByRole('heading', { name: /Combat Tracker/i });
+
+    const combatHeader = await screen.findByRole('columnheader', { name: /In Combat/i });
+    const combatTable = combatHeader.closest('table');
+    if (!combatTable) {
+      throw new Error('Combat tracker table not found');
+    }
+
+    const heroRow = (await within(combatTable).findByText('Hero')).closest('tr');
+    if (!heroRow) {
+      throw new Error('Hero row not found in combat table');
+    }
+
+    const cells = within(heroRow).getAllByRole('cell');
+    const initiativeCell = cells[3];
+    expect(initiativeCell).toHaveTextContent('3');
+
+    const heroCheckbox = within(heroRow).getByRole('checkbox', {
+      name: /Toggle Hero in combat/i,
+    });
+    await userEvent.click(heroCheckbox);
+
+    await waitFor(() => expect(combatUpdates).toHaveLength(1));
+    expect(combatUpdates[0]).toMatchObject({
+      participants: [
+        { characterId: 'char1', initiative: 3, displayName: 'Hero' },
+      ],
+      activeTurn: null,
+    });
+
+    const heroSetTurnButton = within(heroRow).getByRole('button', {
+      name: /Set Turn/i,
+    });
+    await userEvent.click(heroSetTurnButton);
+
+    await waitFor(() => expect(combatUpdates).toHaveLength(2));
+    expect(combatUpdates[1].activeTurn).toBe(0);
+
+    const nextTurnButton = screen.getByRole('button', { name: /Next Turn/i });
+    await userEvent.click(nextTurnButton);
+
+    await waitFor(() => expect(combatUpdates).toHaveLength(3));
+    expect(combatUpdates[2].activeTurn).toBe(0);
+
+    expect(
+      screen.getByText(/Active Turn:/i).textContent
+    ).toContain('Hero');
+  });
+
+  test('opens map placement modal for enemies and persists placement moves', async () => {
+    const enemies = [
+      {
+        enemyId: 'enemy-1',
+        name: 'Goblin',
+        displayType: 'Humanoid',
+      },
+    ];
+    const mapsPayload = {
+      maps: [
+        {
+          mapId: 'map-123',
+          title: 'Dungeon',
+          tokens: {},
+        },
+      ],
+      activeMapId: 'map-123',
+      map: {
+        mapId: 'map-123',
+        title: 'Dungeon',
+        tokens: {},
+      },
+      tokensByMapId: {
+        'map-123': {},
+      },
+    };
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => enemies });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({ ok: true, json: async () => mapsPayload });
+        case '/monsters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        default:
+          if (
+            url.startsWith('/campaigns/Camp1/maps/') &&
+            options.method === 'PUT'
+          ) {
+            return Promise.resolve({ ok: true, json: async () => ({}) });
+          }
+          if (
+            url.startsWith('/campaigns/Camp1/maps/') &&
+            options.method === 'DELETE'
+          ) {
+            return Promise.resolve({ ok: true });
+          }
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const enemiesCard = await openResourceCard('Enemies', 'resource-enemies-card');
+
+    await waitFor(() => expect(within(enemiesCard).getByText('Goblin')).toBeInTheDocument());
+
+    const placeButton = within(enemiesCard).getByRole('button', { name: 'Place on Map' });
+
+    MapModal.mockClear();
+
+    await userEvent.click(placeButton);
+
+    let placementProps;
+    await waitFor(() => {
+      const placementCalls = MapModal.mock.calls
+        .map(([props]) => props)
+        .filter((props) => props && props.readOnly === false && typeof props.onTokenMove === 'function');
+      expect(placementCalls.length).toBeGreaterThan(0);
+      placementProps = placementCalls[placementCalls.length - 1];
+      expect(placementProps.show).toBe(true);
+      expect(placementProps.currentCharacterId).toBe('enemy-1');
+    });
+
+    apiFetch.mockClear();
+
+    await expect(
+      placementProps.onTokenMove({
+        mapId: 'map-123',
+        characterId: 'enemy-1',
+        x: 1.7,
+        y: -0.3,
+      })
+    ).resolves.toBe(true);
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/map-123/tokens/enemy-1',
+        expect.objectContaining({
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ x: 1, y: 0 }),
+        })
+      );
+    });
+
+    apiFetch.mockClear();
+
+    await expect(
+      placementProps.onTokenRemove({
+        mapId: 'map-123',
+        characterId: 'enemy-1',
+      })
+    ).resolves.toBe(true);
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/campaigns/Camp1/maps/map-123/tokens/enemy-1',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+  });
+  test('opens the d20 roller modal when clicking the Roll button in enemies form', async () => {
+    const characters = [
+      { _id: 'hero-1', characterName: 'Hero One', diceColor: '#3366ff' },
+    ];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              participants: [{ characterId: 'hero-1', initiative: 15 }],
+              activeTurn: 0,
+            }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [],
+              activeMapId: null,
+              map: null,
+              tokensByMapId: {},
+              activeMapTokens: {},
+            }),
+          });
+        case '/monsters':
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ index: 'goblin', name: 'Goblin' }],
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const enemiesTab = await screen.findByRole('tab', { name: 'Enemies' });
+    await userEvent.click(enemiesTab);
+
+    const rollButton = await screen.findByRole('button', { name: /^Roll$/i });
+    await userEvent.click(rollButton);
+
+    const modal = await screen.findByRole('dialog', { name: /Roll D20/i });
+    expect(
+      within(modal).getByRole('button', { name: /roll a d20/i })
+    ).toBeInTheDocument();
+  });
+
+
 });

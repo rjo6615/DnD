@@ -1,16 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Card, Table, Button, Spinner } from 'react-bootstrap';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import actionSurgeIcon from '../../../images/action-surge-icon.png';
+import largeFormIcon from '../../../images/large-form-icon.png';
 
 export default function Features({
   form,
   showFeatures,
   handleCloseFeatures,
   onActionSurge,
+  onLargeForm,
   longRestCount,
   shortRestCount,
+  isDocked = false,
+  dockedSide = null,
+  onDockClose,
 }) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
@@ -18,6 +23,136 @@ export default function Features({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [surgeUsed, setSurgeUsed] = useState(false);
+  const [largeFormUsed, setLargeFormUsed] = useState(false);
+
+  const totalCharacterLevel = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) return 0;
+    return form.occupation.reduce((sum, occ) => {
+      if (typeof occ !== 'object' || occ === null) return sum;
+      const levelValue =
+        Number(occ.Level ?? occ.level ?? occ.Levels ?? occ.levels ?? 0) || 0;
+      return sum + levelValue;
+    }, 0);
+  }, [form?.occupation]);
+
+  const ancestryFeatures = useMemo(() => {
+    const race = form?.race;
+    if (!race) return [];
+
+    const raceName =
+      typeof race?.name === 'string' ? race.name.toLowerCase() : '';
+
+    if (raceName === 'dragonborn') {
+      const ancestry =
+        race.selectedAncestry ||
+        (race.selectedAncestryKey && race.dragonAncestries
+          ? race.dragonAncestries[race.selectedAncestryKey]
+          : null) ||
+        form?.dragonAncestry ||
+        (form?.dragonAncestryKey && race.dragonAncestries
+          ? race.dragonAncestries[form.dragonAncestryKey]
+          : null);
+
+      if (!ancestry) return [];
+
+      const ancestryLabel = ancestry.label || ancestry.name || 'Dragonborn';
+      const damageType = ancestry.damageType || '';
+      const damageTypeLower = damageType.toLowerCase();
+      const resistanceDescription = damageTypeLower
+        ? `You have resistance to ${damageTypeLower} damage.`
+        : 'You have resistance to the damage type associated with your draconic ancestry.';
+
+      const resistanceFeature = {
+        id: 'dragonborn-damage-resistance',
+        name: 'Damage Resistance',
+        meta: `Dragon Subrace (${ancestryLabel})`,
+        description: resistanceDescription,
+        desc: resistanceDescription,
+        hideUseButton: true,
+      };
+
+      const flightFeatures = [];
+
+      if (totalCharacterLevel >= 5) {
+        const draconicFlightDescription =
+          'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
+        flightFeatures.push({
+          id: 'dragonborn-draconic-flight',
+          name: 'Draconic Flight',
+          meta: `Dragon Subrace (${ancestryLabel})`,
+          description: draconicFlightDescription,
+          desc: draconicFlightDescription,
+          hideUseButton: true,
+        });
+      }
+
+      return [resistanceFeature, ...flightFeatures];
+    }
+
+    if (raceName === 'goliath') {
+      const ancestry =
+        race.selectedAncestry ||
+        (race.selectedAncestryKey && race.giantAncestries
+          ? race.giantAncestries[race.selectedAncestryKey]
+          : null) ||
+        form?.giantAncestry ||
+        (form?.giantAncestryKey && race.giantAncestries
+          ? race.giantAncestries[form.giantAncestryKey]
+          : null);
+
+      if (!ancestry) return [];
+
+      const ancestryLabel = ancestry.label || ancestry.name || 'Giant Boon';
+      const ancestryDescription = ancestry.description || '';
+      const usageText = ancestry.usage ? ` ${ancestry.usage}` : '';
+      const combinedDescription = `${ancestryDescription}${usageText}`.trim();
+
+      const features = [
+        {
+          id: `goliath-ancestry-${
+            race.selectedAncestryKey || form?.giantAncestryKey || 'boon'
+          }`,
+          name: ancestryLabel,
+          meta: 'Giant Ancestry',
+          description: combinedDescription || ancestryDescription,
+          desc: combinedDescription || ancestryDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'goliath-powerful-build',
+          name: 'Powerful Build',
+          meta: 'Goliath',
+          description:
+            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+          desc:
+            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+          hideUseButton: true,
+        },
+      ];
+
+      if (totalCharacterLevel >= 5) {
+        const largeFormDescription =
+          "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest.";
+        features.push({
+          id: 'goliath-large-form',
+          name: 'Large Form',
+          meta: 'Goliath (Level 5)',
+          description: largeFormDescription,
+          desc: largeFormDescription,
+          hideUseButton: true,
+        });
+      }
+
+      return features;
+    }
+
+    return [];
+  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey, form?.giantAncestry, form?.giantAncestryKey, totalCharacterLevel]);
+
+  const displayFeatures = useMemo(() => {
+    if (ancestryFeatures.length === 0) return features;
+    return [...ancestryFeatures, ...features];
+  }, [ancestryFeatures, features]);
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -59,16 +194,53 @@ export default function Features({
 
   useEffect(() => {
     setSurgeUsed(false);
+    setLargeFormUsed(false);
   }, [longRestCount, shortRestCount]);
+
+  const dialogClassName = useMemo(() => {
+    if (!isDocked) {
+      return undefined;
+    }
+
+    const classes = ['docked-modal'];
+    if (dockedSide) {
+      classes.push(`docked-modal--${dockedSide}`);
+    }
+    classes.push('docked-modal--features');
+    return classes.join(' ');
+  }, [isDocked, dockedSide]);
+
+  const modalClassName = useMemo(() => {
+    const classes = ['dnd-modal', 'modern-modal'];
+    if (isDocked) {
+      classes.push('docked-modal-container');
+    }
+    return classes.join(' ');
+  }, [isDocked]);
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleCloseFeatures?.();
+  }, [handleCloseFeatures, isDocked, onDockClose]);
 
   return (
     <>
       <Modal
-        className="dnd-modal modern-modal"
+        className={modalClassName}
         show={showFeatures}
-        onHide={handleCloseFeatures}
+        onHide={handleModalHide}
         size="lg"
-        centered
+        centered={!isDocked}
+        backdrop={isDocked ? false : true}
+        enforceFocus={!isDocked}
+        restoreFocus={!isDocked}
+        dialogClassName={dialogClassName}
       >
         <div className="text-center">
           <Card className="modern-card">
@@ -79,39 +251,40 @@ export default function Features({
               {error && (
                 <div className="text-danger mb-2">{error}</div>
               )}
-              <Table striped bordered hover size="sm" className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Class</th>
-                    <th>Level</th>
-                    <th>Feature</th>
-                    <th>Use</th>
-                    <th>View</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="text-center">
-                        <Spinner animation="border" size="sm" role="status" />
-                      </td>
-                    </tr>
-                  ) : features.length > 0 ? (
-                    features.map((feat, idx) => {
-                      const featKey = `${feat.class}-${feat.level}-${idx}`;
-                      return (
-                        <tr key={featKey}>
-                          <td>{feat.class}</td>
-                          <td>{feat.level}</td>
-                          <td>{feat.name}</td>
-                          <td>
-                            {feat.name && feat.name.includes('Action Surge') ? (
+              {loading ? (
+                <div className="d-flex justify-content-center py-4">
+                  <Spinner animation="border" role="status" />
+                </div>
+              ) : displayFeatures.length > 0 ? (
+                <div className="feature-card-grid">
+                  {displayFeatures.map((feat, idx) => {
+                    const featKey = feat.id || `${feat.name}-${idx}`;
+                    const isActionSurge = feat.name?.includes('Action Surge');
+                    const isLargeForm = feat.id === 'goliath-large-form';
+                    return (
+                      <div className="feature-card" key={featKey}>
+                        <div className="feature-card-header">
+                          <div>
+                            <div className="feature-card-name">{feat.name}</div>
+                            <div className="feature-card-meta">
+                              {feat.meta ? (
+                                <span>{feat.meta}</span>
+                              ) : (
+                                <>
+                                  {feat.class && <span>{feat.class}</span>}
+                                  {feat.level != null && (
+                                    <span>Level {feat.level}</span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="feature-card-actions">
+                            {isActionSurge ? (
                               <Button
                                 aria-label="use feature"
                                 variant="link"
-                                className={`p-0 border-0 ${
-                                  surgeUsed ? 'opacity-50' : ''
-                                }`}
+                                className={`p-0 border-0 ${surgeUsed ? 'opacity-50' : ''}`}
                                 onClick={() => {
                                   if (!surgeUsed) {
                                     onActionSurge?.();
@@ -127,14 +300,36 @@ export default function Features({
                                   height={36}
                                 />
                               </Button>
-                            ) : (
-                              <Button aria-label="use feature">Use</Button>
-                            )}
-                          </td>
-                          <td>
+                            ) : isLargeForm ? (
+                              <Button
+                                aria-label="use feature"
+                                variant="link"
+                                className={`p-0 border-0 ${largeFormUsed ? 'opacity-50' : ''}`}
+                                onClick={() => {
+                                  if (!largeFormUsed) {
+                                    onLargeForm?.();
+                                    setLargeFormUsed(true);
+                                  }
+                                }}
+                                disabled={largeFormUsed}
+                              >
+                                <img
+                                  src={largeFormIcon}
+                                  alt="Large Form"
+                                  width={36}
+                                  height={36}
+                                />
+                              </Button>
+                            ) : !feat.hideUseButton ? (
+                              <Button aria-label="use feature" variant="outline-light" size="sm">
+                                Use
+                              </Button>
+                            ) : null}
                             <Button
                               aria-label="view feature"
                               variant="link"
+                              size="sm"
+                              className="view-link-btn"
                               onClick={() => {
                                 setModalFeature(feat);
                                 setShowModal(true);
@@ -142,20 +337,24 @@ export default function Features({
                             >
                               <i className="fa-solid fa-eye"></i>
                             </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : !error ? (
-                    <tr>
-                      <td colSpan={5} className="text-center">
-                        No features found
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </Table>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !error ? (
+                <div className="text-center text-muted">No features found</div>
+              ) : null}
             </Card.Body>
+            <Card.Footer className="modal-footer">
+              <Button
+                className="action-btn close-btn"
+                onClick={handleModalHide}
+              >
+                Close
+              </Button>
+            </Card.Footer>
           </Card>
         </div>
       </Modal>

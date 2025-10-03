@@ -4,12 +4,14 @@ import React, {
   useImperativeHandle,
   useMemo,
 } from 'react';
-import { Button, Modal, Card, Table } from "react-bootstrap";
+import { Button, Modal, Card, OverlayTrigger, Popover } from "react-bootstrap";
+import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
+import weaponPropertyDefinitions from '../../../data/weaponProperties';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -71,8 +73,10 @@ export function calculateDamage(
 
     const type = rest.join(' ').trim();
 
+    const abilityBonus = i === 0 ? ability : 0;
+
     if (!match[2]) {
-      const baseValue = parseInt(match[1], 10) + ability;
+      const baseValue = parseInt(match[1], 10) + abilityBonus;
       results.push({ value: baseValue, type });
       continue;
     }
@@ -102,7 +106,7 @@ export function calculateDamage(
       }
     }
 
-    results.push({ value: damageSum + modifier + ability, type });
+    results.push({ value: damageSum + modifier + abilityBonus, type });
   }
 
   const total = results.reduce((sum, r) => sum + r.value, 0);
@@ -115,8 +119,11 @@ const PlayerTurnActions = React.forwardRef(
       form,
       strMod,
       dexMod,
+      conMod = 0,
       onCastSpell,
       onPassTurn = () => {},
+      canPassTurn = true,
+      isPassTurnInProgress = false,
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
@@ -131,16 +138,115 @@ const PlayerTurnActions = React.forwardRef(
   const [footerHeight, setFooterHeight] = useState(0);
 
   useEffect(() => {
-    const updateFooterHeight = () => {
-      const slots = document.querySelector('.spell-slot-container');
-      const navbar = document.querySelector('.navbar.fixed-bottom');
-      const slotsHeight = slots ? slots.offsetHeight : 0;
-      const navbarHeight = navbar ? navbar.offsetHeight : 0;
-      setFooterHeight(slotsHeight + navbarHeight);
+    const observed = new Map();
+    let safeAreaProbe = null;
+
+    const parseSize = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isNaN(parsed) ? 0 : parsed;
     };
-    updateFooterHeight();
+
+    const ensureSafeAreaProbe = () => {
+      if (typeof document === 'undefined') {
+        return null;
+      }
+      if (!safeAreaProbe) {
+        safeAreaProbe = document.createElement('div');
+        safeAreaProbe.setAttribute('data-safe-area-probe', 'true');
+        safeAreaProbe.style.cssText =
+          'position:fixed;bottom:0;left:0;height:0;pointer-events:none;visibility:hidden;padding-bottom:env(safe-area-inset-bottom, 0);';
+        document.body.appendChild(safeAreaProbe);
+      }
+      return safeAreaProbe;
+    };
+
+    const getSafeAreaInsetBottom = () => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return 0;
+      }
+      const probe = ensureSafeAreaProbe();
+      if (!probe) {
+        return 0;
+      }
+      return parseSize(getComputedStyle(probe).paddingBottom || '0');
+    };
+
+    const updateFooterHeight = () => {
+      const slots = observed.get('slots')?.element;
+      const navbar = observed.get('navbar')?.element;
+      const slotsHeight = slots ? slots.getBoundingClientRect().height : 0;
+      const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0;
+      const slotsBottomOffset =
+        slots && typeof window !== 'undefined'
+          ? parseSize(getComputedStyle(slots).bottom || '0')
+          : 0;
+      const safeAreaInset = getSafeAreaInsetBottom();
+      setFooterHeight(
+        slotsHeight + navbarHeight + slotsBottomOffset + safeAreaInset
+      );
+    };
+
+    const observeElement = (key, element) => {
+      const current = observed.get(key);
+      if (current?.element === element) {
+        return;
+      }
+
+      current?.cleanup?.();
+
+      if (!element) {
+        observed.delete(key);
+        updateFooterHeight();
+        return;
+      }
+
+      const onChange = () => updateFooterHeight();
+      let cleanup = () => {};
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(onChange);
+        resizeObserver.observe(element);
+        cleanup = () => resizeObserver.disconnect();
+      } else if (typeof MutationObserver !== 'undefined') {
+        const mutationObserver = new MutationObserver(onChange);
+        mutationObserver.observe(element, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+        cleanup = () => mutationObserver.disconnect();
+      }
+
+      observed.set(key, { element, cleanup });
+      updateFooterHeight();
+    };
+
+    const refreshElements = () => {
+      observeElement('slots', document.querySelector('.spell-slot-container'));
+      observeElement('navbar', document.querySelector('.navbar.fixed-bottom'));
+    };
+
+    refreshElements();
+
+    let documentObserver;
+    if (typeof MutationObserver !== 'undefined') {
+      documentObserver = new MutationObserver(refreshElements);
+      documentObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
     window.addEventListener('resize', updateFooterHeight);
-    return () => window.removeEventListener('resize', updateFooterHeight);
+
+    return () => {
+      observed.forEach(({ cleanup }) => cleanup());
+      observed.clear();
+      window.removeEventListener('resize', updateFooterHeight);
+      documentObserver?.disconnect();
+      safeAreaProbe?.remove();
+      safeAreaProbe = null;
+    };
   }, []);
 
 //--------------------------------------------Critical status------------------------------------------------
@@ -183,6 +289,59 @@ const [isFumble, setIsFumble] = useState(false);
       : strMod;
   };
 
+  const formatWeaponLabel = (value) => {
+    if (typeof value !== 'string') return 'Unknown';
+    const normalized = value.replace(/[_-]+/g, ' ').trim();
+    if (!normalized) return 'Unknown';
+    return toTitleCase(normalized);
+  };
+
+  const getWeaponTypeLabel = (weapon) => {
+    const raw = weapon?.type || weapon?.category;
+    return formatWeaponLabel(raw || 'Unknown');
+  };
+
+  const getWeaponPropertyDefinitionKeys = (prop) => {
+    if (typeof prop !== 'string') return [];
+
+    const base = prop
+      .replace(/\s*[\(\[\{][^\)\]\}]*[\)\]\}]\s*/g, ' ')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!base) return [];
+
+    const titleCase = toTitleCase(base);
+    const candidates = new Set([titleCase]);
+
+    if (titleCase.includes(' ')) {
+      candidates.add(titleCase.replace(/\s+/g, '-'));
+    }
+
+    if (!titleCase.endsWith(':')) {
+      candidates.add(`${titleCase}:`);
+    }
+
+    return Array.from(candidates);
+  };
+
+  const getWeaponPropertyDetails = (weapon) => {
+    if (!Array.isArray(weapon?.properties)) return [];
+    return weapon.properties
+      .filter((prop) => typeof prop === 'string' && prop.trim())
+      .map((prop) => {
+        const label = formatWeaponLabel(prop);
+        const definitionKey = getWeaponPropertyDefinitionKeys(prop).find(
+          (key) => weaponPropertyDefinitions[key]
+        );
+        const description = definitionKey
+          ? weaponPropertyDefinitions[definitionKey]
+          : 'Definition not available.';
+        return { label, description };
+      });
+  };
+
   const totalLevel = useMemo(
     () =>
       Array.isArray(form.occupation)
@@ -194,23 +353,74 @@ const [isFumble, setIsFumble] = useState(false);
   const profBonus =
     form.proficiencyBonus ?? proficiencyBonus(totalLevel);
 
+  const dragonbornAncestry = useMemo(() => {
+    const race = form?.race;
+    if (!race) return null;
+    const raceName = typeof race?.name === 'string' ? race.name.toLowerCase() : '';
+    if (raceName !== 'dragonborn') return null;
+
+    if (race.selectedAncestry) return race.selectedAncestry;
+
+    if (race.selectedAncestryKey && race.dragonAncestries) {
+      const selected = race.dragonAncestries[race.selectedAncestryKey];
+      if (selected) return selected;
+    }
+
+    if (form?.dragonAncestry) return form.dragonAncestry;
+
+    if (form?.dragonAncestryKey && race.dragonAncestries) {
+      return race.dragonAncestries[form.dragonAncestryKey] || null;
+    }
+
+    return null;
+  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey]);
+
+  const breathWeaponDetails = useMemo(() => {
+    if (!dragonbornAncestry) return null;
+
+    const diceCount =
+      totalLevel >= 17 ? 4 : totalLevel >= 11 ? 3 : totalLevel >= 5 ? 2 : 1;
+    const damageType = dragonbornAncestry.damageType || '';
+    const damageString = `${diceCount}d10${damageType ? ` ${damageType}` : ''}`;
+    const breathWeapon = dragonbornAncestry.breathWeapon || {};
+    const numericConMod = Number(conMod) || 0;
+
+    return {
+      label: dragonbornAncestry.label || 'Breath Weapon',
+      damageString,
+      damageType,
+      diceCount,
+      saveDC: 8 + numericConMod + profBonus,
+      shape: breathWeapon.shape,
+      save: breathWeapon.save,
+    };
+  }, [dragonbornAncestry, conMod, profBonus, totalLevel]);
+
   const getAttackBonus = (weapon) =>
     profBonus +
     abilityForWeapon(weapon) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
     
+  const normalizeDamageTypeForClass = (type) => {
+    const trimmed = (type || '').trim();
+    return trimmed ? trimmed.toLowerCase().replace(/\s+/g, '-') : '';
+  };
+
   const formatDamageSegments = (damage, ability) =>
     damage
       .split(/\s+\+\s+/)
       .map((part, i, arr) => {
         const [token, ...rest] = part.trim().split(' ');
         const type = rest.join(' ').trim();
+        const normalizedType = normalizeDamageTypeForClass(type);
+        const displayType = type ? toTitleCase(type) : '';
+        const showAbility = ability !== undefined && ability !== null && i === 0;
         return (
           <React.Fragment key={i}>
-            <span className={type ? `damage-${type}` : ''}>
+            <span className={normalizedType ? `damage-${normalizedType}` : ''}>
               {token}
-              {ability !== undefined ? `+${ability}` : ''}
-              {type ? ` ${type}` : ''}
+              {showAbility ? `+${ability}` : ''}
+              {displayType ? ` ${displayType}` : ''}
             </span>
             {i < arr.length - 1 ? ' + ' : ''}
           </React.Fragment>
@@ -231,6 +441,17 @@ const [isFumble, setIsFumble] = useState(false);
       result.total,
       result.breakdown,
       weapon.name
+    );
+  };
+
+  const handleBreathWeaponAttack = () => {
+    if (!breathWeaponDetails) return;
+    const result = calculateDamage(breathWeaponDetails.damageString, 0, false);
+    if (!result) return;
+    updateDamageValueWithAnimation(
+      result.total,
+      result.breakdown,
+      'Breath Weapon'
     );
   };
 
@@ -312,13 +533,6 @@ const sortedSpells = useMemo(() => {
 }, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
-const opacity = 0.85;
-// Calculate RGBA color with opacity
-const rgbaColor = `rgba(${parseInt(form.diceColor.slice(1, 3), 16)}, ${parseInt(form.diceColor.slice(3, 5), 16)}, ${parseInt(form.diceColor.slice(5, 7), 16)}, ${opacity})`;
-
-// Apply the calculated RGBA color to the element
-document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-
 const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
 const [damageLog, setDamageLog] = useState([]);
@@ -377,74 +591,7 @@ useEffect(() => {
     return () => clearTimeout(timer);
   }
 }, [loading]);
-//-------------------------------------------D20 Dice Roller--------------------------------------------------------------------------
-const [sides] = useState(20);
-const [initialSide] = useState(1);
-const [timeoutId, setTimeoutId] = useState(null);
-const [animationDuration] = useState('3000ms');
-const [activeFace, setActiveFace] = useState(null);
-const [rolling, setRolling] = useState(false);
-const face = Math.floor(Math.random() * sides) + initialSide;
-
-const randomFace = () => {
-  return face === activeFace ? randomFace() : face;
-};
-
-const rollTo = (face) => {
-  clearTimeout(timeoutId);
-  setActiveFace(face);
-  setRolling(false);
-
-  if (face === 20 || face === 1) {
-    showSparklesEffect({ x: 100 / 2, y: 100 / 2 });
-    setTimeout(() => {
-      showSparklesEffect();
-    }, 5000);
-  }
-};
-
-const handleRandomizeClick = (e) => {
-  e.preventDefault(); // Prevent page refresh
-  setRolling(true);
-  clearTimeout(timeoutId);
-
-  const newTimeoutId = setTimeout(() => {
-    setRolling(false);
-    rollTo(randomFace());
-  }, parseInt(animationDuration, 10));
-
-  setTimeoutId(newTimeoutId);
-};
-
-useEffect(() => {
-  // Cleanup effect
-  return () => clearTimeout(timeoutId);
-}, [timeoutId]);
-
-const faceElements = [];
-for (let i = 1; i <= 20; i++) {
-  faceElements.push(
-    <figure className={`face face-${i}`} key={i}></figure>
-  );
-}
-const [showSparkles, setShowSparkles] = useState(false);
-const [showSparkles1, setShowSparkles1] = useState(false);
-
-// Create a function to display sparkles
-const showSparklesEffect = () => {
-  if (face === 20) {
-    setShowSparkles(true);
-    setTimeout(() => {
-      setShowSparkles(false);
-    }, 2000);
-  } else if (face === 1) {
-    setShowSparkles1(true);
-    setTimeout(() => {
-      setShowSparkles1(false);
-    }, 2000);
-  }
-};
-//-------------------------------------------------------------Display-----------------------------------------------------------------------------------------
+  const passDisabled = !canPassTurn || isPassTurnInProgress;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -464,11 +611,16 @@ const showSparklesEffect = () => {
             background: 'transparent',
             borderRadius: '8px',
             textShadow: '1px 1px 2px #000',
-            cursor: 'pointer',
+            cursor: passDisabled ? 'not-allowed' : 'pointer',
+            opacity: passDisabled ? 0.5 : 1,
             transition: 'all 0.2s ease',
             border: 'none',
           }}
+          disabled={passDisabled}
           onMouseOver={(e) => {
+            if (passDisabled) {
+              return;
+            }
             e.target.style.background = 'none';
             e.target.style.boxShadow =
               '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
@@ -478,7 +630,12 @@ const showSparklesEffect = () => {
             e.target.style.boxShadow = 'none';
             e.target.style.border = 'none';
           }}
-          onClick={onPassTurn}
+          onClick={() => {
+            if (passDisabled) {
+              return;
+            }
+            onPassTurn();
+          }}
         >
           Pass ➔
         </Button>
@@ -549,13 +706,14 @@ const showSparklesEffect = () => {
                   {entry.breakdown && (
                     <div>
                       {entry.breakdown.split(' + ').map((segment, i) => {
-                        const match = segment.match(/(\d+)(?:\s+(\w+))?/);
-                        const value = match ? match[1] : segment;
-                        const type = match ? match[2] : '';
+                        const [valueToken, ...typeParts] = segment.trim().split(/\s+/);
+                        const value = valueToken || segment;
+                        const type = typeParts.join(' ');
+                        const normalizedType = normalizeDamageTypeForClass(type);
                         return (
                           <div key={i}>
                             -{' '}
-                            <span className={type ? `damage-${type}` : ''}>
+                            <span className={normalizedType ? `damage-${normalizedType}` : ''}>
                               {value}
                               {type ? ` ${type}` : ''}
                             </span>
@@ -579,46 +737,26 @@ const showSparklesEffect = () => {
           paddingBottom: `${footerHeight}px`,
         }}
       >
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', alignItems: 'center' }}>
-            {/* Attack Button */}
-            <button
-              onClick={handleShowAttack}
-              style={{
-              width: "64px",
-              height: "64px",
+        <div className="attack-roll-controls">
+          {/* Attack Button */}
+          <button
+            onClick={handleShowAttack}
+            style={{
+              width: '64px',
+              height: '64px',
               backgroundImage: `url(${sword})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              border: "none",
-              transition: "transform 0.2s ease",
-              cursor: "pointer",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              border: 'none',
+              transition: 'transform 0.2s ease',
+              cursor: 'pointer',
               backgroundColor: 'transparent',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             title="Attack"
           />
-        </div>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <div className="content">
-            {showSparkles && (
-              <div className="sparkle"></div>
-            )}
-            {showSparkles1 && (
-              <div className="sparkle1"></div>
-            )}
-            <div onClick={handleRandomizeClick}
-    className={`die ${rolling ? 'rolling' : ''}`} data-face={activeFace}>
-      {faceElements}
-    </div>
-          </div>
+          <D20RollerModal renderInline diceColor={form?.diceColor} />
         </div>
       </div>
 {/* Attack Modal */}
@@ -630,92 +768,210 @@ const showSparklesEffect = () => {
           </Card.Header>
           <Card.Body>
             <Card.Title className="modal-title">Weapons</Card.Title>
-              <Table className="modern-table" striped bordered hover responsive>
-                <thead>
-                  <tr>
-                    <th>Weapon Name</th>
-                    <th>Attack Bonus</th>
-                    <th>Damage</th>
-                    <th>Attack</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {equippedWeapons.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center text-muted">
-                        No weapons equipped.
-                      </td>
-                    </tr>
-                  ) : (
-                    equippedWeapons.map(({ slot, weapon }) => (
-                      <tr key={`${slot}-${weapon.name || slot}`}>
-                        <td className="text-capitalize">{weapon.name || 'Unknown'}</td>
-                        <td>{getAttackBonus(weapon)}</td>
-                        <td>{getDamageString(weapon)}</td>
-                        <td>
+            <div className="attack-card-grid">
+              {equippedWeapons.length === 0 ? (
+                <div className="attack-card attack-card--empty">
+                  <p className="text-muted mb-0">No weapons equipped.</p>
+                </div>
+              ) : (
+                equippedWeapons.map(({ slot, weapon }) => {
+                  const weaponTypeLabel = getWeaponTypeLabel(weapon);
+                  const propertyDetails = getWeaponPropertyDetails(weapon);
+                  const propertyLabels = propertyDetails.map(({ label }) => label);
+                  const propertiesDisplay =
+                    propertyLabels.length > 0
+                      ? propertyLabels.join(', ')
+                      : 'None';
+                  const popoverId = `weapon-properties-${slot}`;
+
+                  const propertiesPopover = (
+                    <Popover id={popoverId}>
+                      <Popover.Header as="h3">Weapon Properties</Popover.Header>
+                      <Popover.Body>
+                        {propertyDetails.map(({ label, description }) => (
+                          <div className="weapon-property" key={`${popoverId}-${label}`}>
+                            <div className="weapon-property__name">{label}</div>
+                            <div className="weapon-property__description">{description}</div>
+                          </div>
+                        ))}
+                      </Popover.Body>
+                    </Popover>
+                  );
+
+                  return (
+                    <div
+                      className="attack-card"
+                      key={`${slot}-${weapon.name || slot}`}
+                    >
+                      <div className="attack-card__title text-capitalize">
+                        {weapon.name || 'Unknown'}
+                      </div>
+                      <div className="attack-card__meta">
+                        <div className="attack-card__meta-item">
+                          <span className="attack-card__meta-label">Weapon Type:</span>
+                          <span className="attack-card__meta-value">{weaponTypeLabel}</span>
+                        </div>
+                      </div>
+                      <div className="attack-card__details">
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Attack Bonus</span>
+                          <span className="attack-card__value">
+                            {getAttackBonus(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Damage</span>
+                          <span className="attack-card__value">
+                            {getDamageString(weapon)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row attack-card__row--properties">
+                          <span className="attack-card__label">Properties</span>
+                          <span className="attack-card__value attack-card__properties">
+                            {propertiesDisplay}
+                            {propertyDetails.length > 0 && (
+                              <OverlayTrigger
+                                trigger="click"
+                                placement="auto"
+                                overlay={propertiesPopover}
+                                rootClose
+                              >
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  className="attack-card__properties-button"
+                                  aria-label="View weapon property descriptions"
+                                >
+                                  <i className="fa-solid fa-eye" aria-hidden="true"></i>
+                                </Button>
+                              </OverlayTrigger>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="attack-card__actions">
+                        <Button
+                          onClick={() => {
+                            handleWeaponAttack(weapon);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="roll"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            {breathWeaponDetails && (
+              <>
+                <Card.Title className="modal-title mt-4">Breath Attack</Card.Title>
+                <div className="attack-card-grid">
+                  <div className="attack-card">
+                    <div className="attack-card__title">
+                      {breathWeaponDetails.label}
+                    </div>
+                    <div className="attack-card__details">
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Save DC</span>
+                        <span className="attack-card__value">
+                          {breathWeaponDetails.saveDC}
+                        </span>
+                      </div>
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Damage</span>
+                        <span className="attack-card__value">
+                          {formatDamageSegments(breathWeaponDetails.damageString)}
+                        </span>
+                      </div>
+                      {(breathWeaponDetails.shape || breathWeaponDetails.save) && (
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Shape</span>
+                          <span className="attack-card__value">
+                            {breathWeaponDetails.shape}
+                            {breathWeaponDetails.shape && breathWeaponDetails.save
+                              ? ' • '
+                              : ''}
+                            {breathWeaponDetails.save
+                              ? `${breathWeaponDetails.save} Save`
+                              : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="attack-card__actions">
+                      <Button
+                        onClick={() => {
+                          handleBreathWeaponAttack();
+                          handleCloseAttack();
+                        }}
+                        variant="link"
+                        aria-label="roll"
+                        className="attack-card__roll"
+                      >
+                        <i className="fa-solid fa-dice-d20"></i>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
+              <>
+                <Card.Title className="modal-title mt-4">Spells</Card.Title>
+                <div className="attack-card-grid">
+                  {sortedSpells
+                    .filter((s) => s && s.damage)
+                    .map((spell, idx) => (
+                      <div className="attack-card" key={idx}>
+                        <div className="attack-card__title">{spell.name}</div>
+                        <div className="attack-card__meta">
+                          <span>{spell.casterType || spell.caster || 'Unknown'}</span>
+                          <span>• Level {spell.level}</span>
+                        </div>
+                        <div className="attack-card__details">
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Damage</span>
+                            <span className="attack-card__value">
+                              {formatDamageSegments(spell.damage)}
+                            </span>
+                          </div>
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Casting Time</span>
+                            <span className="attack-card__value">{spell.castingTime}</span>
+                          </div>
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Range</span>
+                            <span className="attack-card__value">{spell.range}</span>
+                          </div>
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Duration</span>
+                            <span className="attack-card__value">{spell.duration}</span>
+                          </div>
+                        </div>
+                        <div className="attack-card__actions">
                           <Button
                             onClick={() => {
-                              handleWeaponAttack(weapon);
+                              handleSpellsButtonClick(spell);
                               handleCloseAttack();
                             }}
                             variant="link"
                             aria-label="roll"
+                            className="attack-card__roll"
                           >
                             <i className="fa-solid fa-dice-d20"></i>
                           </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
-              <>
-                <Card.Title className="modal-title mt-4">Spells</Card.Title>
-                <Table className="modern-table" striped bordered hover responsive>
-                  <thead>
-                    <tr>
-                      <th>Spell Name</th>
-                      <th>Class</th>
-                      <th>Level</th>
-                      <th>Damage</th>
-                      <th>Casting Time</th>
-                      <th>Range</th>
-                      <th>Duration</th>
-                      <th>Attack</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedSpells
-                      .filter((s) => s && s.damage)
-                      .map((spell, idx) => (
-                        <tr key={idx}>
-                          <td>{spell.name}</td>
-                          <td>{spell.casterType || spell.caster || 'Unknown'}</td>
-                          <td>{spell.level}</td>
-                          <td>{formatDamageSegments(spell.damage)}</td>
-                          <td>{spell.castingTime}</td>
-                          <td>{spell.range}</td>
-                          <td>{spell.duration}</td>
-                          <td>
-                            <Button
-                              onClick={() => {
-                                handleSpellsButtonClick(spell);
-                                handleCloseAttack();
-                              }} 
-                              variant="link"
-                              aria-label="roll"                 
-                            >
-                              <i className="fa-solid fa-dice-d20"></i>
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </Table>
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </>
             )}
-            </Card.Body>
+          </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>
                 Close

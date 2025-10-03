@@ -50,10 +50,18 @@ test('renders features and opens modal with description', async () => {
   });
   expect(useButtons).toHaveLength(2);
 
-  const actionSurgeRow = (await screen.findByText('Action Surge')).closest('tr');
-  const actionSurgeButton = within(actionSurgeRow).getByRole('button', {
+  const actionSurgeCard = (await screen.findByText('Action Surge')).closest(
+    '.feature-card'
+  );
+  expect(actionSurgeCard).not.toBeNull();
+
+  const actionSurgeButton = within(actionSurgeCard).getByRole('button', {
     name: /view feature/i
   });
+
+  expect(
+    screen.queryByText('You can take one additional action.')
+  ).not.toBeInTheDocument();
 
   await act(async () => {
     await userEvent.click(actionSurgeButton);
@@ -62,6 +70,186 @@ test('renders features and opens modal with description', async () => {
   expect(
     await screen.findByText('You can take one additional action.')
   ).toBeInTheDocument();
+});
+
+test('dragonborn always has damage resistance and gains draconic flight at level 5', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const baseForm = {
+    race: {
+      name: 'Dragonborn',
+      selectedAncestry: {
+        label: 'Gold',
+        damageType: 'Fire',
+      },
+    },
+  };
+
+  const renderFeatures = (occupation) =>
+    render(
+      <Features
+        form={{ ...baseForm, occupation }}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+      />
+    );
+
+  const firstRender = renderFeatures([]);
+
+  expect(await screen.findByText('Damage Resistance')).toBeInTheDocument();
+  expect(screen.queryByText('Draconic Flight')).not.toBeInTheDocument();
+
+  firstRender.unmount();
+
+  const levelFiveForm = [{ Name: 'Fighter', Level: 5 }];
+
+  renderFeatures(levelFiveForm);
+
+  const flightFeature = await screen.findByText('Draconic Flight');
+  expect(await screen.findByText('Damage Resistance')).toBeInTheDocument();
+  expect(screen.getAllByText('Damage Resistance').length).toBeGreaterThan(0);
+
+  const flightCard = flightFeature.closest('.feature-card');
+  expect(flightCard).not.toBeNull();
+
+  const viewButton = within(flightCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(
+      'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(viewButton);
+  });
+
+  expect(
+    await screen.findByText(
+      'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.'
+    )
+  ).toBeInTheDocument();
+});
+
+test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const ancestry = {
+    label: "Cloud's Jaunt",
+    ancestryName: 'Cloud Giant',
+    description: 'As a bonus action, teleport up to 30 feet to an unoccupied space you can see.',
+    usage: 'Bonus action • Proficiency bonus per long rest',
+  };
+
+  const race = {
+    name: 'Goliath',
+    giantAncestries: { cloud: ancestry },
+    selectedAncestryKey: 'cloud',
+    selectedAncestry: ancestry,
+  };
+
+  const onLargeForm = jest.fn();
+
+  const { rerender } = render(
+    <Features
+      form={{ race, occupation: [{ Name: 'Barbarian', Level: 4 }] }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onLargeForm={onLargeForm}
+    />
+  );
+
+  const boon = await screen.findByText("Cloud's Jaunt");
+  expect(boon).toBeInTheDocument();
+  expect(screen.getByText('Powerful Build')).toBeInTheDocument();
+
+  const boonCard = boon.closest('.feature-card');
+  expect(boonCard).not.toBeNull();
+  const boonViewButton = within(boonCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(
+      "As a bonus action, teleport up to 30 feet to an unoccupied space you can see. Bonus action • Proficiency bonus per long rest"
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(boonViewButton);
+  });
+
+  expect(
+    await screen.findByText(
+      "As a bonus action, teleport up to 30 feet to an unoccupied space you can see. Bonus action • Proficiency bonus per long rest"
+    )
+  ).toBeInTheDocument();
+
+  const boonModals = screen.getAllByRole('dialog');
+  const boonModal = boonModals[boonModals.length - 1];
+  const boonClose = within(boonModal).getByRole('button', { name: /close/i });
+
+  await act(async () => {
+    await userEvent.click(boonClose);
+  });
+
+  expect(screen.queryByText('Large Form')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{ race, occupation: [{ Name: 'Barbarian', Level: 5 }] }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onLargeForm={onLargeForm}
+    />
+  );
+
+  const largeForm = await screen.findByText('Large Form');
+  expect(largeForm).toBeInTheDocument();
+
+  const largeFormCard = largeForm.closest('.feature-card');
+  expect(largeFormCard).not.toBeNull();
+  const largeFormView = within(largeFormCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  const largeFormUse = within(largeFormCard).getByRole('button', {
+    name: /use feature/i,
+  });
+
+  expect(largeFormUse).toBeEnabled();
+  expect(onLargeForm).not.toHaveBeenCalled();
+
+  expect(
+    screen.queryByText(
+      "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest."
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(largeFormView);
+  });
+
+  expect(
+    await screen.findByText(
+      "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest."
+    )
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(largeFormUse);
+  });
+
+  expect(onLargeForm).toHaveBeenCalledTimes(1);
+  expect(largeFormUse).toBeDisabled();
 });
 
 test('features are sorted by class then level', async () => {
@@ -100,18 +288,10 @@ test('features are sorted by class then level', async () => {
 
   expect(await screen.findByText('Arcane Recovery')).toBeInTheDocument();
 
-  const rows = screen.getAllByRole('row').slice(1); // skip header
-  const order = rows.map((row) => {
-    const cells = within(row).getAllByRole('cell');
-    return {
-      cls: cells[0].textContent,
-      lvl: cells[1].textContent,
-      feat: cells[2].textContent,
-    };
-  });
-  expect(order).toEqual([
-    { cls: 'Fighter', lvl: '1', feat: 'Second Wind' },
-    { cls: 'Fighter', lvl: '2', feat: 'Action Surge' },
-    { cls: 'Wizard', lvl: '1', feat: 'Arcane Recovery' },
-  ]);
+  const featureNameNodes = screen.getAllByText((_, node) =>
+    node.classList?.contains('feature-card-name')
+  );
+
+  const order = featureNameNodes.map((node) => node.textContent);
+  expect(order).toEqual(['Second Wind', 'Action Surge', 'Arcane Recovery']);
 });

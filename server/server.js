@@ -1,3 +1,4 @@
+const http = require('http');
 const express = require("express");
 const app = express();
 app.set('trust proxy', 1);
@@ -11,6 +12,7 @@ const config = require("./utils/config");
 const connectToDatabase = require("./db/conn");
 const routes = require("./routes");
 const logger = require("./utils/logger");
+const { initializeSocket } = require('./utils/socket');
 const port = process.env.PORT || 5000;
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = config.clientOrigins;
@@ -36,7 +38,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 const apiHost = process.env.API_ORIGIN || 'https://realmtracker.org';
 const connectSrc = ["'self'", apiHost];
@@ -52,6 +55,9 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         connectSrc,
+        imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
+        mediaSrc: ["'self'", 'https:', 'data:', 'blob:'],
+        fontSrc: ["'self'", 'https:', 'data:', 'blob:'],
       },
     },
   })
@@ -106,10 +112,13 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
+const server = http.createServer(app);
+
 async function startServer() {
   try {
     await connectToDatabase();
-    app.listen(port, '0.0.0.0', () => {
+    initializeSocket(server);
+    server.listen(port, '0.0.0.0', () => {
       logger.info(`Server is running on port: ${port}`);
     });
   } catch (err) {

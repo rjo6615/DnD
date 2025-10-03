@@ -5,7 +5,11 @@ import hasteIcon from '../../../images/spell-haste-icon.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(),
+}));
 import apiFetch from '../../../utils/apiFetch';
+import { io as mockSocketIo } from 'socket.io-client';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -14,7 +18,17 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../attributes/CharacterInfo', () => () => null);
 jest.mock('../attributes/Stats', () => () => null);
-jest.mock('../attributes/Skills', () => () => null);
+const mockSkillsModalProps = { current: null };
+const mockDockedSkillsModalProps = { current: null };
+jest.mock('../attributes/Skills', () => (props) => {
+  mockSkillsModalProps.current = props;
+
+  if (props && typeof props.isDocked !== 'undefined') {
+    mockDockedSkillsModalProps.current = props;
+  }
+
+  return props.showSkill ? <div data-testid="skills-modal" /> : null;
+});
 jest.mock('../attributes/Feats', () => () => null);
 jest.mock('../../Weapons/WeaponList', () => () => null);
 var mockUpdateDamage;
@@ -54,8 +68,14 @@ jest.mock('../attributes/ShopModal', () => (props) => {
   mockShopModalProps.current = props;
   return null;
 });
+const mockMapModalProps = { current: null };
+jest.mock('../attributes/MapModal', () => (props) => {
+  mockMapModalProps.current = props;
+  return props.show ? <div data-testid="map-modal" /> : null;
+});
 const mockOnCastSpell = { current: null };
 const mockHandleClose = { current: null };
+let socketStub;
 jest.mock('../attributes/SpellSelector', () => (props) => {
   mockOnCastSpell.current = props.onCastSpell;
   mockHandleClose.current = props.handleClose;
@@ -65,8 +85,44 @@ jest.mock('../attributes/HealthDefense', () => () => null);
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
+const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
+const matchMediaState = {};
+
 beforeEach(() => {
   apiFetch.mockReset();
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/maps')) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+    if (typeof url === 'string' && url.includes('/map')) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+    if (typeof url === 'string' && url.includes('/classes/')) {
+      return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
+    }
+    if (typeof url === 'string' && url.includes('/combat')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ participants: [], activeTurn: null }),
+      });
+    }
+    if (typeof url === 'string' && url.includes('/characters')) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+    if (typeof url === 'string' && url.includes('/enemies')) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
+    return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
+  });
+  mockSocketIo.mockReset();
+  socketStub = {
+    on: jest.fn(),
+    off: jest.fn(),
+    emit: jest.fn(),
+    disconnect: jest.fn(),
+  };
+  mockSocketIo.mockReturnValue(socketStub);
   mockUpdateDamage.mockClear();
   mockCalcDamage.mockClear();
   mockOnCastSpell.current = null;
@@ -74,6 +130,23 @@ beforeEach(() => {
   mockShopModalProps.current = null;
   mockInventoryModalProps.current = null;
   mockEquipmentModalProps.current = null;
+  mockMapModalProps.current = null;
+  mockSkillsModalProps.current = null;
+  mockDockedSkillsModalProps.current = null;
+  window.matchMedia = jest.fn().mockImplementation((query) => {
+    const matches = matchMediaState[query] ?? false;
+    return {
+      matches,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    };
+  });
+  matchMediaState[WIDE_SCREEN_QUERY] = false;
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -103,6 +176,63 @@ test('spells button includes points-glow when spell points available', async () 
   const buttons = await screen.findAllByRole('button');
   const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
+});
+
+test('reapplies Large Form bonuses after persisted effects and refetch', async () => {
+  window.localStorage.clear();
+  window.localStorage.setItem(
+    'zombiesActiveEffects:1',
+    JSON.stringify([{ name: 'Large Form' }])
+  );
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    campaign: null,
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
+
+  const { rerender } = render(<ZombiesCharacterSheet key="initial" />);
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  await act(async () => {
+    rerender(<ZombiesCharacterSheet key="refetched" />);
+  });
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  window.localStorage.removeItem('zombiesActiveEffects:1');
+  window.localStorage.clear();
 });
 
 test('spells button glows when spellPoints absent but spells remain', async () => {
@@ -165,6 +295,88 @@ test('warlock character renders spells button', async () => {
   const buttons = await screen.findAllByRole('button');
   const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
   expect(spellButton).toBeInTheDocument();
+});
+
+test('wide screens expose dock selectors and pass docking props', async () => {
+  matchMediaState[WIDE_SCREEN_QUERY] = true;
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      expertisePoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const leftSelector = await screen.findByLabelText(/Dock left modal/i);
+  expect(leftSelector).toBeInTheDocument();
+  expect(leftSelector).toHaveValue('');
+
+  await waitFor(() => {
+    expect(mockEquipmentModalProps.current).not.toBeNull();
+  });
+
+  await userEvent.selectOptions(leftSelector, 'skills');
+  expect(leftSelector).toHaveValue('skills');
+
+  await waitFor(() => {
+    const activeSkillsProps =
+      mockDockedSkillsModalProps.current ?? mockSkillsModalProps.current;
+
+    expect(activeSkillsProps).not.toBeNull();
+    expect(leftSelector).toHaveValue('skills');
+
+    if (activeSkillsProps && typeof activeSkillsProps.isDocked !== 'undefined') {
+      expect(activeSkillsProps.isDocked).toBe(true);
+      expect(activeSkillsProps.dockedSide).toBe('left');
+    }
+  });
+
+  const rightSelector = screen.getByLabelText(/Dock right modal/i);
+  await userEvent.selectOptions(rightSelector, 'map');
+
+  await waitFor(() => {
+    expect(mockMapModalProps.current).not.toBeNull();
+    if (typeof mockMapModalProps.current.isDocked !== 'undefined') {
+      expect(mockMapModalProps.current.isDocked).toBe(true);
+      expect(mockMapModalProps.current.dockedSide).toBe('right');
+    }
+    expect(mockMapModalProps.current.show).toBe(true);
+  });
+
+  act(() => {
+    mockDockedSkillsModalProps.current?.onDockClose?.();
+  });
+
+  await waitFor(() => {
+    expect(leftSelector).toHaveValue('');
+  });
+
+  act(() => {
+    mockMapModalProps.current.onHide();
+  });
+
+  await waitFor(() => {
+    expect(rightSelector).toHaveValue('');
+    if (typeof mockMapModalProps.current.isDocked !== 'undefined') {
+      expect(mockMapModalProps.current.isDocked).toBe(false);
+    }
+  });
 });
 
 test('footer renders equipment button after spells button for spellcasters', async () => {
@@ -245,6 +457,169 @@ test('footer renders equipment button before inventory for non-spellcasters', as
   expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
 });
 
+test('map footer button toggles the campaign map modal', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+        campaign: 'The Wilds',
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ participants: [], activeTurn: null }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        maps: [
+          {
+            mapId: 'wilds-map',
+            title: 'Wilds Overview',
+            imageUrl: 'https://example.com/wilds-map.png',
+            altText: 'Wilds overview map',
+          },
+        ],
+        activeMapId: 'wilds-map',
+      }),
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  const buttons = await screen.findAllByRole('button');
+  const mapButton = buttons.find((btn) => btn.querySelector('.fa-map'));
+  expect(mapButton).toBeInTheDocument();
+
+  await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
+  expect(mockMapModalProps.current.show).toBe(false);
+  expect(mockMapModalProps.current.map).toMatchObject({
+    mapId: 'wilds-map',
+    title: 'Wilds Overview',
+    imageUrl: 'https://example.com/wilds-map.png',
+  });
+  expect(mockMapModalProps.current.maps).toHaveLength(1);
+  expect(mockMapModalProps.current.activeMapId).toBe('wilds-map');
+
+  await userEvent.click(mapButton);
+  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
+
+  act(() => {
+    mockMapModalProps.current.onHide();
+  });
+
+  await waitFor(() => expect(mockMapModalProps.current.show).toBe(false));
+});
+
+test('campaign map update events synchronize active map and list', async () => {
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        occupation: [],
+        spells: [],
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+        startStatTotal: 60,
+        proficiencyPoints: 0,
+        skills: {},
+        item: [],
+        feat: [],
+        weapon: [],
+        armor: [],
+        campaign: 'The Wilds',
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ participants: [], activeTurn: null }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        maps: [
+          {
+            mapId: 'old-map',
+            title: 'Old Map',
+            imageUrl: 'https://example.com/old-map.png',
+          },
+        ],
+        activeMapId: 'old-map',
+      }),
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockMapModalProps.current?.map?.mapId).toBe('old-map'));
+  await waitFor(() =>
+    expect(socketStub.on).toHaveBeenCalledWith(
+      'campaign:map:update',
+      expect.any(Function)
+    )
+  );
+
+  const mapUpdateCall = socketStub.on.mock.calls.find(
+    ([eventName]) => eventName === 'campaign:map:update'
+  );
+  expect(mapUpdateCall).toBeTruthy();
+  const [, mapUpdateHandler] = mapUpdateCall;
+  expect(typeof mapUpdateHandler).toBe('function');
+
+  act(() => {
+    mapUpdateHandler({
+      maps: [
+        {
+          mapId: 'old-map',
+          title: 'Old Map',
+          imageUrl: 'https://example.com/old-map.png',
+        },
+        {
+          mapId: 'new-map',
+          title: 'New Map',
+          imageUrl: 'https://example.com/new-map.png',
+        },
+      ],
+      activeMapId: 'new-map',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockMapModalProps.current.map).toBeTruthy();
+    expect(mockMapModalProps.current.map).toMatchObject({
+      mapId: 'new-map',
+      title: 'New Map',
+    });
+  });
+  expect(mockMapModalProps.current.activeMapId).toBe('new-map');
+  expect(mockMapModalProps.current.maps).toHaveLength(2);
+});
+
 test('renders SpellSlots for non-spellcasting characters', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
@@ -271,6 +646,97 @@ test('renders SpellSlots for non-spellcasting characters', async () => {
   await waitFor(() =>
     expect(container.querySelector('.spell-slot-container')).toBeInTheDocument()
   );
+});
+
+test('persists used spell slots and actions to localStorage', async () => {
+  window.localStorage.clear();
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [{ Name: 'Wizard', Level: 1 }],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+  };
+
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => baseCharacter,
+  });
+
+  const user = userEvent.setup();
+  const { container, unmount } = render(<ZombiesCharacterSheet />);
+
+  await waitFor(() =>
+    expect(container.querySelector('.spell-slot-container')).toBeInTheDocument()
+  );
+
+  const actionCircle = container.querySelector('.action-slot .action-circle');
+  expect(actionCircle).toBeInTheDocument();
+  await user.click(actionCircle);
+  await waitFor(() => expect(actionCircle).toHaveClass('slot-used'));
+
+  const regularSlot = container.querySelector(
+    '[data-slot-type="regular"][data-slot-level="1"] .slot-small'
+  );
+  expect(regularSlot).toBeInTheDocument();
+  await user.click(regularSlot);
+  await waitFor(() => expect(regularSlot).toHaveClass('slot-used'));
+
+  const storageKey = 'zombiesUsedSlots:1';
+  await waitFor(() => {
+    const stored = window.localStorage.getItem(storageKey);
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored);
+    expect(parsed).toMatchObject({
+      action: { 0: 'used' },
+      'regular-1': { 0: true },
+    });
+  });
+
+  unmount();
+
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => baseCharacter,
+  });
+
+  const { container: rehydratedContainer } = render(
+    <ZombiesCharacterSheet key="rehydrated" />
+  );
+
+  await waitFor(() =>
+    expect(
+      rehydratedContainer.querySelector('.spell-slot-container')
+    ).toBeInTheDocument()
+  );
+
+  await waitFor(() => {
+    const rehydratedAction = rehydratedContainer.querySelector(
+      '.action-slot .action-circle'
+    );
+    expect(rehydratedAction).toHaveClass('slot-used');
+  });
+
+  await waitFor(() => {
+    const rehydratedRegular = rehydratedContainer.querySelector(
+      '[data-slot-type="regular"][data-slot-level="1"] .slot-small'
+    );
+    expect(rehydratedRegular).toHaveClass('slot-used');
+  });
+
+  window.localStorage.clear();
 });
 
 test('skills button includes points-glow when skill points available', async () => {
@@ -328,6 +794,50 @@ test('skills button includes points-glow when expertise points available', async
   const buttons = await screen.findAllByRole('button');
   const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
+});
+
+test('skills button does not glow when granted proficiencies meet totals', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Rogue', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 2,
+      expertisePoints: 1,
+      skills: {
+        stealth: { proficient: true, expertise: true },
+        perception: { proficient: true },
+      },
+      race: {
+        skills: {
+          stealth: { proficient: true, expertise: true },
+          perception: { proficient: true },
+        },
+      },
+      background: {
+        skills: {
+          stealth: { expertise: true },
+          perception: { proficient: true },
+        },
+      },
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const buttons = await screen.findAllByRole('button');
+  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
+  await waitFor(() => expect(skillButton).not.toHaveClass('points-glow'));
 });
 
 test('casting spells consumes action and bonus circles based on casting time', async () => {
@@ -1349,4 +1859,135 @@ test('action and bonus markers cycle through states', async () => {
   expect(bonus).toHaveClass('slot-active');
   fireEvent.click(bonus);
   expect(bonus).toHaveClass('slot-used');
+});
+
+test('loads campaign map tokens and updates them after placement', async () => {
+  const campaignId = 'camp-1';
+  const mapId = 'map-1';
+  const character = {
+    _id: 'char-1',
+    characterId: 'char-1',
+    characterName: 'Hero',
+    campaign: campaignId,
+    occupation: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    item: [],
+    accessories: [],
+    diceColor: '#3366ff',
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+  };
+
+  apiFetch.mockImplementation((url, options = {}) => {
+    if (url === '/characters/1') {
+      return Promise.resolve({ ok: true, json: async () => character });
+    }
+
+    if (url === `/campaigns/${campaignId}/combat`) {
+      return Promise.resolve({ ok: true, json: async () => ({ participants: [] }) });
+    }
+
+    if (url === `/campaigns/${campaignId}/characters`) {
+      return Promise.resolve({ ok: true, json: async () => [character] });
+    }
+
+    if (url === `/campaigns/${campaignId}/enemies`) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps`) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          maps: [
+            {
+              mapId,
+              title: 'Dungeon',
+              tokens: {
+                'char-1': { characterId: 'char-1', x: 0.2, y: 0.4 },
+              },
+            },
+          ],
+          activeMapId: mapId,
+          tokensByMapId: {
+            [mapId]: {
+              'char-1': { characterId: 'char-1', x: 0.2, y: 0.4 },
+            },
+          },
+        }),
+      });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1` && options.method === 'PUT') {
+      expect(JSON.parse(options.body)).toEqual({ x: 0.5, y: 0.6 });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1` && options.method === 'DELETE') {
+      return Promise.resolve({ ok: true });
+    }
+
+    return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
+
+  await waitFor(() => {
+    expect(mockMapModalProps.current.tokensByMapId).toMatchObject({
+      'map-1': {
+        'char-1': expect.objectContaining({ characterId: 'char-1', x: 0.2, y: 0.4 }),
+      },
+    });
+  });
+  expect(mockMapModalProps.current.currentCharacterId).toBe('char-1');
+  expect(mockMapModalProps.current.characterLookup['char-1']).toMatchObject({
+    color: '#3366ff',
+    label: 'Hero',
+  });
+
+  await act(async () => {
+    const result = await mockMapModalProps.current.onTokenMove({
+      mapId,
+      characterId: 'char-1',
+      x: 0.5,
+      y: 0.6,
+    });
+    expect(result).toBe(true);
+  });
+
+  await waitFor(() => {
+    const updatedToken =
+      mockMapModalProps.current.tokensByMapId?.[mapId]?.['char-1'];
+    expect(updatedToken).toBeDefined();
+    expect(updatedToken.x).toBeCloseTo(0.5);
+    expect(updatedToken.y).toBeCloseTo(0.6);
+  });
+
+  apiFetch.mockClear();
+
+  await act(async () => {
+    const result = await mockMapModalProps.current.onTokenRemove({
+      mapId,
+      characterId: 'char-1',
+    });
+    expect(result).toBe(true);
+  });
+
+  await waitFor(() => {
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/campaigns/${campaignId}/maps/${mapId}/tokens/char-1`,
+      expect.objectContaining({ method: 'DELETE' })
+    );
+  });
+
+  await waitFor(() => {
+    const remainingToken =
+      mockMapModalProps.current.tokensByMapId?.[mapId]?.['char-1'];
+    expect(remainingToken).toBeUndefined();
+  });
 });

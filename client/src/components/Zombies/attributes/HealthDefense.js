@@ -1,24 +1,29 @@
-import React, { useEffect, useMemo, useState } from 'react'; // Import useState and React
+import React, { useEffect, useMemo, useState } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
+import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 
 export default function HealthDefense({
   form,
   conMod,
   dexMod,
+  totalLevel,
   ac = 0,
   hpMaxBonus = 0,
   hpMaxBonusPerLevel = 0,
   initiative = 0,
   speed = 0,
   spellAbilityMod,
+  onTempHealthChange,
 }) {
   const params = useParams();
   const isLargeScreen =
     typeof window !== 'undefined' && window.innerWidth >= 768;
+  const wrapperGap = isLargeScreen ? '32px' : 'clamp(16px, 4vh, 24px)';
+  const wrapperMarginBottom = isLargeScreen ? '64px' : '0.5rem';
 //-----------------------Health/Defense------------------------------
   const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
   const normalizedEquipment = useMemo(
@@ -65,79 +70,117 @@ export default function HealthDefense({
       armorMaxDex = dexMod;
      }
     
-  const occupations = form.occupation;
+  const derivedTotalLevel = useMemo(() => {
+    if (Number.isFinite(totalLevel)) {
+      return totalLevel;
+    }
+    if (!Array.isArray(form?.occupation)) {
+      return 0;
+    }
+    return form.occupation.reduce((total, o) => total + Number(o?.Level || 0), 0);
+  }, [form?.occupation, totalLevel]);
 
-  const totalLevel = occupations.reduce(
-    (total, o) => total + Number(o.Level),
-    0
-  );
-  const profBonus = form.proficiencyBonus ?? proficiencyBonus(totalLevel);
+  const profBonus = form.proficiencyBonus ?? proficiencyBonus(derivedTotalLevel);
   const spellSaveDC =
     spellAbilityMod != null ? 8 + profBonus + spellAbilityMod : null;
 
-  // Health
-  const maxHealth =
-    Number(form.health) +
-    Number(conMod * totalLevel) +
-    Number(hpMaxBonus) +
-    Number(hpMaxBonusPerLevel * totalLevel);
-  const [health, setHealth] = useState(Number(form.tempHealth) || 0); // Initial health value
+  const { currentHp: computedCurrentHp, maxHp } = useMemo(
+    () =>
+      calculateCharacterHitPoints(form, {
+        conMod,
+        totalLevel: derivedTotalLevel,
+        hpMaxBonus,
+        hpMaxBonusPerLevel,
+      }),
+    [form, conMod, derivedTotalLevel, hpMaxBonus, hpMaxBonusPerLevel]
+  );
+
+  const safeInitialHealth = Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0;
+  const [health, setHealth] = useState(safeInitialHealth);
   const [error, setError] = useState(null); // Error message state
+
+  useEffect(() => {
+    setHealth(Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0);
+  }, [computedCurrentHp]);
 
   // Sends tempHealth data to database for update
   async function tempHealthUpdate(offset) {
+    const updatedHealthValue = (Number.isFinite(health) ? health : 0) + offset;
     try {
       await apiFetch(`/characters/update-temphealth/${params.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tempHealth: health + offset,
-        }),
-      });
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tempHealth: updatedHealthValue,
+      }),
+    });
       setError(null);
+      if (typeof onTempHealthChange === 'function') {
+        onTempHealthChange(updatedHealthValue);
+      }
     } catch (error) {
       console.error(error);
       setError("Failed to update health.");
     }
   }
 
-  useEffect(() => {
-    const parsedValue = parseFloat(form.tempHealth);
-    if (!isNaN(parsedValue)) {
-      setHealth(parsedValue);
-    } else {
-    }
-  }, [form.tempHealth]);
+  const safeMaxHealth = Number.isFinite(maxHp) ? maxHp : 0;
 
-  let offset;
   const increaseHealth = () => {
-    if (health === maxHealth){
-    } else {
-    setHealth((prevHealth) => prevHealth + 1);
-    offset = +1;
-    tempHealthUpdate(offset);
+    if (maxHp !== null && Number.isFinite(maxHp) && Number.isFinite(health) && health >= maxHp) {
+      return;
     }
+    const current = Number.isFinite(health) ? health : 0;
+    const next = current + 1;
+    setHealth(next);
+    tempHealthUpdate(1);
   };
 
   const decreaseHealth = () => {
-    if (health === -10){
-    } else {
-    setHealth((prevHealth) => prevHealth - 1);
-    offset = -1;
-    tempHealthUpdate(offset);
+    if (Number.isFinite(health) && health <= -10) {
+      return;
     }
+    const current = Number.isFinite(health) ? health : 0;
+    const next = current - 1;
+    setHealth(next);
+    tempHealthUpdate(-1);
   };
 
   const handleBarChange = (e) => {
     const newHealth = Number(e.target.value);
-    const offset = newHealth - (health ?? 0);
+    if (Number.isNaN(newHealth)) {
+      return;
+    }
+    const offset = newHealth - (Number.isFinite(health) ? health : 0);
     setHealth(newHealth);
     if (!Number.isNaN(offset)) {
       tempHealthUpdate(offset);
     }
   };
+
+  const healthValue = Number.isFinite(health) ? health : 0;
+  const sliderMax = safeMaxHealth > 0 ? safeMaxHealth : Math.max(healthValue, 0);
+  const healthRatio = sliderMax > 0 ? Math.min(Math.max((healthValue / sliderMax) * 100, 0), 100) : 0;
+  const displayCurrent =
+    Number.isFinite(health) && (computedCurrentHp !== null || healthValue !== 0)
+      ? healthValue
+      : '—';
+  const displayMax = maxHp !== null ? maxHp : '—';
+  const fillThreshold = (safeMaxHealth > 0 ? safeMaxHealth : sliderMax) * 0.5;
+  const barColor =
+    sliderMax > 0
+      ? healthValue > fillThreshold
+        ? "#2ecc71"
+        : "#c0392b"
+      : healthValue >= 0
+        ? "#2ecc71"
+        : "#c0392b";
+  const totalSpeed =
+    Number(form?.speed ?? 0) +
+    Number(speed ?? 0) +
+    Number(form?.temporarySpeedBonus ?? 0);
 
 return (
 <div
@@ -145,8 +188,8 @@ return (
     display: "flex",
     flexDirection: "column", // <-- vertical stacking
     alignItems: "center",
-    gap: "32px",
-    marginBottom: isLargeScreen ? "80px" : "1rem",
+    gap: wrapperGap,
+    marginBottom: wrapperMarginBottom,
     padding: "0 16px",
     maxWidth: "100%",
   }}
@@ -200,8 +243,8 @@ return (
       <input
         type="range"
         min="-10"
-        max={maxHealth}
-        value={health ?? 0}
+        max={sliderMax}
+        value={healthValue}
         onChange={handleBarChange}
         style={{
           position: "absolute",
@@ -216,9 +259,9 @@ return (
       />
       <div
         style={{
-          width: `${(health / maxHealth) * 100}%`,
+          width: `${healthRatio}%`,
           height: "100%",
-          background: health > maxHealth * 0.5 ? "#2ecc71" : "#c0392b",
+          background: barColor,
           transition: "width 0.3s ease-in-out",
           pointerEvents: "none",
         }}
@@ -237,7 +280,7 @@ return (
           pointerEvents: "none",
         }}
       >
-        {health}/{maxHealth}
+        {`${displayCurrent}/${displayMax}`}
       </span>
     </div>
 
@@ -288,7 +331,7 @@ return (
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
     <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
     <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
-    <div><strong>Speed:</strong> {(form.speed || 0) + Number(speed)}</div>
+    <div><strong>Speed:</strong> {totalSpeed}</div>
   </div>
 
   {/* Second row */}

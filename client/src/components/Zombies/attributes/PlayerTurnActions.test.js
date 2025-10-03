@@ -55,17 +55,36 @@ describe('calculateDamage parser', () => {
   test('handles multi-type damage and returns breakdown string', () => {
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
+    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
   });
 });
 
 describe('PlayerTurnActions weapon damage display', () => {
-  test('weapon damage segments include ability and type classes', () => {
+  test('pass button is disabled when canPassTurn is false', () => {
+    const onPassTurn = jest.fn();
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, weapon: [], spells: [] }}
+        strMod={0}
+        dexMod={0}
+        onPassTurn={onPassTurn}
+        canPassTurn={false}
+      />
+    );
+    const passButton = screen.getByRole('button', { name: /pass/i });
+    expect(passButton).toBeDisabled();
+    fireEvent.click(passButton);
+    expect(onPassTurn).not.toHaveBeenCalled();
+  });
+
+  test('weapon damage segments include ability and type classes', async () => {
     const weapon = {
       name: 'Frost Brand',
       damage: '1d4 cold + 1d6 slashing',
       category: 'melee',
       source: 'weapon',
+      type: 'martial melee weapon',
+      properties: ['Finesse', 'Versatile (1d10)'],
     };
     render(
       <PlayerTurnActions
@@ -82,11 +101,85 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
-    const cold = within(row).getByText(/1d4\+2 cold/);
-    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    const card = screen.getByText('Frost Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    expect(within(card).getByText('Weapon Type:')).toBeInTheDocument();
+    expect(within(card).getByText('Martial Melee Weapon')).toBeInTheDocument();
+    const cold = within(card).getByText('1d4+2 Cold');
+    const slashing = within(card).getByText('1d6 Slashing');
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
+    expect(slashing.textContent).toBe('1d6 Slashing');
+
+    const propertiesRow = within(card)
+      .getByText('Properties')
+      .closest('.attack-card__row');
+    expect(propertiesRow).not.toBeNull();
+    expect(
+      within(propertiesRow).getByText('Finesse, Versatile (1d10)')
+    ).toBeInTheDocument();
+    const propertiesButton = within(propertiesRow).getByRole('button', {
+      name: /view weapon property descriptions/i,
+    });
+    await act(async () => {
+      fireEvent.click(propertiesButton);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Finesse')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /When making an attack with a finesse weapon, you use your choice/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByText('Versatile (1d10)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /This weapon can be used with one or two hands\. A damage value in parentheses/
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Definition not available.')
+      ).not.toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(document.body);
+    });
+  });
+
+  test('multi-part weapon damage applies ability modifier once', () => {
+    const weapon = {
+      name: 'Storm Blade',
+      damage: '2d8 slashing + 1d6 lightning',
+      category: 'melee',
+      source: 'weapon',
+      properties: ['Versatile'],
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={3}
+        atkBonus={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const card = screen.getByText('Storm Blade').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const slashing = within(card).getByText('2d8+3 Slashing');
+    const lightning = within(card).getByText('1d6 Lightning');
+    expect(slashing.textContent).toBe('2d8+3 Slashing');
+    expect(lightning.textContent).toBe('1d6 Lightning');
+
+    const deterministicRoll = (count, sides) => Array(count).fill(1);
+    expect(
+      calculateDamage(weapon.damage, 3, false, deterministicRoll)
+    ).toEqual({ total: 6, breakdown: '5 slashing + 1 lightning' });
   });
 
   test('spell damage segments include type classes', () => {
@@ -109,9 +202,189 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Fire Bolt').closest('tr');
-    const fire = within(row).getByText(/1d10 fire/);
+    const card = screen.getByText('Fire Bolt').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
+    expect(fire.textContent).toBe('1d10 Fire');
+  });
+
+  test('spell damage displays type in title case', () => {
+    const spell = {
+      name: 'Chill Touch',
+      level: 0,
+      damage: '2d8 necrotic',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const card = screen.getByText('Chill Touch').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const necrotic = within(card).getByText('2d8 Necrotic');
+    expect(necrotic).toHaveClass('damage-necrotic');
+    expect(necrotic.textContent).toBe('2d8 Necrotic');
+  });
+
+  test('healing spells roll for numeric totals', async () => {
+    const spell = {
+      name: 'Healing Word',
+      level: 1,
+      damage: '1d4',
+      castingTime: '1 bonus action',
+      range: '60 feet',
+      duration: 'Instantaneous',
+      casterType: 'Cleric',
+    };
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      render(
+        <PlayerTurnActions
+          form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
+          strMod={0}
+          dexMod={0}
+        />
+      );
+      act(() => {
+        fireEvent.click(screen.getByTitle('Attack'));
+      });
+      const card = screen.getByText('Healing Word').closest('.attack-card');
+      expect(card).not.toBeNull();
+      const rollButton = within(card).getByLabelText('roll');
+      await act(async () => {
+        fireEvent.click(rollButton);
+      });
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value');
+        const text = valueNode.textContent;
+        if (!text || text === '0' || !/^\d+$/.test(text)) {
+          throw new Error('waiting');
+        }
+      });
+      const result = document.getElementById('damageValue').textContent;
+      expect(result).toMatch(/^\d+$/);
+      expect(result).not.toBe('0');
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  test('shows breath attack details for dragonborn ancestry', () => {
+    const ancestry = {
+      label: 'Gold (Fire)',
+      damageType: 'Fire',
+      breathWeapon: { shape: '15 ft. cone', save: 'Dexterity' },
+    };
+    const race = {
+      name: 'Dragonborn',
+      dragonAncestries: { gold: ancestry },
+      selectedAncestryKey: 'gold',
+      selectedAncestry: ancestry,
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          race,
+          equipment: {},
+          spells: [],
+          occupation: [{ Level: '6' }],
+        }}
+        strMod={0}
+        dexMod={0}
+        conMod={2}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const breathCard = screen.getByText('Gold (Fire)').closest('.attack-card');
+    expect(breathCard).toBeInTheDocument();
+    expect(within(breathCard).getByText('Save DC')).toBeInTheDocument();
+    expect(within(breathCard).getByText('13')).toBeInTheDocument();
+    const fireDamage = within(breathCard).getByText((content, element) => {
+      return (
+        element.textContent === '2d10 Fire' &&
+        element.classList.contains('damage-fire')
+      );
+    });
+    expect(fireDamage).toHaveClass('damage-fire');
+    expect(
+      within(breathCard).getByText('15 ft. cone • Dexterity Save')
+    ).toBeInTheDocument();
+  });
+
+  test('breath attack damage segments include type classes', () => {
+    const ancestry = {
+      label: 'Blue (Lightning)',
+      damageType: 'lightning',
+      breathWeapon: { shape: '5 by 30 ft. line', save: 'Dexterity' },
+    };
+    const race = {
+      name: 'Dragonborn',
+      dragonAncestries: { blue: ancestry },
+      selectedAncestryKey: 'blue',
+      selectedAncestry: ancestry,
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          race,
+          equipment: {},
+          spells: [],
+          occupation: [{ Level: '6' }],
+        }}
+        strMod={0}
+        dexMod={0}
+        conMod={2}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    const breathCard = screen.getByText('Blue (Lightning)').closest('.attack-card');
+    expect(breathCard).toBeInTheDocument();
+    const damage = within(breathCard).getByText((content, element) => {
+      return (
+        element.textContent === '2d10 Lightning' &&
+        element.classList.contains('damage-lightning')
+      );
+    });
+    expect(damage).toHaveClass('damage-lightning');
+  });
+
+  test('does not render breath attack card for non-dragonborn characters', () => {
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          race: { name: 'Human' },
+          equipment: {},
+          spells: [],
+          occupation: [{ Level: '6' }],
+        }}
+        strMod={0}
+        dexMod={0}
+        conMod={2}
+      />
+    );
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+    expect(screen.queryByText('Breath Attack')).not.toBeInTheDocument();
   });
 });
 
@@ -148,7 +421,7 @@ describe('PlayerTurnActions damage log', () => {
       const el = document.getElementById('damageValue');
       if (!el || el.textContent === '0') throw new Error('waiting');
     });
-    expect(document.getElementById('damageValue').textContent).toBe('6');
+    expect(document.getElementById('damageValue').textContent).toBe('4');
 
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
@@ -159,11 +432,11 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Frost Brand (6)');
+    expect(totalLine).toHaveTextContent('Frost Brand (4)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
-    expect(breakdownLines).toEqual(['- 3 cold', '- 3 slashing']);
+    expect(breakdownLines).toEqual(['- 3 cold', '- 1 slashing']);
     Math.random = orig;
   });
 
@@ -206,13 +479,13 @@ describe('PlayerTurnActions damage log', () => {
         cold.classList.contains('damage-cold')
     ).toBe(true);
 
-    const fire = within(modal).getByText('3 fire');
+    const fire = within(modal).getByText('1 fire');
     expect(
       fire.style.color === damageTypeColors.fire ||
         fire.classList.contains('damage-fire')
     ).toBe(true);
 
-    const lightning = within(modal).getByText('3 lightning');
+    const lightning = within(modal).getByText('1 lightning');
     expect(
       lightning.style.color === damageTypeColors.lightning ||
         lightning.classList.contains('damage-lightning')
@@ -315,7 +588,7 @@ describe('PlayerTurnActions damage log', () => {
     const fixedRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 6, breakdown: '3 cold + 3 slashing' });
+    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
   });
 });
 
@@ -342,11 +615,13 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Frost Brand').closest('tr');
-    const cold = within(row).getByText(/1d4\+2 cold/);
-    const slashing = within(row).getByText(/1d6\+2 slashing/);
+    const card = screen.getByText('Frost Brand').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const cold = within(card).getByText('1d4+2 Cold');
+    const slashing = within(card).getByText('1d6 Slashing');
     expect(cold).toHaveClass('damage-cold');
     expect(slashing).toHaveClass('damage-slashing');
+    expect(slashing.textContent).toBe('1d6 Slashing');
   });
 
   test('spell damage segments include type classes', () => {
@@ -369,9 +644,11 @@ describe('PlayerTurnActions weapon damage display', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const row = screen.getByText('Fire Bolt').closest('tr');
-    const fire = within(row).getByText(/1d10 fire/);
+    const card = screen.getByText('Fire Bolt').closest('.attack-card');
+    expect(card).not.toBeNull();
+    const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
+    expect(fire.textContent).toBe('1d10 Fire');
   });
 });
 
@@ -663,13 +940,12 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const header = await screen.findByText('Spell Name');
-    const table = header.closest('table');
-    const rows = within(table).getAllByRole('row').slice(1);
-    const names = rows.map(
-      (row) => within(row).getAllByRole('cell')[0].textContent
-    );
-    expect(names).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
+    const titles = Array.from(
+      document.querySelectorAll('.attack-card__title')
+    )
+      .map((el) => el.textContent)
+      .filter((text) => spells.some((spell) => spell.name === text));
+    expect(titles).toEqual(['Cure Wounds', 'Magic Missile', 'Fireball']);
   });
 });
 
