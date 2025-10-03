@@ -197,12 +197,6 @@ export default function Features({
       return;
     }
 
-    if (canUseSpeakWithAnimals && fallbackUses === 0) {
-      if (!hasHydratedSpeakWithAnimalsRef.current) {
-        return;
-      }
-    }
-
     if (typeof window === 'undefined' || !speakWithAnimalsStorageKey) {
       setSpeakWithAnimalsUses((prev) =>
         prev === fallbackUses ? prev : fallbackUses
@@ -670,17 +664,12 @@ export default function Features({
       return;
     }
 
-    if (!hasHydratedSpeakWithAnimalsRef.current) {
-      return;
-    }
-
     window.localStorage.setItem(
       speakWithAnimalsStorageKey,
       String(speakWithAnimalsUses)
     );
   }, [
     canUseSpeakWithAnimals,
-    hasHydratedSpeakWithAnimalsRef,
     speakWithAnimalsStorageKey,
     speakWithAnimalsUses,
   ]);
