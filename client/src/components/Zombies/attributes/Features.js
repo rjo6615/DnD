@@ -44,15 +44,25 @@ export default function Features({
 
     const raceName =
       typeof race?.name === 'string' ? race.name.toLowerCase() : '';
+    const raceDisplayName =
+      typeof race?.name === 'string' && race.name.trim()
+        ? race.name.trim()
+        : raceName
+        ? raceName.charAt(0).toUpperCase() + raceName.slice(1)
+        : 'Race';
+
+    const darkvisionRange =
+      Number.isFinite(race?.darkvisionRange) && race.darkvisionRange > 0
+        ? race.darkvisionRange
+        : raceName === 'dwarf'
+        ? 60
+        : null;
+
+    const raceFeatures = [];
 
     if (raceName === 'dwarf') {
-      const darkvisionRange =
-        Number.isFinite(race?.darkvisionRange) && race.darkvisionRange > 0
-          ? race.darkvisionRange
-          : 60;
-
       const darkvisionDescription =
-        `Accustomed to life underground, you can see in dim light within ${darkvisionRange} ` +
+        `Accustomed to life underground, you can see in dim light within ${darkvisionRange ?? 60} ` +
         'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
 
       const resilienceDescription =
@@ -66,7 +76,7 @@ export default function Features({
         'As a bonus action, you gain tremorsense with a range of 60 feet for 10 minutes. You can use this bonus action a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.';
       const stonecunningFullDescription = `${stonecunningDescription} ${stonecunningUsage}`;
 
-      return [
+      raceFeatures.push(
         {
           id: 'dwarf-darkvision',
           name: 'Darkvision',
@@ -98,8 +108,21 @@ export default function Features({
           description: stonecunningFullDescription,
           desc: stonecunningFullDescription,
           hideUseButton: true,
-        },
-      ];
+        }
+      );
+    } else if (darkvisionRange) {
+      const darkvisionDescription =
+        `You can see in dim light within ${darkvisionRange} ` +
+        'feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+
+      raceFeatures.push({
+        id: raceName ? `${raceName}-darkvision` : 'darkvision',
+        name: 'Darkvision',
+        meta: raceDisplayName,
+        description: darkvisionDescription,
+        desc: darkvisionDescription,
+        hideUseButton: true,
+      });
     }
 
     if (raceName === 'dragonborn') {
@@ -113,40 +136,36 @@ export default function Features({
           ? race.dragonAncestries[form.dragonAncestryKey]
           : null);
 
-      if (!ancestry) return [];
+      if (ancestry) {
+        const ancestryLabel = ancestry.label || ancestry.name || 'Dragonborn';
+        const damageType = ancestry.damageType || '';
+        const damageTypeLower = damageType.toLowerCase();
+        const resistanceDescription = damageTypeLower
+          ? `You have resistance to ${damageTypeLower} damage.`
+          : 'You have resistance to the damage type associated with your draconic ancestry.';
 
-      const ancestryLabel = ancestry.label || ancestry.name || 'Dragonborn';
-      const damageType = ancestry.damageType || '';
-      const damageTypeLower = damageType.toLowerCase();
-      const resistanceDescription = damageTypeLower
-        ? `You have resistance to ${damageTypeLower} damage.`
-        : 'You have resistance to the damage type associated with your draconic ancestry.';
-
-      const resistanceFeature = {
-        id: 'dragonborn-damage-resistance',
-        name: 'Damage Resistance',
-        meta: `Dragon Subrace (${ancestryLabel})`,
-        description: resistanceDescription,
-        desc: resistanceDescription,
-        hideUseButton: true,
-      };
-
-      const flightFeatures = [];
-
-      if (totalCharacterLevel >= 5) {
-        const draconicFlightDescription =
-          'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
-        flightFeatures.push({
-          id: 'dragonborn-draconic-flight',
-          name: 'Draconic Flight',
+        raceFeatures.push({
+          id: 'dragonborn-damage-resistance',
+          name: 'Damage Resistance',
           meta: `Dragon Subrace (${ancestryLabel})`,
-          description: draconicFlightDescription,
-          desc: draconicFlightDescription,
+          description: resistanceDescription,
+          desc: resistanceDescription,
           hideUseButton: true,
         });
-      }
 
-      return [resistanceFeature, ...flightFeatures];
+        if (totalCharacterLevel >= 5) {
+          const draconicFlightDescription =
+            'When you reach character level 5, you can use a bonus action to manifest spectral wings on your back. The wings last for 1 minute or until you dismiss them as a bonus action. During this time, you gain a flying speed equal to your walking speed.';
+          raceFeatures.push({
+            id: 'dragonborn-draconic-flight',
+            name: 'Draconic Flight',
+            meta: `Dragon Subrace (${ancestryLabel})`,
+            description: draconicFlightDescription,
+            desc: draconicFlightDescription,
+            hideUseButton: true,
+          });
+        }
+      }
     }
 
     if (raceName === 'goliath') {
@@ -160,54 +179,59 @@ export default function Features({
           ? race.giantAncestries[form.giantAncestryKey]
           : null);
 
-      if (!ancestry) return [];
+      if (ancestry) {
+        const ancestryLabel = ancestry.label || ancestry.name || 'Giant Boon';
+        const ancestryDescription = ancestry.description || '';
+        const usageText = ancestry.usage ? ` ${ancestry.usage}` : '';
+        const combinedDescription = `${ancestryDescription}${usageText}`.trim();
 
-      const ancestryLabel = ancestry.label || ancestry.name || 'Giant Boon';
-      const ancestryDescription = ancestry.description || '';
-      const usageText = ancestry.usage ? ` ${ancestry.usage}` : '';
-      const combinedDescription = `${ancestryDescription}${usageText}`.trim();
+        raceFeatures.push(
+          {
+            id: `goliath-ancestry-${
+              race.selectedAncestryKey || form?.giantAncestryKey || 'boon'
+            }`,
+            name: ancestryLabel,
+            meta: 'Giant Ancestry',
+            description: combinedDescription || ancestryDescription,
+            desc: combinedDescription || ancestryDescription,
+            hideUseButton: true,
+          },
+          {
+            id: 'goliath-powerful-build',
+            name: 'Powerful Build',
+            meta: 'Goliath',
+            description:
+              'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+            desc:
+              'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
+            hideUseButton: true,
+          }
+        );
 
-      const features = [
-        {
-          id: `goliath-ancestry-${
-            race.selectedAncestryKey || form?.giantAncestryKey || 'boon'
-          }`,
-          name: ancestryLabel,
-          meta: 'Giant Ancestry',
-          description: combinedDescription || ancestryDescription,
-          desc: combinedDescription || ancestryDescription,
-          hideUseButton: true,
-        },
-        {
-          id: 'goliath-powerful-build',
-          name: 'Powerful Build',
-          meta: 'Goliath',
-          description:
-            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
-          desc:
-            'You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.',
-          hideUseButton: true,
-        },
-      ];
-
-      if (totalCharacterLevel >= 5) {
-        const largeFormDescription =
-          "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest.";
-        features.push({
-          id: 'goliath-large-form',
-          name: 'Large Form',
-          meta: 'Goliath (Level 5)',
-          description: largeFormDescription,
-          desc: largeFormDescription,
-          hideUseButton: true,
-        });
+        if (totalCharacterLevel >= 5) {
+          const largeFormDescription =
+            "Starting at 5th level, you can use a bonus action to magically grow to Large size for 10 minutes. While Large, your speed increases by 10 feet, and you have advantage on Strength checks. Once you use this trait, you can't use it again until you finish a long rest.";
+          raceFeatures.push({
+            id: 'goliath-large-form',
+            name: 'Large Form',
+            meta: 'Goliath (Level 5)',
+            description: largeFormDescription,
+            desc: largeFormDescription,
+            hideUseButton: true,
+          });
+        }
       }
-
-      return features;
     }
 
-    return [];
-  }, [form?.race, form?.dragonAncestry, form?.dragonAncestryKey, form?.giantAncestry, form?.giantAncestryKey, totalCharacterLevel]);
+    return raceFeatures;
+  }, [
+    form?.race,
+    form?.dragonAncestry,
+    form?.dragonAncestryKey,
+    form?.giantAncestry,
+    form?.giantAncestryKey,
+    totalCharacterLevel,
+  ]);
 
   const displayFeatures = useMemo(() => {
     if (ancestryFeatures.length === 0) return features;

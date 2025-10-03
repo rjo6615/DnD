@@ -58,6 +58,7 @@ const races = {
     abilities: { str: 2, cha: 1 },
     skills: {},
     languages: ["Common", "Draconic"],
+    darkvisionRange: 60,
     dragonAncestries: {
       black: {
         label: "Black (Acid)",
