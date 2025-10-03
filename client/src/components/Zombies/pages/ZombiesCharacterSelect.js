@@ -73,6 +73,9 @@ const createDefaultForm = useCallback((campaign) => {
     dragonAncestry: null,
     giantAncestryKey: "",
     giantAncestry: null,
+    gnomeLineageKey: "",
+    gnomeLineage: null,
+    gnomeLineageAbility: "",
     background: null,
     feat: [],
     weapon: [],
@@ -217,12 +220,16 @@ const attachSelectedAncestryToRace = useCallback((race, {
   dragonAncestry,
   giantAncestryKey,
   giantAncestry,
+  gnomeLineageKey,
+  gnomeLineage,
+  gnomeLineageAbility,
 }) => {
   if (!race) return race;
   const updatedRace = { ...race };
 
   delete updatedRace.selectedAncestryKey;
   delete updatedRace.selectedAncestry;
+  delete updatedRace.selectedLineageAbility;
 
   if (race.dragonAncestries && dragonAncestryKey && dragonAncestry) {
     updatedRace.selectedAncestryKey = dragonAncestryKey;
@@ -230,6 +237,12 @@ const attachSelectedAncestryToRace = useCallback((race, {
   } else if (race.giantAncestries && giantAncestryKey && giantAncestry) {
     updatedRace.selectedAncestryKey = giantAncestryKey;
     updatedRace.selectedAncestry = giantAncestry;
+  } else if (race.gnomeLineages && gnomeLineageKey && gnomeLineage) {
+    updatedRace.selectedAncestryKey = gnomeLineageKey;
+    updatedRace.selectedAncestry = gnomeLineage;
+    if (gnomeLineageAbility) {
+      updatedRace.selectedLineageAbility = gnomeLineageAbility;
+    }
   }
 
   return updatedRace;
@@ -365,6 +378,9 @@ function bigMaff() {
     let selectedDragonAncestry = null;
     let selectedGiantAncestryKey = "";
     let selectedGiantAncestry = null;
+    let selectedGnomeLineageKey = "";
+    let selectedGnomeLineage = null;
+    let selectedGnomeLineageAbility = "";
     if (chosenRace.name === "Dragonborn" && chosenRace.dragonAncestries) {
       const ancestryKeys = Object.keys(chosenRace.dragonAncestries);
       const alignmentLower = alignmentValue.toLowerCase();
@@ -395,6 +411,20 @@ function bigMaff() {
         chosenRace.selectedAncestry = selectedGiantAncestry;
       }
     }
+    if (chosenRace.name === "Gnome" && chosenRace.gnomeLineages) {
+      const lineageKeys = Object.keys(chosenRace.gnomeLineages);
+      if (lineageKeys.length) {
+        selectedGnomeLineageKey = lineageKeys[Math.floor(Math.random() * lineageKeys.length)];
+        selectedGnomeLineage = chosenRace.gnomeLineages[selectedGnomeLineageKey];
+        chosenRace.selectedAncestryKey = selectedGnomeLineageKey;
+        chosenRace.selectedAncestry = selectedGnomeLineage;
+        const abilityOptions = selectedGnomeLineage?.spellcastingAbilities || [];
+        if (abilityOptions.length) {
+          selectedGnomeLineageAbility = abilityOptions[Math.floor(Math.random() * abilityOptions.length)];
+          chosenRace.selectedLineageAbility = selectedGnomeLineageAbility;
+        }
+      }
+    }
     setForm((prev) => {
       const updatedSkills = { ...(prev.skills || {}) };
       if (chosenRace.skills) {
@@ -409,6 +439,9 @@ function bigMaff() {
         dragonAncestry: selectedDragonAncestry || null,
         giantAncestryKey: selectedGiantAncestry ? selectedGiantAncestryKey : "",
         giantAncestry: selectedGiantAncestry || null,
+        gnomeLineageKey: selectedGnomeLineage ? selectedGnomeLineageKey : "",
+        gnomeLineage: selectedGnomeLineage || null,
+        gnomeLineageAbility: selectedGnomeLineageAbility || "",
       };
       if (Object.keys(updatedSkills).length) {
         nextForm.skills = updatedSkills;
@@ -530,6 +563,9 @@ useEffect(() => {
         dragonAncestry: baseCharacter.dragonAncestry,
         giantAncestryKey: baseCharacter.giantAncestryKey,
         giantAncestry: baseCharacter.giantAncestry,
+        gnomeLineageKey: baseCharacter.gnomeLineageKey,
+        gnomeLineage: baseCharacter.gnomeLineage,
+        gnomeLineageAbility: baseCharacter.gnomeLineageAbility,
       }
     );
     if (raceWithAncestry) {
@@ -597,6 +633,9 @@ const handleRaceChange = (e) => {
         dragonAncestry: null,
         giantAncestryKey: "",
         giantAncestry: null,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
       };
     }
 
@@ -616,6 +655,9 @@ const handleRaceChange = (e) => {
     let dragonAncestry = null;
     let giantAncestryKey = "";
     let giantAncestry = null;
+    let gnomeLineageKey = "";
+    let gnomeLineage = null;
+    let gnomeLineageAbility = "";
     if (raceObj.dragonAncestries) {
       const prevKey =
         prev.race?.name === raceObj.name && prev.dragonAncestryKey
@@ -638,11 +680,35 @@ const handleRaceChange = (e) => {
       }
     }
 
+    if (raceObj.gnomeLineages) {
+      const prevKey =
+        prev.race?.name === raceObj.name && prev.gnomeLineageKey
+          ? prev.gnomeLineageKey
+          : "";
+      if (prevKey && raceObj.gnomeLineages[prevKey]) {
+        gnomeLineageKey = prevKey;
+        gnomeLineage = raceObj.gnomeLineages[prevKey];
+        const prevAbility =
+          prev.race?.name === raceObj.name && prev.gnomeLineageAbility
+            ? prev.gnomeLineageAbility
+            : "";
+        if (
+          prevAbility &&
+          gnomeLineage?.spellcastingAbilities?.includes(prevAbility)
+        ) {
+          gnomeLineageAbility = prevAbility;
+        }
+      }
+    }
+
     const updatedRace = attachSelectedAncestryToRace(raceObj, {
       dragonAncestryKey,
       dragonAncestry,
       giantAncestryKey,
       giantAncestry,
+      gnomeLineageKey,
+      gnomeLineage,
+      gnomeLineageAbility,
     });
 
     const updatedForm = {
@@ -654,6 +720,9 @@ const handleRaceChange = (e) => {
       dragonAncestry,
       giantAncestryKey,
       giantAncestry,
+      gnomeLineageKey,
+      gnomeLineage,
+      gnomeLineageAbility,
     };
 
     if (Object.keys(updatedSkills).length) {
@@ -673,6 +742,9 @@ const handleDragonAncestryChange = (e) => {
         dragonAncestry: null,
         giantAncestryKey: prev.giantAncestryKey,
         giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
       });
       return {
         ...prev,
@@ -681,6 +753,9 @@ const handleDragonAncestryChange = (e) => {
         dragonAncestry: null,
         giantAncestryKey: prev.giantAncestryKey,
         giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
       };
     }
 
@@ -690,6 +765,9 @@ const handleDragonAncestryChange = (e) => {
       dragonAncestry: ancestry || null,
       giantAncestryKey: "",
       giantAncestry: null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
     });
 
     return {
@@ -699,6 +777,9 @@ const handleDragonAncestryChange = (e) => {
       dragonAncestry: ancestry || null,
       giantAncestryKey: "",
       giantAncestry: null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
     };
   });
 };
@@ -712,6 +793,9 @@ const handleGiantAncestryChange = (e) => {
         dragonAncestry: prev.dragonAncestry,
         giantAncestryKey: "",
         giantAncestry: null,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
       });
       return {
         ...prev,
@@ -720,6 +804,9 @@ const handleGiantAncestryChange = (e) => {
         dragonAncestry: prev.dragonAncestry,
         giantAncestryKey: "",
         giantAncestry: null,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
       };
     }
 
@@ -729,6 +816,9 @@ const handleGiantAncestryChange = (e) => {
       dragonAncestry: null,
       giantAncestryKey: ancestry ? key : "",
       giantAncestry: ancestry || null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
     });
 
     return {
@@ -738,6 +828,104 @@ const handleGiantAncestryChange = (e) => {
       dragonAncestry: null,
       giantAncestryKey: ancestry ? key : "",
       giantAncestry: ancestry || null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
+    };
+  });
+};
+
+const handleGnomeLineageChange = (e) => {
+  const key = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.gnomeLineages) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+      };
+    }
+
+    const lineage = prev.race.gnomeLineages[key];
+    const abilityOptions = lineage?.spellcastingAbilities || [];
+    let nextAbility = "";
+    if (lineage) {
+      if (abilityOptions.includes(prev.gnomeLineageAbility)) {
+        nextAbility = prev.gnomeLineageAbility;
+      } else if (abilityOptions.length === 1) {
+        nextAbility = abilityOptions[0];
+      }
+    }
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: lineage ? key : "",
+      gnomeLineage: lineage || null,
+      gnomeLineageAbility: nextAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      gnomeLineageKey: lineage ? key : "",
+      gnomeLineage: lineage || null,
+      gnomeLineageAbility: nextAbility,
+    };
+  });
+};
+
+const handleGnomeLineageAbilityChange = (e) => {
+  const ability = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.gnomeLineages || !prev.gnomeLineageKey) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        gnomeLineageAbility: "",
+      };
+    }
+
+    const lineage = prev.race.gnomeLineages[prev.gnomeLineageKey];
+    const validAbility =
+      lineage?.spellcastingAbilities?.includes(ability) ? ability : "";
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: lineage ? prev.gnomeLineageKey : "",
+      gnomeLineage: lineage || null,
+      gnomeLineageAbility: validAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      gnomeLineageAbility: validAbility,
     };
   });
 };
@@ -859,6 +1047,9 @@ const sendManualToDb = useCallback(async (characterData) => {
       dragonAncestry: baseCharacter.dragonAncestry,
       giantAncestryKey: baseCharacter.giantAncestryKey,
       giantAncestry: baseCharacter.giantAncestry,
+      gnomeLineageKey: baseCharacter.gnomeLineageKey,
+      gnomeLineage: baseCharacter.gnomeLineage,
+      gnomeLineageAbility: baseCharacter.gnomeLineageAbility,
     }
   );
   if (raceWithAncestry) {
@@ -943,6 +1134,9 @@ const handleAbilitySkillConfirm = () => {
       dragonAncestry: form.dragonAncestry,
       giantAncestryKey: form.giantAncestryKey,
       giantAncestry: form.giantAncestry,
+      gnomeLineageKey: form.gnomeLineageKey,
+      gnomeLineage: form.gnomeLineage,
+      gnomeLineageAbility: form.gnomeLineageAbility,
     }
   );
   const updatedForm = { ...form, race: updatedRace };
@@ -1125,6 +1319,38 @@ const getAvailableSkillOptions = (index) => {
                 </option>
               ))}
             </Form.Select>
+          </>
+        )}
+        {form.race?.name === "Gnome" && (
+          <>
+            <Form.Label className="text-light">Gnome Lineage</Form.Label>
+            <Form.Select
+              value={form.gnomeLineageKey || ""}
+              onChange={handleGnomeLineageChange}
+            >
+              <option value="" disabled>Select your gnome lineage</option>
+              {Object.entries(form.race.gnomeLineages || {}).map(([key, lineage]) => (
+                <option key={key} value={key}>
+                  {lineage.label || lineage.name || "Gnome Lineage"}
+                </option>
+              ))}
+            </Form.Select>
+            {form.gnomeLineage?.spellcastingAbilities?.length ? (
+              <>
+                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
+                <Form.Select
+                  value={form.gnomeLineageAbility || ""}
+                  onChange={handleGnomeLineageAbilityChange}
+                >
+                  <option value="" disabled>Select your spellcasting ability</option>
+                  {(form.gnomeLineage?.spellcastingAbilities || []).map((ability) => (
+                    <option key={ability} value={ability}>
+                      {ability}
+                    </option>
+                  ))}
+                </Form.Select>
+              </>
+            ) : null}
           </>
         )}
         <Form.Label className="text-light">Background</Form.Label>
