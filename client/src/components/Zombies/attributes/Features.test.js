@@ -259,6 +259,81 @@ test('dwarf characters display racial trait feature cards', async () => {
   ).toBeInTheDocument();
 });
 
+test('halfling characters display racial trait feature cards with descriptions', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Halfling',
+    },
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const halflingTraits = [
+    {
+      name: 'Brave',
+      description:
+        'You have advantage on saving throws you make to avoid or end the Frightened condition.',
+    },
+    {
+      name: 'Halfling Nimbleness',
+      description:
+        'You can move through the space of any creature that is of a size larger than yours.',
+    },
+    {
+      name: 'Luck',
+      description:
+        'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
+    },
+    {
+      name: 'Naturally Stealthy',
+      description:
+        'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
+    },
+  ];
+
+  for (const { name, description } of halflingTraits) {
+    // eslint-disable-next-line no-await-in-loop
+    const traitTitle = await screen.findByText(name);
+    const traitCard = traitTitle.closest('.feature-card');
+    expect(traitCard).not.toBeNull();
+
+    const viewButton = within(traitCard).getByRole('button', {
+      name: /view feature/i,
+    });
+
+    expect(screen.queryByText(description)).not.toBeInTheDocument();
+
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      await userEvent.click(viewButton);
+    });
+
+    // eslint-disable-next-line no-await-in-loop
+    const descriptionText = await screen.findByText(description);
+    const modal = descriptionText.closest('.modal-content');
+    expect(modal).not.toBeNull();
+
+    const closeButton = within(modal).getByRole('button', { name: /close/i });
+
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      await userEvent.click(closeButton);
+    });
+  }
+});
+
 test('goliath ancestry features include boon, Powerful Build, and Large Form at level 5', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
