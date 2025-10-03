@@ -34,6 +34,7 @@ import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
 import adrenalineRushIcon from "../../../images/adrenaline-rush.png";
+import speakWithAnimalsIcon from "../../../images/speak-with-animal.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
@@ -1672,6 +1673,7 @@ export default function ZombiesCharacterSheet() {
   ]);
 
   const playerTurnActionsRef = useRef(null);
+  const speakWithAnimalsPendingRef = useRef(false);
   const socketRef = useRef(null);
 
   const rootContainerRef = useRef(null);
@@ -2213,6 +2215,20 @@ export default function ZombiesCharacterSheet() {
     (arg, lvl, idx) => {
       if (arg === 'action' || arg === 'bonus') {
         consumeCircle(arg, lvl);
+        if (arg === 'action' && speakWithAnimalsPendingRef.current) {
+          setActiveEffects((prev = []) => {
+            if (prev.some((effect) => effect?.name === 'Speak with Animals')) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { name: 'Speak with Animals', icon: speakWithAnimalsIcon },
+            ];
+          });
+        }
+        if (arg === 'action') {
+          speakWithAnimalsPendingRef.current = false;
+        }
         return;
       }
       const consumeSlot = (level, preferredType) => {
@@ -2277,7 +2293,15 @@ export default function ZombiesCharacterSheet() {
           castingTime,
           name,
           spellName: altName,
+          pendingEffectOnly,
         } = arg;
+        const spellLabel = name || altName;
+        if (pendingEffectOnly) {
+          if (spellLabel === 'Speak with Animals') {
+            speakWithAnimalsPendingRef.current = true;
+          }
+          return;
+        }
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
         if (castingTime?.includes('1 action')) consumeCircle('action');
@@ -2305,7 +2329,6 @@ export default function ZombiesCharacterSheet() {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };
         }
-        const spellLabel = name || altName;
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(
           result?.total,
           result?.breakdown,
@@ -2316,6 +2339,20 @@ export default function ZombiesCharacterSheet() {
             ...prev,
             { name: 'Haste', icon: hasteIcon, remaining: 10 },
           ]);
+        }
+        if (spellLabel === 'Speak with Animals') {
+          setActiveEffects((prev = []) => {
+            if (prev.some((effect) => effect?.name === 'Speak with Animals')) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { name: 'Speak with Animals', icon: speakWithAnimalsIcon },
+            ];
+          });
+          speakWithAnimalsPendingRef.current = false;
+        } else {
+          speakWithAnimalsPendingRef.current = false;
         }
         return;
       }
@@ -4249,6 +4286,7 @@ export default function ZombiesCharacterSheet() {
           shortRestCount={shortRestCount}
           availableSlots={availableSlots}
           actionCount={actionCount}
+          characterId={characterId}
         />
         <InventoryModal
           show={showInventory}

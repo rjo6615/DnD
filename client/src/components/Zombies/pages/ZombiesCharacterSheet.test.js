@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import hasteIcon from '../../../images/spell-haste-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
 import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
+import speakWithAnimalsIcon from '../../../images/speak-with-animal.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
@@ -293,6 +294,8 @@ test('activating Draconic Flight adds a persistent effect without duplicates', a
   await waitFor(() => {
     expect(mockFeaturesModalProps.current).not.toBeNull();
   });
+
+  expect(mockFeaturesModalProps.current?.characterId).toBe('1');
 
   await waitFor(() => {
     expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
@@ -1130,6 +1133,85 @@ test('casting Haste adds status icon and extra action circle', async () => {
   );
   const icon = screen.getByAltText('Haste');
   expect(icon).toHaveAttribute('src', hasteIcon);
+});
+
+test('casting Speak with Animals adds status icon for free and slot casts', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+  const { unmount } = render(<ZombiesCharacterSheet />);
+  await waitFor(() =>
+    expect(mockFeaturesModalProps.current?.onCastSpell).toBeTruthy()
+  );
+  act(() => {
+    mockFeaturesModalProps.current?.onCastSpell?.({
+      castingTime: '1 action',
+      name: 'Speak with Animals',
+      pendingEffectOnly: true,
+    });
+    mockFeaturesModalProps.current?.onCastSpell?.('action');
+  });
+  let icon = await screen.findByAltText('Speak with Animals');
+  expect(icon).toHaveAttribute('src', speakWithAnimalsIcon);
+  expect(screen.getAllByAltText('Speak with Animals')).toHaveLength(1);
+
+  unmount();
+  mockFeaturesModalProps.current = null;
+
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  await waitFor(() =>
+    expect(mockFeaturesModalProps.current?.onCastSpell).toBeTruthy()
+  );
+
+  act(() => {
+    mockFeaturesModalProps.current?.onCastSpell?.({
+      name: 'Speak with Animals',
+      level: 1,
+      castingTime: '1 action',
+    });
+  });
+
+  icon = await screen.findByAltText('Speak with Animals');
+  expect(icon).toHaveAttribute('src', speakWithAnimalsIcon);
+  expect(screen.getAllByAltText('Speak with Animals')).toHaveLength(1);
 });
 
 test('feats button includes points-glow when feat points available', async () => {
