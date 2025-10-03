@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
 const toRoman = (n) => ['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1] || n;
@@ -23,6 +23,7 @@ export default function UpcastModal({
   used = {},
   onSelect,
   higherLevels,
+  proficiencyAction,
 }) {
   const regularLevels = Object.keys(slots.regular || {})
     .map(Number)
@@ -53,12 +54,48 @@ export default function UpcastModal({
     if (onHide) onHide();
   };
 
+  const handleProficiencyClick = useMemo(() => {
+    if (!proficiencyAction?.onClick) {
+      return null;
+    }
+
+    return () => {
+      proficiencyAction.onClick();
+      if (onHide) {
+        onHide();
+      }
+    };
+  }, [onHide, proficiencyAction]);
+
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header closeButton>
         <Modal.Title>Cast at Level</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        {proficiencyAction && (
+          <div className="d-flex flex-column align-items-center mb-3">
+            <Button
+              variant="outline-light"
+              size="sm"
+              aria-label={
+                proficiencyAction.ariaLabel || 'cast using proficiency feature'
+              }
+              onClick={handleProficiencyClick || undefined}
+              disabled={
+                proficiencyAction.disabled ||
+                typeof handleProficiencyClick !== 'function'
+              }
+            >
+              {proficiencyAction.icon || proficiencyAction.label || 'P'}
+            </Button>
+            {proficiencyAction.remainingText && (
+              <small className="text-muted mt-1">
+                {proficiencyAction.remainingText}
+              </small>
+            )}
+          </div>
+        )}
         {higherLevels && (
           <p className="text-muted mb-2">{higherLevels}</p>
         )}

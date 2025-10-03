@@ -128,6 +128,32 @@ export default function Features({
       : 0;
   }, [canUseSpeakWithAnimals, profBonus]);
 
+  const hasAvailableSlotOfLevel = useMemo(() => {
+    const normalizedRegular = availableSlots?.regular || {};
+    const normalizedWarlock = availableSlots?.warlock || {};
+
+    return (minimumLevel = 1) => {
+      const hasRegularSlot = Object.entries(normalizedRegular).some(
+        ([level, count]) =>
+          Number(level) >= minimumLevel && Number(count) > 0
+      );
+
+      if (hasRegularSlot) {
+        return true;
+      }
+
+      return Object.entries(normalizedWarlock).some(
+        ([level, count]) =>
+          Number(level) >= minimumLevel && Number(count) > 0
+      );
+    };
+  }, [availableSlots]);
+
+  const speakWithAnimalsHasSlot = useMemo(
+    () => hasAvailableSlotOfLevel(1),
+    [hasAvailableSlotOfLevel]
+  );
+
   useEffect(() => {
     setAdrenalineRushUses(adrenalineRushMaxUses);
   }, [adrenalineRushMaxUses]);
@@ -523,6 +549,8 @@ export default function Features({
     if (!canUseSpeakWithAnimals || speakWithAnimalsUses <= 0) return;
     setSpeakWithAnimalsUses((prev) => Math.max(0, prev - 1));
     onCastSpell?.('action');
+    setShowUpcast(false);
+    setPendingSpell(null);
   }, [canUseSpeakWithAnimals, onCastSpell, speakWithAnimalsUses]);
 
   const handleSpeakWithAnimalsSlotCast = useCallback(
@@ -725,34 +753,34 @@ export default function Features({
                             ) : isSpeakWithAnimals ? (
                               <div className="d-flex align-items-center gap-1">
                                 <Button
-                                  aria-label="cast Speak with Animals using proficiency"
-                                  variant="outline-light"
-                                  size="sm"
-                                  className={
-                                    speakWithAnimalsUses <= 0 || !canUseSpeakWithAnimals
-                                      ? 'opacity-50'
-                                      : ''
-                                  }
-                                  onClick={handleSpeakWithAnimalsFreeCast}
-                                  disabled={
-                                    speakWithAnimalsUses <= 0 || !canUseSpeakWithAnimals
-                                  }
-                                >
-                                  P
-                                </Button>
-                                <Button
                                   aria-label="cast Speak with Animals using a spell slot"
                                   variant="link"
                                   className="p-0 border-0"
                                   onClick={() => {
-                                    if (!canUseSpeakWithAnimals) return;
+                                    if (
+                                      !canUseSpeakWithAnimals ||
+                                      (speakWithAnimalsUses <= 0 &&
+                                        !speakWithAnimalsHasSlot)
+                                    ) {
+                                      return;
+                                    }
                                     setPendingSpell({
                                       name: 'Speak with Animals',
                                       level: 1,
+                                      supportsProficiency: true,
+                                      proficiencyLabel: 'P',
+                                      proficiencyAriaLabel:
+                                        'cast Speak with Animals using proficiency',
+                                      proficiencyRemainingLabel: 'Uses remaining',
+                                      onFreeCast: handleSpeakWithAnimalsFreeCast,
                                     });
                                     setShowUpcast(true);
                                   }}
-                                  disabled={!canUseSpeakWithAnimals}
+                                  disabled={
+                                    !canUseSpeakWithAnimals ||
+                                    (speakWithAnimalsUses <= 0 &&
+                                      !speakWithAnimalsHasSlot)
+                                  }
                                 >
                                   <i className="fa-solid fa-wand-sparkles" />
                                 </Button>
@@ -824,6 +852,21 @@ export default function Features({
         baseLevel={pendingSpell?.level || 1}
         slots={availableSlots}
         onSelect={handleSpeakWithAnimalsSlotCast}
+        proficiencyAction={
+          pendingSpell?.supportsProficiency
+            ? {
+                label: pendingSpell?.proficiencyLabel || 'P',
+                ariaLabel:
+                  pendingSpell?.proficiencyAriaLabel ||
+                  'cast using proficiency feature',
+                remainingText: pendingSpell?.proficiencyRemainingLabel
+                  ? `${pendingSpell.proficiencyRemainingLabel}: ${speakWithAnimalsUses}`
+                  : `Uses remaining: ${speakWithAnimalsUses}`,
+                disabled: speakWithAnimalsUses <= 0,
+                onClick: pendingSpell?.onFreeCast,
+              }
+            : undefined
+        }
       />
     </>
   );
