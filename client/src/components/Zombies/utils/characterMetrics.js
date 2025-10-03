@@ -83,13 +83,20 @@ const resolveHpBonusFromSource = (character) => {
   const directHpBonus = toFiniteNumberOrNull(character?.hpMaxBonus);
   const directHpBonusPerLevel = toFiniteNumberOrNull(character?.hpMaxBonusPerLevel);
 
+  const raceHpBonus = toFiniteNumberOrNull(character?.race?.hpMaxBonus);
+  const raceHpBonusPerLevel = toFiniteNumberOrNull(
+    character?.race?.hpMaxBonusPerLevel
+  );
+
   return {
     hpMaxBonus:
-      directHpBonus !== null ? directHpBonus : toFiniteNumberOrZero(featBonuses.hpMaxBonus),
+      (directHpBonus !== null ? directHpBonus : 0) +
+      (raceHpBonus !== null ? raceHpBonus : 0) +
+      toFiniteNumberOrZero(featBonuses.hpMaxBonus),
     hpMaxBonusPerLevel:
-      directHpBonusPerLevel !== null
-        ? directHpBonusPerLevel
-        : toFiniteNumberOrZero(featBonuses.hpMaxBonusPerLevel),
+      (directHpBonusPerLevel !== null ? directHpBonusPerLevel : 0) +
+      (raceHpBonusPerLevel !== null ? raceHpBonusPerLevel : 0) +
+      toFiniteNumberOrZero(featBonuses.hpMaxBonusPerLevel),
   };
 };
 

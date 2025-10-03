@@ -16,6 +16,9 @@ const races = {
     abilities: { con: 2 },
     skills: {},
     languages: ["Common", "Dwarvish"],
+    darkvisionRange: 120,
+    resistances: ["Poison"],
+    hpMaxBonusPerLevel: 1,
     weaponProficiencies: [
       "battleaxe",
       "handaxe",
