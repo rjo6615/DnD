@@ -76,7 +76,7 @@ export default function UpcastModal({
         {proficiencyAction && (
           <div className="d-flex flex-column align-items-center mb-3">
             <Button
-              variant="outline-light"
+              className="upcast-proficiency-button"
               size="sm"
               aria-label={
                 proficiencyAction.ariaLabel || 'cast using proficiency feature'
