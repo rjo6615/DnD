@@ -295,6 +295,8 @@ test('activating Draconic Flight adds a persistent effect without duplicates', a
     expect(mockFeaturesModalProps.current).not.toBeNull();
   });
 
+  expect(mockFeaturesModalProps.current?.characterId).toBe('1');
+
   await waitFor(() => {
     expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
   });

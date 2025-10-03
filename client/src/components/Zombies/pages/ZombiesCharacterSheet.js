@@ -4286,6 +4286,7 @@ export default function ZombiesCharacterSheet() {
           shortRestCount={shortRestCount}
           availableSlots={availableSlots}
           actionCount={actionCount}
+          characterId={characterId}
         />
         <InventoryModal
           show={showInventory}

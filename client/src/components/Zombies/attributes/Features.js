@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Modal, Card, Button, Spinner } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
@@ -25,6 +25,7 @@ export default function Features({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  characterId,
 }) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
@@ -38,6 +39,7 @@ export default function Features({
   const [speakWithAnimalsUses, setSpeakWithAnimalsUses] = useState(0);
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
+  const hasInitializedRestRef = useRef(false);
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -164,9 +166,55 @@ export default function Features({
     setAdrenalineRushUses(adrenalineRushMaxUses);
   }, [adrenalineRushMaxUses]);
 
+  const normalizedCharacterId = useMemo(() => {
+    if (typeof characterId !== 'string') {
+      return '';
+    }
+
+    const trimmed = characterId.trim();
+    return trimmed;
+  }, [characterId]);
+
+  const speakWithAnimalsStorageKey = useMemo(() => {
+    if (!normalizedCharacterId) {
+      return null;
+    }
+
+    return `zombiesSpeakWithAnimalsUses:${normalizedCharacterId}`;
+  }, [normalizedCharacterId]);
+
   useEffect(() => {
-    setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
-  }, [speakWithAnimalsMaxUses]);
+    const fallbackUses = speakWithAnimalsMaxUses;
+
+    if (!canUseSpeakWithAnimals) {
+      setSpeakWithAnimalsUses((prev) => (prev === 0 ? prev : 0));
+      return;
+    }
+
+    if (typeof window === 'undefined' || !speakWithAnimalsStorageKey) {
+      setSpeakWithAnimalsUses((prev) =>
+        prev === fallbackUses ? prev : fallbackUses
+      );
+      return;
+    }
+
+    const storedValueRaw = window.localStorage.getItem(
+      speakWithAnimalsStorageKey
+    );
+
+    const parsed = Number(storedValueRaw);
+    const normalized = Number.isFinite(parsed)
+      ? Math.max(0, Math.floor(parsed))
+      : fallbackUses;
+    const nextValue = storedValueRaw === null ? fallbackUses : normalized;
+    const clamped = Math.min(nextValue, fallbackUses);
+
+    setSpeakWithAnimalsUses((prev) => (prev === clamped ? prev : clamped));
+  }, [
+    canUseSpeakWithAnimals,
+    speakWithAnimalsMaxUses,
+    speakWithAnimalsStorageKey,
+  ]);
 
   const ancestryFeatures = useMemo(() => {
     const race = form?.race;
@@ -574,12 +622,35 @@ export default function Features({
     setLargeFormUsed(false);
     setDraconicFlightUsed(false);
     setAdrenalineRushUses(adrenalineRushMaxUses);
-    setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+    if (hasInitializedRestRef.current) {
+      setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+    }
+    hasInitializedRestRef.current = true;
   }, [
     adrenalineRushMaxUses,
     longRestCount,
     shortRestCount,
     speakWithAnimalsMaxUses,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !speakWithAnimalsStorageKey) {
+      return;
+    }
+
+    if (!canUseSpeakWithAnimals) {
+      window.localStorage.removeItem(speakWithAnimalsStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(
+      speakWithAnimalsStorageKey,
+      String(speakWithAnimalsUses)
+    );
+  }, [
+    canUseSpeakWithAnimals,
+    speakWithAnimalsStorageKey,
+    speakWithAnimalsUses,
   ]);
 
   const handleSpeakWithAnimalsFreeCast = useCallback(() => {
