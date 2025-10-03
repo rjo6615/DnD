@@ -12,6 +12,9 @@ import { notify } from '../../../utils/notification';
 
 const DEFAULT_SIZE_OPTIONS = ["Tiny", "Small", "Medium", "Large"];
 
+const sanitizeLineageAbility = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
 const getRaceSizeOptions = (race) => {
   if (!race) {
     return [];
@@ -226,6 +229,9 @@ const attachSelectedAncestryToRace = useCallback((race, {
 }) => {
   if (!race) return race;
   const updatedRace = { ...race };
+  const sanitizedGnomeLineageAbility = sanitizeLineageAbility(
+    gnomeLineageAbility
+  );
 
   delete updatedRace.selectedAncestryKey;
   delete updatedRace.selectedAncestry;
@@ -240,8 +246,8 @@ const attachSelectedAncestryToRace = useCallback((race, {
   } else if (race.gnomeLineages && gnomeLineageKey && gnomeLineage) {
     updatedRace.selectedAncestryKey = gnomeLineageKey;
     updatedRace.selectedAncestry = gnomeLineage;
-    if (gnomeLineageAbility) {
-      updatedRace.selectedLineageAbility = gnomeLineageAbility;
+    if (sanitizedGnomeLineageAbility) {
+      updatedRace.selectedLineageAbility = sanitizedGnomeLineageAbility;
     }
   }
 
@@ -420,8 +426,14 @@ function bigMaff() {
         chosenRace.selectedAncestry = selectedGnomeLineage;
         const abilityOptions = selectedGnomeLineage?.spellcastingAbilities || [];
         if (abilityOptions.length) {
-          selectedGnomeLineageAbility = abilityOptions[Math.floor(Math.random() * abilityOptions.length)];
-          chosenRace.selectedLineageAbility = selectedGnomeLineageAbility;
+          const randomAbility = abilityOptions[
+            Math.floor(Math.random() * abilityOptions.length)
+          ];
+          const sanitizedAbility = sanitizeLineageAbility(randomAbility);
+          selectedGnomeLineageAbility = sanitizedAbility || randomAbility || "";
+          if (selectedGnomeLineageAbility) {
+            chosenRace.selectedLineageAbility = selectedGnomeLineageAbility;
+          }
         }
       }
     }
@@ -441,7 +453,9 @@ function bigMaff() {
         giantAncestry: selectedGiantAncestry || null,
         gnomeLineageKey: selectedGnomeLineage ? selectedGnomeLineageKey : "",
         gnomeLineage: selectedGnomeLineage || null,
-        gnomeLineageAbility: selectedGnomeLineageAbility || "",
+        gnomeLineageAbility: sanitizeLineageAbility(
+          selectedGnomeLineageAbility
+        ),
       };
       if (Object.keys(updatedSkills).length) {
         nextForm.skills = updatedSkills;
@@ -688,10 +702,11 @@ const handleRaceChange = (e) => {
       if (prevKey && raceObj.gnomeLineages[prevKey]) {
         gnomeLineageKey = prevKey;
         gnomeLineage = raceObj.gnomeLineages[prevKey];
-        const prevAbility =
+        const prevAbilityRaw =
           prev.race?.name === raceObj.name && prev.gnomeLineageAbility
             ? prev.gnomeLineageAbility
             : "";
+        const prevAbility = sanitizeLineageAbility(prevAbilityRaw);
         if (
           prevAbility &&
           gnomeLineage?.spellcastingAbilities?.includes(prevAbility)
@@ -708,7 +723,7 @@ const handleRaceChange = (e) => {
       giantAncestry,
       gnomeLineageKey,
       gnomeLineage,
-      gnomeLineageAbility,
+      gnomeLineageAbility: sanitizeLineageAbility(gnomeLineageAbility),
     });
 
     const updatedForm = {
@@ -722,7 +737,7 @@ const handleRaceChange = (e) => {
       giantAncestry,
       gnomeLineageKey,
       gnomeLineage,
-      gnomeLineageAbility,
+      gnomeLineageAbility: sanitizeLineageAbility(gnomeLineageAbility),
     };
 
     if (Object.keys(updatedSkills).length) {
@@ -737,6 +752,9 @@ const handleDragonAncestryChange = (e) => {
   const key = e.target.value;
   setForm((prev) => {
     if (!prev.race?.dragonAncestries) {
+      const sanitizedLineageAbility = sanitizeLineageAbility(
+        prev.gnomeLineageAbility
+      );
       const updatedRace = attachSelectedAncestryToRace(prev.race, {
         dragonAncestryKey: "",
         dragonAncestry: null,
@@ -744,7 +762,7 @@ const handleDragonAncestryChange = (e) => {
         giantAncestry: prev.giantAncestry,
         gnomeLineageKey: prev.gnomeLineageKey,
         gnomeLineage: prev.gnomeLineage,
-        gnomeLineageAbility: prev.gnomeLineageAbility,
+        gnomeLineageAbility: sanitizedLineageAbility,
       });
       return {
         ...prev,
@@ -755,7 +773,7 @@ const handleDragonAncestryChange = (e) => {
         giantAncestry: prev.giantAncestry,
         gnomeLineageKey: prev.gnomeLineageKey,
         gnomeLineage: prev.gnomeLineage,
-        gnomeLineageAbility: prev.gnomeLineageAbility,
+        gnomeLineageAbility: sanitizedLineageAbility,
       };
     }
 
@@ -788,6 +806,9 @@ const handleGiantAncestryChange = (e) => {
   const key = e.target.value;
   setForm((prev) => {
     if (!prev.race?.giantAncestries) {
+      const sanitizedLineageAbility = sanitizeLineageAbility(
+        prev.gnomeLineageAbility
+      );
       const updatedRace = attachSelectedAncestryToRace(prev.race, {
         dragonAncestryKey: prev.dragonAncestryKey,
         dragonAncestry: prev.dragonAncestry,
@@ -795,7 +816,7 @@ const handleGiantAncestryChange = (e) => {
         giantAncestry: null,
         gnomeLineageKey: prev.gnomeLineageKey,
         gnomeLineage: prev.gnomeLineage,
-        gnomeLineageAbility: prev.gnomeLineageAbility,
+        gnomeLineageAbility: sanitizedLineageAbility,
       });
       return {
         ...prev,
@@ -806,7 +827,7 @@ const handleGiantAncestryChange = (e) => {
         giantAncestry: null,
         gnomeLineageKey: prev.gnomeLineageKey,
         gnomeLineage: prev.gnomeLineage,
-        gnomeLineageAbility: prev.gnomeLineageAbility,
+        gnomeLineageAbility: sanitizedLineageAbility,
       };
     }
 
@@ -858,13 +879,17 @@ const handleGnomeLineageChange = (e) => {
     }
 
     const lineage = prev.race.gnomeLineages[key];
-    const abilityOptions = lineage?.spellcastingAbilities || [];
+    const abilityOptions = Array.isArray(lineage?.spellcastingAbilities)
+      ? lineage.spellcastingAbilities
+      : [];
+    const sanitizedAbilityOptions = abilityOptions.map(sanitizeLineageAbility);
     let nextAbility = "";
     if (lineage) {
-      if (abilityOptions.includes(prev.gnomeLineageAbility)) {
-        nextAbility = prev.gnomeLineageAbility;
-      } else if (abilityOptions.length === 1) {
-        nextAbility = abilityOptions[0];
+      const prevAbility = sanitizeLineageAbility(prev.gnomeLineageAbility);
+      if (prevAbility && sanitizedAbilityOptions.includes(prevAbility)) {
+        nextAbility = prevAbility;
+      } else if (sanitizedAbilityOptions.length === 1) {
+        nextAbility = sanitizedAbilityOptions[0];
       }
     }
 
@@ -875,7 +900,7 @@ const handleGnomeLineageChange = (e) => {
       giantAncestry: prev.giantAncestry,
       gnomeLineageKey: lineage ? key : "",
       gnomeLineage: lineage || null,
-      gnomeLineageAbility: nextAbility,
+      gnomeLineageAbility: sanitizeLineageAbility(nextAbility),
     });
 
     return {
@@ -883,7 +908,7 @@ const handleGnomeLineageChange = (e) => {
       race: updatedRace,
       gnomeLineageKey: lineage ? key : "",
       gnomeLineage: lineage || null,
-      gnomeLineageAbility: nextAbility,
+      gnomeLineageAbility: sanitizeLineageAbility(nextAbility),
     };
   });
 };
@@ -909,8 +934,13 @@ const handleGnomeLineageAbilityChange = (e) => {
     }
 
     const lineage = prev.race.gnomeLineages[prev.gnomeLineageKey];
-    const validAbility =
-      lineage?.spellcastingAbilities?.includes(ability) ? ability : "";
+    const sanitizedAbility = sanitizeLineageAbility(ability);
+    const abilityOptions = Array.isArray(lineage?.spellcastingAbilities)
+      ? lineage.spellcastingAbilities.map(sanitizeLineageAbility)
+      : [];
+    const validAbility = abilityOptions.includes(sanitizedAbility)
+      ? sanitizedAbility
+      : "";
 
     const updatedRace = attachSelectedAncestryToRace(prev.race, {
       dragonAncestryKey: prev.dragonAncestryKey,
