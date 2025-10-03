@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, within, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Features from './Features';
+import * as proficiencyBonusModule from '../../../utils/proficiencyBonus';
 
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
@@ -667,6 +668,86 @@ test('Speak with Animals stored uses persist when enabling the feature', async (
   expect(
     within(speakCard).getByText('Uses remaining: 2')
   ).toBeInTheDocument();
+});
+
+test('Speak with Animals stored uses persist through delayed hydration', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const storageKey = `zombiesSpeakWithAnimalsUses:${TEST_CHARACTER_ID}`;
+  window.localStorage.setItem(storageKey, '2');
+
+  const baseForm = {
+    race: {
+      name: 'Gnome',
+      darkvisionRange: 60,
+      gnomeLineages: {
+        forest: { label: 'Forest Gnome', spellcastingAbilities: ['Wisdom'] },
+      },
+    },
+    occupation: [{ Name: 'Wizard', Level: 3 }],
+    gnomeLineageKey: 'forest',
+    gnomeLineage: { label: 'Forest Gnome' },
+    gnomeLineageAbility: 'Wisdom',
+  };
+
+  let currentProficiencyBonus = 0;
+
+  const proficiencySpy = jest
+    .spyOn(proficiencyBonusModule, 'default')
+    .mockImplementation(() => currentProficiencyBonus);
+
+  try {
+    const { rerender } = render(
+      <Features
+        form={{ ...baseForm, proficiencyBonus: 0 }}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+        onCastSpell={jest.fn()}
+        availableSlots={{ regular: { 1: 2 } }}
+        longRestCount={0}
+        shortRestCount={0}
+        characterId={TEST_CHARACTER_ID}
+      />
+    );
+
+    await waitFor(() =>
+      expect(window.localStorage.getItem(storageKey)).toBe('2')
+    );
+
+    currentProficiencyBonus = 3;
+
+    rerender(
+      <Features
+        form={{ ...baseForm, proficiencyBonus: 3 }}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+        onCastSpell={jest.fn()}
+        availableSlots={{ regular: { 1: 2 } }}
+        longRestCount={0}
+        shortRestCount={0}
+        characterId={TEST_CHARACTER_ID}
+      />
+    );
+
+    const speakTitle = await screen.findByText('Speak with Animals');
+    const speakCard = speakTitle.closest('.feature-card');
+    expect(speakCard).not.toBeNull();
+
+    await waitFor(() =>
+      expect(
+        within(speakCard).getByText('Uses remaining: 2')
+      ).toBeInTheDocument()
+    );
+
+    await waitFor(() =>
+      expect(window.localStorage.getItem(storageKey)).toBe('2')
+    );
+  } finally {
+    proficiencySpy.mockRestore();
+  }
 });
 
 test('Speak with Animals is available to forest gnomes at level 1 using proficiency', async () => {
