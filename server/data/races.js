@@ -151,6 +151,7 @@ const races = {
     abilities: { str: 2, con: 1 },
     skills: { intimidation: { proficient: true } },
     languages: ["Common", "Orc"],
+    darkvisionRange: 120,
   },
   tiefling: {
     name: "Tiefling",
