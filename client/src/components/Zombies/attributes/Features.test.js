@@ -334,6 +334,82 @@ test('halfling characters display racial trait feature cards with descriptions',
   }
 });
 
+test('gnome characters display darkvision and Gnomish Cunning', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: { name: 'Gnome', darkvisionRange: 60 },
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+    />
+  );
+
+  const darkvisionTitle = await screen.findByText('Darkvision');
+  const darkvisionCard = darkvisionTitle.closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+  expect(within(darkvisionCard).getByText('Gnome')).toBeInTheDocument();
+
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(/dim light within 60 feet of you as if it were bright light/i)
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  const darkvisionDescription = await screen.findByText(
+    /dim light within 60 feet of you as if it were bright light/i
+  );
+  const darkvisionModal = darkvisionDescription.closest('.modal-content');
+  expect(darkvisionModal).not.toBeNull();
+
+  const closeDarkvisionButton = within(darkvisionModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(closeDarkvisionButton);
+  });
+
+  const gnomishCunningTitle = await screen.findByText('Gnomish Cunning');
+  const gnomishCunningCard = gnomishCunningTitle.closest('.feature-card');
+  expect(gnomishCunningCard).not.toBeNull();
+  expect(within(gnomishCunningCard).getByText('Gnome')).toBeInTheDocument();
+
+  const gnomishCunningViewButton = within(gnomishCunningCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  expect(
+    screen.queryByText(
+      /advantage on intelligence, wisdom, and charisma saving throws against magic/i
+    )
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(gnomishCunningViewButton);
+  });
+
+  expect(
+    await screen.findByText(
+      /advantage on intelligence, wisdom, and charisma saving throws against magic/i
+    )
+  ).toBeInTheDocument();
+});
+
 test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
   apiFetch.mockResolvedValue({
     ok: true,

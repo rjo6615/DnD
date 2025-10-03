@@ -127,10 +127,12 @@ const races = {
     name: "Gnome",
     size: "Small",
     sizeOptions: ["Small"],
-    speed: 25,
+    speed: 30,
     abilities: { int: 2 },
     skills: {},
     languages: ["Common", "Gnomish"],
+    creatureType: "Humanoid",
+    darkvisionRange: 60,
   },
   orc: {
     name: "Orc",
