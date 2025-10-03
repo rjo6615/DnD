@@ -84,16 +84,27 @@ export default function HealthDefense({
   const spellSaveDC =
     spellAbilityMod != null ? 8 + profBonus + spellAbilityMod : null;
 
-  const { currentHp: computedCurrentHp, maxHp } = useMemo(
-    () =>
-      calculateCharacterHitPoints(form, {
-        conMod,
-        totalLevel: derivedTotalLevel,
-        hpMaxBonus,
-        hpMaxBonusPerLevel,
-      }),
-    [form, conMod, derivedTotalLevel, hpMaxBonus, hpMaxBonusPerLevel]
-  );
+  const { currentHp: computedCurrentHp, maxHp } = useMemo(() => {
+    const overrides = {
+      conMod,
+      totalLevel: derivedTotalLevel,
+    };
+
+    const numericHpMaxBonus = Number(hpMaxBonus);
+    if (Number.isFinite(numericHpMaxBonus) && numericHpMaxBonus !== 0) {
+      overrides.hpMaxBonus = numericHpMaxBonus;
+    }
+
+    const numericHpMaxBonusPerLevel = Number(hpMaxBonusPerLevel);
+    if (
+      Number.isFinite(numericHpMaxBonusPerLevel) &&
+      numericHpMaxBonusPerLevel !== 0
+    ) {
+      overrides.hpMaxBonusPerLevel = numericHpMaxBonusPerLevel;
+    }
+
+    return calculateCharacterHitPoints(form, overrides);
+  }, [form, conMod, derivedTotalLevel, hpMaxBonus, hpMaxBonusPerLevel]);
 
   const safeInitialHealth = Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0;
   const [health, setHealth] = useState(safeInitialHealth);
