@@ -334,22 +334,43 @@ test('halfling characters display racial trait feature cards with descriptions',
   }
 });
 
-test('gnome characters display darkvision and Gnomish Cunning', async () => {
+test('forest gnome lineage shows lineage spells with ability text and tracking', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
     json: async () => ({ features: [] }),
   });
 
+  const onCastSpell = jest.fn();
   const form = {
-    race: { name: 'Gnome', darkvisionRange: 60 },
-    occupation: [],
+    race: {
+      name: 'Gnome',
+      darkvisionRange: 60,
+      gnomeLineages: {
+        forest: {
+          label: 'Forest Gnome',
+          spellcastingAbilities: ['Intelligence', 'Wisdom'],
+        },
+      },
+    },
+    gnomeLineageKey: 'forest',
+    gnomeLineage: {
+      label: 'Forest Gnome',
+      spellcastingAbilities: ['Intelligence', 'Wisdom'],
+    },
+    gnomeLineageAbility: 'Wisdom',
+    occupation: [{ Name: 'Wizard', Level: 3 }],
+    proficiencyBonus: 2,
   };
 
-  render(
+  const { rerender } = render(
     <Features
       form={form}
       showFeatures={true}
       handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={0}
+      shortRestCount={0}
     />
   );
 
@@ -358,54 +379,91 @@ test('gnome characters display darkvision and Gnomish Cunning', async () => {
   expect(darkvisionCard).not.toBeNull();
   expect(within(darkvisionCard).getByText('Gnome')).toBeInTheDocument();
 
-  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
-    name: /view feature/i,
+  expect(await screen.findByText('Gnomish Cunning')).toBeInTheDocument();
+
+  const speakTitle = await screen.findByText('Speak with Animals');
+  const speakCard = speakTitle.closest('.feature-card');
+  expect(speakCard).not.toBeNull();
+  const speakWithin = within(speakCard);
+  expect(
+    speakWithin.getByText('Spellcasting ability: Wisdom')
+  ).toBeInTheDocument();
+  expect(
+    speakWithin.getByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  const freeCastButton = speakWithin.getByRole('button', {
+    name: /cast speak with animals using proficiency/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(freeCastButton);
+  });
+
+  expect(onCastSpell).toHaveBeenCalledWith('action');
+  expect(
+    speakWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+
+  const slotButton = speakWithin.getByRole('button', {
+    name: /cast speak with animals using a spell slot/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(slotButton);
+  });
+
+  const dialogs = await screen.findAllByRole('dialog');
+  const upcastModal = dialogs[dialogs.length - 1];
+  const levelOneSlot = within(upcastModal).getByText('I');
+
+  await act(async () => {
+    await userEvent.click(levelOneSlot);
+  });
+
+  const castConfirm = within(upcastModal).getByRole('button', { name: /cast/i });
+
+  await act(async () => {
+    await userEvent.click(castConfirm);
+  });
+
+  expect(onCastSpell).toHaveBeenLastCalledWith({
+    level: 1,
+    slotLevel: 1,
+    slotType: 'regular',
+    castingTime: '1 action',
+    name: 'Speak with Animals',
   });
 
   expect(
-    screen.queryByText(/dim light within 60 feet of you as if it were bright light/i)
-  ).not.toBeInTheDocument();
+    speakWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
 
-  await act(async () => {
-    await userEvent.click(darkvisionViewButton);
-  });
-
-  const darkvisionDescription = await screen.findByText(
-    /dim light within 60 feet of you as if it were bright light/i
+  rerender(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      availableSlots={{ regular: { 1: 2 } }}
+      longRestCount={1}
+      shortRestCount={0}
+    />
   );
-  const darkvisionModal = darkvisionDescription.closest('.modal-content');
-  expect(darkvisionModal).not.toBeNull();
-
-  const closeDarkvisionButton = within(darkvisionModal).getByRole('button', {
-    name: /close/i,
-  });
-
-  await act(async () => {
-    await userEvent.click(closeDarkvisionButton);
-  });
-
-  const gnomishCunningTitle = await screen.findByText('Gnomish Cunning');
-  const gnomishCunningCard = gnomishCunningTitle.closest('.feature-card');
-  expect(gnomishCunningCard).not.toBeNull();
-  expect(within(gnomishCunningCard).getByText('Gnome')).toBeInTheDocument();
-
-  const gnomishCunningViewButton = within(gnomishCunningCard).getByRole('button', {
-    name: /view feature/i,
-  });
 
   expect(
-    screen.queryByText(
-      /advantage on intelligence, wisdom, and charisma saving throws against magic/i
-    )
-  ).not.toBeInTheDocument();
-
-  await act(async () => {
-    await userEvent.click(gnomishCunningViewButton);
-  });
-
+    (await screen.findByText('Speak with Animals')).closest('.feature-card')
+  ).not.toBeNull();
   expect(
-    await screen.findByText(
-      /advantage on intelligence, wisdom, and charisma saving throws against magic/i
+    await screen.findByText('Uses remaining: 2')
+  ).toBeInTheDocument();
+
+  const minorIllusionTitle = await screen.findByText('Minor Illusion');
+  const minorIllusionCard = minorIllusionTitle.closest('.feature-card');
+  expect(minorIllusionCard).not.toBeNull();
+  expect(
+    within(minorIllusionCard).getByText(
+      /forest gnome • spellcasting ability: wisdom/i
     )
   ).toBeInTheDocument();
 });
