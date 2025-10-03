@@ -4244,8 +4244,10 @@ export default function ZombiesCharacterSheet() {
           onAdrenalineRush={handleAdrenalineRush}
           onLargeForm={handleLargeForm}
           onDraconicFlight={handleDraconicFlight}
+          onCastSpell={handleCastSpell}
           longRestCount={longRestCount}
           shortRestCount={shortRestCount}
+          availableSlots={availableSlots}
           actionCount={actionCount}
         />
         <InventoryModal
