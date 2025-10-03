@@ -648,6 +648,97 @@ test('renders SpellSlots for non-spellcasting characters', async () => {
   );
 });
 
+test('persists used spell slots and actions to localStorage', async () => {
+  window.localStorage.clear();
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [{ Name: 'Wizard', Level: 1 }],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+  };
+
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => baseCharacter,
+  });
+
+  const user = userEvent.setup();
+  const { container, unmount } = render(<ZombiesCharacterSheet />);
+
+  await waitFor(() =>
+    expect(container.querySelector('.spell-slot-container')).toBeInTheDocument()
+  );
+
+  const actionCircle = container.querySelector('.action-slot .action-circle');
+  expect(actionCircle).toBeInTheDocument();
+  await user.click(actionCircle);
+  await waitFor(() => expect(actionCircle).toHaveClass('slot-used'));
+
+  const regularSlot = container.querySelector(
+    '[data-slot-type="regular"][data-slot-level="1"] .slot-small'
+  );
+  expect(regularSlot).toBeInTheDocument();
+  await user.click(regularSlot);
+  await waitFor(() => expect(regularSlot).toHaveClass('slot-used'));
+
+  const storageKey = 'zombiesUsedSlots:1';
+  await waitFor(() => {
+    const stored = window.localStorage.getItem(storageKey);
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored);
+    expect(parsed).toMatchObject({
+      action: { 0: 'used' },
+      'regular-1': { 0: true },
+    });
+  });
+
+  unmount();
+
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => baseCharacter,
+  });
+
+  const { container: rehydratedContainer } = render(
+    <ZombiesCharacterSheet key="rehydrated" />
+  );
+
+  await waitFor(() =>
+    expect(
+      rehydratedContainer.querySelector('.spell-slot-container')
+    ).toBeInTheDocument()
+  );
+
+  await waitFor(() => {
+    const rehydratedAction = rehydratedContainer.querySelector(
+      '.action-slot .action-circle'
+    );
+    expect(rehydratedAction).toHaveClass('slot-used');
+  });
+
+  await waitFor(() => {
+    const rehydratedRegular = rehydratedContainer.querySelector(
+      '[data-slot-type="regular"][data-slot-level="1"] .slot-small'
+    );
+    expect(rehydratedRegular).toHaveClass('slot-used');
+  });
+
+  window.localStorage.clear();
+});
+
 test('skills button includes points-glow when skill points available', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
