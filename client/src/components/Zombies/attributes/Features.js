@@ -475,7 +475,7 @@ export default function Features({
         {
           id: 'dwarf-darkvision',
           name: 'Darkvision',
-          meta: 'Dwarf',
+          meta: `${raceDisplayName} ${darkvisionRange ?? 60} ft`,
           description: darkvisionDescription,
           desc: darkvisionDescription,
           hideUseButton: true,
@@ -506,8 +506,12 @@ export default function Features({
         }
       );
     } else if (raceName === 'orc') {
+      const orcDarkvisionRange =
+        Number.isFinite(race?.darkvisionRange) && race.darkvisionRange > 0
+          ? race.darkvisionRange
+          : 120;
       const darkvisionDescription =
-        'Thanks to your orc heritage, you can see in dim light within 120 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.';
+        `Thanks to your orc heritage, you can see in dim light within ${orcDarkvisionRange} feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.`;
       const adrenalineRushDescription =
         'As a bonus action, you can take the Dash action and gain temporary hit points equal to your proficiency bonus. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.';
       const relentlessEnduranceDescription =
@@ -524,7 +528,7 @@ export default function Features({
         {
           id: 'orc-darkvision',
           name: 'Darkvision',
-          meta: 'Orc',
+          meta: `${raceDisplayName} ${orcDarkvisionRange} ft`,
           description: darkvisionDescription,
           desc: darkvisionDescription,
           hideUseButton: true,
@@ -812,7 +816,7 @@ export default function Features({
       raceFeatures.push({
         id: raceName ? `${raceName}-darkvision` : 'darkvision',
         name: 'Darkvision',
-        meta: raceDisplayName,
+        meta: `${raceDisplayName} ${darkvisionRange ?? 60} ft`,
         description: darkvisionDescription,
         desc: darkvisionDescription,
         hideUseButton: true,
