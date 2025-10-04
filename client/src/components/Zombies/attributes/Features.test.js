@@ -1239,6 +1239,114 @@ test('Speak with Animals wand button respects available uses and slots', async (
   await waitFor(() => expect(getWandButton()).toBeDisabled());
 });
 
+test('tiefling fiendish legacy shows resistance and spells with ability details', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const infernalLegacy = {
+    label: 'Infernal Legacy',
+    resistance: 'Fire',
+    spellcastingAbilities: ['Intelligence', 'Wisdom', 'Charisma'],
+    spells: [
+      {
+        name: 'Fire Bolt',
+        spellLevel: 'Cantrip',
+        unlockedAtLevel: 1,
+        description:
+          'Launch a mote of fire at a creature within range, dealing fire damage on a hit.',
+        usage: 'At will',
+      },
+      {
+        name: 'Hellish Rebuke',
+        spellLevel: '1st-level',
+        unlockedAtLevel: 3,
+        description:
+          'Surround an attacker in searing flame as a reaction, forcing a Dexterity save or dealing fire damage.',
+        usage: '1/long rest',
+      },
+      {
+        name: 'Fireball',
+        spellLevel: '3rd-level',
+        unlockedAtLevel: 5,
+        description:
+          'Detonate a roaring explosion of flame that engulfs creatures in a 20-foot-radius sphere.',
+        usage: '1/long rest',
+      },
+    ],
+  };
+
+  render(
+    <Features
+      form={{
+        race: {
+          name: 'Tiefling',
+          darkvisionRange: 60,
+          fiendishLegacies: { infernal: infernalLegacy },
+        },
+        tieflingLegacyKey: 'infernal',
+        tieflingLegacy: infernalLegacy,
+        tieflingLegacyAbility: 'Charisma',
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      longRestCount={0}
+      shortRestCount={0}
+      availableSlots={{ regular: { 3: 1 } }}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const resistanceTitle = await screen.findByText('Fire Resistance');
+  const resistanceCard = resistanceTitle.closest('.feature-card');
+  expect(resistanceCard).not.toBeNull();
+  if (!resistanceCard) {
+    throw new Error('Expected Fire Resistance card');
+  }
+  const resistanceWithin = within(resistanceCard);
+  expect(resistanceWithin.getByText(/Resistance: Fire/i)).toBeInTheDocument();
+  expect(resistanceWithin.getByText(/Spellcasting Ability: Charisma/i)).toBeInTheDocument();
+
+  const fireBoltCard = screen.getByText('Fire Bolt').closest('.feature-card');
+  expect(fireBoltCard).not.toBeNull();
+  if (!fireBoltCard) {
+    throw new Error('Expected Fire Bolt card');
+  }
+  expect(
+    within(fireBoltCard).getByText(/Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+
+  const hellishCard = screen
+    .getByText('Hellish Rebuke (Level 3)')
+    .closest('.feature-card');
+  expect(hellishCard).not.toBeNull();
+  if (!hellishCard) {
+    throw new Error('Expected Hellish Rebuke card');
+  }
+  const hellishWithin = within(hellishCard);
+  expect(hellishWithin.getByText(/Uses remaining/i)).toBeInTheDocument();
+  const viewHellish = hellishWithin.getByRole('button', { name: /view feature/i });
+  await act(async () => {
+    await userEvent.click(viewHellish);
+  });
+  expect(
+    await screen.findByText(/This legacy uses Charisma for its spells\./i)
+  ).toBeInTheDocument();
+  expect(screen.getByText(/Uses: 1\/long rest/i)).toBeInTheDocument();
+  const hellishModal = screen.getByText(/Uses: 1\/long rest/i).closest('.modal-content');
+  if (!hellishModal) {
+    throw new Error('Expected Hellish Rebuke modal');
+  }
+  const closeButton = within(hellishModal).getByRole('button', { name: /close/i });
+  await act(async () => {
+    await userEvent.click(closeButton);
+  });
+
+  expect(screen.getByText('Fireball (Level 5)')).toBeInTheDocument();
+});
+
 test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
