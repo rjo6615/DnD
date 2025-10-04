@@ -666,6 +666,7 @@ export default function ZombiesDM() {
       imageType: '',
       altText: '',
       activateOnSave: true,
+      fileInputKey: 0,
     });
     const [mapEditorSaving, setMapEditorSaving] = useState(false);
     const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
@@ -3268,14 +3269,13 @@ export default function ZombiesDM() {
         show: true,
         mode: 'create',
         map: safeMap,
-        title: typeof safeMap.title === 'string' ? safeMap.title : '',
-        imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
-        imageBase64:
-          typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
-        imageType:
-          typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
-        altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        title: '',
+        imageUrl: '',
+        imageBase64: '',
+        imageType: '',
+        altText: '',
         activateOnSave: maps.length === 0,
+        fileInputKey: Date.now(),
       });
     }, [generatedMap, selectedMapId, maps, campaignMap]);
 
@@ -3299,6 +3299,7 @@ export default function ZombiesDM() {
           typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: false,
+        fileInputKey: Date.now(),
       });
     }, []);
 
@@ -7053,6 +7054,7 @@ const resolveIcon = (category, iconMap, fallback) => {
             <Form.Group className="mb-3" controlId="map-editor-image-file">
               <Form.Label>Image File</Form.Label>
               <Form.Control
+                key={mapEditorState.fileInputKey}
                 type="file"
                 accept="image/*"
                 onChange={handleMapEditorFileChange}
