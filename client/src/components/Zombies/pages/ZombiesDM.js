@@ -668,6 +668,7 @@ export default function ZombiesDM() {
       activateOnSave: true,
       fileInputKey: 0,
     });
+    const [mapEditorErrors, setMapEditorErrors] = useState({});
     const [mapEditorSaving, setMapEditorSaving] = useState(false);
     const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
     const [mapPrompt, setMapPrompt] = useState('');
@@ -712,6 +713,57 @@ export default function ZombiesDM() {
     useEffect(() => {
       activeMapIdRef.current = activeMapId;
     }, [activeMapId]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.title) {
+        return;
+      }
+
+      const hasTitle =
+        typeof mapEditorState.title === 'string' && mapEditorState.title.trim() !== '';
+
+      if (hasTitle) {
+        setMapEditorErrors((prev) => {
+          if (!prev.title) {
+            return prev;
+          }
+
+          const { title, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.title, mapEditorState.title]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.imageSource) {
+        return;
+      }
+
+      const hasImageUrl =
+        typeof mapEditorState.imageUrl === 'string' && mapEditorState.imageUrl.trim() !== '';
+      const hasImageFile =
+        typeof mapEditorState.imageBase64 === 'string' &&
+        mapEditorState.imageBase64.trim() !== '';
+
+      if (hasImageUrl || hasImageFile) {
+        setMapEditorErrors((prev) => {
+          if (!prev.imageSource) {
+            return prev;
+          }
+
+          const { imageSource, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.imageSource, mapEditorState.imageUrl, mapEditorState.imageBase64]);
+
+    const imageSourceDescribedBy = useMemo(() => {
+      const ids = ['map-editor-image-requirement'];
+      if (mapEditorErrors.imageSource) {
+        ids.push('map-editor-image-error');
+      }
+      return ids.join(' ');
+    }, [mapEditorErrors.imageSource]);
 
     const applyMapPayload = useCallback(
       (payload, options = {}) => {
@@ -3256,6 +3308,7 @@ export default function ZombiesDM() {
 
     const openCreateMapModal = useCallback(() => {
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       const sourceMap =
         generatedMap ||
         (selectedMapId
@@ -3285,6 +3338,7 @@ export default function ZombiesDM() {
       }
 
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       const safeMap = map;
 
       setMapEditorState({
@@ -3305,6 +3359,7 @@ export default function ZombiesDM() {
 
     const handleCloseMapEditor = useCallback(() => {
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       setMapEditorState((prev) => ({ ...prev, show: false }));
     }, []);
 
@@ -3405,6 +3460,23 @@ export default function ZombiesDM() {
         const trimmedImageType =
           typeof imageType === 'string' ? imageType.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
+
+        const errors = {};
+
+        if (!trimmedTitle) {
+          errors.title = 'Title is required.';
+        }
+
+        if (!trimmedImageUrl && !trimmedImageBase64) {
+          errors.imageSource = 'Provide an image URL or upload a file.';
+        }
+
+        if (Object.keys(errors).length > 0) {
+          setMapEditorErrors(errors);
+          return;
+        }
+
+        setMapEditorErrors({});
 
         const normalizedTitle = trimmedTitle || getMapDisplayTitle(baseMap, DEFAULT_MAP_TITLE);
 
@@ -7032,35 +7104,68 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Modal.Header>
           <Modal.Body>
             <Form.Group className="mb-3" controlId="map-editor-title">
-              <Form.Label>Title</Form.Label>
+              <Form.Label>
+                Title <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter map title"
                 value={mapEditorState.title}
                 onChange={handleMapEditorInputChange('title')}
                 disabled={mapEditorSaving}
+                required
+                aria-required="true"
+                isInvalid={Boolean(mapEditorErrors.title)}
               />
+              {mapEditorErrors.title && (
+                <Form.Control.Feedback type="invalid" className="d-block">
+                  {mapEditorErrors.title}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
-              <Form.Label>Image URL</Form.Label>
+              <Form.Label>
+                Image URL <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 type="url"
                 placeholder="https://example.com/map.png"
                 value={mapEditorState.imageUrl}
                 onChange={handleMapEditorInputChange('imageUrl')}
                 disabled={mapEditorSaving}
+                aria-describedby={imageSourceDescribedBy}
+                isInvalid={Boolean(mapEditorErrors.imageSource)}
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-file">
-              <Form.Label>Image File</Form.Label>
+              <Form.Label>
+                Image File <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 key={mapEditorState.fileInputKey}
                 type="file"
                 accept="image/*"
                 onChange={handleMapEditorFileChange}
                 disabled={mapEditorSaving}
+                aria-describedby={imageSourceDescribedBy}
+                isInvalid={Boolean(mapEditorErrors.imageSource)}
               />
             </Form.Group>
+            <Form.Text
+              id="map-editor-image-requirement"
+              className="text-muted d-block mb-2"
+            >
+              Provide an image URL or upload a file. At least one source is required.
+            </Form.Text>
+            {mapEditorErrors.imageSource && (
+              <div
+                id="map-editor-image-error"
+                className="text-danger small mb-3"
+                role="alert"
+              >
+                {mapEditorErrors.imageSource}
+              </div>
+            )}
             <Form.Group className="mb-3" controlId="map-editor-alt-text">
               <Form.Label>Alt Text</Form.Label>
               <Form.Control
