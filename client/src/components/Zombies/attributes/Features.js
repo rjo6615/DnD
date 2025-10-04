@@ -438,10 +438,10 @@ export default function Features({
             'You know the Dancing Lights cantrip and can cast it without expending a spell slot.' +
             abilityText;
           const faerieFireDescription =
-            'Starting at 3rd level, you can cast Faerie Fire with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            'Starting at 3rd level, you can cast Faerie Fire with this trait once per long rest.' +
             abilityText;
           const darknessDescription =
-            'Starting at 5th level, you can cast Darkness with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            'Starting at 5th level, you can cast Darkness with this trait once per long rest.' +
             abilityText;
 
           raceFeatures.push({
@@ -479,10 +479,10 @@ export default function Features({
             'You know the Prestidigitation cantrip and can cast it without expending a spell slot.' +
             abilityText;
           const detectMagicDescription =
-            'Starting at 3rd level, you can cast Detect Magic with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            'Starting at 3rd level, you can cast Detect Magic with this trait once per long rest.' +
             abilityText;
           const mistyStepDescription =
-            'Starting at 5th level, you can cast Misty Step with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            'Starting at 5th level, you can cast Misty Step with this trait once per long rest.' +
             abilityText;
 
           raceFeatures.push({
@@ -521,10 +521,10 @@ export default function Features({
             abilityText +
             ' Your walking speed increases to 35 feet.';
           const longstriderDescription =
-            'Starting at 3rd level, you can cast Longstrider with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            'Starting at 3rd level, you can cast Longstrider with this trait once per long rest.' +
             abilityText;
           const passWithoutTraceDescription =
-            'Starting at 5th level, you can cast Pass without Trace with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            'Starting at 5th level, you can cast Pass without Trace with this trait once per long rest.' +
             abilityText;
 
           raceFeatures.push({

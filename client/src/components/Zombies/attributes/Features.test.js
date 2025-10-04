@@ -415,6 +415,34 @@ test('elf characters display baseline traits and drow lineage magic', async () =
   expect(await screen.findByText('Faerie Fire (Level 3)')).toBeInTheDocument();
   expect(screen.queryByText('Darkness (Level 5)')).not.toBeInTheDocument();
 
+  const faerieFireCard = screen.getByText('Faerie Fire (Level 3)').closest(
+    '.feature-card'
+  );
+  expect(faerieFireCard).not.toBeNull();
+  const faerieFireViewButton = within(faerieFireCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(faerieFireViewButton);
+  });
+
+  const faerieDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Faerie Fire with this trait once per long rest\./i
+  );
+  expect(faerieDescription).toHaveTextContent(
+    /This lineage uses Charisma for its spells\./i
+  );
+  expect(faerieDescription).not.toHaveTextContent(/future update/i);
+
+  const faerieModal = faerieDescription.closest('.modal-content');
+  expect(faerieModal).not.toBeNull();
+  const faerieClose = within(faerieModal).getByRole('button', { name: /close/i });
+
+  await act(async () => {
+    await userEvent.click(faerieClose);
+  });
+
   rerender(
     <Features
       form={{
@@ -428,6 +456,36 @@ test('elf characters display baseline traits and drow lineage magic', async () =
   );
 
   expect(await screen.findByText('Darkness (Level 5)')).toBeInTheDocument();
+
+  const darknessCard = screen.getByText('Darkness (Level 5)').closest(
+    '.feature-card'
+  );
+  expect(darknessCard).not.toBeNull();
+  const darknessViewButton = within(darknessCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darknessViewButton);
+  });
+
+  const darknessDescription = await screen.findByText(
+    /Starting at 5th level, you can cast Darkness with this trait once per long rest\./i
+  );
+  expect(darknessDescription).toHaveTextContent(
+    /This lineage uses Charisma for its spells\./i
+  );
+  expect(darknessDescription).not.toHaveTextContent(/future update/i);
+
+  const darknessModal = darknessDescription.closest('.modal-content');
+  expect(darknessModal).not.toBeNull();
+  const darknessClose = within(darknessModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darknessClose);
+  });
 
   const darkvisionCard = screen.getByText('Darkvision').closest('.feature-card');
   expect(darkvisionCard).not.toBeNull();
@@ -520,6 +578,36 @@ test('wood elf lineage notes speed increase and lineage spells', async () => {
 
   expect(await screen.findByText('Longstrider (Level 3)')).toBeInTheDocument();
   expect(screen.queryByText('Pass without Trace (Level 5)')).not.toBeInTheDocument();
+
+  const longstriderCard = screen.getByText('Longstrider (Level 3)').closest(
+    '.feature-card'
+  );
+  expect(longstriderCard).not.toBeNull();
+  const longstriderViewButton = within(longstriderCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(longstriderViewButton);
+  });
+
+  const longstriderDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Longstrider with this trait once per long rest\./i
+  );
+  expect(longstriderDescription).toHaveTextContent(
+    /This lineage uses Wisdom for its spells\./i
+  );
+  expect(longstriderDescription).not.toHaveTextContent(/future update/i);
+
+  const longstriderModal = longstriderDescription.closest('.modal-content');
+  expect(longstriderModal).not.toBeNull();
+  const longstriderClose = within(longstriderModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(longstriderClose);
+  });
 
   rerender(
     <Features
@@ -615,6 +703,36 @@ test('high elf lineage lists arcane cantrip and future spell hooks', async () =>
   );
 
   expect(await screen.findByText('Misty Step (Level 5)')).toBeInTheDocument();
+
+  const detectMagicCard = screen.getByText('Detect Magic (Level 3)').closest(
+    '.feature-card'
+  );
+  expect(detectMagicCard).not.toBeNull();
+  const detectMagicViewButton = within(detectMagicCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(detectMagicViewButton);
+  });
+
+  const detectMagicDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Detect Magic with this trait once per long rest\./i
+  );
+  expect(detectMagicDescription).toHaveTextContent(
+    /This lineage uses Intelligence for its spells\./i
+  );
+  expect(detectMagicDescription).not.toHaveTextContent(/future update/i);
+
+  const detectMagicModal = detectMagicDescription.closest('.modal-content');
+  expect(detectMagicModal).not.toBeNull();
+  const detectMagicClose = within(detectMagicModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(detectMagicClose);
+  });
 });
 
 test('forest gnome lineage shows lineage spells with ability text and tracking', async () => {
