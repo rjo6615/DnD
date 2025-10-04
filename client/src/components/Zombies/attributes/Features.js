@@ -10,6 +10,27 @@ import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalIcon from '../../../images/speak-with-animal.png';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 
+const ONCE_PER_LONG_REST_LINEAGE_SPELLS = {
+  'elf-drow-faerie-fire': {
+    spellName: 'Faerie Fire',
+  },
+  'elf-drow-darkness': {
+    spellName: 'Darkness',
+  },
+  'elf-high-detect-magic': {
+    spellName: 'Detect Magic',
+  },
+  'elf-high-misty-step': {
+    spellName: 'Misty Step',
+  },
+  'elf-wood-longstrider': {
+    spellName: 'Longstrider',
+  },
+  'elf-wood-pass-without-trace': {
+    spellName: 'Pass without Trace',
+  },
+};
+
 export default function Features({
   form,
   showFeatures,
@@ -37,6 +58,15 @@ export default function Features({
   const [draconicFlightUsed, setDraconicFlightUsed] = useState(false);
   const [adrenalineRushUses, setAdrenalineRushUses] = useState(0);
   const [speakWithAnimalsUses, setSpeakWithAnimalsUses] = useState(0);
+  const [lineageSpellUses, setLineageSpellUses] = useState(() => {
+    return Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).reduce(
+      (acc, spellId) => {
+        acc[spellId] = 0;
+        return acc;
+      },
+      {}
+    );
+  });
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
   const hasInitializedRestRef = useRef(false);
@@ -246,6 +276,37 @@ export default function Features({
     return `zombiesSpeakWithAnimalsUses:${normalizedCharacterId}`;
   }, [normalizedCharacterId]);
 
+  const lineageSpellStorageKeys = useMemo(() => {
+    if (!normalizedCharacterId) {
+      return null;
+    }
+
+    return Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).reduce(
+      (acc, spellId) => {
+        acc[spellId] = `zombiesLineageSpellUses:${spellId}:${normalizedCharacterId}`;
+        return acc;
+      },
+      {}
+    );
+  }, [normalizedCharacterId]);
+
+  const lineageSpellEligibility = useMemo(() => {
+    return {
+      'elf-drow-faerie-fire': isDrowElvenLineage && totalCharacterLevel >= 3,
+      'elf-drow-darkness': isDrowElvenLineage && totalCharacterLevel >= 5,
+      'elf-high-detect-magic': isHighElvenLineage && totalCharacterLevel >= 3,
+      'elf-high-misty-step': isHighElvenLineage && totalCharacterLevel >= 5,
+      'elf-wood-longstrider': isWoodElvenLineage && totalCharacterLevel >= 3,
+      'elf-wood-pass-without-trace':
+        isWoodElvenLineage && totalCharacterLevel >= 5,
+    };
+  }, [
+    isDrowElvenLineage,
+    isHighElvenLineage,
+    isWoodElvenLineage,
+    totalCharacterLevel,
+  ]);
+
   useEffect(() => {
     const fallbackUses = speakWithAnimalsMaxUses;
 
@@ -277,6 +338,79 @@ export default function Features({
     canUseSpeakWithAnimals,
     speakWithAnimalsMaxUses,
     speakWithAnimalsStorageKey,
+  ]);
+
+  useEffect(() => {
+    const allSpellIds = Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS);
+    const nextUses = {};
+
+    allSpellIds.forEach((spellId) => {
+      const isEligible = lineageSpellEligibility[spellId];
+      if (!isEligible) {
+        nextUses[spellId] = 0;
+        if (
+          typeof window !== 'undefined' &&
+          lineageSpellStorageKeys?.[spellId]
+        ) {
+          window.localStorage.removeItem(lineageSpellStorageKeys[spellId]);
+        }
+        return;
+      }
+
+      const storageKey = lineageSpellStorageKeys?.[spellId];
+      if (typeof window === 'undefined' || !storageKey) {
+        nextUses[spellId] = 1;
+        return;
+      }
+
+      const storedValueRaw = window.localStorage.getItem(storageKey);
+      if (storedValueRaw === null) {
+        nextUses[spellId] = 1;
+        return;
+      }
+
+      const parsed = Number(storedValueRaw);
+      nextUses[spellId] = Number.isFinite(parsed)
+        ? Math.max(0, Math.min(1, Math.floor(parsed)))
+        : 1;
+    });
+
+    setLineageSpellUses((prev) => {
+      let hasChanged = false;
+      const updated = { ...prev };
+      allSpellIds.forEach((spellId) => {
+        const nextValue = nextUses[spellId] ?? 0;
+        if (updated[spellId] !== nextValue) {
+          updated[spellId] = nextValue;
+          hasChanged = true;
+        }
+      });
+      return hasChanged ? updated : prev;
+    });
+  }, [lineageSpellEligibility, lineageSpellStorageKeys, normalizedCharacterId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !lineageSpellStorageKeys) {
+      return;
+    }
+
+    Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).forEach((spellId) => {
+      if (!lineageSpellEligibility[spellId]) {
+        return;
+      }
+
+      const storageKey = lineageSpellStorageKeys[spellId];
+      if (!storageKey) {
+        return;
+      }
+
+      const uses = lineageSpellUses[spellId] ?? 0;
+      window.localStorage.setItem(storageKey, String(uses));
+    });
+  }, [
+    lineageSpellEligibility,
+    lineageSpellStorageKeys,
+    lineageSpellUses,
   ]);
 
   const ancestryFeatures = useMemo(() => {
@@ -460,7 +594,10 @@ export default function Features({
               meta: lineageMeta,
               description: faerieFireDescription,
               desc: faerieFireDescription,
-              hideUseButton: true,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-drow-faerie-fire']
+                  ?.spellName,
             });
           }
 
@@ -471,7 +608,9 @@ export default function Features({
               meta: lineageMeta,
               description: darknessDescription,
               desc: darknessDescription,
-              hideUseButton: true,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-drow-darkness']?.spellName,
             });
           }
         } else if (isHighElvenLineage) {
@@ -501,7 +640,10 @@ export default function Features({
               meta: lineageMeta,
               description: detectMagicDescription,
               desc: detectMagicDescription,
-              hideUseButton: true,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-high-detect-magic']
+                  ?.spellName,
             });
           }
 
@@ -512,7 +654,10 @@ export default function Features({
               meta: lineageMeta,
               description: mistyStepDescription,
               desc: mistyStepDescription,
-              hideUseButton: true,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-high-misty-step']
+                  ?.spellName,
             });
           }
         } else if (isWoodElvenLineage) {
@@ -543,7 +688,10 @@ export default function Features({
               meta: lineageMeta,
               description: longstriderDescription,
               desc: longstriderDescription,
-              hideUseButton: true,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-wood-longstrider']
+                  ?.spellName,
             });
           }
 
@@ -554,7 +702,11 @@ export default function Features({
               meta: lineageMeta,
               description: passWithoutTraceDescription,
               desc: passWithoutTraceDescription,
-              hideUseButton: true,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS[
+                  'elf-wood-pass-without-trace'
+                ]?.spellName,
             });
           }
         }
@@ -862,6 +1014,18 @@ export default function Features({
     setAdrenalineRushUses(adrenalineRushMaxUses);
     if (hasInitializedRestRef.current) {
       setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+      setLineageSpellUses((prev) => {
+        let hasChanges = false;
+        const updated = { ...prev };
+        Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).forEach((spellId) => {
+          const resetValue = lineageSpellEligibility[spellId] ? 1 : 0;
+          if (updated[spellId] !== resetValue) {
+            updated[spellId] = resetValue;
+            hasChanges = true;
+          }
+        });
+        return hasChanges ? updated : prev;
+      });
     }
     hasInitializedRestRef.current = true;
   }, [
@@ -869,6 +1033,7 @@ export default function Features({
     longRestCount,
     shortRestCount,
     speakWithAnimalsMaxUses,
+    lineageSpellEligibility,
   ]);
 
   useEffect(() => {
@@ -996,6 +1161,15 @@ export default function Features({
                     const isAdrenalineRush = feat.id === 'orc-adrenaline-rush';
                     const isSpeakWithAnimals =
                       feat.id === 'gnome-forest-speak-with-animals';
+                    const lineageSpellConfig =
+                      feat.oncePerLongRestLineageSpell
+                        ? ONCE_PER_LONG_REST_LINEAGE_SPELLS[feat.id]
+                        : null;
+                    const isLineageOncePerLongRestSpell = Boolean(
+                      lineageSpellConfig
+                    );
+                    const lineageSpellRemainingUses =
+                      lineageSpellUses[feat.id] ?? 0;
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -1101,6 +1275,45 @@ export default function Features({
                                   height={36}
                                 />
                               </Button>
+                            ) : isLineageOncePerLongRestSpell ? (
+                              <Button
+                                aria-label={`cast ${
+                                  lineageSpellConfig?.spellName || 'lineage spell'
+                                } from lineage`}
+                                variant="link"
+                                className={`p-0 border-0 ${
+                                  lineageSpellRemainingUses <= 0
+                                    ? 'opacity-50'
+                                    : ''
+                                }`}
+                                onClick={() => {
+                                  setLineageSpellUses((prev) => {
+                                    const current = prev[feat.id] ?? 0;
+                                    if (current <= 0) {
+                                      return prev;
+                                    }
+                                    return {
+                                      ...prev,
+                                      [feat.id]: Math.max(0, current - 1),
+                                    };
+                                  });
+                                  if (
+                                    lineageSpellRemainingUses <= 0 ||
+                                    !lineageSpellConfig?.spellName
+                                  ) {
+                                    return;
+                                  }
+                                  onCastSpell?.({
+                                    castingTime: '1 action',
+                                    name: lineageSpellConfig.spellName,
+                                    pendingEffectOnly: true,
+                                  });
+                                  onCastSpell?.('action');
+                                }}
+                                disabled={lineageSpellRemainingUses <= 0}
+                              >
+                                <i className="fa-solid fa-wand-sparkles" />
+                              </Button>
                             ) : isSpeakWithAnimals ? (
                               <div className="d-flex align-items-center gap-1">
                                 <Button
@@ -1168,6 +1381,11 @@ export default function Features({
                         {isSpeakWithAnimals && (
                           <div className="feature-card-uses text-muted small mt-2">
                             Uses remaining: {speakWithAnimalsUses}
+                          </div>
+                        )}
+                        {isLineageOncePerLongRestSpell && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            Uses remaining: {lineageSpellRemainingUses}
                           </div>
                         )}
                         {isSpeakWithAnimals && (
