@@ -3,8 +3,9 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useCallback,
 } from 'react';
-import { Button, Modal, Card, OverlayTrigger, Popover } from "react-bootstrap";
+import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
@@ -281,12 +282,72 @@ const [isFumble, setIsFumble] = useState(false);
       weapon,
     }));
   }, [equipmentProvided, normalizedEquipment, form.weapon]);
-  // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
-  const abilityForWeapon = (weapon) => {
+
+  const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
+
+  const numericStrMod = Number(strMod) || 0;
+  const numericDexMod = Number(dexMod) || 0;
+
+  const formatModifier = (value) => (value >= 0 ? `+${value}` : `${value}`);
+
+  const isRangedWeapon = (weapon) => {
     const category = weapon?.category;
-    return typeof category === 'string' && category.toLowerCase().includes('ranged')
-      ? dexMod
-      : strMod;
+    return (
+      typeof category === 'string' && category.toLowerCase().includes('ranged')
+    );
+  };
+
+  const isFinesseWeapon = useCallback(
+    (weapon) =>
+      Array.isArray(weapon?.properties) &&
+      weapon.properties.some(
+        (prop) => typeof prop === 'string' && prop.toLowerCase().includes('finesse')
+      ),
+    []
+  );
+
+  const getAbilityKeyForWeapon = (slot, weapon) => {
+    if (isFinesseWeapon(weapon)) {
+      const stored = weaponAbilitySelections[slot];
+      if (stored === 'str' || stored === 'dex') {
+        return stored;
+      }
+      return numericDexMod >= numericStrMod ? 'dex' : 'str';
+    }
+    if (isRangedWeapon(weapon)) {
+      return 'dex';
+    }
+    return 'str';
+  };
+
+  useEffect(() => {
+    setWeaponAbilitySelections((prev) => {
+      const next = {};
+      equippedWeapons.forEach(({ slot, weapon }) => {
+        if (isFinesseWeapon(weapon)) {
+          const existing = prev[slot];
+          if (existing === 'dex' || existing === 'str') {
+            next[slot] = existing;
+          }
+        }
+      });
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      if (
+        prevKeys.length === nextKeys.length &&
+        nextKeys.every((key) => prev[key] === next[key])
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [equippedWeapons, isFinesseWeapon]);
+  // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
+  const abilityForWeapon = (weapon, slot) => {
+    const key = getAbilityKeyForWeapon(slot, weapon);
+    if (key === 'dex') return numericDexMod;
+    if (key === 'str') return numericStrMod;
+    return numericStrMod;
   };
 
   const formatWeaponLabel = (value) => {
@@ -396,9 +457,9 @@ const [isFumble, setIsFumble] = useState(false);
     };
   }, [dragonbornAncestry, conMod, profBonus, totalLevel]);
 
-  const getAttackBonus = (weapon) =>
+  const getAttackBonus = (slot, weapon) =>
     profBonus +
-    abilityForWeapon(weapon) +
+    abilityForWeapon(weapon, slot) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
     
   const normalizeDamageTypeForClass = (type) => {
@@ -427,13 +488,13 @@ const [isFumble, setIsFumble] = useState(false);
         );
       });
 
-  const getDamageString = (weapon) => {
-    const ability = abilityForWeapon(weapon);
+  const getDamageString = (slot, weapon) => {
+    const ability = abilityForWeapon(weapon, slot);
     return formatDamageSegments(weapon.damage, ability);
   };
 
-  const handleWeaponAttack = (weapon) => {
-    const ability = abilityForWeapon(weapon);
+  const handleWeaponAttack = (slot, weapon) => {
+    const ability = abilityForWeapon(weapon, slot);
     if (typeof weapon?.damage !== 'string' || !weapon.damage.trim()) return;
     const result = calculateDamage(weapon.damage, ability, isCritical);
     if (!result) return;
@@ -816,13 +877,40 @@ useEffect(() => {
                         <div className="attack-card__row">
                           <span className="attack-card__label">Attack Bonus</span>
                           <span className="attack-card__value">
-                            {getAttackBonus(weapon)}
+                            {getAttackBonus(slot, weapon)}
                           </span>
                         </div>
+                        {isFinesseWeapon(weapon) && (
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Ability</span>
+                            <span className="attack-card__value">
+                              <Form.Select
+                                id={`weapon-ability-${slot}`}
+                                aria-label={`Select ability for ${weapon.name || slot}`}
+                                value={getAbilityKeyForWeapon(slot, weapon)}
+                                onChange={(event) => {
+                                  const selected = event.target.value === 'dex' ? 'dex' : 'str';
+                                  setWeaponAbilitySelections((prev) => ({
+                                    ...prev,
+                                    [slot]: selected,
+                                  }));
+                                }}
+                                size="sm"
+                              >
+                                <option value="str">
+                                  Strength ({formatModifier(numericStrMod)})
+                                </option>
+                                <option value="dex">
+                                  Dexterity ({formatModifier(numericDexMod)})
+                                </option>
+                              </Form.Select>
+                            </span>
+                          </div>
+                        )}
                         <div className="attack-card__row">
                           <span className="attack-card__label">Damage</span>
                           <span className="attack-card__value">
-                            {getDamageString(weapon)}
+                            {getDamageString(slot, weapon)}
                           </span>
                         </div>
                         <div className="attack-card__row attack-card__row--properties">
@@ -852,7 +940,7 @@ useEffect(() => {
                       <div className="attack-card__actions">
                         <Button
                           onClick={() => {
-                            handleWeaponAttack(weapon);
+                            handleWeaponAttack(slot, weapon);
                             handleCloseAttack();
                           }}
                           variant="link"
