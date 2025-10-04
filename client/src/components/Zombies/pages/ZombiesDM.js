@@ -63,7 +63,8 @@ import {
   GiPentagramRose,
   GiSpellBook,
 } from "react-icons/gi";
-import { FiList, FiPlus } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
+import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -101,6 +102,7 @@ const toFiniteNumberOrNull = (value) => {
 };
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
+const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
 
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
@@ -129,6 +131,22 @@ const normalizeCreatureSize = (value) => {
   }
 
   return null;
+};
+
+const normalizeMapId = (value) =>
+  typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+
+const sanitizeTestIdValue = (value, fallback = 'item') => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return trimmed.replace(/[^0-9A-Za-z_-]/g, '-').toLowerCase();
 };
 
 const sortParticipantsDescending = (participantsWithMeta) =>
@@ -661,6 +679,8 @@ export default function ZombiesDM() {
       mode: 'create',
       map: null,
       title: '',
+      folder: '',
+      folderSelection: '',
       imageUrl: '',
       imageBase64: '',
       imageType: '',
@@ -670,6 +690,7 @@ export default function ZombiesDM() {
     });
     const [mapEditorErrors, setMapEditorErrors] = useState({});
     const [mapEditorSaving, setMapEditorSaving] = useState(false);
+    const [lastMapFolder, setLastMapFolder] = useState('');
     const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
     const [mapPrompt, setMapPrompt] = useState('');
     const [generatedMap, setGeneratedMap] = useState(null);
@@ -680,6 +701,7 @@ export default function ZombiesDM() {
     const [showMapManager, setShowMapManager] = useState(false);
     const [mapTokens, setMapTokens] = useState({});
     const [activeMapTokens, setActiveMapTokens] = useState({});
+    const [mapFolderExpansion, setMapFolderExpansion] = useState({});
     const [mapPlacementState, setMapPlacementState] = useState({
       show: false,
       enemyId: null,
@@ -697,6 +719,63 @@ export default function ZombiesDM() {
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
       [campaignId]
     );
+
+    const normalizedMaps = useMemo(
+      () => (Array.isArray(maps) ? maps.filter((map) => map && typeof map === 'object') : []),
+      [maps]
+    );
+
+    const groupedMaps = useMemo(
+      () => groupMapsByFolder(normalizedMaps),
+      [normalizedMaps]
+    );
+
+    const normalizedActiveMapId = useMemo(
+      () => normalizeMapId(activeMapId),
+      [activeMapId]
+    );
+
+    const normalizedSelectedMapId = useMemo(
+      () => normalizeMapId(selectedMapId),
+      [selectedMapId]
+    );
+
+    useEffect(() => {
+      setMapFolderExpansion((previous) => {
+        const next = {};
+
+        groupedMaps.forEach((group) => {
+          next[group.key] = Object.prototype.hasOwnProperty.call(previous, group.key)
+            ? previous[group.key]
+            : false;
+        });
+
+        return next;
+      });
+    }, [groupedMaps]);
+
+    const handleToggleMapFolder = useCallback((folderKey) => {
+      if (typeof folderKey !== 'string') {
+        return;
+      }
+
+      setMapFolderExpansion((previous) => ({
+        ...previous,
+        [folderKey]: !previous[folderKey],
+      }));
+    }, []);
+
+    const availableMapFolders = useMemo(() => {
+      const folderSet = new Set();
+      normalizedMaps.forEach((map) => {
+        const folderValue = typeof map.folder === 'string' ? map.folder.trim() : '';
+        if (folderValue) {
+          folderSet.add(folderValue);
+        }
+      });
+
+      return Array.from(folderSet).sort((a, b) => a.localeCompare(b));
+    }, [normalizedMaps]);
 
     useEffect(() => {
       mapTokensRef.current = mapTokens;
@@ -756,6 +835,27 @@ export default function ZombiesDM() {
         });
       }
     }, [mapEditorErrors.imageSource, mapEditorState.imageUrl, mapEditorState.imageBase64]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.altText || mapEditorState.mode !== 'create') {
+        return;
+      }
+
+      const hasAltText =
+        typeof mapEditorState.altText === 'string' &&
+        mapEditorState.altText.trim() !== '';
+
+      if (hasAltText) {
+        setMapEditorErrors((prev) => {
+          if (!prev.altText) {
+            return prev;
+          }
+
+          const { altText, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.altText, mapEditorState.altText, mapEditorState.mode]);
 
     const imageSourceDescribedBy = useMemo(() => {
       const ids = ['map-editor-image-requirement'];
@@ -3092,6 +3192,9 @@ export default function ZombiesDM() {
           ? generatedMap || previewMap || campaignMap
           : generatedMap || campaignMap;
 
+        const trimmedFolder =
+          typeof mapToSave?.folder === 'string' ? mapToSave.folder.trim() : '';
+
         if (!mapToSave) {
           setStatus({ type: 'danger', message: 'No map available to save.' });
           return;
@@ -3152,6 +3255,11 @@ export default function ZombiesDM() {
             delete mapPayload.mapId;
             delete mapPayload.createdAt;
             delete mapPayload.updatedAt;
+            if (trimmedFolder) {
+              mapPayload.folder = trimmedFolder;
+            } else {
+              delete mapPayload.folder;
+            }
 
             const response = await apiFetch(`/campaigns/${encodedCampaign}/maps`, {
               method: 'POST',
@@ -3209,6 +3317,7 @@ export default function ZombiesDM() {
 
             setGeneratedMap(null);
             setStatus({ type: 'success', message: 'Map saved.' });
+            setLastMapFolder(trimmedFolder);
           } else {
             const activeId =
               activeMapId ||
@@ -3227,6 +3336,11 @@ export default function ZombiesDM() {
             const mapPayload = { ...mapToSave };
             if (mapPayload.mapId && mapPayload.mapId !== activeId) {
               delete mapPayload.mapId;
+            }
+            if (trimmedFolder) {
+              mapPayload.folder = trimmedFolder;
+            } else {
+              delete mapPayload.folder;
             }
 
             const response = await apiFetch(
@@ -3317,12 +3431,27 @@ export default function ZombiesDM() {
         {};
 
       const safeMap = sourceMap && typeof sourceMap === 'object' ? sourceMap : {};
+      const defaultFolder =
+        typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+          ? safeMap.folder.trim()
+          : typeof lastMapFolder === 'string'
+          ? lastMapFolder
+          : '';
+
+      const shouldUseExistingOption =
+        defaultFolder && availableMapFolders.includes(defaultFolder);
 
       setMapEditorState({
         show: true,
         mode: 'create',
         map: safeMap,
         title: '',
+        folder: defaultFolder || '',
+        folderSelection: shouldUseExistingOption
+          ? defaultFolder
+          : defaultFolder
+          ? NEW_FOLDER_OPTION_VALUE
+          : '',
         imageUrl: '',
         imageBase64: '',
         imageType: '',
@@ -3330,7 +3459,14 @@ export default function ZombiesDM() {
         activateOnSave: maps.length === 0,
         fileInputKey: Date.now(),
       });
-    }, [generatedMap, selectedMapId, maps, campaignMap]);
+    }, [
+      generatedMap,
+      selectedMapId,
+      maps,
+      campaignMap,
+      lastMapFolder,
+      availableMapFolders,
+    ]);
 
     const openRenameMapModal = useCallback((map) => {
       if (!map || typeof map !== 'object') {
@@ -3346,6 +3482,16 @@ export default function ZombiesDM() {
         mode: 'rename',
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
+        folder:
+          typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+            ? safeMap.folder.trim()
+            : '',
+        folderSelection:
+          typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+            ? availableMapFolders.includes(safeMap.folder.trim())
+              ? safeMap.folder.trim()
+              : NEW_FOLDER_OPTION_VALUE
+            : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
         imageBase64:
           typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
@@ -3355,7 +3501,7 @@ export default function ZombiesDM() {
         activateOnSave: false,
         fileInputKey: Date.now(),
       });
-    }, []);
+    }, [availableMapFolders]);
 
     const handleCloseMapEditor = useCallback(() => {
       setMapEditorSaving(false);
@@ -3370,6 +3516,15 @@ export default function ZombiesDM() {
       },
       []
     );
+
+    const handleMapEditorFolderSelectionChange = useCallback((event) => {
+      const value = event?.target?.value ?? '';
+      setMapEditorState((prev) => ({
+        ...prev,
+        folderSelection: value,
+        folder: value && value !== NEW_FOLDER_OPTION_VALUE ? value : '',
+      }));
+    }, []);
 
     const handleMapEditorActivateChange = useCallback((event) => {
       const checked = Boolean(event?.target?.checked);
@@ -3441,6 +3596,7 @@ export default function ZombiesDM() {
           mode,
           map: editorMap,
           title,
+          folder,
           imageUrl,
           imageBase64,
           imageType,
@@ -3460,6 +3616,7 @@ export default function ZombiesDM() {
         const trimmedImageType =
           typeof imageType === 'string' ? imageType.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
+        const trimmedFolder = typeof folder === 'string' ? folder.trim() : '';
 
         const errors = {};
 
@@ -3469,6 +3626,10 @@ export default function ZombiesDM() {
 
         if (!trimmedImageUrl && !trimmedImageBase64) {
           errors.imageSource = 'Provide an image URL or upload a file.';
+        }
+
+        if (mode === 'create' && !trimmedAltText) {
+          errors.altText = 'Alt text is required.';
         }
 
         if (Object.keys(errors).length > 0) {
@@ -3487,12 +3648,22 @@ export default function ZombiesDM() {
         delete sanitizedBaseMap.imageUrl;
         delete sanitizedBaseMap.imageBase64;
         delete sanitizedBaseMap.imageType;
+        delete sanitizedBaseMap.folder;
 
         const payloadMap = {
           ...sanitizedBaseMap,
           title: normalizedTitle,
-          altText: trimmedAltText,
         };
+
+        if (trimmedFolder) {
+          payloadMap.folder = trimmedFolder;
+        }
+
+        if (trimmedAltText) {
+          payloadMap.altText = trimmedAltText;
+        } else {
+          delete payloadMap.altText;
+        }
 
         if (trimmedImageUrl) {
           payloadMap.imageUrl = trimmedImageUrl;
@@ -3631,6 +3802,7 @@ export default function ZombiesDM() {
             }
 
             setStatus({ type: 'success', message: 'Map updated.' });
+            setLastMapFolder(trimmedFolder);
           }
 
           setGeneratedMap(null);
@@ -3654,6 +3826,7 @@ export default function ZombiesDM() {
         previewMap,
         applyMapPayload,
         parseErrorMessage,
+        setLastMapFolder,
       ]
     );
 
@@ -5382,94 +5555,149 @@ const resolveIcon = (category, iconMap, fallback) => {
                             </Button>
                           </div>
                         </div>
-                        {Array.isArray(maps) && maps.length > 0 ? (
+                        {groupedMaps.length > 0 ? (
                           <ListGroup
                             variant="flush"
                             className="bg-transparent map-list"
                             data-testid="map-list"
                           >
-                            {maps.map((mapItem, index) => {
-                              const mapIdValue =
-                                typeof mapItem?.mapId === 'string' && mapItem.mapId.trim() !== ''
-                                  ? mapItem.mapId.trim()
-                                  : null;
-                              const mapKey = mapIdValue || `map-${index}`;
-                              const isActive = Boolean(mapIdValue && mapIdValue === activeMapId);
-                              const isSelected = Boolean(
-                                mapIdValue && selectedMapId === mapIdValue
+                            {groupedMaps.map((group) => {
+                              const folderTestId = sanitizeTestIdValue(
+                                group.key === UNGROUPED_FOLDER_KEY ? 'ungrouped' : group.key,
+                                'folder'
                               );
-                              const isProcessing =
-                                Boolean(mapIdValue && mapActionLoadingId === mapIdValue);
-                              const title = getMapDisplayTitle(
-                                mapItem,
-                                DEFAULT_MAP_TITLE
-                              );
+                              const isExpanded =
+                                typeof mapFolderExpansion[group.key] === 'boolean'
+                                  ? mapFolderExpansion[group.key]
+                                  : group.key === UNGROUPED_FOLDER_KEY;
+
                               return (
-                                <ListGroup.Item
-                                  key={mapKey}
-                                  action={Boolean(mapIdValue)}
-                                  active={isSelected}
-                                  onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
-                                  className="bg-dark text-light border-secondary"
-                                  data-testid={`map-list-item-${mapKey}`}
-                                >
-                                  <div className="d-flex justify-content-between align-items-start">
-                                    <div className="fw-semibold">{title}</div>
-                                    {isActive && (
-                                      <Badge
-                                        bg="success"
-                                        className="ms-2"
-                                        data-testid={`map-active-badge-${mapKey}`}
+                                <React.Fragment key={group.key}>
+                                  <ListGroup.Item
+                                    className="bg-dark text-light border-secondary"
+                                    data-testid={`map-folder-${folderTestId}-header`}
+                                  >
+                                    <div className="d-flex align-items-center justify-content-between gap-2">
+                                      <button
+                                        type="button"
+                                        className="btn btn-link text-light text-decoration-none p-0 d-flex align-items-center gap-2"
+                                        onClick={() => handleToggleMapFolder(group.key)}
+                                        aria-expanded={isExpanded}
+                                        data-testid={`map-folder-toggle-${folderTestId}`}
                                       >
-                                        Active
+                                        <span
+                                          className="d-inline-flex align-items-center justify-content-center"
+                                          aria-hidden="true"
+                                        >
+                                          {isExpanded ? (
+                                            <FiChevronDown aria-hidden="true" />
+                                          ) : (
+                                            <FiChevronRight aria-hidden="true" />
+                                          )}
+                                        </span>
+                                        <span className="fw-semibold text-start">
+                                          {group.label}
+                                        </span>
+                                      </button>
+                                      <Badge
+                                        bg="secondary"
+                                        pill
+                                        data-testid={`map-folder-count-${folderTestId}`}
+                                      >
+                                        {group.maps.length}
+                                        <span className="visually-hidden"> maps</span>
                                       </Badge>
-                                    )}
-                                  </div>
-                                  <div className="d-flex flex-wrap gap-2 mt-3">
-                                    <Button
-                                      variant="outline-light"
-                                      size="sm"
-                                      disabled={!mapIdValue || isProcessing}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (mapIdValue) {
-                                          openRenameMapModal(mapItem);
-                                        }
-                                      }}
-                                      data-testid={`map-rename-button-${mapKey}`}
-                                    >
-                                      Rename
-                                    </Button>
-                                    <Button
-                                      variant="outline-light"
-                                      size="sm"
-                                      disabled={!mapIdValue || isActive || isProcessing}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (mapIdValue) {
-                                          handleActivateMap(mapIdValue);
-                                        }
-                                      }}
-                                      data-testid={`map-activate-button-${mapKey}`}
-                                    >
-                                      {isActive ? 'Active' : 'Set Active'}
-                                    </Button>
-                                    <Button
-                                      variant="outline-danger"
-                                      size="sm"
-                                      disabled={!mapIdValue || isProcessing}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (mapIdValue) {
-                                          handleDeleteMap(mapIdValue);
-                                        }
-                                      }}
-                                      data-testid={`map-delete-button-${mapKey}`}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                </ListGroup.Item>
+                                    </div>
+                                  </ListGroup.Item>
+                                  {isExpanded &&
+                                    group.maps.map((mapItem, index) => {
+                                      const mapIdValue = normalizeMapId(mapItem?.mapId);
+                                      const mapKey = mapIdValue || `map-${group.key}-${index}`;
+                                      const isActive = Boolean(
+                                        mapIdValue && mapIdValue === normalizedActiveMapId
+                                      );
+                                      const isSelected = Boolean(
+                                        mapIdValue && normalizedSelectedMapId === mapIdValue
+                                      );
+                                      const isProcessing = Boolean(
+                                        mapIdValue && mapActionLoadingId === mapIdValue
+                                      );
+                                      const title = getMapDisplayTitle(
+                                        mapItem,
+                                        DEFAULT_MAP_TITLE
+                                      );
+                                      const mapTestId = `map-list-item-${mapKey}`;
+
+                                      return (
+                                        <ListGroup.Item
+                                          key={mapKey}
+                                          action={Boolean(mapIdValue)}
+                                          active={isSelected}
+                                          onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
+                                          className="bg-dark text-light border-secondary ps-4"
+                                          data-testid={mapTestId}
+                                          data-folder-key={group.key}
+                                        >
+                                          <div className="d-flex justify-content-between align-items-start">
+                                            <div className="fw-semibold">{title}</div>
+                                            {isActive && (
+                                              <Badge
+                                                bg="success"
+                                                className="ms-2"
+                                                data-testid={`map-active-badge-${mapKey}`}
+                                              >
+                                                Active
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <div className="d-flex flex-wrap gap-2 mt-3">
+                                            <Button
+                                              variant="outline-light"
+                                              size="sm"
+                                              disabled={!mapIdValue || isProcessing}
+                                              onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (mapIdValue) {
+                                                  openRenameMapModal(mapItem);
+                                                }
+                                              }}
+                                              data-testid={`map-rename-button-${mapKey}`}
+                                            >
+                                              Rename
+                                            </Button>
+                                            <Button
+                                              variant="outline-light"
+                                              size="sm"
+                                              disabled={!mapIdValue || isActive || isProcessing}
+                                              onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (mapIdValue) {
+                                                  handleActivateMap(mapIdValue);
+                                                }
+                                              }}
+                                              data-testid={`map-activate-button-${mapKey}`}
+                                            >
+                                              {isActive ? 'Active' : 'Set Active'}
+                                            </Button>
+                                            <Button
+                                              variant="outline-danger"
+                                              size="sm"
+                                              disabled={!mapIdValue || isProcessing}
+                                              onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (mapIdValue) {
+                                                  handleDeleteMap(mapIdValue);
+                                                }
+                                              }}
+                                              data-testid={`map-delete-button-${mapKey}`}
+                                            >
+                                              Delete
+                                            </Button>
+                                          </div>
+                                        </ListGroup.Item>
+                                      );
+                                    })}
+                                </React.Fragment>
                               );
                             })}
                           </ListGroup>
@@ -7123,6 +7351,43 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </Form.Control.Feedback>
               )}
             </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="map-editor-folder-select">Folder</Form.Label>
+              <Form.Select
+                id="map-editor-folder-select"
+                value={mapEditorState.folderSelection}
+                onChange={handleMapEditorFolderSelectionChange}
+                disabled={mapEditorSaving}
+                aria-describedby="map-editor-folder-help"
+                data-testid="map-editor-folder-select"
+              >
+                <option value="">No folder</option>
+                {availableMapFolders.map((folderName) => (
+                  <option value={folderName} key={folderName}>
+                    {folderName}
+                  </option>
+                ))}
+                <option value={NEW_FOLDER_OPTION_VALUE}>Create new folder…</option>
+              </Form.Select>
+              {mapEditorState.folderSelection === NEW_FOLDER_OPTION_VALUE ? (
+                <div className="mt-2">
+                  <Form.Label htmlFor="map-editor-folder-input">New folder name</Form.Label>
+                  <Form.Control
+                    id="map-editor-folder-input"
+                    type="text"
+                    placeholder="Enter folder name"
+                    value={mapEditorState.folder}
+                    onChange={handleMapEditorInputChange('folder')}
+                    disabled={mapEditorSaving}
+                    aria-describedby="map-editor-folder-help"
+                    data-testid="map-editor-folder-input"
+                  />
+                </div>
+              ) : null}
+              <Form.Text id="map-editor-folder-help" className="text-muted">
+                Choose an existing folder or create a new one.
+              </Form.Text>
+            </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
               <Form.Label>
                 Image URL <span className="text-danger" aria-hidden="true">*</span>
@@ -7167,14 +7432,27 @@ const resolveIcon = (category, iconMap, fallback) => {
               </div>
             )}
             <Form.Group className="mb-3" controlId="map-editor-alt-text">
-              <Form.Label>Alt Text</Form.Label>
+              <Form.Label>
+                Alt Text
+                {mapEditorState.mode === 'create' && (
+                  <span className="text-danger" aria-hidden="true">*</span>
+                )}
+              </Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Describe the map image"
                 value={mapEditorState.altText}
                 onChange={handleMapEditorInputChange('altText')}
                 disabled={mapEditorSaving}
+                required={mapEditorState.mode === 'create'}
+                aria-required={mapEditorState.mode === 'create'}
+                isInvalid={Boolean(mapEditorErrors.altText)}
               />
+              {mapEditorErrors.altText && (
+                <Form.Control.Feedback type="invalid" className="d-block">
+                  {mapEditorErrors.altText}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             {mapEditorState.mode === 'create' && (
               <Form.Check
