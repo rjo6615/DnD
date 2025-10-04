@@ -662,6 +662,8 @@ export default function ZombiesDM() {
       map: null,
       title: '',
       imageUrl: '',
+      imageBase64: '',
+      imageType: '',
       altText: '',
       activateOnSave: true,
     });
@@ -3268,6 +3270,10 @@ export default function ZombiesDM() {
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
+        imageBase64:
+          typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
+        imageType:
+          typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: maps.length === 0,
       });
@@ -3287,6 +3293,10 @@ export default function ZombiesDM() {
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
+        imageBase64:
+          typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
+        imageType:
+          typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: false,
       });
@@ -3310,6 +3320,60 @@ export default function ZombiesDM() {
       setMapEditorState((prev) => ({ ...prev, activateOnSave: checked }));
     }, []);
 
+    const handleMapEditorFileChange = useCallback((event) => {
+      const file = event?.target?.files?.[0];
+      if (!file) {
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: '',
+          imageType: '',
+        }));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        if (!result) {
+          setMapEditorState((prev) => ({
+            ...prev,
+            imageBase64: '',
+            imageType: '',
+          }));
+          return;
+        }
+
+        let nextImageType = file.type || '';
+        let nextImageBase64 = result;
+
+        const commaIndex = result.indexOf(',');
+        if (result.startsWith('data:') && commaIndex !== -1) {
+          const meta = result.substring(5, commaIndex);
+          const semicolonIndex = meta.indexOf(';');
+          nextImageType =
+            semicolonIndex !== -1 ? meta.substring(0, semicolonIndex) : meta;
+          nextImageBase64 = result.substring(commaIndex + 1);
+        }
+
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: nextImageBase64,
+          imageType: nextImageType,
+          imageUrl: '',
+        }));
+      };
+
+      reader.onerror = () => {
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: '',
+          imageType: '',
+        }));
+      };
+
+      reader.readAsDataURL(file);
+    }, []);
+
     const handleSubmitMapEditor = useCallback(
       async (event) => {
         event.preventDefault();
@@ -3322,6 +3386,8 @@ export default function ZombiesDM() {
           map: editorMap,
           title,
           imageUrl,
+          imageBase64,
+          imageType,
           altText,
           activateOnSave,
         } = mapEditorState;
@@ -3333,6 +3399,10 @@ export default function ZombiesDM() {
 
         const trimmedTitle = typeof title === 'string' ? title.trim() : '';
         const trimmedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        const trimmedImageBase64 =
+          typeof imageBase64 === 'string' ? imageBase64.trim() : '';
+        const trimmedImageType =
+          typeof imageType === 'string' ? imageType.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
 
         const normalizedTitle = trimmedTitle || getMapDisplayTitle(baseMap, DEFAULT_MAP_TITLE);
@@ -3341,13 +3411,24 @@ export default function ZombiesDM() {
           baseMap && typeof baseMap === 'object' ? { ...baseMap } : {};
         delete sanitizedBaseMap.summary;
         delete sanitizedBaseMap.caption;
+        delete sanitizedBaseMap.imageUrl;
+        delete sanitizedBaseMap.imageBase64;
+        delete sanitizedBaseMap.imageType;
 
         const payloadMap = {
           ...sanitizedBaseMap,
           title: normalizedTitle,
-          imageUrl: trimmedImageUrl,
           altText: trimmedAltText,
         };
+
+        if (trimmedImageUrl) {
+          payloadMap.imageUrl = trimmedImageUrl;
+        } else if (trimmedImageBase64) {
+          payloadMap.imageBase64 = trimmedImageBase64;
+          if (trimmedImageType) {
+            payloadMap.imageType = trimmedImageType;
+          }
+        }
 
         if (mode === 'create') {
           delete payloadMap.mapId;
@@ -6966,6 +7047,15 @@ const resolveIcon = (category, iconMap, fallback) => {
                 placeholder="https://example.com/map.png"
                 value={mapEditorState.imageUrl}
                 onChange={handleMapEditorInputChange('imageUrl')}
+                disabled={mapEditorSaving}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-image-file">
+              <Form.Label>Image File</Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleMapEditorFileChange}
                 disabled={mapEditorSaving}
               />
             </Form.Group>
