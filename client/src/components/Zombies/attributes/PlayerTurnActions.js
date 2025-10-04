@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
+import spellsDataModule from '../../../../../server/data/spells';
 import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
@@ -46,6 +47,79 @@ const HAND_SELECTIONS = {
 const versatileRegex = /versatile\s*\(([^)]+)\)/i;
 const firstDamageDiceRegex = /^(\s*)(\d+d\d+(?:[+-]\d+)?)/;
 const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
+
+const spellsData = spellsDataModule?.default || spellsDataModule || {};
+
+const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
+
+function extractDiceExpression(description = '') {
+  diceExpressionPattern.lastIndex = 0;
+  let match;
+  while ((match = diceExpressionPattern.exec(description))) {
+    const raw = match[0];
+    const sanitized = raw.replace(/\s+/g, '');
+    const start = Math.max(0, match.index - 80);
+    const end = Math.min(description.length, match.index + raw.length + 80);
+    const contextWindow = description.slice(start, end).toLowerCase();
+
+    if (contextWindow.includes('damage')) {
+      return sanitized;
+    }
+
+    if (/(regains|heals|gains)[\s\S]{0,100}hit points/.test(contextWindow)) {
+      return sanitized;
+    }
+  }
+  return '';
+}
+
+function extractHigherLevels(description = '') {
+  const match = description.match(/At Higher Levels?[:.]\s*([^]*)/i);
+  return match ? match[1].trim() : undefined;
+}
+
+function extractScaling(description = '') {
+  const level5 = description.match(/5th level \(([^)]+)\)/i);
+  const level11 = description.match(/11th level \(([^)]+)\)/i);
+  const level17 = description.match(/17th level \(([^)]+)\)/i);
+  const scaling = {};
+  if (level5) scaling[5] = level5[1].replace(/\s+/g, '');
+  if (level11) scaling[11] = level11[1].replace(/\s+/g, '');
+  if (level17) scaling[17] = level17[1].replace(/\s+/g, '');
+  return Object.keys(scaling).length ? scaling : undefined;
+}
+
+function augmentSpell(spell = {}) {
+  const enhanced = { ...spell };
+  if (!enhanced.damage) {
+    const dmg = extractDiceExpression(enhanced.description);
+    if (dmg) enhanced.damage = dmg;
+  }
+  if (!enhanced.higherLevels) {
+    const upcast = extractHigherLevels(enhanced.description);
+    if (upcast) enhanced.higherLevels = upcast;
+  }
+  if (enhanced.level === 0 && !enhanced.scaling) {
+    const scaling = extractScaling(enhanced.description);
+    if (scaling) enhanced.scaling = scaling;
+  }
+  return enhanced;
+}
+
+const SPELLS_BY_NAME = Object.values(spellsData).reduce((acc, spell) => {
+  if (!spell || typeof spell.name !== 'string') return acc;
+  acc[spell.name.toLowerCase()] = augmentSpell(spell);
+  return acc;
+}, {});
+
+function parseSpellLevel(spellLevel) {
+  if (typeof spellLevel !== 'string') return 0;
+  const normalized = spellLevel.trim().toLowerCase();
+  if (!normalized) return 0;
+  if (normalized === 'cantrip') return 0;
+  const match = normalized.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+}
 
 const getVersatileDamageDice = (weapon) => {
   if (!Array.isArray(weapon?.properties)) return null;
@@ -484,6 +558,100 @@ const [isFumble, setIsFumble] = useState(false);
         : 0,
     [form.occupation]
   );
+
+  const { tieflingLegacy, tieflingLegacyKey } = useMemo(() => {
+    const race = form?.race || {};
+    const legacyFromForm =
+      typeof form?.tieflingLegacy === 'object' ? form.tieflingLegacy : null;
+    const legacyKeyFromForm =
+      typeof form?.tieflingLegacyKey === 'string' ? form.tieflingLegacyKey : '';
+
+    let legacy = legacyFromForm;
+    let legacyKey = legacyKeyFromForm;
+
+    if (!legacy) {
+      if (legacyKey && race?.fiendishLegacies?.[legacyKey]) {
+        legacy = race.fiendishLegacies[legacyKey];
+      } else if (race?.selectedAncestry && race?.fiendishLegacies) {
+        legacy = race.selectedAncestry;
+        legacyKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.fiendishLegacies?.[race.selectedAncestryKey]
+      ) {
+        legacy = race.fiendishLegacies[race.selectedAncestryKey];
+        legacyKey = race.selectedAncestryKey;
+      }
+    }
+
+    return { tieflingLegacy: legacy, tieflingLegacyKey: legacyKey };
+  }, [form?.race, form?.tieflingLegacy, form?.tieflingLegacyKey]);
+
+  const tieflingLegacyLabel = useMemo(() => {
+    if (typeof tieflingLegacy?.label === 'string') {
+      return tieflingLegacy.label;
+    }
+    if (typeof tieflingLegacy?.name === 'string') {
+      return tieflingLegacy.name;
+    }
+    if (tieflingLegacyKey) {
+      return toTitleCase(tieflingLegacyKey.replace(/[-_]/g, ' '));
+    }
+    return 'Fiendish Legacy';
+  }, [tieflingLegacy, tieflingLegacyKey]);
+
+  const fiendishLegacySpells = useMemo(() => {
+    if (!tieflingLegacy) return [];
+    const spells = Array.isArray(tieflingLegacy?.spells)
+      ? tieflingLegacy.spells
+      : [];
+
+    return spells
+      .map((legacySpell) => {
+        const requiredLevelRaw = Number(legacySpell?.unlockedAtLevel);
+        const requiredLevel = Number.isFinite(requiredLevelRaw)
+          ? requiredLevelRaw
+          : 1;
+        if (totalLevel < Math.max(1, requiredLevel)) {
+          return null;
+        }
+
+        const name =
+          typeof legacySpell?.name === 'string' ? legacySpell.name.trim() : '';
+        if (!name) return null;
+
+        const catalogSpell = SPELLS_BY_NAME[name.toLowerCase()] || null;
+
+        let damage = '';
+        if (typeof legacySpell?.damage === 'string' && legacySpell.damage.trim()) {
+          damage = legacySpell.damage.trim();
+        } else if (catalogSpell?.damage) {
+          damage = catalogSpell.damage;
+        }
+
+        if (!damage) return null;
+
+        const level = Number.isFinite(catalogSpell?.level)
+          ? catalogSpell.level
+          : parseSpellLevel(legacySpell?.spellLevel);
+
+        return {
+          name: catalogSpell?.name || name,
+          level: Number.isFinite(level) ? level : 0,
+          damage,
+          castingTime: catalogSpell?.castingTime || '',
+          range: catalogSpell?.range || '',
+          duration: catalogSpell?.duration || '',
+          higherLevels: catalogSpell?.higherLevels,
+          scaling: catalogSpell?.scaling,
+          casterType: tieflingLegacyLabel,
+        };
+      })
+      .filter(Boolean);
+  }, [tieflingLegacy, tieflingLegacyLabel, totalLevel]);
 
   const profBonus =
     form.proficiencyBonus ?? proficiencyBonus(totalLevel);
@@ -1178,6 +1346,55 @@ useEffect(() => {
                         </div>
                       </div>
                     ))}
+                </div>
+              </>
+            )}
+            {fiendishLegacySpells.length > 0 && (
+              <>
+                <Card.Title className="modal-title mt-4">Fiendish Legacy</Card.Title>
+                <div className="attack-card-grid">
+                  {fiendishLegacySpells.map((spell, idx) => (
+                    <div className="attack-card" key={`fiendish-${idx}`}>
+                      <div className="attack-card__title">{spell.name}</div>
+                      <div className="attack-card__meta">
+                        <span>{spell.casterType || 'Fiendish Legacy'}</span>
+                        <span>• Level {spell.level}</span>
+                      </div>
+                      <div className="attack-card__details">
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Damage</span>
+                          <span className="attack-card__value">
+                            {formatDamageSegments(spell.damage)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Casting Time</span>
+                          <span className="attack-card__value">{spell.castingTime}</span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Range</span>
+                          <span className="attack-card__value">{spell.range}</span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Duration</span>
+                          <span className="attack-card__value">{spell.duration}</span>
+                        </div>
+                      </div>
+                      <div className="attack-card__actions">
+                        <Button
+                          onClick={() => {
+                            handleSpellsButtonClick(spell);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="roll"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
