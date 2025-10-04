@@ -111,7 +111,9 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   const darkvisionTitle = await screen.findByText('Darkvision');
   const darkvisionCard = darkvisionTitle.closest('.feature-card');
   expect(darkvisionCard).not.toBeNull();
-  expect(within(darkvisionCard).getByText('Dragonborn')).toBeInTheDocument();
+  expect(
+    within(darkvisionCard).getByText('Dragonborn 60 ft')
+  ).toBeInTheDocument();
 
   const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
     name: /view feature/i,
@@ -263,6 +265,78 @@ test('dwarf characters display racial trait feature cards', async () => {
       /dim light within 120 feet of you as if it were bright light/i
     )
   ).toBeInTheDocument();
+});
+
+test('elven lineage cantrips use wand casting without consuming uses', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const onCastSpell = jest.fn();
+
+  const form = {
+    race: {
+      name: 'Elf',
+      elvenLineages: {
+        drow: {
+          label: 'Drow',
+          spellcastingAbilities: ['CHA'],
+        },
+      },
+      selectedAncestry: {
+        label: 'Drow',
+        spellcastingAbilities: ['CHA'],
+      },
+      selectedAncestryKey: 'drow',
+      selectedLineageAbility: 'CHA',
+    },
+    elvenLineage: {
+      label: 'Drow',
+      spellcastingAbilities: ['CHA'],
+    },
+    elvenLineageKey: 'drow',
+    elvenLineageAbility: 'CHA',
+    occupation: [{ Name: 'Wizard', Level: 1 }],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const dancingLightsTitle = await screen.findByText('Dancing Lights');
+  const card = dancingLightsTitle.closest('.feature-card');
+  expect(card).not.toBeNull();
+
+  const wandButton = within(card).getByRole('button', {
+    name: /cast dancing lights from lineage/i,
+  });
+
+  expect(wandButton).toBeEnabled();
+  expect(within(card).queryByText(/Uses remaining:/i)).toBeNull();
+
+  await act(async () => {
+    await userEvent.click(wandButton);
+  });
+
+  expect(onCastSpell).toHaveBeenCalledTimes(2);
+  expect(onCastSpell).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({
+      name: 'Dancing Lights',
+      castingTime: '1 action',
+      pendingEffectOnly: true,
+    })
+  );
+  expect(onCastSpell).toHaveBeenNthCalledWith(2, 'action');
+  expect(wandButton).toBeEnabled();
+  expect(within(card).queryByText(/Uses remaining:/i)).toBeNull();
 });
 
 test('halfling characters display racial trait feature cards with descriptions', async () => {
@@ -779,7 +853,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
   const darkvisionTitle = await screen.findByText('Darkvision');
   const darkvisionCard = darkvisionTitle.closest('.feature-card');
   expect(darkvisionCard).not.toBeNull();
-  expect(within(darkvisionCard).getByText('Gnome')).toBeInTheDocument();
+  expect(within(darkvisionCard).getByText('Gnome 60 ft')).toBeInTheDocument();
 
   expect(await screen.findByText('Gnomish Cunning')).toBeInTheDocument();
 
