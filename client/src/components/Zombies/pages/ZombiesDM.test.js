@@ -868,6 +868,102 @@ describe('ZombiesDM AI generation', () => {
     }
   });
 
+  test('create map modal resets fields after viewing another map', async () => {
+    const existingMap = {
+      mapId: 'map-1',
+      title: 'Existing Map',
+      imageUrl: 'https://example.com/map.png',
+      altText: 'Existing map alt text',
+    };
+
+    const originalFileReader = global.FileReader;
+    const fileReaderMock = jest.fn(() => ({
+      onload: null,
+      onerror: null,
+      result: 'data:image/png;base64,mock',
+      readAsDataURL() {
+        if (typeof this.onload === 'function') {
+          this.onload();
+        }
+      },
+    }));
+    global.FileReader = fileReaderMock;
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [existingMap],
+              activeMapId: existingMap.mapId,
+              map: existingMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    try {
+      render(<ZombiesDM />);
+
+      const mapTab = await screen.findByRole('tab', { name: 'Map' });
+      await userEvent.click(mapTab);
+
+      const renameButton = await screen.findByTestId('map-rename-button-map-1');
+      await userEvent.click(renameButton);
+
+      const modal = await screen.findByTestId('map-editor-modal');
+      const modalQueries = within(modal);
+
+      expect(modalQueries.getByLabelText('Title')).toHaveValue('Existing Map');
+      expect(modalQueries.getByLabelText('Image URL')).toHaveValue(
+        'https://example.com/map.png'
+      );
+      expect(modalQueries.getByLabelText('Alt Text')).toHaveValue('Existing map alt text');
+
+      const renameFileInput = modalQueries.getByLabelText('Image File');
+      const file = new File(['data'], 'existing.png', { type: 'image/png' });
+      await userEvent.upload(renameFileInput, file);
+      expect(renameFileInput.files).toHaveLength(1);
+
+      const cancelButton = modalQueries.getByRole('button', { name: 'Cancel' });
+      await userEvent.click(cancelButton);
+
+      const createButton = await screen.findByTestId('create-map-button');
+      await userEvent.click(createButton);
+
+      const createModalQueries = within(modal);
+
+      await waitFor(() =>
+        expect(createModalQueries.getByLabelText('Title')).toHaveValue('')
+      );
+      expect(createModalQueries.getByLabelText('Image URL')).toHaveValue('');
+      expect(createModalQueries.getByLabelText('Alt Text')).toHaveValue('');
+
+      const createFileInput = createModalQueries.getByLabelText('Image File');
+      expect(createFileInput.files).toHaveLength(0);
+      expect(createFileInput.value).toBe('');
+    } finally {
+      if (originalFileReader) {
+        global.FileReader = originalFileReader;
+      } else {
+        delete global.FileReader;
+      }
+    }
+  });
+
   test('allows the DM to activate a different saved map', async () => {
     const primaryMap = {
       mapId: 'map-1',
