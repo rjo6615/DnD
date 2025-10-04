@@ -415,17 +415,28 @@ describe('ZombiesDM AI generation', () => {
     expect(getModalByTestId('map-modal-folder-no-folder')).toBeInTheDocument();
 
     const forestToggle = getModalByTestId('map-modal-folder-forest-encounters-toggle');
-    expect(forestToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(forestToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(queryModalByTestId('map-modal-item-forest-map')).not.toBeInTheDocument();
+
+    await userEvent.click(forestToggle);
+    await waitFor(() => expect(forestToggle).toHaveAttribute('aria-expanded', 'true'));
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
+        'Forest Encounters'
+      )
+    );
 
     const forestMapItem = await findModalByTestId('map-modal-item-forest-map');
     expect(forestMapItem.dataset.folder).toBe('Forest Encounters');
 
     await userEvent.click(forestToggle);
+    await waitFor(() => expect(forestToggle).toHaveAttribute('aria-expanded', 'false'));
     await waitFor(() =>
       expect(queryModalByTestId('map-modal-item-forest-map')).not.toBeInTheDocument()
     );
 
     await userEvent.click(forestToggle);
+    await waitFor(() => expect(forestToggle).toHaveAttribute('aria-expanded', 'true'));
     await waitFor(() =>
       expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
         'Forest Encounters'
@@ -437,6 +448,7 @@ describe('ZombiesDM AI generation', () => {
     expect(queryModalByTestId('map-modal-item-encounter-map')).not.toBeInTheDocument();
 
     await userEvent.click(encountersToggle);
+    await waitFor(() => expect(encountersToggle).toHaveAttribute('aria-expanded', 'true'));
     await waitFor(() =>
       expect(getModalByTestId('map-modal-item-encounter-map').dataset.folder).toBe(
         'Encounters'
@@ -448,6 +460,7 @@ describe('ZombiesDM AI generation', () => {
     expect(queryModalByTestId('map-modal-item-no-folder-map')).not.toBeInTheDocument();
 
     await userEvent.click(noFolderToggle);
+    await waitFor(() => expect(noFolderToggle).toHaveAttribute('aria-expanded', 'true'));
     await waitFor(() =>
       expect(getModalByTestId('map-modal-item-no-folder-map').dataset.folder).toBeUndefined()
     );

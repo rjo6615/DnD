@@ -745,26 +745,14 @@ export default function ZombiesDM() {
         const next = {};
 
         groupedMaps.forEach((group) => {
-          const hasImportantMap = group.maps.some((mapItem) => {
-            const mapIdValue = normalizeMapId(mapItem?.mapId);
-            return (
-              (normalizedActiveMapId && mapIdValue === normalizedActiveMapId) ||
-              (normalizedSelectedMapId && mapIdValue === normalizedSelectedMapId)
-            );
-          });
-
-          const hadValue = Object.prototype.hasOwnProperty.call(previous, group.key);
-          const defaultExpanded = group.key === UNGROUPED_FOLDER_KEY;
-          next[group.key] = hasImportantMap
-            ? true
-            : hadValue
+          next[group.key] = Object.prototype.hasOwnProperty.call(previous, group.key)
             ? previous[group.key]
-            : defaultExpanded;
+            : false;
         });
 
         return next;
       });
-    }, [groupedMaps, normalizedActiveMapId, normalizedSelectedMapId]);
+    }, [groupedMaps]);
 
     const handleToggleMapFolder = useCallback((folderKey) => {
       if (typeof folderKey !== 'string') {
