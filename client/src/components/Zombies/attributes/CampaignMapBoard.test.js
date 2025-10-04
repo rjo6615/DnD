@@ -193,4 +193,36 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(figurineImage).toHaveAttribute('data-figurine-public-id', 'figurines/heroes/hero');
     expect(figurineImage?.getAttribute('alt')).toBe('');
   });
+
+  it('applies a reduced figurine scale for enemy variants', () => {
+    const { container } = renderBoard({
+      token: {
+        variant: 'enemy',
+        size: 'large',
+      },
+    });
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    const scaleValue = Number.parseFloat(
+      tokenElement?.style.getPropertyValue('--figurine-size-scale') ?? ''
+    );
+    expect(scaleValue).toBeCloseTo(1.5, 5);
+  });
+
+  it('provides a finite figurine scale when no size is specified', () => {
+    const { container } = renderBoard({
+      token: {
+        size: undefined,
+      },
+    });
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    const scaleValue = Number.parseFloat(
+      tokenElement?.style.getPropertyValue('--figurine-size-scale') ?? ''
+    );
+    expect(Number.isFinite(scaleValue)).toBe(true);
+    expect(scaleValue).toBeCloseTo(1, 5);
+  });
 });

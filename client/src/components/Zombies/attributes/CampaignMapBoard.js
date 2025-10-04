@@ -408,8 +408,12 @@ const CampaignMapBoard = ({
                     : null;
 
                 const sizeKey = resolveFigurineSizeKey(size);
-                const figurineScale =
-                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] || FIGURINE_SIZE_MULTIPLIERS.medium;
+                const baseFigurineScale =
+                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? FIGURINE_SIZE_MULTIPLIERS.medium;
+                const scaleMultiplier = normalizedVariant === 'enemy' ? 0.75 : 1;
+                const figurineScale = Number.isFinite(baseFigurineScale)
+                  ? baseFigurineScale * scaleMultiplier
+                  : FIGURINE_SIZE_MULTIPLIERS.medium * scaleMultiplier;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
