@@ -2580,7 +2580,7 @@ h1 {
 }
 
 .campaign-map-board {
-  --map-square-size: var(--campaign-map-square-size, clamp(36px, 8vw, 64px));
+  --map-square-size: var(--campaign-map-square-size, clamp(48px, 10vw, 80px));
   --figurine-size-scale: 1;
 
   position: relative;
