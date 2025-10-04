@@ -207,6 +207,65 @@ const parseFolderFilters = (input) => {
   return Array.from(new Set(sanitized));
 };
 
+const sanitizeSingleFolder = (folder) => {
+  const sanitized = parseFolderFilters(
+    Array.isArray(folder) ? folder : folder ? [folder] : []
+  );
+
+  return sanitized.length > 0 ? sanitized[0] : null;
+};
+
+const ensureAbsoluteTokenFolderPath = (folder, tokenRootFolder) => {
+  const sanitized = sanitizeSingleFolder(folder);
+
+  if (!sanitized) {
+    return null;
+  }
+
+  if (sanitized === tokenRootFolder) {
+    return sanitized;
+  }
+
+  const normalizedRootPrefix = `${tokenRootFolder}/`;
+
+  if (sanitized.startsWith(normalizedRootPrefix)) {
+    return sanitized;
+  }
+
+  return `${tokenRootFolder}/${sanitized}`;
+};
+
+const resolvePlayerRootFolder = (tokenRootFolder) => {
+  const candidates = parseFolderFilters(getDefaultPlayerTokenFolders());
+
+  for (const candidate of candidates) {
+    const absolute = ensureAbsoluteTokenFolderPath(candidate, tokenRootFolder);
+    if (absolute) {
+      return absolute;
+    }
+  }
+
+  return null;
+};
+
+const filterPlayerAccessibleFolders = (inputFolders, playerRootFolder, tokenRootFolder) => {
+  if (!playerRootFolder) {
+    return [];
+  }
+
+  const normalized = parseFolderFilters(inputFolders);
+
+  return normalized
+    .map((folder) => ensureAbsoluteTokenFolderPath(folder, tokenRootFolder))
+    .filter((absolute) => {
+      if (!absolute) {
+        return false;
+      }
+
+      return absolute === playerRootFolder || absolute.startsWith(`${playerRootFolder}/`);
+    });
+};
+
 const getDefaultPlayerTokenFolders = () => {
   const raw = process.env.CLOUDINARY_PLAYER_TOKEN_FOLDERS;
 
@@ -1730,14 +1789,43 @@ module.exports = (router) => {
           }
 
           const isDm = req.user && campaign.dm === req.user.username;
-          if (!isDm) {
+          const tokenRootFolder = getTokenRootFolder();
+
+          if (isDm) {
+            const requestedFolders = parseFolderFilters(req.query.folders);
+
+            try {
+              const folderTree = await listTokenFolderTree({ folders: requestedFolders });
+              return res.json(folderTree);
+            } catch (error) {
+              logger.warn('Failed to load token folder tree from Cloudinary', {
+                campaign: campaignName,
+                error: error.message,
+              });
+              return res.json({
+                rootFolder: tokenRootFolder,
+                folders: [],
+                flatFolders: [],
+              });
+            }
+          }
+
+          const playerRootFolder = resolvePlayerRootFolder(tokenRootFolder);
+          if (!playerRootFolder) {
             return res.status(403).json({ message: 'Forbidden' });
           }
 
-          const requestedFolders = parseFolderFilters(req.query.folders);
+          const allowedFolders = filterPlayerAccessibleFolders(
+            req.query.folders,
+            playerRootFolder,
+            tokenRootFolder
+          );
+
+          const folderTargets =
+            allowedFolders.length > 0 ? allowedFolders : [playerRootFolder];
 
           try {
-            const folderTree = await listTokenFolderTree({ folders: requestedFolders });
+            const folderTree = await listTokenFolderTree({ folders: folderTargets });
             return res.json(folderTree);
           } catch (error) {
             logger.warn('Failed to load token folder tree from Cloudinary', {
@@ -1745,7 +1833,7 @@ module.exports = (router) => {
               error: error.message,
             });
             return res.json({
-              rootFolder: getTokenRootFolder(),
+              rootFolder: playerRootFolder,
               folders: [],
               flatFolders: [],
             });
@@ -1779,10 +1867,29 @@ module.exports = (router) => {
 
           const isDm = req.user && campaign.dm === req.user.username;
           const playerFolders = getDefaultPlayerTokenFolders();
-          const requestedFolders = isDm ? parseFolderFilters(req.query.folders) : playerFolders;
+          const tokenRootFolder = getTokenRootFolder();
 
-          const folders =
-            isDm && requestedFolders.length === 0 ? null : requestedFolders.filter(Boolean);
+          let folders = null;
+          let playerRootFolder = null;
+
+          if (isDm) {
+            const requestedFolders = parseFolderFilters(req.query.folders);
+            folders = requestedFolders.length === 0 ? null : requestedFolders.filter(Boolean);
+          } else {
+            playerRootFolder = resolvePlayerRootFolder(tokenRootFolder);
+
+            if (!playerRootFolder) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const allowedFolders = filterPlayerAccessibleFolders(
+              req.query.folders,
+              playerRootFolder,
+              tokenRootFolder
+            );
+
+            folders = allowedFolders.length > 0 ? allowedFolders : [playerRootFolder];
+          }
 
           let manifest;
           try {
@@ -1803,7 +1910,7 @@ module.exports = (router) => {
               nextCursor: null,
               totalCount: null,
               appliedFolders: Array.isArray(folders) ? folders : [],
-              rootFolder: getTokenRootFolder(),
+              rootFolder: tokenRootFolder,
             };
           }
 

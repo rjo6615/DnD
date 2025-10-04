@@ -26,11 +26,20 @@ jest.mock('../utils/monsters', () => ({
 jest.mock('../utils/cloudinary', () => ({
   uploadMapImage: jest.fn(),
   deleteMapImage: jest.fn(),
+  listTokenAssets: jest.fn(),
+  listTokenFolderTree: jest.fn(),
+  getTokenRootFolder: jest.fn(() => 'Tokens'),
 }));
 const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
-const { uploadMapImage, deleteMapImage } = require('../utils/cloudinary');
+const {
+  uploadMapImage,
+  deleteMapImage,
+  listTokenAssets,
+  listTokenFolderTree,
+  getTokenRootFolder,
+} = require('../utils/cloudinary');
 const registerCampaignRoutes = require('../routes/campaigns');
 
 const app = express();
@@ -60,12 +69,16 @@ describe('Campaign routes', () => {
     buildEnemyRecord.mockReset();
     uploadMapImage.mockReset();
     deleteMapImage.mockReset();
+    listTokenAssets.mockReset();
+    listTokenFolderTree.mockReset();
+    getTokenRootFolder.mockReset();
     uploadMapImage.mockResolvedValue({
       secure_url:
         'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/default.png',
       public_id: 'maps/default/map',
     });
     deleteMapImage.mockResolvedValue({ result: 'ok' });
+    getTokenRootFolder.mockReturnValue('Tokens');
     mockUser = { username: 'DM' };
   });
 
@@ -1234,7 +1247,12 @@ describe('Campaign routes', () => {
     expect(res.body.name).toBe('Goblin');
     expect(typeof res.body.enemyId).toBe('string');
     expect(getMonsterByIndex).toHaveBeenCalledWith('goblin');
-    expect(buildEnemyRecord).toHaveBeenCalledWith({ index: 'goblin' }, res.body.enemyId, undefined);
+    expect(buildEnemyRecord).toHaveBeenCalledWith(
+      { index: 'goblin' },
+      res.body.enemyId,
+      undefined,
+      expect.objectContaining({ figurineImagePublicId: null, figurineImageUrl: null })
+    );
     expect(emitEnemiesUpdate).toHaveBeenCalledWith(
       'Test',
       [expect.objectContaining({ enemyId: res.body.enemyId, name: 'Goblin' })]
@@ -1384,4 +1402,91 @@ describe('Campaign routes', () => {
     expect(res.body.message).toBe('Enemy not found');
   });
 
+  test('player can list Adventurers token folders', async () => {
+    mockUser = { username: 'Player1' };
+
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [],
+      flatFolders: [],
+    };
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    listTokenFolderTree.mockResolvedValue(folderTree);
+
+    const res = await request(app).get(
+      '/campaigns/Test/token-folders?folders=Tokens/Adventurers/Heroes,Tokens/DM'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(folderTree);
+    expect(listTokenFolderTree).toHaveBeenCalledWith({
+      folders: ['Tokens/Adventurers/Heroes'],
+    });
+  });
+
+  test('player token manifest is limited to Adventurers folders', async () => {
+    mockUser = { username: 'Player1' };
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    listTokenAssets.mockResolvedValueOnce({
+      assets: [],
+      nextCursor: null,
+      totalCount: 0,
+      appliedFolders: ['Tokens/Adventurers'],
+      rootFolder: 'Tokens',
+    });
+
+    const res = await request(app).get('/campaigns/Test/token-manifest');
+
+    expect(res.status).toBe(200);
+    expect(listTokenAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folders: ['Tokens/Adventurers'],
+        nextCursor: null,
+      })
+    );
+    expect(res.body.isDm).toBe(false);
+    expect(res.body.defaultPlayerFolders).toEqual(['Adventurers']);
+
+    listTokenAssets.mockClear();
+    listTokenAssets.mockResolvedValueOnce({
+      assets: [],
+      nextCursor: null,
+      totalCount: 0,
+      appliedFolders: ['Tokens/Adventurers/Heroes'],
+      rootFolder: 'Tokens',
+    });
+
+    const resWithFilter = await request(app).get(
+      '/campaigns/Test/token-manifest?folders=Tokens/Adventurers/Heroes,Tokens/DM'
+    );
+
+    expect(resWithFilter.status).toBe(200);
+    expect(listTokenAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folders: ['Tokens/Adventurers/Heroes'],
+        nextCursor: null,
+      })
+    );
+    expect(resWithFilter.body.appliedFolders).toEqual(['Tokens/Adventurers/Heroes']);
+  });
 });
