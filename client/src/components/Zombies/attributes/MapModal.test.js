@@ -173,4 +173,59 @@ describe('MapModal figurine imagery', () => {
     expect(figurineImage).toHaveAttribute('data-figurine-public-id', 'figurines/heroes/hero');
     expect(figurineImage?.getAttribute('alt')).toBe('');
   });
+
+  it('renders figurine overlays when imagery metadata is only available in character lookup', async () => {
+    const { container } = render(
+      <MapModal
+        show
+        onHide={jest.fn()}
+        maps={[
+          {
+            mapId: 'map-1',
+            title: 'Forest Path',
+            imageUrl: 'https://example.com/map.png',
+          },
+        ]}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            hero: {
+              characterId: 'hero',
+              x: 0.5,
+              y: 0.5,
+            },
+          },
+        }}
+        currentCharacterId="hero"
+        activeCharacterId="hero"
+        characterLookup={{
+          hero: {
+            label: 'Hero',
+            entityType: 'character',
+            figurineImageUrl: ' https://example.com/figurines/lookup-hero.png ',
+            figurineImagePublicId: ' figurines/heroes/lookup-hero ',
+          },
+        }}
+        onTokenMove={jest.fn()}
+        onTokenRemove={jest.fn()}
+        readOnly={false}
+      />
+    );
+
+    const tokenElement = await screen.findByRole('button', { name: 'Hero' });
+    expect(tokenElement).toBeInTheDocument();
+
+    const figurineImage = container.querySelector(
+      '[data-token-id="hero"] .campaign-map-board__figurine-image'
+    );
+    expect(figurineImage).not.toBeNull();
+    expect(figurineImage).toHaveAttribute(
+      'src',
+      'https://example.com/figurines/lookup-hero.png'
+    );
+    expect(figurineImage).toHaveAttribute(
+      'data-figurine-public-id',
+      'figurines/heroes/lookup-hero'
+    );
+  });
 });
