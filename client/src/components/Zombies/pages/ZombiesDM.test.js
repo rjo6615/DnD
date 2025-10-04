@@ -1055,6 +1055,65 @@ describe('ZombiesDM AI generation', () => {
     });
   });
 
+  test('renders map folders with accessible toggle controls', async () => {
+    const ungroupedMap = {
+      mapId: 'map-1',
+      title: 'Default Map',
+    };
+    const folderedMap = {
+      mapId: 'map-2',
+      title: 'Dungeon Map',
+      folder: 'Dungeon',
+    };
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [ungroupedMap, folderedMap],
+              activeMapId: ungroupedMap.mapId,
+              map: ungroupedMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+    const mapList = await within(mapCard).findByTestId('map-list');
+
+    const folderHeader = within(mapList).getByTestId('map-folder-dungeon-header');
+    const toggleButton = within(folderHeader).getByTestId('map-folder-toggle-dungeon');
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+
+    expect(within(mapList).queryByTestId('map-list-item-map-2')).not.toBeInTheDocument();
+
+    await userEvent.click(toggleButton);
+
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+
+    const folderedMapItem = await within(mapList).findByTestId('map-list-item-map-2');
+    expect(within(folderedMapItem).getByText('Dungeon Map')).toBeInTheDocument();
+  });
+
   test('allows uploading a map image file when creating a campaign map', async () => {
     const mockBase64 = 'Zm9vYmFy';
     const originalFileReader = global.FileReader;
