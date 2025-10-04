@@ -2646,18 +2646,38 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
-  const { bonuses: itemBonus, overrides: itemOverrides } = aggregateStatEffects(
-    form?.item
+  const hasEquipmentData =
+    typeof form?.equipment === 'object' && form.equipment !== null;
+
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form?.equipment),
+    [form?.equipment]
   );
 
-  const accessorySource = Array.isArray(form?.accessories)
-    ? form.accessories
-    : Array.isArray(form?.accessory)
-      ? form.accessory
-      : [];
+  const fallbackItems = useMemo(
+    () => (Array.isArray(form?.item) ? form.item.filter(Boolean) : []),
+    [form?.item]
+  );
 
-  const { bonuses: accessoryBonus, overrides: accessoryOverrides } =
-    aggregateStatEffects(accessorySource);
+  const fallbackAccessories = useMemo(() => {
+    if (Array.isArray(form?.accessories)) {
+      return form.accessories.filter(Boolean);
+    }
+    if (Array.isArray(form?.accessory)) {
+      return form.accessory.filter(Boolean);
+    }
+    return [];
+  }, [form?.accessories, form?.accessory]);
+
+  const equippedInventory = useMemo(() => {
+    if (hasEquipmentData) {
+      return Object.values(normalizedEquipment).filter(Boolean);
+    }
+    return [...fallbackItems, ...fallbackAccessories];
+  }, [fallbackAccessories, fallbackItems, hasEquipmentData, normalizedEquipment]);
+
+  const { bonuses: equipmentBonuses, overrides: equipmentOverrides } =
+    useMemo(() => aggregateStatEffects(equippedInventory), [equippedInventory]);
 
   const featAbilityBonuses = collectFeatAbilityBonuses(form?.feat);
 
@@ -3518,11 +3538,10 @@ export default function ZombiesCharacterSheet() {
     const base = Number(form?.[key] || 0);
     const total =
       base +
-      itemBonus[key] +
-      accessoryBonus[key] +
+      equipmentBonuses[key] +
       featAbilityBonuses[key] +
       Number(raceBonus[key] || 0);
-    const overrideCandidates = [itemOverrides[key], accessoryOverrides[key]];
+    const overrideCandidates = [equipmentOverrides[key]];
     const overrideValue = overrideCandidates.reduce((max, value) => {
       if (value === undefined || value === null) return max;
       return max === null ? value : Math.max(max, value);

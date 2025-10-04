@@ -1947,6 +1947,76 @@ test('equipment changes are normalized and persisted', async () => {
   });
 });
 
+test('strength override from inventory applies only when equipped', async () => {
+  const initialCharacter = {
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    equipment: {},
+  };
+
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => initialCharacter,
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockSkillsModalProps.current).not.toBeNull());
+  await waitFor(() => expect(mockEquipmentModalProps.current).not.toBeNull());
+
+  expect(mockSkillsModalProps.current.strMod).toBe(0);
+
+  const strengthBelt = {
+    type: 'item',
+    name: 'Belt of Giant Strength',
+    statOverrides: { str: 18 },
+    owned: true,
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ cp: 0, sp: 0, gp: 0, pp: 0 }),
+    })
+    .mockResolvedValueOnce({ ok: true });
+
+  await act(async () => {
+    await mockShopModalProps.current.onPurchase([strengthBelt], 0);
+  });
+
+  await waitFor(() => expect(mockSkillsModalProps.current.strMod).toBe(0));
+
+  const equipmentPayload = {
+    ...mockEquipmentModalProps.current.form.equipment,
+    waist: {
+      name: 'Belt of Giant Strength',
+      statOverrides: { str: 18 },
+      source: 'item',
+    },
+  };
+
+  apiFetch.mockResolvedValueOnce({ ok: true });
+
+  await act(async () => {
+    await mockEquipmentModalProps.current.onEquipmentChange(equipmentPayload);
+  });
+
+  await waitFor(() => expect(mockSkillsModalProps.current.strMod).toBe(4));
+});
+
 test('handleCastSpell closes modal and outputs spell name', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
