@@ -74,16 +74,16 @@ const LINEAGE_SPELLS = {
     baseLevel: 2,
     castingTime: '1 action',
   },
-  'tiefling-chthonic-darkness': {
-    spellName: 'Darkness',
+  'tiefling-chthonic-false-life': {
+    spellName: 'False Life',
     maxUses: 1,
-    baseLevel: 2,
+    baseLevel: 1,
     castingTime: '1 action',
   },
-  'tiefling-chthonic-bestow-curse': {
-    spellName: 'Bestow Curse',
+  'tiefling-chthonic-ray-of-enfeeblement': {
+    spellName: 'Ray of Enfeeblement',
     maxUses: 1,
-    baseLevel: 3,
+    baseLevel: 2,
     castingTime: '1 action',
   },
   'tiefling-infernal-hellish-rebuke': {
@@ -463,9 +463,9 @@ export default function Features({
         isAbyssalTieflingLegacy && totalCharacterLevel >= 3,
       'tiefling-abyssal-hold-person':
         isAbyssalTieflingLegacy && totalCharacterLevel >= 5,
-      'tiefling-chthonic-darkness':
+      'tiefling-chthonic-false-life':
         isChthonicTieflingLegacy && totalCharacterLevel >= 3,
-      'tiefling-chthonic-bestow-curse':
+      'tiefling-chthonic-ray-of-enfeeblement':
         isChthonicTieflingLegacy && totalCharacterLevel >= 5,
       'tiefling-infernal-hellish-rebuke':
         isInfernalTieflingLegacy && totalCharacterLevel >= 3,

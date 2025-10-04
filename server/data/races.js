@@ -292,19 +292,19 @@ const races = {
             usage: "At will",
           },
           {
-            name: "Darkness",
-            spellLevel: "2nd-level",
+            name: "False Life",
+            spellLevel: "1st-level",
             unlockedAtLevel: 3,
             description:
-              "Fill a 15-foot-radius sphere with magical darkness that blocks light and darkvision.",
+              "Bolster yourself with necromantic vitality, gaining temporary hit points for the duration.",
             usage: "1/long rest",
           },
           {
-            name: "Bestow Curse",
-            spellLevel: "3rd-level",
+            name: "Ray of Enfeeblement",
+            spellLevel: "2nd-level",
             unlockedAtLevel: 5,
             description:
-              "Inflict a potent magical curse on a creature, imposing debilitating effects of your choice.",
+              "Sap a creature's strength with a weakening ray, halving its weapon damage on a failed Constitution save.",
             usage: "1/long rest",
           },
         ],
