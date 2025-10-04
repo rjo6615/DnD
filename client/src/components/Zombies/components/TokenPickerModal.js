@@ -402,14 +402,17 @@ const TokenPickerModal = ({
   const [nextCursor, setNextCursor] = useState(null);
   const [manifestMeta, setManifestMeta] = useState(null);
 
-  const resetState = useCallback(() => {
+  const resetState = useCallback((options = {}) => {
+    const { resetFolderLoading = true } = options;
     setAssets([]);
     setLoading(false);
     setLoadingMore(false);
     setError(null);
     setNextCursor(null);
     setManifestMeta(null);
-    setFetchingFolders(false);
+    if (resetFolderLoading) {
+      setFetchingFolders(false);
+    }
   }, []);
 
   const activeFilter = selectedFilterKey && filterLookup.has(selectedFilterKey)
@@ -486,7 +489,7 @@ const TokenPickerModal = ({
       return;
     }
 
-    resetState();
+    resetState({ resetFolderLoading: false });
     fetchManifest({ append: false, cursor: null });
   }, [show, fetchManifest, activeFilter, resetState, isDm]);
 
@@ -758,15 +761,20 @@ const TokenPickerModal = ({
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {availableFilters.length > 1 ? (
+        {availableFilters.length > 0 ? (
           <Form.Group className="mb-3" controlId="tokenPickerFilter">
             <Form.Label>Token Library</Form.Label>
             <Form.Select
               value={selectedFilterKey ?? ''}
               onChange={handleFilterChange}
               aria-label="Select token library"
-              disabled={isBusy}
+              disabled={isBusy || fetchingFolders}
             >
+              {fetchingFolders ? (
+                <option value="" disabled>
+                  Loading token folders…
+                </option>
+              ) : null}
               {availableFilters.map((filter) => (
                 <option key={filter.key} value={filter.key}>
                   {filter.label}

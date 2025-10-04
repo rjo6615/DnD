@@ -9,6 +9,21 @@ jest.mock('../../../utils/apiFetch');
 const setupUser = () =>
   typeof userEvent.setup === 'function' ? userEvent.setup() : userEvent;
 
+const createDeferred = () => {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return {
+    promise,
+    resolve,
+    reject,
+  };
+};
+
 describe('TokenPickerModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -210,14 +225,19 @@ describe('TokenPickerModal', () => {
     });
 
     const select = await screen.findByLabelText(/Token Library/i);
-    const options = within(select).getAllByRole('option');
 
-    expect(options).toHaveLength(3);
-    expect(options[0]).toHaveTextContent('Adventurers');
-    expect(options[1].textContent.startsWith('\u00A0\u00A0')).toBe(true);
-    expect(options[1]).toHaveTextContent('Heroes');
-    expect(options[2].textContent.startsWith('\u00A0\u00A0\u00A0\u00A0')).toBe(true);
-    expect(options[2]).toHaveTextContent('Heroes/Rogues');
+    let options;
+
+    await waitFor(() => {
+      options = within(select).getAllByRole('option');
+
+      expect(options).toHaveLength(3);
+      expect(options[0]).toHaveTextContent('Adventurers');
+      expect(options[1].textContent.startsWith('\u00A0\u00A0')).toBe(true);
+      expect(options[1]).toHaveTextContent('Heroes');
+      expect(options[2].textContent.startsWith('\u00A0\u00A0\u00A0\u00A0')).toBe(true);
+      expect(options[2]).toHaveTextContent('Heroes/Rogues');
+    });
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
@@ -232,5 +252,83 @@ describe('TokenPickerModal', () => {
         '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FHeroes%2FRogues'
       );
     });
+  });
+
+  test('player library dropdown stays disabled until folders finish loading', async () => {
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          children: [],
+        },
+      ],
+      flatFolders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          depth: 0,
+          displayPath: 'Adventurers',
+        },
+        {
+          name: 'Allies',
+          path: 'Tokens/Adventurers/Allies',
+          relativePath: 'Adventurers/Allies',
+          depth: 1,
+          displayPath: 'Adventurers/Allies',
+        },
+      ],
+    };
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const folderDeferred = createDeferred();
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return folderDeferred.promise;
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+      />
+    );
+
+    const select = await screen.findByLabelText(/Token Library/i);
+
+    await waitFor(() => {
+      expect(select).toBeDisabled();
+    });
+
+    expect(within(select).getByText('Loading token folders…')).toBeInTheDocument();
+
+    folderDeferred.resolve({ ok: true, json: async () => folderTree });
+
+    await waitFor(() => {
+      expect(select).not.toBeDisabled();
+    });
+
+    expect(within(select).queryByText('Loading token folders…')).not.toBeInTheDocument();
+    const options = within(select).getAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
   });
 });
