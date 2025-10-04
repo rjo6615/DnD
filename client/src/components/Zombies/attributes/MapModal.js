@@ -107,6 +107,24 @@ const findMapById = (maps, id) => {
   return maps.find((map) => normalizeMapId(map?.mapId) === normalizedId) || null;
 };
 
+const areSetsEqual = (a, b) => {
+  if (a === b) {
+    return true;
+  }
+
+  if (!a || !b || a.size !== b.size) {
+    return false;
+  }
+
+  for (const value of a) {
+    if (!b.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const MapModal = ({
   show,
   onHide,
@@ -186,6 +204,75 @@ const MapModal = ({
     () => groupMapsByFolder(normalizedMaps),
     [normalizedMaps]
   );
+
+  const autoExpandedFolderKeys = useMemo(() => {
+    const keys = new Set();
+
+    groupedMaps.forEach((group) => {
+      const shouldExpand = group.maps.some((mapItem) => {
+        const mapId = normalizeMapId(mapItem?.mapId);
+        if (!mapId) {
+          return false;
+        }
+
+        if (normalizedActiveId && normalizedActiveId === mapId) {
+          return true;
+        }
+
+        if (resolvedSelectedId && resolvedSelectedId === mapId) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (shouldExpand) {
+        keys.add(group.key);
+      }
+    });
+
+    return keys;
+  }, [groupedMaps, normalizedActiveId, resolvedSelectedId]);
+
+  const [expandedFolderKeys, setExpandedFolderKeys] = useState(
+    () => new Set(autoExpandedFolderKeys)
+  );
+
+  useEffect(() => {
+    setExpandedFolderKeys((previousKeys) => {
+      const validKeys = new Set(groupedMaps.map((group) => group.key));
+      const nextKeys = new Set();
+
+      previousKeys.forEach((key) => {
+        if (validKeys.has(key)) {
+          nextKeys.add(key);
+        }
+      });
+
+      autoExpandedFolderKeys.forEach((key) => {
+        nextKeys.add(key);
+      });
+
+      if (areSetsEqual(previousKeys, nextKeys)) {
+        return previousKeys;
+      }
+
+      return nextKeys;
+    });
+  }, [groupedMaps, autoExpandedFolderKeys]);
+
+  const handleToggleFolder = useCallback((folderKey) => {
+    setExpandedFolderKeys((previousKeys) => {
+      const nextKeys = new Set(previousKeys);
+      if (nextKeys.has(folderKey)) {
+        nextKeys.delete(folderKey);
+      } else {
+        nextKeys.add(folderKey);
+      }
+
+      return nextKeys;
+    });
+  }, []);
 
   const normalizedCurrentCharacterId = useMemo(
     () => normalizeMapId(currentCharacterId),
@@ -618,95 +705,120 @@ const MapModal = ({
       >
         {groupedMaps.map((group) => {
           const headerTestId = toFolderTestId(group.key, group.label);
+          const listBodyId = `${headerTestId}-body`;
+          const toggleTestId = `${headerTestId}-toggle`;
+          const isExpanded = expandedFolderKeys.has(group.key);
+
           return (
             <React.Fragment key={group.key}>
               <ListGroup.Item
                 as="div"
-                className="bg-secondary bg-opacity-50 text-light border-secondary d-flex justify-content-between align-items-center"
+                className="bg-secondary bg-opacity-50 text-light border-secondary"
                 data-testid={headerTestId}
               >
-                <span className="fw-semibold text-uppercase small">{group.label}</span>
-                <Badge bg="dark" pill>
-                  {group.maps.length}
-                </Badge>
-              </ListGroup.Item>
-              {group.maps.map((mapItem, index) => {
-                const mapId = normalizeMapId(mapItem?.mapId);
-                const key = mapId || `map-${group.key}-${index}`;
-                const isActive = Boolean(
-                  normalizedActiveId &&
-                  mapId &&
-                  normalizedActiveId === mapId
-                );
-                const isSelected = Boolean(
-                  resolvedSelectedId && mapId && resolvedSelectedId === mapId
-                );
-                const isProcessing = Boolean(
-                  mapId && normalizedActionId && normalizedActionId === mapId
-                );
-                const titleText = resolveMapTitle(mapItem, index);
-                const canSelect = typeof onSelectMap === 'function' && Boolean(mapId);
-                const canActivate = typeof onActivateMap === 'function';
-                const canDelete = typeof onDeleteMap === 'function';
-
-                return (
-                  <ListGroup.Item
-                    as="div"
-                    key={key}
-                    action={canSelect}
-                    active={isSelected}
-                    onClick={() => {
-                      if (canSelect && mapId) {
-                        handleSelectMap(mapId);
-                      }
-                    }}
-                    className="bg-dark text-light border-secondary"
-                    data-testid={`map-modal-item-${key}`}
-                    data-folder={
-                      group.key === UNGROUPED_FOLDER_KEY ? undefined : group.label
-                    }
+                <div className="d-flex justify-content-between align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm text-decoration-none text-light d-flex align-items-center gap-2 p-0 flex-grow-1"
+                    onClick={() => handleToggleFolder(group.key)}
+                    aria-expanded={isExpanded}
+                    aria-controls={listBodyId}
+                    data-testid={toggleTestId}
                   >
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div className="fw-semibold">{titleText}</div>
-                      {isActive && (
-                        <Badge
-                          bg="success"
-                          className="ms-2"
-                          data-testid={`map-modal-active-badge-${key}`}
-                        >
-                          Active
-                        </Badge>
-                      )}
-                    </div>
-                    {(canActivate || canDelete) && (
-                      <div className="d-flex flex-wrap gap-2 mt-3">
-                        {canActivate && (
-                          <Button
-                            variant="outline-light"
-                            size="sm"
-                            disabled={!mapId || isProcessing || isActive}
-                            onClick={(event) => handleActivateMap(event, mapId)}
-                            data-testid={`map-modal-activate-${key}`}
-                          >
-                            {isActive ? 'Active' : 'Set Active'}
-                          </Button>
+                    <span aria-hidden="true">{isExpanded ? '▾' : '▸'}</span>
+                    <span className="fw-semibold text-uppercase small text-start">
+                      {group.label}
+                    </span>
+                  </button>
+                  <Badge bg="dark" pill>
+                    {group.maps.length}
+                  </Badge>
+                </div>
+              </ListGroup.Item>
+              {isExpanded && (
+                <div id={listBodyId}>
+                  {group.maps.map((mapItem, index) => {
+                    const mapId = normalizeMapId(mapItem?.mapId);
+                    const key = mapId || `map-${group.key}-${index}`;
+                    const isActive = Boolean(
+                      normalizedActiveId &&
+                      mapId &&
+                      normalizedActiveId === mapId
+                    );
+                    const isSelected = Boolean(
+                      resolvedSelectedId && mapId && resolvedSelectedId === mapId
+                    );
+                    const isProcessing = Boolean(
+                      mapId && normalizedActionId && normalizedActionId === mapId
+                    );
+                    const titleText = resolveMapTitle(mapItem, index);
+                    const canSelect =
+                      typeof onSelectMap === 'function' && Boolean(mapId);
+                    const canActivate = typeof onActivateMap === 'function';
+                    const canDelete = typeof onDeleteMap === 'function';
+
+                    return (
+                      <ListGroup.Item
+                        as="div"
+                        key={key}
+                        action={canSelect}
+                        active={isSelected}
+                        onClick={() => {
+                          if (canSelect && mapId) {
+                            handleSelectMap(mapId);
+                          }
+                        }}
+                        className="bg-dark text-light border-secondary"
+                        data-testid={`map-modal-item-${key}`}
+                        data-folder={
+                          group.key === UNGROUPED_FOLDER_KEY
+                            ? undefined
+                            : group.label
+                        }
+                      >
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div className="fw-semibold">{titleText}</div>
+                          {isActive && (
+                            <Badge
+                              bg="success"
+                              className="ms-2"
+                              data-testid={`map-modal-active-badge-${key}`}
+                            >
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                        {(canActivate || canDelete) && (
+                          <div className="d-flex flex-wrap gap-2 mt-3">
+                            {canActivate && (
+                              <Button
+                                variant="outline-light"
+                                size="sm"
+                                disabled={!mapId || isProcessing || isActive}
+                                onClick={(event) => handleActivateMap(event, mapId)}
+                                data-testid={`map-modal-activate-${key}`}
+                              >
+                                {isActive ? 'Active' : 'Set Active'}
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                disabled={!mapId || isProcessing}
+                                onClick={(event) => handleDeleteMap(event, mapId)}
+                                data-testid={`map-modal-delete-${key}`}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
                         )}
-                        {canDelete && (
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            disabled={!mapId || isProcessing}
-                            onClick={(event) => handleDeleteMap(event, mapId)}
-                            data-testid={`map-modal-delete-${key}`}
-                          >
-                            Delete
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </ListGroup.Item>
-                );
-              })}
+                      </ListGroup.Item>
+                    );
+                  })}
+                </div>
+              )}
             </React.Fragment>
           );
         })}
