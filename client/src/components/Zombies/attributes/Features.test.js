@@ -265,6 +265,78 @@ test('dwarf characters display racial trait feature cards', async () => {
   ).toBeInTheDocument();
 });
 
+test('elven lineage cantrips use wand casting without consuming uses', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const onCastSpell = jest.fn();
+
+  const form = {
+    race: {
+      name: 'Elf',
+      elvenLineages: {
+        drow: {
+          label: 'Drow',
+          spellcastingAbilities: ['CHA'],
+        },
+      },
+      selectedAncestry: {
+        label: 'Drow',
+        spellcastingAbilities: ['CHA'],
+      },
+      selectedAncestryKey: 'drow',
+      selectedLineageAbility: 'CHA',
+    },
+    elvenLineage: {
+      label: 'Drow',
+      spellcastingAbilities: ['CHA'],
+    },
+    elvenLineageKey: 'drow',
+    elvenLineageAbility: 'CHA',
+    occupation: [{ Name: 'Wizard', Level: 1 }],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const dancingLightsTitle = await screen.findByText('Dancing Lights');
+  const card = dancingLightsTitle.closest('.feature-card');
+  expect(card).not.toBeNull();
+
+  const wandButton = within(card).getByRole('button', {
+    name: /cast dancing lights from lineage/i,
+  });
+
+  expect(wandButton).toBeEnabled();
+  expect(within(card).queryByText(/Uses remaining:/i)).toBeNull();
+
+  await act(async () => {
+    await userEvent.click(wandButton);
+  });
+
+  expect(onCastSpell).toHaveBeenCalledTimes(2);
+  expect(onCastSpell).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({
+      name: 'Dancing Lights',
+      castingTime: '1 action',
+      pendingEffectOnly: true,
+    })
+  );
+  expect(onCastSpell).toHaveBeenNthCalledWith(2, 'action');
+  expect(wandButton).toBeEnabled();
+  expect(within(card).queryByText(/Uses remaining:/i)).toBeNull();
+});
+
 test('halfling characters display racial trait feature cards with descriptions', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
