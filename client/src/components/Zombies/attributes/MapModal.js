@@ -4,6 +4,7 @@ import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap
 import MapDisplay from './MapDisplay';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -447,6 +448,8 @@ const MapModal = ({
         const normalizedColor =
           typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(lookup, token);
+
         return {
           ...token,
           label: typeof rawLabel === 'string' ? rawLabel : token.characterId,
@@ -460,6 +463,8 @@ const MapModal = ({
           ...(currentHp !== null ? { currentHp } : {}),
           ...(maxHp !== null ? { maxHp } : {}),
           ...(size ? { size } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       })
       .sort((a, b) => {
@@ -973,6 +978,12 @@ MapModal.propTypes = {
     PropTypes.shape({
       color: PropTypes.string,
       label: PropTypes.string,
+      entityType: PropTypes.string,
+      currentHp: PropTypes.number,
+      maxHp: PropTypes.number,
+      size: PropTypes.string,
+      figurineImageUrl: PropTypes.string,
+      figurineImagePublicId: PropTypes.string,
     })
   ),
   onTokenMove: PropTypes.func,

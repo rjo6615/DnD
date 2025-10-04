@@ -121,3 +121,56 @@ describe('MapModal folder expansion', () => {
     expect(noFolderItem.dataset.folder).toBeUndefined();
   });
 });
+
+describe('MapModal figurine imagery', () => {
+  it('renders figurine overlays for board tokens with imagery metadata', async () => {
+    const { container } = render(
+      <MapModal
+        show
+        onHide={jest.fn()}
+        maps={[
+          {
+            mapId: 'map-1',
+            title: 'Forest Path',
+            imageUrl: 'https://example.com/map.png',
+          },
+        ]}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            hero: {
+              characterId: 'hero',
+              x: 0.25,
+              y: 0.5,
+              imageUrl: ' https://example.com/figurines/hero.png ',
+              cloudinaryPublicId: ' figurines/heroes/hero ',
+            },
+          },
+        }}
+        currentCharacterId="hero"
+        activeCharacterId="hero"
+        characterLookup={{
+          hero: {
+            label: 'Hero',
+            entityType: 'character',
+          },
+        }}
+        onTokenMove={jest.fn()}
+        onTokenRemove={jest.fn()}
+        readOnly={false}
+      />
+    );
+
+    const tokenElement = await screen.findByRole('button', { name: 'Hero' });
+    expect(tokenElement).toBeInTheDocument();
+    expect(tokenElement).toHaveAttribute('aria-label', 'Hero');
+
+    const figurineImage = container.querySelector(
+      '[data-token-id="hero"] .campaign-map-board__figurine-image'
+    );
+    expect(figurineImage).not.toBeNull();
+    expect(figurineImage).toHaveAttribute('src', 'https://example.com/figurines/hero.png');
+    expect(figurineImage).toHaveAttribute('data-figurine-public-id', 'figurines/heroes/hero');
+    expect(figurineImage?.getAttribute('alt')).toBe('');
+  });
+});

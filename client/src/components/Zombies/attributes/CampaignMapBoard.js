@@ -2,6 +2,7 @@ import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react'
 import PropTypes from 'prop-types';
 import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -461,6 +462,9 @@ const CampaignMapBoard = ({
                     ? ENEMY_FIGURINE_COLOR
                     : normalizeText(color) || undefined;
 
+                const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(token);
+                const hasFigurineImage = Boolean(figurineImageUrl);
+
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
                   normalizedVariant ? `campaign-map-board__figurine-label--${normalizedVariant}` : null
@@ -546,10 +550,22 @@ const CampaignMapBoard = ({
                       className={classNames(
                         'campaign-map-board__figurine',
                         draggable && 'campaign-map-board__figurine--active',
-                        isActiveTurn && 'campaign-map-board__figurine--active-turn'
+                        isActiveTurn && 'campaign-map-board__figurine--active-turn',
+                        hasFigurineImage && 'campaign-map-board__figurine--has-image'
                       )}
                       style={{ '--figurine-color': figurineColor }}
                     >
+                      {hasFigurineImage && (
+                        <span className="campaign-map-board__figurine-image-wrapper" aria-hidden="true">
+                          <img
+                            src={figurineImageUrl}
+                            alt=""
+                            className="campaign-map-board__figurine-image"
+                            data-figurine-public-id={figurineImagePublicId || undefined}
+                            loading="lazy"
+                          />
+                        </span>
+                      )}
                       <span className="campaign-map-board__figurine-figure" aria-hidden="true">
                         <span className="campaign-map-board__figurine-head" />
                         <span className="campaign-map-board__figurine-torso" />
@@ -594,6 +610,8 @@ CampaignMapBoard.propTypes = {
       maxHp: PropTypes.number,
       isActiveTurn: PropTypes.bool,
       size: PropTypes.string,
+      figurineImageUrl: PropTypes.string,
+      figurineImagePublicId: PropTypes.string,
     })
   ),
   onTokenDragStart: PropTypes.func,

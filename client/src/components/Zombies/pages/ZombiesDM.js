@@ -65,6 +65,7 @@ import {
 } from "react-icons/gi";
 import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -2771,6 +2772,8 @@ export default function ZombiesDM() {
               record?.displayType
           );
 
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(record);
+
           identifiers.forEach((identifier) => {
             const trimmed = identifier.trim();
             if (!trimmed) {
@@ -2784,6 +2787,8 @@ export default function ZombiesDM() {
               ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
               ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
               ...(recordSize ? { size: recordSize } : {}),
+              ...(figurineImageUrl ? { figurineImageUrl } : {}),
+              ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
             };
           });
         });
@@ -2813,20 +2818,24 @@ export default function ZombiesDM() {
           );
           const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
-          const enemySize = normalizeCreatureSize(
-            enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
-          );
+        const enemySize = normalizeCreatureSize(
+          enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
+        );
 
-          lookup[enemyId] = {
-            color: ENEMY_FIGURINE_COLOR,
-            label,
-            entityType: 'enemy',
-            ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
-            ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
-            ...(enemySize ? { size: enemySize } : {}),
-          };
-        });
-      }
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+
+        lookup[enemyId] = {
+          color: ENEMY_FIGURINE_COLOR,
+          label,
+          entityType: 'enemy',
+          ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
+          ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
+          ...(enemySize ? { size: enemySize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
+        };
+      });
+    }
 
       return lookup;
     }, [records, enemies]);
@@ -3002,6 +3011,8 @@ export default function ZombiesDM() {
           const normalizedColor =
             typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
 
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(meta, token);
+
           return {
             ...token,
             label,
@@ -3013,6 +3024,8 @@ export default function ZombiesDM() {
             ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
             ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
             ...(size ? { size } : {}),
+            ...(figurineImageUrl ? { figurineImageUrl } : {}),
+            ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
           };
         })
         .sort((a, b) => {
