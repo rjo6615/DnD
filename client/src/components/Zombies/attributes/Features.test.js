@@ -1461,7 +1461,7 @@ test('tiefling legacy spell uses upcast modal with C button and tracks usage', a
   expect(
     within(hellishFeature).getByRole('button', {
       name: /cast hellish rebuke from lineage/i,
-    }).querySelector('.fa-wand-sparkle')
+    }).querySelector('.fa-wand-sparkles')
   ).not.toBeNull();
 
   await act(async () => {
@@ -1875,7 +1875,7 @@ test('elven lineage spells use wand icon and track uses with persistence and res
   });
   expect(lineageCastButton).toBeEnabled();
   expect(
-    lineageCastButton.querySelector('i.fa-solid.fa-wand-sparkle')
+    lineageCastButton.querySelector('i.fa-solid.fa-wand-sparkles')
   ).not.toBeNull();
   expect(
     longstriderWithin.getByText('Uses remaining: 1')

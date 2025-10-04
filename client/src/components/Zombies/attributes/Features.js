@@ -1671,7 +1671,7 @@ export default function Features({
                                         icon: (
                                           <span className="d-flex align-items-center gap-1">
                                             <i
-                                              className="fa-solid fa-wand-sparkle"
+                                              className="fa-solid fa-wand-sparkles"
                                               aria-hidden="true"
                                             />
                                             <span>C</span>
@@ -1742,7 +1742,7 @@ export default function Features({
                                   (!isTieflingLineageSpell || !hasSlotsForLineageSpell)
                                 }
                               >
-                                <i className="fa-solid fa-wand-sparkle" />
+                                <i className="fa-solid fa-wand-sparkles" />
                               </Button>
                             ) : isSpeakWithAnimals ? (
                               <div className="d-flex align-items-center gap-1">
