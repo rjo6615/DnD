@@ -79,7 +79,7 @@ describe('Races API routes', () => {
       expect.arrayContaining([
         expect.objectContaining({ name: 'Fire Bolt', unlockedAtLevel: 1 }),
         expect.objectContaining({ name: 'Hellish Rebuke', unlockedAtLevel: 3 }),
-        expect.objectContaining({ name: 'Fireball', unlockedAtLevel: 5 }),
+        expect.objectContaining({ name: 'Darkness', unlockedAtLevel: 5 }),
       ])
     );
   });

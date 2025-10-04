@@ -92,10 +92,10 @@ const LINEAGE_SPELLS = {
     baseLevel: 1,
     castingTime: 'Reaction',
   },
-  'tiefling-infernal-fireball': {
-    spellName: 'Fireball',
+  'tiefling-infernal-darkness': {
+    spellName: 'Darkness',
     maxUses: 1,
-    baseLevel: 3,
+    baseLevel: 2,
     castingTime: '1 action',
   },
 };
@@ -469,7 +469,7 @@ export default function Features({
         isChthonicTieflingLegacy && totalCharacterLevel >= 5,
       'tiefling-infernal-hellish-rebuke':
         isInfernalTieflingLegacy && totalCharacterLevel >= 3,
-      'tiefling-infernal-fireball':
+      'tiefling-infernal-darkness':
         isInfernalTieflingLegacy && totalCharacterLevel >= 5,
     };
   }, [

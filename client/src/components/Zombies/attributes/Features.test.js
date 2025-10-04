@@ -1267,11 +1267,11 @@ test('tiefling fiendish legacy shows resistance and spells with ability details'
         usage: '1/long rest',
       },
       {
-        name: 'Fireball',
-        spellLevel: '3rd-level',
+        name: 'Darkness',
+        spellLevel: '2nd-level',
         unlockedAtLevel: 5,
         description:
-          'Detonate a roaring explosion of flame that engulfs creatures in a 20-foot-radius sphere.',
+          'Create a 15-foot-radius sphere of magical darkness that spreads around corners.',
         usage: '1/long rest',
       },
     ],
@@ -1384,7 +1384,7 @@ test('tiefling fiendish legacy shows resistance and spells with ability details'
     await userEvent.click(closeButton);
   });
 
-  expect(screen.getByText('Fireball (Level 5)')).toBeInTheDocument();
+  expect(screen.getByText('Darkness (Level 5)')).toBeInTheDocument();
 });
 
 test('tiefling legacy spell uses upcast modal with C button and tracks usage', async () => {
@@ -1413,10 +1413,10 @@ test('tiefling legacy spell uses upcast modal with C button and tracks usage', a
         usage: '1/long rest',
       },
       {
-        name: 'Fireball',
-        spellLevel: '3rd-level',
+        name: 'Darkness',
+        spellLevel: '2nd-level',
         unlockedAtLevel: 5,
-        description: 'A bright streak flashes to a point you choose.',
+        description: 'Magical darkness spreads from a point you choose.',
         usage: '1/long rest',
       },
     ],
