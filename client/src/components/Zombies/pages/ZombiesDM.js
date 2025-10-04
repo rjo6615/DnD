@@ -347,6 +347,233 @@ const sanitizeTokensByMapId = (tokensByMapId) => {
   }, {});
 };
 
+const getNormalizedIdentifiers = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return [];
+  }
+
+  const identifiers = [];
+  if (typeof entity._id === 'string' && entity._id.trim() !== '') {
+    identifiers.push(entity._id.trim());
+  }
+  if (typeof entity.characterId === 'string' && entity.characterId.trim() !== '') {
+    identifiers.push(entity.characterId.trim());
+  }
+  return Array.from(new Set(identifiers));
+};
+
+const sanitizeIdentifierForTestId = (value, fallback) => {
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value.trim().replace(/[^0-9A-Za-z_-]/g, '-');
+  }
+  return fallback;
+};
+
+export const matchesCharacterIdentifier = (record, normalizedCharacterId) => {
+  if (!record || typeof record !== 'object' || !normalizedCharacterId) {
+    return false;
+  }
+
+  const identifiers = getNormalizedIdentifiers(record);
+  if (identifiers.includes(normalizedCharacterId)) {
+    return true;
+  }
+
+  if (
+    typeof record.token === 'string' &&
+    record.token.trim() !== '' &&
+    record.token.trim() === normalizedCharacterId
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+const normalizeHealthValue = (value) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : value;
+};
+
+export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
+  if (!Array.isArray(records) || records.length === 0) {
+    return records;
+  }
+
+  if (!update || typeof update !== 'object') {
+    return records;
+  }
+
+  const normalizedCharacterId =
+    typeof update.characterId === 'string' && update.characterId.trim() !== ''
+      ? update.characterId.trim()
+      : null;
+  const normalizedRecordId =
+    typeof update._id === 'string' && update._id.trim() !== ''
+      ? update._id.trim()
+      : null;
+
+  const updateIdentifiers = Array.from(
+    new Set([
+      ...getNormalizedIdentifiers(update),
+      ...(normalizedCharacterId ? [normalizedCharacterId] : []),
+      ...(normalizedRecordId ? [normalizedRecordId] : []),
+    ])
+  );
+
+  if (updateIdentifiers.length === 0) {
+    return records;
+  }
+
+  const nextTempHealthValue = normalizeHealthValue(update.tempHealth);
+  const nextHealthValue = normalizeHealthValue(update.health);
+
+  let didUpdate = false;
+
+  const nextRecords = records.map((record) => {
+    if (
+      !updateIdentifiers.some((identifier) =>
+        matchesCharacterIdentifier(record, identifier)
+      )
+    ) {
+      return record;
+    }
+
+    let recordUpdated = false;
+    const updatedRecord = { ...record };
+
+    if (
+      normalizedRecordId &&
+      (typeof updatedRecord._id !== 'string' ||
+        updatedRecord._id.trim() !== normalizedRecordId)
+    ) {
+      updatedRecord._id = normalizedRecordId;
+      recordUpdated = true;
+    }
+
+    if (
+      normalizedCharacterId &&
+      (typeof updatedRecord.characterId !== 'string' ||
+        updatedRecord.characterId.trim() !== normalizedCharacterId)
+    ) {
+      updatedRecord.characterId = normalizedCharacterId;
+      recordUpdated = true;
+    }
+
+    if (
+      nextTempHealthValue !== undefined &&
+      record?.tempHealth !== nextTempHealthValue
+    ) {
+      updatedRecord.tempHealth = nextTempHealthValue;
+      recordUpdated = true;
+    }
+
+    if (nextHealthValue !== undefined && record?.health !== nextHealthValue) {
+      updatedRecord.health = nextHealthValue;
+      recordUpdated = true;
+    }
+
+    if (recordUpdated) {
+      didUpdate = true;
+      return updatedRecord;
+    }
+
+    return record;
+  });
+
+  return didUpdate ? nextRecords : records;
+};
+
+export const getCharacterCardMeta = (character, itemIndex = 0) => {
+  const identifiers = getNormalizedIdentifiers(character);
+  const primaryIdentifier = identifiers[0] || `character-${itemIndex}`;
+  const sanitizedIdentifier = sanitizeIdentifierForTestId(
+    primaryIdentifier,
+    `character-${itemIndex}`
+  );
+  const testId = `character-card-${sanitizedIdentifier}`;
+
+  const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
+    calculateCharacterHitPoints(character);
+  const fallbackCurrentHp = toFiniteNumberOrNull(
+    character?.currentHp ??
+      character?.hpCurrent ??
+      character?.tempHealth ??
+      character?.health
+  );
+  const fallbackMaxHp = toFiniteNumberOrNull(
+    character?.maxHp ?? character?.hpMax ?? character?.health
+  );
+  const normalizedCurrentHp = Number.isFinite(derivedCurrentHp)
+    ? derivedCurrentHp
+    : fallbackCurrentHp;
+  const normalizedMaxHp = Number.isFinite(derivedMaxHp)
+    ? derivedMaxHp
+    : fallbackMaxHp;
+  const normalizedTempHp = toFiniteNumberOrNull(character?.tempHealth);
+
+  return {
+    testId,
+    dataAttributes: {
+      ...(typeof primaryIdentifier === 'string'
+        ? { 'data-character-id': primaryIdentifier }
+        : {}),
+      ...(normalizedCurrentHp !== null
+        ? { 'data-current-hp': normalizedCurrentHp }
+        : {}),
+      ...(normalizedMaxHp !== null ? { 'data-max-hp': normalizedMaxHp } : {}),
+      ...(normalizedTempHp !== null ? { 'data-temp-hp': normalizedTempHp } : {}),
+    },
+  };
+};
+
+export const getCombatRowMeta = ({
+  character,
+  rowId,
+  participantInfo,
+  recordIndex = 0,
+}) => {
+  const sanitizedRowId = sanitizeIdentifierForTestId(
+    rowId,
+    `participant-${recordIndex}`
+  );
+  const testId = `combat-row-${sanitizedRowId}`;
+
+  const rowCurrentHp = toFiniteNumberOrNull(
+    character?.currentHp ??
+      character?.hpCurrent ??
+      character?.tempHealth ??
+      character?.health ??
+      participantInfo?.currentHp ??
+      participantInfo?.hpCurrent ??
+      participantInfo?.health
+  );
+  const rowMaxHp = toFiniteNumberOrNull(
+    character?.maxHp ??
+      character?.hpMax ??
+      character?.health ??
+      participantInfo?.maxHp ??
+      participantInfo?.hpMax ??
+      participantInfo?.health
+  );
+  const rowTempHp = toFiniteNumberOrNull(
+    character?.tempHealth ?? participantInfo?.tempHealth
+  );
+
+  return {
+    testId,
+    dataAttributes: {
+      ...(rowCurrentHp !== null ? { 'data-current-hp': rowCurrentHp } : {}),
+      ...(rowMaxHp !== null ? { 'data-max-hp': rowMaxHp } : {}),
+      ...(rowTempHp !== null ? { 'data-temp-hp': rowTempHp } : {}),
+    },
+  };
+};
+
 const CLASS_ICON_MAP = {
   barbarian: { icon: GiBattleAxe, label: 'Barbarian' },
   bard: { icon: GiLyre, label: 'Bard' },
@@ -1339,13 +1566,16 @@ export default function ZombiesDM() {
           return;
         }
 
-        const rawCharacterId = update.characterId;
         const normalizedCharacterId =
-          typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
-            ? rawCharacterId.trim()
+          typeof update.characterId === 'string' && update.characterId.trim() !== ''
+            ? update.characterId.trim()
+            : null;
+        const normalizedRecordId =
+          typeof update._id === 'string' && update._id.trim() !== ''
+            ? update._id.trim()
             : null;
 
-        if (!normalizedCharacterId) {
+        if (!normalizedCharacterId && !normalizedRecordId) {
           return;
         }
 
@@ -1365,44 +1595,17 @@ export default function ZombiesDM() {
               })()
             : undefined;
 
-        setRecords((prev) => {
-          if (!Array.isArray(prev) || prev.length === 0) {
-            return prev;
-          }
-
-          let didUpdate = false;
-
-          const nextRecords = prev.map((record) => {
-            if (!record || typeof record !== 'object') {
-              return record;
-            }
-
-            const recordId =
-              (typeof record._id === 'string' && record._id.trim() !== '' && record._id.trim()) ||
-              (typeof record.characterId === 'string' && record.characterId.trim() !== '' && record.characterId.trim()) ||
-              (typeof record.token === 'string' && record.token.trim() !== '' && record.token.trim());
-
-            if (recordId !== normalizedCharacterId) {
-              return record;
-            }
-
-            const updatedRecord = { ...record };
-
-            if (nextTempHealthValue !== undefined && record.tempHealth !== nextTempHealthValue) {
-              updatedRecord.tempHealth = nextTempHealthValue;
-              didUpdate = true;
-            }
-
-            if (nextHealthValue !== undefined && record.health !== nextHealthValue) {
-              updatedRecord.health = nextHealthValue;
-              didUpdate = true;
-            }
-
-            return updatedRecord;
-          });
-
-          return didUpdate ? nextRecords : prev;
-        });
+        setRecords((prev) =>
+          applyCharacterHealthUpdateToRecords({
+            records: prev,
+            update: {
+              ...(normalizedRecordId ? { _id: normalizedRecordId } : {}),
+              ...(normalizedCharacterId ? { characterId: normalizedCharacterId } : {}),
+              tempHealth: nextTempHealthValue,
+              health: nextHealthValue,
+            },
+          })
+        );
       };
 
       const handleMapUpdate = (mapData) => {
@@ -4571,7 +4774,13 @@ const resolveIcon = (category, iconMap, fallback) => {
                       <tbody>
                         {orderedCombatRecords.length > 0 ? (
                           orderedCombatRecords.map(
-                            ({ character, rowId, participantInfo, initiativeValue }) => {
+                            ({
+                              character,
+                              rowId,
+                              participantInfo,
+                              initiativeValue,
+                              recordIndex,
+                            }) => {
                               const resolvedRowId = rowId || '';
                               const isParticipant = Boolean(participantInfo);
                               const displayInitiative =
@@ -4591,10 +4800,49 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 participantInfo?.characterId ||
                                 'this character';
 
+                              const sanitizeIdentifier = (value, fallbackIndex) =>
+                                typeof value === 'string' && value.trim() !== ''
+                                  ? value.trim().replace(/[^0-9A-Za-z_-]/g, '-')
+                                  : `participant-${fallbackIndex}`;
+                              const rowTestId = `combat-row-${sanitizeIdentifier(
+                                resolvedRowId,
+                                recordIndex
+                              )}`;
+                              const rowCurrentHp = toFiniteNumberOrNull(
+                                character?.currentHp ??
+                                  character?.hpCurrent ??
+                                  character?.tempHealth ??
+                                  character?.health ??
+                                  participantInfo?.currentHp ??
+                                  participantInfo?.hpCurrent ??
+                                  participantInfo?.health
+                              );
+                              const rowMaxHp = toFiniteNumberOrNull(
+                                character?.maxHp ??
+                                  character?.hpMax ??
+                                  character?.health ??
+                                  participantInfo?.maxHp ??
+                                  participantInfo?.hpMax ??
+                                  participantInfo?.health
+                              );
+                              const rowTempHp = toFiniteNumberOrNull(
+                                character?.tempHealth ?? participantInfo?.tempHealth
+                              );
+
+                              const rowDataAttributes = {
+                                'data-testid': rowTestId,
+                                ...(rowCurrentHp !== null
+                                  ? { 'data-current-hp': rowCurrentHp }
+                                  : {}),
+                                ...(rowMaxHp !== null ? { 'data-max-hp': rowMaxHp } : {}),
+                                ...(rowTempHp !== null ? { 'data-temp-hp': rowTempHp } : {}),
+                              };
+
                               return (
                                 <tr
                                   key={resolvedRowId || playerName}
                                   className={isActive ? 'table-success text-dark' : undefined}
+                                  {...rowDataAttributes}
                                 >
                                   <td className="fw-semibold">{displayName}</td>
                                   <td>{playerName}</td>
@@ -4647,7 +4895,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                 items={Array.isArray(records) ? records : []}
                 emptyMessage="No characters found."
                 getKey={(character) => character._id}
-                renderItem={(character) => {
+                renderItem={(character, itemIndex) => {
                   const occupation = Array.isArray(character.occupation)
                     ? character.occupation
                     : [];
@@ -4702,13 +4950,64 @@ const resolveIcon = (category, iconMap, fallback) => {
                     };
                   });
 
+                  const identifierCandidates = [];
+                  if (typeof character._id === 'string' && character._id.trim() !== '') {
+                    identifierCandidates.push(character._id.trim());
+                  }
+                  if (
+                    typeof character.characterId === 'string' &&
+                    character.characterId.trim() !== ''
+                  ) {
+                    identifierCandidates.push(character.characterId.trim());
+                  }
+                  const primaryIdentifier = identifierCandidates[0] || `character-${itemIndex}`;
+                  const sanitizeIdentifier = (value) =>
+                    typeof value === 'string'
+                      ? value.replace(/[^0-9A-Za-z_-]/g, '-')
+                      : `character-${itemIndex}`;
+                  const cardTestId = `character-card-${sanitizeIdentifier(primaryIdentifier)}`;
+
+                  const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
+                    calculateCharacterHitPoints(character);
+                  const fallbackCurrentHp = toFiniteNumberOrNull(
+                    character.currentHp ??
+                      character.hpCurrent ??
+                      character.tempHealth ??
+                      character.health
+                  );
+                  const fallbackMaxHp = toFiniteNumberOrNull(
+                    character.maxHp ?? character.hpMax ?? character.health
+                  );
+                  const normalizedCurrentHp = Number.isFinite(derivedCurrentHp)
+                    ? derivedCurrentHp
+                    : fallbackCurrentHp;
+                  const normalizedMaxHp = Number.isFinite(derivedMaxHp)
+                    ? derivedMaxHp
+                    : fallbackMaxHp;
+                  const normalizedTempHp = toFiniteNumberOrNull(character.tempHealth);
+
+                  const cardDataAttributes = {
+                    'data-testid': cardTestId,
+                    ...(typeof primaryIdentifier === 'string'
+                      ? { 'data-character-id': primaryIdentifier }
+                      : {}),
+                    ...(normalizedCurrentHp !== null
+                      ? { 'data-current-hp': normalizedCurrentHp }
+                      : {}),
+                    ...(normalizedMaxHp !== null ? { 'data-max-hp': normalizedMaxHp } : {}),
+                    ...(normalizedTempHp !== null ? { 'data-temp-hp': normalizedTempHp } : {}),
+                  };
+
                   const detailRows = [
                     { label: 'Level', value: totalLevel },
                     { label: 'Classes', value: classSummary },
                   ];
 
                   return (
-                    <Card className="resource-card h-100 w-100 text-start">
+                    <Card
+                      className="resource-card h-100 w-100 text-start"
+                      {...cardDataAttributes}
+                    >
                       <Card.Body className="d-flex flex-column">
                         <div className="d-flex justify-content-center mb-2">
                           <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
