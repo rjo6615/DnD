@@ -987,6 +987,14 @@ export default function Features({
         legacyMetaParts.push(`Spellcasting Ability: ${tieflingSpellAbilityLabel}`);
       }
       const legacyMeta = legacyMetaParts.join(' • ');
+      const legacySpellMeta = [
+        legacyLabel,
+        tieflingSpellAbilityLabel
+          ? `Spellcasting Ability: ${tieflingSpellAbilityLabel}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' • ');
       const abilityText = tieflingSpellAbilityLabel
         ? ` This legacy uses ${tieflingSpellAbilityLabel} for its spells.`
         : '';
@@ -1065,7 +1073,7 @@ export default function Features({
         raceFeatures.push({
           id: spellId,
           name: `${spellName}${levelNote}`,
-          meta: legacyMeta,
+          meta: legacySpellMeta,
           description,
           desc: description,
           hideUseButton: !hasLimitedUses,

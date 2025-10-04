@@ -1345,9 +1345,14 @@ test('tiefling fiendish legacy shows resistance and spells with ability details'
   if (!fireBoltCard) {
     throw new Error('Expected Fire Bolt card');
   }
+  const fireBoltWithin = within(fireBoltCard);
+  expect(fireBoltWithin.getByText(/Infernal Legacy/i)).toBeInTheDocument();
   expect(
-    within(fireBoltCard).getByText(/Spellcasting Ability: Charisma/i)
+    fireBoltWithin.getByText(/Spellcasting Ability: Charisma/i)
   ).toBeInTheDocument();
+  expect(
+    fireBoltWithin.queryByText(/Resistance:\s*Fire/i)
+  ).not.toBeInTheDocument();
 
   const hellishCard = screen
     .getByText('Hellish Rebuke (Level 3)')
@@ -1357,7 +1362,11 @@ test('tiefling fiendish legacy shows resistance and spells with ability details'
     throw new Error('Expected Hellish Rebuke card');
   }
   const hellishWithin = within(hellishCard);
+  expect(hellishWithin.getByText(/Infernal Legacy/i)).toBeInTheDocument();
   expect(hellishWithin.getByText(/Uses remaining/i)).toBeInTheDocument();
+  expect(
+    hellishWithin.queryByText(/Resistance:\s*Fire/i)
+  ).not.toBeInTheDocument();
   const viewHellish = hellishWithin.getByRole('button', { name: /view feature/i });
   await act(async () => {
     await userEvent.click(viewHellish);
