@@ -1309,6 +1309,37 @@ test('tiefling fiendish legacy shows resistance and spells with ability details'
   expect(resistanceWithin.getByText(/Resistance: Fire/i)).toBeInTheDocument();
   expect(resistanceWithin.getByText(/Spellcasting Ability: Charisma/i)).toBeInTheDocument();
 
+  const otherworldlyTitle = screen.getByText('Otherworldly Presence (Thaumaturgy)');
+  const otherworldlyCard = otherworldlyTitle.closest('.feature-card');
+  expect(otherworldlyCard).not.toBeNull();
+  if (!otherworldlyCard) {
+    throw new Error('Expected Otherworldly Presence card');
+  }
+  const otherworldlyWithin = within(otherworldlyCard);
+  expect(
+    otherworldlyWithin.getByText(/Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+  const otherworldlyView = otherworldlyWithin.getByRole('button', {
+    name: /view feature/i,
+  });
+  await act(async () => {
+    await userEvent.click(otherworldlyView);
+  });
+  const thaumaturgyModalText = await screen.findByText(
+    /You know the Thaumaturgy cantrip/i
+  );
+  expect(thaumaturgyModalText).toBeInTheDocument();
+  const thaumaturgyModal = thaumaturgyModalText.closest('.modal-content');
+  if (!thaumaturgyModal) {
+    throw new Error('Expected Thaumaturgy modal content');
+  }
+  const thaumaturgyClose = within(thaumaturgyModal).getByRole('button', {
+    name: /close/i,
+  });
+  await act(async () => {
+    await userEvent.click(thaumaturgyClose);
+  });
+
   const fireBoltCard = screen.getByText('Fire Bolt').closest('.feature-card');
   expect(fireBoltCard).not.toBeNull();
   if (!fireBoltCard) {
@@ -1345,6 +1376,160 @@ test('tiefling fiendish legacy shows resistance and spells with ability details'
   });
 
   expect(screen.getByText('Fireball (Level 5)')).toBeInTheDocument();
+});
+
+test('tiefling legacy spell uses upcast modal with C button and tracks usage', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const infernalLegacy = {
+    label: 'Infernal Legacy',
+    resistance: 'Fire',
+    spellcastingAbilities: ['Charisma'],
+    spells: [
+      {
+        name: 'Fire Bolt',
+        spellLevel: 'Cantrip',
+        unlockedAtLevel: 1,
+        description: 'Hurl a mote of fire.',
+        usage: 'At will',
+      },
+      {
+        name: 'Hellish Rebuke',
+        spellLevel: '1st-level',
+        unlockedAtLevel: 3,
+        description: 'Wreathe an attacker in flames.',
+        usage: '1/long rest',
+      },
+      {
+        name: 'Fireball',
+        spellLevel: '3rd-level',
+        unlockedAtLevel: 5,
+        description: 'A bright streak flashes to a point you choose.',
+        usage: '1/long rest',
+      },
+    ],
+  };
+
+  const onCastSpell = jest.fn();
+
+  render(
+    <Features
+      form={{
+        race: {
+          name: 'Tiefling',
+          darkvisionRange: 60,
+          fiendishLegacies: { infernal: infernalLegacy },
+        },
+        tieflingLegacyKey: 'infernal',
+        tieflingLegacy: infernalLegacy,
+        tieflingLegacyAbility: 'Charisma',
+        occupation: [{ Name: 'Warlock', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      longRestCount={0}
+      shortRestCount={0}
+      availableSlots={{ regular: { 1: 1, 3: 1 } }}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const hellishCard = await screen.findByText('Hellish Rebuke (Level 3)');
+  const hellishFeature = hellishCard.closest('.feature-card');
+  expect(hellishFeature).not.toBeNull();
+  if (!hellishFeature) {
+    throw new Error('Expected Hellish Rebuke feature card');
+  }
+  expect(
+    within(hellishFeature).getByRole('button', {
+      name: /cast hellish rebuke from lineage/i,
+    })
+  ).toBeInTheDocument();
+  expect(
+    within(hellishFeature).getByRole('button', {
+      name: /cast hellish rebuke from lineage/i,
+    }).querySelector('.fa-wand-sparkle')
+  ).not.toBeNull();
+
+  await act(async () => {
+    await userEvent.click(
+      within(hellishFeature).getByRole('button', {
+        name: /cast hellish rebuke from lineage/i,
+      })
+    );
+  });
+
+  const freeCastButton = await screen.findByRole('button', {
+    name: /cast hellish rebuke without expending a spell slot/i,
+  });
+  expect(freeCastButton).toBeEnabled();
+  expect(freeCastButton).toHaveTextContent('C');
+
+  await act(async () => {
+    await userEvent.click(freeCastButton);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'Hellish Rebuke',
+      pendingEffectOnly: true,
+    })
+  );
+  expect(onCastSpell).toHaveBeenCalledWith('action');
+
+  const storageKey =
+    'zombiesLineageSpellUses:tiefling-infernal-hellish-rebuke:test-character-id';
+  expect(window.localStorage.getItem(storageKey)).toBe('0');
+
+  await waitFor(() =>
+    expect(
+      within(hellishFeature).getByText(/Uses remaining: 0/i)
+    ).toBeInTheDocument()
+  );
+
+  await act(async () => {
+    await userEvent.click(
+      within(hellishFeature).getByRole('button', {
+        name: /cast hellish rebuke from lineage/i,
+      })
+    );
+  });
+
+  const disabledFreeCast = await screen.findByRole('button', {
+    name: /cast hellish rebuke without expending a spell slot/i,
+  });
+  expect(disabledFreeCast).toBeDisabled();
+
+  const castButton = await screen.findByRole('button', { name: /^cast$/i });
+
+  await act(async () => {
+    await userEvent.click(castButton);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'Hellish Rebuke',
+      slotLevel: 1,
+      slotType: 'regular',
+      level: 1,
+    })
+  );
 });
 
 test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
@@ -1681,7 +1866,7 @@ test('elven lineage spells use wand icon and track uses with persistence and res
   });
   expect(lineageCastButton).toBeEnabled();
   expect(
-    lineageCastButton.querySelector('i.fa-solid.fa-wand-sparkles')
+    lineageCastButton.querySelector('i.fa-solid.fa-wand-sparkle')
   ).not.toBeNull();
   expect(
     longstriderWithin.getByText('Uses remaining: 1')
