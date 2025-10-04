@@ -662,9 +662,13 @@ export default function ZombiesDM() {
       map: null,
       title: '',
       imageUrl: '',
+      imageBase64: '',
+      imageType: '',
       altText: '',
       activateOnSave: true,
+      fileInputKey: 0,
     });
+    const [mapEditorErrors, setMapEditorErrors] = useState({});
     const [mapEditorSaving, setMapEditorSaving] = useState(false);
     const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
     const [mapPrompt, setMapPrompt] = useState('');
@@ -709,6 +713,57 @@ export default function ZombiesDM() {
     useEffect(() => {
       activeMapIdRef.current = activeMapId;
     }, [activeMapId]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.title) {
+        return;
+      }
+
+      const hasTitle =
+        typeof mapEditorState.title === 'string' && mapEditorState.title.trim() !== '';
+
+      if (hasTitle) {
+        setMapEditorErrors((prev) => {
+          if (!prev.title) {
+            return prev;
+          }
+
+          const { title, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.title, mapEditorState.title]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.imageSource) {
+        return;
+      }
+
+      const hasImageUrl =
+        typeof mapEditorState.imageUrl === 'string' && mapEditorState.imageUrl.trim() !== '';
+      const hasImageFile =
+        typeof mapEditorState.imageBase64 === 'string' &&
+        mapEditorState.imageBase64.trim() !== '';
+
+      if (hasImageUrl || hasImageFile) {
+        setMapEditorErrors((prev) => {
+          if (!prev.imageSource) {
+            return prev;
+          }
+
+          const { imageSource, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.imageSource, mapEditorState.imageUrl, mapEditorState.imageBase64]);
+
+    const imageSourceDescribedBy = useMemo(() => {
+      const ids = ['map-editor-image-requirement'];
+      if (mapEditorErrors.imageSource) {
+        ids.push('map-editor-image-error');
+      }
+      return ids.join(' ');
+    }, [mapEditorErrors.imageSource]);
 
     const applyMapPayload = useCallback(
       (payload, options = {}) => {
@@ -3253,6 +3308,7 @@ export default function ZombiesDM() {
 
     const openCreateMapModal = useCallback(() => {
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       const sourceMap =
         generatedMap ||
         (selectedMapId
@@ -3266,10 +3322,13 @@ export default function ZombiesDM() {
         show: true,
         mode: 'create',
         map: safeMap,
-        title: typeof safeMap.title === 'string' ? safeMap.title : '',
-        imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
-        altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        title: '',
+        imageUrl: '',
+        imageBase64: '',
+        imageType: '',
+        altText: '',
         activateOnSave: maps.length === 0,
+        fileInputKey: Date.now(),
       });
     }, [generatedMap, selectedMapId, maps, campaignMap]);
 
@@ -3279,6 +3338,7 @@ export default function ZombiesDM() {
       }
 
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       const safeMap = map;
 
       setMapEditorState({
@@ -3287,13 +3347,19 @@ export default function ZombiesDM() {
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
+        imageBase64:
+          typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
+        imageType:
+          typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: false,
+        fileInputKey: Date.now(),
       });
     }, []);
 
     const handleCloseMapEditor = useCallback(() => {
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       setMapEditorState((prev) => ({ ...prev, show: false }));
     }, []);
 
@@ -3310,6 +3376,60 @@ export default function ZombiesDM() {
       setMapEditorState((prev) => ({ ...prev, activateOnSave: checked }));
     }, []);
 
+    const handleMapEditorFileChange = useCallback((event) => {
+      const file = event?.target?.files?.[0];
+      if (!file) {
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: '',
+          imageType: '',
+        }));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        if (!result) {
+          setMapEditorState((prev) => ({
+            ...prev,
+            imageBase64: '',
+            imageType: '',
+          }));
+          return;
+        }
+
+        let nextImageType = file.type || '';
+        let nextImageBase64 = result;
+
+        const commaIndex = result.indexOf(',');
+        if (result.startsWith('data:') && commaIndex !== -1) {
+          const meta = result.substring(5, commaIndex);
+          const semicolonIndex = meta.indexOf(';');
+          nextImageType =
+            semicolonIndex !== -1 ? meta.substring(0, semicolonIndex) : meta;
+          nextImageBase64 = result.substring(commaIndex + 1);
+        }
+
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: nextImageBase64,
+          imageType: nextImageType,
+          imageUrl: '',
+        }));
+      };
+
+      reader.onerror = () => {
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: '',
+          imageType: '',
+        }));
+      };
+
+      reader.readAsDataURL(file);
+    }, []);
+
     const handleSubmitMapEditor = useCallback(
       async (event) => {
         event.preventDefault();
@@ -3322,6 +3442,8 @@ export default function ZombiesDM() {
           map: editorMap,
           title,
           imageUrl,
+          imageBase64,
+          imageType,
           altText,
           activateOnSave,
         } = mapEditorState;
@@ -3333,7 +3455,28 @@ export default function ZombiesDM() {
 
         const trimmedTitle = typeof title === 'string' ? title.trim() : '';
         const trimmedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        const trimmedImageBase64 =
+          typeof imageBase64 === 'string' ? imageBase64.trim() : '';
+        const trimmedImageType =
+          typeof imageType === 'string' ? imageType.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
+
+        const errors = {};
+
+        if (!trimmedTitle) {
+          errors.title = 'Title is required.';
+        }
+
+        if (!trimmedImageUrl && !trimmedImageBase64) {
+          errors.imageSource = 'Provide an image URL or upload a file.';
+        }
+
+        if (Object.keys(errors).length > 0) {
+          setMapEditorErrors(errors);
+          return;
+        }
+
+        setMapEditorErrors({});
 
         const normalizedTitle = trimmedTitle || getMapDisplayTitle(baseMap, DEFAULT_MAP_TITLE);
 
@@ -3341,13 +3484,24 @@ export default function ZombiesDM() {
           baseMap && typeof baseMap === 'object' ? { ...baseMap } : {};
         delete sanitizedBaseMap.summary;
         delete sanitizedBaseMap.caption;
+        delete sanitizedBaseMap.imageUrl;
+        delete sanitizedBaseMap.imageBase64;
+        delete sanitizedBaseMap.imageType;
 
         const payloadMap = {
           ...sanitizedBaseMap,
           title: normalizedTitle,
-          imageUrl: trimmedImageUrl,
           altText: trimmedAltText,
         };
+
+        if (trimmedImageUrl) {
+          payloadMap.imageUrl = trimmedImageUrl;
+        } else if (trimmedImageBase64) {
+          payloadMap.imageBase64 = trimmedImageBase64;
+          if (trimmedImageType) {
+            payloadMap.imageType = trimmedImageType;
+          }
+        }
 
         if (mode === 'create') {
           delete payloadMap.mapId;
@@ -6950,25 +7104,68 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Modal.Header>
           <Modal.Body>
             <Form.Group className="mb-3" controlId="map-editor-title">
-              <Form.Label>Title</Form.Label>
+              <Form.Label>
+                Title <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter map title"
                 value={mapEditorState.title}
                 onChange={handleMapEditorInputChange('title')}
                 disabled={mapEditorSaving}
+                required
+                aria-required="true"
+                isInvalid={Boolean(mapEditorErrors.title)}
               />
+              {mapEditorErrors.title && (
+                <Form.Control.Feedback type="invalid" className="d-block">
+                  {mapEditorErrors.title}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
-              <Form.Label>Image URL</Form.Label>
+              <Form.Label>
+                Image URL <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 type="url"
                 placeholder="https://example.com/map.png"
                 value={mapEditorState.imageUrl}
                 onChange={handleMapEditorInputChange('imageUrl')}
                 disabled={mapEditorSaving}
+                aria-describedby={imageSourceDescribedBy}
+                isInvalid={Boolean(mapEditorErrors.imageSource)}
               />
             </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-image-file">
+              <Form.Label>
+                Image File <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
+              <Form.Control
+                key={mapEditorState.fileInputKey}
+                type="file"
+                accept="image/*"
+                onChange={handleMapEditorFileChange}
+                disabled={mapEditorSaving}
+                aria-describedby={imageSourceDescribedBy}
+                isInvalid={Boolean(mapEditorErrors.imageSource)}
+              />
+            </Form.Group>
+            <Form.Text
+              id="map-editor-image-requirement"
+              className="text-muted d-block mb-2"
+            >
+              Provide an image URL or upload a file. At least one source is required.
+            </Form.Text>
+            {mapEditorErrors.imageSource && (
+              <div
+                id="map-editor-image-error"
+                className="text-danger small mb-3"
+                role="alert"
+              >
+                {mapEditorErrors.imageSource}
+              </div>
+            )}
             <Form.Group className="mb-3" controlId="map-editor-alt-text">
               <Form.Label>Alt Text</Form.Label>
               <Form.Control

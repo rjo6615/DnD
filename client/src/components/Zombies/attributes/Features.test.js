@@ -341,6 +341,400 @@ test('halfling characters display racial trait feature cards with descriptions',
   }
 });
 
+test('elf characters display baseline traits and drow lineage magic', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Elf',
+      speed: 30,
+      darkvisionRange: 120,
+      elvenLineages: {
+        drow: {
+          label: 'Drow',
+          spellcastingAbilities: ['Charisma'],
+          darkvisionRange: 120,
+        },
+      },
+      selectedAncestryKey: 'drow',
+      selectedAncestry: {
+        label: 'Drow',
+        spellcastingAbilities: ['Charisma'],
+        darkvisionRange: 120,
+      },
+      selectedLineageAbility: 'Charisma',
+    },
+    elvenLineageKey: 'drow',
+    elvenLineage: {
+      label: 'Drow',
+      spellcastingAbilities: ['Charisma'],
+      darkvisionRange: 120,
+    },
+    elvenLineageAbility: 'Charisma',
+    occupation: [],
+  };
+
+  const { rerender } = render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Fey Ancestry')).toBeInTheDocument();
+  expect(screen.getByText('Trance')).toBeInTheDocument();
+  expect(screen.getByText('Keen Senses')).toBeInTheDocument();
+
+  const dancingLightsTitle = await screen.findByText('Dancing Lights');
+  const dancingCard = dancingLightsTitle.closest('.feature-card');
+  expect(dancingCard).not.toBeNull();
+  expect(
+    within(dancingCard).getByText(/Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+
+  expect(screen.queryByText('Faerie Fire (Level 3)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Darkness (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 3 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Faerie Fire (Level 3)')).toBeInTheDocument();
+  expect(screen.queryByText('Darkness (Level 5)')).not.toBeInTheDocument();
+
+  const faerieFireCard = screen.getByText('Faerie Fire (Level 3)').closest(
+    '.feature-card'
+  );
+  expect(faerieFireCard).not.toBeNull();
+  const faerieFireViewButton = within(faerieFireCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(faerieFireViewButton);
+  });
+
+  const faerieDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Faerie Fire with this trait once per long rest\./i
+  );
+  expect(faerieDescription).toHaveTextContent(
+    /This lineage uses Charisma for its spells\./i
+  );
+  expect(faerieDescription).not.toHaveTextContent(/future update/i);
+
+  const faerieModal = faerieDescription.closest('.modal-content');
+  expect(faerieModal).not.toBeNull();
+  const faerieClose = within(faerieModal).getByRole('button', { name: /close/i });
+
+  await act(async () => {
+    await userEvent.click(faerieClose);
+  });
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Darkness (Level 5)')).toBeInTheDocument();
+
+  const darknessCard = screen.getByText('Darkness (Level 5)').closest(
+    '.feature-card'
+  );
+  expect(darknessCard).not.toBeNull();
+  const darknessViewButton = within(darknessCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darknessViewButton);
+  });
+
+  const darknessDescription = await screen.findByText(
+    /Starting at 5th level, you can cast Darkness with this trait once per long rest\./i
+  );
+  expect(darknessDescription).toHaveTextContent(
+    /This lineage uses Charisma for its spells\./i
+  );
+  expect(darknessDescription).not.toHaveTextContent(/future update/i);
+
+  const darknessModal = darknessDescription.closest('.modal-content');
+  expect(darknessModal).not.toBeNull();
+  const darknessClose = within(darknessModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darknessClose);
+  });
+
+  const darkvisionCard = screen.getByText('Darkvision').closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  expect(
+    await screen.findByText(/dim light within 120 feet of you/i)
+  ).toBeInTheDocument();
+});
+
+test('wood elf lineage notes speed increase and lineage spells', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Elf',
+      speed: 35,
+      darkvisionRange: 60,
+      elvenLineages: {
+        wood: {
+          label: 'Wood Elf',
+          spellcastingAbilities: ['Wisdom'],
+          speed: 35,
+        },
+      },
+      selectedAncestryKey: 'wood',
+      selectedAncestry: {
+        label: 'Wood Elf',
+        spellcastingAbilities: ['Wisdom'],
+        speed: 35,
+      },
+      selectedLineageAbility: 'Wisdom',
+    },
+    elvenLineageKey: 'wood',
+    elvenLineage: {
+      label: 'Wood Elf',
+      spellcastingAbilities: ['Wisdom'],
+      speed: 35,
+    },
+    elvenLineageAbility: 'Wisdom',
+    occupation: [],
+  };
+
+  const { rerender } = render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const druidcraftTitle = await screen.findByText('Druidcraft');
+  const druidcraftCard = druidcraftTitle.closest('.feature-card');
+  expect(druidcraftCard).not.toBeNull();
+  const viewButton = within(druidcraftCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(viewButton);
+  });
+
+  expect(
+    await screen.findByText(/Your walking speed increases to 35 feet/i)
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Longstrider (Level 3)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Pass without Trace (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Ranger', Level: 3 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Longstrider (Level 3)')).toBeInTheDocument();
+  expect(screen.queryByText('Pass without Trace (Level 5)')).not.toBeInTheDocument();
+
+  const longstriderCard = screen.getByText('Longstrider (Level 3)').closest(
+    '.feature-card'
+  );
+  expect(longstriderCard).not.toBeNull();
+  const longstriderViewButton = within(longstriderCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(longstriderViewButton);
+  });
+
+  const longstriderDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Longstrider with this trait once per long rest\./i
+  );
+  expect(longstriderDescription).toHaveTextContent(
+    /This lineage uses Wisdom for its spells\./i
+  );
+  expect(longstriderDescription).not.toHaveTextContent(/future update/i);
+
+  const longstriderModal = longstriderDescription.closest('.modal-content');
+  expect(longstriderModal).not.toBeNull();
+  const longstriderClose = within(longstriderModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(longstriderClose);
+  });
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Ranger', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Pass without Trace (Level 5)')).toBeInTheDocument();
+});
+
+test('high elf lineage lists arcane cantrip and future spell hooks', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Elf',
+      speed: 30,
+      darkvisionRange: 60,
+      elvenLineages: {
+        high: {
+          label: 'High Elf',
+          spellcastingAbilities: ['Intelligence'],
+        },
+      },
+      selectedAncestryKey: 'high',
+      selectedAncestry: {
+        label: 'High Elf',
+        spellcastingAbilities: ['Intelligence'],
+      },
+      selectedLineageAbility: 'Intelligence',
+    },
+    elvenLineageKey: 'high',
+    elvenLineage: {
+      label: 'High Elf',
+      spellcastingAbilities: ['Intelligence'],
+    },
+    elvenLineageAbility: 'Intelligence',
+    occupation: [],
+  };
+
+  const { rerender } = render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const prestidigitationTitle = await screen.findByText('Prestidigitation');
+  const prestidigitationCard = prestidigitationTitle.closest('.feature-card');
+  expect(prestidigitationCard).not.toBeNull();
+  expect(
+    within(prestidigitationCard).getByText(/Spellcasting Ability: Intelligence/i)
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Detect Magic (Level 3)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Misty Step (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 3 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Detect Magic (Level 3)')).toBeInTheDocument();
+  expect(screen.queryByText('Misty Step (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Misty Step (Level 5)')).toBeInTheDocument();
+
+  const detectMagicCard = screen.getByText('Detect Magic (Level 3)').closest(
+    '.feature-card'
+  );
+  expect(detectMagicCard).not.toBeNull();
+  const detectMagicViewButton = within(detectMagicCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(detectMagicViewButton);
+  });
+
+  const detectMagicDescription = await screen.findByText(
+    /Starting at 3rd level, you can cast Detect Magic with this trait once per long rest\./i
+  );
+  expect(detectMagicDescription).toHaveTextContent(
+    /This lineage uses Intelligence for its spells\./i
+  );
+  expect(detectMagicDescription).not.toHaveTextContent(/future update/i);
+
+  const detectMagicModal = detectMagicDescription.closest('.modal-content');
+  expect(detectMagicModal).not.toBeNull();
+  const detectMagicClose = within(detectMagicModal).getByRole('button', {
+    name: /close/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(detectMagicClose);
+  });
+});
+
 test('forest gnome lineage shows lineage spells with ability text and tracking', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
@@ -1041,6 +1435,142 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
 
   expect(onLargeForm).toHaveBeenCalledTimes(1);
   expect(largeFormUse).toBeDisabled();
+});
+
+test('elven lineage spells use wand icon and track uses with persistence and rest reset', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const onCastSpell = jest.fn();
+  const baseForm = {
+    race: {
+      name: 'Elf',
+      speed: 35,
+      darkvisionRange: 60,
+      elvenLineages: {
+        wood: {
+          label: 'Wood Elf',
+          spellcastingAbilities: ['Wisdom'],
+          speed: 35,
+        },
+      },
+      selectedAncestryKey: 'wood',
+      selectedAncestry: {
+        label: 'Wood Elf',
+        spellcastingAbilities: ['Wisdom'],
+        speed: 35,
+      },
+      selectedLineageAbility: 'Wisdom',
+    },
+    elvenLineageKey: 'wood',
+    elvenLineage: {
+      label: 'Wood Elf',
+      spellcastingAbilities: ['Wisdom'],
+      speed: 35,
+    },
+    elvenLineageAbility: 'Wisdom',
+    occupation: [{ Name: 'Ranger', Level: 5 }],
+  };
+
+  const commonProps = {
+    form: baseForm,
+    showFeatures: true,
+    handleCloseFeatures: () => {},
+    characterId: TEST_CHARACTER_ID,
+  };
+
+  const renderFeatures = (extraProps = {}) =>
+    render(<Features {...commonProps} {...extraProps} />);
+
+  const firstRender = renderFeatures({
+    onCastSpell,
+    longRestCount: 0,
+    shortRestCount: 0,
+  });
+
+  const longstriderTitle = await screen.findByText('Longstrider (Level 3)');
+  const longstriderCard = longstriderTitle.closest('.feature-card');
+  expect(longstriderCard).not.toBeNull();
+  const longstriderWithin = within(longstriderCard);
+  const lineageCastButton = longstriderWithin.getByRole('button', {
+    name: /cast longstrider from lineage/i,
+  });
+  expect(lineageCastButton).toBeEnabled();
+  expect(
+    lineageCastButton.querySelector('i.fa-solid.fa-wand-sparkles')
+  ).not.toBeNull();
+  expect(
+    longstriderWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(lineageCastButton);
+  });
+
+  await waitFor(() => {
+    expect(
+      longstriderWithin.getByText('Uses remaining: 0')
+    ).toBeInTheDocument();
+  });
+
+  expect(onCastSpell).toHaveBeenCalledTimes(2);
+  expect(onCastSpell).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({
+      name: 'Longstrider',
+      castingTime: '1 action',
+    })
+  );
+  expect(onCastSpell).toHaveBeenNthCalledWith(2, 'action');
+
+  firstRender.unmount();
+
+  const secondRender = renderFeatures({
+    onCastSpell: jest.fn(),
+    longRestCount: 0,
+    shortRestCount: 0,
+  });
+
+  const persistedTitle = await screen.findByText('Longstrider (Level 3)');
+  const persistedCard = persistedTitle.closest('.feature-card');
+  expect(persistedCard).not.toBeNull();
+  const persistedWithin = within(persistedCard);
+  expect(
+    persistedWithin.getByText('Uses remaining: 0')
+  ).toBeInTheDocument();
+
+  secondRender.unmount();
+
+  const thirdRender = renderFeatures({
+    onCastSpell: jest.fn(),
+    longRestCount: 0,
+    shortRestCount: 0,
+  });
+
+  await screen.findByText('Longstrider (Level 3)');
+
+  thirdRender.rerender(
+    <Features
+      {...commonProps}
+      onCastSpell={jest.fn()}
+      longRestCount={1}
+      shortRestCount={0}
+    />
+  );
+
+  const resetTitle = await screen.findByText('Longstrider (Level 3)');
+  const resetCard = resetTitle.closest('.feature-card');
+  expect(resetCard).not.toBeNull();
+  const resetWithin = within(resetCard);
+  await waitFor(() => {
+    expect(
+      resetWithin.getByText('Uses remaining: 1')
+    ).toBeInTheDocument();
+  });
+
+  thirdRender.unmount();
 });
 
 test('features are sorted by class then level', async () => {

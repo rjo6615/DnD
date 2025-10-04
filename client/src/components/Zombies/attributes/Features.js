@@ -10,6 +10,27 @@ import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalIcon from '../../../images/speak-with-animal.png';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 
+const ONCE_PER_LONG_REST_LINEAGE_SPELLS = {
+  'elf-drow-faerie-fire': {
+    spellName: 'Faerie Fire',
+  },
+  'elf-drow-darkness': {
+    spellName: 'Darkness',
+  },
+  'elf-high-detect-magic': {
+    spellName: 'Detect Magic',
+  },
+  'elf-high-misty-step': {
+    spellName: 'Misty Step',
+  },
+  'elf-wood-longstrider': {
+    spellName: 'Longstrider',
+  },
+  'elf-wood-pass-without-trace': {
+    spellName: 'Pass without Trace',
+  },
+};
+
 export default function Features({
   form,
   showFeatures,
@@ -37,6 +58,15 @@ export default function Features({
   const [draconicFlightUsed, setDraconicFlightUsed] = useState(false);
   const [adrenalineRushUses, setAdrenalineRushUses] = useState(0);
   const [speakWithAnimalsUses, setSpeakWithAnimalsUses] = useState(0);
+  const [lineageSpellUses, setLineageSpellUses] = useState(() => {
+    return Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).reduce(
+      (acc, spellId) => {
+        acc[spellId] = 0;
+        return acc;
+      },
+      {}
+    );
+  });
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
   const hasInitializedRestRef = useRef(false);
@@ -115,6 +145,69 @@ export default function Features({
     return gnomeLineageAbility.trim();
   }, [gnomeLineageAbility]);
 
+  const { elvenLineage, elvenLineageKey, elvenLineageAbility } = useMemo(() => {
+    const race = form?.race || {};
+    const lineageFromForm =
+      typeof form?.elvenLineage === 'object' ? form.elvenLineage : null;
+    const lineageKeyFromForm =
+      typeof form?.elvenLineageKey === 'string' ? form.elvenLineageKey : '';
+    const abilityFromForm =
+      typeof form?.elvenLineageAbility === 'string' ? form.elvenLineageAbility : '';
+
+    let lineage = lineageFromForm;
+    let lineageKey = lineageKeyFromForm;
+    if (!lineage) {
+      if (lineageKey && race?.elvenLineages?.[lineageKey]) {
+        lineage = race.elvenLineages[lineageKey];
+      } else if (race?.selectedAncestry && race?.elvenLineages) {
+        lineage = race.selectedAncestry;
+        lineageKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.elvenLineages?.[race.selectedAncestryKey]
+      ) {
+        lineage = race.elvenLineages[race.selectedAncestryKey];
+        lineageKey = race.selectedAncestryKey;
+      }
+    }
+
+    let ability = abilityFromForm;
+    if (!ability) {
+      ability =
+        typeof race?.selectedLineageAbility === 'string'
+          ? race.selectedLineageAbility
+          : '';
+    }
+    if (!ability && lineage?.spellcastingAbilities?.length) {
+      ability = lineage.spellcastingAbilities[0];
+    }
+
+    return { elvenLineage: lineage, elvenLineageKey: lineageKey, elvenLineageAbility: ability };
+  }, [form?.elvenLineage, form?.elvenLineageAbility, form?.elvenLineageKey, form?.race]);
+
+  const elvenSpellAbilityLabel = useMemo(() => {
+    if (typeof elvenLineageAbility !== 'string') return '';
+    return elvenLineageAbility.trim();
+  }, [elvenLineageAbility]);
+
+  const isDrowElvenLineage = useMemo(() => {
+    if (!elvenLineageKey) return false;
+    return elvenLineageKey.toLowerCase() === 'drow';
+  }, [elvenLineageKey]);
+
+  const isHighElvenLineage = useMemo(() => {
+    if (!elvenLineageKey) return false;
+    return elvenLineageKey.toLowerCase() === 'high';
+  }, [elvenLineageKey]);
+
+  const isWoodElvenLineage = useMemo(() => {
+    if (!elvenLineageKey) return false;
+    return elvenLineageKey.toLowerCase() === 'wood';
+  }, [elvenLineageKey]);
+
   const isForestGnomeLineage = useMemo(() => {
     if (!gnomeLineageKey) return false;
     return gnomeLineageKey.toLowerCase() === 'forest';
@@ -183,6 +276,37 @@ export default function Features({
     return `zombiesSpeakWithAnimalsUses:${normalizedCharacterId}`;
   }, [normalizedCharacterId]);
 
+  const lineageSpellStorageKeys = useMemo(() => {
+    if (!normalizedCharacterId) {
+      return null;
+    }
+
+    return Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).reduce(
+      (acc, spellId) => {
+        acc[spellId] = `zombiesLineageSpellUses:${spellId}:${normalizedCharacterId}`;
+        return acc;
+      },
+      {}
+    );
+  }, [normalizedCharacterId]);
+
+  const lineageSpellEligibility = useMemo(() => {
+    return {
+      'elf-drow-faerie-fire': isDrowElvenLineage && totalCharacterLevel >= 3,
+      'elf-drow-darkness': isDrowElvenLineage && totalCharacterLevel >= 5,
+      'elf-high-detect-magic': isHighElvenLineage && totalCharacterLevel >= 3,
+      'elf-high-misty-step': isHighElvenLineage && totalCharacterLevel >= 5,
+      'elf-wood-longstrider': isWoodElvenLineage && totalCharacterLevel >= 3,
+      'elf-wood-pass-without-trace':
+        isWoodElvenLineage && totalCharacterLevel >= 5,
+    };
+  }, [
+    isDrowElvenLineage,
+    isHighElvenLineage,
+    isWoodElvenLineage,
+    totalCharacterLevel,
+  ]);
+
   useEffect(() => {
     const fallbackUses = speakWithAnimalsMaxUses;
 
@@ -214,6 +338,79 @@ export default function Features({
     canUseSpeakWithAnimals,
     speakWithAnimalsMaxUses,
     speakWithAnimalsStorageKey,
+  ]);
+
+  useEffect(() => {
+    const allSpellIds = Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS);
+    const nextUses = {};
+
+    allSpellIds.forEach((spellId) => {
+      const isEligible = lineageSpellEligibility[spellId];
+      if (!isEligible) {
+        nextUses[spellId] = 0;
+        if (
+          typeof window !== 'undefined' &&
+          lineageSpellStorageKeys?.[spellId]
+        ) {
+          window.localStorage.removeItem(lineageSpellStorageKeys[spellId]);
+        }
+        return;
+      }
+
+      const storageKey = lineageSpellStorageKeys?.[spellId];
+      if (typeof window === 'undefined' || !storageKey) {
+        nextUses[spellId] = 1;
+        return;
+      }
+
+      const storedValueRaw = window.localStorage.getItem(storageKey);
+      if (storedValueRaw === null) {
+        nextUses[spellId] = 1;
+        return;
+      }
+
+      const parsed = Number(storedValueRaw);
+      nextUses[spellId] = Number.isFinite(parsed)
+        ? Math.max(0, Math.min(1, Math.floor(parsed)))
+        : 1;
+    });
+
+    setLineageSpellUses((prev) => {
+      let hasChanged = false;
+      const updated = { ...prev };
+      allSpellIds.forEach((spellId) => {
+        const nextValue = nextUses[spellId] ?? 0;
+        if (updated[spellId] !== nextValue) {
+          updated[spellId] = nextValue;
+          hasChanged = true;
+        }
+      });
+      return hasChanged ? updated : prev;
+    });
+  }, [lineageSpellEligibility, lineageSpellStorageKeys, normalizedCharacterId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !lineageSpellStorageKeys) {
+      return;
+    }
+
+    Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).forEach((spellId) => {
+      if (!lineageSpellEligibility[spellId]) {
+        return;
+      }
+
+      const storageKey = lineageSpellStorageKeys[spellId];
+      if (!storageKey) {
+        return;
+      }
+
+      const uses = lineageSpellUses[spellId] ?? 0;
+      window.localStorage.setItem(storageKey, String(uses));
+    });
+  }, [
+    lineageSpellEligibility,
+    lineageSpellStorageKeys,
+    lineageSpellUses,
   ]);
 
   const ancestryFeatures = useMemo(() => {
@@ -321,6 +518,199 @@ export default function Features({
           hideUseButton: true,
         }
       );
+    } else if (raceName === 'elf') {
+      const feyAncestryDescription =
+        'You have advantage on saving throws against being charmed, and magic cannot put you to sleep.';
+      const tranceDescription =
+        'Elves do not need to sleep. Instead, you meditate deeply for 4 hours a day, remaining semiconscious. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.';
+      const keenSensesDescription =
+        'Your keen senses grant you proficiency in the Perception skill, and you choose one additional proficiency from Insight, Perception, or Survival.';
+
+      raceFeatures.push(
+        {
+          id: 'elf-fey-ancestry',
+          name: 'Fey Ancestry',
+          meta: 'Elf',
+          description: feyAncestryDescription,
+          desc: feyAncestryDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'elf-trance',
+          name: 'Trance',
+          meta: 'Elf',
+          description: tranceDescription,
+          desc: tranceDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'elf-keen-senses',
+          name: 'Keen Senses',
+          meta: 'Elf',
+          description: keenSensesDescription,
+          desc: keenSensesDescription,
+          hideUseButton: true,
+        }
+      );
+
+      if (elvenLineage) {
+        const lineageLabel =
+          typeof elvenLineage?.label === 'string'
+            ? elvenLineage.label
+            : 'Elven Lineage';
+        const lineageMeta = `${lineageLabel}${
+          elvenSpellAbilityLabel
+            ? ` • Spellcasting Ability: ${elvenSpellAbilityLabel}`
+            : ''
+        }`;
+        const abilityText = elvenSpellAbilityLabel
+          ? ` This lineage uses ${elvenSpellAbilityLabel} for its spells.`
+          : '';
+
+        if (isDrowElvenLineage) {
+          const dancingLightsDescription =
+            'You know the Dancing Lights cantrip and can cast it without expending a spell slot.' +
+            abilityText;
+          const faerieFireDescription =
+            'Starting at 3rd level, you can cast Faerie Fire with this trait once per long rest.' +
+            abilityText;
+          const darknessDescription =
+            'Starting at 5th level, you can cast Darkness with this trait once per long rest.' +
+            abilityText;
+
+          raceFeatures.push({
+            id: 'elf-drow-dancing-lights',
+            name: 'Dancing Lights',
+            meta: lineageMeta,
+            description: dancingLightsDescription,
+            desc: dancingLightsDescription,
+            hideUseButton: true,
+          });
+
+          if (totalCharacterLevel >= 3) {
+            raceFeatures.push({
+              id: 'elf-drow-faerie-fire',
+              name: 'Faerie Fire (Level 3)',
+              meta: lineageMeta,
+              description: faerieFireDescription,
+              desc: faerieFireDescription,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-drow-faerie-fire']
+                  ?.spellName,
+            });
+          }
+
+          if (totalCharacterLevel >= 5) {
+            raceFeatures.push({
+              id: 'elf-drow-darkness',
+              name: 'Darkness (Level 5)',
+              meta: lineageMeta,
+              description: darknessDescription,
+              desc: darknessDescription,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-drow-darkness']?.spellName,
+            });
+          }
+        } else if (isHighElvenLineage) {
+          const prestidigitationDescription =
+            'You know the Prestidigitation cantrip and can cast it without expending a spell slot.' +
+            abilityText;
+          const detectMagicDescription =
+            'Starting at 3rd level, you can cast Detect Magic with this trait once per long rest.' +
+            abilityText;
+          const mistyStepDescription =
+            'Starting at 5th level, you can cast Misty Step with this trait once per long rest.' +
+            abilityText;
+
+          raceFeatures.push({
+            id: 'elf-high-prestidigitation',
+            name: 'Prestidigitation',
+            meta: lineageMeta,
+            description: prestidigitationDescription,
+            desc: prestidigitationDescription,
+            hideUseButton: true,
+          });
+
+          if (totalCharacterLevel >= 3) {
+            raceFeatures.push({
+              id: 'elf-high-detect-magic',
+              name: 'Detect Magic (Level 3)',
+              meta: lineageMeta,
+              description: detectMagicDescription,
+              desc: detectMagicDescription,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-high-detect-magic']
+                  ?.spellName,
+            });
+          }
+
+          if (totalCharacterLevel >= 5) {
+            raceFeatures.push({
+              id: 'elf-high-misty-step',
+              name: 'Misty Step (Level 5)',
+              meta: lineageMeta,
+              description: mistyStepDescription,
+              desc: mistyStepDescription,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-high-misty-step']
+                  ?.spellName,
+            });
+          }
+        } else if (isWoodElvenLineage) {
+          const druidcraftDescription =
+            'You know the Druidcraft cantrip and can cast it without expending a spell slot.' +
+            abilityText +
+            ' Your walking speed increases to 35 feet.';
+          const longstriderDescription =
+            'Starting at 3rd level, you can cast Longstrider with this trait once per long rest.' +
+            abilityText;
+          const passWithoutTraceDescription =
+            'Starting at 5th level, you can cast Pass without Trace with this trait once per long rest.' +
+            abilityText;
+
+          raceFeatures.push({
+            id: 'elf-wood-druidcraft',
+            name: 'Druidcraft',
+            meta: lineageMeta,
+            description: druidcraftDescription,
+            desc: druidcraftDescription,
+            hideUseButton: true,
+          });
+
+          if (totalCharacterLevel >= 3) {
+            raceFeatures.push({
+              id: 'elf-wood-longstrider',
+              name: 'Longstrider (Level 3)',
+              meta: lineageMeta,
+              description: longstriderDescription,
+              desc: longstriderDescription,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS['elf-wood-longstrider']
+                  ?.spellName,
+            });
+          }
+
+          if (totalCharacterLevel >= 5) {
+            raceFeatures.push({
+              id: 'elf-wood-pass-without-trace',
+              name: 'Pass without Trace (Level 5)',
+              meta: lineageMeta,
+              description: passWithoutTraceDescription,
+              desc: passWithoutTraceDescription,
+              oncePerLongRestLineageSpell: true,
+              lineageSpellName:
+                ONCE_PER_LONG_REST_LINEAGE_SPELLS[
+                  'elf-wood-pass-without-trace'
+                ]?.spellName,
+            });
+          }
+        }
+      }
     } else if (raceName === 'gnome') {
       const gnomishCunningDescription =
         'You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic.';
@@ -624,6 +1014,18 @@ export default function Features({
     setAdrenalineRushUses(adrenalineRushMaxUses);
     if (hasInitializedRestRef.current) {
       setSpeakWithAnimalsUses(speakWithAnimalsMaxUses);
+      setLineageSpellUses((prev) => {
+        let hasChanges = false;
+        const updated = { ...prev };
+        Object.keys(ONCE_PER_LONG_REST_LINEAGE_SPELLS).forEach((spellId) => {
+          const resetValue = lineageSpellEligibility[spellId] ? 1 : 0;
+          if (updated[spellId] !== resetValue) {
+            updated[spellId] = resetValue;
+            hasChanges = true;
+          }
+        });
+        return hasChanges ? updated : prev;
+      });
     }
     hasInitializedRestRef.current = true;
   }, [
@@ -631,6 +1033,7 @@ export default function Features({
     longRestCount,
     shortRestCount,
     speakWithAnimalsMaxUses,
+    lineageSpellEligibility,
   ]);
 
   useEffect(() => {
@@ -758,6 +1161,15 @@ export default function Features({
                     const isAdrenalineRush = feat.id === 'orc-adrenaline-rush';
                     const isSpeakWithAnimals =
                       feat.id === 'gnome-forest-speak-with-animals';
+                    const lineageSpellConfig =
+                      feat.oncePerLongRestLineageSpell
+                        ? ONCE_PER_LONG_REST_LINEAGE_SPELLS[feat.id]
+                        : null;
+                    const isLineageOncePerLongRestSpell = Boolean(
+                      lineageSpellConfig
+                    );
+                    const lineageSpellRemainingUses =
+                      lineageSpellUses[feat.id] ?? 0;
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -863,6 +1275,45 @@ export default function Features({
                                   height={36}
                                 />
                               </Button>
+                            ) : isLineageOncePerLongRestSpell ? (
+                              <Button
+                                aria-label={`cast ${
+                                  lineageSpellConfig?.spellName || 'lineage spell'
+                                } from lineage`}
+                                variant="link"
+                                className={`p-0 border-0 ${
+                                  lineageSpellRemainingUses <= 0
+                                    ? 'opacity-50'
+                                    : ''
+                                }`}
+                                onClick={() => {
+                                  setLineageSpellUses((prev) => {
+                                    const current = prev[feat.id] ?? 0;
+                                    if (current <= 0) {
+                                      return prev;
+                                    }
+                                    return {
+                                      ...prev,
+                                      [feat.id]: Math.max(0, current - 1),
+                                    };
+                                  });
+                                  if (
+                                    lineageSpellRemainingUses <= 0 ||
+                                    !lineageSpellConfig?.spellName
+                                  ) {
+                                    return;
+                                  }
+                                  onCastSpell?.({
+                                    castingTime: '1 action',
+                                    name: lineageSpellConfig.spellName,
+                                    pendingEffectOnly: true,
+                                  });
+                                  onCastSpell?.('action');
+                                }}
+                                disabled={lineageSpellRemainingUses <= 0}
+                              >
+                                <i className="fa-solid fa-wand-sparkles" />
+                              </Button>
                             ) : isSpeakWithAnimals ? (
                               <div className="d-flex align-items-center gap-1">
                                 <Button
@@ -930,6 +1381,11 @@ export default function Features({
                         {isSpeakWithAnimals && (
                           <div className="feature-card-uses text-muted small mt-2">
                             Uses remaining: {speakWithAnimalsUses}
+                          </div>
+                        )}
+                        {isLineageOncePerLongRestSpell && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            Uses remaining: {lineageSpellRemainingUses}
                           </div>
                         )}
                         {isSpeakWithAnimals && (
