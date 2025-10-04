@@ -19,6 +19,7 @@ const {
   deleteMapImage,
   listTokenAssets,
   getTokenRootFolder,
+  listTokenFolderTree,
 } = require('../utils/cloudinary');
 
 const deriveCloudinaryPublicIdFromUrl = (url) => {
@@ -1702,6 +1703,53 @@ module.exports = (router) => {
           emitCombatUpdate(req.params.campaign, combatState);
 
           res.json(combatState);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/token-folders')
+    .get(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        query('folders').optional(),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const db_connect = req.db;
+          const campaign = await db_connect
+            .collection('Campaigns')
+            .findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const isDm = req.user && campaign.dm === req.user.username;
+          if (!isDm) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const requestedFolders = parseFolderFilters(req.query.folders);
+
+          try {
+            const folderTree = await listTokenFolderTree({ folders: requestedFolders });
+            return res.json(folderTree);
+          } catch (error) {
+            logger.warn('Failed to load token folder tree from Cloudinary', {
+              campaign: campaignName,
+              error: error.message,
+            });
+            return res.json({
+              rootFolder: getTokenRootFolder(),
+              folders: [],
+              flatFolders: [],
+            });
+          }
         } catch (err) {
           next(err);
         }
