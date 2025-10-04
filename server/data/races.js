@@ -33,13 +33,59 @@ const races = {
     speed: 30,
     abilities: { dex: 2 },
     skills: { perception: { proficient: true } },
+    skillChoices: {
+      count: 1,
+      options: ["insight", "perception", "survival"],
+      description: "Choose one of Insight, Perception, or Survival to gain proficiency in.",
+    },
     languages: ["Common", "Elvish"],
+    darkvisionRange: 60,
     weaponProficiencies: [
       "longsword",
       "shortsword",
       "shortbow",
       "longbow",
     ],
+    elvenLineages: {
+      drow: {
+        label: "Drow",
+        description:
+          "You know the Dancing Lights cantrip. Starting at 3rd level, you can also cast Faerie Fire once per long rest, and starting at 5th level, you can cast Darkness once per long rest.",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        darkvisionRange: 120,
+        level1Feature:
+          "You know the Dancing Lights cantrip. You can cast it without expending a spell slot.",
+        level3Feature:
+          "At 3rd level, you can cast Faerie Fire with this trait once per long rest.",
+        level5Feature:
+          "At 5th level, you can cast Darkness with this trait once per long rest.",
+      },
+      high: {
+        label: "High Elf",
+        description:
+          "You know the Prestidigitation cantrip. Starting at 3rd level, you can also cast Detect Magic once per long rest, and starting at 5th level, you can cast Misty Step once per long rest.",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        level1Feature:
+          "You know the Prestidigitation cantrip. You can cast it without expending a spell slot.",
+        level3Feature:
+          "At 3rd level, you can cast Detect Magic with this trait once per long rest.",
+        level5Feature:
+          "At 5th level, you can cast Misty Step with this trait once per long rest.",
+      },
+      wood: {
+        label: "Wood Elf",
+        description:
+          "You know the Druidcraft cantrip. Starting at 3rd level, you can also cast Longstrider once per long rest, and starting at 5th level, you can cast Pass without Trace once per long rest.",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        speed: 35,
+        level1Feature:
+          "You know the Druidcraft cantrip. You can cast it without expending a spell slot.",
+        level3Feature:
+          "At 3rd level, you can cast Longstrider with this trait once per long rest.",
+        level5Feature:
+          "At 5th level, you can cast Pass without Trace with this trait once per long rest.",
+      },
+    },
   },
   halfling: {
     name: "Halfling",

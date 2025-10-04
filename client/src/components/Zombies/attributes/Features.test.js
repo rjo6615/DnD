@@ -341,6 +341,195 @@ test('halfling characters display racial trait feature cards with descriptions',
   }
 });
 
+test('elf characters display baseline traits and drow lineage magic', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Elf',
+      speed: 30,
+      darkvisionRange: 120,
+      elvenLineages: {
+        drow: {
+          label: 'Drow',
+          spellcastingAbilities: ['Charisma'],
+          darkvisionRange: 120,
+        },
+      },
+      selectedAncestryKey: 'drow',
+      selectedAncestry: {
+        label: 'Drow',
+        spellcastingAbilities: ['Charisma'],
+        darkvisionRange: 120,
+      },
+      selectedLineageAbility: 'Charisma',
+    },
+    elvenLineageKey: 'drow',
+    elvenLineage: {
+      label: 'Drow',
+      spellcastingAbilities: ['Charisma'],
+      darkvisionRange: 120,
+    },
+    elvenLineageAbility: 'Charisma',
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Fey Ancestry')).toBeInTheDocument();
+  expect(screen.getByText('Trance')).toBeInTheDocument();
+  expect(screen.getByText('Keen Senses')).toBeInTheDocument();
+
+  const dancingLightsTitle = await screen.findByText('Dancing Lights');
+  const dancingCard = dancingLightsTitle.closest('.feature-card');
+  expect(dancingCard).not.toBeNull();
+  expect(
+    within(dancingCard).getByText(/Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+
+  expect(screen.getByText('Faerie Fire (Level 3)')).toBeInTheDocument();
+  expect(screen.getByText('Darkness (Level 5)')).toBeInTheDocument();
+
+  const darkvisionCard = screen.getByText('Darkvision').closest('.feature-card');
+  expect(darkvisionCard).not.toBeNull();
+  const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(darkvisionViewButton);
+  });
+
+  expect(
+    await screen.findByText(/dim light within 120 feet of you/i)
+  ).toBeInTheDocument();
+});
+
+test('wood elf lineage notes speed increase and lineage spells', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Elf',
+      speed: 35,
+      darkvisionRange: 60,
+      elvenLineages: {
+        wood: {
+          label: 'Wood Elf',
+          spellcastingAbilities: ['Wisdom'],
+          speed: 35,
+        },
+      },
+      selectedAncestryKey: 'wood',
+      selectedAncestry: {
+        label: 'Wood Elf',
+        spellcastingAbilities: ['Wisdom'],
+        speed: 35,
+      },
+      selectedLineageAbility: 'Wisdom',
+    },
+    elvenLineageKey: 'wood',
+    elvenLineage: {
+      label: 'Wood Elf',
+      spellcastingAbilities: ['Wisdom'],
+      speed: 35,
+    },
+    elvenLineageAbility: 'Wisdom',
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const druidcraftTitle = await screen.findByText('Druidcraft');
+  const druidcraftCard = druidcraftTitle.closest('.feature-card');
+  expect(druidcraftCard).not.toBeNull();
+  const viewButton = within(druidcraftCard).getByRole('button', {
+    name: /view feature/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(viewButton);
+  });
+
+  expect(
+    await screen.findByText(/Your walking speed increases to 35 feet/i)
+  ).toBeInTheDocument();
+  expect(screen.getByText('Longstrider (Level 3)')).toBeInTheDocument();
+  expect(screen.getByText('Pass without Trace (Level 5)')).toBeInTheDocument();
+});
+
+test('high elf lineage lists arcane cantrip and future spell hooks', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const form = {
+    race: {
+      name: 'Elf',
+      speed: 30,
+      darkvisionRange: 60,
+      elvenLineages: {
+        high: {
+          label: 'High Elf',
+          spellcastingAbilities: ['Intelligence'],
+        },
+      },
+      selectedAncestryKey: 'high',
+      selectedAncestry: {
+        label: 'High Elf',
+        spellcastingAbilities: ['Intelligence'],
+      },
+      selectedLineageAbility: 'Intelligence',
+    },
+    elvenLineageKey: 'high',
+    elvenLineage: {
+      label: 'High Elf',
+      spellcastingAbilities: ['Intelligence'],
+    },
+    elvenLineageAbility: 'Intelligence',
+    occupation: [],
+  };
+
+  render(
+    <Features
+      form={form}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const prestidigitationTitle = await screen.findByText('Prestidigitation');
+  const prestidigitationCard = prestidigitationTitle.closest('.feature-card');
+  expect(prestidigitationCard).not.toBeNull();
+  expect(
+    within(prestidigitationCard).getByText(/Spellcasting Ability: Intelligence/i)
+  ).toBeInTheDocument();
+  expect(screen.getByText('Detect Magic (Level 3)')).toBeInTheDocument();
+  expect(screen.getByText('Misty Step (Level 5)')).toBeInTheDocument();
+});
+
 test('forest gnome lineage shows lineage spells with ability text and tracking', async () => {
   apiFetch.mockResolvedValue({
     ok: true,

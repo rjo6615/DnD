@@ -115,6 +115,69 @@ export default function Features({
     return gnomeLineageAbility.trim();
   }, [gnomeLineageAbility]);
 
+  const { elvenLineage, elvenLineageKey, elvenLineageAbility } = useMemo(() => {
+    const race = form?.race || {};
+    const lineageFromForm =
+      typeof form?.elvenLineage === 'object' ? form.elvenLineage : null;
+    const lineageKeyFromForm =
+      typeof form?.elvenLineageKey === 'string' ? form.elvenLineageKey : '';
+    const abilityFromForm =
+      typeof form?.elvenLineageAbility === 'string' ? form.elvenLineageAbility : '';
+
+    let lineage = lineageFromForm;
+    let lineageKey = lineageKeyFromForm;
+    if (!lineage) {
+      if (lineageKey && race?.elvenLineages?.[lineageKey]) {
+        lineage = race.elvenLineages[lineageKey];
+      } else if (race?.selectedAncestry && race?.elvenLineages) {
+        lineage = race.selectedAncestry;
+        lineageKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.elvenLineages?.[race.selectedAncestryKey]
+      ) {
+        lineage = race.elvenLineages[race.selectedAncestryKey];
+        lineageKey = race.selectedAncestryKey;
+      }
+    }
+
+    let ability = abilityFromForm;
+    if (!ability) {
+      ability =
+        typeof race?.selectedLineageAbility === 'string'
+          ? race.selectedLineageAbility
+          : '';
+    }
+    if (!ability && lineage?.spellcastingAbilities?.length) {
+      ability = lineage.spellcastingAbilities[0];
+    }
+
+    return { elvenLineage: lineage, elvenLineageKey: lineageKey, elvenLineageAbility: ability };
+  }, [form?.elvenLineage, form?.elvenLineageAbility, form?.elvenLineageKey, form?.race]);
+
+  const elvenSpellAbilityLabel = useMemo(() => {
+    if (typeof elvenLineageAbility !== 'string') return '';
+    return elvenLineageAbility.trim();
+  }, [elvenLineageAbility]);
+
+  const isDrowElvenLineage = useMemo(() => {
+    if (!elvenLineageKey) return false;
+    return elvenLineageKey.toLowerCase() === 'drow';
+  }, [elvenLineageKey]);
+
+  const isHighElvenLineage = useMemo(() => {
+    if (!elvenLineageKey) return false;
+    return elvenLineageKey.toLowerCase() === 'high';
+  }, [elvenLineageKey]);
+
+  const isWoodElvenLineage = useMemo(() => {
+    if (!elvenLineageKey) return false;
+    return elvenLineageKey.toLowerCase() === 'wood';
+  }, [elvenLineageKey]);
+
   const isForestGnomeLineage = useMemo(() => {
     if (!gnomeLineageKey) return false;
     return gnomeLineageKey.toLowerCase() === 'forest';
@@ -321,6 +384,169 @@ export default function Features({
           hideUseButton: true,
         }
       );
+    } else if (raceName === 'elf') {
+      const feyAncestryDescription =
+        'You have advantage on saving throws against being charmed, and magic cannot put you to sleep.';
+      const tranceDescription =
+        'Elves do not need to sleep. Instead, you meditate deeply for 4 hours a day, remaining semiconscious. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.';
+      const keenSensesDescription =
+        'Your keen senses grant you proficiency in the Perception skill, and you choose one additional proficiency from Insight, Perception, or Survival.';
+
+      raceFeatures.push(
+        {
+          id: 'elf-fey-ancestry',
+          name: 'Fey Ancestry',
+          meta: 'Elf',
+          description: feyAncestryDescription,
+          desc: feyAncestryDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'elf-trance',
+          name: 'Trance',
+          meta: 'Elf',
+          description: tranceDescription,
+          desc: tranceDescription,
+          hideUseButton: true,
+        },
+        {
+          id: 'elf-keen-senses',
+          name: 'Keen Senses',
+          meta: 'Elf',
+          description: keenSensesDescription,
+          desc: keenSensesDescription,
+          hideUseButton: true,
+        }
+      );
+
+      if (elvenLineage) {
+        const lineageLabel =
+          typeof elvenLineage?.label === 'string'
+            ? elvenLineage.label
+            : 'Elven Lineage';
+        const lineageMeta = `${lineageLabel}${
+          elvenSpellAbilityLabel
+            ? ` • Spellcasting Ability: ${elvenSpellAbilityLabel}`
+            : ''
+        }`;
+        const abilityText = elvenSpellAbilityLabel
+          ? ` This lineage uses ${elvenSpellAbilityLabel} for its spells.`
+          : '';
+
+        if (isDrowElvenLineage) {
+          const dancingLightsDescription =
+            'You know the Dancing Lights cantrip and can cast it without expending a spell slot.' +
+            abilityText;
+          const faerieFireDescription =
+            'Starting at 3rd level, you can cast Faerie Fire with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            abilityText;
+          const darknessDescription =
+            'Starting at 5th level, you can cast Darkness with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            abilityText;
+
+          raceFeatures.push(
+            {
+              id: 'elf-drow-dancing-lights',
+              name: 'Dancing Lights',
+              meta: lineageMeta,
+              description: dancingLightsDescription,
+              desc: dancingLightsDescription,
+              hideUseButton: true,
+            },
+            {
+              id: 'elf-drow-faerie-fire',
+              name: 'Faerie Fire (Level 3)',
+              meta: lineageMeta,
+              description: faerieFireDescription,
+              desc: faerieFireDescription,
+              hideUseButton: true,
+            },
+            {
+              id: 'elf-drow-darkness',
+              name: 'Darkness (Level 5)',
+              meta: lineageMeta,
+              description: darknessDescription,
+              desc: darknessDescription,
+              hideUseButton: true,
+            }
+          );
+        } else if (isHighElvenLineage) {
+          const prestidigitationDescription =
+            'You know the Prestidigitation cantrip and can cast it without expending a spell slot.' +
+            abilityText;
+          const detectMagicDescription =
+            'Starting at 3rd level, you can cast Detect Magic with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            abilityText;
+          const mistyStepDescription =
+            'Starting at 5th level, you can cast Misty Step with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            abilityText;
+
+          raceFeatures.push(
+            {
+              id: 'elf-high-prestidigitation',
+              name: 'Prestidigitation',
+              meta: lineageMeta,
+              description: prestidigitationDescription,
+              desc: prestidigitationDescription,
+              hideUseButton: true,
+            },
+            {
+              id: 'elf-high-detect-magic',
+              name: 'Detect Magic (Level 3)',
+              meta: lineageMeta,
+              description: detectMagicDescription,
+              desc: detectMagicDescription,
+              hideUseButton: true,
+            },
+            {
+              id: 'elf-high-misty-step',
+              name: 'Misty Step (Level 5)',
+              meta: lineageMeta,
+              description: mistyStepDescription,
+              desc: mistyStepDescription,
+              hideUseButton: true,
+            }
+          );
+        } else if (isWoodElvenLineage) {
+          const druidcraftDescription =
+            'You know the Druidcraft cantrip and can cast it without expending a spell slot.' +
+            abilityText +
+            ' Your walking speed increases to 35 feet.';
+          const longstriderDescription =
+            'Starting at 3rd level, you can cast Longstrider with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            abilityText;
+          const passWithoutTraceDescription =
+            'Starting at 5th level, you can cast Pass without Trace with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
+            abilityText;
+
+          raceFeatures.push(
+            {
+              id: 'elf-wood-druidcraft',
+              name: 'Druidcraft',
+              meta: lineageMeta,
+              description: druidcraftDescription,
+              desc: druidcraftDescription,
+              hideUseButton: true,
+            },
+            {
+              id: 'elf-wood-longstrider',
+              name: 'Longstrider (Level 3)',
+              meta: lineageMeta,
+              description: longstriderDescription,
+              desc: longstriderDescription,
+              hideUseButton: true,
+            },
+            {
+              id: 'elf-wood-pass-without-trace',
+              name: 'Pass without Trace (Level 5)',
+              meta: lineageMeta,
+              description: passWithoutTraceDescription,
+              desc: passWithoutTraceDescription,
+              hideUseButton: true,
+            }
+          );
+        }
+      }
     } else if (raceName === 'gnome') {
       const gnomishCunningDescription =
         'You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic.';
