@@ -1,4 +1,10 @@
-import { aggregateStatEffects, collectFeatAbilityBonuses, collectFeatNumericBonuses, STAT_KEYS } from './derivedStats';
+import { normalizeEquipmentMap } from '../attributes/equipmentNormalization';
+import {
+  aggregateStatEffects,
+  collectFeatAbilityBonuses,
+  collectFeatNumericBonuses,
+  STAT_KEYS,
+} from './derivedStats';
 
 const toFiniteNumberOrNull = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -44,6 +50,11 @@ const calculateEffectiveAbilityScores = (character) => {
   }, {});
 
   const { bonuses: itemBonuses, overrides: itemOverrides } = aggregateStatEffects(character?.item);
+  const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
+  const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
+  const { bonuses: equipmentBonuses, overrides: equipmentOverrides } = aggregateStatEffects(
+    equipmentEntries
+  );
   const { bonuses: accessoryBonuses, overrides: accessoryOverrides } = aggregateStatEffects(
     normalizeAccessoryCollection(character)
   );
@@ -54,11 +65,16 @@ const calculateEffectiveAbilityScores = (character) => {
     const total =
       baseStats[key] +
       itemBonuses[key] +
+      equipmentBonuses[key] +
       accessoryBonuses[key] +
       featAbilityBonuses[key] +
       toFiniteNumberOrZero(raceBonuses[key]);
 
-    const overrideCandidates = [itemOverrides?.[key], accessoryOverrides?.[key]];
+    const overrideCandidates = [
+      itemOverrides?.[key],
+      equipmentOverrides?.[key],
+      accessoryOverrides?.[key],
+    ];
     const highestOverride = overrideCandidates.reduce((max, candidate) => {
       const numeric = toFiniteNumberOrNull(candidate);
       if (numeric === null) {
@@ -88,15 +104,53 @@ const resolveHpBonusFromSource = (character) => {
     character?.race?.hpMaxBonusPerLevel
   );
 
+  const collectHpBonuses = (collection) => {
+    const entries = Array.isArray(collection) ? collection : [];
+    return entries.reduce(
+      (acc, item) => {
+        if (!item || typeof item !== 'object') {
+          return acc;
+        }
+
+        const contributionSources = [item, item.numericBonuses];
+        contributionSources.forEach((source) => {
+          if (!source || typeof source !== 'object') {
+            return;
+          }
+          const bonus = toFiniteNumberOrNull(source.hpMaxBonus);
+          if (bonus !== null) {
+            acc.hpMaxBonus += bonus;
+          }
+          const perLevel = toFiniteNumberOrNull(source.hpMaxBonusPerLevel);
+          if (perLevel !== null) {
+            acc.hpMaxBonusPerLevel += perLevel;
+          }
+        });
+
+        return acc;
+      },
+      { hpMaxBonus: 0, hpMaxBonusPerLevel: 0 }
+    );
+  };
+
+  const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
+  const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
+  const equipmentHpBonuses = collectHpBonuses(equipmentEntries);
+  const accessoryHpBonuses = collectHpBonuses(normalizeAccessoryCollection(character));
+
   return {
     hpMaxBonus:
       (directHpBonus !== null ? directHpBonus : 0) +
       (raceHpBonus !== null ? raceHpBonus : 0) +
-      toFiniteNumberOrZero(featBonuses.hpMaxBonus),
+      toFiniteNumberOrZero(featBonuses.hpMaxBonus) +
+      equipmentHpBonuses.hpMaxBonus +
+      accessoryHpBonuses.hpMaxBonus,
     hpMaxBonusPerLevel:
       (directHpBonusPerLevel !== null ? directHpBonusPerLevel : 0) +
       (raceHpBonusPerLevel !== null ? raceHpBonusPerLevel : 0) +
-      toFiniteNumberOrZero(featBonuses.hpMaxBonusPerLevel),
+      toFiniteNumberOrZero(featBonuses.hpMaxBonusPerLevel) +
+      equipmentHpBonuses.hpMaxBonusPerLevel +
+      accessoryHpBonuses.hpMaxBonusPerLevel,
   };
 };
 

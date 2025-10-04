@@ -95,4 +95,43 @@ describe('calculateCharacterHitPoints', () => {
 
     expect(result.currentHp).toBe(11);
   });
+
+  it('derives con modifier and hp bonuses from equipped items', () => {
+    const baseCharacter = {
+      health: 10,
+      con: 10,
+      occupation: [{ Level: 2 }],
+      equipment: {},
+    };
+
+    const equippedCharacter = {
+      ...baseCharacter,
+      equipment: {
+        head: {
+          name: 'Helm of Vitality',
+          statBonuses: { con: 4 },
+          hpMaxBonus: 5,
+          numericBonuses: { hpMaxBonusPerLevel: 1 },
+        },
+      },
+    };
+
+    const baseResult = calculateCharacterHitPoints(baseCharacter);
+    const equippedResult = calculateCharacterHitPoints(equippedCharacter);
+
+    expect(baseResult.maxHp).toBe(10);
+
+    const expectedConMod = Math.floor(((baseCharacter.con + 4) - 10) / 2);
+    const totalLevel = baseCharacter.occupation.reduce((sum, entry) => sum + Number(entry.Level), 0);
+    const expectedMaxHp =
+      baseCharacter.health +
+      expectedConMod * totalLevel +
+      5 +
+      1 * totalLevel;
+
+    expect(equippedResult.maxHp).toBe(expectedMaxHp);
+    expect(equippedResult.maxHp - baseResult.maxHp).toBe(
+      expectedConMod * totalLevel + 5 + totalLevel
+    );
+  });
 });
