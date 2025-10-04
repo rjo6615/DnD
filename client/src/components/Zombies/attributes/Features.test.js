@@ -393,6 +393,9 @@ test('elf characters display baseline traits and drow lineage magic', async () =
   const dancingLightsTitle = await screen.findByText('Dancing Lights');
   const dancingCard = dancingLightsTitle.closest('.feature-card');
   expect(dancingCard).not.toBeNull();
+  const dancingIcon =
+    dancingCard && dancingCard.querySelector('.fa-wand-sparkles');
+  expect(dancingIcon).toBeInTheDocument();
   expect(
     within(dancingCard).getByText(/Spellcasting Ability: Charisma/i)
   ).toBeInTheDocument();
@@ -550,6 +553,9 @@ test('wood elf lineage notes speed increase and lineage spells', async () => {
   const druidcraftTitle = await screen.findByText('Druidcraft');
   const druidcraftCard = druidcraftTitle.closest('.feature-card');
   expect(druidcraftCard).not.toBeNull();
+  const druidcraftIcon =
+    druidcraftCard && druidcraftCard.querySelector('.fa-wand-sparkles');
+  expect(druidcraftIcon).toBeInTheDocument();
   const viewButton = within(druidcraftCard).getByRole('button', {
     name: /view feature/i,
   });
@@ -669,6 +675,10 @@ test('high elf lineage lists arcane cantrip and future spell hooks', async () =>
   const prestidigitationTitle = await screen.findByText('Prestidigitation');
   const prestidigitationCard = prestidigitationTitle.closest('.feature-card');
   expect(prestidigitationCard).not.toBeNull();
+  const prestidigitationIcon =
+    prestidigitationCard &&
+    prestidigitationCard.querySelector('.fa-wand-sparkles');
+  expect(prestidigitationIcon).toBeInTheDocument();
   expect(
     within(prestidigitationCard).getByText(/Spellcasting Ability: Intelligence/i)
   ).toBeInTheDocument();
