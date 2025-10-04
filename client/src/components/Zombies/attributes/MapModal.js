@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
 import MapDisplay from './MapDisplay';
 import CampaignMapBoard from './CampaignMapBoard';
+import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -83,11 +84,6 @@ const normalizeMaps = (maps) =>
   Array.isArray(maps)
     ? maps.filter((map) => map && typeof map === 'object')
     : [];
-
-const normalizeFolderName = (value) =>
-  typeof value === 'string' ? value.trim() : '';
-
-const UNGROUPED_FOLDER_KEY = '__ungrouped__';
 
 const resolveMapTitle = (map, index) => {
   if (!map || typeof map !== 'object') {
@@ -186,43 +182,10 @@ const MapModal = ({
     [previewMap]
   );
 
-  const groupedMaps = useMemo(() => {
-    if (normalizedMaps.length === 0) {
-      return [];
-    }
-
-    const groups = new Map();
-
-    normalizedMaps.forEach((mapItem) => {
-      const folderName = normalizeFolderName(mapItem?.folder);
-      const key = folderName || UNGROUPED_FOLDER_KEY;
-
-      if (!groups.has(key)) {
-        groups.set(key, {
-          key,
-          label: folderName || 'No Folder',
-          maps: [],
-        });
-      }
-
-      groups.get(key).maps.push(mapItem);
-    });
-
-    const sortedGroups = Array.from(groups.values()).sort((a, b) => {
-      if (a.key === UNGROUPED_FOLDER_KEY && b.key === UNGROUPED_FOLDER_KEY) {
-        return 0;
-      }
-      if (a.key === UNGROUPED_FOLDER_KEY) {
-        return -1;
-      }
-      if (b.key === UNGROUPED_FOLDER_KEY) {
-        return 1;
-      }
-      return a.label.localeCompare(b.label);
-    });
-
-    return sortedGroups;
-  }, [normalizedMaps]);
+  const groupedMaps = useMemo(
+    () => groupMapsByFolder(normalizedMaps),
+    [normalizedMaps]
+  );
 
   const normalizedCurrentCharacterId = useMemo(
     () => normalizeMapId(currentCharacterId),
