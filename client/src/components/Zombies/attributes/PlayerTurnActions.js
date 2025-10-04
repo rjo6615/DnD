@@ -38,6 +38,31 @@ function formatDamageRolls(rolls) {
 
 
 const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
+const HAND_SELECTIONS = {
+  ONE_HANDED: 'one-handed',
+  TWO_HANDED: 'two-handed',
+};
+
+const versatileRegex = /versatile\s*\(([^)]+)\)/i;
+const firstDamageDiceRegex = /^(\s*)(\d+d\d+(?:[+-]\d+)?)/;
+const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
+
+const getVersatileDamageDice = (weapon) => {
+  if (!Array.isArray(weapon?.properties)) return null;
+
+  for (const property of weapon.properties) {
+    if (typeof property !== 'string') continue;
+    const match = property.match(versatileRegex);
+    if (match) {
+      const dice = match[1]?.trim();
+      if (dice) {
+        return dice;
+      }
+    }
+  }
+
+  return null;
+};
 
 function toTitleCase(str) {
   const small = new Set(['of', 'the']);
@@ -284,6 +309,7 @@ const [isFumble, setIsFumble] = useState(false);
   }, [equipmentProvided, normalizedEquipment, form.weapon]);
 
   const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
+  const [weaponHandSelections, setWeaponHandSelections] = useState({});
 
   const numericStrMod = Number(strMod) || 0;
   const numericDexMod = Number(dexMod) || 0;
@@ -342,6 +368,10 @@ const [isFumble, setIsFumble] = useState(false);
       return next;
     });
   }, [equippedWeapons, isFinesseWeapon]);
+
+  useEffect(() => {
+    setWeaponHandSelections({});
+  }, [equippedWeapons]);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon, slot) => {
     const key = getAbilityKeyForWeapon(slot, weapon);
@@ -360,6 +390,50 @@ const [isFumble, setIsFumble] = useState(false);
   const getWeaponTypeLabel = (weapon) => {
     const raw = weapon?.type || weapon?.category;
     return formatWeaponLabel(raw || 'Unknown');
+  };
+
+  const getHandSelectionForWeapon = (slot, weapon) => {
+    if (!getVersatileDamageDice(weapon)) {
+      return HAND_SELECTIONS.ONE_HANDED;
+    }
+    const stored = weaponHandSelections[slot];
+    if (stored === HAND_SELECTIONS.TWO_HANDED) {
+      return HAND_SELECTIONS.TWO_HANDED;
+    }
+    return HAND_SELECTIONS.ONE_HANDED;
+  };
+
+  const getDamageStringForHandSelection = (
+    slot,
+    weapon,
+    overrideHandSelection
+  ) => {
+    const baseDamage =
+      typeof weapon?.damage === 'string' ? weapon.damage.trim() : '';
+    if (!baseDamage) return '';
+
+    const versatileDice = getVersatileDamageDice(weapon);
+    if (!versatileDice) {
+      return baseDamage;
+    }
+
+    const handSelection =
+      overrideHandSelection ?? getHandSelectionForWeapon(slot, weapon);
+    if (handSelection !== HAND_SELECTIONS.TWO_HANDED) {
+      return baseDamage;
+    }
+
+    const match = baseDamage.match(firstDamageDiceRegex);
+    if (!match) {
+      const replaced = baseDamage.replace(anyDamageDiceRegex, versatileDice);
+      if (replaced !== baseDamage) {
+        return replaced;
+      }
+      return versatileDice;
+    }
+
+    const [, leading = ''] = match;
+    return `${leading}${versatileDice}${baseDamage.slice(match[0].length)}`;
   };
 
   const getWeaponPropertyDefinitionKeys = (prop) => {
@@ -490,13 +564,16 @@ const [isFumble, setIsFumble] = useState(false);
 
   const getDamageString = (slot, weapon) => {
     const ability = abilityForWeapon(weapon, slot);
-    return formatDamageSegments(weapon.damage, ability);
+    const damageString = getDamageStringForHandSelection(slot, weapon);
+    if (!damageString) return 'Unknown';
+    return formatDamageSegments(damageString, ability);
   };
 
   const handleWeaponAttack = (slot, weapon) => {
     const ability = abilityForWeapon(weapon, slot);
-    if (typeof weapon?.damage !== 'string' || !weapon.damage.trim()) return;
-    const result = calculateDamage(weapon.damage, ability, isCritical);
+    const damageString = getDamageStringForHandSelection(slot, weapon);
+    if (typeof damageString !== 'string' || !damageString.trim()) return;
+    const result = calculateDamage(damageString, ability, isCritical);
     if (!result) return;
     updateDamageValueWithAnimation(
       result.total,
@@ -844,6 +921,21 @@ useEffect(() => {
                       ? propertyLabels.join(', ')
                       : 'None';
                   const popoverId = `weapon-properties-${slot}`;
+                  const versatileDice = getVersatileDamageDice(weapon);
+                  const isVersatile = Boolean(versatileDice);
+                  const handSelection = getHandSelectionForWeapon(slot, weapon);
+                  const oneHandedDamage = getDamageStringForHandSelection(
+                    slot,
+                    weapon,
+                    HAND_SELECTIONS.ONE_HANDED
+                  );
+                  const twoHandedDamage = isVersatile
+                    ? getDamageStringForHandSelection(
+                        slot,
+                        weapon,
+                        HAND_SELECTIONS.TWO_HANDED
+                      )
+                    : '';
 
                   const propertiesPopover = (
                     <Popover id={popoverId}>
@@ -902,6 +994,36 @@ useEffect(() => {
                                 </option>
                                 <option value="dex">
                                   Dexterity ({formatModifier(numericDexMod)})
+                                </option>
+                              </Form.Select>
+                            </span>
+                          </div>
+                        )}
+                        {isVersatile && (
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Grip</span>
+                            <span className="attack-card__value">
+                              <Form.Select
+                                id={`weapon-grip-${slot}`}
+                                aria-label={`Select grip for ${weapon.name || slot}`}
+                                value={handSelection}
+                                onChange={(event) => {
+                                  const selectedHand =
+                                    event.target.value === HAND_SELECTIONS.TWO_HANDED
+                                      ? HAND_SELECTIONS.TWO_HANDED
+                                      : HAND_SELECTIONS.ONE_HANDED;
+                                  setWeaponHandSelections((prev) => ({
+                                    ...prev,
+                                    [slot]: selectedHand,
+                                  }));
+                                }}
+                                size="sm"
+                              >
+                                <option value={HAND_SELECTIONS.ONE_HANDED}>
+                                  One-Handed ({oneHandedDamage || 'Unknown'})
+                                </option>
+                                <option value={HAND_SELECTIONS.TWO_HANDED}>
+                                  Two-Handed ({twoHandedDamage || 'Unknown'})
                                 </option>
                               </Form.Select>
                             </span>
