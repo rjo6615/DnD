@@ -444,32 +444,36 @@ export default function Features({
             'Starting at 5th level, you can cast Darkness with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
             abilityText;
 
-          raceFeatures.push(
-            {
-              id: 'elf-drow-dancing-lights',
-              name: 'Dancing Lights',
-              meta: lineageMeta,
-              description: dancingLightsDescription,
-              desc: dancingLightsDescription,
-              hideUseButton: true,
-            },
-            {
+          raceFeatures.push({
+            id: 'elf-drow-dancing-lights',
+            name: 'Dancing Lights',
+            meta: lineageMeta,
+            description: dancingLightsDescription,
+            desc: dancingLightsDescription,
+            hideUseButton: true,
+          });
+
+          if (totalCharacterLevel >= 3) {
+            raceFeatures.push({
               id: 'elf-drow-faerie-fire',
               name: 'Faerie Fire (Level 3)',
               meta: lineageMeta,
               description: faerieFireDescription,
               desc: faerieFireDescription,
               hideUseButton: true,
-            },
-            {
+            });
+          }
+
+          if (totalCharacterLevel >= 5) {
+            raceFeatures.push({
               id: 'elf-drow-darkness',
               name: 'Darkness (Level 5)',
               meta: lineageMeta,
               description: darknessDescription,
               desc: darknessDescription,
               hideUseButton: true,
-            }
-          );
+            });
+          }
         } else if (isHighElvenLineage) {
           const prestidigitationDescription =
             'You know the Prestidigitation cantrip and can cast it without expending a spell slot.' +
@@ -481,32 +485,36 @@ export default function Features({
             'Starting at 5th level, you can cast Misty Step with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
             abilityText;
 
-          raceFeatures.push(
-            {
-              id: 'elf-high-prestidigitation',
-              name: 'Prestidigitation',
-              meta: lineageMeta,
-              description: prestidigitationDescription,
-              desc: prestidigitationDescription,
-              hideUseButton: true,
-            },
-            {
+          raceFeatures.push({
+            id: 'elf-high-prestidigitation',
+            name: 'Prestidigitation',
+            meta: lineageMeta,
+            description: prestidigitationDescription,
+            desc: prestidigitationDescription,
+            hideUseButton: true,
+          });
+
+          if (totalCharacterLevel >= 3) {
+            raceFeatures.push({
               id: 'elf-high-detect-magic',
               name: 'Detect Magic (Level 3)',
               meta: lineageMeta,
               description: detectMagicDescription,
               desc: detectMagicDescription,
               hideUseButton: true,
-            },
-            {
+            });
+          }
+
+          if (totalCharacterLevel >= 5) {
+            raceFeatures.push({
               id: 'elf-high-misty-step',
               name: 'Misty Step (Level 5)',
               meta: lineageMeta,
               description: mistyStepDescription,
               desc: mistyStepDescription,
               hideUseButton: true,
-            }
-          );
+            });
+          }
         } else if (isWoodElvenLineage) {
           const druidcraftDescription =
             'You know the Druidcraft cantrip and can cast it without expending a spell slot.' +
@@ -519,32 +527,36 @@ export default function Features({
             'Starting at 5th level, you can cast Pass without Trace with this trait once per long rest. Spellcasting integration for this trait will be added in a future update.' +
             abilityText;
 
-          raceFeatures.push(
-            {
-              id: 'elf-wood-druidcraft',
-              name: 'Druidcraft',
-              meta: lineageMeta,
-              description: druidcraftDescription,
-              desc: druidcraftDescription,
-              hideUseButton: true,
-            },
-            {
+          raceFeatures.push({
+            id: 'elf-wood-druidcraft',
+            name: 'Druidcraft',
+            meta: lineageMeta,
+            description: druidcraftDescription,
+            desc: druidcraftDescription,
+            hideUseButton: true,
+          });
+
+          if (totalCharacterLevel >= 3) {
+            raceFeatures.push({
               id: 'elf-wood-longstrider',
               name: 'Longstrider (Level 3)',
               meta: lineageMeta,
               description: longstriderDescription,
               desc: longstriderDescription,
               hideUseButton: true,
-            },
-            {
+            });
+          }
+
+          if (totalCharacterLevel >= 5) {
+            raceFeatures.push({
               id: 'elf-wood-pass-without-trace',
               name: 'Pass without Trace (Level 5)',
               meta: lineageMeta,
               description: passWithoutTraceDescription,
               desc: passWithoutTraceDescription,
               hideUseButton: true,
-            }
-          );
+            });
+          }
         }
       }
     } else if (raceName === 'gnome') {
