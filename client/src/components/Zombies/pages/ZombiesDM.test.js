@@ -764,6 +764,110 @@ describe('ZombiesDM AI generation', () => {
     });
   });
 
+  test('allows uploading a map image file when creating a campaign map', async () => {
+    const mockBase64 = 'Zm9vYmFy';
+    const originalFileReader = global.FileReader;
+    const fileReaderMock = jest.fn(() => ({
+      onload: null,
+      onerror: null,
+      readAsDataURL(file) {
+        if (this.onload) {
+          this.result = `data:${file.type};base64,${mockBase64}`;
+          this.onload({ target: { result: this.result } });
+        }
+      },
+    }));
+    global.FileReader = fileReaderMock;
+
+    const createdMap = {
+      mapId: 'map-file',
+      title: 'Uploaded Map',
+      imageBase64: mockBase64,
+      imageType: 'image/png',
+      altText: 'Uploaded alt text',
+    };
+    let savedPayload;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          if (options.method === 'POST') {
+            savedPayload = JSON.parse(options.body);
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                maps: [createdMap],
+                activeMapId: createdMap.mapId,
+                map: createdMap,
+              }),
+            });
+          }
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ maps: [], activeMapId: null, map: null }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    try {
+      render(<ZombiesDM />);
+
+      const mapTab = await screen.findByRole('tab', { name: 'Map' });
+      await userEvent.click(mapTab);
+
+      const createButton = await screen.findByTestId('create-map-button');
+      await userEvent.click(createButton);
+
+      const modal = await screen.findByTestId('map-editor-modal');
+      const titleInput = within(modal).getByLabelText('Title');
+      await userEvent.type(titleInput, 'Uploaded Map');
+
+      const altTextInput = within(modal).getByLabelText('Alt Text');
+      await userEvent.type(altTextInput, 'Uploaded alt text');
+
+      const fileInput = within(modal).getByLabelText('Image File');
+      const file = new File(['file-data'], 'map.png', { type: 'image/png' });
+      await userEvent.upload(fileInput, file);
+
+      await waitFor(() => expect(fileReaderMock).toHaveBeenCalled());
+
+      const submitButton = within(modal).getByTestId('map-editor-submit-button');
+      await userEvent.click(submitButton);
+
+      await screen.findByText('Map saved.');
+
+      await waitFor(() => expect(savedPayload).toBeDefined());
+
+      expect(savedPayload).toEqual({
+        map: {
+          title: 'Uploaded Map',
+          altText: 'Uploaded alt text',
+          imageBase64: mockBase64,
+          imageType: 'image/png',
+        },
+        activate: true,
+      });
+    } finally {
+      if (originalFileReader) {
+        global.FileReader = originalFileReader;
+      } else {
+        delete global.FileReader;
+      }
+    }
+  });
+
   test('allows the DM to activate a different saved map', async () => {
     const primaryMap = {
       mapId: 'map-1',
