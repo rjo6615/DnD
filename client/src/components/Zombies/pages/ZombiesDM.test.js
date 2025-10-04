@@ -154,6 +154,7 @@ describe('ZombiesDM AI generation', () => {
 
     expect(getRequiredLabel('Image URL')).toBeInTheDocument();
     expect(getRequiredLabel('Image File')).toBeInTheDocument();
+    expect(getRequiredLabel('Alt Text')).toBeInTheDocument();
     const helperText = modalQueries.getByText(/At least one source is required\./i);
     expect(helperText).toBeInTheDocument();
 
@@ -175,6 +176,7 @@ describe('ZombiesDM AI generation', () => {
 
     const imageUrlInput = modalQueries.getByLabelText(/^Image URL/);
     const imageFileInput = modalQueries.getByLabelText(/^Image File/);
+    const altTextInput = modalQueries.getByLabelText(/^Alt Text/);
 
     expect(imageUrlInput).toHaveAttribute(
       'aria-describedby',
@@ -192,6 +194,8 @@ describe('ZombiesDM AI generation', () => {
       'aria-describedby',
       expect.stringContaining('map-editor-image-error')
     );
+
+    expect(altTextInput).toBeRequired();
 
     await userEvent.type(imageUrlInput, 'https://example.com/map.png');
 
@@ -208,6 +212,18 @@ describe('ZombiesDM AI generation', () => {
     const imageFileDescribedBy = imageFileInput.getAttribute('aria-describedby') || '';
     expect(imageFileDescribedBy).toContain('map-editor-image-requirement');
     expect(imageFileDescribedBy).not.toContain('map-editor-image-error');
+
+    await userEvent.click(submitButton);
+
+    const altTextError = await modalQueries.findByText('Alt text is required.');
+    expect(altTextError).toBeInTheDocument();
+    expect(getMapPostCalls()).toHaveLength(0);
+
+    await userEvent.type(altTextInput, 'Forest clearing battle map');
+
+    await waitFor(() =>
+      expect(modalQueries.queryByText('Alt text is required.')).not.toBeInTheDocument()
+    );
 
     await userEvent.click(submitButton);
 
@@ -948,7 +964,7 @@ describe('ZombiesDM AI generation', () => {
       const titleInput = within(modal).getByLabelText(/^Title/);
       await userEvent.type(titleInput, 'Uploaded Map');
 
-      const altTextInput = within(modal).getByLabelText('Alt Text');
+      const altTextInput = within(modal).getByLabelText(/^Alt Text/);
       await userEvent.type(altTextInput, 'Uploaded alt text');
 
       const fileInput = within(modal).getByLabelText(/^Image File/);
@@ -1045,7 +1061,7 @@ describe('ZombiesDM AI generation', () => {
       expect(modalQueries.getByLabelText(/^Image URL/)).toHaveValue(
         'https://example.com/map.png'
       );
-      expect(modalQueries.getByLabelText('Alt Text')).toHaveValue('Existing map alt text');
+      expect(modalQueries.getByLabelText(/^Alt Text/)).toHaveValue('Existing map alt text');
 
       const renameFileInput = modalQueries.getByLabelText(/^Image File/);
       const file = new File(['data'], 'existing.png', { type: 'image/png' });
@@ -1064,7 +1080,7 @@ describe('ZombiesDM AI generation', () => {
         expect(createModalQueries.getByLabelText(/^Title/)).toHaveValue('')
       );
       expect(createModalQueries.getByLabelText(/^Image URL/)).toHaveValue('');
-      expect(createModalQueries.getByLabelText('Alt Text')).toHaveValue('');
+      expect(createModalQueries.getByLabelText(/^Alt Text/)).toHaveValue('');
 
       const createFileInput = createModalQueries.getByLabelText(/^Image File/);
       expect(createFileInput.files).toHaveLength(0);

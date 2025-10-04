@@ -757,6 +757,27 @@ export default function ZombiesDM() {
       }
     }, [mapEditorErrors.imageSource, mapEditorState.imageUrl, mapEditorState.imageBase64]);
 
+    useEffect(() => {
+      if (!mapEditorErrors.altText || mapEditorState.mode !== 'create') {
+        return;
+      }
+
+      const hasAltText =
+        typeof mapEditorState.altText === 'string' &&
+        mapEditorState.altText.trim() !== '';
+
+      if (hasAltText) {
+        setMapEditorErrors((prev) => {
+          if (!prev.altText) {
+            return prev;
+          }
+
+          const { altText, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.altText, mapEditorState.altText, mapEditorState.mode]);
+
     const imageSourceDescribedBy = useMemo(() => {
       const ids = ['map-editor-image-requirement'];
       if (mapEditorErrors.imageSource) {
@@ -3471,6 +3492,10 @@ export default function ZombiesDM() {
           errors.imageSource = 'Provide an image URL or upload a file.';
         }
 
+        if (mode === 'create' && !trimmedAltText) {
+          errors.altText = 'Alt text is required.';
+        }
+
         if (Object.keys(errors).length > 0) {
           setMapEditorErrors(errors);
           return;
@@ -3491,8 +3516,13 @@ export default function ZombiesDM() {
         const payloadMap = {
           ...sanitizedBaseMap,
           title: normalizedTitle,
-          altText: trimmedAltText,
         };
+
+        if (trimmedAltText) {
+          payloadMap.altText = trimmedAltText;
+        } else {
+          delete payloadMap.altText;
+        }
 
         if (trimmedImageUrl) {
           payloadMap.imageUrl = trimmedImageUrl;
@@ -7167,14 +7197,27 @@ const resolveIcon = (category, iconMap, fallback) => {
               </div>
             )}
             <Form.Group className="mb-3" controlId="map-editor-alt-text">
-              <Form.Label>Alt Text</Form.Label>
+              <Form.Label>
+                Alt Text
+                {mapEditorState.mode === 'create' && (
+                  <span className="text-danger" aria-hidden="true">*</span>
+                )}
+              </Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Describe the map image"
                 value={mapEditorState.altText}
                 onChange={handleMapEditorInputChange('altText')}
                 disabled={mapEditorSaving}
+                required={mapEditorState.mode === 'create'}
+                aria-required={mapEditorState.mode === 'create'}
+                isInvalid={Boolean(mapEditorErrors.altText)}
               />
+              {mapEditorErrors.altText && (
+                <Form.Control.Feedback type="invalid" className="d-block">
+                  {mapEditorErrors.altText}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             {mapEditorState.mode === 'create' && (
               <Form.Check
