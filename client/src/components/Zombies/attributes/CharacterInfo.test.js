@@ -159,3 +159,36 @@ test('renders dragonborn ancestry within race card when ancestry selected', () =
   expect(queryByText('Subrace')).not.toBeInTheDocument();
 });
 
+test('renders elven lineage within race card when lineage selected', () => {
+  const form = {
+    occupation: [],
+    race: {
+      name: 'Elf',
+      languages: [],
+      selectedAncestryKey: 'wood',
+      elvenLineages: {
+        wood: { label: 'Wood Elf' },
+      },
+    },
+    elvenLineageKey: 'wood',
+    elvenLineage: { label: 'Wood Elf' },
+  };
+
+  render(
+    <CharacterInfo
+      form={form}
+      show={true}
+      handleClose={() => {}}
+      onShowBackground={() => {}}
+      onLongRest={() => {}}
+      onShortRest={() => {}}
+    />
+  );
+
+  const raceItem = screen.getByText('Race').closest('.character-info-item');
+  expect(raceItem).not.toBeNull();
+  const { getByText } = within(raceItem);
+  expect(getByText('Elf')).toBeInTheDocument();
+  expect(getByText('Wood Elf')).toBeInTheDocument();
+});
+

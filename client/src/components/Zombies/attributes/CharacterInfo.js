@@ -64,8 +64,10 @@ export default function CharacterInfo({
   const raceName = form?.race?.name?.toLowerCase?.();
   const isDragonborn = raceName === 'dragonborn';
   const isGoliath = raceName === 'goliath';
+  const isElf = raceName === 'elf';
   const dragonAncestries = isDragonborn ? form?.race?.dragonAncestries || {} : {};
   const giantAncestries = isGoliath ? form?.race?.giantAncestries || {} : {};
+  const elvenLineages = isElf ? form?.race?.elvenLineages || {} : {};
   const goliathAncestry = isGoliath
     ? form?.race?.selectedAncestry ||
       (form?.race?.selectedAncestryKey && giantAncestries
@@ -99,6 +101,19 @@ export default function CharacterInfo({
       form?.dragonAncestryKey ||
       form?.race?.selectedAncestryKey ||
       "Draconic Ancestry"
+    : null;
+  const elvenLineage = isElf
+    ? form?.race?.selectedAncestry ||
+      (form?.race?.selectedAncestryKey && elvenLineages
+        ? elvenLineages[form.race.selectedAncestryKey]
+        : null) ||
+      form?.elvenLineage ||
+      (form?.elvenLineageKey && elvenLineages
+        ? elvenLineages[form.elvenLineageKey]
+        : null)
+    : null;
+  const elvenLineageName = elvenLineage
+    ? elvenLineage.label || elvenLineage.name || 'Elven Lineage'
     : null;
   const displaySize =
     form?.temporarySize || form?.size || form?.height || "—";
@@ -147,6 +162,9 @@ export default function CharacterInfo({
                 )}
                 {isDragonborn && dragonbornAncestryName && (
                   <span className="character-info-subtext">{dragonbornAncestryName}</span>
+                )}
+                {isElf && elvenLineageName && (
+                  <span className="character-info-subtext">{elvenLineageName}</span>
                 )}
               </div>
             </div>
