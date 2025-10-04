@@ -1437,6 +1437,142 @@ test('goliath ancestry features include boon, Powerful Build, and Large Form at 
   expect(largeFormUse).toBeDisabled();
 });
 
+test('elven lineage spells use wand icon and track uses with persistence and rest reset', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const onCastSpell = jest.fn();
+  const baseForm = {
+    race: {
+      name: 'Elf',
+      speed: 35,
+      darkvisionRange: 60,
+      elvenLineages: {
+        wood: {
+          label: 'Wood Elf',
+          spellcastingAbilities: ['Wisdom'],
+          speed: 35,
+        },
+      },
+      selectedAncestryKey: 'wood',
+      selectedAncestry: {
+        label: 'Wood Elf',
+        spellcastingAbilities: ['Wisdom'],
+        speed: 35,
+      },
+      selectedLineageAbility: 'Wisdom',
+    },
+    elvenLineageKey: 'wood',
+    elvenLineage: {
+      label: 'Wood Elf',
+      spellcastingAbilities: ['Wisdom'],
+      speed: 35,
+    },
+    elvenLineageAbility: 'Wisdom',
+    occupation: [{ Name: 'Ranger', Level: 5 }],
+  };
+
+  const commonProps = {
+    form: baseForm,
+    showFeatures: true,
+    handleCloseFeatures: () => {},
+    characterId: TEST_CHARACTER_ID,
+  };
+
+  const renderFeatures = (extraProps = {}) =>
+    render(<Features {...commonProps} {...extraProps} />);
+
+  const firstRender = renderFeatures({
+    onCastSpell,
+    longRestCount: 0,
+    shortRestCount: 0,
+  });
+
+  const longstriderTitle = await screen.findByText('Longstrider (Level 3)');
+  const longstriderCard = longstriderTitle.closest('.feature-card');
+  expect(longstriderCard).not.toBeNull();
+  const longstriderWithin = within(longstriderCard);
+  const lineageCastButton = longstriderWithin.getByRole('button', {
+    name: /cast longstrider from lineage/i,
+  });
+  expect(lineageCastButton).toBeEnabled();
+  expect(
+    lineageCastButton.querySelector('i.fa-solid.fa-wand-sparkles')
+  ).not.toBeNull();
+  expect(
+    longstriderWithin.getByText('Uses remaining: 1')
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    await userEvent.click(lineageCastButton);
+  });
+
+  await waitFor(() => {
+    expect(
+      longstriderWithin.getByText('Uses remaining: 0')
+    ).toBeInTheDocument();
+  });
+
+  expect(onCastSpell).toHaveBeenCalledTimes(2);
+  expect(onCastSpell).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({
+      name: 'Longstrider',
+      castingTime: '1 action',
+    })
+  );
+  expect(onCastSpell).toHaveBeenNthCalledWith(2, 'action');
+
+  firstRender.unmount();
+
+  const secondRender = renderFeatures({
+    onCastSpell: jest.fn(),
+    longRestCount: 0,
+    shortRestCount: 0,
+  });
+
+  const persistedTitle = await screen.findByText('Longstrider (Level 3)');
+  const persistedCard = persistedTitle.closest('.feature-card');
+  expect(persistedCard).not.toBeNull();
+  const persistedWithin = within(persistedCard);
+  expect(
+    persistedWithin.getByText('Uses remaining: 0')
+  ).toBeInTheDocument();
+
+  secondRender.unmount();
+
+  const thirdRender = renderFeatures({
+    onCastSpell: jest.fn(),
+    longRestCount: 0,
+    shortRestCount: 0,
+  });
+
+  await screen.findByText('Longstrider (Level 3)');
+
+  thirdRender.rerender(
+    <Features
+      {...commonProps}
+      onCastSpell={jest.fn()}
+      longRestCount={1}
+      shortRestCount={0}
+    />
+  );
+
+  const resetTitle = await screen.findByText('Longstrider (Level 3)');
+  const resetCard = resetTitle.closest('.feature-card');
+  expect(resetCard).not.toBeNull();
+  const resetWithin = within(resetCard);
+  await waitFor(() => {
+    expect(
+      resetWithin.getByText('Uses remaining: 1')
+    ).toBeInTheDocument();
+  });
+
+  thirdRender.unmount();
+});
+
 test('features are sorted by class then level', async () => {
   apiFetch.mockImplementation((url) => {
     const match = url.match(/classes\/(.*?)\/features\/(\d+)/);
