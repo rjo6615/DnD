@@ -31,6 +31,12 @@ const ONCE_PER_LONG_REST_LINEAGE_SPELLS = {
   },
 };
 
+const ELVEN_LINEAGE_CANTRIP_FEATURE_IDS = new Set([
+  'elf-drow-dancing-lights',
+  'elf-high-prestidigitation',
+  'elf-wood-druidcraft',
+]);
+
 export default function Features({
   form,
   showFeatures,
@@ -1168,6 +1174,8 @@ export default function Features({
                     const isLineageOncePerLongRestSpell = Boolean(
                       lineageSpellConfig
                     );
+                    const isElvenLineageCantrip =
+                      ELVEN_LINEAGE_CANTRIP_FEATURE_IDS.has(feat.id);
                     const lineageSpellRemainingUses =
                       lineageSpellUses[feat.id] ?? 0;
                     return (
@@ -1189,6 +1197,12 @@ export default function Features({
                             </div>
                           </div>
                           <div className="feature-card-actions">
+                            {isElvenLineageCantrip && (
+                              <i
+                                className="fa-solid fa-wand-sparkles feature-card-spell-icon"
+                                aria-hidden="true"
+                              />
+                            )}
                             {isActionSurge ? (
                               <Button
                                 aria-label="use feature"
