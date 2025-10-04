@@ -4380,27 +4380,6 @@ export default function ZombiesCharacterSheet() {
               {form?.characterName || 'Loading Character'}
             </h1>
 
-            <div className="d-flex justify-content-center mt-2">
-              <Button
-                variant="outline-light"
-                size="sm"
-                onClick={handleOpenTokenPicker}
-              >
-                {characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
-                  ? 'Change Figurine'
-                  : 'Choose Figurine'}
-              </Button>
-            </div>
-            {characterFigurine?.figurineImageUrl ? (
-              <div className="d-flex justify-content-center mt-2">
-                <img
-                  src={characterFigurine.figurineImageUrl}
-                  alt="Current figurine token"
-                  style={{ maxHeight: '96px', maxWidth: '96px', objectFit: 'contain' }}
-                />
-              </div>
-            ) : null}
-
             <HealthDefense
               form={form}
               totalLevel={totalLevel}
@@ -4633,6 +4612,9 @@ export default function ZombiesCharacterSheet() {
           onShowBackground={handleShowBackground}
           onLongRest={handleLongRest}
           onShortRest={handleShortRest}
+          characterFigurine={characterFigurine}
+          handleOpenTokenPicker={handleOpenTokenPicker}
+          tokenPickerSaving={tokenPickerSaving}
         />
         <Skills
           form={form}

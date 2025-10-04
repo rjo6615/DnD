@@ -13,6 +13,9 @@ export default function CharacterInfo({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  characterFigurine,
+  handleOpenTokenPicker,
+  tokenPickerSaving = false,
 }) {
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -117,6 +120,25 @@ export default function CharacterInfo({
     : null;
   const displaySize =
     form?.temporarySize || form?.size || form?.height || "—";
+  const hasFigurineSelection = Boolean(
+    characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
+  );
+  const canOpenTokenPicker = typeof handleOpenTokenPicker === 'function';
+  const isFigurineButtonDisabled = tokenPickerSaving || !canOpenTokenPicker;
+
+  const figurineButtonLabel = tokenPickerSaving
+    ? 'Updating Figurine...'
+    : hasFigurineSelection
+    ? 'Change Figurine'
+    : 'Choose Figurine';
+
+  const handleFigurineButtonClick = useCallback(() => {
+    if (tokenPickerSaving || !canOpenTokenPicker) {
+      return;
+    }
+
+    handleOpenTokenPicker();
+  }, [canOpenTokenPicker, handleOpenTokenPicker, tokenPickerSaving]);
 
   return (
     <Modal
@@ -136,6 +158,35 @@ export default function CharacterInfo({
           <Card.Title className="modal-title">Character Info</Card.Title>
         </Card.Header>
         <Card.Body className="modal-body character-info-body" style={{ maxHeight: "60vh" }}>
+          <div className="character-info-figurine">
+            <div className="character-info-figurine__preview" aria-live="polite">
+              {characterFigurine?.figurineImageUrl ? (
+                <img
+                  src={characterFigurine.figurineImageUrl}
+                  alt="Selected figurine token"
+                  className="character-info-figurine__image"
+                />
+              ) : (
+                <div className="character-info-figurine__placeholder" aria-hidden="true">
+                  <i className="fas fa-chess-king"></i>
+                </div>
+              )}
+              {!characterFigurine?.figurineImageUrl && hasFigurineSelection && (
+                <div className="character-info-figurine__details">Figurine selected</div>
+              )}
+              {!hasFigurineSelection && (
+                <div className="character-info-figurine__details">No figurine selected</div>
+              )}
+            </div>
+            <Button
+              variant="outline-light"
+              size="sm"
+              onClick={handleFigurineButtonClick}
+              disabled={isFigurineButtonDisabled}
+            >
+              {figurineButtonLabel}
+            </Button>
+          </div>
           <div className="character-info-grid">
             <div className="character-info-item">
               <div className="character-info-label">Level</div>
