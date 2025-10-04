@@ -29,6 +29,7 @@ jest.mock('../utils/cloudinary', () => ({
   listTokenAssets: jest.fn(),
   listTokenFolderTree: jest.fn(),
   getTokenRootFolder: jest.fn(() => 'Tokens'),
+  suggestEnemyFigurine: jest.fn(),
 }));
 const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
@@ -39,6 +40,7 @@ const {
   listTokenAssets,
   listTokenFolderTree,
   getTokenRootFolder,
+  suggestEnemyFigurine,
 } = require('../utils/cloudinary');
 const registerCampaignRoutes = require('../routes/campaigns');
 
@@ -72,6 +74,7 @@ describe('Campaign routes', () => {
     listTokenAssets.mockReset();
     listTokenFolderTree.mockReset();
     getTokenRootFolder.mockReset();
+    suggestEnemyFigurine.mockReset();
     uploadMapImage.mockResolvedValue({
       secure_url:
         'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/default.png',
@@ -79,6 +82,7 @@ describe('Campaign routes', () => {
     });
     deleteMapImage.mockResolvedValue({ result: 'ok' });
     getTokenRootFolder.mockReturnValue('Tokens');
+    suggestEnemyFigurine.mockResolvedValue(null);
     mockUser = { username: 'DM' };
   });
 
@@ -1224,9 +1228,18 @@ describe('Campaign routes', () => {
     expect(res.body).toEqual([{ enemyId: 'enemy-1', name: 'Goblin' }]);
   });
 
-  test('add enemy success', async () => {
-    getMonsterByIndex.mockResolvedValue({ index: 'goblin' });
-    buildEnemyRecord.mockImplementation((monster, enemyId, providedName) => ({ enemyId, name: 'Goblin', providedName }));
+  test('add enemy success with suggested figurine', async () => {
+    getMonsterByIndex.mockResolvedValue({ index: 'goblin', name: 'Goblin' });
+    buildEnemyRecord.mockImplementation((monster, enemyId, providedName, extras) => ({
+      enemyId,
+      name: 'Goblin',
+      providedName,
+      ...extras,
+    }));
+    suggestEnemyFigurine.mockResolvedValue({
+      figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
+      figurineImagePublicId: 'Tokens/DM/goblin',
+    });
     const findOneAndUpdate = jest.fn().mockImplementation(async (query, update) => ({
       value: {
         campaignName: 'Test',
@@ -1247,16 +1260,61 @@ describe('Campaign routes', () => {
     expect(res.body.name).toBe('Goblin');
     expect(typeof res.body.enemyId).toBe('string');
     expect(getMonsterByIndex).toHaveBeenCalledWith('goblin');
+    expect(suggestEnemyFigurine).toHaveBeenCalledWith({ index: 'goblin', name: 'Goblin' });
     expect(buildEnemyRecord).toHaveBeenCalledWith(
-      { index: 'goblin' },
+      { index: 'goblin', name: 'Goblin' },
       res.body.enemyId,
       undefined,
-      expect.objectContaining({ figurineImagePublicId: null, figurineImageUrl: null })
+      expect.objectContaining({
+        figurineImagePublicId: 'Tokens/DM/goblin',
+        figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
+      })
     );
+    expect(res.body.figurineImageUrl).toBe(
+      'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png'
+    );
+    expect(res.body.figurineImagePublicId).toBe('Tokens/DM/goblin');
     expect(emitEnemiesUpdate).toHaveBeenCalledWith(
       'Test',
       [expect.objectContaining({ enemyId: res.body.enemyId, name: 'Goblin' })]
     );
+  });
+
+  test('add enemy success without suggested figurine fallback', async () => {
+    getMonsterByIndex.mockResolvedValue({ index: 'skeleton', name: 'Skeleton' });
+    suggestEnemyFigurine.mockResolvedValue(null);
+    buildEnemyRecord.mockImplementation((monster, enemyId, providedName, extras) => ({
+      enemyId,
+      name: monster.name,
+      providedName,
+      ...extras,
+    }));
+    const findOneAndUpdate = jest.fn().mockImplementation(async (query, update) => ({
+      value: {
+        campaignName: 'Test',
+        enemies: [update.$push.enemies],
+      },
+    }));
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate,
+      }),
+    });
+
+    const res = await request(app)
+      .post('/campaigns/Test/enemies')
+      .send({ index: 'skeleton' });
+
+    expect(res.status).toBe(200);
+    expect(suggestEnemyFigurine).toHaveBeenCalledWith({ index: 'skeleton', name: 'Skeleton' });
+    expect(buildEnemyRecord).toHaveBeenCalledWith(
+      { index: 'skeleton', name: 'Skeleton' },
+      res.body.enemyId,
+      undefined,
+      expect.objectContaining({ figurineImagePublicId: null, figurineImageUrl: null })
+    );
+    expect(res.body.figurineImageUrl).toBeNull();
+    expect(res.body.figurineImagePublicId).toBeNull();
   });
 
   test('delete enemy success', async () => {

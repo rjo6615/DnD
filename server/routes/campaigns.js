@@ -20,6 +20,7 @@ const {
   listTokenAssets,
   getTokenRootFolder,
   listTokenFolderTree,
+  suggestEnemyFigurine,
 } = require('../utils/cloudinary');
 
 const deriveCloudinaryPublicIdFromUrl = (url) => {
@@ -1448,9 +1449,23 @@ module.exports = (router) => {
               ? req.body.figurineImagePublicId.trim()
               : '';
 
+          let suggestedFigurine = null;
+          if (!rawFigurineUrl && !rawFigurinePublicId && typeof suggestEnemyFigurine === 'function') {
+            try {
+              suggestedFigurine = await suggestEnemyFigurine(monster);
+            } catch (suggestionError) {
+              logger.warn('Failed to suggest figurine for enemy', {
+                error: suggestionError.message,
+                monsterIndex: monster?.index,
+              });
+            }
+          }
+
           const enemyRecord = buildEnemyRecord(monster, enemyId, name, {
-            figurineImageUrl: rawFigurineUrl || null,
-            figurineImagePublicId: rawFigurinePublicId || null,
+            figurineImageUrl:
+              rawFigurineUrl || suggestedFigurine?.figurineImageUrl || null,
+            figurineImagePublicId:
+              rawFigurinePublicId || suggestedFigurine?.figurineImagePublicId || null,
           });
 
           if (!enemyRecord) {

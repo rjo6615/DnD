@@ -720,6 +720,7 @@ export default function ZombiesDM() {
     const activeMapTokensRef = useRef(activeMapTokens);
     const campaignMapRef = useRef(campaignMap);
     const activeMapIdRef = useRef(activeMapId);
+    const enemyTokenSelectionRef = useRef(enemyTokenSelection);
 
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
@@ -799,6 +800,10 @@ export default function ZombiesDM() {
     useEffect(() => {
       activeMapIdRef.current = activeMapId;
     }, [activeMapId]);
+
+    useEffect(() => {
+      enemyTokenSelectionRef.current = enemyTokenSelection;
+    }, [enemyTokenSelection]);
 
     useEffect(() => {
       if (!mapEditorErrors.title) {
@@ -985,6 +990,42 @@ export default function ZombiesDM() {
       return message;
     }, []);
 
+    const syncEnemyTokenSelection = useCallback(
+      (roster) => {
+        if (!Array.isArray(roster) || roster.length === 0) {
+          return;
+        }
+
+        const currentSelection = enemyTokenSelectionRef.current || {};
+        const hasUrl =
+          typeof currentSelection.figurineImageUrl === 'string' &&
+          currentSelection.figurineImageUrl.trim() !== '';
+        const hasPublicId =
+          typeof currentSelection.figurineImagePublicId === 'string' &&
+          currentSelection.figurineImagePublicId.trim() !== '';
+
+        if (hasUrl || hasPublicId) {
+          return;
+        }
+
+        const latestEnemy = roster[roster.length - 1];
+        if (!latestEnemy || typeof latestEnemy !== 'object') {
+          return;
+        }
+
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(latestEnemy);
+        if (!figurineImageUrl && !figurineImagePublicId) {
+          return;
+        }
+
+        setEnemyTokenSelection({
+          figurineImageUrl: figurineImageUrl || null,
+          figurineImagePublicId: figurineImagePublicId || null,
+        });
+      },
+      [setEnemyTokenSelection]
+    );
+
     const fetchRecords = useCallback(async () => {
       if (!campaignId || !encodedCampaign) {
         setRecords([]);
@@ -1023,7 +1064,9 @@ export default function ZombiesDM() {
 
         if (enemiesResponse.ok) {
           const enemiesData = await enemiesResponse.json();
-          setEnemies(Array.isArray(enemiesData) ? enemiesData : []);
+          const normalizedEnemies = Array.isArray(enemiesData) ? enemiesData : [];
+          setEnemies(normalizedEnemies);
+          syncEnemyTokenSelection(normalizedEnemies);
         } else if (enemiesResponse.status === 404) {
           setEnemies([]);
         } else {
@@ -1118,7 +1161,7 @@ export default function ZombiesDM() {
       } finally {
         setMapLoading(false);
       }
-    }, [campaignId, encodedCampaign, applyMapPayload]);
+    }, [campaignId, encodedCampaign, applyMapPayload, syncEnemyTokenSelection]);
 
     const fetchMonsterCatalog = useCallback(async () => {
       if (monsterCatalogLoading) {
@@ -1949,6 +1992,7 @@ export default function ZombiesDM() {
 
         const sanitized = roster.filter((entry) => entry && typeof entry === 'object');
         setEnemies(sanitized);
+        syncEnemyTokenSelection(sanitized);
       };
 
       const handleCharacterMetadataUpdate = (update) => {
@@ -2029,7 +2073,7 @@ export default function ZombiesDM() {
         socket.disconnect();
         socketRef.current = null;
       };
-    }, [campaignId, applyMapPayload]);
+    }, [campaignId, applyMapPayload, syncEnemyTokenSelection]);
 
     const persistTokenPosition = useCallback(
       async ({ mapId, characterId, x, y }) => {
