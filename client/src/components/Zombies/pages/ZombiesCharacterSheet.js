@@ -168,26 +168,38 @@ const normalizeCombatState = (state) => {
   return { participants, activeTurn };
 };
 
+const collectCharacterIdentifiers = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return [];
+  }
+
+  const identifiers = [];
+  if (typeof entity._id === 'string' && entity._id.trim() !== '') {
+    identifiers.push(entity._id.trim());
+  }
+  if (
+    typeof entity.characterId === 'string' &&
+    entity.characterId.trim() !== ''
+  ) {
+    identifiers.push(entity.characterId.trim());
+  }
+
+  return Array.from(new Set(identifiers));
+};
+
 const mapCharactersById = (characters) => {
   if (!Array.isArray(characters)) {
     return {};
   }
 
   return characters.reduce((acc, character) => {
-    if (!character) {
+    if (!character || typeof character !== 'object') {
       return acc;
     }
 
-    const id =
-      typeof character._id === "string"
-        ? character._id
-        : typeof character.characterId === "string"
-          ? character.characterId
-          : null;
-
-    if (id) {
-      acc[id] = character;
-    }
+    collectCharacterIdentifiers(character).forEach((identifier) => {
+      acc[identifier] = character;
+    });
 
     return acc;
   }, {});
@@ -2815,13 +2827,24 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
-      const rawCharacterId = update.characterId;
       const normalizedCharacterId =
-        typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
-          ? rawCharacterId.trim()
+        typeof update.characterId === 'string' && update.characterId.trim() !== ''
+          ? update.characterId.trim()
+          : null;
+      const normalizedRecordId =
+        typeof update._id === 'string' && update._id.trim() !== ''
+          ? update._id.trim()
           : null;
 
-      if (!normalizedCharacterId) {
+      const updateIdentifiers = Array.from(
+        new Set([
+          ...collectCharacterIdentifiers(update),
+          ...(normalizedCharacterId ? [normalizedCharacterId] : []),
+          ...(normalizedRecordId ? [normalizedRecordId] : []),
+        ])
+      );
+
+      if (updateIdentifiers.length === 0) {
         return;
       }
 
@@ -2846,7 +2869,29 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        const existing = prev[normalizedCharacterId];
+        const identifierSet = new Set(updateIdentifiers);
+        let existing = null;
+
+        for (const identifier of identifierSet) {
+          if (prev[identifier]) {
+            existing = prev[identifier];
+            break;
+          }
+        }
+
+        if (!existing) {
+          for (const value of Object.values(prev)) {
+            if (!value || typeof value !== 'object') {
+              continue;
+            }
+            const identifiers = collectCharacterIdentifiers(value);
+            if (identifiers.some((identifier) => identifierSet.has(identifier))) {
+              existing = value;
+              break;
+            }
+          }
+        }
+
         if (!existing) {
           return prev;
         }
@@ -2854,7 +2899,28 @@ export default function ZombiesCharacterSheet() {
         let didUpdate = false;
         const updatedCharacter = { ...existing };
 
-        if (nextTempHealthValue !== undefined && existing.tempHealth !== nextTempHealthValue) {
+        if (
+          normalizedCharacterId &&
+          (typeof updatedCharacter.characterId !== 'string' ||
+            updatedCharacter.characterId.trim() !== normalizedCharacterId)
+        ) {
+          updatedCharacter.characterId = normalizedCharacterId;
+          didUpdate = true;
+        }
+
+        if (
+          normalizedRecordId &&
+          (typeof updatedCharacter._id !== 'string' ||
+            updatedCharacter._id.trim() !== normalizedRecordId)
+        ) {
+          updatedCharacter._id = normalizedRecordId;
+          didUpdate = true;
+        }
+
+        if (
+          nextTempHealthValue !== undefined &&
+          existing.tempHealth !== nextTempHealthValue
+        ) {
           updatedCharacter.tempHealth = nextTempHealthValue;
           didUpdate = true;
         }
@@ -2868,10 +2934,17 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        return {
-          ...prev,
-          [normalizedCharacterId]: updatedCharacter,
-        };
+        const nextCharacters = { ...prev };
+        const identifiers = new Set([
+          ...collectCharacterIdentifiers(updatedCharacter),
+          ...identifierSet,
+        ]);
+
+        identifiers.forEach((identifier) => {
+          nextCharacters[identifier] = updatedCharacter;
+        });
+
+        return nextCharacters;
       });
 
       setForm((prev) => {
@@ -2879,20 +2952,31 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        const candidateIds = [];
-        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
-          candidateIds.push(prev._id.trim());
-        }
-        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
-          candidateIds.push(prev.characterId.trim());
-        }
-
-        if (!candidateIds.includes(normalizedCharacterId)) {
+        const candidateIds = collectCharacterIdentifiers(prev);
+        if (!candidateIds.some((identifier) => updateIdentifiers.includes(identifier))) {
           return prev;
         }
 
         let didUpdate = false;
         const updatedForm = { ...prev };
+
+        if (
+          normalizedCharacterId &&
+          (typeof updatedForm.characterId !== 'string' ||
+            updatedForm.characterId.trim() !== normalizedCharacterId)
+        ) {
+          updatedForm.characterId = normalizedCharacterId;
+          didUpdate = true;
+        }
+
+        if (
+          normalizedRecordId &&
+          (typeof updatedForm._id !== 'string' ||
+            updatedForm._id.trim() !== normalizedRecordId)
+        ) {
+          updatedForm._id = normalizedRecordId;
+          didUpdate = true;
+        }
 
         if (nextTempHealthValue !== undefined && prev.tempHealth !== nextTempHealthValue) {
           updatedForm.tempHealth = nextTempHealthValue;

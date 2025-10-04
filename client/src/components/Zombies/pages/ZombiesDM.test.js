@@ -37,7 +37,12 @@ const socketModule = require('socket.io-client');
 const CampaignMapBoard = require('../attributes/CampaignMapBoard').default;
 const MapModal = require('../attributes/MapModal').default;
 
-const ZombiesDM = require('./ZombiesDM').default;
+const {
+  default: ZombiesDM,
+  applyCharacterHealthUpdateToRecords,
+  getCharacterCardMeta,
+  getCombatRowMeta,
+} = require('./ZombiesDM');
 
 const armorSlotOptions = [
   { key: 'head', label: 'Head' },
@@ -258,6 +263,36 @@ describe('ZombiesDM AI generation', () => {
       'Select slot',
       ...armorSlotOptions.map((slot) => slot.label),
     ]);
+  });
+
+  test('character health updates propagate to record cards and combat rows', () => {
+    const originalRecord = { _id: 'abc123', health: 12 };
+    const records = [originalRecord];
+
+    const updatedRecords = applyCharacterHealthUpdateToRecords({
+      records,
+      update: { _id: 'abc123', characterId: 'hero-1', health: 7 },
+    });
+
+    expect(updatedRecords).not.toBe(records);
+    expect(updatedRecords[0]).not.toBe(originalRecord);
+    expect(updatedRecords[0].health).toBe(7);
+    expect(updatedRecords[0]._id).toBe('abc123');
+    expect(updatedRecords[0].characterId).toBe('hero-1');
+
+    const cardMeta = getCharacterCardMeta(updatedRecords[0], 0);
+    expect(cardMeta.testId).toBe('character-card-abc123');
+    expect(cardMeta.dataAttributes['data-character-id']).toBe('abc123');
+    expect(cardMeta.dataAttributes['data-current-hp']).toBe(7);
+
+    const combatMeta = getCombatRowMeta({
+      character: updatedRecords[0],
+      rowId: 'hero-1',
+      participantInfo: { characterId: 'hero-1', currentHp: 12, maxHp: 18 },
+      recordIndex: 0,
+    });
+    expect(combatMeta.testId).toBe('combat-row-hero-1');
+    expect(combatMeta.dataAttributes['data-current-hp']).toBe(7);
   });
 
   test('removes enemy tokens from maps before success status', async () => {
