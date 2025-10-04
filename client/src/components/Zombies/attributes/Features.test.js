@@ -8,6 +8,72 @@ import apiFetch from '../../../utils/apiFetch';
 
 const TEST_CHARACTER_ID = 'test-character-id';
 
+const ELVEN_LINEAGE_TEST_CASES = [
+  {
+    lineageKey: 'drow',
+    label: 'Drow',
+    ability: 'Charisma',
+    level3: {
+      displayName: 'Faerie Fire (Level 3)',
+      usageId: 'elf-drow-faerie-fire',
+      spellName: 'Faerie Fire',
+      spellLevel: 1,
+      castingTime: '1 action',
+      actionType: 'action',
+    },
+    level5: {
+      displayName: 'Darkness (Level 5)',
+      usageId: 'elf-drow-darkness',
+      spellName: 'Darkness',
+      spellLevel: 2,
+      castingTime: '1 action',
+      actionType: 'action',
+    },
+  },
+  {
+    lineageKey: 'high',
+    label: 'High Elf',
+    ability: 'Intelligence',
+    level3: {
+      displayName: 'Detect Magic (Level 3)',
+      usageId: 'elf-high-detect-magic',
+      spellName: 'Detect Magic',
+      spellLevel: 1,
+      castingTime: '1 action',
+      actionType: 'action',
+    },
+    level5: {
+      displayName: 'Misty Step (Level 5)',
+      usageId: 'elf-high-misty-step',
+      spellName: 'Misty Step',
+      spellLevel: 2,
+      castingTime: 'bonus action',
+      actionType: 'bonusAction',
+    },
+  },
+  {
+    lineageKey: 'wood',
+    label: 'Wood Elf',
+    ability: 'Wisdom',
+    level3: {
+      displayName: 'Longstrider (Level 3)',
+      usageId: 'elf-wood-longstrider',
+      spellName: 'Longstrider',
+      spellLevel: 1,
+      castingTime: '1 action',
+      actionType: 'action',
+    },
+    level5: {
+      displayName: 'Pass without Trace (Level 5)',
+      usageId: 'elf-wood-pass-without-trace',
+      spellName: 'Pass without Trace',
+      spellLevel: 2,
+      castingTime: '1 action',
+      actionType: 'action',
+    },
+  },
+];
+
 beforeEach(() => {
   apiFetch.mockReset();
   window.localStorage.clear();
@@ -1131,6 +1197,198 @@ test('orc characters display racial traits and track Adrenaline Rush uses with r
     refreshedWithin.getByText('Uses remaining: 3')
   ).toBeInTheDocument();
 });
+
+describe.each(ELVEN_LINEAGE_TEST_CASES)(
+  '$label lineage spells provide once-per-long-rest casts',
+  ({ lineageKey, label, ability, level3, level5 }) => {
+    test('renders lineage spell buttons with counters and resets on long rest', async () => {
+      apiFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ features: [] }),
+      });
+
+      const lineageDetails = {
+        label,
+        spellcastingAbilities: [ability],
+      };
+
+      const race = {
+        name: 'Elf',
+        elvenLineages: { [lineageKey]: lineageDetails },
+        selectedAncestryKey: lineageKey,
+        selectedAncestry: lineageDetails,
+      };
+
+      const createForm = (level) => ({
+        race,
+        elvenLineageKey: lineageKey,
+        elvenLineage: lineageDetails,
+        elvenLineageAbility: ability,
+        occupation: [{ Name: 'Wizard', Level: level }],
+      });
+
+      const onCastSpell = jest.fn();
+
+      const { rerender } = render(
+        <Features
+          form={createForm(3)}
+          showFeatures={true}
+          handleCloseFeatures={() => {}}
+          onCastSpell={onCastSpell}
+          longRestCount={0}
+          shortRestCount={0}
+          characterId={TEST_CHARACTER_ID}
+        />
+      );
+
+      const getFeatureCard = async (displayName) => {
+        const title = await screen.findByText(displayName);
+        const card = title.closest('.feature-card');
+        expect(card).not.toBeNull();
+        return card;
+      };
+
+      const level3Card = await getFeatureCard(level3.displayName);
+      const level3Within = within(level3Card);
+
+      await waitFor(() =>
+        expect(
+          level3Within.getByText('Uses remaining: 1')
+        ).toBeInTheDocument()
+      );
+
+      const level3Button = level3Within.getByRole('button', {
+        name: new RegExp(`Cast ${level3.spellName}`, 'i'),
+      });
+      expect(level3Button).toBeEnabled();
+
+      await act(async () => {
+        await userEvent.click(level3Button);
+      });
+
+      expect(onCastSpell).toHaveBeenNthCalledWith(1, {
+        castingTime: level3.castingTime,
+        level: level3.spellLevel,
+        lineageUsageId: level3.usageId,
+        name: level3.spellName,
+      });
+      expect(onCastSpell).toHaveBeenNthCalledWith(2, level3.actionType);
+      expect(level3Button).toBeDisabled();
+      expect(
+        level3Within.getByText('Uses remaining: 0')
+      ).toBeInTheDocument();
+
+      rerender(
+        <Features
+          form={createForm(3)}
+          showFeatures={true}
+          handleCloseFeatures={() => {}}
+          onCastSpell={onCastSpell}
+          longRestCount={1}
+          shortRestCount={0}
+          characterId={TEST_CHARACTER_ID}
+        />
+      );
+
+      const refreshedLevel3Card = await getFeatureCard(level3.displayName);
+      const refreshedLevel3Within = within(refreshedLevel3Card);
+      await waitFor(() =>
+        expect(
+          refreshedLevel3Within.getByText('Uses remaining: 1')
+        ).toBeInTheDocument()
+      );
+      const refreshedLevel3Button = refreshedLevel3Within.getByRole('button', {
+        name: new RegExp(`Cast ${level3.spellName}`, 'i'),
+      });
+      expect(refreshedLevel3Button).toBeEnabled();
+
+      rerender(
+        <Features
+          form={createForm(5)}
+          showFeatures={true}
+          handleCloseFeatures={() => {}}
+          onCastSpell={onCastSpell}
+          longRestCount={1}
+          shortRestCount={0}
+          characterId={TEST_CHARACTER_ID}
+        />
+      );
+
+      const level5Card = await getFeatureCard(level5.displayName);
+      const level5Within = within(level5Card);
+      await waitFor(() =>
+        expect(
+          level5Within.getByText('Uses remaining: 1')
+        ).toBeInTheDocument()
+      );
+
+      const level5Button = level5Within.getByRole('button', {
+        name: new RegExp(`Cast ${level5.spellName}`, 'i'),
+      });
+      expect(level5Button).toBeEnabled();
+
+      const level3CardAtFive = screen
+        .getByText(level3.displayName)
+        .closest('.feature-card');
+      expect(level3CardAtFive).not.toBeNull();
+      await waitFor(() =>
+        expect(
+          within(level3CardAtFive).getByText('Uses remaining: 1')
+        ).toBeInTheDocument()
+      );
+
+      await act(async () => {
+        await userEvent.click(level5Button);
+      });
+
+      expect(onCastSpell).toHaveBeenNthCalledWith(3, {
+        castingTime: level5.castingTime,
+        level: level5.spellLevel,
+        lineageUsageId: level5.usageId,
+        name: level5.spellName,
+      });
+      expect(onCastSpell).toHaveBeenNthCalledWith(4, level5.actionType);
+      expect(level5Button).toBeDisabled();
+      expect(
+        level5Within.getByText('Uses remaining: 0')
+      ).toBeInTheDocument();
+
+      rerender(
+        <Features
+          form={createForm(5)}
+          showFeatures={true}
+          handleCloseFeatures={() => {}}
+          onCastSpell={onCastSpell}
+          longRestCount={2}
+          shortRestCount={0}
+          characterId={TEST_CHARACTER_ID}
+        />
+      );
+
+      const resetLevel5Card = await getFeatureCard(level5.displayName);
+      const resetLevel5Within = within(resetLevel5Card);
+      await waitFor(() =>
+        expect(
+          resetLevel5Within.getByText('Uses remaining: 1')
+        ).toBeInTheDocument()
+      );
+
+      const resetLevel5Button = resetLevel5Within.getByRole('button', {
+        name: new RegExp(`Cast ${level5.spellName}`, 'i'),
+      });
+      expect(resetLevel5Button).toBeEnabled();
+      const resetLevel3Card = screen
+        .getByText(level3.displayName)
+        .closest('.feature-card');
+      expect(resetLevel3Card).not.toBeNull();
+      await waitFor(() =>
+        expect(
+          within(resetLevel3Card).getByText('Uses remaining: 1')
+        ).toBeInTheDocument()
+      );
+    });
+  }
+);
 
 test('rock gnome lineage surfaces cantrips and clockwork device guidance', async () => {
   apiFetch.mockResolvedValue({
