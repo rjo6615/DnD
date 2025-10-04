@@ -146,6 +146,60 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('finesse ability selection updates attack bonus and damage modifier', async () => {
+    const weapon = {
+      name: 'Rapier',
+      damage: '1d8 piercing',
+      category: 'melee',
+      source: 'weapon',
+      properties: ['Finesse'],
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={5}
+        dexMod={2}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Rapier').closest('.attack-card');
+    expect(card).not.toBeNull();
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    const attackValue = attackRow.querySelector('.attack-card__value');
+    expect(attackValue).not.toBeNull();
+    expect(attackValue?.textContent).toBe(String(7));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d8+5 Piercing')
+    ).toBeInTheDocument();
+
+    const abilitySelect = within(card).getByRole('combobox', {
+      name: /select ability for rapier/i,
+    });
+
+    await act(async () => {
+      fireEvent.change(abilitySelect, { target: { value: 'dex' } });
+    });
+
+    await waitFor(() => {
+      expect(attackValue?.textContent).toBe(String(4));
+      expect(
+        within(damageRow).getByText('1d8+2 Piercing')
+      ).toBeInTheDocument();
+    });
+  });
+
   test('multi-part weapon damage applies ability modifier once', () => {
     const weapon = {
       name: 'Storm Blade',
