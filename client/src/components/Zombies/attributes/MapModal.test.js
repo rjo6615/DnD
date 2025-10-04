@@ -1,5 +1,6 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import MapModal from './MapModal';
 
 let capturedModalProps;
@@ -53,5 +54,70 @@ describe('MapModal docking props', () => {
     expect(capturedModalProps.centered).toBe(true);
     expect(capturedModalProps.backdrop).toBe(true);
     expect(capturedModalProps.enforceFocus).toBe(true);
+  });
+});
+
+describe('MapModal folder expansion', () => {
+  const renderMapModal = (overrideProps = {}) => {
+    const maps = [
+      { mapId: 'map-1', title: 'Forest Path', folder: 'Encounters' },
+      { mapId: 'map-2', title: 'Dungeon Depths', folder: 'Dungeons' },
+      { mapId: 'map-3', title: 'Lonely Road' },
+    ];
+
+    return render(
+      <MapModal
+        show
+        title="Test Map Modal"
+        maps={maps}
+        activeMapId="map-1"
+        onHide={jest.fn()}
+        onSelectMap={jest.fn()}
+        onActivateMap={jest.fn()}
+        onDeleteMap={jest.fn()}
+        {...overrideProps}
+      />
+    );
+  };
+
+  it('expands folders that contain the active map by default and toggles visibility', async () => {
+    renderMapModal();
+
+    const encountersToggle = screen.getByTestId('map-modal-folder-encounters-toggle');
+    expect(encountersToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(encountersToggle).toHaveAttribute('aria-controls', 'map-modal-folder-encounters-body');
+
+    const encountersItem = await screen.findByTestId('map-modal-item-map-1');
+    expect(encountersItem.dataset.folder).toBe('Encounters');
+
+    await userEvent.click(encountersToggle);
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-modal-item-map-1')).not.toBeInTheDocument()
+    );
+
+    await userEvent.click(encountersToggle);
+    await waitFor(() =>
+      expect(screen.getByTestId('map-modal-item-map-1')).toBeInTheDocument()
+    );
+  });
+
+  it('allows collapsed folders to be expanded to reveal their maps', async () => {
+    renderMapModal();
+
+    const dungeonsToggle = screen.getByTestId('map-modal-folder-dungeons-toggle');
+    expect(dungeonsToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('map-modal-item-map-2')).not.toBeInTheDocument();
+
+    await userEvent.click(dungeonsToggle);
+    const dungeonItem = await screen.findByTestId('map-modal-item-map-2');
+    expect(dungeonItem.dataset.folder).toBe('Dungeons');
+
+    const noFolderToggle = screen.getByTestId('map-modal-folder-no-folder-toggle');
+    expect(noFolderToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('map-modal-item-map-3')).not.toBeInTheDocument();
+
+    await userEvent.click(noFolderToggle);
+    const noFolderItem = await screen.findByTestId('map-modal-item-map-3');
+    expect(noFolderItem.dataset.folder).toBeUndefined();
   });
 });

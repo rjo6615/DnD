@@ -376,7 +376,12 @@ describe('ZombiesDM AI generation', () => {
 
     const [mapModalProps] = MapModal.mock.calls.find(([props]) => props.show);
     const actualMapModal = jest.requireActual('../attributes/MapModal').default;
-    const { getByTestId: getModalByTestId, unmount: unmountModal } = render(
+    const {
+      getByTestId: getModalByTestId,
+      queryByTestId: queryModalByTestId,
+      findByTestId: findModalByTestId,
+      unmount: unmountModal,
+    } = render(
       React.createElement(actualMapModal, { ...mapModalProps, show: true })
     );
 
@@ -384,11 +389,43 @@ describe('ZombiesDM AI generation', () => {
     expect(getModalByTestId('map-modal-folder-encounters')).toBeInTheDocument();
     expect(getModalByTestId('map-modal-folder-no-folder')).toBeInTheDocument();
 
-    expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
-      'Forest Encounters'
+    const forestToggle = getModalByTestId('map-modal-folder-forest-encounters-toggle');
+    expect(forestToggle).toHaveAttribute('aria-expanded', 'true');
+
+    const forestMapItem = await findModalByTestId('map-modal-item-forest-map');
+    expect(forestMapItem.dataset.folder).toBe('Forest Encounters');
+
+    await userEvent.click(forestToggle);
+    await waitFor(() =>
+      expect(queryModalByTestId('map-modal-item-forest-map')).not.toBeInTheDocument()
     );
-    expect(getModalByTestId('map-modal-item-encounter-map').dataset.folder).toBe('Encounters');
-    expect(getModalByTestId('map-modal-item-no-folder-map').dataset.folder).toBeUndefined();
+
+    await userEvent.click(forestToggle);
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
+        'Forest Encounters'
+      )
+    );
+
+    const encountersToggle = getModalByTestId('map-modal-folder-encounters-toggle');
+    expect(encountersToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(queryModalByTestId('map-modal-item-encounter-map')).not.toBeInTheDocument();
+
+    await userEvent.click(encountersToggle);
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-encounter-map').dataset.folder).toBe(
+        'Encounters'
+      )
+    );
+
+    const noFolderToggle = getModalByTestId('map-modal-folder-no-folder-toggle');
+    expect(noFolderToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(queryModalByTestId('map-modal-item-no-folder-map')).not.toBeInTheDocument();
+
+    await userEvent.click(noFolderToggle);
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-no-folder-map').dataset.folder).toBeUndefined()
+    );
 
     unmountModal();
   });
