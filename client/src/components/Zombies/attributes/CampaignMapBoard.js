@@ -529,10 +529,6 @@ const CampaignMapBoard = ({
                         <span className="campaign-map-board__figurine-torso" />
                         <span className="campaign-map-board__figurine-cloak" />
                       </span>
-                      <span className="campaign-map-board__figurine-base">
-                        <span className="campaign-map-board__figurine-base-top" />
-                        <span className="campaign-map-board__figurine-base-texture" />
-                      </span>
                     </div>
                     {displayLabel && (
                       <span className={labelClassName} aria-hidden="true">
