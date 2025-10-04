@@ -280,12 +280,29 @@ const prepareStoredMap = ({
     }
   }
 
+  if (typeof storedMap.folder === 'string') {
+    const trimmedFolder = storedMap.folder.trim();
+    if (trimmedFolder) {
+      storedMap.folder = trimmedFolder;
+    } else {
+      delete storedMap.folder;
+    }
+  }
+
   if (
     !storedMap.title &&
     typeof existing.title === 'string' &&
     existing.title.trim() !== ''
   ) {
     storedMap.title = existing.title.trim();
+  }
+
+  if (
+    storedMap.folder === undefined &&
+    typeof existing.folder === 'string' &&
+    existing.folder.trim() !== ''
+  ) {
+    storedMap.folder = existing.folder.trim();
   }
 
   if (typeof storedMap.cloudinaryPublicId === 'string') {

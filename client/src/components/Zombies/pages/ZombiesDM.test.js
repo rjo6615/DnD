@@ -133,11 +133,16 @@ describe('ZombiesDM AI generation', () => {
     const mapTab = await screen.findByRole('tab', { name: 'Map' });
     await userEvent.click(mapTab);
 
+    await screen.findByTestId('map-list');
+
     const createButton = await screen.findByTestId('create-map-button');
     await userEvent.click(createButton);
 
     const modal = await screen.findByTestId('map-editor-modal');
     const modalQueries = within(modal);
+
+    const folderInput = modalQueries.getByLabelText(/^Folder/);
+    expect(folderInput).not.toBeRequired();
 
     const getRequiredLabel = (labelText) =>
       modalQueries.getByText((_, element) => {
@@ -230,6 +235,162 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => {
       expect(getMapPostCalls()).toHaveLength(1);
     });
+  });
+
+  test('map folder selection persists and manager groups maps by folder', async () => {
+    const now = '2024-01-01T00:00:00.000Z';
+    const baseMaps = [
+      {
+        mapId: 'encounter-map',
+        title: 'Existing Encounter',
+        folder: 'Encounters',
+        imageUrl: 'https://example.com/encounter.png',
+        altText: 'Encounter map',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        mapId: 'no-folder-map',
+        title: 'Loose Map',
+        imageUrl: 'https://example.com/loose.png',
+        altText: 'Loose map',
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+    let storedMaps = [...baseMaps];
+    let lastPostBody = null;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps': {
+          if (options.method === 'POST') {
+            const parsedBody = JSON.parse(options.body || '{}');
+            lastPostBody = parsedBody;
+            const createdMap = {
+              mapId: 'forest-map',
+              title: parsedBody.map?.title || 'Forest Map',
+              folder: parsedBody.map?.folder,
+              imageUrl: parsedBody.map?.imageUrl || 'https://example.com/forest.png',
+              altText: parsedBody.map?.altText || 'Forest map',
+              createdAt: now,
+              updatedAt: now,
+            };
+            storedMaps = [...baseMaps, createdMap];
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                maps: storedMaps,
+                activeMapId: createdMap.mapId,
+                map: { ...createdMap, tokens: {} },
+                tokensByMapId: {},
+                activeMapTokens: {},
+              }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: storedMaps,
+              activeMapId: storedMaps[0].mapId,
+              map: { ...storedMaps[0], tokens: {} },
+              tokensByMapId: {},
+              activeMapTokens: {},
+            }),
+          });
+        }
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const createButton = await screen.findByTestId('create-map-button');
+    await userEvent.click(createButton);
+
+    const modal = await screen.findByTestId('map-editor-modal');
+    const modalQueries = within(modal);
+
+    await userEvent.type(modalQueries.getByLabelText(/^Title/), 'Forest Ambush');
+    const folderInput = modalQueries.getByLabelText(/^Folder/);
+    await userEvent.clear(folderInput);
+    await userEvent.type(folderInput, 'Forest Encounters');
+    await userEvent.type(
+      modalQueries.getByLabelText(/^Image URL/),
+      'https://example.com/forest.png'
+    );
+    await userEvent.type(modalQueries.getByLabelText(/^Alt Text/), 'Forest clearing');
+
+    await userEvent.click(modalQueries.getByTestId('map-editor-submit-button'));
+
+    await waitFor(() => {
+      expect(lastPostBody).not.toBeNull();
+    });
+
+    expect(lastPostBody.map.folder).toBe('Forest Encounters');
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Forest Ambush')).toBeInTheDocument();
+    });
+
+    await userEvent.click(createButton);
+    const modalAgain = await screen.findByTestId('map-editor-modal');
+    const modalAgainQueries = within(modalAgain);
+    const folderInputAgain = modalAgainQueries.getByLabelText(/^Folder/);
+    expect(folderInputAgain).toHaveValue('Forest Encounters');
+
+    await userEvent.click(modalAgainQueries.getByRole('button', { name: /cancel/i }));
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
+    );
+
+    const manageButton = await screen.findByTestId('open-map-manager-button');
+    await userEvent.click(manageButton);
+
+    await waitFor(() => {
+      const modalInvocation = MapModal.mock.calls.find(([props]) => props.show);
+      expect(modalInvocation).toBeDefined();
+    });
+
+    const [mapModalProps] = MapModal.mock.calls.find(([props]) => props.show);
+    const actualMapModal = jest.requireActual('../attributes/MapModal').default;
+    const { getByTestId: getModalByTestId, unmount: unmountModal } = render(
+      React.createElement(actualMapModal, { ...mapModalProps, show: true })
+    );
+
+    expect(getModalByTestId('map-modal-folder-forest-encounters')).toBeInTheDocument();
+    expect(getModalByTestId('map-modal-folder-encounters')).toBeInTheDocument();
+    expect(getModalByTestId('map-modal-folder-no-folder')).toBeInTheDocument();
+
+    expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
+      'Forest Encounters'
+    );
+    expect(getModalByTestId('map-modal-item-encounter-map').dataset.folder).toBe('Encounters');
+    expect(getModalByTestId('map-modal-item-no-folder-map').dataset.folder).toBeUndefined();
+
+    unmountModal();
   });
 
   test.skip('generates armor via AI and populates form', async () => {

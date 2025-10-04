@@ -177,6 +177,7 @@ describe('Campaign routes', () => {
     const baseMap = {
       title: 'Dungeon',
       summary: 'An underground lair',
+      folder: 'Dungeons',
       imageUrl:
         'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/base/dungeon.png',
       altText: 'Dungeon entrance map',
@@ -216,7 +217,9 @@ describe('Campaign routes', () => {
 
     const res = await request(app).get('/campaigns/Test/map');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(expect.objectContaining({ mapId: storedMap.mapId }));
+    expect(res.body).toEqual(
+      expect.objectContaining({ mapId: storedMap.mapId, folder: storedMap.folder })
+    );
     expect(res.body.tokens).toEqual({});
   });
 
@@ -267,7 +270,9 @@ describe('Campaign routes', () => {
     expect(res.body.activeMapTokens).toEqual({});
     expect(res.body.tokensByMapId).toEqual({});
     expect(res.body.maps).toEqual(
-      expect.arrayContaining([expect.objectContaining({ mapId: storedMap.mapId })])
+      expect.arrayContaining([
+        expect.objectContaining({ mapId: storedMap.mapId, folder: storedMap.folder }),
+      ])
     );
   });
 
@@ -297,6 +302,7 @@ describe('Campaign routes', () => {
         summary: 'An underground lair',
         imageBase64: 'QUJD',
         imageType: 'image/png',
+        folder: 'Boss Lairs',
       };
 
       const res = await request(app)
@@ -310,6 +316,7 @@ describe('Campaign routes', () => {
           title: baseMap.title,
           originalPrompt: 'Create a dungeon map',
           mapId: res.body.activeMapId,
+          folder: 'Boss Lairs',
           imageUrl:
             'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/new-map.png',
           cloudinaryPublicId: 'maps/demo/new-map',
@@ -320,7 +327,11 @@ describe('Campaign routes', () => {
       expect(res.body.tokensByMapId).toEqual({});
       expect(res.body.maps).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+          expect.objectContaining({
+            mapId: res.body.activeMapId,
+            title: baseMap.title,
+            folder: 'Boss Lairs',
+          }),
         ])
       );
       expect(uploadMapImage).toHaveBeenCalledWith('data:image/png;base64,QUJD');
@@ -331,7 +342,11 @@ describe('Campaign routes', () => {
             activeMapId: res.body.activeMapId,
             map: expect.objectContaining({ mapId: res.body.activeMapId }),
             maps: expect.arrayContaining([
-              expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+              expect.objectContaining({
+                mapId: res.body.activeMapId,
+                title: baseMap.title,
+                folder: 'Boss Lairs',
+              }),
             ]),
             mapTokens: {},
           }),
@@ -343,7 +358,11 @@ describe('Campaign routes', () => {
           activeMapId: res.body.activeMapId,
           map: expect.objectContaining({ mapId: res.body.activeMapId }),
           maps: expect.arrayContaining([
-            expect.objectContaining({ mapId: res.body.activeMapId, title: baseMap.title }),
+            expect.objectContaining({
+              mapId: res.body.activeMapId,
+              title: baseMap.title,
+              folder: 'Boss Lairs',
+            }),
           ]),
           tokensByMapId: {},
           activeMapTokens: {},
@@ -374,6 +393,7 @@ describe('Campaign routes', () => {
           mapId: storedMap.mapId,
           updatedAt: expect.any(String),
           tokens: {},
+          folder: baseMap.folder,
         })
       );
       const lastUpdate = updateOne.mock.calls[updateOne.mock.calls.length - 1]?.[1];
@@ -384,9 +404,14 @@ describe('Campaign routes', () => {
             map: expect.objectContaining({
               mapId: storedMap.mapId,
               originalPrompt: 'Create a dungeon map',
+              folder: baseMap.folder,
             }),
             maps: expect.arrayContaining([
-              expect.objectContaining({ mapId: storedMap.mapId, title: baseMap.title }),
+              expect.objectContaining({
+                mapId: storedMap.mapId,
+                title: baseMap.title,
+                folder: baseMap.folder,
+              }),
             ]),
             mapTokens: {},
           }),
@@ -396,7 +421,7 @@ describe('Campaign routes', () => {
         'Test',
         expect.objectContaining({
           activeMapId: storedMap.mapId,
-          map: expect.objectContaining({ mapId: storedMap.mapId }),
+          map: expect.objectContaining({ mapId: storedMap.mapId, folder: baseMap.folder }),
           tokensByMapId: {},
           activeMapTokens: {},
         })
@@ -482,7 +507,11 @@ describe('Campaign routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.activeMapId).toBe(secondaryMap.mapId);
       expect(res.body.map).toEqual(
-        expect.objectContaining({ mapId: secondaryMap.mapId, title: secondaryMap.title })
+        expect.objectContaining({
+          mapId: secondaryMap.mapId,
+          title: secondaryMap.title,
+          folder: secondaryMap.folder,
+        })
       );
       expect(res.body.map.tokens).toEqual({});
       expect(res.body.activeMapTokens).toEqual({});
@@ -534,6 +563,7 @@ describe('Campaign routes', () => {
             imageUrl:
               'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/updated-map.png',
             cloudinaryPublicId: 'maps/demo/updated-map',
+            folder: storedMap.folder,
           }),
         ])
       );
@@ -543,6 +573,7 @@ describe('Campaign routes', () => {
           title: 'Updated Dungeon',
           originalPrompt: 'Updated map prompt',
           cloudinaryPublicId: 'maps/demo/updated-map',
+          folder: storedMap.folder,
         })
       );
     });
@@ -578,12 +609,16 @@ describe('Campaign routes', () => {
           mapId: storedMap.mapId,
           title: storedMap.title,
           cloudinaryPublicId: storedMap.cloudinaryPublicId,
+          folder: storedMap.folder,
         })
       );
       expect(res.body.map.tokens).toEqual({});
       expect(res.body.activeMapTokens).toEqual({});
       expect(res.body.tokensByMapId).toEqual({});
       expect(res.body.maps).toHaveLength(1);
+      expect(res.body.maps[0]).toEqual(
+        expect.objectContaining({ folder: storedMap.folder })
+      );
       expect(deleteMapImage).toHaveBeenCalledTimes(1);
       expect(deleteMapImage).toHaveBeenCalledWith('maps/forest/secondary-map');
       expect(emitMapUpdate).toHaveBeenCalledWith(
@@ -623,6 +658,9 @@ describe('Campaign routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.activeMapId).toBe(storedMap.mapId);
+      expect(res.body.map).toEqual(
+        expect.objectContaining({ folder: storedMap.folder })
+      );
       expect(deleteMapImage).toHaveBeenCalledWith('maps/cavern/secondary-map');
       expect(emitMapUpdate).toHaveBeenCalled();
     });
@@ -654,6 +692,7 @@ describe('Campaign routes', () => {
       const res = await request(app).delete(`/campaigns/Test/maps/${secondaryMap.mapId}`);
 
       expect(res.status).toBe(200);
+      expect(res.body.map).toEqual(expect.objectContaining({ folder: storedMap.folder }));
       expect(deleteMapImage).toHaveBeenCalledWith('maps/test-citadel');
       expect(emitMapUpdate).toHaveBeenCalled();
     });

@@ -661,6 +661,7 @@ export default function ZombiesDM() {
       mode: 'create',
       map: null,
       title: '',
+      folder: '',
       imageUrl: '',
       imageBase64: '',
       imageType: '',
@@ -670,6 +671,7 @@ export default function ZombiesDM() {
     });
     const [mapEditorErrors, setMapEditorErrors] = useState({});
     const [mapEditorSaving, setMapEditorSaving] = useState(false);
+    const [lastMapFolder, setLastMapFolder] = useState('');
     const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
     const [mapPrompt, setMapPrompt] = useState('');
     const [generatedMap, setGeneratedMap] = useState(null);
@@ -697,6 +699,24 @@ export default function ZombiesDM() {
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
       [campaignId]
     );
+
+    const availableMapFolders = useMemo(() => {
+      const folderSet = new Set();
+      if (Array.isArray(maps)) {
+        maps.forEach((map) => {
+          if (!map || typeof map !== 'object') {
+            return;
+          }
+          const folderValue =
+            typeof map.folder === 'string' ? map.folder.trim() : '';
+          if (folderValue) {
+            folderSet.add(folderValue);
+          }
+        });
+      }
+
+      return Array.from(folderSet).sort((a, b) => a.localeCompare(b));
+    }, [maps]);
 
     useEffect(() => {
       mapTokensRef.current = mapTokens;
@@ -777,6 +797,11 @@ export default function ZombiesDM() {
         });
       }
     }, [mapEditorErrors.altText, mapEditorState.altText, mapEditorState.mode]);
+
+    const folderDatalistId = useMemo(
+      () => (availableMapFolders.length > 0 ? 'map-editor-folder-options' : undefined),
+      [availableMapFolders.length]
+    );
 
     const imageSourceDescribedBy = useMemo(() => {
       const ids = ['map-editor-image-requirement'];
@@ -3230,6 +3255,7 @@ export default function ZombiesDM() {
 
             setGeneratedMap(null);
             setStatus({ type: 'success', message: 'Map saved.' });
+            setLastMapFolder(trimmedFolder);
           } else {
             const activeId =
               activeMapId ||
@@ -3338,12 +3364,19 @@ export default function ZombiesDM() {
         {};
 
       const safeMap = sourceMap && typeof sourceMap === 'object' ? sourceMap : {};
+      const defaultFolder =
+        typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+          ? safeMap.folder.trim()
+          : typeof lastMapFolder === 'string'
+          ? lastMapFolder
+          : '';
 
       setMapEditorState({
         show: true,
         mode: 'create',
         map: safeMap,
         title: '',
+        folder: defaultFolder || '',
         imageUrl: '',
         imageBase64: '',
         imageType: '',
@@ -3351,7 +3384,7 @@ export default function ZombiesDM() {
         activateOnSave: maps.length === 0,
         fileInputKey: Date.now(),
       });
-    }, [generatedMap, selectedMapId, maps, campaignMap]);
+    }, [generatedMap, selectedMapId, maps, campaignMap, lastMapFolder]);
 
     const openRenameMapModal = useCallback((map) => {
       if (!map || typeof map !== 'object') {
@@ -3367,6 +3400,10 @@ export default function ZombiesDM() {
         mode: 'rename',
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
+        folder:
+          typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+            ? safeMap.folder.trim()
+            : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
         imageBase64:
           typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
@@ -3462,6 +3499,7 @@ export default function ZombiesDM() {
           mode,
           map: editorMap,
           title,
+          folder,
           imageUrl,
           imageBase64,
           imageType,
@@ -3481,6 +3519,7 @@ export default function ZombiesDM() {
         const trimmedImageType =
           typeof imageType === 'string' ? imageType.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
+        const trimmedFolder = typeof folder === 'string' ? folder.trim() : '';
 
         const errors = {};
 
@@ -3512,11 +3551,16 @@ export default function ZombiesDM() {
         delete sanitizedBaseMap.imageUrl;
         delete sanitizedBaseMap.imageBase64;
         delete sanitizedBaseMap.imageType;
+        delete sanitizedBaseMap.folder;
 
         const payloadMap = {
           ...sanitizedBaseMap,
           title: normalizedTitle,
         };
+
+        if (trimmedFolder) {
+          payloadMap.folder = trimmedFolder;
+        }
 
         if (trimmedAltText) {
           payloadMap.altText = trimmedAltText;
@@ -3661,6 +3705,7 @@ export default function ZombiesDM() {
             }
 
             setStatus({ type: 'success', message: 'Map updated.' });
+            setLastMapFolder(trimmedFolder);
           }
 
           setGeneratedMap(null);
@@ -3684,6 +3729,7 @@ export default function ZombiesDM() {
         previewMap,
         applyMapPayload,
         parseErrorMessage,
+        setLastMapFolder,
       ]
     );
 
@@ -7152,6 +7198,28 @@ const resolveIcon = (category, iconMap, fallback) => {
                   {mapEditorErrors.title}
                 </Form.Control.Feedback>
               )}
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-folder">
+              <Form.Label>Folder</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Optional folder name"
+                value={mapEditorState.folder}
+                onChange={handleMapEditorInputChange('folder')}
+                disabled={mapEditorSaving}
+                list={folderDatalistId}
+                data-testid="map-editor-folder-input"
+              />
+              {availableMapFolders.length > 0 ? (
+                <datalist id="map-editor-folder-options">
+                  {availableMapFolders.map((folderName) => (
+                    <option value={folderName} key={folderName} />
+                  ))}
+                </datalist>
+              ) : null}
+              <Form.Text className="text-muted">
+                Choose an existing folder or enter a new one.
+              </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
               <Form.Label>
