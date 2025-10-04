@@ -174,4 +174,23 @@ describe('CampaignMapBoard pointer interactions', () => {
 
     expect(pointerUpEvent.defaultPrevented).toBe(true);
   });
+
+  it('renders a figurine image overlay when provided and preserves accessibility labels', () => {
+    const { container } = renderBoard({
+      token: {
+        figurineImageUrl: ' https://example.com/figurines/hero.png ',
+        figurineImagePublicId: ' figurines/heroes/hero ',
+      },
+    });
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    expect(tokenElement).toHaveAttribute('aria-label', 'Test Token');
+
+    const figurineImage = tokenElement.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+    expect(figurineImage).toHaveAttribute('src', 'https://example.com/figurines/hero.png');
+    expect(figurineImage).toHaveAttribute('data-figurine-public-id', 'figurines/heroes/hero');
+    expect(figurineImage?.getAttribute('alt')).toBe('');
+  });
 });

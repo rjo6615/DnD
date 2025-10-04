@@ -2729,12 +2729,37 @@ h1 {
     filter: drop-shadow(0 0.35rem 0.85rem rgba(6, 7, 10, 0.65))
       drop-shadow(0 0.05rem 0.25rem rgba(255, 255, 255, 0.12));
     transition: transform 0.2s ease, filter 0.2s ease;
+    position: relative;
   }
 
   &__figurine--active {
     transform: translateY(-3px) scale(1.02);
     filter: drop-shadow(0 0.55rem 1.25rem rgba(7, 8, 13, 0.75))
       drop-shadow(0 0.15rem 0.35rem rgba(255, 255, 255, 0.2));
+  }
+
+  &__figurine-image-wrapper {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  &__figurine-image {
+    width: var(--figurine-body-width);
+    max-width: 100%;
+    height: auto;
+    max-height: calc(var(--figurine-base-size) * 2.35);
+    object-fit: contain;
+    filter: drop-shadow(0 0.4rem 0.9rem rgba(0, 0, 0, 0.55));
+  }
+
+  &__figurine--has-image .campaign-map-board__figurine-figure {
+    opacity: 0;
   }
 
   &__figurine-figure {

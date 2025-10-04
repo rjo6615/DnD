@@ -38,6 +38,7 @@ import speakWithAnimalsIcon from "../../../images/speak-with-animal.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 import {
   normalizeItems as normalizeInventoryItems,
   normalizeAccessories as normalizeInventoryAccessories,
@@ -3213,6 +3214,8 @@ export default function ZombiesCharacterSheet() {
             value?.displayType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(value);
+
         lookup[trimmed] = {
           color,
           label,
@@ -3220,6 +3223,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
           ...(recordSize ? { size: recordSize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       });
     }
@@ -3258,6 +3263,8 @@ export default function ZombiesCharacterSheet() {
           enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+
         lookup[enemyId] = {
           color: ENEMY_FIGURINE_COLOR,
           label,
@@ -3265,6 +3272,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
           maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
           ...(enemySize ? { size: enemySize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       });
     }
@@ -3297,6 +3306,8 @@ export default function ZombiesCharacterSheet() {
             form?.displayType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(form);
+
         lookup[resolvedCharacterId] = {
           color,
           label,
@@ -3304,6 +3315,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
           ...(fallbackSize ? { size: fallbackSize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       } else {
         const fallbackSize = normalizeCreatureSize(
@@ -3320,6 +3333,8 @@ export default function ZombiesCharacterSheet() {
 
         const nextEntry = { ...lookup[resolvedCharacterId] };
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(form);
+
         if (
           typeof nextEntry.entityType !== 'string' ||
           nextEntry.entityType.trim() === ''
@@ -3329,6 +3344,14 @@ export default function ZombiesCharacterSheet() {
 
         if (fallbackSize) {
           nextEntry.size = fallbackSize;
+        }
+
+        if (figurineImageUrl && !nextEntry.figurineImageUrl) {
+          nextEntry.figurineImageUrl = figurineImageUrl;
+        }
+
+        if (figurineImagePublicId && !nextEntry.figurineImagePublicId) {
+          nextEntry.figurineImagePublicId = figurineImagePublicId;
         }
 
         lookup[resolvedCharacterId] = nextEntry;
