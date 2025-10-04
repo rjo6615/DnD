@@ -2644,7 +2644,7 @@ h1 {
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    gap: clamp(2px, calc(var(--figurine-base-size) * 0.08), 0.4rem);
+    gap: clamp(1px, calc(var(--figurine-base-size) * 0.05), 0.25rem);
     outline: none;
     touch-action: none;
     width: var(--figurine-base-size);
