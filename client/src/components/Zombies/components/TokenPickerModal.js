@@ -4,9 +4,14 @@ import { Modal, Button, Spinner, Row, Col, Alert, Form } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 
 const DEFAULT_DM_FILTERS = [
-  { key: 'all', label: 'All Tokens', folders: null },
-  { key: 'adventurers', label: 'Adventurers', folders: ['Adventurers'] },
-  { key: 'dm', label: 'Dungeon Master', folders: ['DM'] },
+  { key: 'all', label: 'All Tokens', folders: null, aliases: ['all'] },
+  {
+    key: 'adventurers',
+    label: 'Adventurers',
+    folders: ['Adventurers'],
+    aliases: ['Adventurers', 'adventurers'],
+  },
+  { key: 'dm', label: 'Dungeon Master', folders: ['DM'], aliases: ['DM', 'dm'] },
 ];
 
 const buildFilterMap = (filters = []) => {
@@ -19,6 +24,132 @@ const buildFilterMap = (filters = []) => {
       .filter((filter) => filter && typeof filter === 'object' && filter.key)
       .map((filter) => [filter.key, filter])
   );
+};
+
+const NBSP = '\u00A0';
+
+const cloneFilters = (filters = []) => {
+  if (!Array.isArray(filters)) {
+    return [];
+  }
+
+  return filters
+    .filter((filter) => filter && typeof filter === 'object')
+    .map((filter) => ({
+      ...filter,
+      ...(Array.isArray(filter.folders) ? { folders: [...filter.folders] } : {}),
+      ...(Array.isArray(filter.aliases) ? { aliases: [...filter.aliases] } : {}),
+    }));
+};
+
+const buildDynamicDmFilters = (folderTree, fallbackFilters = DEFAULT_DM_FILTERS) => {
+  const fallback = cloneFilters(fallbackFilters);
+
+  if (!folderTree || typeof folderTree !== 'object') {
+    return fallback;
+  }
+
+  const flatFolders = Array.isArray(folderTree.flatFolders) ? folderTree.flatFolders : [];
+  const filters = [];
+
+  const addFilter = (filter) => {
+    if (!filter || typeof filter !== 'object' || !filter.key) {
+      return;
+    }
+
+    if (filters.some((existing) => existing.key === filter.key)) {
+      return;
+    }
+
+    const normalized = {
+      ...filter,
+      ...(Array.isArray(filter.folders) ? { folders: [...filter.folders] } : {}),
+      ...(Array.isArray(filter.aliases)
+        ? { aliases: Array.from(new Set(filter.aliases.filter(Boolean))) }
+        : {}),
+    };
+
+    filters.push(normalized);
+  };
+
+  addFilter({ key: 'all', label: 'All Tokens', folders: null, aliases: ['all'] });
+
+  flatFolders.forEach((entry) => {
+    if (!entry || typeof entry.path !== 'string') {
+      return;
+    }
+
+    const trimmedPath = entry.path.trim();
+    if (!trimmedPath) {
+      return;
+    }
+
+    const depth = Number.isInteger(entry.depth) ? entry.depth : 0;
+    const indent = depth > 0 ? NBSP.repeat(depth * 2) : '';
+    const displayPath =
+      typeof entry.displayPath === 'string' && entry.displayPath.trim() !== ''
+        ? entry.displayPath.trim()
+        : typeof entry.relativePath === 'string' && entry.relativePath.trim() !== ''
+          ? entry.relativePath.trim()
+          : typeof entry.name === 'string' && entry.name.trim() !== ''
+            ? entry.name.trim()
+            : trimmedPath.split('/').pop();
+
+    const aliases = [];
+    const relativePath =
+      typeof entry.relativePath === 'string' && entry.relativePath.trim() !== ''
+        ? entry.relativePath.trim()
+        : '';
+    if (relativePath) {
+      aliases.push(relativePath);
+      aliases.push(relativePath.toLowerCase());
+    }
+
+    const name = typeof entry.name === 'string' && entry.name.trim() !== '' ? entry.name.trim() : '';
+    if (name) {
+      aliases.push(name);
+      aliases.push(name.toLowerCase());
+    }
+
+    addFilter({
+      key: `folder:${trimmedPath}`,
+      label: `${indent}${displayPath}`,
+      folders: [trimmedPath],
+      aliases,
+      depth,
+    });
+  });
+
+  const hasAliasMatch = (filter, aliasSet) => {
+    if (!filter) {
+      return false;
+    }
+
+    if (aliasSet.has(filter.key)) {
+      return true;
+    }
+
+    if (!Array.isArray(filter.aliases)) {
+      return false;
+    }
+
+    return filter.aliases.some((alias) => aliasSet.has(alias));
+  };
+
+  fallback.forEach((fallbackFilter) => {
+    const aliasSet = new Set(
+      [fallbackFilter.key]
+        .concat(Array.isArray(fallbackFilter.aliases) ? fallbackFilter.aliases : [])
+        .filter(Boolean)
+    );
+
+    const alreadyPresent = filters.some((filter) => hasAliasMatch(filter, aliasSet));
+    if (!alreadyPresent) {
+      addFilter(fallbackFilter);
+    }
+  });
+
+  return filters;
 };
 
 const TokenPickerModal = ({
@@ -35,6 +166,9 @@ const TokenPickerModal = ({
   isBusy = false,
   errorMessage = null,
 }) => {
+  const [dmFolderOptions, setDmFolderOptions] = useState(null);
+  const [fetchingFolders, setFetchingFolders] = useState(false);
+
   const availableFilters = useMemo(() => {
     if (!isDm) {
       return [
@@ -46,26 +180,58 @@ const TokenPickerModal = ({
       ];
     }
 
-    const filters = Array.isArray(dmFilters) && dmFilters.length > 0 ? dmFilters : DEFAULT_DM_FILTERS;
-    return filters.map((filter) => ({ ...filter }));
-  }, [isDm, dmFilters]);
+    if (Array.isArray(dmFolderOptions)) {
+      return cloneFilters(dmFolderOptions);
+    }
+
+    return [];
+  }, [isDm, dmFolderOptions]);
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
 
-  const [selectedFilterKey, setSelectedFilterKey] = useState(() => {
-    if (filterLookup.has(defaultFilter)) {
-      return defaultFilter;
-    }
-    const [firstKey] = filterLookup.keys();
-    return firstKey || null;
-  });
+  const [selectedFilterKey, setSelectedFilterKey] = useState(null);
 
   useEffect(() => {
-    if (!filterLookup.has(selectedFilterKey)) {
-      const [firstKey] = filterLookup.keys();
-      setSelectedFilterKey(firstKey || null);
+    if (filterLookup.size === 0) {
+      if (selectedFilterKey !== null) {
+        setSelectedFilterKey(null);
+      }
+      return;
     }
-  }, [filterLookup, selectedFilterKey]);
+
+    if (selectedFilterKey && filterLookup.has(selectedFilterKey)) {
+      return;
+    }
+
+    let nextKey = null;
+
+    if (defaultFilter) {
+      if (filterLookup.has(defaultFilter)) {
+        nextKey = defaultFilter;
+      } else {
+        const aliasMatch = availableFilters.find(
+          (filter) =>
+            filter &&
+            typeof filter === 'object' &&
+            Array.isArray(filter.aliases) &&
+            filter.aliases.includes(defaultFilter)
+        );
+
+        if (aliasMatch) {
+          nextKey = aliasMatch.key;
+        }
+      }
+    }
+
+    if (!nextKey) {
+      const [firstKey] = filterLookup.keys();
+      nextKey = firstKey || null;
+    }
+
+    if (nextKey !== selectedFilterKey) {
+      setSelectedFilterKey(nextKey);
+    }
+  }, [filterLookup, availableFilters, defaultFilter, selectedFilterKey]);
 
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -81,6 +247,7 @@ const TokenPickerModal = ({
     setError(null);
     setNextCursor(null);
     setManifestMeta(null);
+    setFetchingFolders(false);
   }, []);
 
   const activeFilter = selectedFilterKey && filterLookup.has(selectedFilterKey)
@@ -151,12 +318,71 @@ const TokenPickerModal = ({
   useEffect(() => {
     if (!show) {
       resetState();
+      if (isDm) {
+        setDmFolderOptions(null);
+      }
       return;
     }
 
     resetState();
     fetchManifest({ append: false, cursor: null });
-  }, [show, fetchManifest, activeFilter, resetState]);
+  }, [show, fetchManifest, activeFilter, resetState, isDm]);
+
+  useEffect(() => {
+    if (!isDm) {
+      return;
+    }
+
+    if (!show) {
+      return;
+    }
+
+    const fallbackFilters =
+      Array.isArray(dmFilters) && dmFilters.length > 0
+        ? cloneFilters(dmFilters)
+        : cloneFilters(DEFAULT_DM_FILTERS);
+
+    if (!campaignId) {
+      setDmFolderOptions(fallbackFilters);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchFolders = async () => {
+      setFetchingFolders(true);
+      try {
+        const encodedCampaignId = encodeURIComponent(campaignId);
+        const response = await apiFetch(`/campaigns/${encodedCampaignId}/token-folders`);
+
+        if (!response?.ok) {
+          throw new Error(response?.statusText || 'Failed to load token folders.');
+        }
+
+        const data = await response.json();
+        if (isCancelled) {
+          return;
+        }
+
+        setDmFolderOptions(buildDynamicDmFilters(data, fallbackFilters));
+      } catch (err) {
+        console.error(err);
+        if (!isCancelled) {
+          setDmFolderOptions(fallbackFilters);
+        }
+      } finally {
+        if (!isCancelled) {
+          setFetchingFolders(false);
+        }
+      }
+    };
+
+    fetchFolders();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [show, isDm, campaignId, dmFilters]);
 
   const handleFilterChange = useCallback(
     (event) => {
@@ -184,7 +410,7 @@ const TokenPickerModal = ({
   }, [onClear, onSelect]);
 
   const renderBody = () => {
-    if (loading && assets.length === 0) {
+    if ((loading || fetchingFolders) && assets.length === 0) {
       return (
         <div className="text-center py-4" role="status" aria-live="polite">
           <Spinner animation="border" role="status" aria-hidden="true" />

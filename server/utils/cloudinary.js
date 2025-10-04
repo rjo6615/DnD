@@ -190,6 +190,176 @@ const deleteMapImage = async (publicId, options = {}) => {
   });
 };
 
+const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder } = {}) => {
+  configure();
+  const sdk = resolveCloudinary();
+
+  if (!sdk?.api || typeof sdk.api.sub_folders !== 'function') {
+    throw new Error('Cloudinary folder API is unavailable');
+  }
+
+  const normalizedRoot = sanitizeFolderSegment(inputRootFolder) || getTokenRootFolder();
+  const rootPrefix = `${normalizedRoot}/`;
+
+  const normalizeFolderPath = (folderPath) => {
+    const sanitized = sanitizeFolderSegment(folderPath);
+    if (!sanitized) {
+      return null;
+    }
+
+    if (sanitized === normalizedRoot || sanitized.startsWith(rootPrefix)) {
+      return sanitized;
+    }
+
+    return `${normalizedRoot}/${sanitized}`;
+  };
+
+  const normalizedTargets = Array.isArray(folders) && folders.length > 0
+    ? Array.from(new Set(folders.map(normalizeFolderPath).filter(Boolean)))
+    : [normalizedRoot];
+
+  const visited = new Set();
+
+  const fetchSubfolders = async (folderPath) => {
+    const results = [];
+    let nextCursor = null;
+
+    do {
+      const response = await sdk.api.sub_folders(folderPath, {
+        max_results: 200,
+        ...(nextCursor ? { next_cursor: nextCursor } : {}),
+      });
+
+      const subFolders = Array.isArray(response?.folders) ? response.folders : [];
+      subFolders.forEach((folder) => {
+        if (!folder || typeof folder.path !== 'string') {
+          return;
+        }
+
+        const normalizedPath = normalizeFolderPath(folder.path);
+        if (!normalizedPath || normalizedPath === folderPath) {
+          return;
+        }
+
+        const name =
+          typeof folder.name === 'string' && folder.name.trim() !== ''
+            ? folder.name.trim()
+            : normalizedPath.split('/').pop();
+
+        results.push({
+          name,
+          path: normalizedPath,
+        });
+      });
+
+      nextCursor =
+        typeof response?.next_cursor === 'string' && response.next_cursor.trim() !== ''
+          ? response.next_cursor.trim()
+          : null;
+    } while (nextCursor);
+
+    results.sort((a, b) => a.name.localeCompare(b.name));
+    return results;
+  };
+
+  const buildNode = async (folderPath) => {
+    const normalizedPath = normalizeFolderPath(folderPath);
+    if (!normalizedPath) {
+      return null;
+    }
+
+    if (visited.has(normalizedPath)) {
+      return null;
+    }
+
+    visited.add(normalizedPath);
+
+    const relativePath = normalizedPath === normalizedRoot
+      ? ''
+      : normalizedPath.startsWith(rootPrefix)
+        ? normalizedPath.slice(rootPrefix.length)
+        : normalizedPath;
+
+    const name = relativePath ? relativePath.split('/').pop() : normalizedPath.split('/').pop();
+
+    const children = [];
+    const subFolders = await fetchSubfolders(normalizedPath);
+    for (const subFolder of subFolders) {
+      const childNode = await buildNode(subFolder.path);
+      if (childNode) {
+        children.push(childNode);
+      }
+    }
+
+    return {
+      name,
+      path: normalizedPath,
+      relativePath,
+      children,
+    };
+  };
+
+  const collectNodes = async () => {
+    const nodes = [];
+    for (const target of normalizedTargets) {
+      if (target === normalizedRoot) {
+        const rootChildren = await fetchSubfolders(normalizedRoot);
+        for (const child of rootChildren) {
+          const node = await buildNode(child.path);
+          if (node) {
+            nodes.push(node);
+          }
+        }
+      } else {
+        const node = await buildNode(target);
+        if (node) {
+          nodes.push(node);
+        }
+      }
+    }
+
+    const uniqueByPath = new Map();
+    nodes.forEach((node) => {
+      if (node && node.path && !uniqueByPath.has(node.path)) {
+        uniqueByPath.set(node.path, node);
+      }
+    });
+
+    return Array.from(uniqueByPath.values()).sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  const flattenNodes = (nodes, depth = 0, acc = []) => {
+    nodes.forEach((node) => {
+      if (!node) {
+        return;
+      }
+
+      acc.push({
+        name: node.name,
+        path: node.path,
+        relativePath: node.relativePath,
+        depth,
+        displayPath: node.relativePath || node.name,
+      });
+
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        flattenNodes(node.children, depth + 1, acc);
+      }
+    });
+
+    return acc;
+  };
+
+  const foldersTree = await collectNodes();
+  const flatFolders = flattenNodes(foldersTree);
+
+  return {
+    rootFolder: normalizedRoot,
+    folders: foldersTree,
+    flatFolders,
+  };
+};
+
 const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults } = {}) => {
   configure();
   const sdk = resolveCloudinary();
@@ -244,4 +414,5 @@ module.exports = {
   getMapFolder,
   getTokenRootFolder,
   listTokenAssets,
+  listTokenFolderTree,
 };
