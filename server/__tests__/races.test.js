@@ -71,8 +71,8 @@ describe('Races API routes', () => {
     expect(fiendishLegacies.chthonic.spells).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'Chill Touch', unlockedAtLevel: 1 }),
-        expect.objectContaining({ name: 'Darkness', unlockedAtLevel: 3 }),
-        expect.objectContaining({ name: 'Bestow Curse', unlockedAtLevel: 5 }),
+        expect.objectContaining({ name: 'False Life', unlockedAtLevel: 3 }),
+        expect.objectContaining({ name: 'Ray of Enfeeblement', unlockedAtLevel: 5 }),
       ])
     );
     expect(fiendishLegacies.infernal.spells).toEqual(
