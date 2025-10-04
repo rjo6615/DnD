@@ -322,6 +322,7 @@ const MapModal = ({
         typeof value?.size === 'string' && value.size.trim() !== ''
           ? value.size.trim().toLowerCase()
           : null;
+      const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(value);
 
       acc[trimmedKey] = {
         color,
@@ -331,6 +332,8 @@ const MapModal = ({
         ...(currentHp !== null ? { currentHp } : {}),
         ...(maxHp !== null ? { maxHp } : {}),
         ...(size ? { size } : {}),
+        ...(figurineImageUrl ? { figurineImageUrl } : {}),
+        ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
       };
       return acc;
     }, {});
