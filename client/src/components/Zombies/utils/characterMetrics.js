@@ -117,9 +117,19 @@ export const calculateCharacterHitPoints = (character, overrides = {}) => {
     overrides.baseHealth !== undefined ? overrides.baseHealth : character?.health
   );
 
-  const currentHp = toFiniteNumberOrNull(
-    overrides.currentHp !== undefined ? overrides.currentHp : character?.tempHealth
-  );
+  const currentHpCandidates = [
+    overrides.currentHp,
+    character?.currentHp,
+    character?.hpCurrent,
+    character?.tempHealth,
+  ];
+
+  const currentHp = currentHpCandidates.reduce((resolved, candidate) => {
+    if (resolved !== null) {
+      return resolved;
+    }
+    return toFiniteNumberOrNull(candidate);
+  }, null);
 
   const { hpMaxBonus: fallbackBonus, hpMaxBonusPerLevel: fallbackPerLevel } =
     resolveHpBonusFromSource(character);
@@ -135,7 +145,13 @@ export const calculateCharacterHitPoints = (character, overrides = {}) => {
   const resolvedCurrent =
     currentHp !== null
       ? currentHp
-      : toFiniteNumberOrNull(overrides.fallbackCurrentHp ?? character?.health);
+      : (() => {
+          const fallbackOverride = toFiniteNumberOrNull(overrides.fallbackCurrentHp);
+          if (fallbackOverride !== null) {
+            return fallbackOverride;
+          }
+          return toFiniteNumberOrNull(character?.health);
+        })();
 
   const maxHp =
     baseHealth === null

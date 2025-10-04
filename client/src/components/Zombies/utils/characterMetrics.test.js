@@ -67,4 +67,32 @@ describe('calculateCharacterHitPoints', () => {
 
     expect(result).toEqual({ currentHp: null, maxHp: null });
   });
+
+  it('uses character.currentHp when provided', () => {
+    const character = {
+      health: 12,
+      tempHealth: 4,
+      currentHp: '9',
+      con: 10,
+      occupation: [{ Level: 1 }],
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    expect(result.currentHp).toBe(9);
+  });
+
+  it('uses character.hpCurrent when provided', () => {
+    const character = {
+      health: 15,
+      tempHealth: 5,
+      hpCurrent: 11,
+      con: 10,
+      occupation: [{ Level: 1 }],
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    expect(result.currentHp).toBe(11);
+  });
 });
