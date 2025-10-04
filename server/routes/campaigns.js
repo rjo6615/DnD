@@ -1062,7 +1062,16 @@ module.exports = (router) => {
             nextTokens[mapId] = {};
           }
 
+          const existingEntry =
+            nextTokens[mapId] &&
+            typeof nextTokens[mapId] === 'object' &&
+            nextTokens[mapId][trimmedCharacterId] &&
+            typeof nextTokens[mapId][trimmedCharacterId] === 'object'
+              ? nextTokens[mapId][trimmedCharacterId]
+              : {};
+
           nextTokens[mapId][trimmedCharacterId] = {
+            ...existingEntry,
             characterId: trimmedCharacterId,
             x: req.body.x,
             y: req.body.y,
