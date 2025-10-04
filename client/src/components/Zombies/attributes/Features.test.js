@@ -377,7 +377,7 @@ test('elf characters display baseline traits and drow lineage magic', async () =
     occupation: [],
   };
 
-  render(
+  const { rerender } = render(
     <Features
       form={form}
       showFeatures={true}
@@ -397,8 +397,37 @@ test('elf characters display baseline traits and drow lineage magic', async () =
     within(dancingCard).getByText(/Spellcasting Ability: Charisma/i)
   ).toBeInTheDocument();
 
-  expect(screen.getByText('Faerie Fire (Level 3)')).toBeInTheDocument();
-  expect(screen.getByText('Darkness (Level 5)')).toBeInTheDocument();
+  expect(screen.queryByText('Faerie Fire (Level 3)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Darkness (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 3 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Faerie Fire (Level 3)')).toBeInTheDocument();
+  expect(screen.queryByText('Darkness (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Darkness (Level 5)')).toBeInTheDocument();
 
   const darkvisionCard = screen.getByText('Darkvision').closest('.feature-card');
   expect(darkvisionCard).not.toBeNull();
@@ -451,7 +480,7 @@ test('wood elf lineage notes speed increase and lineage spells', async () => {
     occupation: [],
   };
 
-  render(
+  const { rerender } = render(
     <Features
       form={form}
       showFeatures={true}
@@ -474,8 +503,37 @@ test('wood elf lineage notes speed increase and lineage spells', async () => {
   expect(
     await screen.findByText(/Your walking speed increases to 35 feet/i)
   ).toBeInTheDocument();
-  expect(screen.getByText('Longstrider (Level 3)')).toBeInTheDocument();
-  expect(screen.getByText('Pass without Trace (Level 5)')).toBeInTheDocument();
+  expect(screen.queryByText('Longstrider (Level 3)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Pass without Trace (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Ranger', Level: 3 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Longstrider (Level 3)')).toBeInTheDocument();
+  expect(screen.queryByText('Pass without Trace (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Ranger', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Pass without Trace (Level 5)')).toBeInTheDocument();
 });
 
 test('high elf lineage lists arcane cantrip and future spell hooks', async () => {
@@ -511,7 +569,7 @@ test('high elf lineage lists arcane cantrip and future spell hooks', async () =>
     occupation: [],
   };
 
-  render(
+  const { rerender } = render(
     <Features
       form={form}
       showFeatures={true}
@@ -526,8 +584,37 @@ test('high elf lineage lists arcane cantrip and future spell hooks', async () =>
   expect(
     within(prestidigitationCard).getByText(/Spellcasting Ability: Intelligence/i)
   ).toBeInTheDocument();
-  expect(screen.getByText('Detect Magic (Level 3)')).toBeInTheDocument();
-  expect(screen.getByText('Misty Step (Level 5)')).toBeInTheDocument();
+  expect(screen.queryByText('Detect Magic (Level 3)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Misty Step (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 3 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Detect Magic (Level 3)')).toBeInTheDocument();
+  expect(screen.queryByText('Misty Step (Level 5)')).not.toBeInTheDocument();
+
+  rerender(
+    <Features
+      form={{
+        ...form,
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  expect(await screen.findByText('Misty Step (Level 5)')).toBeInTheDocument();
 });
 
 test('forest gnome lineage shows lineage spells with ability text and tracking', async () => {
