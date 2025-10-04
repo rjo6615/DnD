@@ -848,12 +848,18 @@ describe('Character routes', () => {
             x: 0.5,
             y: 0.5,
             updatedAt: timestamp,
+            imageUrl: ' https://example.com/figurines/hero.png ',
+            cloudinaryPublicId: ' figurines/heroes/hero ',
+            folder: '   ',
           },
           ally: {
             characterId: 'ally',
             x: 0.25,
             y: 0.75,
             updatedAt: timestamp,
+            imageUrl: ' https://example.com/figurines/ally.png ',
+            cloudinaryPublicId: ' figurines/allies/ally ',
+            folder: ' Allies ',
           },
         },
       },
@@ -905,7 +911,17 @@ describe('Character routes', () => {
     expect(typeof resolvedMapId).toBe('string');
     expect(updatedFields.map).toMatchObject({
       mapId: resolvedMapId,
-      tokens: { ally: expect.any(Object) },
+      tokens: {
+        ally: expect.objectContaining({
+          characterId: 'ally',
+          x: 0.25,
+          y: 0.75,
+          updatedAt: timestamp,
+          imageUrl: 'https://example.com/figurines/ally.png',
+          cloudinaryPublicId: 'figurines/allies/ally',
+          folder: 'Allies',
+        }),
+      },
     });
     expect(Object.keys(updatedFields.mapTokens)).toEqual([resolvedMapId]);
     expect(updatedFields.mapTokens[resolvedMapId]).toEqual({
@@ -914,6 +930,9 @@ describe('Character routes', () => {
         x: 0.25,
         y: 0.75,
         updatedAt: timestamp,
+        imageUrl: 'https://example.com/figurines/ally.png',
+        cloudinaryPublicId: 'figurines/allies/ally',
+        folder: 'Allies',
       },
     });
     expect(updatedFields.combat).toEqual({

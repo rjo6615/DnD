@@ -62,6 +62,8 @@ const clampPercentage = (value) => {
   return parsed;
 };
 
+const FIGURINE_STRING_FIELDS = ['imageUrl', 'cloudinaryPublicId', 'folder'];
+
 const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
   const normalizedTokens = {};
   let didMutate = false;
@@ -153,11 +155,40 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         updatedAt: resolvedUpdatedAt,
       };
 
+      FIGURINE_STRING_FIELDS.forEach((field) => {
+        if (!(field in candidate)) {
+          return;
+        }
+
+        const rawValue = candidate[field];
+        if (typeof rawValue !== 'string') {
+          didMutate = true;
+          return;
+        }
+
+        const trimmed = rawValue.trim();
+        if (!trimmed) {
+          didMutate = true;
+          return;
+        }
+
+        sanitizedToken[field] = trimmed;
+        if (trimmed !== rawValue) {
+          didMutate = true;
+        }
+      });
+
       const originalComparable = JSON.stringify({
         characterId: rawValue.characterId,
         x: rawValue.x,
         y: rawValue.y,
         updatedAt: rawValue.updatedAt,
+        ...FIGURINE_STRING_FIELDS.reduce((acc, field) => {
+          if (field in rawValue) {
+            acc[field] = rawValue[field];
+          }
+          return acc;
+        }, {}),
       });
       const sanitizedComparable = JSON.stringify(sanitizedToken);
       if (originalComparable !== sanitizedComparable) {
