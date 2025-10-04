@@ -232,35 +232,64 @@ export default function Features({
         ? form.tieflingLegacyAbility
         : '';
 
-    let legacy = legacyFromForm;
-    let legacyKey = legacyKeyFromForm;
-    if (!legacy) {
-      if (legacyKey && race?.fiendishLegacies?.[legacyKey]) {
-        legacy = race.fiendishLegacies[legacyKey];
-      } else if (race?.selectedAncestry && race?.fiendishLegacies) {
-        legacy = race.selectedAncestry;
-        legacyKey =
-          typeof race?.selectedAncestryKey === 'string'
-            ? race.selectedAncestryKey
-            : '';
-      } else if (
-        typeof race?.selectedAncestryKey === 'string' &&
-        race?.fiendishLegacies?.[race.selectedAncestryKey]
-      ) {
-        legacy = race.fiendishLegacies[race.selectedAncestryKey];
-        legacyKey = race.selectedAncestryKey;
+    const fiendishLegacies = race?.fiendishLegacies || {};
+    const selectedAncestryKey =
+      typeof race?.selectedAncestryKey === 'string' ? race.selectedAncestryKey : '';
+
+    const legacyKeyCandidates = [legacyKeyFromForm, selectedAncestryKey].filter(
+      (candidateKey, index, arr) =>
+        typeof candidateKey === 'string' &&
+        candidateKey &&
+        arr.indexOf(candidateKey) === index,
+    );
+
+    let legacy = null;
+    let legacyKey = '';
+
+    for (const candidateKey of legacyKeyCandidates) {
+      if (fiendishLegacies?.[candidateKey]) {
+        legacy = fiendishLegacies[candidateKey];
+        legacyKey = candidateKey;
+        break;
       }
     }
 
-    let ability = abilityFromForm;
-    if (!ability) {
-      ability =
-        typeof race?.selectedLineageAbility === 'string'
-          ? race.selectedLineageAbility
-          : '';
+    if (!legacy && selectedAncestryKey && race?.selectedAncestry) {
+      legacy = race.selectedAncestry;
+      legacyKey = selectedAncestryKey;
     }
-    if (!ability && legacy?.spellcastingAbilities?.length) {
-      ability = legacy.spellcastingAbilities[0];
+
+    if (!legacy && legacyFromForm) {
+      legacy = legacyFromForm;
+      legacyKey = legacyKey || legacyKeyFromForm;
+    }
+
+    const legacyAbilities = Array.isArray(legacy?.spellcastingAbilities)
+      ? legacy.spellcastingAbilities.filter(
+          (option) => typeof option === 'string' && option.trim(),
+        )
+      : [];
+
+    const normalizedAbilityFromForm =
+      typeof abilityFromForm === 'string' ? abilityFromForm.trim() : '';
+
+    let ability = '';
+    if (legacyAbilities.length) {
+      const matchedAbility = legacyAbilities.find(
+        (option) =>
+          typeof option === 'string' &&
+          normalizedAbilityFromForm &&
+          option.toLowerCase() === normalizedAbilityFromForm.toLowerCase(),
+      );
+      ability = matchedAbility || legacyAbilities[0];
+    }
+
+    if (!ability && typeof race?.selectedLineageAbility === 'string') {
+      ability = race.selectedLineageAbility;
+    }
+
+    if (!ability) {
+      ability = normalizedAbilityFromForm;
     }
 
     return {
