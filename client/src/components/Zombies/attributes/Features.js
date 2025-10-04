@@ -44,6 +44,30 @@ const LINEAGE_SPELLS = {
     spellName: 'Pass without Trace',
     maxUses: 1,
   },
+  'tiefling-abyssal-ray-of-sickness': {
+    spellName: 'Ray of Sickness',
+    maxUses: 1,
+  },
+  'tiefling-abyssal-hold-person': {
+    spellName: 'Hold Person',
+    maxUses: 1,
+  },
+  'tiefling-chthonic-darkness': {
+    spellName: 'Darkness',
+    maxUses: 1,
+  },
+  'tiefling-chthonic-bestow-curse': {
+    spellName: 'Bestow Curse',
+    maxUses: 1,
+  },
+  'tiefling-infernal-hellish-rebuke': {
+    spellName: 'Hellish Rebuke',
+    maxUses: 1,
+  },
+  'tiefling-infernal-fireball': {
+    spellName: 'Fireball',
+    maxUses: 1,
+  },
 };
 
 const LIMITED_USE_LINEAGE_SPELL_IDS = Object.entries(LINEAGE_SPELLS)
@@ -165,6 +189,73 @@ export default function Features({
     return gnomeLineageAbility.trim();
   }, [gnomeLineageAbility]);
 
+  const { tieflingLegacy, tieflingLegacyKey, tieflingLegacyAbility } = useMemo(() => {
+    const race = form?.race || {};
+    const legacyFromForm =
+      typeof form?.tieflingLegacy === 'object' ? form.tieflingLegacy : null;
+    const legacyKeyFromForm =
+      typeof form?.tieflingLegacyKey === 'string' ? form.tieflingLegacyKey : '';
+    const abilityFromForm =
+      typeof form?.tieflingLegacyAbility === 'string'
+        ? form.tieflingLegacyAbility
+        : '';
+
+    let legacy = legacyFromForm;
+    let legacyKey = legacyKeyFromForm;
+    if (!legacy) {
+      if (legacyKey && race?.fiendishLegacies?.[legacyKey]) {
+        legacy = race.fiendishLegacies[legacyKey];
+      } else if (race?.selectedAncestry && race?.fiendishLegacies) {
+        legacy = race.selectedAncestry;
+        legacyKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.fiendishLegacies?.[race.selectedAncestryKey]
+      ) {
+        legacy = race.fiendishLegacies[race.selectedAncestryKey];
+        legacyKey = race.selectedAncestryKey;
+      }
+    }
+
+    let ability = abilityFromForm;
+    if (!ability) {
+      ability =
+        typeof race?.selectedLineageAbility === 'string'
+          ? race.selectedLineageAbility
+          : '';
+    }
+    if (!ability && legacy?.spellcastingAbilities?.length) {
+      ability = legacy.spellcastingAbilities[0];
+    }
+
+    return {
+      tieflingLegacy: legacy,
+      tieflingLegacyKey: legacyKey,
+      tieflingLegacyAbility: ability,
+    };
+  }, [
+    form?.race,
+    form?.tieflingLegacy,
+    form?.tieflingLegacyAbility,
+    form?.tieflingLegacyKey,
+  ]);
+
+  const tieflingSpellAbilityLabel = useMemo(() => {
+    if (typeof tieflingLegacyAbility !== 'string') return '';
+    return tieflingLegacyAbility.trim();
+  }, [tieflingLegacyAbility]);
+
+  const tieflingResistanceLabel = useMemo(() => {
+    const resistance = tieflingLegacy?.resistance;
+    if (typeof resistance !== 'string') {
+      return '';
+    }
+    return resistance.trim();
+  }, [tieflingLegacy]);
+
   const { elvenLineage, elvenLineageKey, elvenLineageAbility } = useMemo(() => {
     const race = form?.race || {};
     const lineageFromForm =
@@ -237,6 +328,23 @@ export default function Features({
     if (!gnomeLineageKey) return false;
     return gnomeLineageKey.toLowerCase() === 'rock';
   }, [gnomeLineageKey]);
+
+  const normalizedTieflingLegacyKey = useMemo(() => {
+    if (!tieflingLegacyKey) return '';
+    return tieflingLegacyKey.toLowerCase();
+  }, [tieflingLegacyKey]);
+
+  const isAbyssalTieflingLegacy = useMemo(() => {
+    return normalizedTieflingLegacyKey === 'abyssal';
+  }, [normalizedTieflingLegacyKey]);
+
+  const isChthonicTieflingLegacy = useMemo(() => {
+    return normalizedTieflingLegacyKey === 'chthonic';
+  }, [normalizedTieflingLegacyKey]);
+
+  const isInfernalTieflingLegacy = useMemo(() => {
+    return normalizedTieflingLegacyKey === 'infernal';
+  }, [normalizedTieflingLegacyKey]);
 
   const canUseSpeakWithAnimals = useMemo(() => {
     return isForestGnomeLineage;
@@ -319,11 +427,26 @@ export default function Features({
       'elf-wood-longstrider': isWoodElvenLineage && totalCharacterLevel >= 3,
       'elf-wood-pass-without-trace':
         isWoodElvenLineage && totalCharacterLevel >= 5,
+      'tiefling-abyssal-ray-of-sickness':
+        isAbyssalTieflingLegacy && totalCharacterLevel >= 3,
+      'tiefling-abyssal-hold-person':
+        isAbyssalTieflingLegacy && totalCharacterLevel >= 5,
+      'tiefling-chthonic-darkness':
+        isChthonicTieflingLegacy && totalCharacterLevel >= 3,
+      'tiefling-chthonic-bestow-curse':
+        isChthonicTieflingLegacy && totalCharacterLevel >= 5,
+      'tiefling-infernal-hellish-rebuke':
+        isInfernalTieflingLegacy && totalCharacterLevel >= 3,
+      'tiefling-infernal-fireball':
+        isInfernalTieflingLegacy && totalCharacterLevel >= 5,
     };
   }, [
     isDrowElvenLineage,
     isHighElvenLineage,
     isWoodElvenLineage,
+    isAbyssalTieflingLegacy,
+    isChthonicTieflingLegacy,
+    isInfernalTieflingLegacy,
     totalCharacterLevel,
   ]);
 
@@ -806,6 +929,87 @@ export default function Features({
           hideUseButton: true,
         });
       }
+    } else if (raceName === 'tiefling') {
+      const legacyLabel =
+        typeof tieflingLegacy?.label === 'string'
+          ? tieflingLegacy.label
+          : typeof tieflingLegacy?.name === 'string'
+          ? tieflingLegacy.name
+          : 'Fiendish Legacy';
+      const metaParts = [legacyLabel];
+      if (tieflingResistanceLabel) {
+        metaParts.push(`Resistance: ${tieflingResistanceLabel}`);
+      }
+      if (tieflingSpellAbilityLabel) {
+        metaParts.push(`Spellcasting Ability: ${tieflingSpellAbilityLabel}`);
+      }
+      const legacyMeta = metaParts.join(' • ');
+      const abilityText = tieflingSpellAbilityLabel
+        ? ` This legacy uses ${tieflingSpellAbilityLabel} for its spells.`
+        : '';
+
+      if (tieflingResistanceLabel) {
+        const resistanceDescription =
+          `You have resistance to ${tieflingResistanceLabel.toLowerCase()} damage.`;
+        raceFeatures.push({
+          id: `tiefling-${normalizedTieflingLegacyKey || 'legacy'}-resistance`,
+          name: `${tieflingResistanceLabel} Resistance`,
+          meta: legacyMeta,
+          description: resistanceDescription,
+          desc: resistanceDescription,
+          hideUseButton: true,
+        });
+      }
+
+      const spells = Array.isArray(tieflingLegacy?.spells)
+        ? tieflingLegacy.spells
+        : [];
+
+      const legacyKeyForId = normalizedTieflingLegacyKey || 'legacy';
+
+      spells.forEach((spell, index) => {
+        const requiredLevelRaw = Number(spell?.unlockedAtLevel);
+        const requiredLevel = Number.isFinite(requiredLevelRaw)
+          ? requiredLevelRaw
+          : 1;
+        if (totalCharacterLevel < Math.max(1, requiredLevel)) {
+          return;
+        }
+
+        const spellName = typeof spell?.name === 'string' ? spell.name : 'Legacy Spell';
+        const normalizedSpellName = spellName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || `spell-${index}`;
+        const spellId = `tiefling-${legacyKeyForId}-${normalizedSpellName}`;
+        const baseSpellConfig = LINEAGE_SPELLS[spellId];
+        const hasLimitedUses =
+          Number.isFinite(baseSpellConfig?.maxUses) && baseSpellConfig.maxUses > 0;
+
+        const descriptionParts = [];
+        if (typeof spell?.description === 'string' && spell.description.trim()) {
+          descriptionParts.push(spell.description.trim());
+        }
+        if (abilityText) {
+          descriptionParts.push(abilityText.trim());
+        }
+        if (typeof spell?.usage === 'string' && spell.usage.trim()) {
+          descriptionParts.push(`Uses: ${spell.usage.trim()}`);
+        }
+        const description = descriptionParts.join(' ');
+        const levelNote = requiredLevel > 1 ? ` (Level ${requiredLevel})` : '';
+
+        raceFeatures.push({
+          id: spellId,
+          name: `${spellName}${levelNote}`,
+          meta: legacyMeta,
+          description,
+          desc: description,
+          hideUseButton: !hasLimitedUses,
+          oncePerLongRestLineageSpell: hasLimitedUses,
+          lineageSpellName: baseSpellConfig?.spellName || spellName,
+        });
+      });
     }
 
     if (darkvisionRange && raceName !== 'dwarf' && raceName !== 'orc') {
@@ -975,6 +1179,18 @@ export default function Features({
     gnomeLineage,
     gnomeSpellAbilityLabel,
     isForestGnomeLineage,
+    isRockGnomeLineage,
+    elvenLineage,
+    elvenLineageKey,
+    elvenSpellAbilityLabel,
+    isDrowElvenLineage,
+    isHighElvenLineage,
+    isWoodElvenLineage,
+    tieflingLegacy,
+    tieflingLegacyKey,
+    tieflingSpellAbilityLabel,
+    tieflingResistanceLabel,
+    normalizedTieflingLegacyKey,
   ]);
 
   const displayFeatures = useMemo(() => {
