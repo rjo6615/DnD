@@ -3138,6 +3138,9 @@ export default function ZombiesDM() {
           ? generatedMap || previewMap || campaignMap
           : generatedMap || campaignMap;
 
+        const trimmedFolder =
+          typeof mapToSave?.folder === 'string' ? mapToSave.folder.trim() : '';
+
         if (!mapToSave) {
           setStatus({ type: 'danger', message: 'No map available to save.' });
           return;
@@ -3198,6 +3201,11 @@ export default function ZombiesDM() {
             delete mapPayload.mapId;
             delete mapPayload.createdAt;
             delete mapPayload.updatedAt;
+            if (trimmedFolder) {
+              mapPayload.folder = trimmedFolder;
+            } else {
+              delete mapPayload.folder;
+            }
 
             const response = await apiFetch(`/campaigns/${encodedCampaign}/maps`, {
               method: 'POST',
@@ -3274,6 +3282,11 @@ export default function ZombiesDM() {
             const mapPayload = { ...mapToSave };
             if (mapPayload.mapId && mapPayload.mapId !== activeId) {
               delete mapPayload.mapId;
+            }
+            if (trimmedFolder) {
+              mapPayload.folder = trimmedFolder;
+            } else {
+              delete mapPayload.folder;
             }
 
             const response = await apiFetch(
