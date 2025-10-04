@@ -102,6 +102,120 @@ describe('ZombiesDM AI generation', () => {
     ioMock.mockClear();
   });
 
+  test('map editor indicates required fields and validates image source before submit', async () => {
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          if (options.method === 'POST') {
+            return Promise.resolve({ ok: true, json: async () => ({}) });
+          }
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ maps: [], activeMapId: null, map: null }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const createButton = await screen.findByTestId('create-map-button');
+    await userEvent.click(createButton);
+
+    const modal = await screen.findByTestId('map-editor-modal');
+    const modalQueries = within(modal);
+
+    const getRequiredLabel = (labelText) =>
+      modalQueries.getByText((_, element) => {
+        if (!element || element.tagName.toLowerCase() !== 'label') {
+          return false;
+        }
+        const normalized = (element.textContent || '').replace(/\s+/g, ' ').trim();
+        return new RegExp(`^${labelText}\\s*\\*$`, 'i').test(normalized);
+      });
+
+    expect(getRequiredLabel('Title')).toBeInTheDocument();
+    const titleInput = modalQueries.getByLabelText(/^Title/);
+    expect(titleInput).toBeRequired();
+
+    expect(getRequiredLabel('Image URL')).toBeInTheDocument();
+    expect(getRequiredLabel('Image File')).toBeInTheDocument();
+    const helperText = modalQueries.getByText(/At least one source is required\./i);
+    expect(helperText).toBeInTheDocument();
+
+    await userEvent.type(titleInput, 'New Map');
+
+    const submitButton = modalQueries.getByTestId('map-editor-submit-button');
+    await userEvent.click(submitButton);
+
+    const errorMessage = await modalQueries.findByText('Provide an image URL or upload a file.');
+    expect(errorMessage).toBeInTheDocument();
+
+    const getMapPostCalls = () =>
+      apiFetch.mock.calls.filter(
+        ([requestUrl, requestOptions]) =>
+          requestUrl === '/campaigns/Camp1/maps' && requestOptions && requestOptions.method === 'POST'
+      );
+
+    expect(getMapPostCalls()).toHaveLength(0);
+
+    const imageUrlInput = modalQueries.getByLabelText(/^Image URL/);
+    const imageFileInput = modalQueries.getByLabelText(/^Image File/);
+
+    expect(imageUrlInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-requirement')
+    );
+    expect(imageUrlInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-error')
+    );
+    expect(imageFileInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-requirement')
+    );
+    expect(imageFileInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-error')
+    );
+
+    await userEvent.type(imageUrlInput, 'https://example.com/map.png');
+
+    await waitFor(() =>
+      expect(
+        modalQueries.queryByText('Provide an image URL or upload a file.')
+      ).not.toBeInTheDocument()
+    );
+
+    const imageUrlDescribedBy = imageUrlInput.getAttribute('aria-describedby') || '';
+    expect(imageUrlDescribedBy).toContain('map-editor-image-requirement');
+    expect(imageUrlDescribedBy).not.toContain('map-editor-image-error');
+
+    const imageFileDescribedBy = imageFileInput.getAttribute('aria-describedby') || '';
+    expect(imageFileDescribedBy).toContain('map-editor-image-requirement');
+    expect(imageFileDescribedBy).not.toContain('map-editor-image-error');
+
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(getMapPostCalls()).toHaveLength(1);
+    });
+  });
+
   test.skip('generates armor via AI and populates form', async () => {
     apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
@@ -831,13 +945,13 @@ describe('ZombiesDM AI generation', () => {
       await userEvent.click(createButton);
 
       const modal = await screen.findByTestId('map-editor-modal');
-      const titleInput = within(modal).getByLabelText('Title');
+      const titleInput = within(modal).getByLabelText(/^Title/);
       await userEvent.type(titleInput, 'Uploaded Map');
 
       const altTextInput = within(modal).getByLabelText('Alt Text');
       await userEvent.type(altTextInput, 'Uploaded alt text');
 
-      const fileInput = within(modal).getByLabelText('Image File');
+      const fileInput = within(modal).getByLabelText(/^Image File/);
       const file = new File(['file-data'], 'map.png', { type: 'image/png' });
       await userEvent.upload(fileInput, file);
 
@@ -927,13 +1041,13 @@ describe('ZombiesDM AI generation', () => {
       const modal = await screen.findByTestId('map-editor-modal');
       const modalQueries = within(modal);
 
-      expect(modalQueries.getByLabelText('Title')).toHaveValue('Existing Map');
-      expect(modalQueries.getByLabelText('Image URL')).toHaveValue(
+      expect(modalQueries.getByLabelText(/^Title/)).toHaveValue('Existing Map');
+      expect(modalQueries.getByLabelText(/^Image URL/)).toHaveValue(
         'https://example.com/map.png'
       );
       expect(modalQueries.getByLabelText('Alt Text')).toHaveValue('Existing map alt text');
 
-      const renameFileInput = modalQueries.getByLabelText('Image File');
+      const renameFileInput = modalQueries.getByLabelText(/^Image File/);
       const file = new File(['data'], 'existing.png', { type: 'image/png' });
       await userEvent.upload(renameFileInput, file);
       expect(renameFileInput.files).toHaveLength(1);
@@ -947,12 +1061,12 @@ describe('ZombiesDM AI generation', () => {
       const createModalQueries = within(modal);
 
       await waitFor(() =>
-        expect(createModalQueries.getByLabelText('Title')).toHaveValue('')
+        expect(createModalQueries.getByLabelText(/^Title/)).toHaveValue('')
       );
-      expect(createModalQueries.getByLabelText('Image URL')).toHaveValue('');
+      expect(createModalQueries.getByLabelText(/^Image URL/)).toHaveValue('');
       expect(createModalQueries.getByLabelText('Alt Text')).toHaveValue('');
 
-      const createFileInput = createModalQueries.getByLabelText('Image File');
+      const createFileInput = createModalQueries.getByLabelText(/^Image File/);
       expect(createFileInput.files).toHaveLength(0);
       expect(createFileInput.value).toBe('');
     } finally {
