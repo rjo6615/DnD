@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
-import spellsDataModule from '../../../../../server/data/spells';
+import spellsData from '../../../data/spells';
 import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
@@ -48,7 +48,7 @@ const versatileRegex = /versatile\s*\(([^)]+)\)/i;
 const firstDamageDiceRegex = /^(\s*)(\d+d\d+(?:[+-]\d+)?)/;
 const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
 
-const spellsData = spellsDataModule?.default || spellsDataModule || {};
+const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
@@ -106,7 +106,7 @@ function augmentSpell(spell = {}) {
   return enhanced;
 }
 
-const SPELLS_BY_NAME = Object.values(spellsData).reduce((acc, spell) => {
+const SPELLS_BY_NAME = Object.values(spellsCatalog).reduce((acc, spell) => {
   if (!spell || typeof spell.name !== 'string') return acc;
   acc[spell.name.toLowerCase()] = augmentSpell(spell);
   return acc;
