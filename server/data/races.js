@@ -333,11 +333,11 @@ const races = {
             usage: "1/long rest",
           },
           {
-            name: "Fireball",
-            spellLevel: "3rd-level",
+            name: "Darkness",
+            spellLevel: "2nd-level",
             unlockedAtLevel: 5,
             description:
-              "Detonate a roaring explosion of flame that engulfs creatures in a 20-foot-radius sphere.",
+              "Create a 15-foot-radius sphere of magical darkness that even darkvision can't penetrate.",
             usage: "1/long rest",
           },
         ],
