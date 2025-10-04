@@ -630,6 +630,115 @@ module.exports = (router) => {
     }
   );
 
+  characterRouter.route('/:id/figurine').put(
+    [
+      body('figurineImageUrl')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('figurineImageUrl must be a string')
+        .trim(),
+      body('figurineImagePublicId')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('figurineImagePublicId must be a string')
+        .trim(),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+
+      const db_connect = req.db;
+      const { figurineImageUrl, figurineImagePublicId } = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
+
+      const updates = {};
+      const unset = {};
+
+      if (figurineImageUrl !== undefined) {
+        const trimmedUrl = typeof figurineImageUrl === 'string' ? figurineImageUrl.trim() : '';
+        if (trimmedUrl) {
+          updates.figurineImageUrl = trimmedUrl;
+        } else {
+          unset.figurineImageUrl = '';
+        }
+      }
+
+      if (figurineImagePublicId !== undefined) {
+        const trimmedId =
+          typeof figurineImagePublicId === 'string' ? figurineImagePublicId.trim() : '';
+        if (trimmedId) {
+          updates.figurineImagePublicId = trimmedId;
+        } else {
+          unset.figurineImagePublicId = '';
+        }
+      }
+
+      if (Object.keys(updates).length === 0 && Object.keys(unset).length === 0) {
+        return res.status(400).json({ message: 'No updates provided' });
+      }
+
+      const updateDoc = {};
+      if (Object.keys(updates).length > 0) {
+        updateDoc.$set = updates;
+      }
+      if (Object.keys(unset).length > 0) {
+        updateDoc.$unset = unset;
+      }
+
+      try {
+        const result = await db_connect.collection('Characters').findOneAndUpdate(
+          { _id: ObjectId(req.params.id) },
+          updateDoc,
+          { returnDocument: 'after' }
+        );
+
+        const updatedCharacter = result && result.value ? result.value : null;
+        if (!updatedCharacter) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+
+        const payload = {
+          figurineImageUrl:
+            typeof updatedCharacter.figurineImageUrl === 'string'
+              ? updatedCharacter.figurineImageUrl
+              : null,
+          figurineImagePublicId:
+            typeof updatedCharacter.figurineImagePublicId === 'string'
+              ? updatedCharacter.figurineImagePublicId
+              : null,
+        };
+
+        const rawCampaignId =
+          typeof updatedCharacter.campaign === 'string'
+            ? updatedCharacter.campaign
+            : typeof updatedCharacter.campaignId === 'string'
+              ? updatedCharacter.campaignId
+              : null;
+        const campaignId = rawCampaignId && rawCampaignId.trim() !== '' ? rawCampaignId.trim() : null;
+        const characterId =
+          updatedCharacter._id && typeof updatedCharacter._id.toString === 'function'
+            ? updatedCharacter._id.toString()
+            : typeof updatedCharacter.characterId === 'string'
+              ? updatedCharacter.characterId
+              : null;
+
+        if (campaignId && characterId) {
+          emitCharacterMetadataUpdate(campaignId, { ...payload, characterId });
+        }
+
+        logger.info('Figurine imagery updated for character');
+
+        res.json({ ...payload, campaignId, characterId });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   // This section will update feats.
   characterRouter.route('/:id/feats').put(
     [body('feat').isArray().withMessage('feat must be an array')],

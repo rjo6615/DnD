@@ -66,6 +66,7 @@ import {
 import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
+import TokenPickerModal from '../components/TokenPickerModal';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -669,6 +670,11 @@ export default function ZombiesDM() {
     const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
+    const [showEnemyTokenPicker, setShowEnemyTokenPicker] = useState(false);
+    const [enemyTokenSelection, setEnemyTokenSelection] = useState({
+      figurineImageUrl: null,
+      figurineImagePublicId: null,
+    });
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const [campaignMap, setCampaignMap] = useState(null);
@@ -1196,6 +1202,20 @@ export default function ZombiesDM() {
             payload.name = trimmedName;
           }
 
+          if (
+            enemyTokenSelection?.figurineImageUrl &&
+            enemyTokenSelection.figurineImageUrl.trim() !== ''
+          ) {
+            payload.figurineImageUrl = enemyTokenSelection.figurineImageUrl.trim();
+          }
+
+          if (
+            enemyTokenSelection?.figurineImagePublicId &&
+            enemyTokenSelection.figurineImagePublicId.trim() !== ''
+          ) {
+            payload.figurineImagePublicId = enemyTokenSelection.figurineImagePublicId.trim();
+          }
+
           const response = await apiFetch(`/campaigns/${encodedCampaign}/enemies`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1216,6 +1236,7 @@ export default function ZombiesDM() {
           const addedEnemy = await response.json();
           setStatus({ type: 'success', message: `${addedEnemy?.name || 'Enemy'} added to campaign.` });
           setCustomEnemyName('');
+          setEnemyTokenSelection({ figurineImageUrl: null, figurineImagePublicId: null });
           await fetchRecords();
         } catch (error) {
           console.error(error);
@@ -1224,8 +1245,45 @@ export default function ZombiesDM() {
           setAddingEnemy(false);
         }
       },
-      [selectedMonsterIndex, encodedCampaign, customEnemyName, fetchRecords]
+      [
+        selectedMonsterIndex,
+        encodedCampaign,
+        customEnemyName,
+        fetchRecords,
+        enemyTokenSelection.figurineImagePublicId,
+        enemyTokenSelection.figurineImageUrl,
+      ]
     );
+
+    const handleOpenEnemyTokenPicker = useCallback(() => {
+      setShowEnemyTokenPicker(true);
+    }, []);
+
+    const handleCloseEnemyTokenPicker = useCallback(() => {
+      setShowEnemyTokenPicker(false);
+    }, []);
+
+    const handleEnemyTokenSelected = useCallback((asset) => {
+      if (!asset) {
+        setEnemyTokenSelection({ figurineImageUrl: null, figurineImagePublicId: null });
+        setShowEnemyTokenPicker(false);
+        return;
+      }
+
+      const nextUrl =
+        typeof asset.secureUrl === 'string' && asset.secureUrl.trim() !== ''
+          ? asset.secureUrl.trim()
+          : typeof asset.url === 'string' && asset.url.trim() !== ''
+            ? asset.url.trim()
+            : null;
+      const nextPublicId =
+        typeof asset.publicId === 'string' && asset.publicId.trim() !== ''
+          ? asset.publicId.trim()
+          : null;
+
+      setEnemyTokenSelection({ figurineImageUrl: nextUrl, figurineImagePublicId: nextPublicId });
+      setShowEnemyTokenPicker(false);
+    }, []);
 
     const removeCharacterTokensFromMaps = useCallback(
       async (character) => {
@@ -5912,6 +5970,25 @@ const resolveIcon = (category, iconMap, fallback) => {
                           disabled={!selectedMonsterIndex}
                         />
                       </Form.Group>
+                      <div className="d-flex flex-column align-items-start mt-3 gap-2">
+                        <Button
+                          variant="outline-light"
+                          size="sm"
+                          onClick={handleOpenEnemyTokenPicker}
+                          disabled={!selectedMonsterIndex}
+                        >
+                          {enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+                            ? 'Change Token'
+                            : 'Choose Token'}
+                        </Button>
+                        {enemyTokenSelection?.figurineImageUrl ? (
+                          <img
+                            src={enemyTokenSelection.figurineImageUrl}
+                            alt="Selected enemy token"
+                            style={{ maxHeight: '96px', maxWidth: '96px', objectFit: 'contain' }}
+                          />
+                        ) : null}
+                      </div>
                     </Col>
                     <Col md={6} className="d-flex justify-content-center justify-content-md-end">
                       <div className="d-flex flex-column flex-md-row gap-2 mt-3 mt-md-0">
@@ -7323,6 +7400,17 @@ const resolveIcon = (category, iconMap, fallback) => {
     </Tab.Pane>
   </Tab.Content>
         </Tab.Container>
+        <TokenPickerModal
+          show={showEnemyTokenPicker}
+          onHide={handleCloseEnemyTokenPicker}
+          campaignId={campaignId || undefined}
+          onSelect={handleEnemyTokenSelected}
+          allowClear={Boolean(
+            enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+          )}
+          onClear={() => handleEnemyTokenSelected(null)}
+          isDm
+        />
         <D20RollerModal
           show={showDiceRoller}
           onHide={() => setShowDiceRoller(false)}
