@@ -259,7 +259,7 @@ describe('ZombiesDM AI generation', () => {
       },
     ];
     let storedMaps = [...baseMaps];
-    let lastPostBody = null;
+    const mapPostBodies = [];
 
     apiFetch.mockImplementation((url, options = {}) => {
       switch (url) {
@@ -279,9 +279,11 @@ describe('ZombiesDM AI generation', () => {
         case '/campaigns/Camp1/maps': {
           if (options.method === 'POST') {
             const parsedBody = JSON.parse(options.body || '{}');
-            lastPostBody = parsedBody;
+            mapPostBodies.push(parsedBody);
+            const createdIndex = mapPostBodies.length;
+            const createdMapId = createdIndex === 1 ? 'forest-map' : `forest-map-${createdIndex}`;
             const createdMap = {
-              mapId: 'forest-map',
+              mapId: createdMapId,
               title: parsedBody.map?.title || 'Forest Map',
               folder: parsedBody.map?.folder,
               imageUrl: parsedBody.map?.imageUrl || 'https://example.com/forest.png',
@@ -289,7 +291,7 @@ describe('ZombiesDM AI generation', () => {
               createdAt: now,
               updatedAt: now,
             };
-            storedMaps = [...baseMaps, createdMap];
+            storedMaps = [...storedMaps, createdMap];
             return Promise.resolve({
               ok: true,
               json: async () => ({
@@ -330,9 +332,11 @@ describe('ZombiesDM AI generation', () => {
     const modalQueries = within(modal);
 
     await userEvent.type(modalQueries.getByLabelText(/^Title/), 'Forest Ambush');
-    const folderInput = modalQueries.getByLabelText(/^Folder/);
-    await userEvent.clear(folderInput);
-    await userEvent.type(folderInput, 'Forest Encounters');
+    const folderSelect = modalQueries.getByLabelText(/^Folder/);
+    expect(folderSelect.tagName).toBe('SELECT');
+    await userEvent.selectOptions(folderSelect, 'Create new folder…');
+    const newFolderInput = await modalQueries.findByLabelText('New folder name');
+    await userEvent.type(newFolderInput, 'Forest Encounters');
     await userEvent.type(
       modalQueries.getByLabelText(/^Image URL/),
       'https://example.com/forest.png'
@@ -342,10 +346,10 @@ describe('ZombiesDM AI generation', () => {
     await userEvent.click(modalQueries.getByTestId('map-editor-submit-button'));
 
     await waitFor(() => {
-      expect(lastPostBody).not.toBeNull();
+      expect(mapPostBodies).toHaveLength(1);
     });
 
-    expect(lastPostBody.map.folder).toBe('Forest Encounters');
+    expect(mapPostBodies[0].map.folder).toBe('Forest Encounters');
 
     await waitFor(() =>
       expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
@@ -358,13 +362,34 @@ describe('ZombiesDM AI generation', () => {
     await userEvent.click(createButton);
     const modalAgain = await screen.findByTestId('map-editor-modal');
     const modalAgainQueries = within(modalAgain);
-    const folderInputAgain = modalAgainQueries.getByLabelText(/^Folder/);
-    expect(folderInputAgain).toHaveValue('Forest Encounters');
+    const folderSelectAgain = modalAgainQueries.getByLabelText(/^Folder/);
+    expect(folderSelectAgain).toHaveValue('Forest Encounters');
 
-    await userEvent.click(modalAgainQueries.getByRole('button', { name: /cancel/i }));
+    await userEvent.selectOptions(folderSelectAgain, 'Encounters');
+    expect(folderSelectAgain).toHaveValue('Encounters');
+    expect(modalAgainQueries.queryByLabelText('New folder name')).not.toBeInTheDocument();
+
+    await userEvent.type(modalAgainQueries.getByLabelText(/^Title/), 'Encounters Redux');
+    await userEvent.type(
+      modalAgainQueries.getByLabelText(/^Image URL/),
+      'https://example.com/encounters-redux.png'
+    );
+    await userEvent.type(modalAgainQueries.getByLabelText(/^Alt Text/), 'Encounters redux map');
+
+    await userEvent.click(modalAgainQueries.getByTestId('map-editor-submit-button'));
+
+    await waitFor(() => {
+      expect(mapPostBodies).toHaveLength(2);
+    });
+    expect(mapPostBodies[1].map.folder).toBe('Encounters');
+
     await waitFor(() =>
       expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
     );
+
+    await waitFor(() => {
+      expect(screen.getByText('Encounters Redux')).toBeInTheDocument();
+    });
 
     const manageButton = await screen.findByTestId('open-map-manager-button');
     await userEvent.click(manageButton);

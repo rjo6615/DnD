@@ -102,6 +102,7 @@ const toFiniteNumberOrNull = (value) => {
 };
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
+const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
 
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
@@ -679,6 +680,7 @@ export default function ZombiesDM() {
       map: null,
       title: '',
       folder: '',
+      folderSelection: '',
       imageUrl: '',
       imageBase64: '',
       imageType: '',
@@ -866,11 +868,6 @@ export default function ZombiesDM() {
         });
       }
     }, [mapEditorErrors.altText, mapEditorState.altText, mapEditorState.mode]);
-
-    const folderDatalistId = useMemo(
-      () => (availableMapFolders.length > 0 ? 'map-editor-folder-options' : undefined),
-      [availableMapFolders.length]
-    );
 
     const imageSourceDescribedBy = useMemo(() => {
       const ids = ['map-editor-image-requirement'];
@@ -3453,12 +3450,20 @@ export default function ZombiesDM() {
           ? lastMapFolder
           : '';
 
+      const shouldUseExistingOption =
+        defaultFolder && availableMapFolders.includes(defaultFolder);
+
       setMapEditorState({
         show: true,
         mode: 'create',
         map: safeMap,
         title: '',
         folder: defaultFolder || '',
+        folderSelection: shouldUseExistingOption
+          ? defaultFolder
+          : defaultFolder
+          ? NEW_FOLDER_OPTION_VALUE
+          : '',
         imageUrl: '',
         imageBase64: '',
         imageType: '',
@@ -3466,7 +3471,14 @@ export default function ZombiesDM() {
         activateOnSave: maps.length === 0,
         fileInputKey: Date.now(),
       });
-    }, [generatedMap, selectedMapId, maps, campaignMap, lastMapFolder]);
+    }, [
+      generatedMap,
+      selectedMapId,
+      maps,
+      campaignMap,
+      lastMapFolder,
+      availableMapFolders,
+    ]);
 
     const openRenameMapModal = useCallback((map) => {
       if (!map || typeof map !== 'object') {
@@ -3486,6 +3498,12 @@ export default function ZombiesDM() {
           typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
             ? safeMap.folder.trim()
             : '',
+        folderSelection:
+          typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+            ? availableMapFolders.includes(safeMap.folder.trim())
+              ? safeMap.folder.trim()
+              : NEW_FOLDER_OPTION_VALUE
+            : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
         imageBase64:
           typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
@@ -3495,7 +3513,7 @@ export default function ZombiesDM() {
         activateOnSave: false,
         fileInputKey: Date.now(),
       });
-    }, []);
+    }, [availableMapFolders]);
 
     const handleCloseMapEditor = useCallback(() => {
       setMapEditorSaving(false);
@@ -3510,6 +3528,15 @@ export default function ZombiesDM() {
       },
       []
     );
+
+    const handleMapEditorFolderSelectionChange = useCallback((event) => {
+      const value = event?.target?.value ?? '';
+      setMapEditorState((prev) => ({
+        ...prev,
+        folderSelection: value,
+        folder: value && value !== NEW_FOLDER_OPTION_VALUE ? value : '',
+      }));
+    }, []);
 
     const handleMapEditorActivateChange = useCallback((event) => {
       const checked = Boolean(event?.target?.checked);
@@ -7336,26 +7363,41 @@ const resolveIcon = (category, iconMap, fallback) => {
                 </Form.Control.Feedback>
               )}
             </Form.Group>
-            <Form.Group className="mb-3" controlId="map-editor-folder">
-              <Form.Label>Folder</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Optional folder name"
-                value={mapEditorState.folder}
-                onChange={handleMapEditorInputChange('folder')}
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="map-editor-folder-select">Folder</Form.Label>
+              <Form.Select
+                id="map-editor-folder-select"
+                value={mapEditorState.folderSelection}
+                onChange={handleMapEditorFolderSelectionChange}
                 disabled={mapEditorSaving}
-                list={folderDatalistId}
-                data-testid="map-editor-folder-input"
-              />
-              {availableMapFolders.length > 0 ? (
-                <datalist id="map-editor-folder-options">
-                  {availableMapFolders.map((folderName) => (
-                    <option value={folderName} key={folderName} />
-                  ))}
-                </datalist>
+                aria-describedby="map-editor-folder-help"
+                data-testid="map-editor-folder-select"
+              >
+                <option value="">No folder</option>
+                {availableMapFolders.map((folderName) => (
+                  <option value={folderName} key={folderName}>
+                    {folderName}
+                  </option>
+                ))}
+                <option value={NEW_FOLDER_OPTION_VALUE}>Create new folder…</option>
+              </Form.Select>
+              {mapEditorState.folderSelection === NEW_FOLDER_OPTION_VALUE ? (
+                <div className="mt-2">
+                  <Form.Label htmlFor="map-editor-folder-input">New folder name</Form.Label>
+                  <Form.Control
+                    id="map-editor-folder-input"
+                    type="text"
+                    placeholder="Enter folder name"
+                    value={mapEditorState.folder}
+                    onChange={handleMapEditorInputChange('folder')}
+                    disabled={mapEditorSaving}
+                    aria-describedby="map-editor-folder-help"
+                    data-testid="map-editor-folder-input"
+                  />
+                </div>
               ) : null}
-              <Form.Text className="text-muted">
-                Choose an existing folder or enter a new one.
+              <Form.Text id="map-editor-folder-help" className="text-muted">
+                Choose an existing folder or create a new one.
               </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
