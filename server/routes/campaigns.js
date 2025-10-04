@@ -1,4 +1,4 @@
-const { param, body } = require('express-validator');
+const { param, body, query } = require('express-validator');
 const express = require('express');
 const { randomUUID } = require('crypto');
 const { ObjectId } = require('mongodb');
@@ -14,7 +14,12 @@ const {
   buildCampaignMapPayload,
   normalizeMapTokens,
 } = require('../utils/campaignMaps');
-const { uploadMapImage, deleteMapImage } = require('../utils/cloudinary');
+const {
+  uploadMapImage,
+  deleteMapImage,
+  listTokenAssets,
+  getTokenRootFolder,
+} = require('../utils/cloudinary');
 
 const deriveCloudinaryPublicIdFromUrl = (url) => {
   if (typeof url !== 'string' || url.trim() === '') {
@@ -178,6 +183,37 @@ const prepareMapAssetsForStorage = async (mapInput) => {
   }
 
   return prepared;
+};
+
+const parseFolderFilters = (input) => {
+  if (!input) {
+    return [];
+  }
+
+  const values = Array.isArray(input) ? input : String(input).split(',');
+
+  const sanitized = values
+    .map((value) => {
+      if (typeof value !== 'string') {
+        return null;
+      }
+
+      const trimmed = value.trim();
+      return trimmed || null;
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set(sanitized));
+};
+
+const getDefaultPlayerTokenFolders = () => {
+  const raw = process.env.CLOUDINARY_PLAYER_TOKEN_FOLDERS;
+
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    return parseFolderFilters(raw.split(','));
+  }
+
+  return ['Adventurers'];
 };
 
 module.exports = (router) => {
@@ -1324,6 +1360,16 @@ module.exports = (router) => {
         param('campaign').trim().notEmpty().withMessage('campaign is required'),
         body('index').trim().notEmpty().withMessage('index is required'),
         body('name').optional().isString().withMessage('name must be a string'),
+        body('figurineImageUrl')
+          .optional({ nullable: true })
+          .isString()
+          .withMessage('figurineImageUrl must be a string')
+          .trim(),
+        body('figurineImagePublicId')
+          .optional({ nullable: true })
+          .isString()
+          .withMessage('figurineImagePublicId must be a string')
+          .trim(),
       ],
       handleValidationErrors,
       async (req, res, next) => {
@@ -1333,7 +1379,19 @@ module.exports = (router) => {
         try {
           const monster = await getMonsterByIndex(index);
           const enemyId = generateEnemyId();
-          const enemyRecord = buildEnemyRecord(monster, enemyId, name);
+          const rawFigurineUrl =
+            typeof req.body.figurineImageUrl === 'string'
+              ? req.body.figurineImageUrl.trim()
+              : '';
+          const rawFigurinePublicId =
+            typeof req.body.figurineImagePublicId === 'string'
+              ? req.body.figurineImagePublicId.trim()
+              : '';
+
+          const enemyRecord = buildEnemyRecord(monster, enemyId, name, {
+            figurineImageUrl: rawFigurineUrl || null,
+            figurineImagePublicId: rawFigurinePublicId || null,
+          });
 
           if (!enemyRecord) {
             return res.status(500).json({ message: 'Failed to create enemy record' });
@@ -1644,6 +1702,73 @@ module.exports = (router) => {
           emitCombatUpdate(req.params.campaign, combatState);
 
           res.json(combatState);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/token-manifest')
+    .get(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        query('nextCursor').optional().isString().trim(),
+        query('folders').optional(),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const db_connect = req.db;
+          const campaign = await db_connect
+            .collection('Campaigns')
+            .findOne({ campaignName });
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const isDm = req.user && campaign.dm === req.user.username;
+          const playerFolders = getDefaultPlayerTokenFolders();
+          const requestedFolders = isDm ? parseFolderFilters(req.query.folders) : playerFolders;
+
+          const folders =
+            isDm && requestedFolders.length === 0 ? null : requestedFolders.filter(Boolean);
+
+          let manifest;
+          try {
+            manifest = await listTokenAssets({
+              folders,
+              nextCursor:
+                typeof req.query.nextCursor === 'string' && req.query.nextCursor.trim() !== ''
+                  ? req.query.nextCursor.trim()
+                  : null,
+            });
+          } catch (error) {
+            logger.warn('Failed to load token manifest from Cloudinary', {
+              campaign: campaignName,
+              error: error.message,
+            });
+            manifest = {
+              assets: [],
+              nextCursor: null,
+              totalCount: null,
+              appliedFolders: Array.isArray(folders) ? folders : [],
+              rootFolder: getTokenRootFolder(),
+            };
+          }
+
+          res.json({
+            ...manifest,
+            appliedFolders: Array.isArray(manifest?.appliedFolders)
+              ? manifest.appliedFolders
+              : Array.isArray(folders)
+                ? folders
+                : [],
+            isDm,
+            defaultPlayerFolders: playerFolders,
+          });
         } catch (err) {
           next(err);
         }
