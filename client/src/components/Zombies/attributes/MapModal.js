@@ -84,6 +84,11 @@ const normalizeMaps = (maps) =>
     ? maps.filter((map) => map && typeof map === 'object')
     : [];
 
+const normalizeFolderName = (value) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const UNGROUPED_FOLDER_KEY = '__ungrouped__';
+
 const resolveMapTitle = (map, index) => {
   if (!map || typeof map !== 'object') {
     return `Map ${index + 1}`;
@@ -180,6 +185,44 @@ const MapModal = ({
     () => normalizeMapId(previewMap?.mapId),
     [previewMap]
   );
+
+  const groupedMaps = useMemo(() => {
+    if (normalizedMaps.length === 0) {
+      return [];
+    }
+
+    const groups = new Map();
+
+    normalizedMaps.forEach((mapItem) => {
+      const folderName = normalizeFolderName(mapItem?.folder);
+      const key = folderName || UNGROUPED_FOLDER_KEY;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          label: folderName || 'No Folder',
+          maps: [],
+        });
+      }
+
+      groups.get(key).maps.push(mapItem);
+    });
+
+    const sortedGroups = Array.from(groups.values()).sort((a, b) => {
+      if (a.key === UNGROUPED_FOLDER_KEY && b.key === UNGROUPED_FOLDER_KEY) {
+        return 0;
+      }
+      if (a.key === UNGROUPED_FOLDER_KEY) {
+        return -1;
+      }
+      if (b.key === UNGROUPED_FOLDER_KEY) {
+        return 1;
+      }
+      return a.label.localeCompare(b.label);
+    });
+
+    return sortedGroups;
+  }, [normalizedMaps]);
 
   const normalizedCurrentCharacterId = useMemo(
     () => normalizeMapId(currentCharacterId),
@@ -592,72 +635,116 @@ const MapModal = ({
       );
     }
 
+    const toFolderTestId = (groupKey, label) => {
+      if (groupKey === UNGROUPED_FOLDER_KEY) {
+        return 'map-modal-folder-no-folder';
+      }
+
+      const normalizedLabel = label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      return `map-modal-folder-${normalizedLabel || 'no-folder'}`;
+    };
+
     return (
       <ListGroup
         variant="flush"
         className="bg-transparent map-modal__list"
         data-testid="map-modal-list"
       >
-        {normalizedMaps.map((mapItem, index) => {
-          const mapId = normalizeMapId(mapItem?.mapId);
-          const key = mapId || `map-${index}`;
-          const isActive = Boolean(normalizedActiveId && mapId && normalizedActiveId === mapId);
-          const isSelected = Boolean(resolvedSelectedId && mapId && resolvedSelectedId === mapId);
-          const isProcessing = Boolean(mapId && normalizedActionId && normalizedActionId === mapId);
-          const titleText = resolveMapTitle(mapItem, index);
-          const canSelect = typeof onSelectMap === 'function' && Boolean(mapId);
-          const canActivate = typeof onActivateMap === 'function';
-          const canDelete = typeof onDeleteMap === 'function';
-
+        {groupedMaps.map((group) => {
+          const headerTestId = toFolderTestId(group.key, group.label);
           return (
-            <ListGroup.Item
-              as="div"
-              key={key}
-              action={canSelect}
-              active={isSelected}
-              onClick={() => {
-                if (canSelect && mapId) {
-                  handleSelectMap(mapId);
-                }
-              }}
-              className="bg-dark text-light border-secondary"
-              data-testid={`map-modal-item-${key}`}
-            >
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="fw-semibold">{titleText}</div>
-                {isActive && (
-                  <Badge bg="success" className="ms-2" data-testid={`map-modal-active-badge-${key}`}>
-                    Active
-                  </Badge>
-                )}
-              </div>
-              {(canActivate || canDelete) && (
-                <div className="d-flex flex-wrap gap-2 mt-3">
-                  {canActivate && (
-                    <Button
-                      variant="outline-light"
-                      size="sm"
-                      disabled={!mapId || isProcessing || isActive}
-                      onClick={(event) => handleActivateMap(event, mapId)}
-                      data-testid={`map-modal-activate-${key}`}
-                    >
-                      {isActive ? 'Active' : 'Set Active'}
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      disabled={!mapId || isProcessing}
-                      onClick={(event) => handleDeleteMap(event, mapId)}
-                      data-testid={`map-modal-delete-${key}`}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </div>
-              )}
-            </ListGroup.Item>
+            <React.Fragment key={group.key}>
+              <ListGroup.Item
+                as="div"
+                className="bg-secondary bg-opacity-50 text-light border-secondary d-flex justify-content-between align-items-center"
+                data-testid={headerTestId}
+              >
+                <span className="fw-semibold text-uppercase small">{group.label}</span>
+                <Badge bg="dark" pill>
+                  {group.maps.length}
+                </Badge>
+              </ListGroup.Item>
+              {group.maps.map((mapItem, index) => {
+                const mapId = normalizeMapId(mapItem?.mapId);
+                const key = mapId || `map-${group.key}-${index}`;
+                const isActive = Boolean(
+                  normalizedActiveId &&
+                  mapId &&
+                  normalizedActiveId === mapId
+                );
+                const isSelected = Boolean(
+                  resolvedSelectedId && mapId && resolvedSelectedId === mapId
+                );
+                const isProcessing = Boolean(
+                  mapId && normalizedActionId && normalizedActionId === mapId
+                );
+                const titleText = resolveMapTitle(mapItem, index);
+                const canSelect = typeof onSelectMap === 'function' && Boolean(mapId);
+                const canActivate = typeof onActivateMap === 'function';
+                const canDelete = typeof onDeleteMap === 'function';
+
+                return (
+                  <ListGroup.Item
+                    as="div"
+                    key={key}
+                    action={canSelect}
+                    active={isSelected}
+                    onClick={() => {
+                      if (canSelect && mapId) {
+                        handleSelectMap(mapId);
+                      }
+                    }}
+                    className="bg-dark text-light border-secondary"
+                    data-testid={`map-modal-item-${key}`}
+                    data-folder={
+                      group.key === UNGROUPED_FOLDER_KEY ? undefined : group.label
+                    }
+                  >
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div className="fw-semibold">{titleText}</div>
+                      {isActive && (
+                        <Badge
+                          bg="success"
+                          className="ms-2"
+                          data-testid={`map-modal-active-badge-${key}`}
+                        >
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                    {(canActivate || canDelete) && (
+                      <div className="d-flex flex-wrap gap-2 mt-3">
+                        {canActivate && (
+                          <Button
+                            variant="outline-light"
+                            size="sm"
+                            disabled={!mapId || isProcessing || isActive}
+                            onClick={(event) => handleActivateMap(event, mapId)}
+                            data-testid={`map-modal-activate-${key}`}
+                          >
+                            {isActive ? 'Active' : 'Set Active'}
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            disabled={!mapId || isProcessing}
+                            onClick={(event) => handleDeleteMap(event, mapId)}
+                            data-testid={`map-modal-delete-${key}`}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </ListGroup.Item>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </ListGroup>

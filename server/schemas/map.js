@@ -17,6 +17,7 @@ const createMapSchema = (z) => {
     caption: z.string().trim().min(1).optional(),
     altText: z.string().trim().min(1).optional(),
     prompt: z.string().trim().min(1).optional(),
+    folder: z.string().trim().min(1).optional(),
     imageUrl: z.string().trim().url().optional(),
     imageBase64: z
       .string()
@@ -85,6 +86,15 @@ const createMapSchema = (z) => {
           delete map.imageType;
         } else {
           map.imageType = trimmedType;
+        }
+      }
+
+      if (map.folder && typeof map.folder === 'string') {
+        const trimmedFolder = map.folder.trim();
+        if (trimmedFolder.length === 0) {
+          delete map.folder;
+        } else {
+          map.folder = trimmedFolder;
         }
       }
 
