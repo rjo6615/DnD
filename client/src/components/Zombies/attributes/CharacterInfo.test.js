@@ -192,3 +192,46 @@ test('renders elven lineage within race card when lineage selected', () => {
   expect(getByText('Wood Elf')).toBeInTheDocument();
 });
 
+test('renders tiefling legacy details within race card when legacy selected', () => {
+  const infernalLegacy = {
+    label: 'Infernal Legacy',
+    resistance: 'Fire',
+    spellcastingAbilities: ['Intelligence', 'Wisdom', 'Charisma'],
+  };
+  const form = {
+    occupation: [],
+    race: {
+      name: 'Tiefling',
+      languages: [],
+      selectedAncestryKey: 'infernal',
+      selectedLineageAbility: 'Charisma',
+      selectedFiendishLegacyResistance: 'Fire',
+      fiendishLegacies: {
+        infernal: infernalLegacy,
+      },
+    },
+    tieflingLegacyKey: 'infernal',
+    tieflingLegacy: infernalLegacy,
+    tieflingLegacyAbility: 'Charisma',
+  };
+
+  render(
+    <CharacterInfo
+      form={form}
+      show={true}
+      handleClose={() => {}}
+      onShowBackground={() => {}}
+      onLongRest={() => {}}
+      onShortRest={() => {}}
+    />
+  );
+
+  const raceItem = screen.getByText('Race').closest('.character-info-item');
+  expect(raceItem).not.toBeNull();
+  const { getByText } = within(raceItem);
+  expect(getByText('Tiefling')).toBeInTheDocument();
+  expect(
+    getByText(/Infernal Legacy • Resistance: Fire • Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+});
+

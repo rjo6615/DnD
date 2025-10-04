@@ -13,36 +13,90 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 const LINEAGE_SPELLS = {
   'elf-drow-dancing-lights': {
     spellName: 'Dancing Lights',
+    baseLevel: 0,
+    castingTime: '1 action',
   },
   'elf-drow-faerie-fire': {
     spellName: 'Faerie Fire',
     maxUses: 1,
+    baseLevel: 1,
+    castingTime: '1 action',
   },
   'elf-drow-darkness': {
     spellName: 'Darkness',
     maxUses: 1,
+    baseLevel: 2,
+    castingTime: '1 action',
   },
   'elf-high-prestidigitation': {
     spellName: 'Prestidigitation',
+    baseLevel: 0,
+    castingTime: '1 action',
   },
   'elf-high-detect-magic': {
     spellName: 'Detect Magic',
     maxUses: 1,
+    baseLevel: 1,
+    castingTime: '1 action',
   },
   'elf-high-misty-step': {
     spellName: 'Misty Step',
     maxUses: 1,
+    baseLevel: 2,
+    castingTime: '1 bonus action',
   },
   'elf-wood-druidcraft': {
     spellName: 'Druidcraft',
+    baseLevel: 0,
+    castingTime: '1 action',
   },
   'elf-wood-longstrider': {
     spellName: 'Longstrider',
     maxUses: 1,
+    baseLevel: 1,
+    castingTime: '1 action',
   },
   'elf-wood-pass-without-trace': {
     spellName: 'Pass without Trace',
     maxUses: 1,
+    baseLevel: 2,
+    castingTime: '1 action',
+  },
+  'tiefling-abyssal-ray-of-sickness': {
+    spellName: 'Ray of Sickness',
+    maxUses: 1,
+    baseLevel: 1,
+    castingTime: '1 action',
+  },
+  'tiefling-abyssal-hold-person': {
+    spellName: 'Hold Person',
+    maxUses: 1,
+    baseLevel: 2,
+    castingTime: '1 action',
+  },
+  'tiefling-chthonic-false-life': {
+    spellName: 'False Life',
+    maxUses: 1,
+    baseLevel: 1,
+    castingTime: '1 action',
+  },
+  'tiefling-chthonic-ray-of-enfeeblement': {
+    spellName: 'Ray of Enfeeblement',
+    maxUses: 1,
+    baseLevel: 2,
+    castingTime: '1 action',
+  },
+  'tiefling-infernal-hellish-rebuke': {
+    spellName: 'Hellish Rebuke',
+    maxUses: 1,
+    baseLevel: 1,
+    castingTime: 'Reaction',
+  },
+  'tiefling-infernal-darkness': {
+    spellName: 'Darkness',
+    maxUses: 1,
+    baseLevel: 2,
+    castingTime: '1 action',
   },
 };
 
@@ -90,6 +144,8 @@ export default function Features({
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
   const hasInitializedRestRef = useRef(false);
+  const speakWithAnimalsUsesRef = useRef(speakWithAnimalsUses);
+  const lineageSpellUsesRef = useRef(lineageSpellUses);
 
   const totalCharacterLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) return 0;
@@ -165,6 +221,73 @@ export default function Features({
     return gnomeLineageAbility.trim();
   }, [gnomeLineageAbility]);
 
+  const { tieflingLegacy, tieflingLegacyKey, tieflingLegacyAbility } = useMemo(() => {
+    const race = form?.race || {};
+    const legacyFromForm =
+      typeof form?.tieflingLegacy === 'object' ? form.tieflingLegacy : null;
+    const legacyKeyFromForm =
+      typeof form?.tieflingLegacyKey === 'string' ? form.tieflingLegacyKey : '';
+    const abilityFromForm =
+      typeof form?.tieflingLegacyAbility === 'string'
+        ? form.tieflingLegacyAbility
+        : '';
+
+    let legacy = legacyFromForm;
+    let legacyKey = legacyKeyFromForm;
+    if (!legacy) {
+      if (legacyKey && race?.fiendishLegacies?.[legacyKey]) {
+        legacy = race.fiendishLegacies[legacyKey];
+      } else if (race?.selectedAncestry && race?.fiendishLegacies) {
+        legacy = race.selectedAncestry;
+        legacyKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.fiendishLegacies?.[race.selectedAncestryKey]
+      ) {
+        legacy = race.fiendishLegacies[race.selectedAncestryKey];
+        legacyKey = race.selectedAncestryKey;
+      }
+    }
+
+    let ability = abilityFromForm;
+    if (!ability) {
+      ability =
+        typeof race?.selectedLineageAbility === 'string'
+          ? race.selectedLineageAbility
+          : '';
+    }
+    if (!ability && legacy?.spellcastingAbilities?.length) {
+      ability = legacy.spellcastingAbilities[0];
+    }
+
+    return {
+      tieflingLegacy: legacy,
+      tieflingLegacyKey: legacyKey,
+      tieflingLegacyAbility: ability,
+    };
+  }, [
+    form?.race,
+    form?.tieflingLegacy,
+    form?.tieflingLegacyAbility,
+    form?.tieflingLegacyKey,
+  ]);
+
+  const tieflingSpellAbilityLabel = useMemo(() => {
+    if (typeof tieflingLegacyAbility !== 'string') return '';
+    return tieflingLegacyAbility.trim();
+  }, [tieflingLegacyAbility]);
+
+  const tieflingResistanceLabel = useMemo(() => {
+    const resistance = tieflingLegacy?.resistance;
+    if (typeof resistance !== 'string') {
+      return '';
+    }
+    return resistance.trim();
+  }, [tieflingLegacy]);
+
   const { elvenLineage, elvenLineageKey, elvenLineageAbility } = useMemo(() => {
     const race = form?.race || {};
     const lineageFromForm =
@@ -237,6 +360,23 @@ export default function Features({
     if (!gnomeLineageKey) return false;
     return gnomeLineageKey.toLowerCase() === 'rock';
   }, [gnomeLineageKey]);
+
+  const normalizedTieflingLegacyKey = useMemo(() => {
+    if (!tieflingLegacyKey) return '';
+    return tieflingLegacyKey.toLowerCase();
+  }, [tieflingLegacyKey]);
+
+  const isAbyssalTieflingLegacy = useMemo(() => {
+    return normalizedTieflingLegacyKey === 'abyssal';
+  }, [normalizedTieflingLegacyKey]);
+
+  const isChthonicTieflingLegacy = useMemo(() => {
+    return normalizedTieflingLegacyKey === 'chthonic';
+  }, [normalizedTieflingLegacyKey]);
+
+  const isInfernalTieflingLegacy = useMemo(() => {
+    return normalizedTieflingLegacyKey === 'infernal';
+  }, [normalizedTieflingLegacyKey]);
 
   const canUseSpeakWithAnimals = useMemo(() => {
     return isForestGnomeLineage;
@@ -319,11 +459,26 @@ export default function Features({
       'elf-wood-longstrider': isWoodElvenLineage && totalCharacterLevel >= 3,
       'elf-wood-pass-without-trace':
         isWoodElvenLineage && totalCharacterLevel >= 5,
+      'tiefling-abyssal-ray-of-sickness':
+        isAbyssalTieflingLegacy && totalCharacterLevel >= 3,
+      'tiefling-abyssal-hold-person':
+        isAbyssalTieflingLegacy && totalCharacterLevel >= 5,
+      'tiefling-chthonic-false-life':
+        isChthonicTieflingLegacy && totalCharacterLevel >= 3,
+      'tiefling-chthonic-ray-of-enfeeblement':
+        isChthonicTieflingLegacy && totalCharacterLevel >= 5,
+      'tiefling-infernal-hellish-rebuke':
+        isInfernalTieflingLegacy && totalCharacterLevel >= 3,
+      'tiefling-infernal-darkness':
+        isInfernalTieflingLegacy && totalCharacterLevel >= 5,
     };
   }, [
     isDrowElvenLineage,
     isHighElvenLineage,
     isWoodElvenLineage,
+    isAbyssalTieflingLegacy,
+    isChthonicTieflingLegacy,
+    isInfernalTieflingLegacy,
     totalCharacterLevel,
   ]);
 
@@ -361,10 +516,21 @@ export default function Features({
   ]);
 
   useEffect(() => {
+    speakWithAnimalsUsesRef.current = speakWithAnimalsUses;
+  }, [speakWithAnimalsUses]);
+
+  useEffect(() => {
+    lineageSpellUsesRef.current = lineageSpellUses;
+  }, [lineageSpellUses]);
+
+  useEffect(() => {
     const allSpellIds = LIMITED_USE_LINEAGE_SPELL_IDS;
     const nextUses = {};
 
     allSpellIds.forEach((spellId) => {
+      const baseSpellConfig = LINEAGE_SPELLS[spellId];
+      const maxUsesRaw = Number(baseSpellConfig?.maxUses);
+      const maxUses = Number.isFinite(maxUsesRaw) ? Math.max(0, maxUsesRaw) : 0;
       const isEligible = lineageSpellEligibility[spellId];
       if (!isEligible) {
         nextUses[spellId] = 0;
@@ -379,20 +545,20 @@ export default function Features({
 
       const storageKey = lineageSpellStorageKeys?.[spellId];
       if (typeof window === 'undefined' || !storageKey) {
-        nextUses[spellId] = 1;
+        nextUses[spellId] = maxUses;
         return;
       }
 
       const storedValueRaw = window.localStorage.getItem(storageKey);
       if (storedValueRaw === null) {
-        nextUses[spellId] = 1;
+        nextUses[spellId] = maxUses;
         return;
       }
 
       const parsed = Number(storedValueRaw);
       nextUses[spellId] = Number.isFinite(parsed)
-        ? Math.max(0, Math.min(1, Math.floor(parsed)))
-        : 1;
+        ? Math.max(0, Math.min(maxUses, Math.floor(parsed)))
+        : maxUses;
     });
 
     setLineageSpellUses((prev) => {
@@ -806,6 +972,117 @@ export default function Features({
           hideUseButton: true,
         });
       }
+    } else if (raceName === 'tiefling') {
+      const legacyLabel =
+        typeof tieflingLegacy?.label === 'string'
+          ? tieflingLegacy.label
+          : typeof tieflingLegacy?.name === 'string'
+          ? tieflingLegacy.name
+          : 'Fiendish Legacy';
+      const legacyMetaParts = [legacyLabel];
+      if (tieflingResistanceLabel) {
+        legacyMetaParts.push(`Resistance: ${tieflingResistanceLabel}`);
+      }
+      if (tieflingSpellAbilityLabel) {
+        legacyMetaParts.push(`Spellcasting Ability: ${tieflingSpellAbilityLabel}`);
+      }
+      const legacyMeta = legacyMetaParts.join(' • ');
+      const legacySpellMeta = [
+        legacyLabel,
+        tieflingSpellAbilityLabel
+          ? `Spellcasting Ability: ${tieflingSpellAbilityLabel}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' • ');
+      const abilityText = tieflingSpellAbilityLabel
+        ? ` This legacy uses ${tieflingSpellAbilityLabel} for its spells.`
+        : '';
+
+      const baseTieflingMeta = [
+        'Tiefling',
+        tieflingSpellAbilityLabel ? `Spellcasting Ability: ${tieflingSpellAbilityLabel}` : null,
+      ]
+        .filter(Boolean)
+        .join(' • ');
+
+      const otherworldlyDescription =
+        'You know the Thaumaturgy cantrip and can cast it without expending a spell slot.' +
+        abilityText;
+
+      raceFeatures.push({
+        id: 'tiefling-otherworldly-presence',
+        name: 'Otherworldly Presence (Thaumaturgy)',
+        meta: baseTieflingMeta,
+        description: otherworldlyDescription,
+        desc: otherworldlyDescription,
+        hideUseButton: true,
+      });
+
+      if (tieflingResistanceLabel) {
+        const resistanceDescription =
+          `You have resistance to ${tieflingResistanceLabel.toLowerCase()} damage.`;
+        raceFeatures.push({
+          id: `tiefling-${normalizedTieflingLegacyKey || 'legacy'}-resistance`,
+          name: `${tieflingResistanceLabel} Resistance`,
+          meta: legacyMeta,
+          description: resistanceDescription,
+          desc: resistanceDescription,
+          hideUseButton: true,
+        });
+      }
+
+      const spells = Array.isArray(tieflingLegacy?.spells)
+        ? tieflingLegacy.spells
+        : [];
+
+      const legacyKeyForId = normalizedTieflingLegacyKey || 'legacy';
+
+      spells.forEach((spell, index) => {
+        const requiredLevelRaw = Number(spell?.unlockedAtLevel);
+        const requiredLevel = Number.isFinite(requiredLevelRaw)
+          ? requiredLevelRaw
+          : 1;
+        if (totalCharacterLevel < Math.max(1, requiredLevel)) {
+          return;
+        }
+
+        const spellName = typeof spell?.name === 'string' ? spell.name : 'Legacy Spell';
+        const normalizedSpellName = spellName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || `spell-${index}`;
+        const spellId = `tiefling-${legacyKeyForId}-${normalizedSpellName}`;
+        const baseSpellConfig = LINEAGE_SPELLS[spellId];
+        const hasLimitedUses =
+          Number.isFinite(baseSpellConfig?.maxUses) && baseSpellConfig.maxUses > 0;
+
+        const descriptionParts = [];
+        if (typeof spell?.description === 'string' && spell.description.trim()) {
+          descriptionParts.push(spell.description.trim());
+        }
+        if (abilityText) {
+          descriptionParts.push(abilityText.trim());
+        }
+        if (typeof spell?.usage === 'string' && spell.usage.trim()) {
+          descriptionParts.push(`Uses: ${spell.usage.trim()}`);
+        }
+        const description = descriptionParts.join(' ');
+        const levelNote = requiredLevel > 1 ? ` (Level ${requiredLevel})` : '';
+
+        raceFeatures.push({
+          id: spellId,
+          name: `${spellName}${levelNote}`,
+          meta: legacySpellMeta,
+          description,
+          desc: description,
+          hideUseButton: !hasLimitedUses,
+          oncePerLongRestLineageSpell: hasLimitedUses,
+          lineageSpellName: baseSpellConfig?.spellName || spellName,
+          lineageSpellBaseLevel: baseSpellConfig?.baseLevel,
+          lineageSpellCastingTime: baseSpellConfig?.castingTime,
+        });
+      });
     }
 
     if (darkvisionRange && raceName !== 'dwarf' && raceName !== 'orc') {
@@ -975,12 +1252,33 @@ export default function Features({
     gnomeLineage,
     gnomeSpellAbilityLabel,
     isForestGnomeLineage,
+    isRockGnomeLineage,
+    elvenLineage,
+    elvenLineageKey,
+    elvenSpellAbilityLabel,
+    isDrowElvenLineage,
+    isHighElvenLineage,
+    isWoodElvenLineage,
+    tieflingLegacy,
+    tieflingLegacyKey,
+    tieflingSpellAbilityLabel,
+    tieflingResistanceLabel,
+    normalizedTieflingLegacyKey,
   ]);
 
   const displayFeatures = useMemo(() => {
     if (ancestryFeatures.length === 0) return features;
     return [...ancestryFeatures, ...features];
   }, [ancestryFeatures, features]);
+
+  const pendingFreeCastConfig = pendingSpell?.freeCast || null;
+  const pendingFreeCastRemaining = pendingFreeCastConfig
+    ? typeof pendingFreeCastConfig.getRemaining === 'function'
+      ? pendingFreeCastConfig.getRemaining()
+      : Number.isFinite(pendingFreeCastConfig.remaining)
+      ? Math.max(0, Math.floor(pendingFreeCastConfig.remaining))
+      : 0
+    : 0;
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -1031,7 +1329,10 @@ export default function Features({
         let hasChanges = false;
         const updated = { ...prev };
         LIMITED_USE_LINEAGE_SPELL_IDS.forEach((spellId) => {
-          const resetValue = lineageSpellEligibility[spellId] ? 1 : 0;
+          const baseSpellConfig = LINEAGE_SPELLS[spellId];
+          const maxUsesRaw = Number(baseSpellConfig?.maxUses);
+          const maxUses = Number.isFinite(maxUsesRaw) ? Math.max(0, maxUsesRaw) : 0;
+          const resetValue = lineageSpellEligibility[spellId] ? maxUses : 0;
           if (updated[spellId] !== resetValue) {
             updated[spellId] = resetValue;
             hasChanges = true;
@@ -1069,37 +1370,60 @@ export default function Features({
     speakWithAnimalsUses,
   ]);
 
-  const handleSpeakWithAnimalsFreeCast = useCallback(() => {
-    if (!canUseSpeakWithAnimals || speakWithAnimalsUses <= 0) return;
-    setSpeakWithAnimalsUses((prev) => Math.max(0, prev - 1));
-    onCastSpell?.({
-      castingTime: '1 action',
-      name: 'Speak with Animals',
-      pendingEffectOnly: true,
-    });
-    onCastSpell?.('action');
+  const closePendingSpellModal = useCallback(() => {
     setShowUpcast(false);
     setPendingSpell(null);
-  }, [canUseSpeakWithAnimals, onCastSpell, speakWithAnimalsUses]);
+  }, []);
 
-  const handleSpeakWithAnimalsSlotCast = useCallback(
+  const handlePendingSpellFreeCast = useCallback(() => {
+    const freeCastConfig = pendingSpell?.freeCast;
+    if (!freeCastConfig) {
+      return;
+    }
+
+    const remaining =
+      typeof freeCastConfig.getRemaining === 'function'
+        ? freeCastConfig.getRemaining()
+        : Number.isFinite(freeCastConfig.remaining)
+        ? freeCastConfig.remaining
+        : 0;
+
+    if (remaining <= 0 && !freeCastConfig.allowNegative) {
+      return;
+    }
+
+    freeCastConfig.onUse?.();
+    closePendingSpellModal();
+  }, [closePendingSpellModal, pendingSpell]);
+
+  const handlePendingSpellSlotCast = useCallback(
     (level, slotType) => {
-      if (!canUseSpeakWithAnimals) {
-        setShowUpcast(false);
-        setPendingSpell(null);
+      if (!pendingSpell) {
+        closePendingSpellModal();
         return;
       }
+
+      if (typeof pendingSpell.onSlotCast === 'function') {
+        pendingSpell.onSlotCast(level, slotType);
+        closePendingSpellModal();
+        return;
+      }
+
+      const baseLevelRaw = Number(pendingSpell?.baseLevel ?? pendingSpell?.level);
+      const baseLevel = Number.isFinite(baseLevelRaw)
+        ? Math.max(0, Math.floor(baseLevelRaw))
+        : 1;
+
       onCastSpell?.({
-        level: 1,
+        level: baseLevel,
         slotLevel: level,
         slotType,
-        castingTime: '1 action',
-        name: 'Speak with Animals',
+        castingTime: pendingSpell?.castingTime || '1 action',
+        name: pendingSpell?.name,
       });
-      setShowUpcast(false);
-      setPendingSpell(null);
+      closePendingSpellModal();
     },
-    [canUseSpeakWithAnimals, onCastSpell]
+    [closePendingSpellModal, onCastSpell, pendingSpell]
   );
 
   const speakWithAnimalsAbilityMeta =
@@ -1182,6 +1506,27 @@ export default function Features({
                     const lineageSpellRemainingUses = lineageSpellHasLimitedUses
                       ? lineageSpellUses[feat.id] ?? 0
                       : null;
+                    const lineageSpellBaseLevelRaw = Number(
+                      feat.lineageSpellBaseLevel ?? lineageSpellConfig?.baseLevel
+                    );
+                    const lineageSpellBaseLevel = Number.isFinite(
+                      lineageSpellBaseLevelRaw
+                    )
+                      ? Math.max(1, Math.floor(lineageSpellBaseLevelRaw))
+                      : 1;
+                    const lineageSpellCastingTime =
+                      feat.lineageSpellCastingTime ||
+                      lineageSpellConfig?.castingTime ||
+                      '1 action';
+                    const lineageSpellDisplayName =
+                      lineageSpellConfig?.spellName ||
+                      feat.lineageSpellName ||
+                      feat.name;
+                    const hasSlotsForLineageSpell = hasAvailableSlotOfLevel(
+                      lineageSpellBaseLevel
+                    );
+                    const isTieflingLineageSpell =
+                      isLineageSpell && feat.id?.startsWith('tiefling-');
                     return (
                       <div className="feature-card" key={featKey}>
                         <div className="feature-card-header">
@@ -1303,6 +1648,72 @@ export default function Features({
                                   if (!lineageSpellConfig?.spellName) {
                                     return;
                                   }
+                                  if (
+                                    isTieflingLineageSpell &&
+                                    lineageSpellHasLimitedUses
+                                  ) {
+                                    if (
+                                      lineageSpellRemainingUses <= 0 &&
+                                      !hasSlotsForLineageSpell
+                                    ) {
+                                      return;
+                                    }
+
+                                    setPendingSpell({
+                                      id: feat.id,
+                                      name: lineageSpellDisplayName,
+                                      baseLevel: lineageSpellBaseLevel,
+                                      castingTime: lineageSpellCastingTime,
+                                      freeCast: {
+                                        label: 'C',
+                                        ariaLabel: `Cast ${lineageSpellDisplayName} without expending a spell slot`,
+                                        remainingLabel: 'Uses remaining',
+                                        icon: (
+                                          <span className="d-flex align-items-center gap-1">
+                                            <i
+                                              className="fa-solid fa-wand-sparkles"
+                                              aria-hidden="true"
+                                            />
+                                            <span>C</span>
+                                          </span>
+                                        ),
+                                        getRemaining: () =>
+                                          Math.max(
+                                            0,
+                                            lineageSpellUsesRef.current?.[feat.id] ?? 0
+                                          ),
+                                        onUse: () => {
+                                          setLineageSpellUses((prev) => {
+                                            const current = prev[feat.id] ?? 0;
+                                            if (current <= 0) {
+                                              return prev;
+                                            }
+                                            return {
+                                              ...prev,
+                                              [feat.id]: Math.max(0, current - 1),
+                                            };
+                                          });
+                                          onCastSpell?.({
+                                            castingTime: lineageSpellCastingTime,
+                                            name: lineageSpellDisplayName,
+                                            pendingEffectOnly: true,
+                                          });
+                                          onCastSpell?.('action');
+                                        },
+                                      },
+                                      onSlotCast: (slotLevel, slotType) => {
+                                        onCastSpell?.({
+                                          level: lineageSpellBaseLevel,
+                                          slotLevel,
+                                          slotType,
+                                          castingTime: lineageSpellCastingTime,
+                                          name: lineageSpellDisplayName,
+                                        });
+                                      },
+                                    });
+                                    setShowUpcast(true);
+                                    return;
+                                  }
                                   if (lineageSpellHasLimitedUses) {
                                     setLineageSpellUses((prev) => {
                                       const current = prev[feat.id] ?? 0;
@@ -1319,15 +1730,16 @@ export default function Features({
                                     }
                                   }
                                   onCastSpell?.({
-                                    castingTime: '1 action',
-                                    name: lineageSpellConfig.spellName,
+                                    castingTime: lineageSpellCastingTime,
+                                    name: lineageSpellDisplayName,
                                     pendingEffectOnly: true,
                                   });
                                   onCastSpell?.('action');
                                 }}
                                 disabled={
                                   lineageSpellHasLimitedUses &&
-                                  lineageSpellRemainingUses <= 0
+                                  lineageSpellRemainingUses <= 0 &&
+                                  (!isTieflingLineageSpell || !hasSlotsForLineageSpell)
                                 }
                               >
                                 <i className="fa-solid fa-wand-sparkles" />
@@ -1347,14 +1759,38 @@ export default function Features({
                                       return;
                                     }
                                     setPendingSpell({
+                                      id: feat.id,
                                       name: 'Speak with Animals',
-                                      level: 1,
-                                      supportsProficiency: true,
-                                      proficiencyLabel: 'P',
-                                      proficiencyAriaLabel:
-                                        'cast Speak with Animals using proficiency',
-                                      proficiencyRemainingLabel: 'Uses remaining',
-                                      onFreeCast: handleSpeakWithAnimalsFreeCast,
+                                      baseLevel: 1,
+                                      castingTime: '1 action',
+                                      freeCast: {
+                                        label: 'P',
+                                        ariaLabel:
+                                          'Cast Speak with Animals using proficiency',
+                                        remainingLabel: 'Uses remaining',
+                                        getRemaining: () =>
+                                          Math.max(0, speakWithAnimalsUsesRef.current ?? 0),
+                                        onUse: () => {
+                                          setSpeakWithAnimalsUses((prev) =>
+                                            Math.max(0, prev - 1)
+                                          );
+                                          onCastSpell?.({
+                                            castingTime: '1 action',
+                                            name: 'Speak with Animals',
+                                            pendingEffectOnly: true,
+                                          });
+                                          onCastSpell?.('action');
+                                        },
+                                      },
+                                      onSlotCast: (slotLevel, slotType) => {
+                                        onCastSpell?.({
+                                          level: 1,
+                                          slotLevel,
+                                          slotType,
+                                          castingTime: '1 action',
+                                          name: 'Speak with Animals',
+                                        });
+                                      },
                                     });
                                     setShowUpcast(true);
                                   }}
@@ -1437,25 +1873,31 @@ export default function Features({
       />
       <UpcastModal
         show={showUpcast}
-        onHide={() => {
-          setShowUpcast(false);
-          setPendingSpell(null);
-        }}
-        baseLevel={pendingSpell?.level || 1}
+        onHide={closePendingSpellModal}
+        baseLevel={
+          Number.isFinite(Number(pendingSpell?.baseLevel))
+            ? Math.max(1, Math.floor(Number(pendingSpell?.baseLevel)))
+            : Number.isFinite(Number(pendingSpell?.level))
+            ? Math.max(1, Math.floor(Number(pendingSpell?.level)))
+            : 1
+        }
         slots={availableSlots}
-        onSelect={handleSpeakWithAnimalsSlotCast}
+        onSelect={handlePendingSpellSlotCast}
         proficiencyAction={
-          pendingSpell?.supportsProficiency
+          pendingFreeCastConfig
             ? {
-                label: pendingSpell?.proficiencyLabel || 'P',
+                label: pendingFreeCastConfig.label || 'P',
+                icon: pendingFreeCastConfig.icon,
                 ariaLabel:
-                  pendingSpell?.proficiencyAriaLabel ||
+                  pendingFreeCastConfig.ariaLabel ||
                   'cast using proficiency feature',
-                remainingText: pendingSpell?.proficiencyRemainingLabel
-                  ? `${pendingSpell.proficiencyRemainingLabel}: ${speakWithAnimalsUses}`
-                  : `Uses remaining: ${speakWithAnimalsUses}`,
-                disabled: speakWithAnimalsUses <= 0,
-                onClick: pendingSpell?.onFreeCast,
+                remainingText: pendingFreeCastConfig.remainingLabel
+                  ? `${pendingFreeCastConfig.remainingLabel}: ${pendingFreeCastRemaining}`
+                  : `Uses remaining: ${pendingFreeCastRemaining}`,
+                disabled:
+                  !!pendingFreeCastConfig.disabled ||
+                  pendingFreeCastRemaining <= 0,
+                onClick: handlePendingSpellFreeCast,
               }
             : undefined
         }

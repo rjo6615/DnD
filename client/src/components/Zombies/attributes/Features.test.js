@@ -1239,6 +1239,308 @@ test('Speak with Animals wand button respects available uses and slots', async (
   await waitFor(() => expect(getWandButton()).toBeDisabled());
 });
 
+test('tiefling fiendish legacy shows resistance and spells with ability details', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const infernalLegacy = {
+    label: 'Infernal Legacy',
+    resistance: 'Fire',
+    spellcastingAbilities: ['Intelligence', 'Wisdom', 'Charisma'],
+    spells: [
+      {
+        name: 'Fire Bolt',
+        spellLevel: 'Cantrip',
+        unlockedAtLevel: 1,
+        description:
+          'Launch a mote of fire at a creature within range, dealing fire damage on a hit.',
+        usage: 'At will',
+      },
+      {
+        name: 'Hellish Rebuke',
+        spellLevel: '1st-level',
+        unlockedAtLevel: 3,
+        description:
+          'Surround an attacker in searing flame as a reaction, forcing a Dexterity save or dealing fire damage.',
+        usage: '1/long rest',
+      },
+      {
+        name: 'Darkness',
+        spellLevel: '2nd-level',
+        unlockedAtLevel: 5,
+        description:
+          'Create a 15-foot-radius sphere of magical darkness that spreads around corners.',
+        usage: '1/long rest',
+      },
+    ],
+  };
+
+  render(
+    <Features
+      form={{
+        race: {
+          name: 'Tiefling',
+          darkvisionRange: 60,
+          fiendishLegacies: { infernal: infernalLegacy },
+        },
+        tieflingLegacyKey: 'infernal',
+        tieflingLegacy: infernalLegacy,
+        tieflingLegacyAbility: 'Charisma',
+        occupation: [{ Name: 'Wizard', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      longRestCount={0}
+      shortRestCount={0}
+      availableSlots={{ regular: { 3: 1 } }}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const resistanceTitle = await screen.findByText('Fire Resistance');
+  const resistanceCard = resistanceTitle.closest('.feature-card');
+  expect(resistanceCard).not.toBeNull();
+  if (!resistanceCard) {
+    throw new Error('Expected Fire Resistance card');
+  }
+  const resistanceWithin = within(resistanceCard);
+  expect(resistanceWithin.getByText(/Resistance: Fire/i)).toBeInTheDocument();
+  expect(resistanceWithin.getByText(/Spellcasting Ability: Charisma/i)).toBeInTheDocument();
+
+  const otherworldlyTitle = screen.getByText('Otherworldly Presence (Thaumaturgy)');
+  const otherworldlyCard = otherworldlyTitle.closest('.feature-card');
+  expect(otherworldlyCard).not.toBeNull();
+  if (!otherworldlyCard) {
+    throw new Error('Expected Otherworldly Presence card');
+  }
+  const otherworldlyWithin = within(otherworldlyCard);
+  expect(
+    otherworldlyWithin.getByText(/Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+  const otherworldlyView = otherworldlyWithin.getByRole('button', {
+    name: /view feature/i,
+  });
+  await act(async () => {
+    await userEvent.click(otherworldlyView);
+  });
+  const thaumaturgyModalText = await screen.findByText(
+    /You know the Thaumaturgy cantrip/i
+  );
+  expect(thaumaturgyModalText).toBeInTheDocument();
+  const thaumaturgyModal = thaumaturgyModalText.closest('.modal-content');
+  if (!thaumaturgyModal) {
+    throw new Error('Expected Thaumaturgy modal content');
+  }
+  const thaumaturgyClose = within(thaumaturgyModal).getByRole('button', {
+    name: /close/i,
+  });
+  await act(async () => {
+    await userEvent.click(thaumaturgyClose);
+  });
+
+  const fireBoltCard = screen.getByText('Fire Bolt').closest('.feature-card');
+  expect(fireBoltCard).not.toBeNull();
+  if (!fireBoltCard) {
+    throw new Error('Expected Fire Bolt card');
+  }
+  const fireBoltWithin = within(fireBoltCard);
+  expect(fireBoltWithin.getByText(/Infernal Legacy/i)).toBeInTheDocument();
+  expect(
+    fireBoltWithin.getByText(/Spellcasting Ability: Charisma/i)
+  ).toBeInTheDocument();
+  expect(
+    fireBoltWithin.queryByText(/Resistance:\s*Fire/i)
+  ).not.toBeInTheDocument();
+
+  const hellishCard = screen
+    .getByText('Hellish Rebuke (Level 3)')
+    .closest('.feature-card');
+  expect(hellishCard).not.toBeNull();
+  if (!hellishCard) {
+    throw new Error('Expected Hellish Rebuke card');
+  }
+  const hellishWithin = within(hellishCard);
+  expect(hellishWithin.getByText(/Infernal Legacy/i)).toBeInTheDocument();
+  expect(hellishWithin.getByText(/Uses remaining/i)).toBeInTheDocument();
+  expect(
+    hellishWithin.queryByText(/Resistance:\s*Fire/i)
+  ).not.toBeInTheDocument();
+  const viewHellish = hellishWithin.getByRole('button', { name: /view feature/i });
+  await act(async () => {
+    await userEvent.click(viewHellish);
+  });
+  expect(
+    await screen.findByText(/This legacy uses Charisma for its spells\./i)
+  ).toBeInTheDocument();
+  expect(screen.getByText(/Uses: 1\/long rest/i)).toBeInTheDocument();
+  const hellishModal = screen.getByText(/Uses: 1\/long rest/i).closest('.modal-content');
+  if (!hellishModal) {
+    throw new Error('Expected Hellish Rebuke modal');
+  }
+  const closeButton = within(hellishModal).getByRole('button', { name: /close/i });
+  await act(async () => {
+    await userEvent.click(closeButton);
+  });
+
+  expect(screen.getByText('Darkness (Level 5)')).toBeInTheDocument();
+});
+
+test('tiefling legacy spell uses upcast modal with C button and tracks usage', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  const infernalLegacy = {
+    label: 'Infernal Legacy',
+    resistance: 'Fire',
+    spellcastingAbilities: ['Charisma'],
+    spells: [
+      {
+        name: 'Fire Bolt',
+        spellLevel: 'Cantrip',
+        unlockedAtLevel: 1,
+        description: 'Hurl a mote of fire.',
+        usage: 'At will',
+      },
+      {
+        name: 'Hellish Rebuke',
+        spellLevel: '1st-level',
+        unlockedAtLevel: 3,
+        description: 'Wreathe an attacker in flames.',
+        usage: '1/long rest',
+      },
+      {
+        name: 'Darkness',
+        spellLevel: '2nd-level',
+        unlockedAtLevel: 5,
+        description: 'Magical darkness spreads from a point you choose.',
+        usage: '1/long rest',
+      },
+    ],
+  };
+
+  const onCastSpell = jest.fn();
+
+  render(
+    <Features
+      form={{
+        race: {
+          name: 'Tiefling',
+          darkvisionRange: 60,
+          fiendishLegacies: { infernal: infernalLegacy },
+        },
+        tieflingLegacyKey: 'infernal',
+        tieflingLegacy: infernalLegacy,
+        tieflingLegacyAbility: 'Charisma',
+        occupation: [{ Name: 'Warlock', Level: 5 }],
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      onCastSpell={onCastSpell}
+      longRestCount={0}
+      shortRestCount={0}
+      availableSlots={{ regular: { 1: 1, 3: 1 } }}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const hellishCard = await screen.findByText('Hellish Rebuke (Level 3)');
+  const hellishFeature = hellishCard.closest('.feature-card');
+  expect(hellishFeature).not.toBeNull();
+  if (!hellishFeature) {
+    throw new Error('Expected Hellish Rebuke feature card');
+  }
+  expect(
+    within(hellishFeature).getByRole('button', {
+      name: /cast hellish rebuke from lineage/i,
+    })
+  ).toBeInTheDocument();
+  expect(
+    within(hellishFeature).getByRole('button', {
+      name: /cast hellish rebuke from lineage/i,
+    }).querySelector('.fa-wand-sparkles')
+  ).not.toBeNull();
+
+  await act(async () => {
+    await userEvent.click(
+      within(hellishFeature).getByRole('button', {
+        name: /cast hellish rebuke from lineage/i,
+      })
+    );
+  });
+
+  const freeCastButton = await screen.findByRole('button', {
+    name: /cast hellish rebuke without expending a spell slot/i,
+  });
+  expect(freeCastButton).toBeEnabled();
+  expect(freeCastButton).toHaveTextContent('C');
+
+  await act(async () => {
+    await userEvent.click(freeCastButton);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'Hellish Rebuke',
+      pendingEffectOnly: true,
+    })
+  );
+  expect(onCastSpell).toHaveBeenCalledWith('action');
+
+  const storageKey =
+    'zombiesLineageSpellUses:tiefling-infernal-hellish-rebuke:test-character-id';
+  expect(window.localStorage.getItem(storageKey)).toBe('0');
+
+  await waitFor(() =>
+    expect(
+      within(hellishFeature).getByText(/Uses remaining: 0/i)
+    ).toBeInTheDocument()
+  );
+
+  await act(async () => {
+    await userEvent.click(
+      within(hellishFeature).getByRole('button', {
+        name: /cast hellish rebuke from lineage/i,
+      })
+    );
+  });
+
+  const disabledFreeCast = await screen.findByRole('button', {
+    name: /cast hellish rebuke without expending a spell slot/i,
+  });
+  expect(disabledFreeCast).toBeDisabled();
+
+  const castButton = await screen.findByRole('button', { name: /^cast$/i });
+
+  await act(async () => {
+    await userEvent.click(castButton);
+  });
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /cast at level/i })
+    ).not.toBeInTheDocument()
+  );
+
+  expect(onCastSpell).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'Hellish Rebuke',
+      slotLevel: 1,
+      slotType: 'regular',
+      level: 1,
+    })
+  );
+});
+
 test('orc characters display racial traits and track Adrenaline Rush uses with rests', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
