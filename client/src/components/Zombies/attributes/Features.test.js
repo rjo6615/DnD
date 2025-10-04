@@ -111,7 +111,9 @@ test('dragonborn always has damage resistance and gains draconic flight at level
   const darkvisionTitle = await screen.findByText('Darkvision');
   const darkvisionCard = darkvisionTitle.closest('.feature-card');
   expect(darkvisionCard).not.toBeNull();
-  expect(within(darkvisionCard).getByText('Dragonborn')).toBeInTheDocument();
+  expect(
+    within(darkvisionCard).getByText('Dragonborn 60 ft')
+  ).toBeInTheDocument();
 
   const darkvisionViewButton = within(darkvisionCard).getByRole('button', {
     name: /view feature/i,
@@ -851,7 +853,7 @@ test('forest gnome lineage shows lineage spells with ability text and tracking',
   const darkvisionTitle = await screen.findByText('Darkvision');
   const darkvisionCard = darkvisionTitle.closest('.feature-card');
   expect(darkvisionCard).not.toBeNull();
-  expect(within(darkvisionCard).getByText('Gnome')).toBeInTheDocument();
+  expect(within(darkvisionCard).getByText('Gnome 60 ft')).toBeInTheDocument();
 
   expect(await screen.findByText('Gnomish Cunning')).toBeInTheDocument();
 
