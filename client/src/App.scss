@@ -1934,9 +1934,9 @@ max-width: 300px;
 
 .dnd-modal .modal-content {
   background: none !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  box-shadow: none !important;
-  border: none !important;
+  background-color: rgba(17, 16, 19, 0.95) !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .dnd-modal .modal-body {
