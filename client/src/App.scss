@@ -898,16 +898,6 @@
   flex-shrink: 0;
 }
 
-.feature-card-spell-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.85);
-}
-
 .feature-card-actions .btn-outline-light {
   color: var(--bs-light);
   border-color: rgba(255, 255, 255, 0.4);
