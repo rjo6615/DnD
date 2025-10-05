@@ -331,4 +331,39 @@ describe('TokenPickerModal', () => {
     const options = within(select).getAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
   });
+
+  test('displays an error message when token manifest request fails', async () => {
+    const errorMessage = 'Cloudinary rate limit exceeded';
+
+    apiFetch.mockImplementation((url) => {
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          statusText: 'Too Many Requests',
+          json: async () => ({ message: errorMessage }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        isDm={false}
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/campaigns/Camp1/token-manifest')
+      );
+    });
+
+    expect(await screen.findByText(errorMessage)).toBeInTheDocument();
+  });
 });

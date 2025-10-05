@@ -1627,4 +1627,31 @@ describe('Campaign routes', () => {
     );
     expect(resWithFilter.body.appliedFolders).toEqual(['Tokens/Adventurers/Heroes']);
   });
+
+  test('returns an error when token manifest retrieval fails', async () => {
+    mockUser = { username: 'Player1' };
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    const rateLimitError = new Error('Rate limit exceeded');
+    rateLimitError.http_code = 429;
+
+    listTokenAssets.mockRejectedValueOnce(rateLimitError);
+
+    const res = await request(app).get('/campaigns/Test/token-manifest');
+
+    expect(res.status).toBe(429);
+    expect(res.body).toEqual({
+      message: 'Failed to load token manifest.',
+      details: 'Rate limit exceeded',
+    });
+  });
 });
