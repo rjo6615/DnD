@@ -112,6 +112,30 @@ describe('ZombiesDM metadata helpers', () => {
     expect(combatMeta.dataAttributes['data-max-hp']).not.toBe(character.health);
   });
 
+  test('combat row metadata reflects temporary health updates before falling back to base health', () => {
+    const records = [
+      {
+        _id: 'temp-hero',
+        characterId: 'temp-hero',
+        health: 18,
+      },
+    ];
+
+    const updatedRecords = applyCharacterHealthUpdateToRecords({
+      records,
+      update: { _id: 'temp-hero', tempHealth: 9 },
+    });
+
+    const combatMeta = getCombatRowMeta({
+      character: updatedRecords[0],
+      rowId: 'temp-hero',
+      participantInfo: { characterId: 'temp-hero', health: 18 },
+      recordIndex: 0,
+    });
+
+    expect(combatMeta.dataAttributes['data-current-hp']).toBe(9);
+  });
+
   test('health updates keep current hp fields in sync with temp health', () => {
     const originalRecord = {
       _id: 'sync-1',

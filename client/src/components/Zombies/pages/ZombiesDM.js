@@ -604,11 +604,12 @@ export const getCombatRowMeta = ({
   const rowCurrentHp = toFiniteNumberOrNull(
     character?.tempHealth ??
       participantInfo?.tempHealth ??
-      character?.currentHp ??
-      character?.hpCurrent ??
       participantInfo?.currentHp ??
       participantInfo?.hpCurrent ??
-      participantInfo?.health
+      character?.currentHp ??
+      character?.hpCurrent ??
+      participantInfo?.health ??
+      character?.health
   );
   const rowMaxHp = toFiniteNumberOrNull(
     character?.maxHp ??
@@ -5297,43 +5298,22 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 participantInfo?.characterId ||
                                 'this character';
 
-                              const sanitizeIdentifier = (value, fallbackIndex) =>
-                                typeof value === 'string' && value.trim() !== ''
-                                  ? value.trim().replace(/[^0-9A-Za-z_-]/g, '-')
-                                  : `participant-${fallbackIndex}`;
-                              const rowTestId = `combat-row-${sanitizeIdentifier(
+                              const sanitizedRowIdentifier = sanitizeIdentifierForTestId(
                                 resolvedRowId,
-                                recordIndex
-                              )}`;
-                              const rowCurrentHp = toFiniteNumberOrNull(
-                                character?.tempHealth ??
-                                  participantInfo?.tempHealth ??
-                                  character?.currentHp ??
-                                  character?.hpCurrent ??
-                                  character?.health ??
-                                  participantInfo?.currentHp ??
-                                  participantInfo?.hpCurrent ??
-                                  participantInfo?.health
-                              );
-                              const rowMaxHp = toFiniteNumberOrNull(
-                                character?.maxHp ??
-                                  character?.hpMax ??
-                                  character?.health ??
-                                  participantInfo?.maxHp ??
-                                  participantInfo?.hpMax ??
-                                  participantInfo?.health
-                              );
-                              const rowTempHp = toFiniteNumberOrNull(
-                                character?.tempHealth ?? participantInfo?.tempHealth
+                                `participant-${recordIndex}`
                               );
 
+                              const { testId: rowTestId, dataAttributes: combatRowDataAttributes } =
+                                getCombatRowMeta({
+                                  character,
+                                  rowId: resolvedRowId,
+                                  participantInfo,
+                                  recordIndex,
+                                });
+
                               const rowDataAttributes = {
-                                'data-testid': rowTestId,
-                                ...(rowCurrentHp !== null
-                                  ? { 'data-current-hp': rowCurrentHp }
-                                  : {}),
-                                ...(rowMaxHp !== null ? { 'data-max-hp': rowMaxHp } : {}),
-                                ...(rowTempHp !== null ? { 'data-temp-hp': rowTempHp } : {}),
+                                ...(rowTestId ? { 'data-testid': rowTestId } : {}),
+                                ...combatRowDataAttributes,
                               };
 
                               return (
@@ -5347,7 +5327,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   <td className="text-center">
                                     <Form.Check
                                       type="checkbox"
-                                      id={`combat-toggle-${resolvedRowId}`}
+                                      id={`combat-toggle-${sanitizedRowIdentifier}`}
                                       checked={isParticipant}
                                       onChange={() =>
                                         resolvedRowId && handleToggleParticipant(resolvedRowId)
