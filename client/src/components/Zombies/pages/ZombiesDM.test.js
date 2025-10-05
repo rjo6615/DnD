@@ -97,8 +97,8 @@ describe('ZombiesDM metadata helpers', () => {
     expect(combatMeta.dataAttributes['data-current-hp']).toBe(12);
   });
 
-  test('combat row metadata omits current hp when no explicit value is present', () => {
-    const character = { _id: 'def456', health: 30 };
+  test('combat row metadata prefers participant max hp over character health when no explicit current hp is present', () => {
+    const character = { _id: 'def456', health: 42 };
 
     const combatMeta = getCombatRowMeta({
       character,
@@ -109,6 +109,7 @@ describe('ZombiesDM metadata helpers', () => {
 
     expect(combatMeta.dataAttributes['data-current-hp']).toBeUndefined();
     expect(combatMeta.dataAttributes['data-max-hp']).toBe(30);
+    expect(combatMeta.dataAttributes['data-max-hp']).not.toBe(character.health);
   });
 });
 
