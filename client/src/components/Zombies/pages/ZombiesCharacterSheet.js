@@ -38,6 +38,7 @@ import speakWithAnimalsIcon from "../../../images/speak-with-animal.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 import {
   normalizeItems as normalizeInventoryItems,
   normalizeAccessories as normalizeInventoryAccessories,
@@ -47,6 +48,7 @@ import MapModal from "../attributes/MapModal";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import TokenPickerModal from '../components/TokenPickerModal';
 
 const HEADER_PADDING = 16;
 const DOCKABLE_MODAL_DEFINITIONS = {
@@ -812,6 +814,9 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
+  const [showTokenPicker, setShowTokenPicker] = useState(false);
+  const [tokenPickerSaving, setTokenPickerSaving] = useState(false);
+  const [tokenPickerError, setTokenPickerError] = useState(null);
 
   const getStoredActiveEffects = useCallback((id) => {
     if (typeof window === 'undefined' || !id) {
@@ -2715,6 +2720,8 @@ export default function ZombiesCharacterSheet() {
     resolvedCharacterIdRef.current = resolvedCharacterId;
   }, [resolvedCharacterId]);
 
+  const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
+
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor) => {
       const normalizedCharacterId =
@@ -2798,6 +2805,133 @@ export default function ZombiesCharacterSheet() {
         }
 
         return { ...prev, diceColor: normalizedColor };
+      });
+    },
+    [setCampaignCharacters, setForm]
+  );
+
+  const updateLocalFigurineImage = useCallback(
+    (incomingCharacterId, nextUrl, nextPublicId) => {
+      const normalizedCharacterId =
+        typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
+          ? incomingCharacterId.trim()
+          : null;
+      const normalizedUrl =
+        typeof nextUrl === 'string' && nextUrl.trim() !== '' ? nextUrl.trim() : null;
+      const normalizedPublicId =
+        typeof nextPublicId === 'string' && nextPublicId.trim() !== ''
+          ? nextPublicId.trim()
+          : null;
+
+      if (!normalizedCharacterId) {
+        return;
+      }
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object' || Object.keys(prev).length === 0) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const next = { ...prev };
+
+        Object.entries(prev).forEach(([key, value]) => {
+          if (!value || typeof value !== 'object') {
+            return;
+          }
+
+          const identifiers = new Set();
+          if (typeof key === 'string' && key.trim() !== '') {
+            identifiers.add(key.trim());
+          }
+          if (typeof value._id === 'string' && value._id.trim() !== '') {
+            identifiers.add(value._id.trim());
+          }
+          if (typeof value.characterId === 'string' && value.characterId.trim() !== '') {
+            identifiers.add(value.characterId.trim());
+          }
+
+          if (!identifiers.has(normalizedCharacterId)) {
+            return;
+          }
+
+          const nextValue = { ...value };
+          let changed = false;
+
+          if (normalizedUrl) {
+            if (nextValue.figurineImageUrl !== normalizedUrl) {
+              nextValue.figurineImageUrl = normalizedUrl;
+              changed = true;
+            }
+          } else if (nextValue.figurineImageUrl) {
+            delete nextValue.figurineImageUrl;
+            changed = true;
+          }
+
+          if (normalizedPublicId) {
+            if (nextValue.figurineImagePublicId !== normalizedPublicId) {
+              nextValue.figurineImagePublicId = normalizedPublicId;
+              changed = true;
+            }
+          } else if (nextValue.figurineImagePublicId) {
+            delete nextValue.figurineImagePublicId;
+            changed = true;
+          }
+
+          if (changed) {
+            next[key] = nextValue;
+            didUpdate = true;
+          }
+        });
+
+        return didUpdate ? next : prev;
+      });
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const identifiers = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          identifiers.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          identifiers.push(prev.characterId.trim());
+        }
+        const resolvedId = resolvedCharacterIdRef.current;
+        if (typeof resolvedId === 'string' && resolvedId.trim() !== '') {
+          identifiers.push(resolvedId.trim());
+        }
+
+        if (!identifiers.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        const nextForm = { ...prev };
+        let changed = false;
+
+        if (normalizedUrl) {
+          if (nextForm.figurineImageUrl !== normalizedUrl) {
+            nextForm.figurineImageUrl = normalizedUrl;
+            changed = true;
+          }
+        } else if (nextForm.figurineImageUrl) {
+          delete nextForm.figurineImageUrl;
+          changed = true;
+        }
+
+        if (normalizedPublicId) {
+          if (nextForm.figurineImagePublicId !== normalizedPublicId) {
+            nextForm.figurineImagePublicId = normalizedPublicId;
+            changed = true;
+          }
+        } else if (nextForm.figurineImagePublicId) {
+          delete nextForm.figurineImagePublicId;
+          changed = true;
+        }
+
+        return changed ? nextForm : prev;
       });
     },
     [setCampaignCharacters, setForm]
@@ -3121,16 +3255,42 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
-      const normalizedDiceColor =
-        typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
-          ? update.diceColor.trim()
-          : null;
+      const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(update, 'diceColor');
+      const hasFigurineUrlUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'figurineImageUrl'
+      );
+      const hasFigurineIdUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'figurineImagePublicId'
+      );
 
-      if (!normalizedDiceColor) {
+      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
         return;
       }
 
-      updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
+      if (hasDiceColorUpdate) {
+        const normalizedDiceColor =
+          typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+            ? update.diceColor.trim()
+            : null;
+        if (normalizedDiceColor) {
+          updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
+        }
+      }
+
+      if (hasFigurineUrlUpdate || hasFigurineIdUpdate) {
+        const normalizedUrl =
+          typeof update.figurineImageUrl === 'string' && update.figurineImageUrl.trim() !== ''
+            ? update.figurineImageUrl.trim()
+            : null;
+        const normalizedPublicId =
+          typeof update.figurineImagePublicId === 'string' &&
+          update.figurineImagePublicId.trim() !== ''
+            ? update.figurineImagePublicId.trim()
+            : null;
+        updateLocalFigurineImage(normalizedCharacterId, normalizedUrl, normalizedPublicId);
+      }
     };
 
     socket.on('combat:update', handleCombatUpdate);
@@ -3150,7 +3310,7 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [campaignId, applyMapPayload, updateLocalDiceColor]);
+  }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
 
   const handleDiceColorChange = useCallback(
     (nextColor) => {
@@ -3161,6 +3321,90 @@ export default function ZombiesCharacterSheet() {
       updateLocalDiceColor(currentId, nextColor);
     },
     [updateLocalDiceColor]
+  );
+
+  const handleOpenTokenPicker = useCallback(() => {
+    setTokenPickerError(null);
+    setShowTokenPicker(true);
+  }, []);
+
+  const handleCloseTokenPicker = useCallback(() => {
+    if (tokenPickerSaving) {
+      return;
+    }
+    setShowTokenPicker(false);
+    setTokenPickerError(null);
+  }, [tokenPickerSaving]);
+
+  const handleTokenSelection = useCallback(
+    async (asset) => {
+      if (!characterId) {
+        return;
+      }
+
+      const sanitizedUrl = asset
+        ? typeof asset.secureUrl === 'string' && asset.secureUrl.trim() !== ''
+          ? asset.secureUrl.trim()
+          : typeof asset.url === 'string' && asset.url.trim() !== ''
+            ? asset.url.trim()
+            : null
+        : '';
+
+      const sanitizedPublicId = asset
+        ? typeof asset.publicId === 'string' && asset.publicId.trim() !== ''
+          ? asset.publicId.trim()
+          : null
+        : '';
+
+      setTokenPickerSaving(true);
+      setTokenPickerError(null);
+
+      try {
+        const response = await apiFetch(`/characters/${characterId}/figurine`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            figurineImageUrl: sanitizedUrl,
+            figurineImagePublicId: sanitizedPublicId,
+          }),
+        });
+
+        if (!response.ok) {
+          let message = response.statusText || 'Failed to update figurine.';
+          try {
+            const errorData = await response.json();
+            if (errorData && typeof errorData.message === 'string' && errorData.message.trim() !== '') {
+              message = errorData.message.trim();
+            }
+          } catch (jsonError) {
+            // ignore parsing errors
+          }
+          throw new Error(message);
+        }
+
+        const result = await response.json();
+        const nextUrl =
+          typeof result?.figurineImageUrl === 'string' && result.figurineImageUrl.trim() !== ''
+            ? result.figurineImageUrl.trim()
+            : null;
+        const nextPublicId =
+          typeof result?.figurineImagePublicId === 'string' &&
+          result.figurineImagePublicId.trim() !== ''
+            ? result.figurineImagePublicId.trim()
+            : null;
+
+        const resolvedId =
+          (resolvedCharacterIdRef.current && resolvedCharacterIdRef.current.trim()) || characterId;
+        updateLocalFigurineImage(resolvedId, nextUrl, nextPublicId);
+        setShowTokenPicker(false);
+      } catch (error) {
+        console.error(error);
+        setTokenPickerError(error?.message || 'Failed to update figurine.');
+      } finally {
+        setTokenPickerSaving(false);
+      }
+    },
+    [characterId, updateLocalFigurineImage]
   );
 
   const tokenMetaById = useMemo(() => {
@@ -3213,6 +3457,8 @@ export default function ZombiesCharacterSheet() {
             value?.displayType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(value);
+
         lookup[trimmed] = {
           color,
           label,
@@ -3220,6 +3466,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
           ...(recordSize ? { size: recordSize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       });
     }
@@ -3258,6 +3506,8 @@ export default function ZombiesCharacterSheet() {
           enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+
         lookup[enemyId] = {
           color: ENEMY_FIGURINE_COLOR,
           label,
@@ -3265,6 +3515,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
           maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
           ...(enemySize ? { size: enemySize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       });
     }
@@ -3297,6 +3549,8 @@ export default function ZombiesCharacterSheet() {
             form?.displayType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(form);
+
         lookup[resolvedCharacterId] = {
           color,
           label,
@@ -3304,6 +3558,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
           ...(fallbackSize ? { size: fallbackSize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       } else {
         const fallbackSize = normalizeCreatureSize(
@@ -3320,6 +3576,8 @@ export default function ZombiesCharacterSheet() {
 
         const nextEntry = { ...lookup[resolvedCharacterId] };
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(form);
+
         if (
           typeof nextEntry.entityType !== 'string' ||
           nextEntry.entityType.trim() === ''
@@ -3329,6 +3587,14 @@ export default function ZombiesCharacterSheet() {
 
         if (fallbackSize) {
           nextEntry.size = fallbackSize;
+        }
+
+        if (figurineImageUrl && !nextEntry.figurineImageUrl) {
+          nextEntry.figurineImageUrl = figurineImageUrl;
+        }
+
+        if (figurineImagePublicId && !nextEntry.figurineImagePublicId) {
+          nextEntry.figurineImagePublicId = figurineImagePublicId;
         }
 
         lookup[resolvedCharacterId] = nextEntry;
@@ -4346,6 +4612,9 @@ export default function ZombiesCharacterSheet() {
           onShowBackground={handleShowBackground}
           onLongRest={handleLongRest}
           onShortRest={handleShortRest}
+          characterFigurine={characterFigurine}
+          handleOpenTokenPicker={handleOpenTokenPicker}
+          tokenPickerSaving={tokenPickerSaving}
         />
         <Skills
           form={form}
@@ -4443,6 +4712,18 @@ export default function ZombiesCharacterSheet() {
         />
       </>
     )}
+    <TokenPickerModal
+      show={showTokenPicker}
+      onHide={handleCloseTokenPicker}
+      campaignId={campaignId || undefined}
+      onSelect={handleTokenSelection}
+      allowClear={Boolean(
+        characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
+      )}
+      onClear={() => handleTokenSelection(null)}
+      isBusy={tokenPickerSaving}
+      errorMessage={tokenPickerError}
+    />
     <MapModal
       show={shouldShowMapModal}
       onHide={handleCloseMapModal}

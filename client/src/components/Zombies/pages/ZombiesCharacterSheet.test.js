@@ -104,33 +104,40 @@ import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
 const matchMediaState = {};
 
+const defaultApiFetchImplementation = (url) => {
+  if (typeof url === 'string' && url.includes('/maps')) {
+    return Promise.resolve({ ok: false, status: 404 });
+  }
+
+  if (typeof url === 'string' && url.includes('/map')) {
+    return Promise.resolve({ ok: false, status: 404 });
+  }
+
+  if (typeof url === 'string' && url.includes('/classes/')) {
+    return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
+  }
+
+  if (typeof url === 'string' && url.includes('/combat')) {
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({ participants: [], activeTurn: null }),
+    });
+  }
+
+  if (typeof url === 'string' && url.includes('/characters')) {
+    return Promise.resolve({ ok: true, json: async () => [] });
+  }
+
+  if (typeof url === 'string' && url.includes('/enemies')) {
+    return Promise.resolve({ ok: true, json: async () => [] });
+  }
+
+  return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
+};
+
 beforeEach(() => {
   apiFetch.mockReset();
-  apiFetch.mockImplementation((url) => {
-    if (typeof url === 'string' && url.includes('/maps')) {
-      return Promise.resolve({ ok: false, status: 404 });
-    }
-    if (typeof url === 'string' && url.includes('/map')) {
-      return Promise.resolve({ ok: false, status: 404 });
-    }
-    if (typeof url === 'string' && url.includes('/classes/')) {
-      return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
-    }
-    if (typeof url === 'string' && url.includes('/combat')) {
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({ participants: [], activeTurn: null }),
-      });
-    }
-    if (typeof url === 'string' && url.includes('/characters')) {
-      return Promise.resolve({ ok: true, json: async () => [] });
-    }
-    if (typeof url === 'string' && url.includes('/enemies')) {
-      return Promise.resolve({ ok: true, json: async () => [] });
-    }
-
-    return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
-  });
+  apiFetch.mockImplementation(defaultApiFetchImplementation);
   mockSocketIo.mockReset();
   socketStub = {
     on: jest.fn(),
@@ -2348,5 +2355,232 @@ test('loads campaign map tokens and updates them after placement', async () => {
     const remainingToken =
       mockMapModalProps.current.tokensByMapId?.[mapId]?.['char-1'];
     expect(remainingToken).toBeUndefined();
+  });
+});
+
+test('allows selecting a figurine token through the token picker modal', async () => {
+  const campaignId = 'camp-figurines';
+  const manifestAsset = {
+    publicId: 'Tokens/Adventurers/Hero',
+    secureUrl: 'https://res.cloudinary.com/demo/image/upload/v123/Tokens/Adventurers/Hero.png',
+    filename: 'Hero Token',
+    relativeFolder: 'Adventurers',
+  };
+
+  const manifestResponse = {
+    assets: [manifestAsset],
+    nextCursor: null,
+    appliedFolders: ['Adventurers'],
+  };
+
+  const characterResponse = {
+    _id: '1',
+    characterId: '1',
+    campaign: campaignId,
+    characterName: 'Token Tester',
+    occupation: [{ Name: 'Wizard', Level: 1 }],
+    spells: [],
+    spellPoints: 0,
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    accessories: [],
+    equipment: {},
+  };
+
+  apiFetch.mockImplementation((url, options = {}) => {
+    if (url === '/characters/1') {
+      return Promise.resolve({ ok: true, json: async () => characterResponse });
+    }
+
+    if (url === `/campaigns/${campaignId}/combat`) {
+      return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+    }
+
+    if (url === `/campaigns/${campaignId}/characters`) {
+      return Promise.resolve({ ok: true, json: async () => [characterResponse] });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps`) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    if (url === `/campaigns/${campaignId}/map`) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    if (url === `/campaigns/${campaignId}/enemies`) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
+    if (url === `/campaigns/${campaignId}/token-manifest`) {
+      return Promise.resolve({ ok: true, json: async () => manifestResponse });
+    }
+
+    if (url === '/characters/1/figurine') {
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body).toEqual({
+        figurineImageUrl: manifestAsset.secureUrl,
+        figurineImagePublicId: manifestAsset.publicId,
+      });
+      return Promise.resolve({ ok: true, json: async () => body });
+    }
+
+    if (typeof url === 'string' && url.includes('/classes/')) {
+      return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
+    }
+
+    return defaultApiFetchImplementation(url, options);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const openPickerButton = await screen.findByRole('button', { name: /choose figurine/i });
+  await userEvent.click(openPickerButton);
+
+  await waitFor(() => {
+    expect(apiFetch).toHaveBeenCalledWith(`/campaigns/${campaignId}/token-manifest`);
+  });
+
+  const heroTokenButton = await screen.findByRole('button', { name: /hero token/i });
+  await userEvent.click(heroTokenButton);
+
+  await waitFor(() => {
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/characters/1/figurine',
+      expect.objectContaining({ method: 'PUT' })
+    );
+  });
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /change figurine/i })).toBeInTheDocument();
+  });
+
+  const previewImage = await screen.findByAltText('Current figurine token');
+  expect(previewImage).toHaveAttribute('src', manifestAsset.secureUrl);
+});
+
+test('allows clearing an existing figurine selection from the token picker modal', async () => {
+  const campaignId = 'camp-figurines';
+  const existingFigurineUrl = 'https://res.cloudinary.com/demo/image/upload/v123/Tokens/Adventurers/Existing.png';
+
+  const characterResponse = {
+    _id: '1',
+    characterId: '1',
+    campaign: campaignId,
+    characterName: 'Token Tester',
+    occupation: [{ Name: 'Wizard', Level: 1 }],
+    spells: [],
+    spellPoints: 0,
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    accessories: [],
+    equipment: {},
+    figurineImageUrl: existingFigurineUrl,
+  };
+
+  const campaignCharacterResponse = {
+    ...characterResponse,
+    figurineImageUrl: existingFigurineUrl,
+  };
+
+  const manifestResponse = {
+    assets: [],
+    nextCursor: null,
+    appliedFolders: ['Adventurers'],
+  };
+
+  const figurineUpdateBodies = [];
+
+  apiFetch.mockImplementation((url, options = {}) => {
+    if (url === '/characters/1') {
+      return Promise.resolve({ ok: true, json: async () => characterResponse });
+    }
+
+    if (url === `/campaigns/${campaignId}/combat`) {
+      return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+    }
+
+    if (url === `/campaigns/${campaignId}/characters`) {
+      return Promise.resolve({ ok: true, json: async () => [campaignCharacterResponse] });
+    }
+
+    if (url === `/campaigns/${campaignId}/maps`) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    if (url === `/campaigns/${campaignId}/map`) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    if (url === `/campaigns/${campaignId}/enemies`) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
+    if (url === `/campaigns/${campaignId}/token-manifest`) {
+      return Promise.resolve({ ok: true, json: async () => manifestResponse });
+    }
+
+    if (url === '/characters/1/figurine') {
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      figurineUpdateBodies.push(body);
+      return Promise.resolve({ ok: true, json: async () => ({
+        figurineImageUrl: body.figurineImageUrl,
+        figurineImagePublicId: body.figurineImagePublicId,
+      }) });
+    }
+
+    if (typeof url === 'string' && url.includes('/classes/')) {
+      return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
+    }
+
+    return defaultApiFetchImplementation(url, options);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await screen.findByRole('button', { name: /change figurine/i });
+  expect(screen.getByAltText('Current figurine token')).toHaveAttribute('src', existingFigurineUrl);
+
+  await userEvent.click(screen.getByRole('button', { name: /change figurine/i }));
+
+  const clearButton = await screen.findByRole('button', { name: /clear selection/i });
+  await userEvent.click(clearButton);
+
+  await waitFor(() => {
+    expect(figurineUpdateBodies.length).toBeGreaterThan(0);
+  });
+
+  expect(figurineUpdateBodies[0]).toEqual({ figurineImageUrl: '', figurineImagePublicId: '' });
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /choose figurine/i })).toBeInTheDocument();
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByAltText('Current figurine token')).not.toBeInTheDocument();
   });
 });

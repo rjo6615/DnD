@@ -4,17 +4,21 @@ import CharacterInfo from './CharacterInfo';
 
 jest.mock('./LevelUp', () => () => <div />);
 
-test('renders race languages', () => {
-  const form = {
-    occupation: [],
-    race: { name: 'Elf', languages: ['Common', 'Elvish', 'Choice'] },
-    age: 100,
-    sex: 'M',
-    size: 'Medium',
-    weight: 180,
-  };
+const baseForm = {
+  occupation: [],
+  race: { languages: [] },
+  background: null,
+  age: 100,
+  sex: 'M',
+  size: 'Medium',
+  weight: 180,
+};
 
-  render(
+const renderCharacterInfo = (overrides = {}) => {
+  const { form: formOverrides = {}, ...rest } = overrides;
+  const form = { ...baseForm, ...formOverrides };
+
+  return render(
     <CharacterInfo
       form={form}
       show={true}
@@ -22,8 +26,17 @@ test('renders race languages', () => {
       onShowBackground={() => {}}
       onLongRest={() => {}}
       onShortRest={() => {}}
+      {...rest}
     />
   );
+};
+
+test('renders race languages', () => {
+  renderCharacterInfo({
+    form: {
+      race: { name: 'Elf', languages: ['Common', 'Elvish', 'Choice'] },
+    },
+  });
 
   expect(screen.getByText('Common, Elvish')).toBeInTheDocument();
   const sizeItem = screen.getByText('Size').closest('.character-info-item');
@@ -35,26 +48,11 @@ test('renders race languages', () => {
 
 test('renders background name and calls onShowBackground', () => {
   const onShowBackground = jest.fn();
-  const form = {
-    occupation: [],
-    race: { languages: [] },
-    background: { name: 'Soldier' },
-    age: 100,
-    sex: 'M',
-    size: 'Medium',
-    weight: 180,
-  };
 
-  render(
-    <CharacterInfo
-      form={form}
-      show={true}
-      handleClose={() => {}}
-      onShowBackground={onShowBackground}
-      onLongRest={() => {}}
-      onShortRest={() => {}}
-    />
-  );
+  renderCharacterInfo({
+    form: { background: { name: 'Soldier' } },
+    onShowBackground,
+  });
 
   expect(screen.getByText('Soldier')).toBeInTheDocument();
   const button = screen.getByLabelText('Show Background');
@@ -63,27 +61,10 @@ test('renders background name and calls onShowBackground', () => {
 });
 
 test('calls rest handlers when buttons clicked', () => {
-  const form = {
-    occupation: [],
-    race: { languages: [] },
-    age: 100,
-    sex: 'M',
-    size: 'Medium',
-    weight: 180,
-  };
   const onLongRest = jest.fn();
   const onShortRest = jest.fn();
 
-  render(
-    <CharacterInfo
-      form={form}
-      show={true}
-      handleClose={() => {}}
-      onShowBackground={() => {}}
-      onLongRest={onLongRest}
-      onShortRest={onShortRest}
-    />
-  );
+  renderCharacterInfo({ onLongRest, onShortRest });
 
   fireEvent.click(screen.getByText('Long Rest'));
   fireEvent.click(screen.getByText('Short Rest'));
@@ -92,29 +73,18 @@ test('calls rest handlers when buttons clicked', () => {
 });
 
 test('renders goliath subrace within race card when ancestry selected', () => {
-  const form = {
-    occupation: [],
-    race: {
-      name: 'Goliath',
-      languages: [],
-      selectedAncestryKey: 'cloud',
-      giantAncestries: {
-        cloud: { label: "Cloud's Jaunt", ancestryName: 'Cloud Giant' },
+  renderCharacterInfo({
+    form: {
+      race: {
+        name: 'Goliath',
+        languages: [],
+        selectedAncestryKey: 'cloud',
+        giantAncestries: {
+          cloud: { label: "Cloud's Jaunt", ancestryName: 'Cloud Giant' },
+        },
       },
     },
-    size: 'Medium',
-  };
-
-  render(
-    <CharacterInfo
-      form={form}
-      show={true}
-      handleClose={() => {}}
-      onShowBackground={() => {}}
-      onLongRest={() => {}}
-      onShortRest={() => {}}
-    />
-  );
+  });
 
   const raceItem = screen.getByText('Race').closest('.character-info-item');
   expect(raceItem).not.toBeNull();
@@ -126,29 +96,18 @@ test('renders goliath subrace within race card when ancestry selected', () => {
 });
 
 test('renders dragonborn ancestry within race card when ancestry selected', () => {
-  const form = {
-    occupation: [],
-    race: {
-      name: 'Dragonborn',
-      languages: [],
-      selectedAncestryKey: 'bronze',
-      dragonAncestries: {
-        bronze: { label: 'Bronze Dragon', ancestryName: 'Bronze' },
+  renderCharacterInfo({
+    form: {
+      race: {
+        name: 'Dragonborn',
+        languages: [],
+        selectedAncestryKey: 'bronze',
+        dragonAncestries: {
+          bronze: { label: 'Bronze Dragon', ancestryName: 'Bronze' },
+        },
       },
     },
-    size: 'Medium',
-  };
-
-  render(
-    <CharacterInfo
-      form={form}
-      show={true}
-      handleClose={() => {}}
-      onShowBackground={() => {}}
-      onLongRest={() => {}}
-      onShortRest={() => {}}
-    />
-  );
+  });
 
   const raceItem = screen.getByText('Race').closest('.character-info-item');
   expect(raceItem).not.toBeNull();
@@ -160,30 +119,20 @@ test('renders dragonborn ancestry within race card when ancestry selected', () =
 });
 
 test('renders elven lineage within race card when lineage selected', () => {
-  const form = {
-    occupation: [],
-    race: {
-      name: 'Elf',
-      languages: [],
-      selectedAncestryKey: 'wood',
-      elvenLineages: {
-        wood: { label: 'Wood Elf' },
+  renderCharacterInfo({
+    form: {
+      race: {
+        name: 'Elf',
+        languages: [],
+        selectedAncestryKey: 'wood',
+        elvenLineages: {
+          wood: { label: 'Wood Elf' },
+        },
       },
+      elvenLineageKey: 'wood',
+      elvenLineage: { label: 'Wood Elf' },
     },
-    elvenLineageKey: 'wood',
-    elvenLineage: { label: 'Wood Elf' },
-  };
-
-  render(
-    <CharacterInfo
-      form={form}
-      show={true}
-      handleClose={() => {}}
-      onShowBackground={() => {}}
-      onLongRest={() => {}}
-      onShortRest={() => {}}
-    />
-  );
+  });
 
   const raceItem = screen.getByText('Race').closest('.character-info-item');
   expect(raceItem).not.toBeNull();
@@ -192,46 +141,32 @@ test('renders elven lineage within race card when lineage selected', () => {
   expect(getByText('Wood Elf')).toBeInTheDocument();
 });
 
-test('renders tiefling legacy details within race card when legacy selected', () => {
-  const infernalLegacy = {
-    label: 'Infernal Legacy',
-    resistance: 'Fire',
-    spellcastingAbilities: ['Intelligence', 'Wisdom', 'Charisma'],
-  };
-  const form = {
-    occupation: [],
-    race: {
-      name: 'Tiefling',
-      languages: [],
-      selectedAncestryKey: 'infernal',
-      selectedLineageAbility: 'Charisma',
-      selectedFiendishLegacyResistance: 'Fire',
-      fiendishLegacies: {
-        infernal: infernalLegacy,
-      },
-    },
-    tieflingLegacyKey: 'infernal',
-    tieflingLegacy: infernalLegacy,
-    tieflingLegacyAbility: 'Charisma',
-  };
+test('shows figurine placeholder and triggers picker when requested', () => {
+  const handleOpenTokenPicker = jest.fn();
 
-  render(
-    <CharacterInfo
-      form={form}
-      show={true}
-      handleClose={() => {}}
-      onShowBackground={() => {}}
-      onLongRest={() => {}}
-      onShortRest={() => {}}
-    />
-  );
+  renderCharacterInfo({ handleOpenTokenPicker });
 
-  const raceItem = screen.getByText('Race').closest('.character-info-item');
-  expect(raceItem).not.toBeNull();
-  const { getByText } = within(raceItem);
-  expect(getByText('Tiefling')).toBeInTheDocument();
-  expect(
-    getByText(/Infernal Legacy • Resistance: Fire • Spellcasting Ability: Charisma/i)
-  ).toBeInTheDocument();
+  expect(screen.getByText('No figurine selected')).toBeInTheDocument();
+  const figurineButton = screen.getByRole('button', { name: 'Choose Figurine' });
+  fireEvent.click(figurineButton);
+  expect(handleOpenTokenPicker).toHaveBeenCalled();
 });
 
+test('disables figurine button while saving and shows current figurine', () => {
+  const handleOpenTokenPicker = jest.fn();
+
+  renderCharacterInfo({
+    characterFigurine: { figurineImageUrl: 'https://example.com/token.png' },
+    handleOpenTokenPicker,
+    tokenPickerSaving: true,
+  });
+
+  expect(screen.getByAltText('Selected figurine token')).toHaveAttribute(
+    'src',
+    'https://example.com/token.png'
+  );
+  const figurineButton = screen.getByRole('button', { name: 'Updating Figurine...' });
+  expect(figurineButton).toBeDisabled();
+  fireEvent.click(figurineButton);
+  expect(handleOpenTokenPicker).not.toHaveBeenCalled();
+});

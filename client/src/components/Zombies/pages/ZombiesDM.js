@@ -65,6 +65,8 @@ import {
 } from "react-icons/gi";
 import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
+import TokenPickerModal from '../components/TokenPickerModal';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -668,6 +670,11 @@ export default function ZombiesDM() {
     const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
+    const [showEnemyTokenPicker, setShowEnemyTokenPicker] = useState(false);
+    const [enemyTokenSelection, setEnemyTokenSelection] = useState({
+      figurineImageUrl: null,
+      figurineImagePublicId: null,
+    });
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const [campaignMap, setCampaignMap] = useState(null);
@@ -713,6 +720,7 @@ export default function ZombiesDM() {
     const activeMapTokensRef = useRef(activeMapTokens);
     const campaignMapRef = useRef(campaignMap);
     const activeMapIdRef = useRef(activeMapId);
+    const enemyTokenSelectionRef = useRef(enemyTokenSelection);
 
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
@@ -792,6 +800,10 @@ export default function ZombiesDM() {
     useEffect(() => {
       activeMapIdRef.current = activeMapId;
     }, [activeMapId]);
+
+    useEffect(() => {
+      enemyTokenSelectionRef.current = enemyTokenSelection;
+    }, [enemyTokenSelection]);
 
     useEffect(() => {
       if (!mapEditorErrors.title) {
@@ -978,6 +990,42 @@ export default function ZombiesDM() {
       return message;
     }, []);
 
+    const syncEnemyTokenSelection = useCallback(
+      (roster) => {
+        if (!Array.isArray(roster) || roster.length === 0) {
+          return;
+        }
+
+        const currentSelection = enemyTokenSelectionRef.current || {};
+        const hasUrl =
+          typeof currentSelection.figurineImageUrl === 'string' &&
+          currentSelection.figurineImageUrl.trim() !== '';
+        const hasPublicId =
+          typeof currentSelection.figurineImagePublicId === 'string' &&
+          currentSelection.figurineImagePublicId.trim() !== '';
+
+        if (hasUrl || hasPublicId) {
+          return;
+        }
+
+        const latestEnemy = roster[roster.length - 1];
+        if (!latestEnemy || typeof latestEnemy !== 'object') {
+          return;
+        }
+
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(latestEnemy);
+        if (!figurineImageUrl && !figurineImagePublicId) {
+          return;
+        }
+
+        setEnemyTokenSelection({
+          figurineImageUrl: figurineImageUrl || null,
+          figurineImagePublicId: figurineImagePublicId || null,
+        });
+      },
+      [setEnemyTokenSelection]
+    );
+
     const fetchRecords = useCallback(async () => {
       if (!campaignId || !encodedCampaign) {
         setRecords([]);
@@ -1016,7 +1064,9 @@ export default function ZombiesDM() {
 
         if (enemiesResponse.ok) {
           const enemiesData = await enemiesResponse.json();
-          setEnemies(Array.isArray(enemiesData) ? enemiesData : []);
+          const normalizedEnemies = Array.isArray(enemiesData) ? enemiesData : [];
+          setEnemies(normalizedEnemies);
+          syncEnemyTokenSelection(normalizedEnemies);
         } else if (enemiesResponse.status === 404) {
           setEnemies([]);
         } else {
@@ -1111,7 +1161,7 @@ export default function ZombiesDM() {
       } finally {
         setMapLoading(false);
       }
-    }, [campaignId, encodedCampaign, applyMapPayload]);
+    }, [campaignId, encodedCampaign, applyMapPayload, syncEnemyTokenSelection]);
 
     const fetchMonsterCatalog = useCallback(async () => {
       if (monsterCatalogLoading) {
@@ -1195,6 +1245,20 @@ export default function ZombiesDM() {
             payload.name = trimmedName;
           }
 
+          if (
+            enemyTokenSelection?.figurineImageUrl &&
+            enemyTokenSelection.figurineImageUrl.trim() !== ''
+          ) {
+            payload.figurineImageUrl = enemyTokenSelection.figurineImageUrl.trim();
+          }
+
+          if (
+            enemyTokenSelection?.figurineImagePublicId &&
+            enemyTokenSelection.figurineImagePublicId.trim() !== ''
+          ) {
+            payload.figurineImagePublicId = enemyTokenSelection.figurineImagePublicId.trim();
+          }
+
           const response = await apiFetch(`/campaigns/${encodedCampaign}/enemies`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1215,6 +1279,7 @@ export default function ZombiesDM() {
           const addedEnemy = await response.json();
           setStatus({ type: 'success', message: `${addedEnemy?.name || 'Enemy'} added to campaign.` });
           setCustomEnemyName('');
+          setEnemyTokenSelection({ figurineImageUrl: null, figurineImagePublicId: null });
           await fetchRecords();
         } catch (error) {
           console.error(error);
@@ -1223,8 +1288,45 @@ export default function ZombiesDM() {
           setAddingEnemy(false);
         }
       },
-      [selectedMonsterIndex, encodedCampaign, customEnemyName, fetchRecords]
+      [
+        selectedMonsterIndex,
+        encodedCampaign,
+        customEnemyName,
+        fetchRecords,
+        enemyTokenSelection.figurineImagePublicId,
+        enemyTokenSelection.figurineImageUrl,
+      ]
     );
+
+    const handleOpenEnemyTokenPicker = useCallback(() => {
+      setShowEnemyTokenPicker(true);
+    }, []);
+
+    const handleCloseEnemyTokenPicker = useCallback(() => {
+      setShowEnemyTokenPicker(false);
+    }, []);
+
+    const handleEnemyTokenSelected = useCallback((asset) => {
+      if (!asset) {
+        setEnemyTokenSelection({ figurineImageUrl: null, figurineImagePublicId: null });
+        setShowEnemyTokenPicker(false);
+        return;
+      }
+
+      const nextUrl =
+        typeof asset.secureUrl === 'string' && asset.secureUrl.trim() !== ''
+          ? asset.secureUrl.trim()
+          : typeof asset.url === 'string' && asset.url.trim() !== ''
+            ? asset.url.trim()
+            : null;
+      const nextPublicId =
+        typeof asset.publicId === 'string' && asset.publicId.trim() !== ''
+          ? asset.publicId.trim()
+          : null;
+
+      setEnemyTokenSelection({ figurineImageUrl: nextUrl, figurineImagePublicId: nextPublicId });
+      setShowEnemyTokenPicker(false);
+    }, []);
 
     const removeCharacterTokensFromMaps = useCallback(
       async (character) => {
@@ -1890,6 +1992,7 @@ export default function ZombiesDM() {
 
         const sanitized = roster.filter((entry) => entry && typeof entry === 'object');
         setEnemies(sanitized);
+        syncEnemyTokenSelection(sanitized);
       };
 
       const handleCharacterMetadataUpdate = (update) => {
@@ -1970,7 +2073,7 @@ export default function ZombiesDM() {
         socket.disconnect();
         socketRef.current = null;
       };
-    }, [campaignId, applyMapPayload]);
+    }, [campaignId, applyMapPayload, syncEnemyTokenSelection]);
 
     const persistTokenPosition = useCallback(
       async ({ mapId, characterId, x, y }) => {
@@ -2771,6 +2874,8 @@ export default function ZombiesDM() {
               record?.displayType
           );
 
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(record);
+
           identifiers.forEach((identifier) => {
             const trimmed = identifier.trim();
             if (!trimmed) {
@@ -2784,6 +2889,8 @@ export default function ZombiesDM() {
               ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
               ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
               ...(recordSize ? { size: recordSize } : {}),
+              ...(figurineImageUrl ? { figurineImageUrl } : {}),
+              ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
             };
           });
         });
@@ -2813,20 +2920,24 @@ export default function ZombiesDM() {
           );
           const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
-          const enemySize = normalizeCreatureSize(
-            enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
-          );
+        const enemySize = normalizeCreatureSize(
+          enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
+        );
 
-          lookup[enemyId] = {
-            color: ENEMY_FIGURINE_COLOR,
-            label,
-            entityType: 'enemy',
-            ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
-            ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
-            ...(enemySize ? { size: enemySize } : {}),
-          };
-        });
-      }
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+
+        lookup[enemyId] = {
+          color: ENEMY_FIGURINE_COLOR,
+          label,
+          entityType: 'enemy',
+          ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
+          ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
+          ...(enemySize ? { size: enemySize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
+        };
+      });
+    }
 
       return lookup;
     }, [records, enemies]);
@@ -3002,6 +3113,8 @@ export default function ZombiesDM() {
           const normalizedColor =
             typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
 
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(meta, token);
+
           return {
             ...token,
             label,
@@ -3013,6 +3126,8 @@ export default function ZombiesDM() {
             ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
             ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
             ...(size ? { size } : {}),
+            ...(figurineImageUrl ? { figurineImageUrl } : {}),
+            ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
           };
         })
         .sort((a, b) => {
@@ -5899,6 +6014,25 @@ const resolveIcon = (category, iconMap, fallback) => {
                           disabled={!selectedMonsterIndex}
                         />
                       </Form.Group>
+                      <div className="d-flex flex-column align-items-start mt-3 gap-2">
+                        <Button
+                          variant="outline-light"
+                          size="sm"
+                          onClick={handleOpenEnemyTokenPicker}
+                          disabled={!selectedMonsterIndex}
+                        >
+                          {enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+                            ? 'Change Token'
+                            : 'Choose Token'}
+                        </Button>
+                        {enemyTokenSelection?.figurineImageUrl ? (
+                          <img
+                            src={enemyTokenSelection.figurineImageUrl}
+                            alt="Selected enemy token"
+                            style={{ maxHeight: '96px', maxWidth: '96px', objectFit: 'contain' }}
+                          />
+                        ) : null}
+                      </div>
                     </Col>
                     <Col md={6} className="d-flex justify-content-center justify-content-md-end">
                       <div className="d-flex flex-column flex-md-row gap-2 mt-3 mt-md-0">
@@ -7310,6 +7444,17 @@ const resolveIcon = (category, iconMap, fallback) => {
     </Tab.Pane>
   </Tab.Content>
         </Tab.Container>
+        <TokenPickerModal
+          show={showEnemyTokenPicker}
+          onHide={handleCloseEnemyTokenPicker}
+          campaignId={campaignId || undefined}
+          onSelect={handleEnemyTokenSelected}
+          allowClear={Boolean(
+            enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+          )}
+          onClear={() => handleEnemyTokenSelected(null)}
+          isDm
+        />
         <D20RollerModal
           show={showDiceRoller}
           onHide={() => setShowDiceRoller(false)}

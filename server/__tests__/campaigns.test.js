@@ -12,6 +12,72 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
   req.user = mockUser;
   next();
 });
+
+describe('suggestEnemyFigurine helper', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+    };
+  });
+
+  afterEach(() => {
+    jest.resetModules();
+    jest.dontMock('cloudinary');
+    process.env = { ...originalEnv };
+  });
+
+  test('returns DM folder substring matches as confident suggestions', async () => {
+    const mockExecute = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/DM/goblin_token',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
+          folder: 'Tokens/DM',
+          filename: 'goblin_token',
+        },
+      ],
+    });
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    const result = await actualSuggestEnemyFigurine({ index: 'goblin', name: 'Goblin' });
+
+    expect(mockExpression).toHaveBeenCalled();
+    expect(mockExecute).toHaveBeenCalled();
+    expect(result).toEqual({
+      figurineImagePublicId: 'Tokens/DM/goblin_token',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
+    });
+  });
+});
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
   emitEnemiesUpdate: jest.fn(),
@@ -26,11 +92,22 @@ jest.mock('../utils/monsters', () => ({
 jest.mock('../utils/cloudinary', () => ({
   uploadMapImage: jest.fn(),
   deleteMapImage: jest.fn(),
+  listTokenAssets: jest.fn(),
+  listTokenFolderTree: jest.fn(),
+  getTokenRootFolder: jest.fn(() => 'Tokens'),
+  suggestEnemyFigurine: jest.fn(),
 }));
 const { emitCombatUpdate, emitEnemiesUpdate, emitMapUpdate } = require('../utils/socket');
 const { getMonsterByIndex } = require('../utils/dnd5eApi');
 const { buildEnemyRecord } = require('../utils/monsters');
-const { uploadMapImage, deleteMapImage } = require('../utils/cloudinary');
+const {
+  uploadMapImage,
+  deleteMapImage,
+  listTokenAssets,
+  listTokenFolderTree,
+  getTokenRootFolder,
+  suggestEnemyFigurine,
+} = require('../utils/cloudinary');
 const registerCampaignRoutes = require('../routes/campaigns');
 
 const app = express();
@@ -60,12 +137,18 @@ describe('Campaign routes', () => {
     buildEnemyRecord.mockReset();
     uploadMapImage.mockReset();
     deleteMapImage.mockReset();
+    listTokenAssets.mockReset();
+    listTokenFolderTree.mockReset();
+    getTokenRootFolder.mockReset();
+    suggestEnemyFigurine.mockReset();
     uploadMapImage.mockResolvedValue({
       secure_url:
         'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/default.png',
       public_id: 'maps/default/map',
     });
     deleteMapImage.mockResolvedValue({ result: 'ok' });
+    getTokenRootFolder.mockReturnValue('Tokens');
+    suggestEnemyFigurine.mockResolvedValue(null);
     mockUser = { username: 'DM' };
   });
 
@@ -698,7 +781,22 @@ describe('Campaign routes', () => {
     });
 
     test('update map token success as DM', async () => {
-      const campaignDoc = buildCampaignWithMap();
+      const existingToken = {
+        characterId: 'hero-1',
+        x: 0.25,
+        y: 0.75,
+        updatedAt: '2023-01-01T00:00:00.000Z',
+        imageUrl: ' https://example.com/figurines/hero.png ',
+        cloudinaryPublicId: ' figurines/heroes/hero-1 ',
+        folder: '   ',
+      };
+      const campaignDoc = buildCampaignWithMap({}, {
+        mapTokens: {
+          [storedMap.mapId]: {
+            'hero-1': existingToken,
+          },
+        },
+      });
       const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
       dbo.mockResolvedValue({
         collection: (name) => {
@@ -723,19 +821,32 @@ describe('Campaign routes', () => {
       expect(res.body).not.toHaveProperty('map');
       expect(res.body).not.toHaveProperty('maps');
       expect(res.body).toHaveProperty('activeMapId', storedMap.mapId);
-      expect(res.body.tokensByMapId).toEqual({
-        [storedMap.mapId]: {
-          'hero-1': expect.objectContaining({
-            characterId: 'hero-1',
-            x: 1,
-            y: 0,
-            updatedAt: expect.any(String),
-          }),
-        },
-      });
-      expect(res.body.activeMapTokens).toEqual({
-        'hero-1': expect.objectContaining({ x: 1, y: 0 }),
-      });
+      const updatedToken =
+        res.body.tokensByMapId?.[storedMap.mapId]?.['hero-1'];
+      expect(updatedToken).toBeDefined();
+      expect(updatedToken).toEqual(
+        expect.objectContaining({
+          characterId: 'hero-1',
+          x: 1,
+          y: 0,
+          imageUrl: 'https://example.com/figurines/hero.png',
+          cloudinaryPublicId: 'figurines/heroes/hero-1',
+        })
+      );
+      expect(typeof updatedToken.updatedAt).toBe('string');
+      expect(updatedToken).not.toHaveProperty('folder');
+
+      const activeToken = res.body.activeMapTokens?.['hero-1'];
+      expect(activeToken).toBeDefined();
+      expect(activeToken).toEqual(
+        expect.objectContaining({
+          x: 1,
+          y: 0,
+          imageUrl: 'https://example.com/figurines/hero.png',
+          cloudinaryPublicId: 'figurines/heroes/hero-1',
+        })
+      );
+      expect(activeToken).not.toHaveProperty('folder');
       const lastUpdateCall =
         updateOne.mock.calls[updateOne.mock.calls.length - 1];
       expect(lastUpdateCall[0]).toEqual({ campaignName: 'Test' });
@@ -749,11 +860,21 @@ describe('Campaign routes', () => {
         expect.objectContaining({
           mapTokens: {
             [storedMap.mapId]: expect.objectContaining({
-              'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+              'hero-1': expect.objectContaining({
+                x: 1,
+                y: 0,
+                imageUrl: 'https://example.com/figurines/hero.png',
+                cloudinaryPublicId: 'figurines/heroes/hero-1',
+              }),
             }),
           },
           'map.tokens': expect.objectContaining({
-            'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+            'hero-1': expect.objectContaining({
+              x: 1,
+              y: 0,
+              imageUrl: 'https://example.com/figurines/hero.png',
+              cloudinaryPublicId: 'figurines/heroes/hero-1',
+            }),
           }),
         })
       );
@@ -767,13 +888,23 @@ describe('Campaign routes', () => {
       expect(emittedPayload.tokensByMapId).toEqual(
         expect.objectContaining({
           [storedMap.mapId]: expect.objectContaining({
-            'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+            'hero-1': expect.objectContaining({
+              x: 1,
+              y: 0,
+              imageUrl: 'https://example.com/figurines/hero.png',
+              cloudinaryPublicId: 'figurines/heroes/hero-1',
+            }),
           }),
         })
       );
       expect(emittedPayload.activeMapTokens).toEqual(
         expect.objectContaining({
-          'hero-1': expect.objectContaining({ x: 1, y: 0 }),
+          'hero-1': expect.objectContaining({
+            x: 1,
+            y: 0,
+            imageUrl: 'https://example.com/figurines/hero.png',
+            cloudinaryPublicId: 'figurines/heroes/hero-1',
+          }),
         })
       );
     });
@@ -872,16 +1003,29 @@ describe('Campaign routes', () => {
     });
 
     test('delete map token success', async () => {
-      const tokenRecord = {
+      const heroToken = {
         characterId: 'hero-1',
         x: 0.25,
         y: 0.75,
         updatedAt: '2023-01-01T00:00:00.000Z',
+        imageUrl: ' https://example.com/figurines/hero.png ',
+        cloudinaryPublicId: null,
+        folder: '   ',
+      };
+      const allyToken = {
+        characterId: 'ally',
+        x: 0.1,
+        y: 0.2,
+        updatedAt: '2023-01-01T00:00:00.000Z',
+        imageUrl: ' https://example.com/figurines/ally.png ',
+        cloudinaryPublicId: ' figurines/allies/ally ',
+        folder: ' Allies ',
       };
       const campaignDoc = buildCampaignWithMap({}, {
         mapTokens: {
           [storedMap.mapId]: {
-            'hero-1': tokenRecord,
+            'hero-1': heroToken,
+            ally: allyToken,
           },
         },
       });
@@ -906,13 +1050,28 @@ describe('Campaign routes', () => {
       );
 
       expect(res.status).toBe(200);
+      const expectedAlly = {
+        characterId: 'ally',
+        x: 0.1,
+        y: 0.2,
+        imageUrl: 'https://example.com/figurines/ally.png',
+        cloudinaryPublicId: 'figurines/allies/ally',
+        folder: 'Allies',
+      };
       expect(res.body).toEqual({
         activeMapId: storedMap.mapId,
-        tokensByMapId: {},
-        activeMapTokens: {},
+        tokensByMapId: {
+          [storedMap.mapId]: {
+            ally: expect.objectContaining(expectedAlly),
+          },
+        },
+        activeMapTokens: {
+          ally: expect.objectContaining(expectedAlly),
+        },
       });
-      expect(res.body.tokensByMapId).toEqual({});
-      expect(res.body.activeMapTokens).toEqual({});
+      expect(res.body.tokensByMapId[storedMap.mapId].ally.updatedAt).toEqual(
+        expect.any(String)
+      );
       const lastUpdateCall =
         updateOne.mock.calls[updateOne.mock.calls.length - 1];
       expect(lastUpdateCall[0]).toEqual({ campaignName: 'Test' });
@@ -924,8 +1083,14 @@ describe('Campaign routes', () => {
       );
       expect(updateDoc.$set).toEqual(
         expect.objectContaining({
-          mapTokens: {},
-          'map.tokens': {},
+          mapTokens: {
+            [storedMap.mapId]: {
+              ally: expect.objectContaining(expectedAlly),
+            },
+          },
+          'map.tokens': {
+            ally: expect.objectContaining(expectedAlly),
+          },
         })
       );
       expect(updateDoc.$set).not.toHaveProperty('map');
@@ -933,8 +1098,14 @@ describe('Campaign routes', () => {
       expect(emitMapUpdate).toHaveBeenCalledWith(
         'Test',
         expect.objectContaining({
-          tokensByMapId: {},
-          activeMapTokens: {},
+          tokensByMapId: {
+            [storedMap.mapId]: {
+              ally: expect.objectContaining(expectedAlly),
+            },
+          },
+          activeMapTokens: {
+            ally: expect.objectContaining(expectedAlly),
+          },
         })
       );
     });
@@ -1123,9 +1294,18 @@ describe('Campaign routes', () => {
     expect(res.body).toEqual([{ enemyId: 'enemy-1', name: 'Goblin' }]);
   });
 
-  test('add enemy success', async () => {
-    getMonsterByIndex.mockResolvedValue({ index: 'goblin' });
-    buildEnemyRecord.mockImplementation((monster, enemyId, providedName) => ({ enemyId, name: 'Goblin', providedName }));
+  test('add enemy success with suggested figurine', async () => {
+    getMonsterByIndex.mockResolvedValue({ index: 'goblin', name: 'Goblin' });
+    buildEnemyRecord.mockImplementation((monster, enemyId, providedName, extras) => ({
+      enemyId,
+      name: 'Goblin',
+      providedName,
+      ...extras,
+    }));
+    suggestEnemyFigurine.mockResolvedValue({
+      figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
+      figurineImagePublicId: 'Tokens/DM/goblin',
+    });
     const findOneAndUpdate = jest.fn().mockImplementation(async (query, update) => ({
       value: {
         campaignName: 'Test',
@@ -1146,11 +1326,75 @@ describe('Campaign routes', () => {
     expect(res.body.name).toBe('Goblin');
     expect(typeof res.body.enemyId).toBe('string');
     expect(getMonsterByIndex).toHaveBeenCalledWith('goblin');
-    expect(buildEnemyRecord).toHaveBeenCalledWith({ index: 'goblin' }, res.body.enemyId, undefined);
+    expect(suggestEnemyFigurine).toHaveBeenCalledWith({ index: 'goblin', name: 'Goblin' });
+    expect(buildEnemyRecord).toHaveBeenCalledWith(
+      { index: 'goblin', name: 'Goblin' },
+      res.body.enemyId,
+      undefined,
+      expect.objectContaining({
+        figurineImagePublicId: 'Tokens/DM/goblin',
+        figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
+      })
+    );
+    const persistedEnemy = findOneAndUpdate.mock.calls[0][1].$push.enemies;
+    expect(persistedEnemy).toEqual(
+      expect.objectContaining({
+        figurineImagePublicId: 'Tokens/DM/goblin',
+        figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
+      })
+    );
+    expect(res.body.figurineImageUrl).toBe(
+      'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png'
+    );
+    expect(res.body.figurineImagePublicId).toBe('Tokens/DM/goblin');
     expect(emitEnemiesUpdate).toHaveBeenCalledWith(
       'Test',
-      [expect.objectContaining({ enemyId: res.body.enemyId, name: 'Goblin' })]
+      [
+        expect.objectContaining({
+          enemyId: res.body.enemyId,
+          name: 'Goblin',
+          figurineImagePublicId: 'Tokens/DM/goblin',
+          figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
+        }),
+      ]
     );
+  });
+
+  test('add enemy success without suggested figurine fallback', async () => {
+    getMonsterByIndex.mockResolvedValue({ index: 'skeleton', name: 'Skeleton' });
+    suggestEnemyFigurine.mockResolvedValue(null);
+    buildEnemyRecord.mockImplementation((monster, enemyId, providedName, extras) => ({
+      enemyId,
+      name: monster.name,
+      providedName,
+      ...extras,
+    }));
+    const findOneAndUpdate = jest.fn().mockImplementation(async (query, update) => ({
+      value: {
+        campaignName: 'Test',
+        enemies: [update.$push.enemies],
+      },
+    }));
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate,
+      }),
+    });
+
+    const res = await request(app)
+      .post('/campaigns/Test/enemies')
+      .send({ index: 'skeleton' });
+
+    expect(res.status).toBe(200);
+    expect(suggestEnemyFigurine).toHaveBeenCalledWith({ index: 'skeleton', name: 'Skeleton' });
+    expect(buildEnemyRecord).toHaveBeenCalledWith(
+      { index: 'skeleton', name: 'Skeleton' },
+      res.body.enemyId,
+      undefined,
+      expect.objectContaining({ figurineImagePublicId: null, figurineImageUrl: null })
+    );
+    expect(res.body.figurineImageUrl).toBeNull();
+    expect(res.body.figurineImagePublicId).toBeNull();
   });
 
   test('delete enemy success', async () => {
@@ -1296,4 +1540,91 @@ describe('Campaign routes', () => {
     expect(res.body.message).toBe('Enemy not found');
   });
 
+  test('player can list Adventurers token folders', async () => {
+    mockUser = { username: 'Player1' };
+
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [],
+      flatFolders: [],
+    };
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    listTokenFolderTree.mockResolvedValue(folderTree);
+
+    const res = await request(app).get(
+      '/campaigns/Test/token-folders?folders=Tokens/Adventurers/Heroes,Tokens/DM'
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(folderTree);
+    expect(listTokenFolderTree).toHaveBeenCalledWith({
+      folders: ['Tokens/Adventurers/Heroes'],
+    });
+  });
+
+  test('player token manifest is limited to Adventurers folders', async () => {
+    mockUser = { username: 'Player1' };
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    listTokenAssets.mockResolvedValueOnce({
+      assets: [],
+      nextCursor: null,
+      totalCount: 0,
+      appliedFolders: ['Tokens/Adventurers'],
+      rootFolder: 'Tokens',
+    });
+
+    const res = await request(app).get('/campaigns/Test/token-manifest');
+
+    expect(res.status).toBe(200);
+    expect(listTokenAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folders: ['Tokens/Adventurers'],
+        nextCursor: null,
+      })
+    );
+    expect(res.body.isDm).toBe(false);
+    expect(res.body.defaultPlayerFolders).toEqual(['Adventurers']);
+
+    listTokenAssets.mockClear();
+    listTokenAssets.mockResolvedValueOnce({
+      assets: [],
+      nextCursor: null,
+      totalCount: 0,
+      appliedFolders: ['Tokens/Adventurers/Heroes'],
+      rootFolder: 'Tokens',
+    });
+
+    const resWithFilter = await request(app).get(
+      '/campaigns/Test/token-manifest?folders=Tokens/Adventurers/Heroes,Tokens/DM'
+    );
+
+    expect(resWithFilter.status).toBe(200);
+    expect(listTokenAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folders: ['Tokens/Adventurers/Heroes'],
+        nextCursor: null,
+      })
+    );
+    expect(resWithFilter.body.appliedFolders).toEqual(['Tokens/Adventurers/Heroes']);
+  });
 });

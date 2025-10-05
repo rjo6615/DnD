@@ -1,7 +1,8 @@
-import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -136,50 +137,9 @@ const CampaignMapBoard = ({
   const dragStateRef = useRef({ tokenId: null, pointerId: null });
   const [dragPositions, setDragPositions] = useState({});
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
-  const [squareSize, setSquareSize] = useState(null);
-  const [layerElement, setLayerElement] = useState(null);
-
   const handleLayerRef = useCallback((node) => {
     layerRef.current = node;
-    setLayerElement((prev) => (prev === node ? prev : node));
   }, []);
-
-  useEffect(() => {
-    const element = layerElement;
-    const ResizeObserverCtor =
-      typeof window !== 'undefined' && window.ResizeObserver
-        ? window.ResizeObserver
-        : typeof ResizeObserver !== 'undefined'
-        ? ResizeObserver
-        : null;
-
-    if (!element || !ResizeObserverCtor) {
-      setSquareSize((prev) => (prev === null ? prev : null));
-      return undefined;
-    }
-
-    const observer = new ResizeObserverCtor((entries) => {
-      entries.forEach((entry) => {
-        const width = entry?.contentRect?.width;
-        if (!Number.isFinite(width) || width <= 0) {
-          return;
-        }
-
-        const nextSquareSize = width / 24;
-        if (!Number.isFinite(nextSquareSize) || nextSquareSize <= 0) {
-          return;
-        }
-
-        setSquareSize((prev) => (prev === nextSquareSize ? prev : nextSquareSize));
-      });
-    });
-
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [layerElement]);
 
   const tokenPositions = useMemo(() => {
     if (!Array.isArray(tokens)) {
@@ -413,11 +373,6 @@ const CampaignMapBoard = ({
               className="campaign-map-board__tokens-layer"
               ref={handleLayerRef}
               onPointerDown={handleLayerPointerDown}
-              style={
-                Number.isFinite(squareSize) && squareSize > 0
-                  ? { '--campaign-map-square-size': `${squareSize}px` }
-                  : undefined
-              }
             >
               {tokenPositions.map((token) => {
                 const {
@@ -453,13 +408,20 @@ const CampaignMapBoard = ({
                     : null;
 
                 const sizeKey = resolveFigurineSizeKey(size);
-                const figurineScale =
-                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] || FIGURINE_SIZE_MULTIPLIERS.medium;
+                const baseFigurineScale =
+                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? FIGURINE_SIZE_MULTIPLIERS.medium;
+                const scaleMultiplier = normalizedVariant === 'enemy' ? 0.75 : 1;
+                const figurineScale = Number.isFinite(baseFigurineScale)
+                  ? baseFigurineScale * scaleMultiplier
+                  : FIGURINE_SIZE_MULTIPLIERS.medium * scaleMultiplier;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
                     ? ENEMY_FIGURINE_COLOR
                     : normalizeText(color) || undefined;
+
+                const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(token);
+                const hasFigurineImage = Boolean(figurineImageUrl);
 
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
@@ -546,18 +508,26 @@ const CampaignMapBoard = ({
                       className={classNames(
                         'campaign-map-board__figurine',
                         draggable && 'campaign-map-board__figurine--active',
-                        isActiveTurn && 'campaign-map-board__figurine--active-turn'
+                        isActiveTurn && 'campaign-map-board__figurine--active-turn',
+                        hasFigurineImage && 'campaign-map-board__figurine--has-image'
                       )}
                       style={{ '--figurine-color': figurineColor }}
                     >
+                      {hasFigurineImage && (
+                        <span className="campaign-map-board__figurine-image-wrapper" aria-hidden="true">
+                          <img
+                            src={figurineImageUrl}
+                            alt=""
+                            className="campaign-map-board__figurine-image"
+                            data-figurine-public-id={figurineImagePublicId || undefined}
+                            loading="lazy"
+                          />
+                        </span>
+                      )}
                       <span className="campaign-map-board__figurine-figure" aria-hidden="true">
                         <span className="campaign-map-board__figurine-head" />
                         <span className="campaign-map-board__figurine-torso" />
                         <span className="campaign-map-board__figurine-cloak" />
-                      </span>
-                      <span className="campaign-map-board__figurine-base">
-                        <span className="campaign-map-board__figurine-base-top" />
-                        <span className="campaign-map-board__figurine-base-texture" />
                       </span>
                     </div>
                     {displayLabel && (
@@ -594,6 +564,8 @@ CampaignMapBoard.propTypes = {
       maxHp: PropTypes.number,
       isActiveTurn: PropTypes.bool,
       size: PropTypes.string,
+      figurineImageUrl: PropTypes.string,
+      figurineImagePublicId: PropTypes.string,
     })
   ),
   onTokenDragStart: PropTypes.func,

@@ -135,7 +135,7 @@ const normalizeMonsterDetail = (monster) => {
   };
 };
 
-const buildEnemyRecord = (monsterDetail, enemyId, nameOverride) => {
+const buildEnemyRecord = (monsterDetail, enemyId, nameOverride, extras = {}) => {
   if (!monsterDetail) {
     return null;
   }
@@ -147,13 +147,33 @@ const buildEnemyRecord = (monsterDetail, enemyId, nameOverride) => {
 
   const trimmedName = typeof nameOverride === 'string' ? nameOverride.trim() : '';
 
-  return {
+  const record = {
     ...normalized,
     enemyId,
     name: trimmedName || normalized.name,
     currentHp: normalized.hitPoints,
     addedAt: new Date().toISOString(),
   };
+
+  if (extras && typeof extras === 'object') {
+    const { figurineImageUrl, figurineImagePublicId } = extras;
+
+    if (typeof figurineImageUrl === 'string') {
+      const trimmedUrl = figurineImageUrl.trim();
+      if (trimmedUrl) {
+        record.figurineImageUrl = trimmedUrl;
+      }
+    }
+
+    if (typeof figurineImagePublicId === 'string') {
+      const trimmedId = figurineImagePublicId.trim();
+      if (trimmedId) {
+        record.figurineImagePublicId = trimmedId;
+      }
+    }
+  }
+
+  return record;
 };
 
 module.exports = {
