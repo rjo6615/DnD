@@ -2696,6 +2696,7 @@ h1 {
   &__token {
     --figurine-base-size: calc(var(--map-square-size) * var(--figurine-size-scale, 1));
     --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
+    --figurine-rotation: 0deg;
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
@@ -2709,6 +2710,10 @@ h1 {
     touch-action: none;
     width: var(--figurine-base-size);
     height: calc(var(--figurine-base-size) * 1.6);
+  }
+
+  &__token--rotation-target {
+    z-index: 6;
   }
 
   &__token--size-tiny {
@@ -2733,6 +2738,24 @@ h1 {
 
   &__token--size-gargantuan {
     --figurine-size-scale: 4;
+  }
+
+  &__turn-indicator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    font-weight: 800;
+    font-size: clamp(0.9rem, calc(var(--figurine-base-size) * 0.6), 1.85rem);
+    line-height: 1;
+    color: #ff4d4f;
+    text-shadow:
+      0 0.35rem 0.8rem rgba(0, 0, 0, 0.6),
+      0 0 0.4rem rgba(255, 77, 79, 0.9),
+      0 0 1rem rgba(255, 125, 127, 0.75);
+    animation: campaignMapBoardTurnIndicatorPulse 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0.2rem 0.45rem rgba(0, 0, 0, 0.55));
   }
 
   &__health {
@@ -2795,10 +2818,27 @@ h1 {
     position: relative;
   }
 
+  &__figurine-orientation {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 12%;
+    pointer-events: none;
+    transform: rotate(var(--figurine-rotation, 0deg));
+    transition: transform 0.2s ease;
+  }
+
   &__figurine--active {
     transform: translateY(-3px) scale(1.02);
     filter: drop-shadow(0 0.55rem 1.25rem rgba(7, 8, 13, 0.75))
       drop-shadow(0 0.15rem 0.35rem rgba(255, 255, 255, 0.2));
+  }
+
+  &__figurine--rotating .campaign-map-board__figurine-orientation {
+    transition: none;
   }
 
   &__figurine-image-wrapper {
@@ -2936,6 +2976,11 @@ h1 {
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
   }
 
+  &__token--rotation-target .campaign-map-board__figurine {
+    filter: drop-shadow(0 0.55rem 1.25rem rgba(12, 15, 24, 0.75))
+      drop-shadow(0 0.25rem 0.45rem rgba(51, 154, 240, 0.35));
+  }
+
   &__token--label-active .campaign-map-board__figurine-label,
   &__token:hover .campaign-map-board__figurine-label,
   &__token:focus-visible .campaign-map-board__figurine-label {
@@ -2949,35 +2994,94 @@ h1 {
   }
 
   &__token--active-turn {
-    filter:
-      drop-shadow(0 0.45rem 1.2rem rgba(209, 143, 0, 0.55))
-      drop-shadow(0 0 1.85rem rgba(255, 214, 102, 0.45));
-
-    &::after {
-      content: '';
-      position: absolute;
-      inset: calc(var(--figurine-base-size) * -0.15);
-      border-radius: 999px;
-      pointer-events: none;
-      box-shadow:
-        0 0 0.65rem rgba(255, 214, 102, 0.45),
-        0 0 1.6rem rgba(255, 239, 153, 0.55),
-        inset 0 0 0.35rem rgba(255, 248, 220, 0.4);
-      opacity: 0.85;
-      z-index: -1;
+    .campaign-map-board__turn-indicator {
+      animation-play-state: running;
     }
+  }
 
-    .campaign-map-board__figurine {
-      filter:
-        drop-shadow(0 0.55rem 1.6rem rgba(255, 214, 102, 0.7))
-        drop-shadow(0 0.25rem 0.6rem rgba(255, 248, 220, 0.75))
-        drop-shadow(0 0 2.1rem rgba(255, 239, 153, 0.55));
-    }
+  &__rotation-control {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--figurine-base-size) * 1.9);
+    height: calc(var(--figurine-base-size) * 1.9);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: auto;
+    cursor: grab;
+    z-index: 4;
+    touch-action: none;
+  }
 
+  &__rotation-control:active {
+    cursor: grabbing;
+  }
+
+  &__rotation-control-visual {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px dashed rgba(51, 154, 240, 0.7);
+    box-shadow:
+      0 0 0.6rem rgba(51, 154, 240, 0.55),
+      0 0 1.35rem rgba(51, 154, 240, 0.35);
+    background: radial-gradient(circle, rgba(51, 154, 240, 0.18) 55%, transparent 75%);
+    pointer-events: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  &__rotation-control--dragging .campaign-map-board__rotation-control-visual {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow:
+      0 0 0.75rem rgba(255, 255, 255, 0.55),
+      0 0 1.5rem rgba(51, 154, 240, 0.45);
+  }
+
+  &__rotation-control-handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -45%);
+    width: clamp(0.4rem, calc(var(--figurine-base-size) * 0.2), 0.7rem);
+    height: clamp(0.4rem, calc(var(--figurine-base-size) * 0.2), 0.7rem);
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(51, 154, 240, 0.6));
+    box-shadow:
+      0 0.15rem 0.45rem rgba(0, 0, 0, 0.45),
+      0 0 0.45rem rgba(51, 154, 240, 0.7);
+    pointer-events: none;
   }
 
   &--disabled &__token--draggable {
     cursor: default;
+  }
+}
+
+@keyframes campaignMapBoardTurnIndicatorPulse {
+  0% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.85;
+    text-shadow:
+      0 0.25rem 0.65rem rgba(0, 0, 0, 0.55),
+      0 0 0.35rem rgba(255, 77, 79, 0.7),
+      0 0 0.85rem rgba(255, 140, 143, 0.6);
+  }
+  50% {
+    transform: translateY(calc(var(--figurine-base-size) * -0.04)) scale(1.05);
+    opacity: 1;
+    text-shadow:
+      0 0.45rem 1rem rgba(0, 0, 0, 0.65),
+      0 0 0.55rem rgba(255, 104, 107, 0.95),
+      0 0 1.4rem rgba(255, 168, 170, 0.85);
+  }
+  100% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.85;
+    text-shadow:
+      0 0.25rem 0.65rem rgba(0, 0, 0, 0.55),
+      0 0 0.35rem rgba(255, 77, 79, 0.7),
+      0 0 0.85rem rgba(255, 140, 143, 0.6);
   }
 }
 
