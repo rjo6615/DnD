@@ -458,11 +458,32 @@ const TokenPickerModal = ({
         }
 
         const response = await apiFetch(endpoint);
-        if (!response.ok) {
-          throw new Error(response.statusText || 'Failed to load token manifest.');
+        let parsedBody = null;
+
+        if (typeof response?.json === 'function') {
+          try {
+            parsedBody = await response.json();
+          } catch (parseError) {
+            parsedBody = null;
+          }
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          const messageSource = [
+            parsedBody && typeof parsedBody.message === 'string' ? parsedBody.message.trim() : '',
+            parsedBody && typeof parsedBody.details === 'string' ? parsedBody.details.trim() : '',
+            parsedBody && typeof parsedBody.error === 'string' ? parsedBody.error.trim() : '',
+            typeof response.statusText === 'string' ? response.statusText.trim() : '',
+          ].find((value) => value);
+
+          throw new Error(messageSource || 'Failed to load token manifest.');
+        }
+
+        if (parsedBody === null) {
+          throw new Error('Failed to parse token manifest response.');
+        }
+
+        const data = parsedBody;
         const nextAssets = Array.isArray(data?.assets) ? data.assets.filter(Boolean) : [];
         setAssets((prev) => (append ? [...prev, ...nextAssets] : nextAssets));
         setNextCursor(typeof data?.nextCursor === 'string' && data.nextCursor ? data.nextCursor : null);

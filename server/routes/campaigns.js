@@ -1920,13 +1920,25 @@ module.exports = (router) => {
               campaign: campaignName,
               error: error.message,
             });
-            manifest = {
-              assets: [],
-              nextCursor: null,
-              totalCount: null,
-              appliedFolders: Array.isArray(folders) ? folders : [],
-              rootFolder: tokenRootFolder,
-            };
+
+            const candidateStatusCodes = [
+              error?.status,
+              error?.statusCode,
+              error?.status_code,
+              error?.http_code,
+              error?.response?.status,
+            ].filter((value) => Number.isInteger(value) && value >= 400 && value < 600);
+            const status = candidateStatusCodes.length > 0 ? candidateStatusCodes[0] : 503;
+
+            const detailMessage =
+              typeof error?.message === 'string' && error.message.trim() !== ''
+                ? error.message.trim()
+                : 'An unexpected error occurred while loading token assets.';
+
+            return res.status(status).json({
+              message: 'Failed to load token manifest.',
+              details: detailMessage,
+            });
           }
 
           res.json({
