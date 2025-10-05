@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Button, Spinner, Row, Col, Alert, Form } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
@@ -415,11 +415,32 @@ const TokenPickerModal = ({
     }
   }, []);
 
-  const activeFilter = selectedFilterKey && filterLookup.has(selectedFilterKey)
-    ? filterLookup.get(selectedFilterKey)
-    : filterLookup.size > 0
-      ? filterLookup.values().next().value
-      : null;
+  const activeFilter = useMemo(() => {
+    if (selectedFilterKey && filterLookup.has(selectedFilterKey)) {
+      return filterLookup.get(selectedFilterKey);
+    }
+
+    if (filterLookup.size > 0) {
+      return filterLookup.values().next().value;
+    }
+
+    return null;
+  }, [filterLookup, selectedFilterKey]);
+
+  const manifestFilterKey = useMemo(() => {
+    if (!activeFilter) {
+      return 'none';
+    }
+
+    const folders = Array.isArray(activeFilter.folders)
+      ? activeFilter.folders
+          .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
+          .filter(Boolean)
+          .join(',')
+      : '';
+
+    return `${activeFilter.key || 'unknown'}::${folders}`;
+  }, [activeFilter]);
 
   const fetchManifest = useCallback(
     async ({ cursor = null, append = false } = {}) => {
@@ -499,8 +520,16 @@ const TokenPickerModal = ({
     [campaignId, activeFilter, isDm]
   );
 
+  const fetchManifestRef = useRef(fetchManifest);
+  const lastFetchKeyRef = useRef(null);
+
+  useEffect(() => {
+    fetchManifestRef.current = fetchManifest;
+  }, [fetchManifest]);
+
   useEffect(() => {
     if (!show) {
+      lastFetchKeyRef.current = null;
       resetState();
       if (isDm) {
         setDmFolderOptions(null);
@@ -510,9 +539,23 @@ const TokenPickerModal = ({
       return;
     }
 
+    if (!campaignId || manifestFilterKey === 'none') {
+      return;
+    }
+
+    const fetchKey = `${campaignId}::${manifestFilterKey}`;
+
+    if (lastFetchKeyRef.current === fetchKey) {
+      return;
+    }
+
+    lastFetchKeyRef.current = fetchKey;
+
     resetState({ resetFolderLoading: false });
-    fetchManifest({ append: false, cursor: null });
-  }, [show, fetchManifest, activeFilter, resetState, isDm]);
+    if (fetchManifestRef.current) {
+      fetchManifestRef.current({ append: false, cursor: null });
+    }
+  }, [show, manifestFilterKey, campaignId, isDm, resetState]);
 
   useEffect(() => {
     if (!isDm) {
