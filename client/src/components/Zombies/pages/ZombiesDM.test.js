@@ -111,6 +111,36 @@ describe('ZombiesDM metadata helpers', () => {
     expect(combatMeta.dataAttributes['data-max-hp']).toBe(30);
     expect(combatMeta.dataAttributes['data-max-hp']).not.toBe(character.health);
   });
+
+  test('health updates keep current hp fields in sync with temp health', () => {
+    const originalRecord = {
+      _id: 'sync-1',
+      characterId: 'hero-sync',
+      tempHealth: 5,
+      currentHp: 3,
+      hpCurrent: 2,
+    };
+
+    const records = [originalRecord];
+
+    const updated = applyCharacterHealthUpdateToRecords({
+      records,
+      update: { _id: 'sync-1', tempHealth: 11 },
+    });
+
+    expect(updated[0].tempHealth).toBe(11);
+    expect(updated[0].currentHp).toBe(11);
+    expect(updated[0].hpCurrent).toBe(11);
+
+    const cleared = applyCharacterHealthUpdateToRecords({
+      records: updated,
+      update: { _id: 'sync-1', tempHealth: null },
+    });
+
+    expect(cleared[0].tempHealth).toBeUndefined();
+    expect(cleared[0].currentHp).toBeUndefined();
+    expect(cleared[0].hpCurrent).toBeUndefined();
+  });
 });
 
 const openResourceCard = async (tabLabel, testId) => {

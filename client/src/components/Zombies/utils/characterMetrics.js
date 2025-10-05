@@ -173,9 +173,10 @@ export const calculateCharacterHitPoints = (character, overrides = {}) => {
 
   const currentHpCandidates = [
     overrides.currentHp,
+    overrides.tempHealth,
+    character?.tempHealth,
     character?.currentHp,
     character?.hpCurrent,
-    character?.tempHealth,
   ];
 
   const currentHp = currentHpCandidates.reduce((resolved, candidate) => {
