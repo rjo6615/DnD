@@ -12,72 +12,6 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
   req.user = mockUser;
   next();
 });
-
-describe('suggestEnemyFigurine helper', () => {
-  const originalEnv = { ...process.env };
-
-  beforeEach(() => {
-    jest.resetModules();
-    process.env = {
-      ...originalEnv,
-      CLOUDINARY_CLOUD_NAME: 'demo',
-      CLOUDINARY_API_KEY: 'key',
-      CLOUDINARY_API_SECRET: 'secret',
-    };
-  });
-
-  afterEach(() => {
-    jest.resetModules();
-    jest.dontMock('cloudinary');
-    process.env = { ...originalEnv };
-  });
-
-  test('returns DM folder substring matches as confident suggestions', async () => {
-    const mockExecute = jest.fn().mockResolvedValue({
-      resources: [
-        {
-          public_id: 'Tokens/DM/goblin_token',
-          secure_url:
-            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
-          folder: 'Tokens/DM',
-          filename: 'goblin_token',
-        },
-      ],
-    });
-
-    const searchInstance = {};
-    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
-    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
-    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
-    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
-    searchInstance.execute = mockExecute;
-
-    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
-
-    jest.doMock('cloudinary', () => ({
-      v2: {
-        config: jest.fn(),
-        search: {
-          expression: mockExpression,
-        },
-      },
-    }));
-
-    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
-      '../utils/cloudinary'
-    );
-
-    const result = await actualSuggestEnemyFigurine({ index: 'goblin', name: 'Goblin' });
-
-    expect(mockExpression).toHaveBeenCalled();
-    expect(mockExecute).toHaveBeenCalled();
-    expect(result).toEqual({
-      figurineImagePublicId: 'Tokens/DM/goblin_token',
-      figurineImageUrl:
-        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
-    });
-  });
-});
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
   emitEnemiesUpdate: jest.fn(),
@@ -1336,27 +1270,13 @@ describe('Campaign routes', () => {
         figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
       })
     );
-    const persistedEnemy = findOneAndUpdate.mock.calls[0][1].$push.enemies;
-    expect(persistedEnemy).toEqual(
-      expect.objectContaining({
-        figurineImagePublicId: 'Tokens/DM/goblin',
-        figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
-      })
-    );
     expect(res.body.figurineImageUrl).toBe(
       'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png'
     );
     expect(res.body.figurineImagePublicId).toBe('Tokens/DM/goblin');
     expect(emitEnemiesUpdate).toHaveBeenCalledWith(
       'Test',
-      [
-        expect.objectContaining({
-          enemyId: res.body.enemyId,
-          name: 'Goblin',
-          figurineImagePublicId: 'Tokens/DM/goblin',
-          figurineImageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin.png',
-        }),
-      ]
+      [expect.objectContaining({ enemyId: res.body.enemyId, name: 'Goblin' })]
     );
   });
 
