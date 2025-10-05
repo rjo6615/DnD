@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
 import { createEvent } from '@testing-library/dom';
 import CampaignMapBoard from './CampaignMapBoard';
 
@@ -173,6 +173,89 @@ describe('CampaignMapBoard pointer interactions', () => {
     fireEvent(tokenElement, pointerUpEvent);
 
     expect(pointerUpEvent.defaultPrevented).toBe(true);
+  });
+
+  it('marks the last dragged token and enables rotation controls', async () => {
+    const { container, findByRole, queryByRole } = renderBoard();
+
+    const applyLayerRect = () => {
+      const layer = container.querySelector('.campaign-map-board__tokens-layer');
+      expect(layer).not.toBeNull();
+      if (layer) {
+        layer.getBoundingClientRect = () => ({
+          left: 0,
+          top: 0,
+          width: 400,
+          height: 400,
+        });
+      }
+      return layer;
+    };
+
+    applyLayerRect();
+
+    let tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const pointerDownEvent = createEvent.pointerDown(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(tokenElement, pointerDownEvent);
+
+    applyLayerRect();
+
+    const pointerMoveEvent = createEvent.pointerMove(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 150,
+      clientY: 120,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(tokenElement, pointerMoveEvent);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const pointerUpEvent = createEvent.pointerUp(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 150,
+      clientY: 120,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(tokenElement, pointerUpEvent);
+
+    await waitFor(() => {
+      const latestToken = container.querySelector('[data-token-id="char-1"]');
+      expect(latestToken).not.toBeNull();
+      expect(latestToken).toHaveClass('lastDragged');
+    });
+
+    const rotateClockwiseButton = await findByRole('button', { name: /rotate clockwise/i });
+    fireEvent.click(rotateClockwiseButton);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement?.getAttribute('data-rotation')).toBe('15');
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement?.getAttribute('data-rotation')).toBe('0');
+
+    const lockButton = await findByRole('button', { name: /lock rotation/i });
+    fireEvent.click(lockButton);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    expect(tokenElement).not.toHaveClass('lastDragged');
+    expect(queryByRole('button', { name: /lock rotation/i })).toBeNull();
   });
 
   it('renders a figurine image overlay when provided and preserves accessibility labels', () => {
