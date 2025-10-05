@@ -68,9 +68,13 @@ export default function CharacterInfo({
   const isDragonborn = raceName === 'dragonborn';
   const isGoliath = raceName === 'goliath';
   const isElf = raceName === 'elf';
+  const isTiefling = raceName === 'tiefling';
   const dragonAncestries = isDragonborn ? form?.race?.dragonAncestries || {} : {};
   const giantAncestries = isGoliath ? form?.race?.giantAncestries || {} : {};
   const elvenLineages = isElf ? form?.race?.elvenLineages || {} : {};
+  const tieflingLegacies = isTiefling
+    ? form?.race?.fiendishLegacies || {}
+    : {};
   const goliathAncestry = isGoliath
     ? form?.race?.selectedAncestry ||
       (form?.race?.selectedAncestryKey && giantAncestries
@@ -118,6 +122,63 @@ export default function CharacterInfo({
   const elvenLineageName = elvenLineage
     ? elvenLineage.label || elvenLineage.name || 'Elven Lineage'
     : null;
+  const tieflingLegacy = isTiefling
+    ? form?.race?.selectedAncestry ||
+      (form?.race?.selectedAncestryKey && tieflingLegacies
+        ? tieflingLegacies[form.race.selectedAncestryKey]
+        : null) ||
+      form?.tieflingLegacy ||
+      (form?.tieflingLegacyKey && tieflingLegacies
+        ? tieflingLegacies[form.tieflingLegacyKey]
+        : null)
+    : null;
+  const tieflingLegacyName = tieflingLegacy
+    ? tieflingLegacy.label || tieflingLegacy.name || 'Fiendish Legacy'
+    : null;
+  const tieflingLegacyAbility = (() => {
+    const fromForm =
+      typeof form?.tieflingLegacyAbility === 'string'
+        ? form.tieflingLegacyAbility.trim()
+        : '';
+    if (fromForm) {
+      return fromForm;
+    }
+    const fromRace =
+      typeof form?.race?.selectedLineageAbility === 'string'
+        ? form.race.selectedLineageAbility.trim()
+        : '';
+    return fromRace;
+  })();
+  const tieflingLegacyResistance = (() => {
+    const fromRace =
+      typeof form?.race?.selectedFiendishLegacyResistance === 'string'
+        ? form.race.selectedFiendishLegacyResistance.trim()
+        : '';
+    if (fromRace) {
+      return fromRace;
+    }
+    const fromLegacy =
+      typeof tieflingLegacy?.resistance === 'string'
+        ? tieflingLegacy.resistance.trim()
+        : '';
+    return fromLegacy;
+  })();
+  const tieflingLegacySubtext = (() => {
+    if (!isTiefling) {
+      return null;
+    }
+    const parts = [];
+    if (tieflingLegacyName) {
+      parts.push(tieflingLegacyName);
+    }
+    if (tieflingLegacyResistance) {
+      parts.push(`Resistance: ${tieflingLegacyResistance}`);
+    }
+    if (tieflingLegacyAbility) {
+      parts.push(`Spellcasting Ability: ${tieflingLegacyAbility}`);
+    }
+    return parts.length ? parts.join(' • ') : null;
+  })();
   const displaySize =
     form?.temporarySize || form?.size || form?.height || "—";
   const hasFigurineSelection = Boolean(
@@ -216,6 +277,9 @@ export default function CharacterInfo({
                 )}
                 {isElf && elvenLineageName && (
                   <span className="character-info-subtext">{elvenLineageName}</span>
+                )}
+                {isTiefling && tieflingLegacySubtext && (
+                  <span className="character-info-subtext">{tieflingLegacySubtext}</span>
                 )}
               </div>
             </div>

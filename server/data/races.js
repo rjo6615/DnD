@@ -240,6 +240,109 @@ const races = {
     abilities: { cha: 2, int: 1 },
     skills: {},
     languages: ["Common", "Infernal"],
+    creatureType: "Humanoid",
+    darkvisionRange: 60,
+    fiendishLegacies: {
+      abyssal: {
+        label: "Abyssal",
+        description:
+          "You channel the chaotic corruption of the Abyss, gaining resistances and magic steeped in poison.",
+        resistance: "Poison",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        spells: [
+          {
+            name: "Poison Spray",
+            spellLevel: "Cantrip",
+            unlockedAtLevel: 1,
+            description:
+              "Project a puff of noxious gas toward a creature you can see, forcing it to make a Constitution save or take poison damage.",
+            usage: "At will",
+          },
+          {
+            name: "Ray of Sickness",
+            spellLevel: "1st-level",
+            unlockedAtLevel: 3,
+            description:
+              "Hurl a ray of sickening energy that can poison a creature on a failed Constitution save.",
+            usage: "1/long rest",
+          },
+          {
+            name: "Hold Person",
+            spellLevel: "2nd-level",
+            unlockedAtLevel: 5,
+            description:
+              "Paralyze a humanoid you can see within range unless it succeeds on a Wisdom save.",
+            usage: "1/long rest",
+          },
+        ],
+      },
+      chthonic: {
+        label: "Chthonic",
+        description:
+          "Your legacy is tied to dark powers of the Lower Planes, cloaking you in necrotic energies and shadowed magic.",
+        resistance: "Necrotic",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        spells: [
+          {
+            name: "Chill Touch",
+            spellLevel: "Cantrip",
+            unlockedAtLevel: 1,
+            description:
+              "Create a ghostly skeletal hand that clings to a creature, dealing necrotic damage and hampering its healing.",
+            usage: "At will",
+          },
+          {
+            name: "False Life",
+            spellLevel: "1st-level",
+            unlockedAtLevel: 3,
+            description:
+              "Bolster yourself with necromantic vitality, gaining temporary hit points for the duration.",
+            usage: "1/long rest",
+          },
+          {
+            name: "Ray of Enfeeblement",
+            spellLevel: "2nd-level",
+            unlockedAtLevel: 5,
+            description:
+              "Sap a creature's strength with a weakening ray, halving its weapon damage on a failed Constitution save.",
+            usage: "1/long rest",
+          },
+        ],
+      },
+      infernal: {
+        label: "Infernal",
+        description:
+          "You inherit the disciplined might of the Hells, wreathed in flame and armed with classic devilish magic.",
+        resistance: "Fire",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        spells: [
+          {
+            name: "Fire Bolt",
+            spellLevel: "Cantrip",
+            unlockedAtLevel: 1,
+            description:
+              "Launch a mote of fire at a creature within range, dealing fire damage on a hit.",
+            usage: "At will",
+          },
+          {
+            name: "Hellish Rebuke",
+            spellLevel: "1st-level",
+            unlockedAtLevel: 3,
+            description:
+              "Surround an attacker in searing flame as a reaction, forcing a Dexterity save or dealing fire damage.",
+            usage: "1/long rest",
+          },
+          {
+            name: "Darkness",
+            spellLevel: "2nd-level",
+            unlockedAtLevel: 5,
+            description:
+              "Create a 15-foot-radius sphere of magical darkness that even darkvision can't penetrate.",
+            usage: "1/long rest",
+          },
+        ],
+      },
+    },
   },
   goliath: {
     name: "Goliath",

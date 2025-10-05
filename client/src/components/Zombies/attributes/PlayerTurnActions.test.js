@@ -290,6 +290,68 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(necrotic.textContent).toBe('2d8 Necrotic');
   });
 
+  test('renders fiendish legacy damaging spells and rolls on click', async () => {
+    const infernalLegacy = {
+      label: 'Infernal Legacy',
+      spells: [
+        { name: 'Fire Bolt', unlockedAtLevel: 1, spellLevel: 'Cantrip' },
+        { name: 'Hellish Rebuke', unlockedAtLevel: 3, spellLevel: '1st-level' },
+        { name: 'Hold Person', unlockedAtLevel: 5, spellLevel: '2nd-level' },
+      ],
+    };
+
+    const form = {
+      diceColor: '#000000',
+      weapon: [],
+      spells: [],
+      occupation: [{ Name: 'Warlock', Level: 5 }],
+      race: {
+        name: 'Tiefling',
+        fiendishLegacies: { infernal: infernalLegacy },
+      },
+      tieflingLegacyKey: 'infernal',
+    };
+
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+
+    try {
+      render(
+        <PlayerTurnActions form={form} strMod={0} dexMod={0} conMod={0} />
+      );
+
+      act(() => {
+        fireEvent.click(screen.getByTitle('Attack'));
+      });
+
+      await screen.findByText('Fiendish Legacy');
+
+      expect(screen.getByText('Fire Bolt')).toBeInTheDocument();
+      expect(screen.getByText('Hellish Rebuke')).toBeInTheDocument();
+      expect(screen.queryByText('Hold Person')).not.toBeInTheDocument();
+
+      const fireBoltCard = screen.getByText('Fire Bolt').closest('.attack-card');
+      expect(fireBoltCard).not.toBeNull();
+      if (!fireBoltCard) throw new Error('missing Fire Bolt card');
+
+      const rollButton = within(fireBoltCard).getByLabelText('roll');
+      await act(async () => {
+        fireEvent.click(rollButton);
+      });
+
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value node');
+        const text = valueNode.textContent || '';
+        if (!/^\d+$/.test(text) || text === '0') {
+          throw new Error('waiting');
+        }
+      });
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
   test('healing spells roll for numeric totals', async () => {
     const spell = {
       name: 'Healing Word',
