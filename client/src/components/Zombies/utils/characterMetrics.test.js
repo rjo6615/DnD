@@ -81,10 +81,9 @@ describe('calculateCharacterHitPoints', () => {
     expect(result.maxHp).toBe(30);
   });
 
-  it('uses character.currentHp when provided', () => {
+  it('falls back to character.currentHp when tempHealth is not defined', () => {
     const character = {
       health: 12,
-      tempHealth: 4,
       currentHp: '9',
       con: 10,
       occupation: [{ Level: 1 }],
@@ -95,10 +94,9 @@ describe('calculateCharacterHitPoints', () => {
     expect(result.currentHp).toBe(9);
   });
 
-  it('uses character.hpCurrent when provided', () => {
+  it('falls back to character.hpCurrent when tempHealth and currentHp are missing', () => {
     const character = {
       health: 15,
-      tempHealth: 5,
       hpCurrent: 11,
       con: 10,
       occupation: [{ Level: 1 }],
@@ -107,6 +105,21 @@ describe('calculateCharacterHitPoints', () => {
     const result = calculateCharacterHitPoints(character);
 
     expect(result.currentHp).toBe(11);
+  });
+
+  it('prefers tempHealth over other current hp fields when available', () => {
+    const character = {
+      health: 30,
+      tempHealth: 6,
+      currentHp: 4,
+      hpCurrent: 2,
+      con: 12,
+      occupation: [{ Level: 2 }],
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    expect(result.currentHp).toBe(6);
   });
 
   it('derives con modifier and hp bonuses from equipped items', () => {

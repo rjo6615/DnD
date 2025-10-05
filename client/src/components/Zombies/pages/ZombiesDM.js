@@ -187,7 +187,7 @@ const normalizeCombatState = (state) => {
               : null;
 
           const currentHpValue = toFiniteNumberOrNull(
-            participant.currentHp ?? participant.hpCurrent
+            participant.tempHealth ?? participant.currentHp ?? participant.hpCurrent
           );
           const maxHpValue = toFiniteNumberOrNull(
             participant.maxHp ?? participant.hpMax
@@ -428,6 +428,12 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
     return records;
   }
 
+  const hasTempHealthUpdate = Object.prototype.hasOwnProperty.call(
+    update,
+    'tempHealth'
+  );
+  const hasHealthUpdate = Object.prototype.hasOwnProperty.call(update, 'health');
+
   const normalizedCharacterId =
     typeof update.characterId === 'string' && update.characterId.trim() !== ''
       ? update.characterId.trim()
@@ -449,8 +455,12 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
     return records;
   }
 
-  const nextTempHealthValue = normalizeHealthValue(update.tempHealth);
-  const nextHealthValue = normalizeHealthValue(update.health);
+  const nextTempHealthValue = hasTempHealthUpdate
+    ? normalizeHealthValue(update.tempHealth)
+    : undefined;
+  const nextHealthValue = hasHealthUpdate
+    ? normalizeHealthValue(update.health)
+    : undefined;
 
   let didUpdate = false;
 
@@ -484,17 +494,46 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
       recordUpdated = true;
     }
 
-    if (
-      nextTempHealthValue !== undefined &&
-      record?.tempHealth !== nextTempHealthValue
-    ) {
-      updatedRecord.tempHealth = nextTempHealthValue;
-      recordUpdated = true;
+    if (hasTempHealthUpdate) {
+      if (nextTempHealthValue !== undefined) {
+        if (record?.tempHealth !== nextTempHealthValue) {
+          updatedRecord.tempHealth = nextTempHealthValue;
+          recordUpdated = true;
+        }
+        if (updatedRecord.currentHp !== nextTempHealthValue) {
+          updatedRecord.currentHp = nextTempHealthValue;
+          recordUpdated = true;
+        }
+        if (updatedRecord.hpCurrent !== nextTempHealthValue) {
+          updatedRecord.hpCurrent = nextTempHealthValue;
+          recordUpdated = true;
+        }
+      } else {
+        if ('tempHealth' in updatedRecord) {
+          delete updatedRecord.tempHealth;
+          recordUpdated = true;
+        }
+        if ('currentHp' in updatedRecord) {
+          delete updatedRecord.currentHp;
+          recordUpdated = true;
+        }
+        if ('hpCurrent' in updatedRecord) {
+          delete updatedRecord.hpCurrent;
+          recordUpdated = true;
+        }
+      }
     }
 
-    if (nextHealthValue !== undefined && record?.health !== nextHealthValue) {
-      updatedRecord.health = nextHealthValue;
-      recordUpdated = true;
+    if (hasHealthUpdate) {
+      if (nextHealthValue !== undefined) {
+        if (record?.health !== nextHealthValue) {
+          updatedRecord.health = nextHealthValue;
+          recordUpdated = true;
+        }
+      } else if ('health' in updatedRecord) {
+        delete updatedRecord.health;
+        recordUpdated = true;
+      }
     }
 
     if (recordUpdated) {
@@ -520,9 +559,9 @@ export const getCharacterCardMeta = (character, itemIndex = 0) => {
   const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
     calculateCharacterHitPoints(character);
   const fallbackCurrentHp = toFiniteNumberOrNull(
-    character?.currentHp ??
-      character?.hpCurrent ??
-      character?.tempHealth
+    character?.tempHealth ??
+      character?.currentHp ??
+      character?.hpCurrent
   );
   const fallbackMaxHp = toFiniteNumberOrNull(
     character?.maxHp ?? character?.hpMax ?? character?.health
@@ -563,9 +602,10 @@ export const getCombatRowMeta = ({
   const testId = `combat-row-${sanitizedRowId}`;
 
   const rowCurrentHp = toFiniteNumberOrNull(
-    character?.currentHp ??
+    character?.tempHealth ??
+      participantInfo?.tempHealth ??
+      character?.currentHp ??
       character?.hpCurrent ??
-      character?.tempHealth ??
       participantInfo?.currentHp ??
       participantInfo?.hpCurrent ??
       participantInfo?.health
@@ -1834,21 +1874,31 @@ export default function ZombiesDM() {
           return;
         }
 
-        const nextTempHealthValue =
-          update.tempHealth !== undefined && update.tempHealth !== null
-            ? (() => {
-                const numeric = Number(update.tempHealth);
-                return Number.isFinite(numeric) ? numeric : update.tempHealth;
-              })()
-            : undefined;
+        const hasTempHealth = Object.prototype.hasOwnProperty.call(
+          update,
+          'tempHealth'
+        );
+        const hasHealth = Object.prototype.hasOwnProperty.call(update, 'health');
 
-        const nextHealthValue =
-          update.health !== undefined && update.health !== null
-            ? (() => {
-                const numeric = Number(update.health);
-                return Number.isFinite(numeric) ? numeric : update.health;
-              })()
-            : undefined;
+        const nextTempHealthValue = hasTempHealth
+          ? (() => {
+              if (update.tempHealth === null || update.tempHealth === undefined) {
+                return undefined;
+              }
+              const numeric = Number(update.tempHealth);
+              return Number.isFinite(numeric) ? numeric : update.tempHealth;
+            })()
+          : undefined;
+
+        const nextHealthValue = hasHealth
+          ? (() => {
+              if (update.health === null || update.health === undefined) {
+                return undefined;
+              }
+              const numeric = Number(update.health);
+              return Number.isFinite(numeric) ? numeric : update.health;
+            })()
+          : undefined;
 
         setRecords((prev) =>
           applyCharacterHealthUpdateToRecords({
@@ -1856,8 +1906,8 @@ export default function ZombiesDM() {
             update: {
               ...(normalizedRecordId ? { _id: normalizedRecordId } : {}),
               ...(normalizedCharacterId ? { characterId: normalizedCharacterId } : {}),
-              tempHealth: nextTempHealthValue,
-              health: nextHealthValue,
+              ...(hasTempHealth ? { tempHealth: nextTempHealthValue } : {}),
+              ...(hasHealth ? { health: nextHealthValue } : {}),
             },
           })
         );
@@ -2844,7 +2894,10 @@ export default function ZombiesDM() {
             calculateCharacterHitPoints(record);
 
           const fallbackCurrentHp = toFiniteNumberOrNull(
-            record.currentHp ?? record.hpCurrent ?? record.tempHealth ?? record.health
+            record.tempHealth ??
+              record.currentHp ??
+              record.hpCurrent ??
+              record.health
           );
           const fallbackMaxHp = toFiniteNumberOrNull(
             record.maxHp ?? record.hpMax ?? record.health
@@ -3065,7 +3118,11 @@ export default function ZombiesDM() {
             activeCharacterId &&
             normalizedTokenCharacterId === activeCharacterId;
           const normalizedCurrentHp = toFiniteNumberOrNull(
-            meta.currentHp ?? token.currentHp ?? token.hpCurrent ?? token.health
+            meta.currentHp ??
+            token.tempHealth ??
+            token.currentHp ??
+            token.hpCurrent ??
+            token.health
           );
           const normalizedMaxHp = toFiniteNumberOrNull(
             meta.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
@@ -5249,9 +5306,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 recordIndex
                               )}`;
                               const rowCurrentHp = toFiniteNumberOrNull(
-                                character?.currentHp ??
+                                character?.tempHealth ??
+                                  participantInfo?.tempHealth ??
+                                  character?.currentHp ??
                                   character?.hpCurrent ??
-                                  character?.tempHealth ??
                                   character?.health ??
                                   participantInfo?.currentHp ??
                                   participantInfo?.hpCurrent ??
@@ -5410,9 +5468,9 @@ const resolveIcon = (category, iconMap, fallback) => {
                   const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
                     calculateCharacterHitPoints(character);
                   const fallbackCurrentHp = toFiniteNumberOrNull(
-                    character.currentHp ??
+                    character.tempHealth ??
+                      character.currentHp ??
                       character.hpCurrent ??
-                      character.tempHealth ??
                       character.health
                   );
                   const fallbackMaxHp = toFiniteNumberOrNull(
