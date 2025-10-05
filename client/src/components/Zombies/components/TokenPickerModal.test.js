@@ -366,4 +366,61 @@ describe('TokenPickerModal', () => {
 
     expect(await screen.findByText(errorMessage)).toBeInTheDocument();
   });
+
+  test('does not refetch repeatedly after a 503 manifest error', async () => {
+    const errorMessage = 'Service temporarily unavailable';
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      apiFetch.mockImplementation((url) => {
+        if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+          return Promise.resolve({
+            ok: false,
+            status: 503,
+            statusText: 'Service Unavailable',
+            json: async () => ({ message: errorMessage }),
+          });
+        }
+
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      });
+
+      render(
+        <TokenPickerModal
+          show
+          campaignId="Camp1"
+          isDm={false}
+          onHide={jest.fn()}
+          onSelect={jest.fn()}
+        />
+      );
+
+      const manifestCallCount = () =>
+        apiFetch.mock.calls.filter(
+          ([url]) => typeof url === 'string' && url.includes('/token-manifest')
+        ).length;
+
+      await waitFor(() => {
+        expect(manifestCallCount()).toBe(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(errorMessage)).toBeInTheDocument();
+        expect(manifestCallCount()).toBe(1);
+      });
+
+      expect(manifestCallCount()).toBe(1);
+
+      const depthError = consoleErrorSpy.mock.calls.find((callArgs) =>
+        callArgs.some(
+          (arg) =>
+            typeof arg === 'string' && arg.toLowerCase().includes('maximum update depth exceeded')
+        )
+      );
+
+      expect(depthError).toBeUndefined();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
 });
