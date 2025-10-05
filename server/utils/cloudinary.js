@@ -414,7 +414,7 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
 
 const DM_FOLDER_HINTS = ['DM', 'DM Only', 'DM-Only', 'DMOnly', '_DM'];
 const DM_FOLDER_PATTERN = /(^|\/)dm([ -]?only)?(\/|$)/i;
-const CONFIDENT_SUGGESTION_SCORE = 8;
+const CONFIDENT_SUGGESTION_SCORE = 5;
 
 const sanitizeMatchKey = (value) => {
   if (value === null || value === undefined) {
