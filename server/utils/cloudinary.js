@@ -3,6 +3,76 @@ let isConfigured = false;
 
 const DEFAULT_TOKEN_ROOT_FOLDER = 'Tokens';
 const TOKEN_FALLBACK_MAX_RESULTS = 200;
+const DEFAULT_TOKEN_CACHE_TTL_MS = 60_000;
+const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 120_000;
+
+const tokenListCache = new Map();
+const folderTreeCache = new Map();
+
+const parseCacheTtl = (value, fallback) => {
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue >= 0) {
+    return numericValue;
+  }
+  return fallback;
+};
+
+const getTokenListCacheTtlMs = () =>
+  parseCacheTtl(process.env.CLOUDINARY_TOKEN_CACHE_TTL_MS, DEFAULT_TOKEN_CACHE_TTL_MS);
+
+const getFolderTreeCacheTtlMs = () =>
+  parseCacheTtl(
+    process.env.CLOUDINARY_FOLDER_TREE_CACHE_TTL_MS,
+    DEFAULT_FOLDER_TREE_CACHE_TTL_MS
+  );
+
+const getCacheEntry = (cache, key) => {
+  const entry = cache.get(key);
+  if (!entry) {
+    return null;
+  }
+
+  if (Date.now() >= entry.expiresAt) {
+    cache.delete(key);
+    return null;
+  }
+
+  return entry.value;
+};
+
+const setCacheEntry = (cache, key, value, ttlMs) => {
+  if (ttlMs <= 0) {
+    return;
+  }
+
+  cache.set(key, {
+    value,
+    expiresAt: Date.now() + ttlMs,
+  });
+};
+
+const clearCacheWhenDisabled = (cache, ttlMs) => {
+  if (ttlMs <= 0 && cache.size > 0) {
+    cache.clear();
+  }
+};
+
+const buildTokenListCacheKey = ({ rootFolder, folders, nextCursor, maxResults }) => {
+  const normalizedFolders = Array.isArray(folders) ? folders.slice().sort() : [];
+  const serializedFolders = normalizedFolders.length > 0 ? normalizedFolders.join('|') : '__ALL__';
+  const normalizedCursor = typeof nextCursor === 'string' ? nextCursor : '';
+  const normalizedMaxResults = Number.isInteger(maxResults) ? maxResults : TOKEN_FALLBACK_MAX_RESULTS;
+
+  return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders, normalizedCursor, normalizedMaxResults].join(
+    '::'
+  );
+};
+
+const buildFolderTreeCacheKey = ({ rootFolder, folders }) => {
+  const normalizedFolders = Array.isArray(folders) ? folders.slice().sort() : [];
+  const serializedFolders = normalizedFolders.length > 0 ? normalizedFolders.join('|') : '__ROOT__';
+  return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders].join('::');
+};
 
 const resolveCloudinary = () => {
   if (!cloudinary) {
@@ -222,6 +292,21 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
     ? Array.from(new Set(folders.map(normalizeFolderPath).filter(Boolean)))
     : [normalizedRoot];
 
+  const cacheTtlMs = getFolderTreeCacheTtlMs();
+  clearCacheWhenDisabled(folderTreeCache, cacheTtlMs);
+
+  const cacheKey = buildFolderTreeCacheKey({
+    rootFolder: normalizedRoot,
+    folders: normalizedTargets,
+  });
+
+  if (cacheTtlMs > 0) {
+    const cached = getCacheEntry(folderTreeCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const visited = new Set();
 
   const fetchSubfolders = async (folderPath) => {
@@ -357,11 +442,17 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
   const foldersTree = await collectNodes();
   const flatFolders = flattenNodes(foldersTree);
 
-  return {
+  const result = {
     rootFolder: normalizedRoot,
     folders: foldersTree,
     flatFolders,
   };
+
+  if (cacheTtlMs > 0) {
+    setCacheEntry(folderTreeCache, cacheKey, result, cacheTtlMs);
+  }
+
+  return result;
 };
 
 const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults } = {}) => {
@@ -381,16 +472,43 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
   }
 
   const expression = expressionSegments.join(' AND ');
-  let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
 
   const resolvedMaxResults = Number.isInteger(maxResults)
     ? Math.max(1, Math.min(maxResults, 500))
     : TOKEN_FALLBACK_MAX_RESULTS;
 
+  const sanitizedFolders = Array.isArray(folders)
+    ? folders
+        .map((folder) => sanitizeFolderSegment(folder))
+        .filter(Boolean)
+    : [];
+
+  const sanitizedNextCursor =
+    typeof nextCursor === 'string' && nextCursor.trim() !== '' ? nextCursor.trim() : null;
+
+  const cacheTtlMs = getTokenListCacheTtlMs();
+  clearCacheWhenDisabled(tokenListCache, cacheTtlMs);
+
+  const cacheKey = buildTokenListCacheKey({
+    rootFolder,
+    folders: sanitizedFolders,
+    nextCursor: sanitizedNextCursor,
+    maxResults: resolvedMaxResults,
+  });
+
+  if (cacheTtlMs > 0) {
+    const cached = getCacheEntry(tokenListCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
+
   search = search.max_results(resolvedMaxResults).with_field('context').with_field('metadata');
 
-  if (typeof nextCursor === 'string' && nextCursor.trim() !== '') {
-    search = search.next_cursor(nextCursor.trim());
+  if (sanitizedNextCursor) {
+    search = search.next_cursor(sanitizedNextCursor);
   }
 
   const result = await search.execute();
@@ -399,17 +517,19 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
     .map((resource) => sanitizeTokenResource(resource, rootFolder))
     .filter(Boolean);
 
-  return {
+  const response = {
     assets,
     nextCursor: typeof result?.next_cursor === 'string' ? result.next_cursor : null,
     totalCount: typeof result?.total_count === 'number' ? result.total_count : null,
-    appliedFolders: Array.isArray(folders)
-      ? folders
-          .map((folder) => sanitizeFolderSegment(folder))
-          .filter(Boolean)
-      : [],
+    appliedFolders: sanitizedFolders,
     rootFolder,
   };
+
+  if (cacheTtlMs > 0) {
+    setCacheEntry(tokenListCache, cacheKey, response, cacheTtlMs);
+  }
+
+  return response;
 };
 
 const DM_FOLDER_HINTS = ['DM', 'DM Only', 'DM-Only', 'DMOnly', '_DM'];
