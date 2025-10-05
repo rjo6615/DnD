@@ -31,6 +31,7 @@ describe('Accessory routes', () => {
     expect(res.body).toBeDefined();
     expect(res.body['amulet-of-health']).toBeDefined();
     expect(res.body['amulet-of-health'].name).toBe('Amulet of Health');
+    expect(res.body['amulet-of-health'].owned).toBe(false);
     expect(Array.isArray(res.body['amulet-of-health'].targetSlots)).toBe(true);
     expect(res.body['amulet-of-health'].targetSlots).toContain('neck');
     expect(res.body['amulet-of-health'].weight).toBe(1);
