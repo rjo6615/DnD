@@ -176,6 +176,84 @@ beforeEach(() => {
   matchMediaState[WIDE_SCREEN_QUERY] = false;
 });
 
+test('uses character-derived hit points for synced combat participants', async () => {
+  const characterResponse = {
+    _id: '1',
+    characterName: 'Hero',
+    campaign: 'test-campaign',
+    health: 30,
+    currentHp: 12,
+    occupation: [],
+    feat: [],
+    equipment: {},
+  };
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => characterResponse,
+      });
+    }
+
+    if (typeof url === 'string' && url.includes('/campaigns/test-campaign/combat')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          participants: [
+            {
+              characterId: '1',
+              initiative: 15,
+              currentHp: 5,
+              maxHp: 40,
+            },
+            {
+              characterId: 'npc-1',
+              displayName: 'Goblin',
+              currentHp: 4,
+              maxHp: 10,
+              initiative: 10,
+            },
+          ],
+          activeTurn: 0,
+        }),
+      });
+    }
+
+    if (typeof url === 'string' && url.includes('/campaigns/test-campaign/characters')) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
+    if (typeof url === 'string' && url.includes('/campaigns/test-campaign/enemies')) {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+
+    if (typeof url === 'string' && url.includes('/campaigns/test-campaign/maps')) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    if (typeof url === 'string' && url.includes('/campaigns/test-campaign/map')) {
+      return Promise.resolve({ ok: false, status: 404 });
+    }
+
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await screen.findAllByText('Hero');
+  await screen.findByText('Goblin');
+
+  expect(screen.getByText('12/30')).toBeInTheDocument();
+  expect(screen.getByText('4/10')).toBeInTheDocument();
+  expect(screen.queryByText('5/40')).not.toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(mockHealthDefenseProps.current).not.toBeNull();
+  });
+  expect(mockHealthDefenseProps.current.form.health).toBe(30);
+});
+
 test('spells button includes points-glow when spell points available', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
