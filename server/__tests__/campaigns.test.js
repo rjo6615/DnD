@@ -78,6 +78,117 @@ describe('suggestEnemyFigurine helper', () => {
     });
   });
 });
+
+describe('Cloudinary caching helpers', () => {
+  const originalEnv = { ...process.env };
+
+  afterEach(() => {
+    jest.resetModules();
+    jest.dontMock('cloudinary');
+    process.env = { ...originalEnv };
+  });
+
+  test('listTokenAssets reuses cached results when inputs repeat', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_TOKEN_CACHE_TTL_MS: '1000',
+    };
+
+    const mockExecute = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/DM/goblin_token',
+          secure_url: 'https://res.cloudinary.com/demo/image/upload/Tokens/DM/goblin_token.png',
+          folder: 'Tokens/DM',
+          filename: 'goblin_token',
+        },
+      ],
+      next_cursor: 'NEXT',
+      total_count: 1,
+    });
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.max_results = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.with_field = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.next_cursor = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockReturnValue(searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { listTokenAssets: actualListTokenAssets } = jest.requireActual('../utils/cloudinary');
+
+    await actualListTokenAssets({ folders: ['DM'], nextCursor: null });
+    await actualListTokenAssets({ folders: ['DM'], nextCursor: null });
+
+    expect(mockExpression).toHaveBeenCalledTimes(1);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  test('listTokenFolderTree reuses cached results when inputs repeat', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_FOLDER_TREE_CACHE_TTL_MS: '1000',
+    };
+
+    const mockSubFolders = jest
+      .fn()
+      .mockImplementation(async (path) => {
+        if (path === 'Tokens') {
+          return {
+            folders: [
+              {
+                path: 'Tokens/Creatures',
+                name: 'Creatures',
+              },
+            ],
+            next_cursor: null,
+          };
+        }
+
+        if (path === 'Tokens/Creatures') {
+          return { folders: [], next_cursor: null };
+        }
+
+        throw new Error(`Unexpected folder path: ${path}`);
+      });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          sub_folders: mockSubFolders,
+        },
+      },
+    }));
+
+    const { listTokenFolderTree: actualListTokenFolderTree } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    await actualListTokenFolderTree({});
+    await actualListTokenFolderTree({});
+
+    expect(mockSubFolders).toHaveBeenCalledTimes(2);
+  });
+});
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
   emitEnemiesUpdate: jest.fn(),
