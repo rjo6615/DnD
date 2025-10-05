@@ -517,6 +517,11 @@ function CombatTurnHeader({ participants }) {
     return classes.join(' ');
   }, [isDragging, canScrollLeft, canScrollRight, participantsCount]);
 
+  const headerStyle = useMemo(
+    () => ({ touchAction: participantsCount ? 'pan-x' : 'auto' }),
+    [participantsCount]
+  );
+
   const finishDrag = useCallback((event) => {
     if (!isDraggingRef.current) {
       const container = headerRef.current;
@@ -666,9 +671,9 @@ function CombatTurnHeader({ participants }) {
     <div
       ref={headerRef}
       className={headerClassName}
+      style={headerStyle}
       role="group"
       aria-label="Combat turn order"
-      touchAction={participantsCount ? 'pan-x' : 'auto'}
       onPointerDown={participantsCount ? handlePointerDown : undefined}
       onPointerMove={participantsCount ? handlePointerMove : undefined}
       onPointerUp={participantsCount ? handlePointerUp : undefined}
