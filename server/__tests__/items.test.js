@@ -28,6 +28,8 @@ describe('Item routes', () => {
     const res = await request(app).get('/items');
     expect(res.status).toBe(200);
     expect(res.body.torch.name).toBe('Torch');
+    expect(res.body.torch.owned).toBe(false);
+    expect(res.body.torch.properties).toEqual([]);
   });
 
   test('provides item options', async () => {
