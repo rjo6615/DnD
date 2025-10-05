@@ -1224,33 +1224,26 @@ export default function ZombiesCharacterSheet() {
 
         const { currentHp, maxHp } = calculateCharacterHitPoints(char);
 
-        let normalizedCurrentHp = null;
-        let normalizedMaxHp = null;
+        let normalizedCurrentHp = participantCurrentHp !== null
+          ? participantCurrentHp
+          : Number.isFinite(currentHp)
+            ? currentHp
+            : null;
+        let normalizedMaxHp = participantMaxHp !== null
+          ? participantMaxHp
+          : Number.isFinite(maxHp)
+            ? maxHp
+            : null;
 
-        if (char) {
-          normalizedCurrentHp = toFiniteNumberOrNull(currentHp);
-          normalizedMaxHp = toFiniteNumberOrNull(maxHp);
-
-          if (normalizedMaxHp === null) {
-            const fallbackMax = toFiniteNumberOrNull(
-              char?.hpMax ?? char?.hitPoints ?? char?.health
-            );
-            if (fallbackMax !== null) {
-              normalizedMaxHp = fallbackMax;
-            }
+        if (normalizedMaxHp === null) {
+          const fallbackMax = toFiniteNumberOrNull(char?.hitPoints ?? char?.health);
+          if (fallbackMax !== null) {
+            normalizedMaxHp = fallbackMax;
           }
+        }
 
-          if (normalizedCurrentHp === null && normalizedMaxHp !== null) {
-            normalizedCurrentHp = normalizedMaxHp;
-          }
-
-          if (normalizedCurrentHp === null && normalizedMaxHp === null) {
-            normalizedCurrentHp = participantCurrentHp;
-            normalizedMaxHp = participantMaxHp;
-          }
-        } else {
-          normalizedCurrentHp = participantCurrentHp;
-          normalizedMaxHp = participantMaxHp;
+        if (normalizedCurrentHp === null && normalizedMaxHp !== null) {
+          normalizedCurrentHp = normalizedMaxHp;
         }
 
         let hpDisplay = '—';
