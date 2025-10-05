@@ -27,7 +27,6 @@ describe('CampaignMapBoard pointer interactions', () => {
         onTokenDrag={overrides.onTokenDrag}
         onTokenDragEnd={overrides.onTokenDragEnd}
         onTokenPositionChange={overrides.onTokenPositionChange}
-        onTokenRotate={overrides.onTokenRotate}
         onTokenRemove={overrides.onTokenRemove}
       />
     );
@@ -225,78 +224,5 @@ describe('CampaignMapBoard pointer interactions', () => {
     );
     expect(Number.isFinite(scaleValue)).toBe(true);
     expect(scaleValue).toBeCloseTo(1, 5);
-  });
-
-  it('reveals a rotation control on double click and forwards pointer events', () => {
-    const onTokenRotate = jest.fn();
-    const { container } = renderBoard({ onTokenRotate });
-
-    const tokenElement = container.querySelector('[data-token-id="char-1"]');
-    expect(tokenElement).not.toBeNull();
-    if (!tokenElement) {
-      return;
-    }
-
-    tokenElement.getBoundingClientRect = () => ({
-      left: 100,
-      top: 100,
-      width: 80,
-      height: 128,
-    });
-
-    fireEvent.doubleClick(tokenElement);
-
-    const rotationControl = container.querySelector('.campaign-map-board__rotation-control');
-    expect(rotationControl).not.toBeNull();
-    if (!rotationControl) {
-      return;
-    }
-
-    const refreshedTokenElement = container.querySelector('[data-token-id="char-1"]');
-    expect(refreshedTokenElement).not.toBeNull();
-    if (!refreshedTokenElement) {
-      return;
-    }
-
-    refreshedTokenElement.getBoundingClientRect = () => ({
-      left: 100,
-      top: 100,
-      width: 80,
-      height: 128,
-    });
-
-    rotationControl.setPointerCapture = jest.fn();
-    rotationControl.releasePointerCapture = jest.fn();
-
-    fireEvent.pointerDown(rotationControl, {
-      clientX: 140,
-      clientY: 100,
-      bubbles: true,
-      cancelable: true,
-    });
-    expect(rotationControl.setPointerCapture).toHaveBeenCalled();
-    const [[capturedPointerId]] = rotationControl.setPointerCapture.mock.calls;
-
-    const figurineBeforeMove = container.querySelector('.campaign-map-board__figurine');
-    expect(figurineBeforeMove?.classList.contains('campaign-map-board__figurine--rotating')).toBe(true);
-
-    fireEvent.pointerMove(rotationControl, {
-      clientX: 180,
-      clientY: 164,
-      bubbles: true,
-      cancelable: true,
-    });
-
-    fireEvent.pointerUp(rotationControl, {
-      clientX: 180,
-      clientY: 164,
-      bubbles: true,
-      cancelable: true,
-    });
-    expect(rotationControl.releasePointerCapture).toHaveBeenCalledWith(capturedPointerId);
-
-    const figurineAfterMove = container.querySelector('.campaign-map-board__figurine');
-    expect(figurineAfterMove?.classList.contains('campaign-map-board__figurine--rotating')).toBe(false);
-    expect(onTokenRotate).not.toHaveBeenCalled();
   });
 });
