@@ -759,62 +759,25 @@ const CampaignMapBoard = ({
                       });
                     }}
                     data-token-id={characterId}
-                    onDoubleClick={(event) => {
-                      if (interactionDisabled) {
-                        return;
-                      }
-
-                      event.preventDefault();
-                      event.stopPropagation();
-
-                      if (characterId) {
-                        setActiveLabelTokenId(characterId);
-                        setRotationTargetTokenId((prev) =>
-                          prev === characterId ? null : characterId
-                        );
-                      }
-                    }}
-                >
-                  {displayLabel && (
-                    <span className={labelClassName} aria-hidden="true">
-                      {displayLabel}
-                    </span>
-                  )}
-                  {isActiveTurn && (
-                    <span className="campaign-map-board__turn-indicator">
-                      <span aria-hidden="true">!</span>
-                      <span className="visually-hidden">
-                        {`${displayLabel || 'This character'} is taking their turn`}
+                  >
+                    {displayLabel && (
+                      <span className={labelClassName} aria-hidden="true">
+                        {displayLabel}
                       </span>
-                    </span>
-                  )}
-                  {rotationTargetTokenId === characterId && !interactionDisabled && (
-                    <div
-                      className={classNames(
-                        'campaign-map-board__rotation-control',
-                        rotatingTokenId === characterId &&
-                          'campaign-map-board__rotation-control--dragging'
-                      )}
-                      onPointerDown={(event) => handleRotationPointerDown(event, token)}
-                      onPointerMove={handleRotationPointerMove}
-                      onPointerUp={handleRotationPointerUp}
-                      onPointerCancel={handleRotationPointerCancel}
-                      tabIndex={-1}
-                    >
-                      <span className="campaign-map-board__rotation-control-visual" aria-hidden="true" />
-                      <span className="campaign-map-board__rotation-control-handle" aria-hidden="true" />
-                      <span className="visually-hidden">
-                        {`Drag the rotation ring to rotate ${
-                          displayLabel || 'this figurine'
-                        }.`}
+                    )}
+                    {isActiveTurn && (
+                      <span className="campaign-map-board__turn-indicator">
+                        <span aria-hidden="true">!</span>
+                        <span className="visually-hidden">
+                          {`${displayLabel || 'This character'} is taking their turn`}
+                        </span>
                       </span>
-                    </div>
-                  )}
-                  {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
-                    <div
-                      className="campaign-map-board__health"
-                      style={{ '--campaign-map-board-health-color': healthColor }}
-                    >
+                    )}
+                    {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
+                      <div
+                        className="campaign-map-board__health"
+                        style={{ '--campaign-map-board-health-color': healthColor }}
+                      >
                         <span className="visually-hidden">{`HP: ${formatHpValue(
                           safeCurrentHp
                         )}/${formatHpValue(safeMaxHp)}`}</span>
@@ -856,7 +819,7 @@ const CampaignMapBoard = ({
                         <span className="campaign-map-board__figurine-torso" />
                         <span className="campaign-map-board__figurine-cloak" />
                       </span>
-                    </span>
+                    </div>
                   </div>
                 </div>
               );

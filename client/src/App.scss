@@ -2999,60 +2999,6 @@ h1 {
     }
   }
 
-  &__rotation-control {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: calc(var(--figurine-base-size) * 1.9);
-    height: calc(var(--figurine-base-size) * 1.9);
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    pointer-events: auto;
-    cursor: grab;
-    z-index: 4;
-    touch-action: none;
-  }
-
-  &__rotation-control:active {
-    cursor: grabbing;
-  }
-
-  &__rotation-control-visual {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    border: 2px dashed rgba(51, 154, 240, 0.7);
-    box-shadow:
-      0 0 0.6rem rgba(51, 154, 240, 0.55),
-      0 0 1.35rem rgba(51, 154, 240, 0.35);
-    background: radial-gradient(circle, rgba(51, 154, 240, 0.18) 55%, transparent 75%);
-    pointer-events: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  &__rotation-control--dragging .campaign-map-board__rotation-control-visual {
-    border-style: solid;
-    border-color: rgba(255, 255, 255, 0.85);
-    box-shadow:
-      0 0 0.75rem rgba(255, 255, 255, 0.55),
-      0 0 1.5rem rgba(51, 154, 240, 0.45);
-  }
-
-  &__rotation-control-handle {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -45%);
-    width: clamp(0.4rem, calc(var(--figurine-base-size) * 0.2), 0.7rem);
-    height: clamp(0.4rem, calc(var(--figurine-base-size) * 0.2), 0.7rem);
-    border-radius: 50%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(51, 154, 240, 0.6));
-    box-shadow:
-      0 0.15rem 0.45rem rgba(0, 0, 0, 0.45),
-      0 0 0.45rem rgba(51, 154, 240, 0.7);
-    pointer-events: none;
-  }
-
   &--disabled &__token--draggable {
     cursor: default;
   }
