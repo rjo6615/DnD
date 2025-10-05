@@ -573,9 +573,9 @@ export const getCombatRowMeta = ({
   const rowMaxHp = toFiniteNumberOrNull(
     character?.maxHp ??
       character?.hpMax ??
-      character?.health ??
       participantInfo?.maxHp ??
       participantInfo?.hpMax ??
+      character?.health ??
       participantInfo?.health
   );
   const rowTempHp = toFiniteNumberOrNull(
