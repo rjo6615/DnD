@@ -396,7 +396,11 @@ module.exports = (router) => {
         .collection('Items')
         .find({ campaign: req.params.campaign })
         .toArray();
-      res.json(result);
+      const normalized = result.map((item) => ({
+        ...item,
+        owned: item?.owned ?? false,
+      }));
+      res.json(normalized);
     } catch (err) {
       next(err);
     }
@@ -418,6 +422,9 @@ module.exports = (router) => {
     async (req, res, next) => {
       const db_connect = req.db;
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+      if (myobj.owned === undefined) {
+        myobj.owned = false;
+      }
       try {
         const result = await db_connect.collection('Items').insertOne(myobj);
         const item = { _id: result.insertedId, ...myobj };
@@ -490,7 +497,11 @@ module.exports = (router) => {
         .collection('Accessories')
         .find({ campaign: req.params.campaign })
         .toArray();
-      res.json(result);
+      const normalized = result.map((accessory) => ({
+        ...accessory,
+        owned: accessory?.owned ?? false,
+      }));
+      res.json(normalized);
     } catch (err) {
       next(err);
     }
@@ -528,6 +539,9 @@ module.exports = (router) => {
     async (req, res, next) => {
       const db_connect = req.db;
       const myobj = matchedData(req, { locations: ['body'], includeOptionals: true });
+      if (myobj.owned === undefined) {
+        myobj.owned = false;
+      }
       myobj.targetSlots = normalizeAccessorySlots(myobj.targetSlots);
       try {
         const result = await db_connect.collection('Accessories').insertOne(myobj);
