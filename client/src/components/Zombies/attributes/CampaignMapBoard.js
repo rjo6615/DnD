@@ -488,6 +488,19 @@ const CampaignMapBoard = ({
                     }}
                     data-token-id={characterId}
                   >
+                    {displayLabel && (
+                      <span className={labelClassName} aria-hidden="true">
+                        {displayLabel}
+                      </span>
+                    )}
+                    {isActiveTurn && (
+                      <span className="campaign-map-board__turn-indicator">
+                        <span aria-hidden="true">!</span>
+                        <span className="visually-hidden">
+                          {`${displayLabel || 'This character'} is taking their turn`}
+                        </span>
+                      </span>
+                    )}
                     {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
                       <div
                         className="campaign-map-board__health"
@@ -530,11 +543,6 @@ const CampaignMapBoard = ({
                         <span className="campaign-map-board__figurine-cloak" />
                       </span>
                     </div>
-                    {displayLabel && (
-                      <span className={labelClassName} aria-hidden="true">
-                        {displayLabel}
-                      </span>
-                    )}
                   </div>
                 );
               })}
