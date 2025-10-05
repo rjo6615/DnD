@@ -522,8 +522,7 @@ export const getCharacterCardMeta = (character, itemIndex = 0) => {
   const fallbackCurrentHp = toFiniteNumberOrNull(
     character?.currentHp ??
       character?.hpCurrent ??
-      character?.tempHealth ??
-      character?.health
+      character?.tempHealth
   );
   const fallbackMaxHp = toFiniteNumberOrNull(
     character?.maxHp ?? character?.hpMax ?? character?.health
@@ -567,7 +566,6 @@ export const getCombatRowMeta = ({
     character?.currentHp ??
       character?.hpCurrent ??
       character?.tempHealth ??
-      character?.health ??
       participantInfo?.currentHp ??
       participantInfo?.hpCurrent ??
       participantInfo?.health

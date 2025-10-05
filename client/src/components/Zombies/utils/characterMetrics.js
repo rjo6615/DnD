@@ -204,7 +204,7 @@ export const calculateCharacterHitPoints = (character, overrides = {}) => {
           if (fallbackOverride !== null) {
             return fallbackOverride;
           }
-          return toFiniteNumberOrNull(character?.health);
+          return null;
         })();
 
   const maxHp =

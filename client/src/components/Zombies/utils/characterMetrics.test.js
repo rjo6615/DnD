@@ -68,6 +68,19 @@ describe('calculateCharacterHitPoints', () => {
     expect(result).toEqual({ currentHp: null, maxHp: null });
   });
 
+  it('does not default current hp to base health when no explicit value exists', () => {
+    const character = {
+      health: 30,
+      con: 10,
+      occupation: [{ Level: 3 }],
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    expect(result.currentHp).toBeNull();
+    expect(result.maxHp).toBe(30);
+  });
+
   it('uses character.currentHp when provided', () => {
     const character = {
       health: 12,

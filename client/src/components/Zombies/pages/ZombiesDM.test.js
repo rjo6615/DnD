@@ -12,6 +12,7 @@ jest.mock('../attributes/CampaignMapBoard', () => {
     default: jest.fn(() => React.createElement('div', { 'data-testid': 'campaign-map-board' })),
   };
 });
+
 jest.mock('../attributes/MapModal', () => {
   const React = require('react');
   const actual = jest.requireActual('../attributes/MapModal');
@@ -64,6 +65,52 @@ const accessorySlotOptions = [
   { key: 'ringLeft', label: 'Ring I' },
   { key: 'ringRight', label: 'Ring II' },
 ];
+
+describe('ZombiesDM metadata helpers', () => {
+  test('character health updates propagate to record cards and combat rows', () => {
+    const originalRecord = { _id: 'abc123', health: 12 };
+    const records = [originalRecord];
+
+    const updatedRecords = applyCharacterHealthUpdateToRecords({
+      records,
+      update: { _id: 'abc123', characterId: 'hero-1', health: 7 },
+    });
+
+    expect(updatedRecords).not.toBe(records);
+    expect(updatedRecords[0]).not.toBe(originalRecord);
+    expect(updatedRecords[0].health).toBe(7);
+    expect(updatedRecords[0]._id).toBe('abc123');
+    expect(updatedRecords[0].characterId).toBe('hero-1');
+
+    const cardMeta = getCharacterCardMeta(updatedRecords[0], 0);
+    expect(cardMeta.testId).toBe('character-card-abc123');
+    expect(cardMeta.dataAttributes['data-character-id']).toBe('abc123');
+    expect(cardMeta.dataAttributes['data-current-hp']).toBeUndefined();
+
+    const combatMeta = getCombatRowMeta({
+      character: updatedRecords[0],
+      rowId: 'hero-1',
+      participantInfo: { characterId: 'hero-1', currentHp: 12, maxHp: 18 },
+      recordIndex: 0,
+    });
+    expect(combatMeta.testId).toBe('combat-row-hero-1');
+    expect(combatMeta.dataAttributes['data-current-hp']).toBe(12);
+  });
+
+  test('combat row metadata omits current hp when no explicit value is present', () => {
+    const character = { _id: 'def456', health: 30 };
+
+    const combatMeta = getCombatRowMeta({
+      character,
+      rowId: 'hero-2',
+      participantInfo: { characterId: 'hero-2', maxHp: 30 },
+      recordIndex: 1,
+    });
+
+    expect(combatMeta.dataAttributes['data-current-hp']).toBeUndefined();
+    expect(combatMeta.dataAttributes['data-max-hp']).toBe(30);
+  });
+});
 
 const openResourceCard = async (tabLabel, testId) => {
   const tab = await screen.findByRole('tab', { name: tabLabel });
@@ -631,35 +678,6 @@ describe('ZombiesDM AI generation', () => {
     ]);
   });
 
-  test('character health updates propagate to record cards and combat rows', () => {
-    const originalRecord = { _id: 'abc123', health: 12 };
-    const records = [originalRecord];
-
-    const updatedRecords = applyCharacterHealthUpdateToRecords({
-      records,
-      update: { _id: 'abc123', characterId: 'hero-1', health: 7 },
-    });
-
-    expect(updatedRecords).not.toBe(records);
-    expect(updatedRecords[0]).not.toBe(originalRecord);
-    expect(updatedRecords[0].health).toBe(7);
-    expect(updatedRecords[0]._id).toBe('abc123');
-    expect(updatedRecords[0].characterId).toBe('hero-1');
-
-    const cardMeta = getCharacterCardMeta(updatedRecords[0], 0);
-    expect(cardMeta.testId).toBe('character-card-abc123');
-    expect(cardMeta.dataAttributes['data-character-id']).toBe('abc123');
-    expect(cardMeta.dataAttributes['data-current-hp']).toBe(7);
-
-    const combatMeta = getCombatRowMeta({
-      character: updatedRecords[0],
-      rowId: 'hero-1',
-      participantInfo: { characterId: 'hero-1', currentHp: 12, maxHp: 18 },
-      recordIndex: 0,
-    });
-    expect(combatMeta.testId).toBe('combat-row-hero-1');
-    expect(combatMeta.dataAttributes['data-current-hp']).toBe(7);
-  });
 
   test('removes enemy tokens from maps before success status', async () => {
     const enemies = [{ enemyId: 'enemy-1', name: 'Goblin', type: 'humanoid' }];
