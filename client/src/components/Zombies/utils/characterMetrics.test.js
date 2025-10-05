@@ -147,4 +147,28 @@ describe('calculateCharacterHitPoints', () => {
       expectedConMod * totalLevel + 5 + totalLevel
     );
   });
+
+  it('counts inventory bonuses once when the item is also equipped', () => {
+    const sharedItem = {
+      name: 'Sturdy Belt',
+      statBonuses: { con: 4 },
+    };
+
+    const character = {
+      health: 12,
+      con: 10,
+      occupation: [{ Level: 2 }],
+      item: [sharedItem],
+      equipment: {
+        waist: {
+          name: 'Sturdy Belt',
+          statBonuses: { con: 4 },
+        },
+      },
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    expect(result.maxHp).toBe(16);
+  });
 });
