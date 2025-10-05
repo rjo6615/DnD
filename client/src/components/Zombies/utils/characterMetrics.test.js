@@ -147,4 +147,26 @@ describe('calculateCharacterHitPoints', () => {
       expectedConMod * totalLevel + 5 + totalLevel
     );
   });
+
+  it('ignores hp bonuses from explicitly unowned accessories', () => {
+    const character = {
+      health: 12,
+      con: 12,
+      occupation: [{ Level: 2 }],
+      accessories: [
+        { statBonuses: { con: 6 }, hpMaxBonus: 20, owned: false },
+        { hpMaxBonusPerLevel: 2, owned: false },
+      ],
+    };
+
+    const result = calculateCharacterHitPoints(character);
+
+    const expectedConMod = Math.floor((character.con - 10) / 2);
+    const totalLevel = character.occupation.reduce(
+      (sum, entry) => sum + Number(entry.Level),
+      0
+    );
+
+    expect(result.maxHp).toBe(character.health + expectedConMod * totalLevel);
+  });
 });
