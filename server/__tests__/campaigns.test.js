@@ -1020,6 +1020,64 @@ describe('Campaign routes', () => {
       );
     });
 
+    test('update map token persists rotation when provided', async () => {
+      const existingToken = {
+        characterId: 'hero-1',
+        x: 0.2,
+        y: 0.4,
+        rotation: 45,
+      };
+      const campaignDoc = buildCampaignWithMap({}, {
+        mapTokens: {
+          [storedMap.mapId]: {
+            'hero-1': existingToken,
+          },
+        },
+      });
+      const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      dbo.mockResolvedValue({
+        collection: (name) => {
+          if (name === 'Campaigns') {
+            return {
+              findOne: async () => campaignDoc,
+              updateOne,
+            };
+          }
+          if (name === 'Characters') {
+            return { findOne: jest.fn() };
+          }
+          return {};
+        },
+      });
+
+      const res = await request(app)
+        .put(`/campaigns/Test/maps/${storedMap.mapId}/tokens/hero-1`)
+        .send({ x: 0.2, y: 0.4, rotation: -30 });
+
+      expect(res.status).toBe(200);
+      const updatedToken = res.body.tokensByMapId?.[storedMap.mapId]?.['hero-1'];
+      expect(updatedToken).toBeDefined();
+      expect(updatedToken).toEqual(
+        expect.objectContaining({
+          characterId: 'hero-1',
+          x: 0.2,
+          y: 0.4,
+          rotation: 330,
+        })
+      );
+      const emittedPayload = emitMapUpdate.mock.calls[emitMapUpdate.mock.calls.length - 1]?.[1];
+      expect(emittedPayload?.tokensByMapId?.[storedMap.mapId]?.['hero-1']).toEqual(
+        expect.objectContaining({ rotation: 330 })
+      );
+      const updateCall = updateOne.mock.calls[updateOne.mock.calls.length - 1];
+      expect(updateCall?.[1]?.$set?.mapTokens?.[storedMap.mapId]?.['hero-1']).toEqual(
+        expect.objectContaining({ rotation: 330 })
+      );
+      expect(updateCall?.[1]?.$set?.['map.tokens']?.['hero-1']).toEqual(
+        expect.objectContaining({ rotation: 330 })
+      );
+    });
+
     test('update map token requires numeric coordinates', async () => {
       const campaignDoc = buildCampaignWithMap();
       dbo.mockResolvedValue({

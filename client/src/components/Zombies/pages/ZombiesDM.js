@@ -308,6 +308,21 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const normalizeRotation = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = parsed % 360;
+  const resolved = normalized < 0 ? normalized + 360 : normalized;
+  return Math.round(resolved * 1000) / 1000;
+};
+
 const sanitizeToken = (tokenValue, fallbackId) => {
   if (!tokenValue || typeof tokenValue !== 'object') {
     return null;
@@ -2074,7 +2089,7 @@ export default function ZombiesDM() {
     }, [campaignId, applyMapPayload, syncEnemyTokenSelection]);
 
     const persistTokenPosition = useCallback(
-      async ({ mapId, characterId, x, y }) => {
+      async ({ mapId, characterId, x, y, rotation }) => {
         const normalizedMapId =
           typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
         const normalizedCharacterId =
@@ -2084,6 +2099,7 @@ export default function ZombiesDM() {
 
         const clampedX = clamp01(x);
         const clampedY = clamp01(y);
+        const normalizedRotation = normalizeRotation(rotation);
 
         if (!normalizedMapId || !normalizedCharacterId || clampedX === null || clampedY === null) {
           return;
@@ -2103,6 +2119,7 @@ export default function ZombiesDM() {
           x: clampedX,
           y: clampedY,
           updatedAt: new Date().toISOString(),
+          ...(normalizedRotation !== null ? { rotation: normalizedRotation } : {}),
         };
 
         setMapTokens((prev) => {
@@ -2141,7 +2158,11 @@ export default function ZombiesDM() {
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: clampedX, y: clampedY }),
+              body: JSON.stringify(
+                normalizedRotation !== null
+                  ? { x: clampedX, y: clampedY, rotation: normalizedRotation }
+                  : { x: clampedX, y: clampedY }
+              ),
             }
           );
 
@@ -3143,7 +3164,7 @@ export default function ZombiesDM() {
     ]);
 
     const handleTokenPositionChange = useCallback(
-      ({ characterId, x, y }) => {
+      ({ characterId, x, y, rotation }) => {
         const normalizedDisplayedMapId =
           typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
             ? displayedMap.mapId.trim()
@@ -3167,6 +3188,7 @@ export default function ZombiesDM() {
           characterId,
           x,
           y,
+          rotation,
         });
       },
       [campaignMap, displayedMap, persistTokenPosition, shouldShowCampaignTokens]
@@ -3195,7 +3217,7 @@ export default function ZombiesDM() {
     }, []);
 
     const handleMapModalTokenMove = useCallback(
-      async ({ mapId, characterId, x, y }) => {
+      async ({ mapId, characterId, x, y, rotation }) => {
         const normalizedMapId =
           typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
         const normalizedCharacterId =
@@ -3204,6 +3226,7 @@ export default function ZombiesDM() {
             : mapPlacementState.enemyId;
         const clampedX = clamp01(x);
         const clampedY = clamp01(y);
+        const normalizedRotation = normalizeRotation(rotation);
 
         if (!normalizedMapId || !normalizedCharacterId || clampedX === null || clampedY === null) {
           return false;
@@ -3214,6 +3237,7 @@ export default function ZombiesDM() {
           characterId: normalizedCharacterId,
           x: clampedX,
           y: clampedY,
+          rotation: normalizedRotation,
         });
 
         return true;

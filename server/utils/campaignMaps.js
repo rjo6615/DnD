@@ -64,6 +64,25 @@ const clampPercentage = (value) => {
 
 const FIGURINE_STRING_FIELDS = ['imageUrl', 'cloudinaryPublicId', 'folder'];
 
+const normalizeTokenRotation = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = parsed % 360;
+  const resolved = normalized < 0 ? normalized + 360 : normalized;
+
+  // Preserve precision for fractional rotations while avoiding floating-point
+  // noise from repeated normalization. Three decimal places is more than
+  // enough granularity for visual rotations.
+  return Math.round(resolved * 1000) / 1000;
+};
+
 const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
   const normalizedTokens = {};
   let didMutate = false;
@@ -155,6 +174,18 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         updatedAt: resolvedUpdatedAt,
       };
 
+      if ('rotation' in candidate) {
+        const normalizedRotation = normalizeTokenRotation(candidate.rotation);
+        if (normalizedRotation === null) {
+          didMutate = true;
+        } else {
+          sanitizedToken.rotation = normalizedRotation;
+          if (normalizedRotation !== candidate.rotation) {
+            didMutate = true;
+          }
+        }
+      }
+
       FIGURINE_STRING_FIELDS.forEach((field) => {
         if (!(field in candidate)) {
           return;
@@ -189,6 +220,9 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
           }
           return acc;
         }, {}),
+        ...(rawValue && Object.prototype.hasOwnProperty.call(rawValue, 'rotation')
+          ? { rotation: rawValue.rotation }
+          : {}),
       });
       const sanitizedComparable = JSON.stringify(sanitizedToken);
       if (originalComparable !== sanitizedComparable) {
@@ -516,4 +550,5 @@ module.exports = {
   normalizeCampaignMapState,
   getMapSchemas,
   normalizeMapTokens,
+  normalizeTokenRotation,
 };

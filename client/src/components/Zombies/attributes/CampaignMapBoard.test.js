@@ -176,7 +176,8 @@ describe('CampaignMapBoard pointer interactions', () => {
   });
 
   it('marks the last dragged token and enables rotation controls', async () => {
-    const { container, findByRole, queryByRole } = renderBoard();
+    const onTokenPositionChange = jest.fn();
+    const { container, findByRole, queryByRole } = renderBoard({ onTokenPositionChange });
 
     const applyLayerRect = () => {
       const layer = container.querySelector('.campaign-map-board__tokens-layer');
@@ -241,10 +242,28 @@ describe('CampaignMapBoard pointer interactions', () => {
     const rotateClockwiseButton = await findByRole('button', { name: /rotate clockwise/i });
     fireEvent.click(rotateClockwiseButton);
 
+    expect(onTokenPositionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        characterId: 'char-1',
+        rotation: 15,
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
+
     tokenElement = container.querySelector('[data-token-id="char-1"]');
     expect(tokenElement?.getAttribute('data-rotation')).toBe('15');
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
+
+    expect(onTokenPositionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        characterId: 'char-1',
+        rotation: 0,
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
 
     tokenElement = container.querySelector('[data-token-id="char-1"]');
     expect(tokenElement?.getAttribute('data-rotation')).toBe('0');

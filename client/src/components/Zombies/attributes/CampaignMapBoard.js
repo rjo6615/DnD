@@ -155,6 +155,7 @@ const CampaignMapBoard = ({
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
   const [lastDraggedTokenId, setLastDraggedTokenId] = useState(null);
   const [rotationOverrides, setRotationOverrides] = useState({});
+  const rotationOverridesRef = useRef({});
   const tokenPositionsRef = useRef([]);
   const handleLayerRef = useCallback((node) => {
     layerRef.current = node;
@@ -184,6 +185,10 @@ const CampaignMapBoard = ({
   useEffect(() => {
     tokenPositionsRef.current = tokenPositions;
   }, [tokenPositions]);
+
+  useEffect(() => {
+    rotationOverridesRef.current = rotationOverrides;
+  }, [rotationOverrides]);
 
   useEffect(() => {
     const activeIds = new Set(tokenPositions.map((token) => token?.characterId));
@@ -444,25 +449,26 @@ const CampaignMapBoard = ({
         return;
       }
 
+      const tokensList = tokenPositionsRef.current;
+      const overrides = rotationOverridesRef.current || {};
+      const currentOverride = overrides[tokenId];
+      let baseRotation = Number.isFinite(currentOverride)
+        ? currentOverride
+        : (() => {
+            if (!Array.isArray(tokensList)) {
+              return 0;
+            }
+            const foundToken = tokensList.find((entry) => entry?.characterId === tokenId);
+            const rawRotation = Number(foundToken?.rotation);
+            return Number.isFinite(rawRotation) ? rawRotation : 0;
+          })();
+
+      const nextRotation = normalizeDegrees(baseRotation + delta);
+      if (!Number.isFinite(nextRotation)) {
+        return;
+      }
+
       setRotationOverrides((prev) => {
-        const currentOverride = prev[tokenId];
-        let baseRotation = Number.isFinite(currentOverride)
-          ? currentOverride
-          : (() => {
-              const tokensList = tokenPositionsRef.current;
-              if (!Array.isArray(tokensList)) {
-                return 0;
-              }
-              const foundToken = tokensList.find((entry) => entry?.characterId === tokenId);
-              const rawRotation = Number(foundToken?.rotation);
-              return Number.isFinite(rawRotation) ? rawRotation : 0;
-            })();
-
-        const nextRotation = normalizeDegrees(baseRotation + delta);
-        if (!Number.isFinite(nextRotation)) {
-          return prev;
-        }
-
         if (prev[tokenId] === nextRotation) {
           return prev;
         }
@@ -474,8 +480,29 @@ const CampaignMapBoard = ({
       });
 
       setLastDraggedTokenId(tokenId);
+
+      if (typeof onTokenPositionChange === 'function' && Array.isArray(tokensList)) {
+        const foundToken = tokensList.find((entry) => entry?.characterId === tokenId);
+        if (foundToken) {
+          const candidatePosition =
+            foundToken.position && typeof foundToken.position === 'object'
+              ? foundToken.position
+              : null;
+          const normalizedX = clamp01(candidatePosition?.x ?? foundToken.x);
+          const normalizedY = clamp01(candidatePosition?.y ?? foundToken.y);
+
+          if (normalizedX !== null && normalizedY !== null) {
+            onTokenPositionChange({
+              characterId: tokenId,
+              x: normalizedX,
+              y: normalizedY,
+              rotation: nextRotation,
+            });
+          }
+        }
+      }
     },
-    []
+    [onTokenPositionChange]
   );
 
   const lockRotation = useCallback((tokenId) => {

@@ -493,7 +493,7 @@ const MapModal = ({
   }, [normalizedCurrentCharacterId, tokensDictionary]);
 
   const handleCommitMove = useCallback(
-    async ({ characterId, x, y }) => {
+    async ({ characterId, x, y, rotation }) => {
       if (!isInteractive || placementPending) {
         return;
       }
@@ -511,12 +511,18 @@ const MapModal = ({
       setPlacementError(null);
 
       try {
-        const result = await onTokenMove({
+        const payload = {
           mapId: previewMapId,
           characterId: normalizedCharacterId,
           x,
           y,
-        });
+        };
+
+        if (Number.isFinite(rotation)) {
+          payload.rotation = rotation;
+        }
+
+        const result = await onTokenMove(payload);
 
         if (result === false) {
           setPlacementError('Unable to update figurine position.');
@@ -541,12 +547,12 @@ const MapModal = ({
   );
 
   const handleTokenPositionChange = useCallback(
-    ({ characterId, x, y }) => {
+    ({ characterId, x, y, rotation }) => {
       if (!isInteractive) {
         return;
       }
 
-      handleCommitMove({ characterId, x, y });
+      handleCommitMove({ characterId, x, y, rotation });
     },
     [handleCommitMove, isInteractive]
   );
