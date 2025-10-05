@@ -36,6 +36,50 @@ const normalizeAccessoryCollection = (character) => {
   return [];
 };
 
+const resolveItemIdentifier = (item) => {
+  if (!item) {
+    return null;
+  }
+
+  const normalize = (value) => {
+    if (value === undefined || value === null) {
+      return '';
+    }
+    return String(value).trim().toLowerCase();
+  };
+
+  if (typeof item === 'string') {
+    const normalized = normalize(item);
+    return normalized ? `::${normalized}` : null;
+  }
+
+  if (Array.isArray(item)) {
+    const [name] = item;
+    const normalized = normalize(name);
+    return normalized ? `::${normalized}` : null;
+  }
+
+  if (typeof item === 'object') {
+    const identifier =
+      normalize(item._id) ||
+      normalize(item.id) ||
+      normalize(item.itemId) ||
+      normalize(item.itemName) ||
+      normalize(item.name) ||
+      normalize(item.displayName) ||
+      normalize(item.title);
+    const source = normalize(item.__source) || normalize(item.source);
+
+    if (identifier || source) {
+      return `${source}::${identifier}`;
+    }
+
+    return null;
+  }
+
+  return null;
+};
+
 const calculateEffectiveAbilityScores = (character) => {
   if (!character || typeof character !== 'object') {
     return STAT_KEYS.reduce((acc, key) => {
@@ -49,9 +93,26 @@ const calculateEffectiveAbilityScores = (character) => {
     return acc;
   }, {});
 
-  const { bonuses: itemBonuses, overrides: itemOverrides } = aggregateStatEffects(character?.item);
   const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
   const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
+  const equipmentIdentifiers = new Set(
+    equipmentEntries
+      .map((entry) => resolveItemIdentifier(entry))
+      .filter((identifier) => typeof identifier === 'string' && identifier.length > 0)
+  );
+
+  const inventoryEntries = Array.isArray(character?.item) ? character.item : [];
+  const filteredInventoryEntries =
+    equipmentIdentifiers.size > 0
+      ? inventoryEntries.filter((entry) => {
+          const identifier = resolveItemIdentifier(entry);
+          return !identifier || !equipmentIdentifiers.has(identifier);
+        })
+      : character?.item;
+
+  const { bonuses: itemBonuses, overrides: itemOverrides } = aggregateStatEffects(
+    filteredInventoryEntries
+  );
   const { bonuses: equipmentBonuses, overrides: equipmentOverrides } = aggregateStatEffects(
     equipmentEntries
   );
