@@ -13,6 +13,7 @@ const {
   prepareStoredMap,
   buildCampaignMapPayload,
   normalizeMapTokens,
+  normalizeTokenRotation,
 } = require('../utils/campaignMaps');
 const {
   uploadMapImage,
@@ -1101,6 +1102,11 @@ module.exports = (router) => {
           .withMessage('characterId is required'),
         body('x').isFloat().withMessage('x must be a number').toFloat(),
         body('y').isFloat().withMessage('y must be a number').toFloat(),
+        body('rotation')
+          .optional()
+          .isFloat()
+          .withMessage('rotation must be a number')
+          .toFloat(),
       ],
       handleValidationErrors,
       async (req, res, next) => {
@@ -1174,6 +1180,15 @@ module.exports = (router) => {
             y: req.body.y,
             updatedAt: now,
           };
+
+          if (Object.prototype.hasOwnProperty.call(req.body, 'rotation')) {
+            const normalizedRotation = normalizeTokenRotation(req.body.rotation);
+            if (normalizedRotation === null) {
+              delete nextTokens[mapId][trimmedCharacterId].rotation;
+            } else {
+              nextTokens[mapId][trimmedCharacterId].rotation = normalizedRotation;
+            }
+          }
 
           const { tokensByMapId } = normalizeMapTokens({
             mapTokens: nextTokens,

@@ -2696,6 +2696,7 @@ h1 {
   &__token {
     --figurine-base-size: calc(var(--map-square-size) * var(--figurine-size-scale, 1));
     --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
+    --figurine-rotation: 0deg;
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
@@ -2709,6 +2710,10 @@ h1 {
     touch-action: none;
     width: var(--figurine-base-size);
     height: calc(var(--figurine-base-size) * 1.6);
+  }
+
+  &__token.lastDragged {
+    z-index: 6;
   }
 
   &__token--size-tiny {
@@ -2733,6 +2738,24 @@ h1 {
 
   &__token--size-gargantuan {
     --figurine-size-scale: 4;
+  }
+
+  &__turn-indicator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    font-weight: 800;
+    font-size: clamp(0.9rem, calc(var(--figurine-base-size) * 0.6), 1.85rem);
+    line-height: 1;
+    color: #ff4d4f;
+    text-shadow:
+      0 0.35rem 0.8rem rgba(0, 0, 0, 0.6),
+      0 0 0.4rem rgba(255, 77, 79, 0.9),
+      0 0 1rem rgba(255, 125, 127, 0.75);
+    animation: campaignMapBoardTurnIndicatorPulse 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0.2rem 0.45rem rgba(0, 0, 0, 0.55));
   }
 
   &__health {
@@ -2793,12 +2816,91 @@ h1 {
       drop-shadow(0 0.05rem 0.25rem rgba(255, 255, 255, 0.12));
     transition: transform 0.2s ease, filter 0.2s ease;
     position: relative;
+    transform: rotate(var(--figurine-rotation, 0deg));
   }
 
   &__figurine--active {
-    transform: translateY(-3px) scale(1.02);
+    transform: rotate(var(--figurine-rotation, 0deg)) translateY(-3px) scale(1.02);
     filter: drop-shadow(0 0.55rem 1.25rem rgba(7, 8, 13, 0.75))
       drop-shadow(0 0.15rem 0.35rem rgba(255, 255, 255, 0.2));
+  }
+
+  &__rotation-controls {
+    position: absolute;
+    top: calc(var(--figurine-base-size) * -0.45);
+    left: 50%;
+    transform: translate(-50%, -100%) scale(0.92);
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(0.25rem, calc(var(--figurine-base-size) * 0.12), 0.45rem);
+    padding: clamp(0.25rem, calc(var(--figurine-base-size) * 0.18), 0.4rem)
+      clamp(0.45rem, calc(var(--figurine-base-size) * 0.22), 0.65rem);
+    background: rgba(18, 16, 14, 0.92);
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0.45rem 1.1rem rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 12;
+  }
+
+  &__token.lastDragged &__rotation-controls,
+  &__rotation-controls:focus-within {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -100%) scale(1);
+  }
+
+  &__rotation-button {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #f8f9fa;
+    border-radius: 50%;
+    width: clamp(1.75rem, calc(var(--figurine-base-size) * 0.6), 2.35rem);
+    height: clamp(1.75rem, calc(var(--figurine-base-size) * 0.6), 2.35rem);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(0.85rem, calc(var(--figurine-base-size) * 0.34), 1.05rem);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  &__rotation-button:hover,
+  &__rotation-button:focus-visible {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.45);
+    transform: scale(1.05);
+  }
+
+  &__rotation-angle {
+    min-width: clamp(2.1rem, calc(var(--figurine-base-size) * 0.9), 2.75rem);
+    text-align: center;
+    font-weight: 600;
+    font-size: clamp(0.75rem, calc(var(--figurine-base-size) * 0.32), 0.95rem);
+    color: #f1f3f5;
+  }
+
+  &__rotation-lock {
+    background: rgba(51, 154, 240, 0.25);
+    border: 1px solid rgba(51, 154, 240, 0.55);
+    color: #f8f9fa;
+    border-radius: 999px;
+    padding: clamp(0.2rem, calc(var(--figurine-base-size) * 0.16), 0.35rem)
+      clamp(0.55rem, calc(var(--figurine-base-size) * 0.28), 0.8rem);
+    font-size: clamp(0.7rem, calc(var(--figurine-base-size) * 0.27), 0.9rem);
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+  }
+
+  &__rotation-lock:hover,
+  &__rotation-lock:focus-visible {
+    background: rgba(51, 154, 240, 0.38);
+    border-color: rgba(51, 154, 240, 0.7);
+    transform: translateY(-1px);
   }
 
   &__figurine-image-wrapper {
@@ -2949,35 +3051,40 @@ h1 {
   }
 
   &__token--active-turn {
-    filter:
-      drop-shadow(0 0.45rem 1.2rem rgba(209, 143, 0, 0.55))
-      drop-shadow(0 0 1.85rem rgba(255, 214, 102, 0.45));
-
-    &::after {
-      content: '';
-      position: absolute;
-      inset: calc(var(--figurine-base-size) * -0.15);
-      border-radius: 999px;
-      pointer-events: none;
-      box-shadow:
-        0 0 0.65rem rgba(255, 214, 102, 0.45),
-        0 0 1.6rem rgba(255, 239, 153, 0.55),
-        inset 0 0 0.35rem rgba(255, 248, 220, 0.4);
-      opacity: 0.85;
-      z-index: -1;
+    .campaign-map-board__turn-indicator {
+      animation-play-state: running;
     }
-
-    .campaign-map-board__figurine {
-      filter:
-        drop-shadow(0 0.55rem 1.6rem rgba(255, 214, 102, 0.7))
-        drop-shadow(0 0.25rem 0.6rem rgba(255, 248, 220, 0.75))
-        drop-shadow(0 0 2.1rem rgba(255, 239, 153, 0.55));
-    }
-
   }
 
   &--disabled &__token--draggable {
     cursor: default;
+  }
+}
+
+@keyframes campaignMapBoardTurnIndicatorPulse {
+  0% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.85;
+    text-shadow:
+      0 0.25rem 0.65rem rgba(0, 0, 0, 0.55),
+      0 0 0.35rem rgba(255, 77, 79, 0.7),
+      0 0 0.85rem rgba(255, 140, 143, 0.6);
+  }
+  50% {
+    transform: translateY(calc(var(--figurine-base-size) * -0.04)) scale(1.05);
+    opacity: 1;
+    text-shadow:
+      0 0.45rem 1rem rgba(0, 0, 0, 0.65),
+      0 0 0.55rem rgba(255, 104, 107, 0.95),
+      0 0 1.4rem rgba(255, 168, 170, 0.85);
+  }
+  100% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.85;
+    text-shadow:
+      0 0.25rem 0.65rem rgba(0, 0, 0, 0.55),
+      0 0 0.35rem rgba(255, 77, 79, 0.7),
+      0 0 0.85rem rgba(255, 140, 143, 0.6);
   }
 }
 
