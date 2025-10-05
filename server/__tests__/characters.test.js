@@ -403,6 +403,7 @@ describe('Character routes', () => {
     const res = await request(app).get('/equipment/items/Camp1');
     expect(res.status).toBe(200);
     expect(res.body[0].itemName).toBe('Potion');
+    expect(res.body[0].owned).toBe(false);
   });
 
   test('get items failure', async () => {
