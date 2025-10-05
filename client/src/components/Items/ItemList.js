@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Modal, Badge } from 'react-bootstrap';
 import {
   GiAmmoBox,
@@ -93,10 +93,26 @@ const buildItemOwnershipMap = (initialItems) => {
   return map;
 };
 
+const getOwnedEntryName = (entry) => {
+  if (typeof entry === 'string') {
+    return entry;
+  }
+
+  if (Array.isArray(entry)) {
+    return entry[0];
+  }
+
+  if (entry && typeof entry === 'object') {
+    return entry.name || entry.displayName || entry.itemName || '';
+  }
+
+  return '';
+};
+
 function ItemList({
   campaign,
   onChange,
-  initialItems = [],
+  initialItems: initialItemsProp,
   characterId,
   show = true,
   onClose,
@@ -105,15 +121,32 @@ function ItemList({
   ownedOnly = false,
   cartCounts = null,
 }) {
+  const localChangeRef = useRef(false);
+  const normalizedInitialItems = useMemo(
+    () => (Array.isArray(initialItemsProp) ? initialItemsProp : []),
+    [initialItemsProp]
+  );
+  const [ownedItems, setOwnedItems] = useState(() =>
+    normalizedInitialItems
+  );
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownItems, setUnknownItems] = useState([]);
   const [notesItem, setNotesItem] = useState(null);
 
+  useEffect(() => {
+    if (localChangeRef.current) {
+      localChangeRef.current = false;
+      return;
+    }
+
+    setOwnedItems(normalizedInitialItems);
+  }, [normalizedInitialItems]);
+
   const ownershipMap = useMemo(
-    () => buildItemOwnershipMap(initialItems),
-    [initialItems]
+    () => buildItemOwnershipMap(ownedItems),
+    [ownedItems]
   );
 
   useEffect(() => {
@@ -196,7 +229,7 @@ function ItemList({
     }
 
     fetchItems();
-  }, [campaign, initialItems, show]);
+  }, [campaign, normalizedInitialItems, show]);
 
   useEffect(() => {
     setItems((prev) => {
@@ -246,6 +279,7 @@ function ItemList({
   const handleShowNotes = (item) => () => setNotesItem(item);
 
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
+  const canModifyOwned = ownedOnly && typeof onChange === 'function';
   const filteredEntries = Object.entries(items).filter(([, item]) =>
     ownedOnly ? (item.ownedCount ?? 0) > 0 : true
   );
@@ -307,6 +341,61 @@ function ItemList({
                 ? item.category.toLowerCase()
                 : '';
             const Icon = categoryIcons[categoryKey] || GiTreasureMap;
+            const handleRemoveOwned = () => {
+              if (!canModifyOwned) return;
+
+              setOwnedItems((prev) => {
+                if (!Array.isArray(prev) || prev.length === 0) {
+                  return prev;
+                }
+
+                const normalizedKey = String(dataKey || '').trim().toLowerCase();
+                const displayKey = String(item.displayName || '')
+                  .trim()
+                  .toLowerCase();
+                const nameKey = String(item.name || '')
+                  .trim()
+                  .toLowerCase();
+                const validKeys = [normalizedKey, displayKey, nameKey].filter(
+                  Boolean
+                );
+
+                if (validKeys.length === 0) {
+                  return prev;
+                }
+
+                let seen = 0;
+                const indexToRemove = prev.findIndex((entry) => {
+                  const entryName = String(
+                    getOwnedEntryName(entry) || ''
+                  )
+                    .trim()
+                    .toLowerCase();
+                  if (!entryName || !validKeys.includes(entryName)) {
+                    return false;
+                  }
+
+                  if (seen === copyIndex) {
+                    return true;
+                  }
+
+                  seen += 1;
+                  return false;
+                });
+
+                if (indexToRemove === -1) {
+                  return prev;
+                }
+
+                const next = prev.slice();
+                next.splice(indexToRemove, 1);
+                localChangeRef.current = true;
+                if (typeof onChange === 'function') {
+                  onChange(next);
+                }
+                return next;
+              });
+            };
             return (
               <Col key={reactKey}>
                 <Card className="item-card h-100">
@@ -354,7 +443,7 @@ function ItemList({
                       </div>
                     )}
                   </Card.Body>
-                  {!ownedOnly && (
+                  {!ownedOnly ? (
                     <Card.Footer className="d-flex justify-content-center">
                       <div className="d-flex align-items-center gap-2">
                         <Button size="sm" onClick={handleAddToCart(item)}>
@@ -367,7 +456,17 @@ function ItemList({
                         ) : null}
                       </div>
                     </Card.Footer>
-                  )}
+                  ) : canModifyOwned ? (
+                    <Card.Footer className="d-flex justify-content-center">
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        onClick={handleRemoveOwned}
+                      >
+                        Remove
+                      </Button>
+                    </Card.Footer>
+                  ) : null}
                 </Card>
               </Col>
             );

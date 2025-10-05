@@ -160,3 +160,58 @@ test('renders duplicate item cards when multiple copies are owned', async () => 
   expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
   expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
 });
+
+test('allows removing owned items and triggers change callback', async () => {
+  apiFetch.mockResolvedValue({ ok: true, json: async () => itemsData });
+  const onChange = jest.fn();
+  const ownedItems = [
+    { name: 'Potion of healing', owned: true },
+    { name: 'Potion of healing', owned: true },
+    { name: 'Torch', owned: true },
+  ];
+
+  render(
+    <ItemList
+      ownedOnly
+      embedded
+      onChange={onChange}
+      initialItems={ownedItems}
+    />
+  );
+
+  const potionHeadings = await screen.findAllByText('Potion of healing');
+  expect(potionHeadings).toHaveLength(2);
+  const removeButtons = screen.getAllByRole('button', { name: /remove/i });
+  expect(removeButtons).toHaveLength(3);
+  const potionRemoveButton = removeButtons.find((button) => {
+    const card = button.closest('.card');
+    return card
+      ? within(card).queryByText('Potion of healing') !== null
+      : false;
+  });
+  expect(potionRemoveButton).toBeDefined();
+
+  await act(async () => {
+    await userEvent.click(potionRemoveButton);
+  });
+
+  await waitFor(() =>
+    expect(screen.getAllByText('Potion of healing')).toHaveLength(1)
+  );
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const updatedInventory = onChange.mock.calls[0][0];
+  expect(updatedInventory).toHaveLength(2);
+  const normalizeName = (entry) => {
+    if (typeof entry === 'string') return entry.toLowerCase();
+    if (Array.isArray(entry)) return String(entry[0] || '').toLowerCase();
+    if (entry && typeof entry === 'object') {
+      return String(entry.name || entry.displayName || entry.itemName || '').toLowerCase();
+    }
+    return '';
+  };
+  const potionCount = updatedInventory.filter(
+    (entry) => normalizeName(entry) === 'potion of healing'
+  ).length;
+  expect(potionCount).toBe(1);
+});
