@@ -51,30 +51,6 @@ const cloneFilters = (filters = []) => {
     }));
 };
 
-const filterKeysMatch = (current, target) => {
-  const extractKeys = (filters) =>
-    Array.isArray(filters)
-      ? filters
-          .map((filter) => (filter && typeof filter === 'object' ? filter.key : null))
-          .filter(Boolean)
-      : [];
-
-  const currentKeys = extractKeys(current);
-  const targetKeys = extractKeys(target);
-
-  if (currentKeys.length !== targetKeys.length) {
-    return false;
-  }
-
-  const currentKeySet = new Set(currentKeys);
-
-  if (currentKeySet.size !== targetKeys.length) {
-    return false;
-  }
-
-  return targetKeys.every((key) => currentKeySet.has(key));
-};
-
 const buildDynamicDmFilters = (folderTree, fallbackFilters = DEFAULT_DM_FILTERS) => {
   const fallback = cloneFilters(fallbackFilters);
 
@@ -499,7 +475,7 @@ const TokenPickerModal = ({
         setLoadingMore(false);
       }
     },
-    [campaignId, activeFilter]
+    [campaignId, activeFilter, isDm]
   );
 
   useEffect(() => {
@@ -508,25 +484,14 @@ const TokenPickerModal = ({
       if (isDm) {
         setDmFolderOptions(null);
       } else {
-        setPlayerFolderOptions((prev) =>
-          filterKeysMatch(prev, DEFAULT_PLAYER_FILTERS)
-            ? prev
-            : cloneFilters(DEFAULT_PLAYER_FILTERS)
-        );
+        setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
       }
       return;
     }
 
     resetState({ resetFolderLoading: false });
-  }, [show, resetState, isDm]);
-
-  useEffect(() => {
-    if (!show || !activeFilter) {
-      return;
-    }
-
     fetchManifest({ append: false, cursor: null });
-  }, [show, activeFilter, fetchManifest]);
+  }, [show, fetchManifest, activeFilter, resetState, isDm]);
 
   useEffect(() => {
     if (!isDm) {
