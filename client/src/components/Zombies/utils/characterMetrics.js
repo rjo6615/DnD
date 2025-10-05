@@ -3,6 +3,7 @@ import {
   aggregateStatEffects,
   collectFeatAbilityBonuses,
   collectFeatNumericBonuses,
+  isExplicitlyUnowned,
   STAT_KEYS,
 } from './derivedStats';
 
@@ -108,13 +109,17 @@ const resolveHpBonusFromSource = (character) => {
     const entries = Array.isArray(collection) ? collection : [];
     return entries.reduce(
       (acc, item) => {
-        if (!item || typeof item !== 'object') {
+        if (!item || typeof item !== 'object' || isExplicitlyUnowned(item)) {
           return acc;
         }
 
         const contributionSources = [item, item.numericBonuses];
         contributionSources.forEach((source) => {
-          if (!source || typeof source !== 'object') {
+          if (
+            !source ||
+            typeof source !== 'object' ||
+            isExplicitlyUnowned(source)
+          ) {
             return;
           }
           const bonus = toFiniteNumberOrNull(source.hpMaxBonus);

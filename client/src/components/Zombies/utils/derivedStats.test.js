@@ -28,4 +28,17 @@ describe('calculateCharacterInitiative', () => {
 
     expect(calculateCharacterInitiative(character)).toBe(5);
   });
+
+  it('ignores stat effects from explicitly unowned accessories', () => {
+    const character = {
+      dex: 10,
+      accessories: [
+        { statOverrides: { dex: 20 }, owned: false },
+        { statBonuses: { dex: 2 }, owned: true },
+      ],
+    };
+
+    // Only the owned accessory should contribute, resulting in dex 12 -> modifier +1
+    expect(calculateCharacterInitiative(character)).toBe(1);
+  });
 });

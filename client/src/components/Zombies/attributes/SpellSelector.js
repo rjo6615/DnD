@@ -4,6 +4,7 @@ import { Modal, Card, Button, Form, Tabs, Tab } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import UpcastModal from './UpcastModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
+import { isExplicitlyUnowned } from '../utils/derivedStats';
 
 /**
  * Modal component allowing users to select spells for their character.
@@ -84,6 +85,9 @@ const createEmptyStatMap = () => ({
 const aggregateStatEffects = (entries) =>
   (Array.isArray(entries) ? entries : []).reduce(
     (acc, el) => {
+      if (isExplicitlyUnowned(el)) {
+        return acc;
+      }
       STAT_KEYS.forEach((key) => {
         const bonusValue = Number(el?.statBonuses?.[key] || 0);
         if (!Number.isNaN(bonusValue)) {

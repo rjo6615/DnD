@@ -29,6 +29,7 @@ const slots = slotKeys.map((key) => slotMap.get(key) || { key, label: key });
  * @property {string} [attunement]
  * @property {string|number} [weight]
  * @property {string|number} [cost]
+ * @property {boolean} owned
  * @property {Record<string, number>} [statBonuses]
  * @property {Record<string, number>} [skillBonuses]
  * @property {string} [notes]
@@ -39,6 +40,7 @@ const accessories = {
   'amulet-of-health': {
     name: 'Amulet of Health',
     category: 'amulet',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
@@ -50,6 +52,7 @@ const accessories = {
   'amulet-of-proof-against-detection-and-location': {
     name: 'Amulet of Proof against Detection and Location',
     category: 'amulet',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
@@ -60,6 +63,7 @@ const accessories = {
   'amulet-of-the-planes': {
     name: 'Amulet of the Planes',
     category: 'amulet',
+    owned: false,
     rarity: 'very rare',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
@@ -70,6 +74,7 @@ const accessories = {
   'periapt-of-proof-against-poison': {
     name: 'Periapt of Proof against Poison',
     category: 'amulet',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
@@ -80,6 +85,7 @@ const accessories = {
   'periapt-of-wound-closure': {
     name: 'Periapt of Wound Closure',
     category: 'amulet',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
@@ -90,6 +96,7 @@ const accessories = {
   'belt-of-dwarvenkind': {
     name: 'Belt of Dwarvenkind',
     category: 'belt',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['waist'],
@@ -101,6 +108,7 @@ const accessories = {
   'belt-of-hill-giant-strength': {
     name: 'Belt of Hill Giant Strength',
     category: 'belt',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['waist'],
@@ -112,6 +120,7 @@ const accessories = {
   'belt-of-stone-giant-strength': {
     name: 'Belt of Stone Giant Strength',
     category: 'belt',
+    owned: false,
     rarity: 'very rare',
     attunement: 'requires attunement',
     targetSlots: ['waist'],
@@ -123,6 +132,7 @@ const accessories = {
   'bracers-of-archery': {
     name: 'Bracers of Archery',
     category: 'bracelet',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['wrists'],
@@ -133,6 +143,7 @@ const accessories = {
   'bracers-of-defense': {
     name: 'Bracers of Defense',
     category: 'bracelet',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['wrists'],
@@ -143,6 +154,7 @@ const accessories = {
   'brooch-of-shielding': {
     name: 'Brooch of Shielding',
     category: 'brooch',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
@@ -153,6 +165,7 @@ const accessories = {
   'cape-of-the-mountebank': {
     name: 'Cape of the Mountebank',
     category: 'cape',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['back'],
@@ -163,6 +176,7 @@ const accessories = {
   'cloak-of-elvenkind': {
     name: 'Cloak of Elvenkind',
     category: 'cloak',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['back'],
@@ -173,6 +187,7 @@ const accessories = {
   'cloak-of-protection': {
     name: 'Cloak of Protection',
     category: 'cloak',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['back'],
@@ -183,6 +198,7 @@ const accessories = {
   'cloak-of-the-bat': {
     name: 'Cloak of the Bat',
     category: 'cloak',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['back'],
@@ -193,6 +209,7 @@ const accessories = {
   'cloak-of-the-manta-ray': {
     name: 'Cloak of the Manta Ray',
     category: 'cloak',
+    owned: false,
     rarity: 'uncommon',
     targetSlots: ['back'],
     weight: 1,
@@ -202,6 +219,7 @@ const accessories = {
   'eyes-of-charming': {
     name: 'Eyes of Charming',
     category: 'goggles',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['eyes'],
@@ -212,6 +230,7 @@ const accessories = {
   'eyes-of-the-eagle': {
     name: 'Eyes of the Eagle',
     category: 'goggles',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['eyes'],
@@ -222,6 +241,7 @@ const accessories = {
   'goggles-of-night': {
     name: 'Goggles of Night',
     category: 'goggles',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['eyes'],
@@ -232,6 +252,7 @@ const accessories = {
   'ring-of-feather-falling': {
     name: 'Ring of Feather Falling',
     category: 'ring',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -242,6 +263,7 @@ const accessories = {
   'ring-of-free-action': {
     name: 'Ring of Free Action',
     category: 'ring',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -252,6 +274,7 @@ const accessories = {
   'ring-of-invisibility': {
     name: 'Ring of Invisibility',
     category: 'ring',
+    owned: false,
     rarity: 'legendary',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -262,6 +285,7 @@ const accessories = {
   'ring-of-protection': {
     name: 'Ring of Protection',
     category: 'ring',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -272,6 +296,7 @@ const accessories = {
   'ring-of-regeneration': {
     name: 'Ring of Regeneration',
     category: 'ring',
+    owned: false,
     rarity: 'very rare',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -282,6 +307,7 @@ const accessories = {
   'ring-of-spell-storing': {
     name: 'Ring of Spell Storing',
     category: 'ring',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -292,6 +318,7 @@ const accessories = {
   'ring-of-water-walking': {
     name: 'Ring of Water Walking',
     category: 'ring',
+    owned: false,
     rarity: 'uncommon',
     targetSlots: ['ringLeft', 'ringRight'],
     weight: 0,
@@ -301,6 +328,7 @@ const accessories = {
   'ring-of-warmth': {
     name: 'Ring of Warmth',
     category: 'ring',
+    owned: false,
     rarity: 'uncommon',
     attunement: 'requires attunement',
     targetSlots: ['ringLeft', 'ringRight'],
@@ -311,6 +339,7 @@ const accessories = {
   'robe-of-eyes': {
     name: 'Robe of Eyes',
     category: 'wrap',
+    owned: false,
     rarity: 'rare',
     attunement: 'requires attunement',
     targetSlots: ['back'],
@@ -321,6 +350,7 @@ const accessories = {
   'scarab-of-protection': {
     name: 'Scarab of Protection',
     category: 'brooch',
+    owned: false,
     rarity: 'legendary',
     attunement: 'requires attunement',
     targetSlots: ['neck'],
