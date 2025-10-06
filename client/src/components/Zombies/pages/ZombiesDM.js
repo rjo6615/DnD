@@ -856,7 +856,33 @@ export default function ZombiesDM() {
     const enemyTokenSelectionRef = useRef(enemyTokenSelection);
 
     const enemyTokenFilterScope = useMemo(() => {
-      if (!selectedMonsterIndex && !selectedMonster) {
+      const scope = new Set();
+
+      const addMonsterScope = (value) => {
+        if (typeof value !== 'string') {
+          return;
+        }
+
+        const normalizedValue = value.trim().toLowerCase();
+
+        switch (normalizedValue) {
+          case 'cultist':
+            scope.add('cultist');
+            scope.add('cultists');
+            break;
+          case 'orc':
+            scope.add('orc');
+            scope.add('orcs');
+            break;
+          default:
+            break;
+        }
+      };
+
+      addMonsterScope(selectedMonsterIndex);
+      addMonsterScope(selectedMonster?.name);
+
+      if (scope.size === 0) {
         return null;
       }
 
