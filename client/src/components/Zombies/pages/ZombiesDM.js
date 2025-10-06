@@ -738,19 +738,29 @@ export default function ZombiesDM() {
     const enemyTokenFilterScope = useMemo(() => {
       const scope = new Set();
 
-      const normalizedIndex =
-        typeof selectedMonsterIndex === 'string' ? selectedMonsterIndex.trim().toLowerCase() : '';
-      if (normalizedIndex === 'cultist') {
-        scope.add('cultist');
-        scope.add('cultists');
-      }
+      const addMonsterScope = (value) => {
+        if (typeof value !== 'string') {
+          return;
+        }
 
-      const normalizedName =
-        typeof selectedMonster?.name === 'string' ? selectedMonster.name.trim().toLowerCase() : '';
-      if (normalizedName === 'cultist') {
-        scope.add('cultist');
-        scope.add('cultists');
-      }
+        const normalizedValue = value.trim().toLowerCase();
+
+        switch (normalizedValue) {
+          case 'cultist':
+            scope.add('cultist');
+            scope.add('cultists');
+            break;
+          case 'orc':
+            scope.add('orc');
+            scope.add('orcs');
+            break;
+          default:
+            break;
+        }
+      };
+
+      addMonsterScope(selectedMonsterIndex);
+      addMonsterScope(selectedMonster?.name);
 
       if (scope.size === 0) {
         return null;
