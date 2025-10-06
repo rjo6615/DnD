@@ -2729,20 +2729,6 @@ export default function ZombiesCharacterSheet() {
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
-  const tokenPickerFilterScope = useMemo(() => {
-    const scope = new Set();
-    scope.add('adventurers');
-
-    const raceName =
-      typeof form?.race?.name === 'string' ? form.race.name.trim().toLowerCase() : '';
-    if (raceName === 'elf') {
-      scope.add('elves');
-      scope.add('elf');
-    }
-
-    return Array.from(scope);
-  }, [form?.race?.name]);
-
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor) => {
       const normalizedCharacterId =
@@ -4738,7 +4724,6 @@ export default function ZombiesCharacterSheet() {
       onHide={handleCloseTokenPicker}
       campaignId={campaignId || undefined}
       onSelect={handleTokenSelection}
-      filterScope={tokenPickerFilterScope}
       allowClear={Boolean(
         characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
       )}
