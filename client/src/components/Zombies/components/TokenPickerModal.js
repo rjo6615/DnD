@@ -51,6 +51,73 @@ const cloneFilters = (filters = []) => {
     }));
 };
 
+const buildScopeVariantSet = (values) => {
+  const rawValues = Array.isArray(values) ? values : [values];
+  return rawValues.reduce((set, value) => {
+    if (typeof value !== 'string') {
+      return set;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return set;
+    }
+
+    const lower = trimmed.toLowerCase();
+    const compact = lower.replace(/[^a-z0-9]/g, '');
+
+    set.add(lower);
+    if (compact && compact !== lower) {
+      set.add(compact);
+    }
+
+    return set;
+  }, new Set());
+};
+
+const filterMatchesScope = (filter, scopeSet) => {
+  if (!(scopeSet instanceof Set) || scopeSet.size === 0) {
+    return true;
+  }
+
+  if (!filter || typeof filter !== 'object') {
+    return false;
+  }
+
+  const filterValues = [];
+  if (typeof filter.key === 'string') {
+    filterValues.push(filter.key);
+  }
+  if (typeof filter.label === 'string') {
+    filterValues.push(filter.label);
+  }
+  if (Array.isArray(filter.aliases)) {
+    filterValues.push(...filter.aliases);
+  }
+  if (Array.isArray(filter.folders)) {
+    filterValues.push(...filter.folders);
+  }
+
+  const filterVariantSet = buildScopeVariantSet(filterValues);
+  if (filterVariantSet.size === 0) {
+    return false;
+  }
+
+  for (const scopeVariant of scopeSet) {
+    for (const filterVariant of filterVariantSet) {
+      if (
+        typeof scopeVariant === 'string' &&
+        typeof filterVariant === 'string' &&
+        (filterVariant.includes(scopeVariant) || scopeVariant.includes(filterVariant))
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 const buildDynamicDmFilters = (folderTree, fallbackFilters = DEFAULT_DM_FILTERS) => {
   const fallback = cloneFilters(fallbackFilters);
 
@@ -326,6 +393,7 @@ const TokenPickerModal = ({
   onClear,
   isBusy = false,
   errorMessage = null,
+  filterScope = null,
 }) => {
   const [dmFolderOptions, setDmFolderOptions] = useState(null);
   const [playerFolderOptions, setPlayerFolderOptions] = useState(() =>
@@ -333,7 +401,7 @@ const TokenPickerModal = ({
   );
   const [fetchingFolders, setFetchingFolders] = useState(false);
 
-  const availableFilters = useMemo(() => {
+  const baseFilters = useMemo(() => {
     if (isDm) {
       if (Array.isArray(dmFolderOptions)) {
         return cloneFilters(dmFolderOptions);
@@ -348,6 +416,25 @@ const TokenPickerModal = ({
 
     return cloneFilters(DEFAULT_PLAYER_FILTERS);
   }, [isDm, dmFolderOptions, playerFolderOptions]);
+
+  const filterScopeSet = useMemo(() => buildScopeVariantSet(filterScope), [filterScope]);
+
+  const availableFilters = useMemo(() => {
+    if (!Array.isArray(baseFilters)) {
+      return [];
+    }
+
+    if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
+      return baseFilters;
+    }
+
+    const scoped = baseFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
+    if (scoped.length > 0) {
+      return scoped;
+    }
+
+    return baseFilters;
+  }, [baseFilters, filterScopeSet]);
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
 
@@ -885,6 +972,10 @@ TokenPickerModal.propTypes = {
   onClear: PropTypes.func,
   isBusy: PropTypes.bool,
   errorMessage: PropTypes.string,
+  filterScope: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(PropTypes.string),
+  ]),
 };
 
 export default TokenPickerModal;

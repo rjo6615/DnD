@@ -735,6 +735,30 @@ export default function ZombiesDM() {
     const activeMapIdRef = useRef(activeMapId);
     const enemyTokenSelectionRef = useRef(enemyTokenSelection);
 
+    const enemyTokenFilterScope = useMemo(() => {
+      const scope = new Set();
+
+      const normalizedIndex =
+        typeof selectedMonsterIndex === 'string' ? selectedMonsterIndex.trim().toLowerCase() : '';
+      if (normalizedIndex === 'cultist') {
+        scope.add('cultist');
+        scope.add('cultists');
+      }
+
+      const normalizedName =
+        typeof selectedMonster?.name === 'string' ? selectedMonster.name.trim().toLowerCase() : '';
+      if (normalizedName === 'cultist') {
+        scope.add('cultist');
+        scope.add('cultists');
+      }
+
+      if (scope.size === 0) {
+        return null;
+      }
+
+      return Array.from(scope);
+    }, [selectedMonsterIndex, selectedMonster]);
+
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
@@ -7471,6 +7495,7 @@ const resolveIcon = (category, iconMap, fallback) => {
           onHide={handleCloseEnemyTokenPicker}
           campaignId={campaignId || undefined}
           onSelect={handleEnemyTokenSelected}
+          filterScope={enemyTokenFilterScope}
           allowClear={Boolean(
             enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
           )}
