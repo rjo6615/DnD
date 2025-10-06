@@ -103,36 +103,15 @@ const filterMatchesScope = (filter, scopeSet) => {
     return false;
   }
 
-  const normalizedFilterVariants = new Set(
-    Array.from(filterVariantSet).filter((variant) => typeof variant === 'string')
-  );
-
-  if (normalizedFilterVariants.size === 0) {
-    return false;
-  }
-
   for (const scopeVariant of scopeSet) {
-    if (typeof scopeVariant !== 'string') {
-      continue;
-    }
-
-    const trimmedScope = scopeVariant.trim();
-    if (!trimmedScope) {
-      continue;
-    }
-
-    if (normalizedFilterVariants.has(trimmedScope)) {
-      return true;
-    }
-
-    const lowerScope = trimmedScope.toLowerCase();
-    if (normalizedFilterVariants.has(lowerScope)) {
-      return true;
-    }
-
-    const compactScope = lowerScope.replace(/[^a-z0-9]/g, '');
-    if (compactScope && normalizedFilterVariants.has(compactScope)) {
-      return true;
+    for (const filterVariant of filterVariantSet) {
+      if (
+        typeof scopeVariant === 'string' &&
+        typeof filterVariant === 'string' &&
+        (filterVariant.includes(scopeVariant) || scopeVariant.includes(filterVariant))
+      ) {
+        return true;
+      }
     }
   }
 
