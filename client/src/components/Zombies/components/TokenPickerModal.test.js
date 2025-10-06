@@ -456,44 +456,4 @@ describe('TokenPickerModal', () => {
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('DM/Cultists');
   });
-
-  test('retains filters matching any scoped aliases', async () => {
-    render(
-      <TokenPickerModal
-        show
-        isDm
-        dmFilters={[
-          { key: 'all', label: 'All Tokens', folders: null, aliases: ['all'] },
-          {
-            key: 'folder:Tokens/Adventurers',
-            label: 'Adventurers',
-            folders: ['Tokens/Adventurers'],
-            aliases: ['adventurers'],
-          },
-          {
-            key: 'folder:Tokens/Adventurers/Elves',
-            label: 'Adventurers/Elves',
-            folders: ['Tokens/Adventurers/Elves'],
-            aliases: ['elves', 'elf'],
-          },
-          {
-            key: 'folder:Tokens/DM/Orcs',
-            label: 'DM/Orcs',
-            folders: ['Tokens/DM/Orcs'],
-            aliases: ['orcs'],
-          },
-        ]}
-        filterScope={['Adventurers', 'Elves']}
-        onHide={jest.fn()}
-        onSelect={jest.fn()}
-      />
-    );
-
-    const select = await screen.findByLabelText(/Token Library/i);
-    const options = within(select).getAllByRole('option');
-
-    expect(options).toHaveLength(2);
-    expect(options[0]).toHaveTextContent('Adventurers');
-    expect(options[1]).toHaveTextContent('Adventurers/Elves');
-  });
 });

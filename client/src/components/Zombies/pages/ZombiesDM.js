@@ -738,53 +738,26 @@ export default function ZombiesDM() {
     const enemyTokenFilterScope = useMemo(() => {
       const scope = new Set();
 
-      const SCOPE_HINTS = {
-        cultist: ['cultist', 'cultists'],
-        orc: ['orc', 'orcs'],
-      };
+      const normalizedIndex =
+        typeof selectedMonsterIndex === 'string' ? selectedMonsterIndex.trim().toLowerCase() : '';
+      if (normalizedIndex === 'cultist') {
+        scope.add('cultist');
+        scope.add('cultists');
+      }
 
-      const applyScopeForValue = (rawValue) => {
-        if (typeof rawValue !== 'string') {
-          return;
-        }
-
-        const normalized = rawValue.trim().toLowerCase();
-        if (!normalized) {
-          return;
-        }
-
-        const candidates = new Set([normalized]);
-        normalized
-          .split(/[^a-z0-9]+/)
-          .map((token) => token.trim())
-          .filter(Boolean)
-          .forEach((token) => {
-            candidates.add(token);
-          });
-
-        candidates.forEach((candidate) => {
-          const hints = SCOPE_HINTS[candidate];
-          if (!Array.isArray(hints)) {
-            return;
-          }
-
-          hints.forEach((hint) => {
-            if (typeof hint === 'string' && hint.trim() !== '') {
-              scope.add(hint.trim());
-            }
-          });
-        });
-      };
-
-      applyScopeForValue(selectedMonsterIndex);
-      applyScopeForValue(selectedMonster?.name);
+      const normalizedName =
+        typeof selectedMonster?.name === 'string' ? selectedMonster.name.trim().toLowerCase() : '';
+      if (normalizedName === 'cultist') {
+        scope.add('cultist');
+        scope.add('cultists');
+      }
 
       if (scope.size === 0) {
         return null;
       }
 
       return Array.from(scope);
-    }, [selectedMonsterIndex, selectedMonster?.name]);
+    }, [selectedMonsterIndex, selectedMonster]);
 
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
