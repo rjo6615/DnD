@@ -456,4 +456,43 @@ describe('TokenPickerModal', () => {
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('DM/Cultists');
   });
+
+  test('does not include parent folders when scope matches nested folder', async () => {
+    render(
+      <TokenPickerModal
+        show
+        isDm
+        dmFilters={[
+          {
+            key: 'folder:Tokens/DM/Adversaries',
+            label: 'Adversaries',
+            folders: ['Tokens/DM/Adversaries'],
+            aliases: ['Adversaries'],
+          },
+          {
+            key: 'folder:Tokens/DM/Adversaries/Goblinoids/Bugbears',
+            label: 'Adversaries/Goblinoids/Bugbears',
+            folders: ['Tokens/DM/Adversaries/Goblinoids/Bugbears'],
+            aliases: [
+              'Adversaries/Goblinoids/Bugbears',
+              'Bugbear',
+              'Bugbears',
+            ],
+          },
+        ]}
+        filterScope={[
+          'Adversaries/Goblinoids/Bugbears',
+          'folder:Tokens/DM/Adversaries/Goblinoids/Bugbears',
+        ]}
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+      />
+    );
+
+    const select = await screen.findByLabelText(/Token Library/i);
+    const options = within(select).getAllByRole('option');
+
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Adversaries/Goblinoids/Bugbears');
+  });
 });
