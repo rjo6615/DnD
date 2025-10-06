@@ -67,6 +67,7 @@ import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
+import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -735,39 +736,10 @@ export default function ZombiesDM() {
     const activeMapIdRef = useRef(activeMapId);
     const enemyTokenSelectionRef = useRef(enemyTokenSelection);
 
-    const enemyTokenFilterScope = useMemo(() => {
-      const scope = new Set();
-
-      const addMonsterScope = (value) => {
-        if (typeof value !== 'string') {
-          return;
-        }
-
-        const normalizedValue = value.trim().toLowerCase();
-
-        switch (normalizedValue) {
-          case 'cultist':
-            scope.add('cultist');
-            scope.add('cultists');
-            break;
-          case 'orc':
-            scope.add('orc');
-            scope.add('orcs');
-            break;
-          default:
-            break;
-        }
-      };
-
-      addMonsterScope(selectedMonsterIndex);
-      addMonsterScope(selectedMonster?.name);
-
-      if (scope.size === 0) {
-        return null;
-      }
-
-      return Array.from(scope);
-    }, [selectedMonsterIndex, selectedMonster]);
+    const enemyTokenFilterScope = useMemo(
+      () => buildEnemyTokenFilterScopeValues(selectedMonsterIndex, selectedMonster),
+      [selectedMonsterIndex, selectedMonster]
+    );
 
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
