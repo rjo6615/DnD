@@ -735,6 +735,57 @@ export default function ZombiesDM() {
     const activeMapIdRef = useRef(activeMapId);
     const enemyTokenSelectionRef = useRef(enemyTokenSelection);
 
+    const enemyTokenFilterScope = useMemo(() => {
+      const scope = new Set();
+
+      const SCOPE_HINTS = {
+        cultist: ['cultist', 'cultists'],
+        orc: ['orc', 'orcs'],
+      };
+
+      const applyScopeForValue = (rawValue) => {
+        if (typeof rawValue !== 'string') {
+          return;
+        }
+
+        const normalized = rawValue.trim().toLowerCase();
+        if (!normalized) {
+          return;
+        }
+
+        const candidates = new Set([normalized]);
+        normalized
+          .split(/[^a-z0-9]+/)
+          .map((token) => token.trim())
+          .filter(Boolean)
+          .forEach((token) => {
+            candidates.add(token);
+          });
+
+        candidates.forEach((candidate) => {
+          const hints = SCOPE_HINTS[candidate];
+          if (!Array.isArray(hints)) {
+            return;
+          }
+
+          hints.forEach((hint) => {
+            if (typeof hint === 'string' && hint.trim() !== '') {
+              scope.add(hint.trim());
+            }
+          });
+        });
+      };
+
+      applyScopeForValue(selectedMonsterIndex);
+      applyScopeForValue(selectedMonster?.name);
+
+      if (scope.size === 0) {
+        return null;
+      }
+
+      return Array.from(scope);
+    }, [selectedMonsterIndex, selectedMonster?.name]);
+
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
@@ -7471,6 +7522,7 @@ const resolveIcon = (category, iconMap, fallback) => {
           onHide={handleCloseEnemyTokenPicker}
           campaignId={campaignId || undefined}
           onSelect={handleEnemyTokenSelected}
+          filterScope={enemyTokenFilterScope}
           allowClear={Boolean(
             enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
           )}
