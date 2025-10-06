@@ -138,6 +138,126 @@ const normalizeCreatureSize = (value) => {
 const normalizeMapId = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
+const ADVERSARY_SCOPE_PREFIXES = [
+  'dm/adversaries',
+  'tokens/dm/adversaries',
+  'adversaries',
+];
+
+const DEFAULT_ADVERSARY_SCOPE_VALUES = ['dm/adversaries'];
+
+const MONSTER_TOKEN_SCOPE_ALIASES = {
+  bandit: ['bandits'],
+  bugbear: ['bugbears', 'goblinoids'],
+  cultist: ['cultists'],
+  ghoul: ['ghouls', 'undead'],
+  'giant-spider': ['giant spiders', 'spiders'],
+  'giant-wolf-spider': ['giant wolf spiders', 'wolf spiders'],
+  goblin: ['goblins'],
+  hobgoblin: ['hobgoblins', 'goblinoids'],
+  kobold: ['kobolds'],
+  ogre: ['ogres'],
+  orc: ['orcs'],
+  skeleton: ['skeletons', 'undead'],
+  wolf: ['wolves'],
+  worg: ['worgs'],
+  zombie: ['zombies', 'undead'],
+};
+
+const addMonsterTokenScopeValue = (scopeSet, rawValue) => {
+  if (!scopeSet || typeof scopeSet.add !== 'function') {
+    return;
+  }
+
+  if (typeof rawValue !== 'string') {
+    return;
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  const lower = trimmed.toLowerCase();
+
+  const baseVariants = new Set([lower]);
+
+  const spaceNormalized = lower.replace(/[-_]+/g, ' ');
+  if (spaceNormalized && spaceNormalized !== lower) {
+    baseVariants.add(spaceNormalized);
+  }
+
+  const dashed = spaceNormalized.replace(/\s+/g, '-');
+  if (dashed) {
+    baseVariants.add(dashed);
+  }
+
+  const condensed = spaceNormalized.replace(/[^a-z0-9/]+/g, '');
+  if (condensed) {
+    baseVariants.add(condensed);
+  }
+
+  baseVariants.forEach((variant) => {
+    if (!variant) {
+      return;
+    }
+
+    scopeSet.add(variant);
+
+    if (variant.startsWith('tokens/')) {
+      return;
+    }
+
+    if (variant.includes('/')) {
+      scopeSet.add(`tokens/${variant}`);
+      return;
+    }
+
+    ADVERSARY_SCOPE_PREFIXES.forEach((prefix) => {
+      scopeSet.add(`${prefix}/${variant}`);
+      scopeSet.add(`${prefix}/${variant.replace(/\//g, '-')}`);
+    });
+  });
+};
+
+const buildMonsterTokenFilterScope = (monsterIndex, monster) => {
+  const scope = new Set();
+
+  DEFAULT_ADVERSARY_SCOPE_VALUES.forEach((value) => addMonsterTokenScopeValue(scope, value));
+
+  const aliasCandidates = new Set();
+
+  if (typeof monsterIndex === 'string' && monsterIndex.trim()) {
+    aliasCandidates.add(monsterIndex.trim());
+  }
+
+  if (monster && typeof monster.index === 'string' && monster.index.trim()) {
+    aliasCandidates.add(monster.index.trim());
+  }
+
+  if (monster && typeof monster.name === 'string' && monster.name.trim()) {
+    aliasCandidates.add(monster.name.trim());
+  }
+
+  const normalizedIndex =
+    typeof monsterIndex === 'string' && monsterIndex.trim() !== ''
+      ? monsterIndex.trim().toLowerCase()
+      : '';
+
+  const configuredAliases = MONSTER_TOKEN_SCOPE_ALIASES[normalizedIndex];
+  if (Array.isArray(configuredAliases)) {
+    configuredAliases.forEach((alias) => {
+      if (typeof alias === 'string' && alias.trim()) {
+        aliasCandidates.add(alias.trim());
+      }
+    });
+  }
+
+  aliasCandidates.forEach((alias) => addMonsterTokenScopeValue(scope, alias));
+
+  return scope.size > 0 ? Array.from(scope) : null;
+};
+
 const sanitizeTestIdValue = (value, fallback = 'item') => {
   if (typeof value !== 'string') {
     return fallback;
@@ -766,7 +886,7 @@ export default function ZombiesDM() {
         return null;
       }
 
-      return Array.from(scope);
+      return buildMonsterTokenFilterScope(selectedMonsterIndex, selectedMonster);
     }, [selectedMonsterIndex, selectedMonster]);
 
     const campaignId = params.campaign ?? '';
