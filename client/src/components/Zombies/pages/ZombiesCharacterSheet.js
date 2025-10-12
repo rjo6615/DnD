@@ -2861,11 +2861,15 @@ export default function ZombiesCharacterSheet() {
         });
     };
 
-    const raceName =
-      typeof form?.race?.name === 'string' ? form.race.name.replace(/\s+/g, ' ').trim() : '';
-    const racePrefixes = raceName
-      ? [raceName, `Adventurers/${raceName}`, `Tokens/Adventurers/${raceName}`]
-      : [];
+    const raceName = typeof form?.race?.name === 'string' ? form.race.name : '';
+    if (raceName) {
+      addScopeVariants(raceName, [
+        'Adventurers',
+        'Tokens/Adventurers',
+        'Adventurers/Races',
+        'Tokens/Adventurers/Races',
+      ]);
+    }
 
     const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
     const seenClasses = new Set();
@@ -2875,7 +2879,7 @@ export default function ZombiesCharacterSheet() {
       }
 
       const rawClassName =
-        typeof occupation.Occupation === 'string' ? occupation.Occupation.replace(/\s+/g, ' ').trim() : '';
+        typeof occupation.Occupation === 'string' ? occupation.Occupation.trim() : '';
       if (!rawClassName) {
         return;
       }
@@ -2891,18 +2895,7 @@ export default function ZombiesCharacterSheet() {
         'Adventurers/Core_Class_Tokens',
         'Tokens/Adventurers/Core_Class_Tokens',
       ]);
-
-      if (racePrefixes.length > 0) {
-        addScopeVariants(rawClassName, racePrefixes);
-      }
     });
-
-    if (scopeSet.size === 0 && raceName) {
-      addScopeVariants(raceName, [
-        'Adventurers',
-        'Tokens/Adventurers',
-      ]);
-    }
 
     return Array.from(scopeSet);
   }, [form?.occupation, form?.race?.name]);
