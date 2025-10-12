@@ -4,6 +4,7 @@ import { Modal, Card, Button, Form, Col, Row, Alert } from 'react-bootstrap';
 import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
+import DockControls from '../components/DockControls';
 
 // Tools and musical instruments that can be selected for proficiency.
 // This list is not exhaustive to every possible item in the game but
@@ -62,6 +63,7 @@ export default function Feats({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -346,9 +348,14 @@ export default function Feats({
       >
         <div className="text-center">
           <Card className="modern-card">
-            <Card.Header className="modal-header">
-              <Card.Title className="modal-title">Feats</Card.Title>
-            </Card.Header>
+        <Card.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
+          <Card.Title className="modal-title">Feats</Card.Title>
+        </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
               <div className="points-container" style={{ display: showFeatBtn }}>
                 <span className="points-label text-light">Points Left:</span>

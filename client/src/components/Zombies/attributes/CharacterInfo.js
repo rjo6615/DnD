@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Card, Modal, Button } from "react-bootstrap";
+import DockControls from '../components/DockControls';
 import levelup from "../../../images/levelup.png";
 import LevelUp from "./LevelUp"; // Import LevelUp component
 
@@ -13,6 +14,7 @@ export default function CharacterInfo({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
   characterFigurine,
   handleOpenTokenPicker,
   tokenPickerSaving = false,
@@ -216,6 +218,11 @@ export default function CharacterInfo({
     >
       <Card className="modern-card text-center">
         <Card.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
           <Card.Title className="modal-title">Character Info</Card.Title>
         </Card.Header>
         <Card.Body className="modal-body character-info-body" style={{ maxHeight: "60vh" }}>

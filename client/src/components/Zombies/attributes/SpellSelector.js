@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import UpcastModal from './UpcastModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { isExplicitlyUnowned } from '../utils/derivedStats';
+import DockControls from '../components/DockControls';
 
 /**
  * Modal component allowing users to select spells for their character.
@@ -118,6 +119,7 @@ export default function SpellSelector({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const params = useParams();
 
@@ -585,6 +587,11 @@ export default function SpellSelector({
       >
         <Card className="modern-card">
           <Card.Header className="modal-header">
+            <DockControls
+              dockedSide={dockedSide}
+              onDockChange={onDockChange}
+              isDocked={isDocked}
+            />
             <Card.Title className="modal-title">Spells</Card.Title>
           </Card.Header>
           <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>

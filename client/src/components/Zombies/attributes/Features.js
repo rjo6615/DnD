@@ -9,6 +9,7 @@ import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
 import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalIcon from '../../../images/speak-with-animal.png';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
+import DockControls from '../components/DockControls';
 
 const LINEAGE_SPELLS = {
   'elf-drow-dancing-lights': {
@@ -123,6 +124,7 @@ export default function Features({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
   characterId,
 }) {
   const [features, setFeatures] = useState([]);
@@ -1477,6 +1479,11 @@ export default function Features({
         <div className="text-center">
           <Card className="modern-card">
             <Card.Header className="modal-header">
+              <DockControls
+                dockedSide={dockedSide}
+                onDockChange={onDockChange}
+                isDocked={isDocked}
+              />
               <Card.Title className="modal-title">Features</Card.Title>
             </Card.Header>
             <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
