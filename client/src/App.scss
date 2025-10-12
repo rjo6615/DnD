@@ -65,12 +65,8 @@
 
 .combat-turn-header {
   --combat-turn-header-height: clamp(112px, 20vw, 148px);
-  display: flex;
-  flex-wrap: nowrap;
+  display: block;
   overflow-x: auto;
-  gap: 12px;
-  justify-content: flex-start;
-  align-items: stretch;
   margin-bottom: 12px;
   padding-bottom: 0.25rem;
   -webkit-overflow-scrolling: touch;
@@ -122,13 +118,30 @@
   &.combat-turn-header--empty {
     min-height: var(--combat-turn-header-height);
     cursor: default;
-    gap: 0;
 
     &::before,
     &::after {
       display: none;
     }
   }
+}
+
+.combat-turn-header--empty .combat-turn-header__track {
+  gap: 0;
+}
+
+.combat-turn-header__track {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  width: max-content;
+  min-width: 100%;
+  margin-inline: auto;
+}
+
+.combat-turn-header--scrollable .combat-turn-header__track {
+  margin-inline: 0;
 }
 
 .combat-turn-header__card {
@@ -159,6 +172,31 @@
     width: clamp(100px, 32vw, 33.333%);
     min-width: clamp(100px, 32vw, 33.333%);
   }
+}
+
+.combat-turn-header__active-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #f9f3e0;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.combat-turn-header__active-indicator--inactive {
+  opacity: 0.75;
+}
+
+.combat-turn-header__active-label {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.combat-turn-header__active-name {
+  font-size: 0.95rem;
 }
 
 .zombies-dm-container--spaced {
