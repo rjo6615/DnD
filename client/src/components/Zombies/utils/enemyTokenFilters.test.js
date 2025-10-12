@@ -7,8 +7,10 @@ describe('buildEnemyTokenFilterScopeValues', () => {
     expect(scope).toBeInstanceOf(Array);
     expect(scope).toEqual(
       expect.arrayContaining([
-        'folder:Tokens/DM/Adversaries/Cultists',
-        'Tokens/DM/Adversaries/Cultists',
+        'folder:Tokens/Adversaries/Cultist',
+        'Tokens/Adversaries/Cultist',
+        'folder:Tokens/Adversaries/Cultists',
+        'Tokens/Adversaries/Cultists',
       ])
     );
     expect(scope.map((value) => value.toLowerCase())).toEqual(
@@ -20,7 +22,12 @@ describe('buildEnemyTokenFilterScopeValues', () => {
     const scope = buildEnemyTokenFilterScopeValues('wolf', { index: 'wolf', name: 'Wolf' });
 
     expect(scope.map((value) => value.toLowerCase())).toEqual(
-      expect.arrayContaining(['wolf', 'wolves', 'folder:tokens/dm/adversaries/wolves'])
+      expect.arrayContaining([
+        'wolf',
+        'wolves',
+        'folder:tokens/adversaries/wolf',
+        'folder:tokens/adversaries/wolves',
+      ])
     );
   });
 
@@ -32,8 +39,10 @@ describe('buildEnemyTokenFilterScopeValues', () => {
 
     expect(scope).toEqual(
       expect.arrayContaining([
-        'folder:Tokens/DM/Adversaries/Giant Wolf Spiders',
-        'Tokens/DM/Adversaries/Giant Wolf Spiders',
+        'folder:Tokens/Adversaries/Giant Wolf Spider',
+        'Tokens/Adversaries/Giant Wolf Spider',
+        'folder:Tokens/Adversaries/Giant Wolf Spiders',
+        'Tokens/Adversaries/Giant Wolf Spiders',
       ])
     );
     expect(scope.map((value) => value.toLowerCase())).toEqual(
