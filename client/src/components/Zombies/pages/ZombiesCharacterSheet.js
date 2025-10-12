@@ -2780,55 +2780,33 @@ export default function ZombiesCharacterSheet() {
   const tokenPickerFilterScope = useMemo(() => {
     const scopeSet = new Set();
 
-    const buildValueVariants = (rawValue) => {
+    const addScopeVariants = (rawValue, prefixes = []) => {
       if (typeof rawValue !== 'string') {
-        return [];
+        return;
       }
 
       const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
       if (!normalizedValue) {
-        return [];
+        return;
       }
 
       const lowerValue = normalizedValue.toLowerCase();
       const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
-      const underscoredValue = normalizedValue.replace(/\s+/g, '_');
-      const dashedValue = normalizedValue.replace(/\s+/g, '-');
 
-      const variants = new Set([
-        normalizedValue,
-        lowerValue,
-        compactValue,
-        underscoredValue,
-        underscoredValue.toLowerCase(),
-        dashedValue,
-        dashedValue.toLowerCase(),
-      ]);
+      [normalizedValue, lowerValue, compactValue]
+        .filter(Boolean)
+        .forEach((entry) => scopeSet.add(entry));
 
-      return Array.from(variants).filter(Boolean);
-    };
-
-    const addScopeVariants = (rawValue, prefixes = []) => {
-      const variants = buildValueVariants(rawValue);
-      if (variants.length === 0) {
-        return;
-      }
-
-      variants.forEach((variant) => scopeSet.add(variant));
-
-      const normalizedPrefixes = prefixes
+      prefixes
         .map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
-        .filter(Boolean);
-
-      if (normalizedPrefixes.length === 0) {
-        return;
-      }
-
-      normalizedPrefixes.forEach((prefix) => {
-        variants.forEach((variant) => {
-          scopeSet.add(`${prefix}/${variant}`);
+        .filter(Boolean)
+        .forEach((prefix) => {
+          scopeSet.add(`${prefix}/${normalizedValue}`);
+          scopeSet.add(`${prefix}/${lowerValue}`);
+          if (compactValue) {
+            scopeSet.add(`${prefix}/${compactValue}`);
+          }
         });
-      });
     };
 
     const raceName = typeof form?.race?.name === 'string' ? form.race.name : '';
@@ -2868,98 +2846,6 @@ export default function ZombiesCharacterSheet() {
     });
 
     return Array.from(scopeSet);
-  }, [form?.occupation, form?.race?.name]);
-
-  const tokenPickerFolderTargets = useMemo(() => {
-    const folderSet = new Set();
-
-    const buildValueVariants = (rawValue) => {
-      if (typeof rawValue !== 'string') {
-        return [];
-      }
-
-      const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
-      if (!normalizedValue) {
-        return [];
-      }
-
-      const lowerValue = normalizedValue.toLowerCase();
-      const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
-      const underscoredValue = normalizedValue.replace(/\s+/g, '_');
-      const dashedValue = normalizedValue.replace(/\s+/g, '-');
-
-      const variants = new Set([
-        normalizedValue,
-        lowerValue,
-        compactValue,
-        underscoredValue,
-        underscoredValue.toLowerCase(),
-        dashedValue,
-        dashedValue.toLowerCase(),
-      ]);
-
-      return Array.from(variants).filter(Boolean);
-    };
-
-    const addFolderTargets = (prefixes, rawValue) => {
-      const variants = buildValueVariants(rawValue);
-      if (variants.length === 0) {
-        return;
-      }
-
-      prefixes
-        .map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
-        .filter(Boolean)
-        .forEach((prefix) => {
-          variants.forEach((variant) => {
-            folderSet.add(`${prefix}/${variant}`);
-          });
-        });
-    };
-
-    const raceName = typeof form?.race?.name === 'string' ? form.race.name : '';
-    if (raceName) {
-      addFolderTargets(
-        [
-          'Tokens/Adventurers',
-          'Tokens/Adventurers/Races',
-          'Adventurers',
-          'Adventurers/Races',
-        ],
-        raceName
-      );
-    }
-
-    const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
-    const seenClasses = new Set();
-    occupations.forEach((occupation) => {
-      if (!occupation || typeof occupation !== 'object') {
-        return;
-      }
-
-      const rawClassName =
-        typeof occupation.Occupation === 'string' ? occupation.Occupation.trim() : '';
-      if (!rawClassName) {
-        return;
-      }
-
-      const classKey = rawClassName.toLowerCase();
-      if (seenClasses.has(classKey)) {
-        return;
-      }
-      seenClasses.add(classKey);
-
-      addFolderTargets(
-        [
-          'Tokens/Adventurers/Core_Class_Tokens',
-          'Adventurers/Core_Class_Tokens',
-          'Core_Class_Tokens',
-        ],
-        rawClassName
-      );
-    });
-
-    return Array.from(folderSet);
   }, [form?.occupation, form?.race?.name]);
 
   const updateLocalDiceColor = useCallback(
@@ -4964,7 +4850,6 @@ export default function ZombiesCharacterSheet() {
       isBusy={tokenPickerSaving}
       errorMessage={tokenPickerError}
       filterScope={tokenPickerFilterScope}
-      folderTargets={tokenPickerFolderTargets}
     />
     <MapModal
       show={shouldShowMapModal}

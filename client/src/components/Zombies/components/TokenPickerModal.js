@@ -380,58 +380,6 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
   return filters.length > 0 ? filters : fallback;
 };
 
-const sanitizeFolderTarget = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  let trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  trimmed = trimmed.replace(/^\/+/, '');
-
-  if (/^tokens\//i.test(trimmed)) {
-    return `Tokens/${trimmed.slice(trimmed.indexOf('/') + 1)}`;
-  }
-
-  if (/^adventurers\//i.test(trimmed)) {
-    return `Tokens/${trimmed}`;
-  }
-
-  if (/^core_class_tokens\//i.test(trimmed)) {
-    return `Tokens/Adventurers/${trimmed}`;
-  }
-
-  return `Tokens/${trimmed}`;
-};
-
-const buildFiltersFromTargets = (targets) => {
-  if (!Array.isArray(targets) || targets.length === 0) {
-    return null;
-  }
-
-  const uniqueTargets = Array.from(new Set(targets.map(sanitizeFolderTarget).filter(Boolean)));
-  if (uniqueTargets.length === 0) {
-    return null;
-  }
-
-  return uniqueTargets.map((target) => {
-    const displayPath = target.startsWith('Tokens/') ? target.slice('Tokens/'.length) : target;
-    const aliases = [target, displayPath, displayPath.toLowerCase(), target.toLowerCase()];
-    const depth = displayPath.split('/').filter(Boolean).length - 1;
-
-    return {
-      key: `target:${target}`,
-      label: displayPath,
-      folders: [target],
-      aliases,
-      depth: depth >= 0 ? depth : 0,
-    };
-  });
-};
-
 const TokenPickerModal = ({
   show,
   onHide,
@@ -446,42 +394,12 @@ const TokenPickerModal = ({
   isBusy = false,
   errorMessage = null,
   filterScope = null,
-  folderTargets = null,
 }) => {
   const [dmFolderOptions, setDmFolderOptions] = useState(null);
   const [playerFolderOptions, setPlayerFolderOptions] = useState(() =>
     cloneFilters(DEFAULT_PLAYER_FILTERS)
   );
   const [fetchingFolders, setFetchingFolders] = useState(false);
-
-  const normalizedFolderTargets = useMemo(() => {
-    if (!folderTargets) {
-      return [];
-    }
-
-    const values = Array.isArray(folderTargets) ? folderTargets : [folderTargets];
-    const variants = values
-      .map((value) => (typeof value === 'string' ? value.trim() : ''))
-      .filter(Boolean);
-
-    if (variants.length === 0) {
-      return [];
-    }
-
-    return Array.from(new Set(variants));
-  }, [folderTargets]);
-
-  const sanitizedFolderTargets = useMemo(() => {
-    const rawTargets = normalizedFolderTargets.length > 0
-      ? normalizedFolderTargets
-      : Array.isArray(folderTargets)
-        ? folderTargets
-        : typeof folderTargets === 'string'
-          ? [folderTargets]
-          : [];
-
-    return Array.from(new Set(rawTargets.map(sanitizeFolderTarget).filter(Boolean)));
-  }, [folderTargets, normalizedFolderTargets]);
 
   const baseFilters = useMemo(() => {
     if (isDm) {
@@ -820,16 +738,6 @@ const TokenPickerModal = ({
 
     const fallbackFilters = cloneFilters(DEFAULT_PLAYER_FILTERS);
 
-    const derivedFilters = sanitizedFolderTargets.length > 0
-      ? buildFiltersFromTargets(sanitizedFolderTargets)
-      : null;
-
-    if (derivedFilters) {
-      setPlayerFolderOptions(derivedFilters);
-      setFetchingFolders(false);
-      return;
-    }
-
     if (!campaignId) {
       setPlayerFolderOptions(fallbackFilters);
       return;
@@ -871,12 +779,7 @@ const TokenPickerModal = ({
     return () => {
       isCancelled = true;
     };
-  }, [
-    show,
-    isDm,
-    campaignId,
-    sanitizedFolderTargets,
-  ]);
+  }, [show, isDm, campaignId]);
 
   const handleFilterChange = useCallback(
     (event) => {
@@ -1097,10 +1000,6 @@ TokenPickerModal.propTypes = {
   isBusy: PropTypes.bool,
   errorMessage: PropTypes.string,
   filterScope: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.arrayOf(PropTypes.string),
-  ]),
-  folderTargets: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.arrayOf(PropTypes.string),
   ]),
