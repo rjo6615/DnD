@@ -350,14 +350,13 @@
   top: var(--docked-modal-top-offset, 0);
   bottom: 1.5rem;
   margin: 0;
-  width: var(
+  --docked-modal-current-max-width: var(
     --docked-modal-max-width,
     clamp(520px, 40vw, 640px)
   );
-  max-width: var(
-    --docked-modal-max-width,
-    clamp(520px, 40vw, 640px)
-  );
+  --docked-modal-current-width: var(--docked-modal-current-max-width);
+  width: var(--docked-modal-current-width);
+  max-width: var(--docked-modal-current-max-width);
   display: flex;
   align-items: stretch;
   transition: transform 0.2s ease;
@@ -366,11 +365,61 @@
 .docked-modal--left {
   left: 0;
   right: auto;
+  --docked-modal-current-max-width: var(
+    --docked-modal-max-width-left,
+    var(--docked-modal-max-width, clamp(520px, 40vw, 640px))
+  );
+  --docked-modal-current-width: var(
+    --docked-modal-width-left,
+    var(--docked-modal-current-max-width)
+  );
 }
 
 .docked-modal--right {
   left: auto;
   right: 0;
+  --docked-modal-current-max-width: var(
+    --docked-modal-max-width-right,
+    var(--docked-modal-max-width, clamp(520px, 40vw, 640px))
+  );
+  --docked-modal-current-width: var(
+    --docked-modal-width-right,
+    var(--docked-modal-current-max-width)
+  );
+}
+
+.docked-modal--left::after,
+.docked-modal--right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  pointer-events: auto;
+  cursor: ew-resize;
+  z-index: 5;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.docked-modal--left::after {
+  right: -6px;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+}
+
+.docked-modal--right::after {
+  left: -6px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+}
+
+body.docked-modal--resizing .docked-modal--left::after,
+body.docked-modal--resizing .docked-modal--right::after {
+  opacity: 0.75;
+}
+
+body.docked-modal--resizing {
+  user-select: none;
+  cursor: ew-resize;
 }
 
 .docked-modal.modal-dialog .modal-content {
@@ -402,6 +451,11 @@
     max-width: 100%;
     height: auto;
     margin: 1.5rem auto;
+  }
+
+  .docked-modal--left::after,
+  .docked-modal--right::after {
+    content: none;
   }
 
   .docked-modal.modal-dialog .modal-content {
