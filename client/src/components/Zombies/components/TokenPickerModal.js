@@ -75,6 +75,49 @@ const buildScopeVariantSet = (values) => {
   }, new Set());
 };
 
+const normalizeVariantData = (value, cache) => {
+  if (!cache.has(value)) {
+    if (typeof value !== 'string') {
+      cache.set(value, null);
+    } else {
+      const trimmed = value.replace(/\u00A0/g, ' ').trim();
+      if (!trimmed) {
+        cache.set(value, null);
+      } else {
+        const lower = trimmed.toLowerCase();
+        cache.set(value, {
+          lower,
+          compact: lower.replace(/[^a-z0-9]/g, ''),
+          segments: trimmed
+            .split('/')
+            .map((segment) => segment.replace(/\u00A0/g, ' ').trim())
+            .filter(Boolean)
+            .map((segment) => segment.toLowerCase().replace(/[^a-z0-9]+/g, '')),
+        });
+      }
+    }
+  }
+
+  return cache.get(value);
+};
+
+const segmentsContainSubsequence = (segments, target) => {
+  if (!Array.isArray(segments) || !Array.isArray(target) || target.length === 0) {
+    return false;
+  }
+
+  let searchIndex = 0;
+  return target.every((needle) => {
+    const foundIndex = segments.indexOf(needle, searchIndex);
+    if (foundIndex === -1) {
+      return false;
+    }
+
+    searchIndex = foundIndex + 1;
+    return true;
+  });
+};
+
 const filterMatchesScope = (filter, scopeSet) => {
   if (!(scopeSet instanceof Set) || scopeSet.size === 0) {
     return true;
@@ -103,13 +146,26 @@ const filterMatchesScope = (filter, scopeSet) => {
     return false;
   }
 
+  const scopeCache = new Map();
+  const filterCache = new Map();
+
   for (const scopeVariant of scopeSet) {
+    const scopeData = normalizeVariantData(scopeVariant, scopeCache);
+    if (!scopeData) {
+      continue;
+    }
+
     for (const filterVariant of filterVariantSet) {
-      if (
-        typeof scopeVariant === 'string' &&
-        typeof filterVariant === 'string' &&
-        filterVariant.includes(scopeVariant)
-      ) {
+      const filterData = normalizeVariantData(filterVariant, filterCache);
+      if (!filterData) {
+        continue;
+      }
+
+      if (filterData.lower === scopeData.lower || filterData.compact === scopeData.compact) {
+        return true;
+      }
+
+      if (segmentsContainSubsequence(filterData.segments, scopeData.segments)) {
         return true;
       }
     }

@@ -2833,7 +2833,7 @@ export default function ZombiesCharacterSheet() {
   const tokenPickerFilterScope = useMemo(() => {
     const scopeSet = new Set();
 
-    const addScopeVariants = (rawValue, prefixes = []) => {
+    const addScopeVariants = (rawValue, prefixes = [], options = {}) => {
       if (typeof rawValue !== 'string') {
         return;
       }
@@ -2846,12 +2846,20 @@ export default function ZombiesCharacterSheet() {
       const lowerValue = normalizedValue.toLowerCase();
       const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
 
-      [normalizedValue, lowerValue, compactValue]
-        .filter(Boolean)
-        .forEach((entry) => scopeSet.add(entry));
+      const normalizedPrefixes = Array.isArray(prefixes)
+        ? prefixes.map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
+        : [];
 
-      prefixes
-        .map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
+      const includeStandalone =
+        options.includeStandalone ?? normalizedPrefixes.filter(Boolean).length === 0;
+
+      if (includeStandalone) {
+        [normalizedValue, lowerValue, compactValue]
+          .filter(Boolean)
+          .forEach((entry) => scopeSet.add(entry));
+      }
+
+      normalizedPrefixes
         .filter(Boolean)
         .forEach((prefix) => {
           scopeSet.add(`${prefix}/${normalizedValue}`);
