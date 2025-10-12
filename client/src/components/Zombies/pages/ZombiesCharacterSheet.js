@@ -483,10 +483,20 @@ function CombatTurnHeader({ participants }) {
       return;
     }
 
-    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const { scrollWidth, clientWidth } = container;
     const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
-    const nextCanScrollLeft = scrollLeft > 1;
-    const nextCanScrollRight = maxScrollLeft - scrollLeft > 1;
+    let { scrollLeft } = container;
+
+    if (scrollLeft < 1 && scrollLeft !== 0) {
+      container.scrollLeft = 0;
+      scrollLeft = 0;
+    } else if (maxScrollLeft - scrollLeft < 1 && scrollLeft !== maxScrollLeft) {
+      container.scrollLeft = maxScrollLeft;
+      scrollLeft = maxScrollLeft;
+    }
+
+    const nextCanScrollLeft = scrollLeft > 0;
+    const nextCanScrollRight = maxScrollLeft - scrollLeft > 0;
 
     setCanScrollLeft((prev) => (prev !== nextCanScrollLeft ? nextCanScrollLeft : prev));
     setCanScrollRight((prev) => (prev !== nextCanScrollRight ? nextCanScrollRight : prev));
@@ -583,7 +593,13 @@ function CombatTurnHeader({ participants }) {
 
     const pointerX = event.clientX ?? 0;
     const deltaX = pointerX - startXRef.current;
-    container.scrollLeft = startScrollLeftRef.current - deltaX;
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    const nextScrollLeft = Math.max(
+      0,
+      Math.min(maxScrollLeft, startScrollLeftRef.current - deltaX),
+    );
+
+    container.scrollLeft = nextScrollLeft;
 
     updateOverflowHints();
   }, [updateOverflowHints]);
