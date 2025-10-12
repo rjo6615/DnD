@@ -52,6 +52,8 @@ import TokenPickerModal from '../components/TokenPickerModal';
 import buildRaceTokenScopeData from '../utils/raceTokenFilters';
 
 const HEADER_PADDING = 16;
+const MIN_DOCKED_MODAL_WIDTH = 320;
+const DOCKED_MODAL_VIEWPORT_PADDING = 32;
 const DOCKABLE_MODAL_DEFINITIONS = {
   characterInfo: { label: 'Character Info', component: CharacterInfo },
   stats: { label: 'Stats', component: Stats },
@@ -441,7 +443,75 @@ const parseErrorMessage = async (response, fallbackMessage) => {
   return fallbackMessage;
 };
 
-function CombatTurnHeader({ participants }) {
+const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,8}$/;
+
+const parseHexColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
+  if (!HEX_COLOR_REGEX.test(normalized)) {
+    return null;
+  }
+
+  if (normalized.length === 3) {
+    const r = parseInt(normalized[0] + normalized[0], 16);
+    const g = parseInt(normalized[1] + normalized[1], 16);
+    const b = parseInt(normalized[2] + normalized[2], 16);
+    return { r, g, b };
+  }
+
+  if (normalized.length === 6) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  if (normalized.length === 8) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  return null;
+};
+
+const lightenComponent = (component) =>
+  Math.min(255, Math.round(component + (255 - component) * 0.32));
+
+const getTokenColorStyles = (colorValue) => {
+  const parsed = parseHexColor(colorValue);
+
+  if (!parsed) {
+    return {
+      background: 'linear-gradient(140deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08))',
+      borderColor: 'rgba(255, 255, 255, 0.28)',
+      textColor: '#fdf8ef',
+    };
+  }
+
+  const { r, g, b } = parsed;
+  const lr = lightenComponent(r);
+  const lg = lightenComponent(g);
+  const lb = lightenComponent(b);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  return {
+    background: `linear-gradient(140deg, rgba(${lr}, ${lg}, ${lb}, 0.9), rgba(${r}, ${g}, ${b}, 0.95))`,
+    borderColor: `rgba(${lr}, ${lg}, ${lb}, 0.9)`,
+    textColor: brightness > 155 ? '#1c140b' : '#fdf8ef',
+  };
+};
+
+function CombatTurnHeader({ participants, tokenLookup = {} }) {
   const headerRef = useRef(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -718,6 +788,30 @@ function CombatTurnHeader({ participants }) {
           {participantsCount ? (
             participants.map((participant, index) => {
               const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+              const trimmedId =
+                typeof characterId === 'string' && characterId.trim() !== ''
+                  ? characterId.trim()
+                  : null;
+              const tokenMeta = trimmedId ? tokenLookup[trimmedId] : null;
+              const tokenLabel =
+                (typeof tokenMeta?.label === 'string' && tokenMeta.label.trim() !== ''
+                  ? tokenMeta.label.trim()
+                  : null) ||
+                (typeof name === 'string' && name.trim() !== '' ? name.trim() : null);
+              const figurineInitial = tokenLabel ? tokenLabel.charAt(0).toUpperCase() : '?';
+              const { background, borderColor, textColor } = getTokenColorStyles(tokenMeta?.color);
+              const figurineImageUrl =
+                typeof tokenMeta?.figurineImageUrl === 'string' &&
+                tokenMeta.figurineImageUrl.trim() !== ''
+                  ? tokenMeta.figurineImageUrl.trim()
+                  : null;
+              const figurineClassName = [
+                'combat-turn-header__figurine',
+                figurineImageUrl ? 'combat-turn-header__figurine--has-image' : null,
+                isActive ? 'combat-turn-header__figurine--active' : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
 
               const hasHpData = hpCurrent !== null || hpMax !== null;
               const computedPercentage =
@@ -800,6 +894,37 @@ function CombatTurnHeader({ participants }) {
                           transition: "width 0.3s ease, background-color 0.3s ease",
                         }}
                       />
+                    </div>
+                  </div>
+                  <div className="combat-turn-header__figurine-area">
+                    <div
+                      className={figurineClassName}
+                      style={
+                        figurineImageUrl
+                          ? {
+                              borderColor,
+                            }
+                          : {
+                              background,
+                              borderColor,
+                              color: textColor,
+                            }
+                      }
+                      aria-hidden="true"
+                      title={tokenLabel || undefined}
+                    >
+                      {figurineImageUrl ? (
+                        <img
+                          src={figurineImageUrl}
+                          alt=""
+                          className="combat-turn-header__figurine-image"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="combat-turn-header__figurine-initial">
+                          {figurineInitial}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1004,6 +1129,42 @@ export default function ZombiesCharacterSheet() {
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
   const [dockedModals, setDockedModals] = useState({ left: null, right: null });
+  const [dockedModalWidths, setDockedModalWidths] = useState({ left: null, right: null });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
+    const restoredWidths = {};
+    let hasRestoredWidth = false;
+
+    ['left', 'right'].forEach((side) => {
+      try {
+        const raw = window.localStorage.getItem(`zombiesDockedModalWidth:${side}`);
+        if (!raw) {
+          return;
+        }
+
+        const parsed = Number.parseFloat(raw);
+        if (!Number.isFinite(parsed)) {
+          return;
+        }
+
+        const normalized = Math.max(MIN_DOCKED_MODAL_WIDTH, Math.round(parsed));
+        restoredWidths[side] = normalized;
+        hasRestoredWidth = true;
+      } catch (storageError) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(storageError);
+        }
+      }
+    });
+
+    if (hasRestoredWidth) {
+      setDockedModalWidths((prev) => ({ ...prev, ...restoredWidths }));
+    }
+  }, [setDockedModalWidths]);
 
   useEffect(() => {
     setActiveEffects(getStoredActiveEffects(characterId));
@@ -1841,7 +2002,19 @@ export default function ZombiesCharacterSheet() {
     const rightGutter = Math.max(0, viewportWidth - contentRect.right);
     const largestGutter = Math.max(leftGutter, rightGutter);
     const BUFFER = 24;
-    const computedMaxWidth = largestGutter > BUFFER ? largestGutter - BUFFER : 0;
+    const computeMaxWidth = (gutter) => (gutter > BUFFER ? gutter - BUFFER : null);
+    const computedMaxWidths = {
+      left: computeMaxWidth(leftGutter),
+      right: computeMaxWidth(rightGutter),
+    };
+    const computedMaxWidth = computeMaxWidth(largestGutter) ?? 0;
+    const viewportLimit =
+      viewportWidth > 0
+        ? Math.max(
+            MIN_DOCKED_MODAL_WIDTH,
+            viewportWidth - DOCKED_MODAL_VIEWPORT_PADDING * 2
+          )
+        : null;
 
     dockingScopeElement.style.setProperty('--docked-modal-top-offset', `${Math.round(topOffset)}px`);
 
@@ -1850,7 +2023,36 @@ export default function ZombiesCharacterSheet() {
     } else {
       dockingScopeElement.style.removeProperty('--docked-modal-max-width');
     }
-  }, []);
+
+    ['left', 'right'].forEach((side) => {
+      const value = computedMaxWidths[side];
+      const propertyName = `--docked-modal-max-width-${side}`;
+      if (typeof value === 'number' && value > 0) {
+        dockingScopeElement.style.setProperty(propertyName, `${Math.round(value)}px`);
+      } else {
+        dockingScopeElement.style.removeProperty(propertyName);
+      }
+    });
+
+    setDockedModalWidths((prev) => {
+      let next = prev;
+      ['left', 'right'].forEach((side) => {
+        const currentWidth = prev[side];
+        if (
+          typeof viewportLimit === 'number' &&
+          viewportLimit > 0 &&
+          typeof currentWidth === 'number' &&
+          currentWidth > viewportLimit + 0.5
+        ) {
+          if (next === prev) {
+            next = { ...prev };
+          }
+          next[side] = viewportLimit;
+        }
+      });
+      return next;
+    });
+  }, [setDockedModalWidths]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1891,6 +2093,9 @@ export default function ZombiesCharacterSheet() {
       const dockingScopeElement = document.documentElement || document.body;
       if (dockingScopeElement) {
         dockingScopeElement.style.removeProperty('--docked-modal-top-offset');
+        dockingScopeElement.style.removeProperty('--docked-modal-max-width');
+        dockingScopeElement.style.removeProperty('--docked-modal-max-width-left');
+        dockingScopeElement.style.removeProperty('--docked-modal-max-width-right');
       }
     };
   }, [updateDockedModalMetrics]);
@@ -1898,6 +2103,279 @@ export default function ZombiesCharacterSheet() {
   useEffect(() => {
     updateDockedModalMetrics();
   }, [updateDockedModalMetrics, headerHeight]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const dockingScopeElement = document.documentElement || document.body;
+    if (!dockingScopeElement) {
+      return undefined;
+    }
+
+    const applyInlineWidthToDialogs = (side, width) => {
+      const dialogs = document.querySelectorAll(
+        `.docked-modal.modal-dialog.docked-modal--${side}`
+      );
+
+      dialogs.forEach((dialog) => {
+        if (!(dialog instanceof HTMLElement)) {
+          return;
+        }
+
+        if (typeof width === 'number' && Number.isFinite(width)) {
+          const pixelValue = `${Math.round(width)}px`;
+          dialog.style.setProperty('--docked-modal-inline-width', pixelValue);
+        } else {
+          dialog.style.removeProperty('--docked-modal-inline-width');
+        }
+      });
+    };
+
+    ['left', 'right'].forEach((side) => {
+      const width = dockedModalWidths[side];
+      const propertyName = `--docked-modal-width-${side}`;
+      if (typeof width === 'number' && Number.isFinite(width)) {
+        const rounded = Math.round(width);
+        dockingScopeElement.style.setProperty(propertyName, `${rounded}px`);
+        applyInlineWidthToDialogs(side, rounded);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.setItem(
+              `zombiesDockedModalWidth:${side}`,
+              String(rounded)
+            );
+          } catch (storageError) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(storageError);
+            }
+          }
+        }
+      } else {
+        dockingScopeElement.style.removeProperty(propertyName);
+        applyInlineWidthToDialogs(side, null);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.removeItem(`zombiesDockedModalWidth:${side}`);
+          } catch (storageError) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(storageError);
+            }
+          }
+        }
+      }
+    });
+
+    return () => {
+      const scope = document.documentElement || document.body;
+      if (!scope) {
+        return;
+      }
+
+      ['left', 'right'].forEach((side) => {
+        scope.style.removeProperty(`--docked-modal-width-${side}`);
+        const dialogs = document.querySelectorAll(
+          `.docked-modal.modal-dialog.docked-modal--${side}`
+        );
+        dialogs.forEach((dialog) => {
+          if (dialog instanceof HTMLElement) {
+            dialog.style.removeProperty('--docked-modal-inline-width');
+          }
+        });
+      });
+    };
+  }, [dockedModalWidths]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const parseWidthValue = (value) => {
+      if (typeof value !== 'string') {
+        return null;
+      }
+
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const numeric = Number.parseFloat(trimmed);
+      return Number.isFinite(numeric) ? numeric : null;
+    };
+
+    const EDGE_THRESHOLD_PX = 16;
+    const EDGE_HANDLE_BUFFER_PX = 12;
+
+    const handlePointerDown = (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const dialog = target.closest('.docked-modal.modal-dialog');
+      if (!dialog) {
+        return;
+      }
+
+      const side = dialog.classList.contains('docked-modal--left')
+        ? 'left'
+        : dialog.classList.contains('docked-modal--right')
+        ? 'right'
+        : null;
+
+      if (!side) {
+        return;
+      }
+
+      const rect = dialog.getBoundingClientRect();
+      const distanceFromEdge =
+        side === 'left' ? rect.right - event.clientX : event.clientX - rect.left;
+      const isWithinEdgeZone =
+        Math.abs(distanceFromEdge) <= EDGE_THRESHOLD_PX + EDGE_HANDLE_BUFFER_PX;
+
+      if (!isWithinEdgeZone) {
+        return;
+      }
+
+      const root = document.documentElement || document.body;
+      const computedStyles = root ? window.getComputedStyle(root) : null;
+      const maxWidthFromSide =
+        parseWidthValue(
+          computedStyles?.getPropertyValue(`--docked-modal-max-width-${side}`)
+        ) ?? null;
+      const fallbackMaxWidth =
+        parseWidthValue(
+          computedStyles?.getPropertyValue('--docked-modal-max-width')
+        ) ?? null;
+      const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportLimit =
+        viewportWidth > 0
+          ? Math.max(
+              MIN_DOCKED_MODAL_WIDTH,
+              viewportWidth - DOCKED_MODAL_VIEWPORT_PADDING * 2
+            )
+          : null;
+      const startingWidth = rect.width;
+      const widthLimitCandidates = [MIN_DOCKED_MODAL_WIDTH];
+      const addCandidate = (value) => {
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+          widthLimitCandidates.push(value);
+        }
+      };
+
+      addCandidate(maxWidthFromSide);
+      addCandidate(fallbackMaxWidth);
+      addCandidate(startingWidth);
+      addCandidate(viewportLimit);
+
+      let maxWidth = Math.max(...widthLimitCandidates);
+      if (typeof viewportLimit === 'number' && Number.isFinite(viewportLimit)) {
+        maxWidth = Math.min(maxWidth, viewportLimit);
+      }
+      const anchor = side === 'left' ? rect.left : rect.right;
+      const pointerId = event.pointerId;
+      let framePending = false;
+      let hasMoved = false;
+
+      const updateDialogInlineWidth = (value) => {
+        if (!(dialog instanceof HTMLElement)) {
+          return;
+        }
+
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          dialog.style.setProperty('--docked-modal-inline-width', `${Math.round(value)}px`);
+        } else {
+          dialog.style.removeProperty('--docked-modal-inline-width');
+        }
+      };
+
+      const applyWidth = (nextWidth) => {
+        const rounded = Math.round(nextWidth);
+        updateDialogInlineWidth(rounded);
+        setDockedModalWidths((prev) => {
+          const prevWidth = prev[side];
+          if (typeof prevWidth === 'number' && Math.abs(prevWidth - rounded) < 1) {
+            return prev;
+          }
+
+          return { ...prev, [side]: rounded };
+        });
+      };
+
+      const handlePointerMove = (moveEvent) => {
+        if (moveEvent.pointerId !== pointerId) {
+          return;
+        }
+
+        let proposedWidth =
+          side === 'left' ? moveEvent.clientX - anchor : anchor - moveEvent.clientX;
+
+        if (!Number.isFinite(proposedWidth)) {
+          return;
+        }
+
+        proposedWidth = Math.max(
+          MIN_DOCKED_MODAL_WIDTH,
+          Math.min(maxWidth, proposedWidth)
+        );
+
+        if (framePending) {
+          return;
+        }
+
+        framePending = true;
+        hasMoved = true;
+        window.requestAnimationFrame(() => {
+          framePending = false;
+          applyWidth(proposedWidth);
+        });
+      };
+
+      const stopResizing = () => {
+        dialog.releasePointerCapture?.(pointerId);
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', stopResizing);
+        document.removeEventListener('pointercancel', stopResizing);
+        document.body.classList.remove('docked-modal--resizing');
+        document.body.style.removeProperty('cursor');
+
+        if (!hasMoved) {
+          updateDialogInlineWidth(null);
+        }
+      };
+
+      updateDialogInlineWidth(startingWidth);
+
+      document.addEventListener('pointermove', handlePointerMove);
+      document.addEventListener('pointerup', stopResizing);
+      document.addEventListener('pointercancel', stopResizing);
+
+      dialog.setPointerCapture?.(pointerId);
+      document.body.classList.add('docked-modal--resizing');
+      document.body.style.cursor = 'ew-resize';
+
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.body.classList.remove('docked-modal--resizing');
+      document.body.style.removeProperty('cursor');
+    };
+  }, [setDockedModalWidths]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -4500,7 +4978,10 @@ export default function ZombiesCharacterSheet() {
         <>
           <div ref={headerRef}>
             <div ref={combatHeaderRef}>
-              <CombatTurnHeader participants={participantsWithDetails} />
+              <CombatTurnHeader
+                participants={participantsWithDetails}
+                tokenLookup={tokenMetaById}
+              />
             </div>
             <h1
               style={{
