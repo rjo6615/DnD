@@ -269,7 +269,14 @@ describe('TokenPickerModal', () => {
               name: 'Dragonborn',
               path: 'Tokens/Adventurers/Dragonborn',
               relativePath: 'Adventurers/Dragonborn',
-              children: [],
+              children: [
+                {
+                  name: 'Fighter',
+                  path: 'Tokens/Adventurers/Dragonborn/Fighter',
+                  relativePath: 'Adventurers/Dragonborn/Fighter',
+                  children: [],
+                },
+              ],
             },
             {
               name: 'Core_Class_Tokens',
@@ -301,6 +308,13 @@ describe('TokenPickerModal', () => {
           relativePath: 'Adventurers/Dragonborn',
           depth: 1,
           displayPath: 'Adventurers/Dragonborn',
+        },
+        {
+          name: 'Fighter',
+          path: 'Tokens/Adventurers/Dragonborn/Fighter',
+          relativePath: 'Adventurers/Dragonborn/Fighter',
+          depth: 2,
+          displayPath: 'Adventurers/Dragonborn/Fighter',
         },
         {
           name: 'Core_Class_Tokens',
@@ -347,7 +361,7 @@ describe('TokenPickerModal', () => {
         campaignId="Camp1"
         onHide={jest.fn()}
         onSelect={jest.fn()}
-        filterScope={['Dragonborn', 'Core_Class_Tokens/Fighter']}
+        filterScope={['Dragonborn/Fighter', 'Core_Class_Tokens/Fighter']}
       />
     );
 
@@ -358,7 +372,7 @@ describe('TokenPickerModal', () => {
     await waitFor(() => {
       expect(manifestCalls.length).toBeGreaterThan(0);
       expect(manifestCalls[0]).toBe(
-        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FDragonborn'
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FDragonborn%2FFighter'
       );
     });
 
@@ -369,7 +383,7 @@ describe('TokenPickerModal', () => {
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
     expect(options).toHaveLength(2);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn');
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
     expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
 
     await user.selectOptions(select, options[1]);
