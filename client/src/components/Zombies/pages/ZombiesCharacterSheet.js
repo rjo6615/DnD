@@ -440,7 +440,75 @@ const parseErrorMessage = async (response, fallbackMessage) => {
   return fallbackMessage;
 };
 
-function CombatTurnHeader({ participants }) {
+const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,8}$/;
+
+const parseHexColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
+  if (!HEX_COLOR_REGEX.test(normalized)) {
+    return null;
+  }
+
+  if (normalized.length === 3) {
+    const r = parseInt(normalized[0] + normalized[0], 16);
+    const g = parseInt(normalized[1] + normalized[1], 16);
+    const b = parseInt(normalized[2] + normalized[2], 16);
+    return { r, g, b };
+  }
+
+  if (normalized.length === 6) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  if (normalized.length === 8) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  return null;
+};
+
+const lightenComponent = (component) =>
+  Math.min(255, Math.round(component + (255 - component) * 0.32));
+
+const getTokenColorStyles = (colorValue) => {
+  const parsed = parseHexColor(colorValue);
+
+  if (!parsed) {
+    return {
+      background: 'linear-gradient(140deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08))',
+      borderColor: 'rgba(255, 255, 255, 0.28)',
+      textColor: '#fdf8ef',
+    };
+  }
+
+  const { r, g, b } = parsed;
+  const lr = lightenComponent(r);
+  const lg = lightenComponent(g);
+  const lb = lightenComponent(b);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  return {
+    background: `linear-gradient(140deg, rgba(${lr}, ${lg}, ${lb}, 0.9), rgba(${r}, ${g}, ${b}, 0.95))`,
+    borderColor: `rgba(${lr}, ${lg}, ${lb}, 0.9)`,
+    textColor: brightness > 155 ? '#1c140b' : '#fdf8ef',
+  };
+};
+
+function CombatTurnHeader({ participants, tokenLookup = {} }) {
   const headerRef = useRef(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -717,6 +785,30 @@ function CombatTurnHeader({ participants }) {
           {participantsCount ? (
             participants.map((participant, index) => {
               const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+              const trimmedId =
+                typeof characterId === 'string' && characterId.trim() !== ''
+                  ? characterId.trim()
+                  : null;
+              const tokenMeta = trimmedId ? tokenLookup[trimmedId] : null;
+              const tokenLabel =
+                (typeof tokenMeta?.label === 'string' && tokenMeta.label.trim() !== ''
+                  ? tokenMeta.label.trim()
+                  : null) ||
+                (typeof name === 'string' && name.trim() !== '' ? name.trim() : null);
+              const figurineInitial = tokenLabel ? tokenLabel.charAt(0).toUpperCase() : '?';
+              const { background, borderColor, textColor } = getTokenColorStyles(tokenMeta?.color);
+              const figurineImageUrl =
+                typeof tokenMeta?.figurineImageUrl === 'string' &&
+                tokenMeta.figurineImageUrl.trim() !== ''
+                  ? tokenMeta.figurineImageUrl.trim()
+                  : null;
+              const figurineClassName = [
+                'combat-turn-header__figurine',
+                figurineImageUrl ? 'combat-turn-header__figurine--has-image' : null,
+                isActive ? 'combat-turn-header__figurine--active' : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
 
               const hasHpData = hpCurrent !== null || hpMax !== null;
               const computedPercentage =
@@ -799,6 +891,37 @@ function CombatTurnHeader({ participants }) {
                           transition: "width 0.3s ease, background-color 0.3s ease",
                         }}
                       />
+                    </div>
+                  </div>
+                  <div className="combat-turn-header__figurine-area">
+                    <div
+                      className={figurineClassName}
+                      style={
+                        figurineImageUrl
+                          ? {
+                              borderColor,
+                            }
+                          : {
+                              background,
+                              borderColor,
+                              color: textColor,
+                            }
+                      }
+                      aria-hidden="true"
+                      title={tokenLabel || undefined}
+                    >
+                      {figurineImageUrl ? (
+                        <img
+                          src={figurineImageUrl}
+                          alt=""
+                          className="combat-turn-header__figurine-image"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="combat-turn-header__figurine-initial">
+                          {figurineInitial}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -4484,7 +4607,10 @@ export default function ZombiesCharacterSheet() {
         <>
           <div ref={headerRef}>
             <div ref={combatHeaderRef}>
-              <CombatTurnHeader participants={participantsWithDetails} />
+              <CombatTurnHeader
+                participants={participantsWithDetails}
+                tokenLookup={tokenMetaById}
+              />
             </div>
             <h1
               style={{
