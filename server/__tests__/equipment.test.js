@@ -192,6 +192,8 @@ describe('Equipment routes', () => {
         notes: 'Shimmers with constellations',
         statBonuses: { dex: 2 },
       });
+      expect(insertedDoc.owned).toBe(false);
+      expect(res.body.owned).toBe(false);
     });
 
     test('create accessory rejects invalid slot', async () => {
@@ -470,8 +472,14 @@ describe('Equipment routes', () => {
     });
 
     test('insert success', async () => {
+      let insertedDoc;
       dbo.mockResolvedValue({
-        collection: () => ({ insertOne: async () => ({ insertedId: '507f1f77bcf86cd799439011' }) })
+        collection: () => ({
+          insertOne: async (doc) => {
+            insertedDoc = doc;
+            return { insertedId: '507f1f77bcf86cd799439011' };
+          }
+        })
       });
       const res = await request(app)
         .post('/equipment/items')
@@ -487,6 +495,8 @@ describe('Equipment routes', () => {
         });
       expect(res.status).toBe(200);
       expect(res.body._id).toBeDefined();
+      expect(insertedDoc.owned).toBe(false);
+      expect(res.body.owned).toBe(false);
       expect(res.body.statBonuses.str).toBe(1);
       expect(res.body.skillBonuses.acrobatics).toBe(2);
     });
@@ -524,6 +534,7 @@ describe('Equipment routes', () => {
       expect(res.body[0].name).toBe('Potion of healing');
       expect(res.body[0].statBonuses.str).toBe(1);
       expect(res.body[0].skillBonuses.acrobatics).toBe(2);
+      expect(res.body[0].owned).toBe(false);
     });
 
     test('get items failure', async () => {
@@ -533,6 +544,37 @@ describe('Equipment routes', () => {
         })
       });
       const res = await request(app).get('/equipment/items/Camp1');
+      expect(res.status).toBe(500);
+    });
+  });
+
+  describe('get accessories', () => {
+    test('get accessories success', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          find: () => ({
+            toArray: async () => [
+              {
+                name: 'Crown of Insight',
+                targetSlots: ['head'],
+              },
+            ],
+          }),
+        }),
+      });
+      const res = await request(app).get('/equipment/accessories/Camp1');
+      expect(res.status).toBe(200);
+      expect(res.body[0].name).toBe('Crown of Insight');
+      expect(res.body[0].owned).toBe(false);
+    });
+
+    test('get accessories failure', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({
+          find: () => ({ toArray: async () => { throw new Error('db error'); } }),
+        }),
+      });
+      const res = await request(app).get('/equipment/accessories/Camp1');
       expect(res.status).toBe(500);
     });
   });

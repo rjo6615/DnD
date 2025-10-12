@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button, Form } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -32,9 +32,13 @@ import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
+import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
+import adrenalineRushIcon from "../../../images/adrenaline-rush.png";
+import speakWithAnimalsIcon from "../../../images/speak-with-animal.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 import {
   normalizeItems as normalizeInventoryItems,
   normalizeAccessories as normalizeInventoryAccessories,
@@ -43,8 +47,13 @@ import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import MapModal from "../attributes/MapModal";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
+import proficiencyBonus from '../../../utils/proficiencyBonus';
+import TokenPickerModal from '../components/TokenPickerModal';
+import buildRaceTokenScopeData from '../utils/raceTokenFilters';
 
 const HEADER_PADDING = 16;
+const MIN_DOCKED_MODAL_WIDTH = 320;
+const DOCKED_MODAL_VIEWPORT_PADDING = 32;
 const DOCKABLE_MODAL_DEFINITIONS = {
   characterInfo: { label: 'Character Info', component: CharacterInfo },
   stats: { label: 'Stats', component: Stats },
@@ -58,14 +67,6 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   map: { label: 'Campaign Map', component: MapModal },
   help: { label: 'Help', component: Help },
 };
-const DOCKABLE_MODAL_OPTIONS = [
-  { key: null, label: 'None' },
-  ...Object.entries(DOCKABLE_MODAL_DEFINITIONS).map(([key, { label }]) => ({
-    key,
-    label,
-  })),
-];
-const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
 const toFiniteNumberOrNull = (value) => {
@@ -164,26 +165,38 @@ const normalizeCombatState = (state) => {
   return { participants, activeTurn };
 };
 
+const collectCharacterIdentifiers = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return [];
+  }
+
+  const identifiers = [];
+  if (typeof entity._id === 'string' && entity._id.trim() !== '') {
+    identifiers.push(entity._id.trim());
+  }
+  if (
+    typeof entity.characterId === 'string' &&
+    entity.characterId.trim() !== ''
+  ) {
+    identifiers.push(entity.characterId.trim());
+  }
+
+  return Array.from(new Set(identifiers));
+};
+
 const mapCharactersById = (characters) => {
   if (!Array.isArray(characters)) {
     return {};
   }
 
   return characters.reduce((acc, character) => {
-    if (!character) {
+    if (!character || typeof character !== 'object') {
       return acc;
     }
 
-    const id =
-      typeof character._id === "string"
-        ? character._id
-        : typeof character.characterId === "string"
-          ? character.characterId
-          : null;
-
-    if (id) {
-      acc[id] = character;
-    }
+    collectCharacterIdentifiers(character).forEach((identifier) => {
+      acc[identifier] = character;
+    });
 
     return acc;
   }, {});
@@ -430,7 +443,75 @@ const parseErrorMessage = async (response, fallbackMessage) => {
   return fallbackMessage;
 };
 
-function CombatTurnHeader({ participants }) {
+const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,8}$/;
+
+const parseHexColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
+  if (!HEX_COLOR_REGEX.test(normalized)) {
+    return null;
+  }
+
+  if (normalized.length === 3) {
+    const r = parseInt(normalized[0] + normalized[0], 16);
+    const g = parseInt(normalized[1] + normalized[1], 16);
+    const b = parseInt(normalized[2] + normalized[2], 16);
+    return { r, g, b };
+  }
+
+  if (normalized.length === 6) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  if (normalized.length === 8) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return { r, g, b };
+  }
+
+  return null;
+};
+
+const lightenComponent = (component) =>
+  Math.min(255, Math.round(component + (255 - component) * 0.32));
+
+const getTokenColorStyles = (colorValue) => {
+  const parsed = parseHexColor(colorValue);
+
+  if (!parsed) {
+    return {
+      background: 'linear-gradient(140deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08))',
+      borderColor: 'rgba(255, 255, 255, 0.28)',
+      textColor: '#fdf8ef',
+    };
+  }
+
+  const { r, g, b } = parsed;
+  const lr = lightenComponent(r);
+  const lg = lightenComponent(g);
+  const lb = lightenComponent(b);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  return {
+    background: `linear-gradient(140deg, rgba(${lr}, ${lg}, ${lb}, 0.9), rgba(${r}, ${g}, ${b}, 0.95))`,
+    borderColor: `rgba(${lr}, ${lg}, ${lb}, 0.9)`,
+    textColor: brightness > 155 ? '#1c140b' : '#fdf8ef',
+  };
+};
+
+function CombatTurnHeader({ participants, tokenLookup = {} }) {
   const headerRef = useRef(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -448,6 +529,13 @@ function CombatTurnHeader({ participants }) {
 
     return participants.findIndex((participant) => participant?.isActive);
   }, [participants]);
+  const activeParticipant = useMemo(() => {
+    if (activeIndex < 0 || !Array.isArray(participants)) {
+      return null;
+    }
+
+    return participants[activeIndex] ?? null;
+  }, [activeIndex, participants]);
 
   const updateOverflowHints = useCallback(() => {
     const container = headerRef.current;
@@ -458,10 +546,20 @@ function CombatTurnHeader({ participants }) {
       return;
     }
 
-    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const { scrollWidth, clientWidth } = container;
     const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
-    const nextCanScrollLeft = scrollLeft > 1;
-    const nextCanScrollRight = maxScrollLeft - scrollLeft > 1;
+    let { scrollLeft } = container;
+
+    if (scrollLeft < 1 && scrollLeft !== 0) {
+      container.scrollLeft = 0;
+      scrollLeft = 0;
+    } else if (maxScrollLeft - scrollLeft < 1 && scrollLeft !== maxScrollLeft) {
+      container.scrollLeft = maxScrollLeft;
+      scrollLeft = maxScrollLeft;
+    }
+
+    const nextCanScrollLeft = scrollLeft > 0;
+    const nextCanScrollRight = maxScrollLeft - scrollLeft > 0;
 
     setCanScrollLeft((prev) => (prev !== nextCanScrollLeft ? nextCanScrollLeft : prev));
     setCanScrollRight((prev) => (prev !== nextCanScrollRight ? nextCanScrollRight : prev));
@@ -480,11 +578,16 @@ function CombatTurnHeader({ participants }) {
     };
   }, [updateOverflowHints, participantsCount]);
 
+  const isScrollable = canScrollLeft || canScrollRight;
+
   const headerClassName = useMemo(() => {
     const classes = ['combat-turn-header'];
 
     if (isDragging) {
       classes.push('combat-turn-header--dragging');
+    }
+    if (isScrollable) {
+      classes.push('combat-turn-header--scrollable');
     }
     if (canScrollLeft) {
       classes.push('combat-turn-header--fade-left');
@@ -497,7 +600,7 @@ function CombatTurnHeader({ participants }) {
     }
 
     return classes.join(' ');
-  }, [isDragging, canScrollLeft, canScrollRight, participantsCount]);
+  }, [isDragging, isScrollable, canScrollLeft, canScrollRight, participantsCount]);
 
   const finishDrag = useCallback((event) => {
     if (!isDraggingRef.current) {
@@ -553,7 +656,13 @@ function CombatTurnHeader({ participants }) {
 
     const pointerX = event.clientX ?? 0;
     const deltaX = pointerX - startXRef.current;
-    container.scrollLeft = startScrollLeftRef.current - deltaX;
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    const nextScrollLeft = Math.max(
+      0,
+      Math.min(maxScrollLeft, startScrollLeftRef.current - deltaX),
+    );
+
+    container.scrollLeft = nextScrollLeft;
 
     updateOverflowHints();
   }, [updateOverflowHints]);
@@ -601,7 +710,9 @@ function CombatTurnHeader({ participants }) {
       return;
     }
 
-    const card = container.children?.[activeIndex];
+    const card = container.querySelector(
+      `.combat-turn-header__card[data-participant-index="${activeIndex}"]`
+    );
     if (!card) {
       return;
     }
@@ -645,113 +756,186 @@ function CombatTurnHeader({ participants }) {
   }, [activeIndex, participants, isDragging, updateOverflowHints]);
 
   return (
-    <div
-      ref={headerRef}
-      className={headerClassName}
-      role="group"
-      aria-label="Combat turn order"
-      touchAction={participantsCount ? 'pan-x' : 'auto'}
-      onPointerDown={participantsCount ? handlePointerDown : undefined}
-      onPointerMove={participantsCount ? handlePointerMove : undefined}
-      onPointerUp={participantsCount ? handlePointerUp : undefined}
-      onPointerLeave={participantsCount ? handlePointerLeave : undefined}
-      onPointerCancel={participantsCount ? handlePointerCancel : undefined}
-      onScroll={participantsCount ? handleScroll : undefined}
-    >
-      {participantsCount ? (
-        participants.map((participant, index) => {
-          const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+    <>
+      <div
+        className={
+          activeParticipant
+            ? 'combat-turn-header__active-indicator'
+            : 'combat-turn-header__active-indicator combat-turn-header__active-indicator--inactive'
+        }
+        role="status"
+        aria-live="polite"
+      >
+        <span className="combat-turn-header__active-label">Current Turn:</span>
+        <span className="combat-turn-header__active-name">
+          {activeParticipant ? activeParticipant.name : 'No active combatant'}
+        </span>
+      </div>
+      <div
+        ref={headerRef}
+        className={headerClassName}
+        role="group"
+        aria-label="Combat turn order"
+        touchAction={participantsCount ? 'pan-x' : 'auto'}
+        onPointerDown={participantsCount ? handlePointerDown : undefined}
+        onPointerMove={participantsCount ? handlePointerMove : undefined}
+        onPointerUp={participantsCount ? handlePointerUp : undefined}
+        onPointerLeave={participantsCount ? handlePointerLeave : undefined}
+        onPointerCancel={participantsCount ? handlePointerCancel : undefined}
+        onScroll={participantsCount ? handleScroll : undefined}
+      >
+        <div className="combat-turn-header__track">
+          {participantsCount ? (
+            participants.map((participant, index) => {
+              const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+              const trimmedId =
+                typeof characterId === 'string' && characterId.trim() !== ''
+                  ? characterId.trim()
+                  : null;
+              const tokenMeta = trimmedId ? tokenLookup[trimmedId] : null;
+              const tokenLabel =
+                (typeof tokenMeta?.label === 'string' && tokenMeta.label.trim() !== ''
+                  ? tokenMeta.label.trim()
+                  : null) ||
+                (typeof name === 'string' && name.trim() !== '' ? name.trim() : null);
+              const figurineInitial = tokenLabel ? tokenLabel.charAt(0).toUpperCase() : '?';
+              const { background, borderColor, textColor } = getTokenColorStyles(tokenMeta?.color);
+              const figurineImageUrl =
+                typeof tokenMeta?.figurineImageUrl === 'string' &&
+                tokenMeta.figurineImageUrl.trim() !== ''
+                  ? tokenMeta.figurineImageUrl.trim()
+                  : null;
+              const figurineClassName = [
+                'combat-turn-header__figurine',
+                figurineImageUrl ? 'combat-turn-header__figurine--has-image' : null,
+                isActive ? 'combat-turn-header__figurine--active' : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
 
-          const hasHpData = hpCurrent !== null || hpMax !== null;
-          const computedPercentage =
-            hpCurrent !== null && hpMax !== null && hpMax > 0
-              ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
-              : null;
-          const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
-          const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
-          const hpFillColor =
-            computedPercentage !== null
-              ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
-              : "rgba(220, 220, 220, 0.35)";
+              const hasHpData = hpCurrent !== null || hpMax !== null;
+              const computedPercentage =
+                hpCurrent !== null && hpMax !== null && hpMax > 0
+                  ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
+                  : null;
+              const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
+              const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
+              const hpFillColor =
+                computedPercentage !== null
+                  ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
+                  : "rgba(220, 220, 220, 0.35)";
 
-          return (
-            <div
-              key={characterId}
-              className="combat-turn-header__card"
-              data-participant-id={characterId}
-              data-participant-index={index}
-              style={{
-                background: isActive
-                  ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
-                  : "rgba(28, 25, 22, 0.82)",
-                color: "#FFFFFF",
-                borderRadius: "12px",
-                padding: "10px 16px",
-                boxShadow: isActive
-                  ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
-                  : "0 0 8px rgba(0, 0, 0, 0.45)",
-                border: isActive
-                  ? "1px solid rgba(214, 178, 86, 0.85)"
-                  : "1px solid rgba(255, 255, 255, 0.18)",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                transform: isActive ? "scale(1.03)" : "scale(1)",
-              }}
-            >
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {name}
-              </div>
-              <div style={{ marginTop: "6px" }}>
+              return (
                 <div
+                  key={characterId ?? `combat-participant-${index}`}
+                  className="combat-turn-header__card"
+                  data-participant-id={characterId}
+                  data-participant-index={index}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "12px",
-                    opacity: 0.9,
-                    marginBottom: "4px",
-                  }}
-                >
-                  <span>HP</span>
-                  <span>{hasHpData ? hpDisplay : "—"}</span>
-                </div>
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    height: "8px",
-                    borderRadius: "6px",
-                    background: "rgba(0, 0, 0, 0.45)",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    background: isActive
+                      ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
+                      : "rgba(28, 25, 22, 0.82)",
+                    color: "#FFFFFF",
+                    borderRadius: "12px",
+                    padding: "10px 16px",
+                    boxShadow: isActive
+                      ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
+                      : "0 0 8px rgba(0, 0, 0, 0.45)",
+                    border: isActive
+                      ? "1px solid rgba(214, 178, 86, 0.85)"
+                      : "1px solid rgba(255, 255, 255, 0.18)",
+                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                    transform: isActive ? "scale(1.03)" : "scale(1)",
                   }}
                 >
                   <div
                     style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      height: "100%",
-                      width: `${hpPercentage}%`,
-                      background: computedPercentage !== null
-                        ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
-                        : "transparent",
-                      transition: "width 0.3s ease, background-color 0.3s ease",
+                      fontWeight: 600,
+                      fontSize: "14px",
+                      letterSpacing: "0.5px",
                     }}
-                  />
+                  >
+                    {name}
+                  </div>
+                  <div style={{ marginTop: "6px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "12px",
+                        opacity: 0.9,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      <span>HP</span>
+                      <span>{hasHpData ? hpDisplay : "—"}</span>
+                    </div>
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "8px",
+                        borderRadius: "6px",
+                        background: "rgba(0, 0, 0, 0.45)",
+                        overflow: "hidden",
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          height: "100%",
+                          width: `${hpPercentage}%`,
+                          background: computedPercentage !== null
+                            ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
+                            : "transparent",
+                          transition: "width 0.3s ease, background-color 0.3s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="combat-turn-header__figurine-area">
+                    <div
+                      className={figurineClassName}
+                      style={
+                        figurineImageUrl
+                          ? {
+                              borderColor,
+                            }
+                          : {
+                              background,
+                              borderColor,
+                              color: textColor,
+                            }
+                      }
+                      aria-hidden="true"
+                      title={tokenLabel || undefined}
+                    >
+                      {figurineImageUrl ? (
+                        <img
+                          src={figurineImageUrl}
+                          alt=""
+                          className="combat-turn-header__figurine-image"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="combat-turn-header__figurine-initial">
+                          {figurineInitial}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <div className="combat-turn-header__placeholder" aria-hidden="true" />
-      )}
-    </div>
+              );
+            })
+          ) : (
+            <div className="combat-turn-header__placeholder" aria-hidden="true" />
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -796,6 +980,9 @@ export default function ZombiesCharacterSheet() {
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
+  const [showTokenPicker, setShowTokenPicker] = useState(false);
+  const [tokenPickerSaving, setTokenPickerSaving] = useState(false);
+  const [tokenPickerError, setTokenPickerError] = useState(null);
 
   const getStoredActiveEffects = useCallback((id) => {
     if (typeof window === 'undefined' || !id) {
@@ -916,6 +1103,13 @@ export default function ZombiesCharacterSheet() {
       })
     );
   }, []);
+  const occupations = useMemo(() => form?.occupation || [], [form?.occupation]);
+  const totalLevel = useMemo(() => {
+    return occupations.reduce((total, el) => {
+      const level = Number(el?.Level);
+      return total + (Number.isFinite(level) ? level : 0);
+    }, 0);
+  }, [occupations]);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
   const [usedSlots, setUsedSlots] = useState(() =>
@@ -935,12 +1129,42 @@ export default function ZombiesCharacterSheet() {
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
   const [dockedModals, setDockedModals] = useState({ left: null, right: null });
-  const [isWideScreen, setIsWideScreen] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return false;
+  const [dockedModalWidths, setDockedModalWidths] = useState({ left: null, right: null });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
     }
-    return window.matchMedia(WIDE_SCREEN_QUERY).matches;
-  });
+
+    const restoredWidths = {};
+    let hasRestoredWidth = false;
+
+    ['left', 'right'].forEach((side) => {
+      try {
+        const raw = window.localStorage.getItem(`zombiesDockedModalWidth:${side}`);
+        if (!raw) {
+          return;
+        }
+
+        const parsed = Number.parseFloat(raw);
+        if (!Number.isFinite(parsed)) {
+          return;
+        }
+
+        const normalized = Math.max(MIN_DOCKED_MODAL_WIDTH, Math.round(parsed));
+        restoredWidths[side] = normalized;
+        hasRestoredWidth = true;
+      } catch (storageError) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(storageError);
+        }
+      }
+    });
+
+    if (hasRestoredWidth) {
+      setDockedModalWidths((prev) => ({ ...prev, ...restoredWidths }));
+    }
+  }, [setDockedModalWidths]);
 
   useEffect(() => {
     setActiveEffects(getStoredActiveEffects(characterId));
@@ -999,27 +1223,6 @@ export default function ZombiesCharacterSheet() {
       console.error('Failed to store used slots', error);
     }
   }, [characterId, usedSlots]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      const mediaQueryList = window.matchMedia(WIDE_SCREEN_QUERY);
-      const listener = (event) => {
-        setIsWideScreen(event.matches);
-      };
-
-      if (typeof mediaQueryList.addEventListener === 'function') {
-        mediaQueryList.addEventListener('change', listener);
-        return () => mediaQueryList.removeEventListener('change', listener);
-      }
-
-      if (typeof mediaQueryList.addListener === 'function') {
-        mediaQueryList.addListener(listener);
-        return () => mediaQueryList.removeListener(listener);
-      }
-    }
-
-    return undefined;
-  }, []);
 
   useEffect(() => {
     campaignMapTokensRef.current = campaignMapTokens || {};
@@ -1196,26 +1399,33 @@ export default function ZombiesCharacterSheet() {
 
         const { currentHp, maxHp } = calculateCharacterHitPoints(char);
 
-        let normalizedCurrentHp = participantCurrentHp !== null
-          ? participantCurrentHp
-          : Number.isFinite(currentHp)
-            ? currentHp
-            : null;
-        let normalizedMaxHp = participantMaxHp !== null
-          ? participantMaxHp
-          : Number.isFinite(maxHp)
-            ? maxHp
-            : null;
+        let normalizedCurrentHp = null;
+        let normalizedMaxHp = null;
 
-        if (normalizedMaxHp === null) {
-          const fallbackMax = toFiniteNumberOrNull(char?.hitPoints ?? char?.health);
-          if (fallbackMax !== null) {
-            normalizedMaxHp = fallbackMax;
+        if (char) {
+          normalizedCurrentHp = toFiniteNumberOrNull(currentHp);
+          normalizedMaxHp = toFiniteNumberOrNull(maxHp);
+
+          if (normalizedMaxHp === null) {
+            const fallbackMax = toFiniteNumberOrNull(
+              char?.hpMax ?? char?.hitPoints ?? char?.health
+            );
+            if (fallbackMax !== null) {
+              normalizedMaxHp = fallbackMax;
+            }
           }
-        }
 
-        if (normalizedCurrentHp === null && normalizedMaxHp !== null) {
-          normalizedCurrentHp = normalizedMaxHp;
+          if (normalizedCurrentHp === null && normalizedMaxHp !== null) {
+            normalizedCurrentHp = normalizedMaxHp;
+          }
+
+          if (normalizedCurrentHp === null && normalizedMaxHp === null) {
+            normalizedCurrentHp = participantCurrentHp;
+            normalizedMaxHp = participantMaxHp;
+          }
+        } else {
+          normalizedCurrentHp = participantCurrentHp;
+          normalizedMaxHp = participantMaxHp;
         }
 
         let hpDisplay = '—';
@@ -1386,7 +1596,8 @@ export default function ZombiesCharacterSheet() {
 
     // Clear effects on rest
     setActiveEffects([]);
-  }, [longRestCount, shortRestCount]);
+    handleHealthChange(0);
+  }, [handleHealthChange, longRestCount, shortRestCount]);
 
   useEffect(() => {
     const hasteActive = activeEffects.some((e) => e.name === 'Haste');
@@ -1403,6 +1614,16 @@ export default function ZombiesCharacterSheet() {
       return { ...used, action };
     });
   }, [baseActionCount, activeEffects]);
+
+  const adrenalineRushActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
+    [activeEffects]
+  );
+
+  const speedMultiplier = useMemo(
+    () => (adrenalineRushActive ? 2 : 1),
+    [adrenalineRushActive]
+  );
 
   const temporarySize = form?.temporarySize;
   const temporarySpeedBonus = form?.temporarySpeedBonus;
@@ -1524,6 +1745,50 @@ export default function ZombiesCharacterSheet() {
     });
   }, [setActiveEffects]);
 
+  const handleDraconicFlight = useCallback(() => {
+    setActiveEffects((prev) => {
+      if (prev.some((effect) => effect.name === 'Draconic Flight')) {
+        return prev;
+      }
+      return [...prev, { name: 'Draconic Flight', icon: dragonWingsIcon }];
+    });
+  }, [setActiveEffects]);
+
+  const handleAdrenalineRush = useCallback(() => {
+    consumeCircle('bonus');
+
+    setActiveEffects((prev = []) => {
+      const effectPayload = { name: 'Adrenaline Rush', icon: adrenalineRushIcon };
+      const existingIndex = prev.findIndex(
+        (effect) => effect && effect.name === 'Adrenaline Rush'
+      );
+
+      if (existingIndex === -1) {
+        return [...prev, effectPayload];
+      }
+
+      const existing = prev[existingIndex] || {};
+      if (existing.icon === adrenalineRushIcon) {
+        return prev;
+      }
+
+      const next = [...prev];
+      next[existingIndex] = { ...existing, ...effectPayload };
+      return next;
+    });
+
+    const providedProf = Number(form?.proficiencyBonus);
+    const profBonus = Number.isFinite(providedProf)
+      ? providedProf
+      : proficiencyBonus(totalLevel);
+    const currentTemp = Number(form?.tempHealth);
+    const safeCurrent = Number.isFinite(currentTemp) ? currentTemp : 0;
+    const nextTempHealth = safeCurrent + profBonus;
+    if (Number.isFinite(nextTempHealth)) {
+      handleHealthChange(nextTempHealth);
+    }
+  }, [consumeCircle, form, handleHealthChange, totalLevel]);
+
   const handlePassTurn = useCallback(async () => {
     if (isPassingTurn || !encodedCampaignId) {
       return;
@@ -1607,6 +1872,7 @@ export default function ZombiesCharacterSheet() {
   ]);
 
   const playerTurnActionsRef = useRef(null);
+  const speakWithAnimalsPendingRef = useRef(false);
   const socketRef = useRef(null);
 
   const rootContainerRef = useRef(null);
@@ -1736,7 +2002,19 @@ export default function ZombiesCharacterSheet() {
     const rightGutter = Math.max(0, viewportWidth - contentRect.right);
     const largestGutter = Math.max(leftGutter, rightGutter);
     const BUFFER = 24;
-    const computedMaxWidth = largestGutter > BUFFER ? largestGutter - BUFFER : 0;
+    const computeMaxWidth = (gutter) => (gutter > BUFFER ? gutter - BUFFER : null);
+    const computedMaxWidths = {
+      left: computeMaxWidth(leftGutter),
+      right: computeMaxWidth(rightGutter),
+    };
+    const computedMaxWidth = computeMaxWidth(largestGutter) ?? 0;
+    const viewportLimit =
+      viewportWidth > 0
+        ? Math.max(
+            MIN_DOCKED_MODAL_WIDTH,
+            viewportWidth - DOCKED_MODAL_VIEWPORT_PADDING * 2
+          )
+        : null;
 
     dockingScopeElement.style.setProperty('--docked-modal-top-offset', `${Math.round(topOffset)}px`);
 
@@ -1745,7 +2023,36 @@ export default function ZombiesCharacterSheet() {
     } else {
       dockingScopeElement.style.removeProperty('--docked-modal-max-width');
     }
-  }, []);
+
+    ['left', 'right'].forEach((side) => {
+      const value = computedMaxWidths[side];
+      const propertyName = `--docked-modal-max-width-${side}`;
+      if (typeof value === 'number' && value > 0) {
+        dockingScopeElement.style.setProperty(propertyName, `${Math.round(value)}px`);
+      } else {
+        dockingScopeElement.style.removeProperty(propertyName);
+      }
+    });
+
+    setDockedModalWidths((prev) => {
+      let next = prev;
+      ['left', 'right'].forEach((side) => {
+        const currentWidth = prev[side];
+        if (
+          typeof viewportLimit === 'number' &&
+          viewportLimit > 0 &&
+          typeof currentWidth === 'number' &&
+          currentWidth > viewportLimit + 0.5
+        ) {
+          if (next === prev) {
+            next = { ...prev };
+          }
+          next[side] = viewportLimit;
+        }
+      });
+      return next;
+    });
+  }, [setDockedModalWidths]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1786,13 +2093,289 @@ export default function ZombiesCharacterSheet() {
       const dockingScopeElement = document.documentElement || document.body;
       if (dockingScopeElement) {
         dockingScopeElement.style.removeProperty('--docked-modal-top-offset');
+        dockingScopeElement.style.removeProperty('--docked-modal-max-width');
+        dockingScopeElement.style.removeProperty('--docked-modal-max-width-left');
+        dockingScopeElement.style.removeProperty('--docked-modal-max-width-right');
       }
     };
   }, [updateDockedModalMetrics]);
 
   useEffect(() => {
     updateDockedModalMetrics();
-  }, [updateDockedModalMetrics, headerHeight, isWideScreen]);
+  }, [updateDockedModalMetrics, headerHeight]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const dockingScopeElement = document.documentElement || document.body;
+    if (!dockingScopeElement) {
+      return undefined;
+    }
+
+    const applyInlineWidthToDialogs = (side, width) => {
+      const dialogs = document.querySelectorAll(
+        `.docked-modal.modal-dialog.docked-modal--${side}`
+      );
+
+      dialogs.forEach((dialog) => {
+        if (!(dialog instanceof HTMLElement)) {
+          return;
+        }
+
+        if (typeof width === 'number' && Number.isFinite(width)) {
+          const pixelValue = `${Math.round(width)}px`;
+          dialog.style.setProperty('--docked-modal-inline-width', pixelValue);
+        } else {
+          dialog.style.removeProperty('--docked-modal-inline-width');
+        }
+      });
+    };
+
+    ['left', 'right'].forEach((side) => {
+      const width = dockedModalWidths[side];
+      const propertyName = `--docked-modal-width-${side}`;
+      if (typeof width === 'number' && Number.isFinite(width)) {
+        const rounded = Math.round(width);
+        dockingScopeElement.style.setProperty(propertyName, `${rounded}px`);
+        applyInlineWidthToDialogs(side, rounded);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.setItem(
+              `zombiesDockedModalWidth:${side}`,
+              String(rounded)
+            );
+          } catch (storageError) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(storageError);
+            }
+          }
+        }
+      } else {
+        dockingScopeElement.style.removeProperty(propertyName);
+        applyInlineWidthToDialogs(side, null);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.removeItem(`zombiesDockedModalWidth:${side}`);
+          } catch (storageError) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(storageError);
+            }
+          }
+        }
+      }
+    });
+
+    return () => {
+      const scope = document.documentElement || document.body;
+      if (!scope) {
+        return;
+      }
+
+      ['left', 'right'].forEach((side) => {
+        scope.style.removeProperty(`--docked-modal-width-${side}`);
+        const dialogs = document.querySelectorAll(
+          `.docked-modal.modal-dialog.docked-modal--${side}`
+        );
+        dialogs.forEach((dialog) => {
+          if (dialog instanceof HTMLElement) {
+            dialog.style.removeProperty('--docked-modal-inline-width');
+          }
+        });
+      });
+    };
+  }, [dockedModalWidths]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const parseWidthValue = (value) => {
+      if (typeof value !== 'string') {
+        return null;
+      }
+
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const numeric = Number.parseFloat(trimmed);
+      return Number.isFinite(numeric) ? numeric : null;
+    };
+
+    const EDGE_THRESHOLD_PX = 16;
+    const EDGE_HANDLE_BUFFER_PX = 12;
+
+    const handlePointerDown = (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const dialog = target.closest('.docked-modal.modal-dialog');
+      if (!dialog) {
+        return;
+      }
+
+      const side = dialog.classList.contains('docked-modal--left')
+        ? 'left'
+        : dialog.classList.contains('docked-modal--right')
+        ? 'right'
+        : null;
+
+      if (!side) {
+        return;
+      }
+
+      const rect = dialog.getBoundingClientRect();
+      const distanceFromEdge =
+        side === 'left' ? rect.right - event.clientX : event.clientX - rect.left;
+      const isWithinEdgeZone =
+        Math.abs(distanceFromEdge) <= EDGE_THRESHOLD_PX + EDGE_HANDLE_BUFFER_PX;
+
+      if (!isWithinEdgeZone) {
+        return;
+      }
+
+      const root = document.documentElement || document.body;
+      const computedStyles = root ? window.getComputedStyle(root) : null;
+      const maxWidthFromSide =
+        parseWidthValue(
+          computedStyles?.getPropertyValue(`--docked-modal-max-width-${side}`)
+        ) ?? null;
+      const fallbackMaxWidth =
+        parseWidthValue(
+          computedStyles?.getPropertyValue('--docked-modal-max-width')
+        ) ?? null;
+      const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportLimit =
+        viewportWidth > 0
+          ? Math.max(
+              MIN_DOCKED_MODAL_WIDTH,
+              viewportWidth - DOCKED_MODAL_VIEWPORT_PADDING * 2
+            )
+          : null;
+      const startingWidth = rect.width;
+      const widthLimitCandidates = [MIN_DOCKED_MODAL_WIDTH];
+      const addCandidate = (value) => {
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+          widthLimitCandidates.push(value);
+        }
+      };
+
+      addCandidate(maxWidthFromSide);
+      addCandidate(fallbackMaxWidth);
+      addCandidate(startingWidth);
+      addCandidate(viewportLimit);
+
+      let maxWidth = Math.max(...widthLimitCandidates);
+      if (typeof viewportLimit === 'number' && Number.isFinite(viewportLimit)) {
+        maxWidth = Math.min(maxWidth, viewportLimit);
+      }
+      const anchor = side === 'left' ? rect.left : rect.right;
+      const pointerId = event.pointerId;
+      let framePending = false;
+      let hasMoved = false;
+
+      const updateDialogInlineWidth = (value) => {
+        if (!(dialog instanceof HTMLElement)) {
+          return;
+        }
+
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          dialog.style.setProperty('--docked-modal-inline-width', `${Math.round(value)}px`);
+        } else {
+          dialog.style.removeProperty('--docked-modal-inline-width');
+        }
+      };
+
+      const applyWidth = (nextWidth) => {
+        const rounded = Math.round(nextWidth);
+        updateDialogInlineWidth(rounded);
+        setDockedModalWidths((prev) => {
+          const prevWidth = prev[side];
+          if (typeof prevWidth === 'number' && Math.abs(prevWidth - rounded) < 1) {
+            return prev;
+          }
+
+          return { ...prev, [side]: rounded };
+        });
+      };
+
+      const handlePointerMove = (moveEvent) => {
+        if (moveEvent.pointerId !== pointerId) {
+          return;
+        }
+
+        let proposedWidth =
+          side === 'left' ? moveEvent.clientX - anchor : anchor - moveEvent.clientX;
+
+        if (!Number.isFinite(proposedWidth)) {
+          return;
+        }
+
+        proposedWidth = Math.max(
+          MIN_DOCKED_MODAL_WIDTH,
+          Math.min(maxWidth, proposedWidth)
+        );
+
+        if (framePending) {
+          return;
+        }
+
+        framePending = true;
+        hasMoved = true;
+        window.requestAnimationFrame(() => {
+          framePending = false;
+          applyWidth(proposedWidth);
+        });
+      };
+
+      const stopResizing = () => {
+        dialog.releasePointerCapture?.(pointerId);
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', stopResizing);
+        document.removeEventListener('pointercancel', stopResizing);
+        document.body.classList.remove('docked-modal--resizing');
+        document.body.style.removeProperty('cursor');
+
+        if (!hasMoved) {
+          updateDialogInlineWidth(null);
+        }
+      };
+
+      updateDialogInlineWidth(startingWidth);
+
+      document.addEventListener('pointermove', handlePointerMove);
+      document.addEventListener('pointerup', stopResizing);
+      document.addEventListener('pointercancel', stopResizing);
+
+      dialog.setPointerCapture?.(pointerId);
+      document.body.classList.add('docked-modal--resizing');
+      document.body.style.cursor = 'ew-resize';
+
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.body.classList.remove('docked-modal--resizing');
+      document.body.style.removeProperty('cursor');
+    };
+  }, [setDockedModalWidths]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -2052,19 +2635,106 @@ export default function ZombiesCharacterSheet() {
     });
   }, []);
 
-  const handleDockSelectionChange = useCallback((side, value) => {
-    const normalizedValue = value || null;
-    setDockedModals((prev) => {
-      const next = { ...prev, [side]: normalizedValue };
-      if (normalizedValue) {
+  const handleDockChange = useCallback(
+    (modalKey, side) => {
+      if (!modalKey) {
+        return;
+      }
+
+      setDockedModals((prev) => {
+        let next = prev;
+        let detached = false;
+
+        ['left', 'right'].forEach((position) => {
+          if (prev[position] === modalKey) {
+            if (next === prev) {
+              next = { ...prev };
+            }
+            next[position] = null;
+            detached = true;
+          }
+        });
+
+        if (!side) {
+          return next === prev ? prev : next;
+        }
+
+        if (side !== 'left' && side !== 'right') {
+          return next === prev ? prev : next;
+        }
+
+        if (prev[side] === modalKey && detached) {
+          return next;
+        }
+
+        if (next === prev) {
+          next = { ...prev };
+        }
+
         const otherSide = side === 'left' ? 'right' : 'left';
-        if (prev[otherSide] === normalizedValue) {
+        next[side] = modalKey;
+
+        if (next[otherSide] === modalKey) {
           next[otherSide] = null;
         }
+
+        return next;
+      });
+
+      if (side) {
+        switch (modalKey) {
+          case 'characterInfo':
+            setShowCharacterInfo(false);
+            break;
+          case 'stats':
+            setShowStats(false);
+            break;
+          case 'skills':
+            setShowSkill(false);
+            break;
+          case 'feats':
+            setShowFeats(false);
+            break;
+          case 'features':
+            setShowFeatures(false);
+            break;
+          case 'spells':
+            setShowSpells(false);
+            break;
+          case 'equipment':
+            setShowEquipment(false);
+            break;
+          case 'inventory':
+            setShowInventory(false);
+            break;
+          case 'shop':
+            setShowShop(false);
+            break;
+          case 'help':
+            setShowHelpModal(false);
+            break;
+          case 'map':
+            setShowMapModal(false);
+            break;
+          default:
+            break;
+        }
       }
-      return next;
-    });
-  }, []);
+    },
+    [
+      setShowCharacterInfo,
+      setShowStats,
+      setShowSkill,
+      setShowFeats,
+      setShowFeatures,
+      setShowSpells,
+      setShowEquipment,
+      setShowInventory,
+      setShowShop,
+      setShowHelpModal,
+      setShowMapModal,
+    ]
+  );
 
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
@@ -2095,7 +2765,8 @@ export default function ZombiesCharacterSheet() {
   const handleShowMapModal = useCallback(() => setShowMapModal(true), []);
   const handleCloseMapModal = useCallback(() => {
     setShowMapModal(false);
-  }, []);
+    handleDockClose('map');
+  }, [handleDockClose]);
 
   const getDockedSide = useCallback(
     (modalKey) => {
@@ -2147,6 +2818,20 @@ export default function ZombiesCharacterSheet() {
     (arg, lvl, idx) => {
       if (arg === 'action' || arg === 'bonus') {
         consumeCircle(arg, lvl);
+        if (arg === 'action' && speakWithAnimalsPendingRef.current) {
+          setActiveEffects((prev = []) => {
+            if (prev.some((effect) => effect?.name === 'Speak with Animals')) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { name: 'Speak with Animals', icon: speakWithAnimalsIcon },
+            ];
+          });
+        }
+        if (arg === 'action') {
+          speakWithAnimalsPendingRef.current = false;
+        }
         return;
       }
       const consumeSlot = (level, preferredType) => {
@@ -2211,7 +2896,15 @@ export default function ZombiesCharacterSheet() {
           castingTime,
           name,
           spellName: altName,
+          pendingEffectOnly,
         } = arg;
+        const spellLabel = name || altName;
+        if (pendingEffectOnly) {
+          if (spellLabel === 'Speak with Animals') {
+            speakWithAnimalsPendingRef.current = true;
+          }
+          return;
+        }
         const castLevel = typeof slotLevel === 'number' ? slotLevel : level;
         consumeSlot(castLevel, slotType);
         if (castingTime?.includes('1 action')) consumeCircle('action');
@@ -2239,7 +2932,6 @@ export default function ZombiesCharacterSheet() {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };
         }
-        const spellLabel = name || altName;
         playerTurnActionsRef.current?.updateDamageValueWithAnimation(
           result?.total,
           result?.breakdown,
@@ -2250,6 +2942,20 @@ export default function ZombiesCharacterSheet() {
             ...prev,
             { name: 'Haste', icon: hasteIcon, remaining: 10 },
           ]);
+        }
+        if (spellLabel === 'Speak with Animals') {
+          setActiveEffects((prev = []) => {
+            if (prev.some((effect) => effect?.name === 'Speak with Animals')) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { name: 'Speak with Animals', icon: speakWithAnimalsIcon },
+            ];
+          });
+          speakWithAnimalsPendingRef.current = false;
+        } else {
+          speakWithAnimalsPendingRef.current = false;
         }
         return;
       }
@@ -2543,18 +3249,38 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
-  const { bonuses: itemBonus, overrides: itemOverrides } = aggregateStatEffects(
-    form?.item
+  const hasEquipmentData =
+    typeof form?.equipment === 'object' && form.equipment !== null;
+
+  const normalizedEquipment = useMemo(
+    () => normalizeEquipmentMap(form?.equipment),
+    [form?.equipment]
   );
 
-  const accessorySource = Array.isArray(form?.accessories)
-    ? form.accessories
-    : Array.isArray(form?.accessory)
-      ? form.accessory
-      : [];
+  const fallbackItems = useMemo(
+    () => (Array.isArray(form?.item) ? form.item.filter(Boolean) : []),
+    [form?.item]
+  );
 
-  const { bonuses: accessoryBonus, overrides: accessoryOverrides } =
-    aggregateStatEffects(accessorySource);
+  const fallbackAccessories = useMemo(() => {
+    if (Array.isArray(form?.accessories)) {
+      return form.accessories.filter(Boolean);
+    }
+    if (Array.isArray(form?.accessory)) {
+      return form.accessory.filter(Boolean);
+    }
+    return [];
+  }, [form?.accessories, form?.accessory]);
+
+  const equippedInventory = useMemo(() => {
+    if (hasEquipmentData) {
+      return Object.values(normalizedEquipment).filter(Boolean);
+    }
+    return [...fallbackItems, ...fallbackAccessories];
+  }, [fallbackAccessories, fallbackItems, hasEquipmentData, normalizedEquipment]);
+
+  const { bonuses: equipmentBonuses, overrides: equipmentOverrides } =
+    useMemo(() => aggregateStatEffects(equippedInventory), [equippedInventory]);
 
   const featAbilityBonuses = collectFeatAbilityBonuses(form?.feat);
 
@@ -2579,6 +3305,94 @@ export default function ZombiesCharacterSheet() {
   useEffect(() => {
     resolvedCharacterIdRef.current = resolvedCharacterId;
   }, [resolvedCharacterId]);
+
+  const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
+
+  const tokenPickerFilterScope = useMemo(() => {
+    const scopeSet = new Set();
+
+    const addScopeVariants = (rawValue, prefixes = [], options = {}) => {
+      if (typeof rawValue !== 'string') {
+        return;
+      }
+
+      const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
+      if (!normalizedValue) {
+        return;
+      }
+
+      const lowerValue = normalizedValue.toLowerCase();
+      const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
+
+      const normalizedPrefixes = Array.isArray(prefixes)
+        ? prefixes.map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
+        : [];
+
+      const includeStandalone =
+        options.includeStandalone ?? normalizedPrefixes.filter(Boolean).length === 0;
+
+      if (includeStandalone) {
+        [normalizedValue, lowerValue, compactValue]
+          .filter(Boolean)
+          .forEach((entry) => scopeSet.add(entry));
+      }
+
+      normalizedPrefixes
+        .filter(Boolean)
+        .forEach((prefix) => {
+          scopeSet.add(`${prefix}/${normalizedValue}`);
+          scopeSet.add(`${prefix}/${lowerValue}`);
+          if (compactValue) {
+            scopeSet.add(`${prefix}/${compactValue}`);
+          }
+        });
+    };
+
+    const { nameVariants: raceNameVariants, prefixes: racePrefixList } =
+      buildRaceTokenScopeData(form?.race?.name);
+
+    const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
+    const seenClasses = new Set();
+    occupations.forEach((occupation) => {
+      if (!occupation || typeof occupation !== 'object') {
+        return;
+      }
+
+      const rawClassName =
+        typeof occupation.Occupation === 'string' ? occupation.Occupation.replace(/\s+/g, ' ').trim() : '';
+      if (!rawClassName) {
+        return;
+      }
+
+      const classKey = rawClassName.toLowerCase();
+      if (seenClasses.has(classKey)) {
+        return;
+      }
+      seenClasses.add(classKey);
+
+      addScopeVariants(rawClassName, [
+        'Core_Class_Tokens',
+        'Adventurers/Core_Class_Tokens',
+        'Tokens/Adventurers/Core_Class_Tokens',
+      ]);
+
+      if (racePrefixList.length > 0) {
+        addScopeVariants(rawClassName, racePrefixList);
+      }
+    });
+
+    if (scopeSet.size === 0 && raceNameVariants.length > 0) {
+      const fallbackRace = raceNameVariants.find((variant) => typeof variant === 'string' && variant.trim() !== '');
+      if (fallbackRace) {
+        addScopeVariants(fallbackRace, [
+          'Adventurers',
+          'Tokens/Adventurers',
+        ]);
+      }
+    }
+
+    return Array.from(scopeSet);
+  }, [form?.occupation, form?.race?.name]);
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor) => {
@@ -2668,6 +3482,133 @@ export default function ZombiesCharacterSheet() {
     [setCampaignCharacters, setForm]
   );
 
+  const updateLocalFigurineImage = useCallback(
+    (incomingCharacterId, nextUrl, nextPublicId) => {
+      const normalizedCharacterId =
+        typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
+          ? incomingCharacterId.trim()
+          : null;
+      const normalizedUrl =
+        typeof nextUrl === 'string' && nextUrl.trim() !== '' ? nextUrl.trim() : null;
+      const normalizedPublicId =
+        typeof nextPublicId === 'string' && nextPublicId.trim() !== ''
+          ? nextPublicId.trim()
+          : null;
+
+      if (!normalizedCharacterId) {
+        return;
+      }
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object' || Object.keys(prev).length === 0) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const next = { ...prev };
+
+        Object.entries(prev).forEach(([key, value]) => {
+          if (!value || typeof value !== 'object') {
+            return;
+          }
+
+          const identifiers = new Set();
+          if (typeof key === 'string' && key.trim() !== '') {
+            identifiers.add(key.trim());
+          }
+          if (typeof value._id === 'string' && value._id.trim() !== '') {
+            identifiers.add(value._id.trim());
+          }
+          if (typeof value.characterId === 'string' && value.characterId.trim() !== '') {
+            identifiers.add(value.characterId.trim());
+          }
+
+          if (!identifiers.has(normalizedCharacterId)) {
+            return;
+          }
+
+          const nextValue = { ...value };
+          let changed = false;
+
+          if (normalizedUrl) {
+            if (nextValue.figurineImageUrl !== normalizedUrl) {
+              nextValue.figurineImageUrl = normalizedUrl;
+              changed = true;
+            }
+          } else if (nextValue.figurineImageUrl) {
+            delete nextValue.figurineImageUrl;
+            changed = true;
+          }
+
+          if (normalizedPublicId) {
+            if (nextValue.figurineImagePublicId !== normalizedPublicId) {
+              nextValue.figurineImagePublicId = normalizedPublicId;
+              changed = true;
+            }
+          } else if (nextValue.figurineImagePublicId) {
+            delete nextValue.figurineImagePublicId;
+            changed = true;
+          }
+
+          if (changed) {
+            next[key] = nextValue;
+            didUpdate = true;
+          }
+        });
+
+        return didUpdate ? next : prev;
+      });
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const identifiers = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          identifiers.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          identifiers.push(prev.characterId.trim());
+        }
+        const resolvedId = resolvedCharacterIdRef.current;
+        if (typeof resolvedId === 'string' && resolvedId.trim() !== '') {
+          identifiers.push(resolvedId.trim());
+        }
+
+        if (!identifiers.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        const nextForm = { ...prev };
+        let changed = false;
+
+        if (normalizedUrl) {
+          if (nextForm.figurineImageUrl !== normalizedUrl) {
+            nextForm.figurineImageUrl = normalizedUrl;
+            changed = true;
+          }
+        } else if (nextForm.figurineImageUrl) {
+          delete nextForm.figurineImageUrl;
+          changed = true;
+        }
+
+        if (normalizedPublicId) {
+          if (nextForm.figurineImagePublicId !== normalizedPublicId) {
+            nextForm.figurineImagePublicId = normalizedPublicId;
+            changed = true;
+          }
+        } else if (nextForm.figurineImagePublicId) {
+          delete nextForm.figurineImagePublicId;
+          changed = true;
+        }
+
+        return changed ? nextForm : prev;
+      });
+    },
+    [setCampaignCharacters, setForm]
+  );
+
   useEffect(() => {
     if (!campaignId) {
       if (socketRef.current) {
@@ -2692,13 +3633,24 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
-      const rawCharacterId = update.characterId;
       const normalizedCharacterId =
-        typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
-          ? rawCharacterId.trim()
+        typeof update.characterId === 'string' && update.characterId.trim() !== ''
+          ? update.characterId.trim()
+          : null;
+      const normalizedRecordId =
+        typeof update._id === 'string' && update._id.trim() !== ''
+          ? update._id.trim()
           : null;
 
-      if (!normalizedCharacterId) {
+      const updateIdentifiers = Array.from(
+        new Set([
+          ...collectCharacterIdentifiers(update),
+          ...(normalizedCharacterId ? [normalizedCharacterId] : []),
+          ...(normalizedRecordId ? [normalizedRecordId] : []),
+        ])
+      );
+
+      if (updateIdentifiers.length === 0) {
         return;
       }
 
@@ -2723,7 +3675,29 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        const existing = prev[normalizedCharacterId];
+        const identifierSet = new Set(updateIdentifiers);
+        let existing = null;
+
+        for (const identifier of identifierSet) {
+          if (prev[identifier]) {
+            existing = prev[identifier];
+            break;
+          }
+        }
+
+        if (!existing) {
+          for (const value of Object.values(prev)) {
+            if (!value || typeof value !== 'object') {
+              continue;
+            }
+            const identifiers = collectCharacterIdentifiers(value);
+            if (identifiers.some((identifier) => identifierSet.has(identifier))) {
+              existing = value;
+              break;
+            }
+          }
+        }
+
         if (!existing) {
           return prev;
         }
@@ -2731,7 +3705,28 @@ export default function ZombiesCharacterSheet() {
         let didUpdate = false;
         const updatedCharacter = { ...existing };
 
-        if (nextTempHealthValue !== undefined && existing.tempHealth !== nextTempHealthValue) {
+        if (
+          normalizedCharacterId &&
+          (typeof updatedCharacter.characterId !== 'string' ||
+            updatedCharacter.characterId.trim() !== normalizedCharacterId)
+        ) {
+          updatedCharacter.characterId = normalizedCharacterId;
+          didUpdate = true;
+        }
+
+        if (
+          normalizedRecordId &&
+          (typeof updatedCharacter._id !== 'string' ||
+            updatedCharacter._id.trim() !== normalizedRecordId)
+        ) {
+          updatedCharacter._id = normalizedRecordId;
+          didUpdate = true;
+        }
+
+        if (
+          nextTempHealthValue !== undefined &&
+          existing.tempHealth !== nextTempHealthValue
+        ) {
           updatedCharacter.tempHealth = nextTempHealthValue;
           didUpdate = true;
         }
@@ -2745,10 +3740,17 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        return {
-          ...prev,
-          [normalizedCharacterId]: updatedCharacter,
-        };
+        const nextCharacters = { ...prev };
+        const identifiers = new Set([
+          ...collectCharacterIdentifiers(updatedCharacter),
+          ...identifierSet,
+        ]);
+
+        identifiers.forEach((identifier) => {
+          nextCharacters[identifier] = updatedCharacter;
+        });
+
+        return nextCharacters;
       });
 
       setForm((prev) => {
@@ -2756,20 +3758,31 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        const candidateIds = [];
-        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
-          candidateIds.push(prev._id.trim());
-        }
-        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
-          candidateIds.push(prev.characterId.trim());
-        }
-
-        if (!candidateIds.includes(normalizedCharacterId)) {
+        const candidateIds = collectCharacterIdentifiers(prev);
+        if (!candidateIds.some((identifier) => updateIdentifiers.includes(identifier))) {
           return prev;
         }
 
         let didUpdate = false;
         const updatedForm = { ...prev };
+
+        if (
+          normalizedCharacterId &&
+          (typeof updatedForm.characterId !== 'string' ||
+            updatedForm.characterId.trim() !== normalizedCharacterId)
+        ) {
+          updatedForm.characterId = normalizedCharacterId;
+          didUpdate = true;
+        }
+
+        if (
+          normalizedRecordId &&
+          (typeof updatedForm._id !== 'string' ||
+            updatedForm._id.trim() !== normalizedRecordId)
+        ) {
+          updatedForm._id = normalizedRecordId;
+          didUpdate = true;
+        }
 
         if (nextTempHealthValue !== undefined && prev.tempHealth !== nextTempHealthValue) {
           updatedForm.tempHealth = nextTempHealthValue;
@@ -2914,16 +3927,42 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
-      const normalizedDiceColor =
-        typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
-          ? update.diceColor.trim()
-          : null;
+      const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(update, 'diceColor');
+      const hasFigurineUrlUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'figurineImageUrl'
+      );
+      const hasFigurineIdUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'figurineImagePublicId'
+      );
 
-      if (!normalizedDiceColor) {
+      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
         return;
       }
 
-      updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
+      if (hasDiceColorUpdate) {
+        const normalizedDiceColor =
+          typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+            ? update.diceColor.trim()
+            : null;
+        if (normalizedDiceColor) {
+          updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
+        }
+      }
+
+      if (hasFigurineUrlUpdate || hasFigurineIdUpdate) {
+        const normalizedUrl =
+          typeof update.figurineImageUrl === 'string' && update.figurineImageUrl.trim() !== ''
+            ? update.figurineImageUrl.trim()
+            : null;
+        const normalizedPublicId =
+          typeof update.figurineImagePublicId === 'string' &&
+          update.figurineImagePublicId.trim() !== ''
+            ? update.figurineImagePublicId.trim()
+            : null;
+        updateLocalFigurineImage(normalizedCharacterId, normalizedUrl, normalizedPublicId);
+      }
     };
 
     socket.on('combat:update', handleCombatUpdate);
@@ -2943,7 +3982,7 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [campaignId, applyMapPayload, updateLocalDiceColor]);
+  }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
 
   const handleDiceColorChange = useCallback(
     (nextColor) => {
@@ -2954,6 +3993,90 @@ export default function ZombiesCharacterSheet() {
       updateLocalDiceColor(currentId, nextColor);
     },
     [updateLocalDiceColor]
+  );
+
+  const handleOpenTokenPicker = useCallback(() => {
+    setTokenPickerError(null);
+    setShowTokenPicker(true);
+  }, []);
+
+  const handleCloseTokenPicker = useCallback(() => {
+    if (tokenPickerSaving) {
+      return;
+    }
+    setShowTokenPicker(false);
+    setTokenPickerError(null);
+  }, [tokenPickerSaving]);
+
+  const handleTokenSelection = useCallback(
+    async (asset) => {
+      if (!characterId) {
+        return;
+      }
+
+      const sanitizedUrl = asset
+        ? typeof asset.secureUrl === 'string' && asset.secureUrl.trim() !== ''
+          ? asset.secureUrl.trim()
+          : typeof asset.url === 'string' && asset.url.trim() !== ''
+            ? asset.url.trim()
+            : null
+        : '';
+
+      const sanitizedPublicId = asset
+        ? typeof asset.publicId === 'string' && asset.publicId.trim() !== ''
+          ? asset.publicId.trim()
+          : null
+        : '';
+
+      setTokenPickerSaving(true);
+      setTokenPickerError(null);
+
+      try {
+        const response = await apiFetch(`/characters/${characterId}/figurine`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            figurineImageUrl: sanitizedUrl,
+            figurineImagePublicId: sanitizedPublicId,
+          }),
+        });
+
+        if (!response.ok) {
+          let message = response.statusText || 'Failed to update figurine.';
+          try {
+            const errorData = await response.json();
+            if (errorData && typeof errorData.message === 'string' && errorData.message.trim() !== '') {
+              message = errorData.message.trim();
+            }
+          } catch (jsonError) {
+            // ignore parsing errors
+          }
+          throw new Error(message);
+        }
+
+        const result = await response.json();
+        const nextUrl =
+          typeof result?.figurineImageUrl === 'string' && result.figurineImageUrl.trim() !== ''
+            ? result.figurineImageUrl.trim()
+            : null;
+        const nextPublicId =
+          typeof result?.figurineImagePublicId === 'string' &&
+          result.figurineImagePublicId.trim() !== ''
+            ? result.figurineImagePublicId.trim()
+            : null;
+
+        const resolvedId =
+          (resolvedCharacterIdRef.current && resolvedCharacterIdRef.current.trim()) || characterId;
+        updateLocalFigurineImage(resolvedId, nextUrl, nextPublicId);
+        setShowTokenPicker(false);
+      } catch (error) {
+        console.error(error);
+        setTokenPickerError(error?.message || 'Failed to update figurine.');
+      } finally {
+        setTokenPickerSaving(false);
+      }
+    },
+    [characterId, updateLocalFigurineImage]
   );
 
   const tokenMetaById = useMemo(() => {
@@ -3006,6 +4129,8 @@ export default function ZombiesCharacterSheet() {
             value?.displayType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(value);
+
         lookup[trimmed] = {
           color,
           label,
@@ -3013,6 +4138,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
           ...(recordSize ? { size: recordSize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       });
     }
@@ -3051,6 +4178,8 @@ export default function ZombiesCharacterSheet() {
           enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+
         lookup[enemyId] = {
           color: ENEMY_FIGURINE_COLOR,
           label,
@@ -3058,6 +4187,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
           maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
           ...(enemySize ? { size: enemySize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       });
     }
@@ -3090,6 +4221,8 @@ export default function ZombiesCharacterSheet() {
             form?.displayType
         );
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(form);
+
         lookup[resolvedCharacterId] = {
           color,
           label,
@@ -3097,6 +4230,8 @@ export default function ZombiesCharacterSheet() {
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
           ...(fallbackSize ? { size: fallbackSize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       } else {
         const fallbackSize = normalizeCreatureSize(
@@ -3113,6 +4248,8 @@ export default function ZombiesCharacterSheet() {
 
         const nextEntry = { ...lookup[resolvedCharacterId] };
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(form);
+
         if (
           typeof nextEntry.entityType !== 'string' ||
           nextEntry.entityType.trim() === ''
@@ -3122,6 +4259,14 @@ export default function ZombiesCharacterSheet() {
 
         if (fallbackSize) {
           nextEntry.size = fallbackSize;
+        }
+
+        if (figurineImageUrl && !nextEntry.figurineImageUrl) {
+          nextEntry.figurineImageUrl = figurineImageUrl;
+        }
+
+        if (figurineImagePublicId && !nextEntry.figurineImagePublicId) {
+          nextEntry.figurineImagePublicId = figurineImagePublicId;
         }
 
         lookup[resolvedCharacterId] = nextEntry;
@@ -3415,11 +4560,10 @@ export default function ZombiesCharacterSheet() {
     const base = Number(form?.[key] || 0);
     const total =
       base +
-      itemBonus[key] +
-      accessoryBonus[key] +
+      equipmentBonuses[key] +
       featAbilityBonuses[key] +
       Number(raceBonus[key] || 0);
-    const overrideCandidates = [itemOverrides[key], accessoryOverrides[key]];
+    const overrideCandidates = [equipmentOverrides[key]];
     const overrideValue = overrideCandidates.reduce((max, value) => {
       if (value === undefined || value === null) return max;
       return max === null ? value : Math.max(max, value);
@@ -3505,11 +4649,6 @@ export default function ZombiesCharacterSheet() {
   }, [form, hasSpellcasting, statMods.cha, statMods.wis]);
 
   const statNames = [...STAT_KEYS];
-  const occupations = form?.occupation || [];
-  const totalLevel = occupations.reduce((total, el) => {
-    const level = Number(el?.Level);
-    return total + (Number.isFinite(level) ? level : 0);
-  }, 0);
   const statTotal = statNames.reduce((sum, stat) => {
     const value = Number(form?.[stat]);
     return sum + (Number.isFinite(value) ? value : 0);
@@ -3557,6 +4696,7 @@ export default function ZombiesCharacterSheet() {
           onShowBackground: handleShowBackground,
           onLongRest: handleLongRest,
           onShortRest: handleShortRest,
+          onDockChange: (side) => handleDockChange('characterInfo', side),
         }),
       },
       stats: {
@@ -3566,6 +4706,7 @@ export default function ZombiesCharacterSheet() {
         getBaseProps: () => ({
           form,
           handleCloseStats,
+          onDockChange: (side) => handleDockChange('stats', side),
         }),
       },
       skills: {
@@ -3584,6 +4725,7 @@ export default function ZombiesCharacterSheet() {
           wisMod: statMods.wis,
           onSkillsChange: handleSkillsChange,
           onRollResult: handleRollResult,
+          onDockChange: (side) => handleDockChange('skills', side),
         }),
       },
       feats: {
@@ -3593,6 +4735,7 @@ export default function ZombiesCharacterSheet() {
         getBaseProps: () => ({
           form,
           handleCloseFeats,
+          onDockChange: (side) => handleDockChange('feats', side),
         }),
       },
       features: {
@@ -3606,6 +4749,7 @@ export default function ZombiesCharacterSheet() {
           onLargeForm: handleLargeForm,
           longRestCount,
           shortRestCount,
+          onDockChange: (side) => handleDockChange('features', side),
         }),
       },
       spells: {
@@ -3618,6 +4762,7 @@ export default function ZombiesCharacterSheet() {
           onSpellsChange: handleSpellsChange,
           onCastSpell: handleCastSpell,
           availableSlots,
+          onDockChange: (side) => handleDockChange('spells', side),
         }),
       },
       equipment: {
@@ -3628,6 +4773,7 @@ export default function ZombiesCharacterSheet() {
           form,
           onHide: handleCloseEquipment,
           onEquipmentChange: handleEquipmentChange,
+          onDockChange: (side) => handleDockChange('equipment', side),
         }),
       },
       inventory: {
@@ -3640,6 +4786,7 @@ export default function ZombiesCharacterSheet() {
           onHide: handleCloseInventory,
           onTabChange: setInventoryTab,
           characterId,
+          onDockChange: (side) => handleDockChange('inventory', side),
         }),
       },
       shop: {
@@ -3664,6 +4811,7 @@ export default function ZombiesCharacterSheet() {
             pp: form?.pp ?? 0,
           },
           onPurchase: handleShopPurchase,
+          onDockChange: (side) => handleDockChange('shop', side),
         }),
       },
       map: {
@@ -3680,6 +4828,7 @@ export default function ZombiesCharacterSheet() {
           characterLookup: tokenMetaById,
           onTokenMove: handleTokenMove,
           onHide: handleCloseMapModal,
+          onDockChange: (side) => handleDockChange('map', side),
         }),
       },
       help: {
@@ -3690,6 +4839,7 @@ export default function ZombiesCharacterSheet() {
           form,
           handleCloseHelpModal,
           onDiceColorChange: handleDiceColorChange,
+          onDockChange: (side) => handleDockChange('help', side),
         }),
       },
     }),
@@ -3718,6 +4868,7 @@ export default function ZombiesCharacterSheet() {
       handleCloseSpells,
       handleCloseStats,
       handleDiceColorChange,
+      handleDockChange,
       handleEquipmentChange,
       handleItemsChange,
       handleLongRest,
@@ -3790,11 +4941,12 @@ export default function ZombiesCharacterSheet() {
             isDocked
             dockedSide={dockedSide}
             onDockClose={() => handleDockClose(modalKey)}
+            onDockChange={(side) => handleDockChange(modalKey, side)}
           />
         );
       })
       .filter(Boolean);
-  }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockClose]);
+  }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
   return (
     <div
@@ -3822,77 +4974,14 @@ export default function ZombiesCharacterSheet() {
           minHeight: 0,
         }}
       >
-        {isWideScreen && (
-        <>
-          <div className="dock-selector dock-selector--left">
-            <label
-              className="dock-selector__label"
-              htmlFor="dock-selector-left"
-            >
-              Dock left modal
-            </label>
-            <Form.Select
-              id="dock-selector-left"
-              size="sm"
-              className="dock-selector__control"
-              value={dockedModals.left ?? ''}
-              onChange={(event) =>
-                handleDockSelectionChange('left', event.target.value)
-              }
-            >
-              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => {
-                const config = key ? DOCKABLE_MODAL_CONFIG[key] : null;
-                const isDisabled = key ? config?.isEnabled === false : false;
-                return (
-                  <option
-                    key={key ?? 'none'}
-                    value={key ?? ''}
-                    disabled={isDisabled}
-                  >
-                    {label}
-                  </option>
-                );
-              })}
-            </Form.Select>
-          </div>
-          <div className="dock-selector dock-selector--right">
-            <label
-              className="dock-selector__label"
-              htmlFor="dock-selector-right"
-            >
-              Dock right modal
-            </label>
-            <Form.Select
-              id="dock-selector-right"
-              size="sm"
-              className="dock-selector__control"
-              value={dockedModals.right ?? ''}
-              onChange={(event) =>
-                handleDockSelectionChange('right', event.target.value)
-              }
-            >
-              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => {
-                const config = key ? DOCKABLE_MODAL_CONFIG[key] : null;
-                const isDisabled = key ? config?.isEnabled === false : false;
-                return (
-                  <option
-                    key={key ?? 'none'}
-                    value={key ?? ''}
-                    disabled={isDisabled}
-                  >
-                    {label}
-                  </option>
-                );
-              })}
-            </Form.Select>
-          </div>
-        </>
-      )}
       {isFormReady ? (
         <>
           <div ref={headerRef}>
             <div ref={combatHeaderRef}>
-              <CombatTurnHeader participants={participantsWithDetails} />
+              <CombatTurnHeader
+                participants={participantsWithDetails}
+                tokenLookup={tokenMetaById}
+              />
             </div>
             <h1
               style={{
@@ -3924,6 +5013,7 @@ export default function ZombiesCharacterSheet() {
               hpMaxBonus={featBonuses.hpMaxBonus}
               hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
               onTempHealthChange={handleHealthChange}
+              speedMultiplier={speedMultiplier}
               {...(spellAbilityMod !== null && { spellAbilityMod })}
             />
           </div>
@@ -4144,6 +5234,11 @@ export default function ZombiesCharacterSheet() {
           onShowBackground={handleShowBackground}
           onLongRest={handleLongRest}
           onShortRest={handleShortRest}
+          characterFigurine={characterFigurine}
+          handleOpenTokenPicker={handleOpenTokenPicker}
+          tokenPickerSaving={tokenPickerSaving}
+          dockedSide={getDockedSide('characterInfo')}
+          onDockChange={(side) => handleDockChange('characterInfo', side)}
         />
         <Skills
           form={form}
@@ -4158,11 +5253,15 @@ export default function ZombiesCharacterSheet() {
           wisMod={statMods.wis}
           onSkillsChange={handleSkillsChange}
           onRollResult={handleRollResult}
+          dockedSide={getDockedSide('skills')}
+          onDockChange={(side) => handleDockChange('skills', side)}
         />
         <Stats
           form={form}
           showStats={showStats}
           handleCloseStats={handleCloseStats}
+          dockedSide={getDockedSide('stats')}
+          onDockChange={(side) => handleDockChange('stats', side)}
         />
         <BackgroundModal
           show={showBackground}
@@ -4173,16 +5272,25 @@ export default function ZombiesCharacterSheet() {
           form={form}
           showFeats={showFeats}
           handleCloseFeats={handleCloseFeats}
+          dockedSide={getDockedSide('feats')}
+          onDockChange={(side) => handleDockChange('feats', side)}
         />
         <Features
           form={form}
           showFeatures={showFeatures}
           handleCloseFeatures={handleCloseFeatures}
           onActionSurge={handleActionSurge}
+          onAdrenalineRush={handleAdrenalineRush}
           onLargeForm={handleLargeForm}
+          onDraconicFlight={handleDraconicFlight}
+          onCastSpell={handleCastSpell}
           longRestCount={longRestCount}
           shortRestCount={shortRestCount}
+          availableSlots={availableSlots}
           actionCount={actionCount}
+          characterId={characterId}
+          dockedSide={getDockedSide('features')}
+          onDockChange={(side) => handleDockChange('features', side)}
         />
         <InventoryModal
           show={showInventory}
@@ -4191,12 +5299,16 @@ export default function ZombiesCharacterSheet() {
           onTabChange={setInventoryTab}
           form={form}
           characterId={characterId}
+          dockedSide={getDockedSide('inventory')}
+          onDockChange={(side) => handleDockChange('inventory', side)}
         />
         <EquipmentModal
           show={showEquipment}
           onHide={handleCloseEquipment}
           form={form}
           onEquipmentChange={handleEquipmentChange}
+          dockedSide={getDockedSide('equipment')}
+          onDockChange={(side) => handleDockChange('equipment', side)}
         />
         <ShopModal
           show={showShop}
@@ -4217,6 +5329,8 @@ export default function ZombiesCharacterSheet() {
             pp: form?.pp ?? 0,
           }}
           onPurchase={handleShopPurchase}
+          dockedSide={getDockedSide('shop')}
+          onDockChange={(side) => handleDockChange('shop', side)}
         />
         {hasSpellcasting && (
           <SpellSelector
@@ -4226,6 +5340,8 @@ export default function ZombiesCharacterSheet() {
             onSpellsChange={handleSpellsChange}
             onCastSpell={handleCastSpell}
             availableSlots={availableSlots}
+            dockedSide={getDockedSide('spells')}
+            onDockChange={(side) => handleDockChange('spells', side)}
           />
         )}
         <Help
@@ -4233,9 +5349,24 @@ export default function ZombiesCharacterSheet() {
           showHelpModal={showHelpModal}
           handleCloseHelpModal={handleCloseHelpModal}
           onDiceColorChange={handleDiceColorChange}
+          dockedSide={getDockedSide('help')}
+          onDockChange={(side) => handleDockChange('help', side)}
         />
       </>
     )}
+    <TokenPickerModal
+      show={showTokenPicker}
+      onHide={handleCloseTokenPicker}
+      campaignId={campaignId || undefined}
+      onSelect={handleTokenSelection}
+      allowClear={Boolean(
+        characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
+      )}
+      onClear={() => handleTokenSelection(null)}
+      isBusy={tokenPickerSaving}
+      errorMessage={tokenPickerError}
+      filterScope={tokenPickerFilterScope}
+    />
     <MapModal
       show={shouldShowMapModal}
       onHide={handleCloseMapModal}
@@ -4248,6 +5379,8 @@ export default function ZombiesCharacterSheet() {
       characterLookup={tokenMetaById}
       onTokenMove={handleTokenMove}
       onTokenRemove={handleTokenRemove}
+      dockedSide={getDockedSide('map')}
+      onDockChange={(side) => handleDockChange('map', side)}
     />
     {dockedModalElements}
   </div>

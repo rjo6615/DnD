@@ -12,6 +12,7 @@ jest.mock('../attributes/CampaignMapBoard', () => {
     default: jest.fn(() => React.createElement('div', { 'data-testid': 'campaign-map-board' })),
   };
 });
+
 jest.mock('../attributes/MapModal', () => {
   const React = require('react');
   const actual = jest.requireActual('../attributes/MapModal');
@@ -37,7 +38,12 @@ const socketModule = require('socket.io-client');
 const CampaignMapBoard = require('../attributes/CampaignMapBoard').default;
 const MapModal = require('../attributes/MapModal').default;
 
-const ZombiesDM = require('./ZombiesDM').default;
+const {
+  default: ZombiesDM,
+  applyCharacterHealthUpdateToRecords,
+  getCharacterCardMeta,
+  getCombatRowMeta,
+} = require('./ZombiesDM');
 
 const armorSlotOptions = [
   { key: 'head', label: 'Head' },
@@ -59,6 +65,53 @@ const accessorySlotOptions = [
   { key: 'ringLeft', label: 'Ring I' },
   { key: 'ringRight', label: 'Ring II' },
 ];
+
+describe('ZombiesDM metadata helpers', () => {
+  test('character health updates propagate to record cards and combat rows', () => {
+    const originalRecord = { _id: 'abc123', health: 12 };
+    const records = [originalRecord];
+
+    const updatedRecords = applyCharacterHealthUpdateToRecords({
+      records,
+      update: { _id: 'abc123', characterId: 'hero-1', health: 7 },
+    });
+
+    expect(updatedRecords).not.toBe(records);
+    expect(updatedRecords[0]).not.toBe(originalRecord);
+    expect(updatedRecords[0].health).toBe(7);
+    expect(updatedRecords[0]._id).toBe('abc123');
+    expect(updatedRecords[0].characterId).toBe('hero-1');
+
+    const cardMeta = getCharacterCardMeta(updatedRecords[0], 0);
+    expect(cardMeta.testId).toBe('character-card-abc123');
+    expect(cardMeta.dataAttributes['data-character-id']).toBe('abc123');
+    expect(cardMeta.dataAttributes['data-current-hp']).toBeUndefined();
+
+    const combatMeta = getCombatRowMeta({
+      character: updatedRecords[0],
+      rowId: 'hero-1',
+      participantInfo: { characterId: 'hero-1', currentHp: 12, maxHp: 18 },
+      recordIndex: 0,
+    });
+    expect(combatMeta.testId).toBe('combat-row-hero-1');
+    expect(combatMeta.dataAttributes['data-current-hp']).toBe(12);
+  });
+
+  test('combat row metadata prefers participant max hp over character health when no explicit current hp is present', () => {
+    const character = { _id: 'def456', health: 42 };
+
+    const combatMeta = getCombatRowMeta({
+      character,
+      rowId: 'hero-2',
+      participantInfo: { characterId: 'hero-2', maxHp: 30 },
+      recordIndex: 1,
+    });
+
+    expect(combatMeta.dataAttributes['data-current-hp']).toBeUndefined();
+    expect(combatMeta.dataAttributes['data-max-hp']).toBe(30);
+    expect(combatMeta.dataAttributes['data-max-hp']).not.toBe(character.health);
+  });
+});
 
 const openResourceCard = async (tabLabel, testId) => {
   const tab = await screen.findByRole('tab', { name: tabLabel });
@@ -95,6 +148,372 @@ describe('ZombiesDM AI generation', () => {
     expect(testSocket).toBeDefined();
     expect(typeof testSocket.on).toBe('function');
     ioMock.mockClear();
+  });
+
+  test('map editor indicates required fields and validates image source before submit', async () => {
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          if (options.method === 'POST') {
+            return Promise.resolve({ ok: true, json: async () => ({}) });
+          }
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ maps: [], activeMapId: null, map: null }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    await screen.findByTestId('map-list');
+
+    const createButton = await screen.findByTestId('create-map-button');
+    await userEvent.click(createButton);
+
+    const modal = await screen.findByTestId('map-editor-modal');
+    const modalQueries = within(modal);
+
+    const folderInput = modalQueries.getByLabelText(/^Folder/);
+    expect(folderInput).not.toBeRequired();
+
+    const getRequiredLabel = (labelText) =>
+      modalQueries.getByText((_, element) => {
+        if (!element || element.tagName.toLowerCase() !== 'label') {
+          return false;
+        }
+        const normalized = (element.textContent || '').replace(/\s+/g, ' ').trim();
+        return new RegExp(`^${labelText}\\s*\\*$`, 'i').test(normalized);
+      });
+
+    expect(getRequiredLabel('Title')).toBeInTheDocument();
+    const titleInput = modalQueries.getByLabelText(/^Title/);
+    expect(titleInput).toBeRequired();
+
+    expect(getRequiredLabel('Image URL')).toBeInTheDocument();
+    expect(getRequiredLabel('Image File')).toBeInTheDocument();
+    expect(getRequiredLabel('Alt Text')).toBeInTheDocument();
+    const helperText = modalQueries.getByText(/At least one source is required\./i);
+    expect(helperText).toBeInTheDocument();
+
+    await userEvent.type(titleInput, 'New Map');
+
+    const submitButton = modalQueries.getByTestId('map-editor-submit-button');
+    await userEvent.click(submitButton);
+
+    const errorMessage = await modalQueries.findByText('Provide an image URL or upload a file.');
+    expect(errorMessage).toBeInTheDocument();
+
+    const getMapPostCalls = () =>
+      apiFetch.mock.calls.filter(
+        ([requestUrl, requestOptions]) =>
+          requestUrl === '/campaigns/Camp1/maps' && requestOptions && requestOptions.method === 'POST'
+      );
+
+    expect(getMapPostCalls()).toHaveLength(0);
+
+    const imageUrlInput = modalQueries.getByLabelText(/^Image URL/);
+    const imageFileInput = modalQueries.getByLabelText(/^Image File/);
+    const altTextInput = modalQueries.getByLabelText(/^Alt Text/);
+
+    expect(imageUrlInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-requirement')
+    );
+    expect(imageUrlInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-error')
+    );
+    expect(imageFileInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-requirement')
+    );
+    expect(imageFileInput).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('map-editor-image-error')
+    );
+
+    expect(altTextInput).toBeRequired();
+
+    await userEvent.type(imageUrlInput, 'https://example.com/map.png');
+
+    await waitFor(() =>
+      expect(
+        modalQueries.queryByText('Provide an image URL or upload a file.')
+      ).not.toBeInTheDocument()
+    );
+
+    const imageUrlDescribedBy = imageUrlInput.getAttribute('aria-describedby') || '';
+    expect(imageUrlDescribedBy).toContain('map-editor-image-requirement');
+    expect(imageUrlDescribedBy).not.toContain('map-editor-image-error');
+
+    const imageFileDescribedBy = imageFileInput.getAttribute('aria-describedby') || '';
+    expect(imageFileDescribedBy).toContain('map-editor-image-requirement');
+    expect(imageFileDescribedBy).not.toContain('map-editor-image-error');
+
+    await userEvent.click(submitButton);
+
+    const altTextError = await modalQueries.findByText('Alt text is required.');
+    expect(altTextError).toBeInTheDocument();
+    expect(getMapPostCalls()).toHaveLength(0);
+
+    await userEvent.type(altTextInput, 'Forest clearing battle map');
+
+    await waitFor(() =>
+      expect(modalQueries.queryByText('Alt text is required.')).not.toBeInTheDocument()
+    );
+
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(getMapPostCalls()).toHaveLength(1);
+    });
+  });
+
+  test('map folder selection persists and manager groups maps by folder', async () => {
+    const now = '2024-01-01T00:00:00.000Z';
+    const baseMaps = [
+      {
+        mapId: 'encounter-map',
+        title: 'Existing Encounter',
+        folder: 'Encounters',
+        imageUrl: 'https://example.com/encounter.png',
+        altText: 'Encounter map',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        mapId: 'no-folder-map',
+        title: 'Loose Map',
+        imageUrl: 'https://example.com/loose.png',
+        altText: 'Loose map',
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+    let storedMaps = [...baseMaps];
+    const mapPostBodies = [];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps': {
+          if (options.method === 'POST') {
+            const parsedBody = JSON.parse(options.body || '{}');
+            mapPostBodies.push(parsedBody);
+            const createdIndex = mapPostBodies.length;
+            const createdMapId = createdIndex === 1 ? 'forest-map' : `forest-map-${createdIndex}`;
+            const createdMap = {
+              mapId: createdMapId,
+              title: parsedBody.map?.title || 'Forest Map',
+              folder: parsedBody.map?.folder,
+              imageUrl: parsedBody.map?.imageUrl || 'https://example.com/forest.png',
+              altText: parsedBody.map?.altText || 'Forest map',
+              createdAt: now,
+              updatedAt: now,
+            };
+            storedMaps = [...storedMaps, createdMap];
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                maps: storedMaps,
+                activeMapId: createdMap.mapId,
+                map: { ...createdMap, tokens: {} },
+                tokensByMapId: {},
+                activeMapTokens: {},
+              }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: storedMaps,
+              activeMapId: storedMaps[0].mapId,
+              map: { ...storedMaps[0], tokens: {} },
+              tokensByMapId: {},
+              activeMapTokens: {},
+            }),
+          });
+        }
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const createButton = await screen.findByTestId('create-map-button');
+    await userEvent.click(createButton);
+
+    const modal = await screen.findByTestId('map-editor-modal');
+    const modalQueries = within(modal);
+
+    await userEvent.type(modalQueries.getByLabelText(/^Title/), 'Forest Ambush');
+    const folderSelect = modalQueries.getByLabelText(/^Folder/);
+    expect(folderSelect.tagName).toBe('SELECT');
+    await userEvent.selectOptions(folderSelect, 'Create new folder…');
+    const newFolderInput = await modalQueries.findByLabelText('New folder name');
+    await userEvent.type(newFolderInput, 'Forest Encounters');
+    await userEvent.type(
+      modalQueries.getByLabelText(/^Image URL/),
+      'https://example.com/forest.png'
+    );
+    await userEvent.type(modalQueries.getByLabelText(/^Alt Text/), 'Forest clearing');
+
+    await userEvent.click(modalQueries.getByTestId('map-editor-submit-button'));
+
+    await waitFor(() => {
+      expect(mapPostBodies).toHaveLength(1);
+    });
+
+    expect(mapPostBodies[0].map.folder).toBe('Forest Encounters');
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Forest Ambush')).toBeInTheDocument();
+    });
+
+    await userEvent.click(createButton);
+    const modalAgain = await screen.findByTestId('map-editor-modal');
+    const modalAgainQueries = within(modalAgain);
+    const folderSelectAgain = modalAgainQueries.getByLabelText(/^Folder/);
+    expect(folderSelectAgain).toHaveValue('Forest Encounters');
+
+    await userEvent.selectOptions(folderSelectAgain, 'Encounters');
+    expect(folderSelectAgain).toHaveValue('Encounters');
+    expect(modalAgainQueries.queryByLabelText('New folder name')).not.toBeInTheDocument();
+
+    await userEvent.type(modalAgainQueries.getByLabelText(/^Title/), 'Encounters Redux');
+    await userEvent.type(
+      modalAgainQueries.getByLabelText(/^Image URL/),
+      'https://example.com/encounters-redux.png'
+    );
+    await userEvent.type(modalAgainQueries.getByLabelText(/^Alt Text/), 'Encounters redux map');
+
+    await userEvent.click(modalAgainQueries.getByTestId('map-editor-submit-button'));
+
+    await waitFor(() => {
+      expect(mapPostBodies).toHaveLength(2);
+    });
+    expect(mapPostBodies[1].map.folder).toBe('Encounters');
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Encounters Redux')).toBeInTheDocument();
+    });
+
+    const manageButton = await screen.findByTestId('open-map-manager-button');
+    await userEvent.click(manageButton);
+
+    await waitFor(() => {
+      const modalInvocation = MapModal.mock.calls.find(([props]) => props.show);
+      expect(modalInvocation).toBeDefined();
+    });
+
+    const [mapModalProps] = MapModal.mock.calls.find(([props]) => props.show);
+    const actualMapModal = jest.requireActual('../attributes/MapModal').default;
+    const {
+      getByTestId: getModalByTestId,
+      queryByTestId: queryModalByTestId,
+      findByTestId: findModalByTestId,
+      unmount: unmountModal,
+    } = render(
+      React.createElement(actualMapModal, { ...mapModalProps, show: true })
+    );
+
+    expect(getModalByTestId('map-modal-folder-forest-encounters')).toBeInTheDocument();
+    expect(getModalByTestId('map-modal-folder-encounters')).toBeInTheDocument();
+    expect(getModalByTestId('map-modal-folder-no-folder')).toBeInTheDocument();
+
+    const forestToggle = getModalByTestId('map-modal-folder-forest-encounters-toggle');
+    expect(forestToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(queryModalByTestId('map-modal-item-forest-map')).not.toBeInTheDocument();
+
+    await userEvent.click(forestToggle);
+    await waitFor(() => expect(forestToggle).toHaveAttribute('aria-expanded', 'true'));
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
+        'Forest Encounters'
+      )
+    );
+
+    const forestMapItem = await findModalByTestId('map-modal-item-forest-map');
+    expect(forestMapItem.dataset.folder).toBe('Forest Encounters');
+
+    await userEvent.click(forestToggle);
+    await waitFor(() => expect(forestToggle).toHaveAttribute('aria-expanded', 'false'));
+    await waitFor(() =>
+      expect(queryModalByTestId('map-modal-item-forest-map')).not.toBeInTheDocument()
+    );
+
+    await userEvent.click(forestToggle);
+    await waitFor(() => expect(forestToggle).toHaveAttribute('aria-expanded', 'true'));
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-forest-map').dataset.folder).toBe(
+        'Forest Encounters'
+      )
+    );
+
+    const encountersToggle = getModalByTestId('map-modal-folder-encounters-toggle');
+    expect(encountersToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(queryModalByTestId('map-modal-item-encounter-map')).not.toBeInTheDocument();
+
+    await userEvent.click(encountersToggle);
+    await waitFor(() => expect(encountersToggle).toHaveAttribute('aria-expanded', 'true'));
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-encounter-map').dataset.folder).toBe(
+        'Encounters'
+      )
+    );
+
+    const noFolderToggle = getModalByTestId('map-modal-folder-no-folder-toggle');
+    expect(noFolderToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(queryModalByTestId('map-modal-item-no-folder-map')).not.toBeInTheDocument();
+
+    await userEvent.click(noFolderToggle);
+    await waitFor(() => expect(noFolderToggle).toHaveAttribute('aria-expanded', 'true'));
+    await waitFor(() =>
+      expect(getModalByTestId('map-modal-item-no-folder-map').dataset.folder).toBeUndefined()
+    );
+
+    unmountModal();
   });
 
   test.skip('generates armor via AI and populates form', async () => {
@@ -259,6 +678,7 @@ describe('ZombiesDM AI generation', () => {
       ...armorSlotOptions.map((slot) => slot.label),
     ]);
   });
+
 
   test('removes enemy tokens from maps before success status', async () => {
     const enemies = [{ enemyId: 'enemy-1', name: 'Goblin', type: 'humanoid' }];
@@ -727,6 +1147,265 @@ describe('ZombiesDM AI generation', () => {
         within(newListItem).getByTestId('map-active-badge-map-2')
       ).toBeInTheDocument();
     });
+  });
+
+  test('renders map folders with accessible toggle controls', async () => {
+    const ungroupedMap = {
+      mapId: 'map-1',
+      title: 'Default Map',
+    };
+    const folderedMap = {
+      mapId: 'map-2',
+      title: 'Dungeon Map',
+      folder: 'Dungeon',
+    };
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [ungroupedMap, folderedMap],
+              activeMapId: ungroupedMap.mapId,
+              map: ungroupedMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    const mapCard = await screen.findByTestId('resource-map-card');
+    const mapList = await within(mapCard).findByTestId('map-list');
+
+    const folderHeader = within(mapList).getByTestId('map-folder-dungeon-header');
+    const toggleButton = within(folderHeader).getByTestId('map-folder-toggle-dungeon');
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+
+    expect(within(mapList).queryByTestId('map-list-item-map-2')).not.toBeInTheDocument();
+
+    await userEvent.click(toggleButton);
+
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+
+    const folderedMapItem = await within(mapList).findByTestId('map-list-item-map-2');
+    expect(within(folderedMapItem).getByText('Dungeon Map')).toBeInTheDocument();
+  });
+
+  test('allows uploading a map image file when creating a campaign map', async () => {
+    const mockBase64 = 'Zm9vYmFy';
+    const originalFileReader = global.FileReader;
+    const fileReaderMock = jest.fn(() => ({
+      onload: null,
+      onerror: null,
+      readAsDataURL(file) {
+        if (this.onload) {
+          this.result = `data:${file.type};base64,${mockBase64}`;
+          this.onload({ target: { result: this.result } });
+        }
+      },
+    }));
+    global.FileReader = fileReaderMock;
+
+    const createdMap = {
+      mapId: 'map-file',
+      title: 'Uploaded Map',
+      imageBase64: mockBase64,
+      imageType: 'image/png',
+      altText: 'Uploaded alt text',
+    };
+    let savedPayload;
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          if (options.method === 'POST') {
+            savedPayload = JSON.parse(options.body);
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                maps: [createdMap],
+                activeMapId: createdMap.mapId,
+                map: createdMap,
+              }),
+            });
+          }
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ maps: [], activeMapId: null, map: null }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    try {
+      render(<ZombiesDM />);
+
+      const mapTab = await screen.findByRole('tab', { name: 'Map' });
+      await userEvent.click(mapTab);
+
+      const createButton = await screen.findByTestId('create-map-button');
+      await userEvent.click(createButton);
+
+      const modal = await screen.findByTestId('map-editor-modal');
+      const titleInput = within(modal).getByLabelText(/^Title/);
+      await userEvent.type(titleInput, 'Uploaded Map');
+
+      const altTextInput = within(modal).getByLabelText(/^Alt Text/);
+      await userEvent.type(altTextInput, 'Uploaded alt text');
+
+      const fileInput = within(modal).getByLabelText(/^Image File/);
+      const file = new File(['file-data'], 'map.png', { type: 'image/png' });
+      await userEvent.upload(fileInput, file);
+
+      await waitFor(() => expect(fileReaderMock).toHaveBeenCalled());
+
+      const submitButton = within(modal).getByTestId('map-editor-submit-button');
+      await userEvent.click(submitButton);
+
+      await screen.findByText('Map saved.');
+
+      await waitFor(() => expect(savedPayload).toBeDefined());
+
+      expect(savedPayload).toEqual({
+        map: {
+          title: 'Uploaded Map',
+          altText: 'Uploaded alt text',
+          imageBase64: mockBase64,
+          imageType: 'image/png',
+        },
+        activate: true,
+      });
+    } finally {
+      if (originalFileReader) {
+        global.FileReader = originalFileReader;
+      } else {
+        delete global.FileReader;
+      }
+    }
+  });
+
+  test('create map modal resets fields after viewing another map', async () => {
+    const existingMap = {
+      mapId: 'map-1',
+      title: 'Existing Map',
+      imageUrl: 'https://example.com/map.png',
+      altText: 'Existing map alt text',
+    };
+
+    const originalFileReader = global.FileReader;
+    const fileReaderMock = jest.fn(() => ({
+      onload: null,
+      onerror: null,
+      result: 'data:image/png;base64,mock',
+      readAsDataURL() {
+        if (typeof this.onload === 'function') {
+          this.onload();
+        }
+      },
+    }));
+    global.FileReader = fileReaderMock;
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({ ok: true, json: async () => ({ participants: [], activeTurn: null }) });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [existingMap],
+              activeMapId: existingMap.mapId,
+              map: existingMap,
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    try {
+      render(<ZombiesDM />);
+
+      const mapTab = await screen.findByRole('tab', { name: 'Map' });
+      await userEvent.click(mapTab);
+
+      const renameButton = await screen.findByTestId('map-rename-button-map-1');
+      await userEvent.click(renameButton);
+
+      const modal = await screen.findByTestId('map-editor-modal');
+      const modalQueries = within(modal);
+
+      expect(modalQueries.getByLabelText(/^Title/)).toHaveValue('Existing Map');
+      expect(modalQueries.getByLabelText(/^Image URL/)).toHaveValue(
+        'https://example.com/map.png'
+      );
+      expect(modalQueries.getByLabelText(/^Alt Text/)).toHaveValue('Existing map alt text');
+
+      const renameFileInput = modalQueries.getByLabelText(/^Image File/);
+      const file = new File(['data'], 'existing.png', { type: 'image/png' });
+      await userEvent.upload(renameFileInput, file);
+      expect(renameFileInput.files).toHaveLength(1);
+
+      const cancelButton = modalQueries.getByRole('button', { name: 'Cancel' });
+      await userEvent.click(cancelButton);
+
+      const createButton = await screen.findByTestId('create-map-button');
+      await userEvent.click(createButton);
+
+      const createModalQueries = within(modal);
+
+      await waitFor(() =>
+        expect(createModalQueries.getByLabelText(/^Title/)).toHaveValue('')
+      );
+      expect(createModalQueries.getByLabelText(/^Image URL/)).toHaveValue('');
+      expect(createModalQueries.getByLabelText(/^Alt Text/)).toHaveValue('');
+
+      const createFileInput = createModalQueries.getByLabelText(/^Image File/);
+      expect(createFileInput.files).toHaveLength(0);
+      expect(createFileInput.value).toBe('');
+    } finally {
+      if (originalFileReader) {
+        global.FileReader = originalFileReader;
+      } else {
+        delete global.FileReader;
+      }
+    }
   });
 
   test('allows the DM to activate a different saved map', async () => {

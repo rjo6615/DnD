@@ -146,6 +146,60 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('finesse ability selection updates attack bonus and damage modifier', async () => {
+    const weapon = {
+      name: 'Rapier',
+      damage: '1d8 piercing',
+      category: 'melee',
+      source: 'weapon',
+      properties: ['Finesse'],
+    };
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={5}
+        dexMod={2}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Rapier').closest('.attack-card');
+    expect(card).not.toBeNull();
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    const attackValue = attackRow.querySelector('.attack-card__value');
+    expect(attackValue).not.toBeNull();
+    expect(attackValue?.textContent).toBe(String(7));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d8+5 Piercing')
+    ).toBeInTheDocument();
+
+    const abilitySelect = within(card).getByRole('combobox', {
+      name: /select ability for rapier/i,
+    });
+
+    await act(async () => {
+      fireEvent.change(abilitySelect, { target: { value: 'dex' } });
+    });
+
+    await waitFor(() => {
+      expect(attackValue?.textContent).toBe(String(4));
+      expect(
+        within(damageRow).getByText('1d8+2 Piercing')
+      ).toBeInTheDocument();
+    });
+  });
+
   test('multi-part weapon damage applies ability modifier once', () => {
     const weapon = {
       name: 'Storm Blade',
@@ -234,6 +288,68 @@ describe('PlayerTurnActions weapon damage display', () => {
     const necrotic = within(card).getByText('2d8 Necrotic');
     expect(necrotic).toHaveClass('damage-necrotic');
     expect(necrotic.textContent).toBe('2d8 Necrotic');
+  });
+
+  test('renders fiendish legacy damaging spells and rolls on click', async () => {
+    const infernalLegacy = {
+      label: 'Infernal Legacy',
+      spells: [
+        { name: 'Fire Bolt', unlockedAtLevel: 1, spellLevel: 'Cantrip' },
+        { name: 'Hellish Rebuke', unlockedAtLevel: 3, spellLevel: '1st-level' },
+        { name: 'Hold Person', unlockedAtLevel: 5, spellLevel: '2nd-level' },
+      ],
+    };
+
+    const form = {
+      diceColor: '#000000',
+      weapon: [],
+      spells: [],
+      occupation: [{ Name: 'Warlock', Level: 5 }],
+      race: {
+        name: 'Tiefling',
+        fiendishLegacies: { infernal: infernalLegacy },
+      },
+      tieflingLegacyKey: 'infernal',
+    };
+
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+
+    try {
+      render(
+        <PlayerTurnActions form={form} strMod={0} dexMod={0} conMod={0} />
+      );
+
+      act(() => {
+        fireEvent.click(screen.getByTitle('Attack'));
+      });
+
+      await screen.findByText('Fiendish Legacy');
+
+      expect(screen.getByText('Fire Bolt')).toBeInTheDocument();
+      expect(screen.getByText('Hellish Rebuke')).toBeInTheDocument();
+      expect(screen.queryByText('Hold Person')).not.toBeInTheDocument();
+
+      const fireBoltCard = screen.getByText('Fire Bolt').closest('.attack-card');
+      expect(fireBoltCard).not.toBeNull();
+      if (!fireBoltCard) throw new Error('missing Fire Bolt card');
+
+      const rollButton = within(fireBoltCard).getByLabelText('roll');
+      await act(async () => {
+        fireEvent.click(rollButton);
+      });
+
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value node');
+        const text = valueNode.textContent || '';
+        if (!/^\d+$/.test(text) || text === '0') {
+          throw new Error('waiting');
+        }
+      });
+    } finally {
+      Math.random = originalRandom;
+    }
   });
 
   test('healing spells roll for numeric totals', async () => {

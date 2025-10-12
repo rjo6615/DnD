@@ -63,7 +63,11 @@ import {
   GiPentagramRose,
   GiSpellBook,
 } from "react-icons/gi";
-import { FiList, FiPlus } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
+import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
+import TokenPickerModal from '../components/TokenPickerModal';
+import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -101,6 +105,7 @@ const toFiniteNumberOrNull = (value) => {
 };
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
+const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
 
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
@@ -129,6 +134,22 @@ const normalizeCreatureSize = (value) => {
   }
 
   return null;
+};
+
+const normalizeMapId = (value) =>
+  typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+
+const sanitizeTestIdValue = (value, fallback = 'item') => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return trimmed.replace(/[^0-9A-Za-z_-]/g, '-').toLowerCase();
 };
 
 const sortParticipantsDescending = (participantsWithMeta) =>
@@ -288,6 +309,21 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const normalizeRotation = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = parsed % 360;
+  const resolved = normalized < 0 ? normalized + 360 : normalized;
+  return Math.round(resolved * 1000) / 1000;
+};
+
 const sanitizeToken = (tokenValue, fallbackId) => {
   if (!tokenValue || typeof tokenValue !== 'object') {
     return null;
@@ -345,6 +381,231 @@ const sanitizeTokensByMapId = (tokensByMapId) => {
     acc[trimmed] = sanitizeTokenDictionary(tokens);
     return acc;
   }, {});
+};
+
+const getNormalizedIdentifiers = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return [];
+  }
+
+  const identifiers = [];
+  if (typeof entity._id === 'string' && entity._id.trim() !== '') {
+    identifiers.push(entity._id.trim());
+  }
+  if (typeof entity.characterId === 'string' && entity.characterId.trim() !== '') {
+    identifiers.push(entity.characterId.trim());
+  }
+  return Array.from(new Set(identifiers));
+};
+
+const sanitizeIdentifierForTestId = (value, fallback) => {
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value.trim().replace(/[^0-9A-Za-z_-]/g, '-');
+  }
+  return fallback;
+};
+
+export const matchesCharacterIdentifier = (record, normalizedCharacterId) => {
+  if (!record || typeof record !== 'object' || !normalizedCharacterId) {
+    return false;
+  }
+
+  const identifiers = getNormalizedIdentifiers(record);
+  if (identifiers.includes(normalizedCharacterId)) {
+    return true;
+  }
+
+  if (
+    typeof record.token === 'string' &&
+    record.token.trim() !== '' &&
+    record.token.trim() === normalizedCharacterId
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+const normalizeHealthValue = (value) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : value;
+};
+
+export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
+  if (!Array.isArray(records) || records.length === 0) {
+    return records;
+  }
+
+  if (!update || typeof update !== 'object') {
+    return records;
+  }
+
+  const normalizedCharacterId =
+    typeof update.characterId === 'string' && update.characterId.trim() !== ''
+      ? update.characterId.trim()
+      : null;
+  const normalizedRecordId =
+    typeof update._id === 'string' && update._id.trim() !== ''
+      ? update._id.trim()
+      : null;
+
+  const updateIdentifiers = Array.from(
+    new Set([
+      ...getNormalizedIdentifiers(update),
+      ...(normalizedCharacterId ? [normalizedCharacterId] : []),
+      ...(normalizedRecordId ? [normalizedRecordId] : []),
+    ])
+  );
+
+  if (updateIdentifiers.length === 0) {
+    return records;
+  }
+
+  const nextTempHealthValue = normalizeHealthValue(update.tempHealth);
+  const nextHealthValue = normalizeHealthValue(update.health);
+
+  let didUpdate = false;
+
+  const nextRecords = records.map((record) => {
+    if (
+      !updateIdentifiers.some((identifier) =>
+        matchesCharacterIdentifier(record, identifier)
+      )
+    ) {
+      return record;
+    }
+
+    let recordUpdated = false;
+    const updatedRecord = { ...record };
+
+    if (
+      normalizedRecordId &&
+      (typeof updatedRecord._id !== 'string' ||
+        updatedRecord._id.trim() !== normalizedRecordId)
+    ) {
+      updatedRecord._id = normalizedRecordId;
+      recordUpdated = true;
+    }
+
+    if (
+      normalizedCharacterId &&
+      (typeof updatedRecord.characterId !== 'string' ||
+        updatedRecord.characterId.trim() !== normalizedCharacterId)
+    ) {
+      updatedRecord.characterId = normalizedCharacterId;
+      recordUpdated = true;
+    }
+
+    if (
+      nextTempHealthValue !== undefined &&
+      record?.tempHealth !== nextTempHealthValue
+    ) {
+      updatedRecord.tempHealth = nextTempHealthValue;
+      recordUpdated = true;
+    }
+
+    if (nextHealthValue !== undefined && record?.health !== nextHealthValue) {
+      updatedRecord.health = nextHealthValue;
+      recordUpdated = true;
+    }
+
+    if (recordUpdated) {
+      didUpdate = true;
+      return updatedRecord;
+    }
+
+    return record;
+  });
+
+  return didUpdate ? nextRecords : records;
+};
+
+export const getCharacterCardMeta = (character, itemIndex = 0) => {
+  const identifiers = getNormalizedIdentifiers(character);
+  const primaryIdentifier = identifiers[0] || `character-${itemIndex}`;
+  const sanitizedIdentifier = sanitizeIdentifierForTestId(
+    primaryIdentifier,
+    `character-${itemIndex}`
+  );
+  const testId = `character-card-${sanitizedIdentifier}`;
+
+  const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
+    calculateCharacterHitPoints(character);
+  const fallbackCurrentHp = toFiniteNumberOrNull(
+    character?.currentHp ??
+      character?.hpCurrent ??
+      character?.tempHealth
+  );
+  const fallbackMaxHp = toFiniteNumberOrNull(
+    character?.maxHp ?? character?.hpMax ?? character?.health
+  );
+  const normalizedCurrentHp = Number.isFinite(derivedCurrentHp)
+    ? derivedCurrentHp
+    : fallbackCurrentHp;
+  const normalizedMaxHp = Number.isFinite(derivedMaxHp)
+    ? derivedMaxHp
+    : fallbackMaxHp;
+  const normalizedTempHp = toFiniteNumberOrNull(character?.tempHealth);
+
+  return {
+    testId,
+    dataAttributes: {
+      ...(typeof primaryIdentifier === 'string'
+        ? { 'data-character-id': primaryIdentifier }
+        : {}),
+      ...(normalizedCurrentHp !== null
+        ? { 'data-current-hp': normalizedCurrentHp }
+        : {}),
+      ...(normalizedMaxHp !== null ? { 'data-max-hp': normalizedMaxHp } : {}),
+      ...(normalizedTempHp !== null ? { 'data-temp-hp': normalizedTempHp } : {}),
+    },
+  };
+};
+
+export const getCombatRowMeta = ({
+  character,
+  rowId,
+  participantInfo,
+  recordIndex = 0,
+}) => {
+  const sanitizedRowId = sanitizeIdentifierForTestId(
+    rowId,
+    `participant-${recordIndex}`
+  );
+  const testId = `combat-row-${sanitizedRowId}`;
+
+  const rowCurrentHp = toFiniteNumberOrNull(
+    character?.currentHp ??
+      character?.hpCurrent ??
+      character?.tempHealth ??
+      participantInfo?.currentHp ??
+      participantInfo?.hpCurrent ??
+      participantInfo?.health
+  );
+  const rowMaxHp = toFiniteNumberOrNull(
+    character?.maxHp ??
+      character?.hpMax ??
+      participantInfo?.maxHp ??
+      participantInfo?.hpMax ??
+      character?.health ??
+      participantInfo?.health
+  );
+  const rowTempHp = toFiniteNumberOrNull(
+    character?.tempHealth ?? participantInfo?.tempHealth
+  );
+
+  return {
+    testId,
+    dataAttributes: {
+      ...(rowCurrentHp !== null ? { 'data-current-hp': rowCurrentHp } : {}),
+      ...(rowMaxHp !== null ? { 'data-max-hp': rowMaxHp } : {}),
+      ...(rowTempHp !== null ? { 'data-temp-hp': rowTempHp } : {}),
+    },
+  };
 };
 
 const CLASS_ICON_MAP = {
@@ -423,6 +684,11 @@ export default function ZombiesDM() {
     const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
+    const [showEnemyTokenPicker, setShowEnemyTokenPicker] = useState(false);
+    const [enemyTokenSelection, setEnemyTokenSelection] = useState({
+      figurineImageUrl: null,
+      figurineImagePublicId: null,
+    });
     const [status, setStatus] = useState(null);
     const [combatState, setCombatState] = useState(createEmptyCombatState());
     const [campaignMap, setCampaignMap] = useState(null);
@@ -434,11 +700,18 @@ export default function ZombiesDM() {
       mode: 'create',
       map: null,
       title: '',
+      folder: '',
+      folderSelection: '',
       imageUrl: '',
+      imageBase64: '',
+      imageType: '',
       altText: '',
       activateOnSave: true,
+      fileInputKey: 0,
     });
+    const [mapEditorErrors, setMapEditorErrors] = useState({});
     const [mapEditorSaving, setMapEditorSaving] = useState(false);
+    const [lastMapFolder, setLastMapFolder] = useState('');
     const [mapActionLoadingId, setMapActionLoadingId] = useState(null);
     const [mapPrompt, setMapPrompt] = useState('');
     const [generatedMap, setGeneratedMap] = useState(null);
@@ -449,6 +722,7 @@ export default function ZombiesDM() {
     const [showMapManager, setShowMapManager] = useState(false);
     const [mapTokens, setMapTokens] = useState({});
     const [activeMapTokens, setActiveMapTokens] = useState({});
+    const [mapFolderExpansion, setMapFolderExpansion] = useState({});
     const [mapPlacementState, setMapPlacementState] = useState({
       show: false,
       enemyId: null,
@@ -460,12 +734,75 @@ export default function ZombiesDM() {
     const activeMapTokensRef = useRef(activeMapTokens);
     const campaignMapRef = useRef(campaignMap);
     const activeMapIdRef = useRef(activeMapId);
+    const enemyTokenSelectionRef = useRef(enemyTokenSelection);
+
+    const enemyTokenFilterScope = useMemo(
+      () => buildEnemyTokenFilterScopeValues(selectedMonsterIndex, selectedMonster),
+      [selectedMonsterIndex, selectedMonster]
+    );
 
     const campaignId = params.campaign ?? '';
     const encodedCampaign = useMemo(
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
       [campaignId]
     );
+
+    const normalizedMaps = useMemo(
+      () => (Array.isArray(maps) ? maps.filter((map) => map && typeof map === 'object') : []),
+      [maps]
+    );
+
+    const groupedMaps = useMemo(
+      () => groupMapsByFolder(normalizedMaps),
+      [normalizedMaps]
+    );
+
+    const normalizedActiveMapId = useMemo(
+      () => normalizeMapId(activeMapId),
+      [activeMapId]
+    );
+
+    const normalizedSelectedMapId = useMemo(
+      () => normalizeMapId(selectedMapId),
+      [selectedMapId]
+    );
+
+    useEffect(() => {
+      setMapFolderExpansion((previous) => {
+        const next = {};
+
+        groupedMaps.forEach((group) => {
+          next[group.key] = Object.prototype.hasOwnProperty.call(previous, group.key)
+            ? previous[group.key]
+            : false;
+        });
+
+        return next;
+      });
+    }, [groupedMaps]);
+
+    const handleToggleMapFolder = useCallback((folderKey) => {
+      if (typeof folderKey !== 'string') {
+        return;
+      }
+
+      setMapFolderExpansion((previous) => ({
+        ...previous,
+        [folderKey]: !previous[folderKey],
+      }));
+    }, []);
+
+    const availableMapFolders = useMemo(() => {
+      const folderSet = new Set();
+      normalizedMaps.forEach((map) => {
+        const folderValue = typeof map.folder === 'string' ? map.folder.trim() : '';
+        if (folderValue) {
+          folderSet.add(folderValue);
+        }
+      });
+
+      return Array.from(folderSet).sort((a, b) => a.localeCompare(b));
+    }, [normalizedMaps]);
 
     useEffect(() => {
       mapTokensRef.current = mapTokens;
@@ -482,6 +819,82 @@ export default function ZombiesDM() {
     useEffect(() => {
       activeMapIdRef.current = activeMapId;
     }, [activeMapId]);
+
+    useEffect(() => {
+      enemyTokenSelectionRef.current = enemyTokenSelection;
+    }, [enemyTokenSelection]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.title) {
+        return;
+      }
+
+      const hasTitle =
+        typeof mapEditorState.title === 'string' && mapEditorState.title.trim() !== '';
+
+      if (hasTitle) {
+        setMapEditorErrors((prev) => {
+          if (!prev.title) {
+            return prev;
+          }
+
+          const { title, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.title, mapEditorState.title]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.imageSource) {
+        return;
+      }
+
+      const hasImageUrl =
+        typeof mapEditorState.imageUrl === 'string' && mapEditorState.imageUrl.trim() !== '';
+      const hasImageFile =
+        typeof mapEditorState.imageBase64 === 'string' &&
+        mapEditorState.imageBase64.trim() !== '';
+
+      if (hasImageUrl || hasImageFile) {
+        setMapEditorErrors((prev) => {
+          if (!prev.imageSource) {
+            return prev;
+          }
+
+          const { imageSource, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.imageSource, mapEditorState.imageUrl, mapEditorState.imageBase64]);
+
+    useEffect(() => {
+      if (!mapEditorErrors.altText || mapEditorState.mode !== 'create') {
+        return;
+      }
+
+      const hasAltText =
+        typeof mapEditorState.altText === 'string' &&
+        mapEditorState.altText.trim() !== '';
+
+      if (hasAltText) {
+        setMapEditorErrors((prev) => {
+          if (!prev.altText) {
+            return prev;
+          }
+
+          const { altText, ...rest } = prev;
+          return Object.keys(rest).length ? rest : {};
+        });
+      }
+    }, [mapEditorErrors.altText, mapEditorState.altText, mapEditorState.mode]);
+
+    const imageSourceDescribedBy = useMemo(() => {
+      const ids = ['map-editor-image-requirement'];
+      if (mapEditorErrors.imageSource) {
+        ids.push('map-editor-image-error');
+      }
+      return ids.join(' ');
+    }, [mapEditorErrors.imageSource]);
 
     const applyMapPayload = useCallback(
       (payload, options = {}) => {
@@ -596,6 +1009,42 @@ export default function ZombiesDM() {
       return message;
     }, []);
 
+    const syncEnemyTokenSelection = useCallback(
+      (roster) => {
+        if (!Array.isArray(roster) || roster.length === 0) {
+          return;
+        }
+
+        const currentSelection = enemyTokenSelectionRef.current || {};
+        const hasUrl =
+          typeof currentSelection.figurineImageUrl === 'string' &&
+          currentSelection.figurineImageUrl.trim() !== '';
+        const hasPublicId =
+          typeof currentSelection.figurineImagePublicId === 'string' &&
+          currentSelection.figurineImagePublicId.trim() !== '';
+
+        if (hasUrl || hasPublicId) {
+          return;
+        }
+
+        const latestEnemy = roster[roster.length - 1];
+        if (!latestEnemy || typeof latestEnemy !== 'object') {
+          return;
+        }
+
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(latestEnemy);
+        if (!figurineImageUrl && !figurineImagePublicId) {
+          return;
+        }
+
+        setEnemyTokenSelection({
+          figurineImageUrl: figurineImageUrl || null,
+          figurineImagePublicId: figurineImagePublicId || null,
+        });
+      },
+      [setEnemyTokenSelection]
+    );
+
     const fetchRecords = useCallback(async () => {
       if (!campaignId || !encodedCampaign) {
         setRecords([]);
@@ -634,7 +1083,9 @@ export default function ZombiesDM() {
 
         if (enemiesResponse.ok) {
           const enemiesData = await enemiesResponse.json();
-          setEnemies(Array.isArray(enemiesData) ? enemiesData : []);
+          const normalizedEnemies = Array.isArray(enemiesData) ? enemiesData : [];
+          setEnemies(normalizedEnemies);
+          syncEnemyTokenSelection(normalizedEnemies);
         } else if (enemiesResponse.status === 404) {
           setEnemies([]);
         } else {
@@ -729,7 +1180,7 @@ export default function ZombiesDM() {
       } finally {
         setMapLoading(false);
       }
-    }, [campaignId, encodedCampaign, applyMapPayload]);
+    }, [campaignId, encodedCampaign, applyMapPayload, syncEnemyTokenSelection]);
 
     const fetchMonsterCatalog = useCallback(async () => {
       if (monsterCatalogLoading) {
@@ -813,6 +1264,20 @@ export default function ZombiesDM() {
             payload.name = trimmedName;
           }
 
+          if (
+            enemyTokenSelection?.figurineImageUrl &&
+            enemyTokenSelection.figurineImageUrl.trim() !== ''
+          ) {
+            payload.figurineImageUrl = enemyTokenSelection.figurineImageUrl.trim();
+          }
+
+          if (
+            enemyTokenSelection?.figurineImagePublicId &&
+            enemyTokenSelection.figurineImagePublicId.trim() !== ''
+          ) {
+            payload.figurineImagePublicId = enemyTokenSelection.figurineImagePublicId.trim();
+          }
+
           const response = await apiFetch(`/campaigns/${encodedCampaign}/enemies`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -833,6 +1298,7 @@ export default function ZombiesDM() {
           const addedEnemy = await response.json();
           setStatus({ type: 'success', message: `${addedEnemy?.name || 'Enemy'} added to campaign.` });
           setCustomEnemyName('');
+          setEnemyTokenSelection({ figurineImageUrl: null, figurineImagePublicId: null });
           await fetchRecords();
         } catch (error) {
           console.error(error);
@@ -841,8 +1307,45 @@ export default function ZombiesDM() {
           setAddingEnemy(false);
         }
       },
-      [selectedMonsterIndex, encodedCampaign, customEnemyName, fetchRecords]
+      [
+        selectedMonsterIndex,
+        encodedCampaign,
+        customEnemyName,
+        fetchRecords,
+        enemyTokenSelection.figurineImagePublicId,
+        enemyTokenSelection.figurineImageUrl,
+      ]
     );
+
+    const handleOpenEnemyTokenPicker = useCallback(() => {
+      setShowEnemyTokenPicker(true);
+    }, []);
+
+    const handleCloseEnemyTokenPicker = useCallback(() => {
+      setShowEnemyTokenPicker(false);
+    }, []);
+
+    const handleEnemyTokenSelected = useCallback((asset) => {
+      if (!asset) {
+        setEnemyTokenSelection({ figurineImageUrl: null, figurineImagePublicId: null });
+        setShowEnemyTokenPicker(false);
+        return;
+      }
+
+      const nextUrl =
+        typeof asset.secureUrl === 'string' && asset.secureUrl.trim() !== ''
+          ? asset.secureUrl.trim()
+          : typeof asset.url === 'string' && asset.url.trim() !== ''
+            ? asset.url.trim()
+            : null;
+      const nextPublicId =
+        typeof asset.publicId === 'string' && asset.publicId.trim() !== ''
+          ? asset.publicId.trim()
+          : null;
+
+      setEnemyTokenSelection({ figurineImageUrl: nextUrl, figurineImagePublicId: nextPublicId });
+      setShowEnemyTokenPicker(false);
+    }, []);
 
     const removeCharacterTokensFromMaps = useCallback(
       async (character) => {
@@ -1339,13 +1842,16 @@ export default function ZombiesDM() {
           return;
         }
 
-        const rawCharacterId = update.characterId;
         const normalizedCharacterId =
-          typeof rawCharacterId === 'string' && rawCharacterId.trim() !== ''
-            ? rawCharacterId.trim()
+          typeof update.characterId === 'string' && update.characterId.trim() !== ''
+            ? update.characterId.trim()
+            : null;
+        const normalizedRecordId =
+          typeof update._id === 'string' && update._id.trim() !== ''
+            ? update._id.trim()
             : null;
 
-        if (!normalizedCharacterId) {
+        if (!normalizedCharacterId && !normalizedRecordId) {
           return;
         }
 
@@ -1365,44 +1871,17 @@ export default function ZombiesDM() {
               })()
             : undefined;
 
-        setRecords((prev) => {
-          if (!Array.isArray(prev) || prev.length === 0) {
-            return prev;
-          }
-
-          let didUpdate = false;
-
-          const nextRecords = prev.map((record) => {
-            if (!record || typeof record !== 'object') {
-              return record;
-            }
-
-            const recordId =
-              (typeof record._id === 'string' && record._id.trim() !== '' && record._id.trim()) ||
-              (typeof record.characterId === 'string' && record.characterId.trim() !== '' && record.characterId.trim()) ||
-              (typeof record.token === 'string' && record.token.trim() !== '' && record.token.trim());
-
-            if (recordId !== normalizedCharacterId) {
-              return record;
-            }
-
-            const updatedRecord = { ...record };
-
-            if (nextTempHealthValue !== undefined && record.tempHealth !== nextTempHealthValue) {
-              updatedRecord.tempHealth = nextTempHealthValue;
-              didUpdate = true;
-            }
-
-            if (nextHealthValue !== undefined && record.health !== nextHealthValue) {
-              updatedRecord.health = nextHealthValue;
-              didUpdate = true;
-            }
-
-            return updatedRecord;
-          });
-
-          return didUpdate ? nextRecords : prev;
-        });
+        setRecords((prev) =>
+          applyCharacterHealthUpdateToRecords({
+            records: prev,
+            update: {
+              ...(normalizedRecordId ? { _id: normalizedRecordId } : {}),
+              ...(normalizedCharacterId ? { characterId: normalizedCharacterId } : {}),
+              tempHealth: nextTempHealthValue,
+              health: nextHealthValue,
+            },
+          })
+        );
       };
 
       const handleMapUpdate = (mapData) => {
@@ -1532,6 +2011,7 @@ export default function ZombiesDM() {
 
         const sanitized = roster.filter((entry) => entry && typeof entry === 'object');
         setEnemies(sanitized);
+        syncEnemyTokenSelection(sanitized);
       };
 
       const handleCharacterMetadataUpdate = (update) => {
@@ -1612,10 +2092,10 @@ export default function ZombiesDM() {
         socket.disconnect();
         socketRef.current = null;
       };
-    }, [campaignId, applyMapPayload]);
+    }, [campaignId, applyMapPayload, syncEnemyTokenSelection]);
 
     const persistTokenPosition = useCallback(
-      async ({ mapId, characterId, x, y }) => {
+      async ({ mapId, characterId, x, y, rotation }) => {
         const normalizedMapId =
           typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
         const normalizedCharacterId =
@@ -1625,6 +2105,7 @@ export default function ZombiesDM() {
 
         const clampedX = clamp01(x);
         const clampedY = clamp01(y);
+        const normalizedRotation = normalizeRotation(rotation);
 
         if (!normalizedMapId || !normalizedCharacterId || clampedX === null || clampedY === null) {
           return;
@@ -1644,6 +2125,7 @@ export default function ZombiesDM() {
           x: clampedX,
           y: clampedY,
           updatedAt: new Date().toISOString(),
+          ...(normalizedRotation !== null ? { rotation: normalizedRotation } : {}),
         };
 
         setMapTokens((prev) => {
@@ -1682,7 +2164,11 @@ export default function ZombiesDM() {
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: clampedX, y: clampedY }),
+              body: JSON.stringify(
+                normalizedRotation !== null
+                  ? { x: clampedX, y: clampedY, rotation: normalizedRotation }
+                  : { x: clampedX, y: clampedY }
+              ),
             }
           );
 
@@ -2413,6 +2899,8 @@ export default function ZombiesDM() {
               record?.displayType
           );
 
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(record);
+
           identifiers.forEach((identifier) => {
             const trimmed = identifier.trim();
             if (!trimmed) {
@@ -2426,6 +2914,8 @@ export default function ZombiesDM() {
               ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
               ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
               ...(recordSize ? { size: recordSize } : {}),
+              ...(figurineImageUrl ? { figurineImageUrl } : {}),
+              ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
             };
           });
         });
@@ -2455,20 +2945,24 @@ export default function ZombiesDM() {
           );
           const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
-          const enemySize = normalizeCreatureSize(
-            enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
-          );
+        const enemySize = normalizeCreatureSize(
+          enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
+        );
 
-          lookup[enemyId] = {
-            color: ENEMY_FIGURINE_COLOR,
-            label,
-            entityType: 'enemy',
-            ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
-            ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
-            ...(enemySize ? { size: enemySize } : {}),
-          };
-        });
-      }
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+
+        lookup[enemyId] = {
+          color: ENEMY_FIGURINE_COLOR,
+          label,
+          entityType: 'enemy',
+          ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
+          ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
+          ...(enemySize ? { size: enemySize } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
+        };
+      });
+    }
 
       return lookup;
     }, [records, enemies]);
@@ -2644,6 +3138,8 @@ export default function ZombiesDM() {
           const normalizedColor =
             typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
 
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(meta, token);
+
           return {
             ...token,
             label,
@@ -2655,6 +3151,8 @@ export default function ZombiesDM() {
             ...(normalizedCurrentHp !== null ? { currentHp: normalizedCurrentHp } : {}),
             ...(normalizedMaxHp !== null ? { maxHp: normalizedMaxHp } : {}),
             ...(size ? { size } : {}),
+            ...(figurineImageUrl ? { figurineImageUrl } : {}),
+            ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
           };
         })
         .sort((a, b) => {
@@ -2672,7 +3170,7 @@ export default function ZombiesDM() {
     ]);
 
     const handleTokenPositionChange = useCallback(
-      ({ characterId, x, y }) => {
+      ({ characterId, x, y, rotation }) => {
         const normalizedDisplayedMapId =
           typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
             ? displayedMap.mapId.trim()
@@ -2696,6 +3194,7 @@ export default function ZombiesDM() {
           characterId,
           x,
           y,
+          rotation,
         });
       },
       [campaignMap, displayedMap, persistTokenPosition, shouldShowCampaignTokens]
@@ -2724,7 +3223,7 @@ export default function ZombiesDM() {
     }, []);
 
     const handleMapModalTokenMove = useCallback(
-      async ({ mapId, characterId, x, y }) => {
+      async ({ mapId, characterId, x, y, rotation }) => {
         const normalizedMapId =
           typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
         const normalizedCharacterId =
@@ -2733,6 +3232,7 @@ export default function ZombiesDM() {
             : mapPlacementState.enemyId;
         const clampedX = clamp01(x);
         const clampedY = clamp01(y);
+        const normalizedRotation = normalizeRotation(rotation);
 
         if (!normalizedMapId || !normalizedCharacterId || clampedX === null || clampedY === null) {
           return false;
@@ -2743,6 +3243,7 @@ export default function ZombiesDM() {
           characterId: normalizedCharacterId,
           x: clampedX,
           y: clampedY,
+          rotation: normalizedRotation,
         });
 
         return true;
@@ -2834,6 +3335,9 @@ export default function ZombiesDM() {
           ? generatedMap || previewMap || campaignMap
           : generatedMap || campaignMap;
 
+        const trimmedFolder =
+          typeof mapToSave?.folder === 'string' ? mapToSave.folder.trim() : '';
+
         if (!mapToSave) {
           setStatus({ type: 'danger', message: 'No map available to save.' });
           return;
@@ -2894,6 +3398,11 @@ export default function ZombiesDM() {
             delete mapPayload.mapId;
             delete mapPayload.createdAt;
             delete mapPayload.updatedAt;
+            if (trimmedFolder) {
+              mapPayload.folder = trimmedFolder;
+            } else {
+              delete mapPayload.folder;
+            }
 
             const response = await apiFetch(`/campaigns/${encodedCampaign}/maps`, {
               method: 'POST',
@@ -2951,6 +3460,7 @@ export default function ZombiesDM() {
 
             setGeneratedMap(null);
             setStatus({ type: 'success', message: 'Map saved.' });
+            setLastMapFolder(trimmedFolder);
           } else {
             const activeId =
               activeMapId ||
@@ -2969,6 +3479,11 @@ export default function ZombiesDM() {
             const mapPayload = { ...mapToSave };
             if (mapPayload.mapId && mapPayload.mapId !== activeId) {
               delete mapPayload.mapId;
+            }
+            if (trimmedFolder) {
+              mapPayload.folder = trimmedFolder;
+            } else {
+              delete mapPayload.folder;
             }
 
             const response = await apiFetch(
@@ -3050,6 +3565,7 @@ export default function ZombiesDM() {
 
     const openCreateMapModal = useCallback(() => {
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       const sourceMap =
         generatedMap ||
         (selectedMapId
@@ -3058,17 +3574,42 @@ export default function ZombiesDM() {
         {};
 
       const safeMap = sourceMap && typeof sourceMap === 'object' ? sourceMap : {};
+      const defaultFolder =
+        typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+          ? safeMap.folder.trim()
+          : typeof lastMapFolder === 'string'
+          ? lastMapFolder
+          : '';
+
+      const shouldUseExistingOption =
+        defaultFolder && availableMapFolders.includes(defaultFolder);
 
       setMapEditorState({
         show: true,
         mode: 'create',
         map: safeMap,
-        title: typeof safeMap.title === 'string' ? safeMap.title : '',
-        imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
-        altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        title: '',
+        folder: defaultFolder || '',
+        folderSelection: shouldUseExistingOption
+          ? defaultFolder
+          : defaultFolder
+          ? NEW_FOLDER_OPTION_VALUE
+          : '',
+        imageUrl: '',
+        imageBase64: '',
+        imageType: '',
+        altText: '',
         activateOnSave: maps.length === 0,
+        fileInputKey: Date.now(),
       });
-    }, [generatedMap, selectedMapId, maps, campaignMap]);
+    }, [
+      generatedMap,
+      selectedMapId,
+      maps,
+      campaignMap,
+      lastMapFolder,
+      availableMapFolders,
+    ]);
 
     const openRenameMapModal = useCallback((map) => {
       if (!map || typeof map !== 'object') {
@@ -3076,6 +3617,7 @@ export default function ZombiesDM() {
       }
 
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       const safeMap = map;
 
       setMapEditorState({
@@ -3083,14 +3625,30 @@ export default function ZombiesDM() {
         mode: 'rename',
         map: safeMap,
         title: typeof safeMap.title === 'string' ? safeMap.title : '',
+        folder:
+          typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+            ? safeMap.folder.trim()
+            : '',
+        folderSelection:
+          typeof safeMap.folder === 'string' && safeMap.folder.trim() !== ''
+            ? availableMapFolders.includes(safeMap.folder.trim())
+              ? safeMap.folder.trim()
+              : NEW_FOLDER_OPTION_VALUE
+            : '',
         imageUrl: typeof safeMap.imageUrl === 'string' ? safeMap.imageUrl : '',
+        imageBase64:
+          typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
+        imageType:
+          typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         activateOnSave: false,
+        fileInputKey: Date.now(),
       });
-    }, []);
+    }, [availableMapFolders]);
 
     const handleCloseMapEditor = useCallback(() => {
       setMapEditorSaving(false);
+      setMapEditorErrors({});
       setMapEditorState((prev) => ({ ...prev, show: false }));
     }, []);
 
@@ -3102,9 +3660,72 @@ export default function ZombiesDM() {
       []
     );
 
+    const handleMapEditorFolderSelectionChange = useCallback((event) => {
+      const value = event?.target?.value ?? '';
+      setMapEditorState((prev) => ({
+        ...prev,
+        folderSelection: value,
+        folder: value && value !== NEW_FOLDER_OPTION_VALUE ? value : '',
+      }));
+    }, []);
+
     const handleMapEditorActivateChange = useCallback((event) => {
       const checked = Boolean(event?.target?.checked);
       setMapEditorState((prev) => ({ ...prev, activateOnSave: checked }));
+    }, []);
+
+    const handleMapEditorFileChange = useCallback((event) => {
+      const file = event?.target?.files?.[0];
+      if (!file) {
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: '',
+          imageType: '',
+        }));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        if (!result) {
+          setMapEditorState((prev) => ({
+            ...prev,
+            imageBase64: '',
+            imageType: '',
+          }));
+          return;
+        }
+
+        let nextImageType = file.type || '';
+        let nextImageBase64 = result;
+
+        const commaIndex = result.indexOf(',');
+        if (result.startsWith('data:') && commaIndex !== -1) {
+          const meta = result.substring(5, commaIndex);
+          const semicolonIndex = meta.indexOf(';');
+          nextImageType =
+            semicolonIndex !== -1 ? meta.substring(0, semicolonIndex) : meta;
+          nextImageBase64 = result.substring(commaIndex + 1);
+        }
+
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: nextImageBase64,
+          imageType: nextImageType,
+          imageUrl: '',
+        }));
+      };
+
+      reader.onerror = () => {
+        setMapEditorState((prev) => ({
+          ...prev,
+          imageBase64: '',
+          imageType: '',
+        }));
+      };
+
+      reader.readAsDataURL(file);
     }, []);
 
     const handleSubmitMapEditor = useCallback(
@@ -3118,7 +3739,10 @@ export default function ZombiesDM() {
           mode,
           map: editorMap,
           title,
+          folder,
           imageUrl,
+          imageBase64,
+          imageType,
           altText,
           activateOnSave,
         } = mapEditorState;
@@ -3130,7 +3754,33 @@ export default function ZombiesDM() {
 
         const trimmedTitle = typeof title === 'string' ? title.trim() : '';
         const trimmedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        const trimmedImageBase64 =
+          typeof imageBase64 === 'string' ? imageBase64.trim() : '';
+        const trimmedImageType =
+          typeof imageType === 'string' ? imageType.trim() : '';
         const trimmedAltText = typeof altText === 'string' ? altText.trim() : '';
+        const trimmedFolder = typeof folder === 'string' ? folder.trim() : '';
+
+        const errors = {};
+
+        if (!trimmedTitle) {
+          errors.title = 'Title is required.';
+        }
+
+        if (!trimmedImageUrl && !trimmedImageBase64) {
+          errors.imageSource = 'Provide an image URL or upload a file.';
+        }
+
+        if (mode === 'create' && !trimmedAltText) {
+          errors.altText = 'Alt text is required.';
+        }
+
+        if (Object.keys(errors).length > 0) {
+          setMapEditorErrors(errors);
+          return;
+        }
+
+        setMapEditorErrors({});
 
         const normalizedTitle = trimmedTitle || getMapDisplayTitle(baseMap, DEFAULT_MAP_TITLE);
 
@@ -3138,13 +3788,34 @@ export default function ZombiesDM() {
           baseMap && typeof baseMap === 'object' ? { ...baseMap } : {};
         delete sanitizedBaseMap.summary;
         delete sanitizedBaseMap.caption;
+        delete sanitizedBaseMap.imageUrl;
+        delete sanitizedBaseMap.imageBase64;
+        delete sanitizedBaseMap.imageType;
+        delete sanitizedBaseMap.folder;
 
         const payloadMap = {
           ...sanitizedBaseMap,
           title: normalizedTitle,
-          imageUrl: trimmedImageUrl,
-          altText: trimmedAltText,
         };
+
+        if (trimmedFolder) {
+          payloadMap.folder = trimmedFolder;
+        }
+
+        if (trimmedAltText) {
+          payloadMap.altText = trimmedAltText;
+        } else {
+          delete payloadMap.altText;
+        }
+
+        if (trimmedImageUrl) {
+          payloadMap.imageUrl = trimmedImageUrl;
+        } else if (trimmedImageBase64) {
+          payloadMap.imageBase64 = trimmedImageBase64;
+          if (trimmedImageType) {
+            payloadMap.imageType = trimmedImageType;
+          }
+        }
 
         if (mode === 'create') {
           delete payloadMap.mapId;
@@ -3274,6 +3945,7 @@ export default function ZombiesDM() {
             }
 
             setStatus({ type: 'success', message: 'Map updated.' });
+            setLastMapFolder(trimmedFolder);
           }
 
           setGeneratedMap(null);
@@ -3297,6 +3969,7 @@ export default function ZombiesDM() {
         previewMap,
         applyMapPayload,
         parseErrorMessage,
+        setLastMapFolder,
       ]
     );
 
@@ -4571,7 +5244,13 @@ const resolveIcon = (category, iconMap, fallback) => {
                       <tbody>
                         {orderedCombatRecords.length > 0 ? (
                           orderedCombatRecords.map(
-                            ({ character, rowId, participantInfo, initiativeValue }) => {
+                            ({
+                              character,
+                              rowId,
+                              participantInfo,
+                              initiativeValue,
+                              recordIndex,
+                            }) => {
                               const resolvedRowId = rowId || '';
                               const isParticipant = Boolean(participantInfo);
                               const displayInitiative =
@@ -4591,10 +5270,49 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 participantInfo?.characterId ||
                                 'this character';
 
+                              const sanitizeIdentifier = (value, fallbackIndex) =>
+                                typeof value === 'string' && value.trim() !== ''
+                                  ? value.trim().replace(/[^0-9A-Za-z_-]/g, '-')
+                                  : `participant-${fallbackIndex}`;
+                              const rowTestId = `combat-row-${sanitizeIdentifier(
+                                resolvedRowId,
+                                recordIndex
+                              )}`;
+                              const rowCurrentHp = toFiniteNumberOrNull(
+                                character?.currentHp ??
+                                  character?.hpCurrent ??
+                                  character?.tempHealth ??
+                                  character?.health ??
+                                  participantInfo?.currentHp ??
+                                  participantInfo?.hpCurrent ??
+                                  participantInfo?.health
+                              );
+                              const rowMaxHp = toFiniteNumberOrNull(
+                                character?.maxHp ??
+                                  character?.hpMax ??
+                                  character?.health ??
+                                  participantInfo?.maxHp ??
+                                  participantInfo?.hpMax ??
+                                  participantInfo?.health
+                              );
+                              const rowTempHp = toFiniteNumberOrNull(
+                                character?.tempHealth ?? participantInfo?.tempHealth
+                              );
+
+                              const rowDataAttributes = {
+                                'data-testid': rowTestId,
+                                ...(rowCurrentHp !== null
+                                  ? { 'data-current-hp': rowCurrentHp }
+                                  : {}),
+                                ...(rowMaxHp !== null ? { 'data-max-hp': rowMaxHp } : {}),
+                                ...(rowTempHp !== null ? { 'data-temp-hp': rowTempHp } : {}),
+                              };
+
                               return (
                                 <tr
                                   key={resolvedRowId || playerName}
                                   className={isActive ? 'table-success text-dark' : undefined}
+                                  {...rowDataAttributes}
                                 >
                                   <td className="fw-semibold">{displayName}</td>
                                   <td>{playerName}</td>
@@ -4647,7 +5365,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                 items={Array.isArray(records) ? records : []}
                 emptyMessage="No characters found."
                 getKey={(character) => character._id}
-                renderItem={(character) => {
+                renderItem={(character, itemIndex) => {
                   const occupation = Array.isArray(character.occupation)
                     ? character.occupation
                     : [];
@@ -4702,13 +5420,64 @@ const resolveIcon = (category, iconMap, fallback) => {
                     };
                   });
 
+                  const identifierCandidates = [];
+                  if (typeof character._id === 'string' && character._id.trim() !== '') {
+                    identifierCandidates.push(character._id.trim());
+                  }
+                  if (
+                    typeof character.characterId === 'string' &&
+                    character.characterId.trim() !== ''
+                  ) {
+                    identifierCandidates.push(character.characterId.trim());
+                  }
+                  const primaryIdentifier = identifierCandidates[0] || `character-${itemIndex}`;
+                  const sanitizeIdentifier = (value) =>
+                    typeof value === 'string'
+                      ? value.replace(/[^0-9A-Za-z_-]/g, '-')
+                      : `character-${itemIndex}`;
+                  const cardTestId = `character-card-${sanitizeIdentifier(primaryIdentifier)}`;
+
+                  const { currentHp: derivedCurrentHp, maxHp: derivedMaxHp } =
+                    calculateCharacterHitPoints(character);
+                  const fallbackCurrentHp = toFiniteNumberOrNull(
+                    character.currentHp ??
+                      character.hpCurrent ??
+                      character.tempHealth ??
+                      character.health
+                  );
+                  const fallbackMaxHp = toFiniteNumberOrNull(
+                    character.maxHp ?? character.hpMax ?? character.health
+                  );
+                  const normalizedCurrentHp = Number.isFinite(derivedCurrentHp)
+                    ? derivedCurrentHp
+                    : fallbackCurrentHp;
+                  const normalizedMaxHp = Number.isFinite(derivedMaxHp)
+                    ? derivedMaxHp
+                    : fallbackMaxHp;
+                  const normalizedTempHp = toFiniteNumberOrNull(character.tempHealth);
+
+                  const cardDataAttributes = {
+                    'data-testid': cardTestId,
+                    ...(typeof primaryIdentifier === 'string'
+                      ? { 'data-character-id': primaryIdentifier }
+                      : {}),
+                    ...(normalizedCurrentHp !== null
+                      ? { 'data-current-hp': normalizedCurrentHp }
+                      : {}),
+                    ...(normalizedMaxHp !== null ? { 'data-max-hp': normalizedMaxHp } : {}),
+                    ...(normalizedTempHp !== null ? { 'data-temp-hp': normalizedTempHp } : {}),
+                  };
+
                   const detailRows = [
                     { label: 'Level', value: totalLevel },
                     { label: 'Classes', value: classSummary },
                   ];
 
                   return (
-                    <Card className="resource-card h-100 w-100 text-start">
+                    <Card
+                      className="resource-card h-100 w-100 text-start"
+                      {...cardDataAttributes}
+                    >
                       <Card.Body className="d-flex flex-column">
                         <div className="d-flex justify-content-center mb-2">
                           <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
@@ -4929,94 +5698,149 @@ const resolveIcon = (category, iconMap, fallback) => {
                             </Button>
                           </div>
                         </div>
-                        {Array.isArray(maps) && maps.length > 0 ? (
+                        {groupedMaps.length > 0 ? (
                           <ListGroup
                             variant="flush"
                             className="bg-transparent map-list"
                             data-testid="map-list"
                           >
-                            {maps.map((mapItem, index) => {
-                              const mapIdValue =
-                                typeof mapItem?.mapId === 'string' && mapItem.mapId.trim() !== ''
-                                  ? mapItem.mapId.trim()
-                                  : null;
-                              const mapKey = mapIdValue || `map-${index}`;
-                              const isActive = Boolean(mapIdValue && mapIdValue === activeMapId);
-                              const isSelected = Boolean(
-                                mapIdValue && selectedMapId === mapIdValue
+                            {groupedMaps.map((group) => {
+                              const folderTestId = sanitizeTestIdValue(
+                                group.key === UNGROUPED_FOLDER_KEY ? 'ungrouped' : group.key,
+                                'folder'
                               );
-                              const isProcessing =
-                                Boolean(mapIdValue && mapActionLoadingId === mapIdValue);
-                              const title = getMapDisplayTitle(
-                                mapItem,
-                                DEFAULT_MAP_TITLE
-                              );
+                              const isExpanded =
+                                typeof mapFolderExpansion[group.key] === 'boolean'
+                                  ? mapFolderExpansion[group.key]
+                                  : group.key === UNGROUPED_FOLDER_KEY;
+
                               return (
-                                <ListGroup.Item
-                                  key={mapKey}
-                                  action={Boolean(mapIdValue)}
-                                  active={isSelected}
-                                  onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
-                                  className="bg-dark text-light border-secondary"
-                                  data-testid={`map-list-item-${mapKey}`}
-                                >
-                                  <div className="d-flex justify-content-between align-items-start">
-                                    <div className="fw-semibold">{title}</div>
-                                    {isActive && (
-                                      <Badge
-                                        bg="success"
-                                        className="ms-2"
-                                        data-testid={`map-active-badge-${mapKey}`}
+                                <React.Fragment key={group.key}>
+                                  <ListGroup.Item
+                                    className="bg-dark text-light border-secondary"
+                                    data-testid={`map-folder-${folderTestId}-header`}
+                                  >
+                                    <div className="d-flex align-items-center justify-content-between gap-2">
+                                      <button
+                                        type="button"
+                                        className="btn btn-link text-light text-decoration-none p-0 d-flex align-items-center gap-2"
+                                        onClick={() => handleToggleMapFolder(group.key)}
+                                        aria-expanded={isExpanded}
+                                        data-testid={`map-folder-toggle-${folderTestId}`}
                                       >
-                                        Active
+                                        <span
+                                          className="d-inline-flex align-items-center justify-content-center"
+                                          aria-hidden="true"
+                                        >
+                                          {isExpanded ? (
+                                            <FiChevronDown aria-hidden="true" />
+                                          ) : (
+                                            <FiChevronRight aria-hidden="true" />
+                                          )}
+                                        </span>
+                                        <span className="fw-semibold text-start">
+                                          {group.label}
+                                        </span>
+                                      </button>
+                                      <Badge
+                                        bg="secondary"
+                                        pill
+                                        data-testid={`map-folder-count-${folderTestId}`}
+                                      >
+                                        {group.maps.length}
+                                        <span className="visually-hidden"> maps</span>
                                       </Badge>
-                                    )}
-                                  </div>
-                                  <div className="d-flex flex-wrap gap-2 mt-3">
-                                    <Button
-                                      variant="outline-light"
-                                      size="sm"
-                                      disabled={!mapIdValue || isProcessing}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (mapIdValue) {
-                                          openRenameMapModal(mapItem);
-                                        }
-                                      }}
-                                      data-testid={`map-rename-button-${mapKey}`}
-                                    >
-                                      Rename
-                                    </Button>
-                                    <Button
-                                      variant="outline-light"
-                                      size="sm"
-                                      disabled={!mapIdValue || isActive || isProcessing}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (mapIdValue) {
-                                          handleActivateMap(mapIdValue);
-                                        }
-                                      }}
-                                      data-testid={`map-activate-button-${mapKey}`}
-                                    >
-                                      {isActive ? 'Active' : 'Set Active'}
-                                    </Button>
-                                    <Button
-                                      variant="outline-danger"
-                                      size="sm"
-                                      disabled={!mapIdValue || isProcessing}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (mapIdValue) {
-                                          handleDeleteMap(mapIdValue);
-                                        }
-                                      }}
-                                      data-testid={`map-delete-button-${mapKey}`}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                </ListGroup.Item>
+                                    </div>
+                                  </ListGroup.Item>
+                                  {isExpanded &&
+                                    group.maps.map((mapItem, index) => {
+                                      const mapIdValue = normalizeMapId(mapItem?.mapId);
+                                      const mapKey = mapIdValue || `map-${group.key}-${index}`;
+                                      const isActive = Boolean(
+                                        mapIdValue && mapIdValue === normalizedActiveMapId
+                                      );
+                                      const isSelected = Boolean(
+                                        mapIdValue && normalizedSelectedMapId === mapIdValue
+                                      );
+                                      const isProcessing = Boolean(
+                                        mapIdValue && mapActionLoadingId === mapIdValue
+                                      );
+                                      const title = getMapDisplayTitle(
+                                        mapItem,
+                                        DEFAULT_MAP_TITLE
+                                      );
+                                      const mapTestId = `map-list-item-${mapKey}`;
+
+                                      return (
+                                        <ListGroup.Item
+                                          key={mapKey}
+                                          action={Boolean(mapIdValue)}
+                                          active={isSelected}
+                                          onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
+                                          className="bg-dark text-light border-secondary ps-4"
+                                          data-testid={mapTestId}
+                                          data-folder-key={group.key}
+                                        >
+                                          <div className="d-flex justify-content-between align-items-start">
+                                            <div className="fw-semibold">{title}</div>
+                                            {isActive && (
+                                              <Badge
+                                                bg="success"
+                                                className="ms-2"
+                                                data-testid={`map-active-badge-${mapKey}`}
+                                              >
+                                                Active
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <div className="d-flex flex-wrap gap-2 mt-3">
+                                            <Button
+                                              variant="outline-light"
+                                              size="sm"
+                                              disabled={!mapIdValue || isProcessing}
+                                              onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (mapIdValue) {
+                                                  openRenameMapModal(mapItem);
+                                                }
+                                              }}
+                                              data-testid={`map-rename-button-${mapKey}`}
+                                            >
+                                              Rename
+                                            </Button>
+                                            <Button
+                                              variant="outline-light"
+                                              size="sm"
+                                              disabled={!mapIdValue || isActive || isProcessing}
+                                              onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (mapIdValue) {
+                                                  handleActivateMap(mapIdValue);
+                                                }
+                                              }}
+                                              data-testid={`map-activate-button-${mapKey}`}
+                                            >
+                                              {isActive ? 'Active' : 'Set Active'}
+                                            </Button>
+                                            <Button
+                                              variant="outline-danger"
+                                              size="sm"
+                                              disabled={!mapIdValue || isProcessing}
+                                              onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (mapIdValue) {
+                                                  handleDeleteMap(mapIdValue);
+                                                }
+                                              }}
+                                              data-testid={`map-delete-button-${mapKey}`}
+                                            >
+                                              Delete
+                                            </Button>
+                                          </div>
+                                        </ListGroup.Item>
+                                      );
+                                    })}
+                                </React.Fragment>
                               );
                             })}
                           </ListGroup>
@@ -5218,6 +6042,25 @@ const resolveIcon = (category, iconMap, fallback) => {
                           disabled={!selectedMonsterIndex}
                         />
                       </Form.Group>
+                      <div className="d-flex flex-column align-items-start mt-3 gap-2">
+                        <Button
+                          variant="outline-light"
+                          size="sm"
+                          onClick={handleOpenEnemyTokenPicker}
+                          disabled={!selectedMonsterIndex}
+                        >
+                          {enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+                            ? 'Change Token'
+                            : 'Choose Token'}
+                        </Button>
+                        {enemyTokenSelection?.figurineImageUrl ? (
+                          <img
+                            src={enemyTokenSelection.figurineImageUrl}
+                            alt="Selected enemy token"
+                            style={{ maxHeight: '96px', maxWidth: '96px', objectFit: 'contain' }}
+                          />
+                        ) : null}
+                      </div>
                     </Col>
                     <Col md={6} className="d-flex justify-content-center justify-content-md-end">
                       <div className="d-flex flex-column flex-md-row gap-2 mt-3 mt-md-0">
@@ -6629,6 +7472,18 @@ const resolveIcon = (category, iconMap, fallback) => {
     </Tab.Pane>
   </Tab.Content>
         </Tab.Container>
+        <TokenPickerModal
+          show={showEnemyTokenPicker}
+          onHide={handleCloseEnemyTokenPicker}
+          campaignId={campaignId || undefined}
+          onSelect={handleEnemyTokenSelected}
+          filterScope={enemyTokenFilterScope}
+          allowClear={Boolean(
+            enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+          )}
+          onClear={() => handleEnemyTokenSelected(null)}
+          isDm
+        />
         <D20RollerModal
           show={showDiceRoller}
           onHide={() => setShowDiceRoller(false)}
@@ -6651,34 +7506,127 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Modal.Header>
           <Modal.Body>
             <Form.Group className="mb-3" controlId="map-editor-title">
-              <Form.Label>Title</Form.Label>
+              <Form.Label>
+                Title <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter map title"
                 value={mapEditorState.title}
                 onChange={handleMapEditorInputChange('title')}
                 disabled={mapEditorSaving}
+                required
+                aria-required="true"
+                isInvalid={Boolean(mapEditorErrors.title)}
               />
+              {mapEditorErrors.title && (
+                <Form.Control.Feedback type="invalid" className="d-block">
+                  {mapEditorErrors.title}
+                </Form.Control.Feedback>
+              )}
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="map-editor-folder-select">Folder</Form.Label>
+              <Form.Select
+                id="map-editor-folder-select"
+                value={mapEditorState.folderSelection}
+                onChange={handleMapEditorFolderSelectionChange}
+                disabled={mapEditorSaving}
+                aria-describedby="map-editor-folder-help"
+                data-testid="map-editor-folder-select"
+              >
+                <option value="">No folder</option>
+                {availableMapFolders.map((folderName) => (
+                  <option value={folderName} key={folderName}>
+                    {folderName}
+                  </option>
+                ))}
+                <option value={NEW_FOLDER_OPTION_VALUE}>Create new folder…</option>
+              </Form.Select>
+              {mapEditorState.folderSelection === NEW_FOLDER_OPTION_VALUE ? (
+                <div className="mt-2">
+                  <Form.Label htmlFor="map-editor-folder-input">New folder name</Form.Label>
+                  <Form.Control
+                    id="map-editor-folder-input"
+                    type="text"
+                    placeholder="Enter folder name"
+                    value={mapEditorState.folder}
+                    onChange={handleMapEditorInputChange('folder')}
+                    disabled={mapEditorSaving}
+                    aria-describedby="map-editor-folder-help"
+                    data-testid="map-editor-folder-input"
+                  />
+                </div>
+              ) : null}
+              <Form.Text id="map-editor-folder-help" className="text-muted">
+                Choose an existing folder or create a new one.
+              </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
-              <Form.Label>Image URL</Form.Label>
+              <Form.Label>
+                Image URL <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
               <Form.Control
                 type="url"
                 placeholder="https://example.com/map.png"
                 value={mapEditorState.imageUrl}
                 onChange={handleMapEditorInputChange('imageUrl')}
                 disabled={mapEditorSaving}
+                aria-describedby={imageSourceDescribedBy}
+                isInvalid={Boolean(mapEditorErrors.imageSource)}
               />
             </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-image-file">
+              <Form.Label>
+                Image File <span className="text-danger" aria-hidden="true">*</span>
+              </Form.Label>
+              <Form.Control
+                key={mapEditorState.fileInputKey}
+                type="file"
+                accept="image/*"
+                onChange={handleMapEditorFileChange}
+                disabled={mapEditorSaving}
+                aria-describedby={imageSourceDescribedBy}
+                isInvalid={Boolean(mapEditorErrors.imageSource)}
+              />
+            </Form.Group>
+            <Form.Text
+              id="map-editor-image-requirement"
+              className="text-muted d-block mb-2"
+            >
+              Provide an image URL or upload a file. At least one source is required.
+            </Form.Text>
+            {mapEditorErrors.imageSource && (
+              <div
+                id="map-editor-image-error"
+                className="text-danger small mb-3"
+                role="alert"
+              >
+                {mapEditorErrors.imageSource}
+              </div>
+            )}
             <Form.Group className="mb-3" controlId="map-editor-alt-text">
-              <Form.Label>Alt Text</Form.Label>
+              <Form.Label>
+                Alt Text
+                {mapEditorState.mode === 'create' && (
+                  <span className="text-danger" aria-hidden="true">*</span>
+                )}
+              </Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Describe the map image"
                 value={mapEditorState.altText}
                 onChange={handleMapEditorInputChange('altText')}
                 disabled={mapEditorSaving}
+                required={mapEditorState.mode === 'create'}
+                aria-required={mapEditorState.mode === 'create'}
+                isInvalid={Boolean(mapEditorErrors.altText)}
               />
+              {mapEditorErrors.altText && (
+                <Form.Control.Feedback type="invalid" className="d-block">
+                  {mapEditorErrors.altText}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             {mapEditorState.mode === 'create' && (
               <Form.Check

@@ -12,10 +12,13 @@ const races = {
     name: "Dwarf",
     size: "Medium",
     sizeOptions: ["Medium"],
-    speed: 25,
+    speed: 30,
     abilities: { con: 2 },
     skills: {},
     languages: ["Common", "Dwarvish"],
+    darkvisionRange: 120,
+    resistances: ["Poison"],
+    hpMaxBonusPerLevel: 1,
     weaponProficiencies: [
       "battleaxe",
       "handaxe",
@@ -30,19 +33,66 @@ const races = {
     speed: 30,
     abilities: { dex: 2 },
     skills: { perception: { proficient: true } },
+    skillChoices: {
+      count: 1,
+      options: ["insight", "perception", "survival"],
+      description: "Choose one of Insight, Perception, or Survival to gain proficiency in.",
+    },
     languages: ["Common", "Elvish"],
+    darkvisionRange: 60,
     weaponProficiencies: [
       "longsword",
       "shortsword",
       "shortbow",
       "longbow",
     ],
+    elvenLineages: {
+      drow: {
+        label: "Drow",
+        description:
+          "You know the Dancing Lights cantrip. Starting at 3rd level, you can also cast Faerie Fire once per long rest, and starting at 5th level, you can cast Darkness once per long rest.",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        darkvisionRange: 120,
+        level1Feature:
+          "You know the Dancing Lights cantrip. You can cast it without expending a spell slot.",
+        level3Feature:
+          "At 3rd level, you can cast Faerie Fire with this trait once per long rest.",
+        level5Feature:
+          "At 5th level, you can cast Darkness with this trait once per long rest.",
+      },
+      high: {
+        label: "High Elf",
+        description:
+          "You know the Prestidigitation cantrip. Starting at 3rd level, you can also cast Detect Magic once per long rest, and starting at 5th level, you can cast Misty Step once per long rest.",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        level1Feature:
+          "You know the Prestidigitation cantrip. You can cast it without expending a spell slot.",
+        level3Feature:
+          "At 3rd level, you can cast Detect Magic with this trait once per long rest.",
+        level5Feature:
+          "At 5th level, you can cast Misty Step with this trait once per long rest.",
+      },
+      wood: {
+        label: "Wood Elf",
+        description:
+          "You know the Druidcraft cantrip. Starting at 3rd level, you can also cast Longstrider once per long rest, and starting at 5th level, you can cast Pass without Trace once per long rest.",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        speed: 35,
+        level1Feature:
+          "You know the Druidcraft cantrip. You can cast it without expending a spell slot.",
+        level3Feature:
+          "At 3rd level, you can cast Longstrider with this trait once per long rest.",
+        level5Feature:
+          "At 5th level, you can cast Pass without Trace with this trait once per long rest.",
+      },
+    },
   },
   halfling: {
     name: "Halfling",
     size: "Small",
     sizeOptions: ["Small"],
-    speed: 25,
+    speed: 30,
+    creatureType: "Humanoid",
     abilities: { dex: 2 },
     skills: {},
     languages: ["Common", "Halfling"],
@@ -55,6 +105,7 @@ const races = {
     abilities: { str: 2, cha: 1 },
     skills: {},
     languages: ["Common", "Draconic"],
+    darkvisionRange: 60,
     dragonAncestries: {
       black: {
         label: "Black (Acid)",
@@ -122,21 +173,54 @@ const races = {
     name: "Gnome",
     size: "Small",
     sizeOptions: ["Small"],
-    speed: 25,
+    speed: 30,
     abilities: { int: 2 },
     skills: {},
     languages: ["Common", "Gnomish"],
-  },
-  "half-elf": {
-    name: "Half-Elf",
-    size: "Medium",
-    sizeOptions: ["Medium"],
-    speed: 30,
-    abilities: { cha: 2 },
-    abilityChoices: { count: 2, options: ["str", "dex", "con", "int", "wis"] },
-    skillChoices: { count: 2 },
-    skills: {},
-    languages: ["Common", "Elvish", "Choice"],
+    creatureType: "Humanoid",
+    darkvisionRange: 60,
+    gnomeLineages: {
+      forest: {
+        label: "Forest Gnome",
+        description:
+          "You know the Minor Illusion cantrip. Starting at 3rd level, you can also cast Speak with Animals with this trait once per long rest.",
+        spells: [
+          {
+            name: "Minor Illusion",
+            description:
+              "Create a sound or an image of an object within range that lasts for the duration.",
+            usage: "At will",
+          },
+          {
+            name: "Speak with Animals",
+            description:
+              "You gain the ability to comprehend and verbally communicate with beasts for the duration.",
+            usage: "1/long rest",
+          },
+        ],
+        spellcastingAbilities: ["Intelligence", "Wisdom"],
+      },
+      rock: {
+        label: "Rock Gnome",
+        description:
+          "You know the Mending and Prestidigitation cantrips. Whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.",
+        spells: [
+          {
+            name: "Mending",
+            description:
+              "You know the Mending cantrip, allowing you to repair a break or tear in an object you touch.",
+            usage: "At will",
+          },
+          {
+            name: "Prestidigitation",
+            description:
+              "You know the Prestidigitation cantrip, letting you create minor magical effects. Additionally, whenever you finish a long rest, you can spend 10 minutes to create a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 minute repairing it), when you use this trait again, or when you take an action to dismantle it; at that time, you can reclaim the materials used to create it.",
+            usage: "At will",
+          },
+        ],
+        spellcastingAbilities: ["Intelligence"],
+      },
+    },
   },
   orc: {
     name: "Orc",
@@ -146,6 +230,7 @@ const races = {
     abilities: { str: 2, con: 1 },
     skills: { intimidation: { proficient: true } },
     languages: ["Common", "Orc"],
+    darkvisionRange: 120,
   },
   tiefling: {
     name: "Tiefling",
@@ -155,6 +240,109 @@ const races = {
     abilities: { cha: 2, int: 1 },
     skills: {},
     languages: ["Common", "Infernal"],
+    creatureType: "Humanoid",
+    darkvisionRange: 60,
+    fiendishLegacies: {
+      abyssal: {
+        label: "Abyssal",
+        description:
+          "You channel the chaotic corruption of the Abyss, gaining resistances and magic steeped in poison.",
+        resistance: "Poison",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        spells: [
+          {
+            name: "Poison Spray",
+            spellLevel: "Cantrip",
+            unlockedAtLevel: 1,
+            description:
+              "Project a puff of noxious gas toward a creature you can see, forcing it to make a Constitution save or take poison damage.",
+            usage: "At will",
+          },
+          {
+            name: "Ray of Sickness",
+            spellLevel: "1st-level",
+            unlockedAtLevel: 3,
+            description:
+              "Hurl a ray of sickening energy that can poison a creature on a failed Constitution save.",
+            usage: "1/long rest",
+          },
+          {
+            name: "Hold Person",
+            spellLevel: "2nd-level",
+            unlockedAtLevel: 5,
+            description:
+              "Paralyze a humanoid you can see within range unless it succeeds on a Wisdom save.",
+            usage: "1/long rest",
+          },
+        ],
+      },
+      chthonic: {
+        label: "Chthonic",
+        description:
+          "Your legacy is tied to dark powers of the Lower Planes, cloaking you in necrotic energies and shadowed magic.",
+        resistance: "Necrotic",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        spells: [
+          {
+            name: "Chill Touch",
+            spellLevel: "Cantrip",
+            unlockedAtLevel: 1,
+            description:
+              "Create a ghostly skeletal hand that clings to a creature, dealing necrotic damage and hampering its healing.",
+            usage: "At will",
+          },
+          {
+            name: "False Life",
+            spellLevel: "1st-level",
+            unlockedAtLevel: 3,
+            description:
+              "Bolster yourself with necromantic vitality, gaining temporary hit points for the duration.",
+            usage: "1/long rest",
+          },
+          {
+            name: "Ray of Enfeeblement",
+            spellLevel: "2nd-level",
+            unlockedAtLevel: 5,
+            description:
+              "Sap a creature's strength with a weakening ray, halving its weapon damage on a failed Constitution save.",
+            usage: "1/long rest",
+          },
+        ],
+      },
+      infernal: {
+        label: "Infernal",
+        description:
+          "You inherit the disciplined might of the Hells, wreathed in flame and armed with classic devilish magic.",
+        resistance: "Fire",
+        spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        spells: [
+          {
+            name: "Fire Bolt",
+            spellLevel: "Cantrip",
+            unlockedAtLevel: 1,
+            description:
+              "Launch a mote of fire at a creature within range, dealing fire damage on a hit.",
+            usage: "At will",
+          },
+          {
+            name: "Hellish Rebuke",
+            spellLevel: "1st-level",
+            unlockedAtLevel: 3,
+            description:
+              "Surround an attacker in searing flame as a reaction, forcing a Dexterity save or dealing fire damage.",
+            usage: "1/long rest",
+          },
+          {
+            name: "Darkness",
+            spellLevel: "2nd-level",
+            unlockedAtLevel: 5,
+            description:
+              "Create a 15-foot-radius sphere of magical darkness that even darkvision can't penetrate.",
+            usage: "1/long rest",
+          },
+        ],
+      },
+    },
   },
   goliath: {
     name: "Goliath",

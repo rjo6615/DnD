@@ -307,29 +307,11 @@ module.exports = (router) => {
       const quality = process.env.OPENAI_IMAGE_QUALITY;
       const responseFormat = process.env.OPENAI_IMAGE_RESPONSE_FORMAT || 'b64_json';
 
-      const FEET_PER_SIDE = 120;
-      const PIXELS_PER_FOOT = 8.5;      // 1 ft = 10 px  → final = 1200×1200
-      const OUTPUT_SIZE = FEET_PER_SIDE * PIXELS_PER_FOOT; // 1200
-
       const generationPrompt = [
         // Avoid “battle map” / “grid” language entirely
-        'Top-down, flat, orthographic *aerial environment illustration* (not a battle map).',
-        `Canvas: exactly ${FEET_PER_SIDE} ft × ${FEET_PER_SIDE} ft. Render as a ${OUTPUT_SIZE}×${OUTPUT_SIZE} image so 1 foot ≈ ${PIXELS_PER_FOOT} pixels.`,
-        '',
-        'Hard constraints:',
-        '• Absolutely NO grid, NO squares, NO checkerboard, NO crosshatch, NO coordinate labels, NO ticks, NO borders, NO watermarks.',
-        '• No perspective or tilt; pure flat top-down.',
-        '• Keep all content inside the canvas; no margins or frames.',
-        '• Scale objects to real-world size. Example anchors:',
-        '  – Single-door tavern: ~40 ft × 30 ft, pitched roof.',
-        '  – Wagon: ~10 ft long.',
-        '  – Trees: 15–25 ft canopy diameter, crowns not tiled in a pattern.',
-        '• Naturalistic surfaces (packed dirt paths, grass, rock, water) with continuous textures—not tiled patterns.',
-        '',
-        'Composition guidance:',
-        '• Reserve ~10–15 ft of breathable negative space at the edges (still part of the world, just not framed).',
-        '• Soften transitions between terrain types with organic blending (no repeating tiles).',
-        '',
+        'It must be a full size image and zoomed in',
+        'it must be a fully direct top-down view image. No tilt at all',
+        'dont generate people.',
         // Your specific content goes here:
         (prompt || '').trim(),
       ].join('\n');

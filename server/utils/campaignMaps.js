@@ -62,6 +62,27 @@ const clampPercentage = (value) => {
   return parsed;
 };
 
+const FIGURINE_STRING_FIELDS = ['imageUrl', 'cloudinaryPublicId', 'folder'];
+
+const normalizeTokenRotation = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = parsed % 360;
+  const resolved = normalized < 0 ? normalized + 360 : normalized;
+
+  // Preserve precision for fractional rotations while avoiding floating-point
+  // noise from repeated normalization. Three decimal places is more than
+  // enough granularity for visual rotations.
+  return Math.round(resolved * 1000) / 1000;
+};
+
 const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
   const normalizedTokens = {};
   let didMutate = false;
@@ -153,11 +174,55 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         updatedAt: resolvedUpdatedAt,
       };
 
+      if ('rotation' in candidate) {
+        const normalizedRotation = normalizeTokenRotation(candidate.rotation);
+        if (normalizedRotation === null) {
+          didMutate = true;
+        } else {
+          sanitizedToken.rotation = normalizedRotation;
+          if (normalizedRotation !== candidate.rotation) {
+            didMutate = true;
+          }
+        }
+      }
+
+      FIGURINE_STRING_FIELDS.forEach((field) => {
+        if (!(field in candidate)) {
+          return;
+        }
+
+        const rawValue = candidate[field];
+        if (typeof rawValue !== 'string') {
+          didMutate = true;
+          return;
+        }
+
+        const trimmed = rawValue.trim();
+        if (!trimmed) {
+          didMutate = true;
+          return;
+        }
+
+        sanitizedToken[field] = trimmed;
+        if (trimmed !== rawValue) {
+          didMutate = true;
+        }
+      });
+
       const originalComparable = JSON.stringify({
         characterId: rawValue.characterId,
         x: rawValue.x,
         y: rawValue.y,
         updatedAt: rawValue.updatedAt,
+        ...FIGURINE_STRING_FIELDS.reduce((acc, field) => {
+          if (field in rawValue) {
+            acc[field] = rawValue[field];
+          }
+          return acc;
+        }, {}),
+        ...(rawValue && Object.prototype.hasOwnProperty.call(rawValue, 'rotation')
+          ? { rotation: rawValue.rotation }
+          : {}),
       });
       const sanitizedComparable = JSON.stringify(sanitizedToken);
       if (originalComparable !== sanitizedComparable) {
@@ -280,12 +345,29 @@ const prepareStoredMap = ({
     }
   }
 
+  if (typeof storedMap.folder === 'string') {
+    const trimmedFolder = storedMap.folder.trim();
+    if (trimmedFolder) {
+      storedMap.folder = trimmedFolder;
+    } else {
+      delete storedMap.folder;
+    }
+  }
+
   if (
     !storedMap.title &&
     typeof existing.title === 'string' &&
     existing.title.trim() !== ''
   ) {
     storedMap.title = existing.title.trim();
+  }
+
+  if (
+    storedMap.folder === undefined &&
+    typeof existing.folder === 'string' &&
+    existing.folder.trim() !== ''
+  ) {
+    storedMap.folder = existing.folder.trim();
   }
 
   if (typeof storedMap.cloudinaryPublicId === 'string') {
@@ -468,4 +550,5 @@ module.exports = {
   normalizeCampaignMapState,
   getMapSchemas,
   normalizeMapTokens,
+  normalizeTokenRotation,
 };

@@ -8,6 +8,7 @@ import {
   normalizeWeapons,
   normalizeAccessories,
 } from './inventoryNormalization';
+import DockControls from '../components/DockControls';
 
 export default function EquipmentModal({
   show,
@@ -18,6 +19,7 @@ export default function EquipmentModal({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const normalizedWeapons = useMemo(
     () => normalizeWeapons(form.weapon || []),
@@ -88,6 +90,11 @@ export default function EquipmentModal({
     >
       <Card className="modern-card">
         <Card.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
           <Card.Title className="modal-title">Equipment</Card.Title>
         </Card.Header>
         <Card.Body

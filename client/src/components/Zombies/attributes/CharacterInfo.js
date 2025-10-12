@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Card, Modal, Button } from "react-bootstrap";
+import DockControls from '../components/DockControls';
 import levelup from "../../../images/levelup.png";
 import LevelUp from "./LevelUp"; // Import LevelUp component
 
@@ -13,6 +14,10 @@ export default function CharacterInfo({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
+  characterFigurine,
+  handleOpenTokenPicker,
+  tokenPickerSaving = false,
 }) {
   const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -62,8 +67,16 @@ export default function CharacterInfo({
   }, [handleClose, isDocked, onDockClose]);
 
   const raceName = form?.race?.name?.toLowerCase?.();
+  const isDragonborn = raceName === 'dragonborn';
   const isGoliath = raceName === 'goliath';
+  const isElf = raceName === 'elf';
+  const isTiefling = raceName === 'tiefling';
+  const dragonAncestries = isDragonborn ? form?.race?.dragonAncestries || {} : {};
   const giantAncestries = isGoliath ? form?.race?.giantAncestries || {} : {};
+  const elvenLineages = isElf ? form?.race?.elvenLineages || {} : {};
+  const tieflingLegacies = isTiefling
+    ? form?.race?.fiendishLegacies || {}
+    : {};
   const goliathAncestry = isGoliath
     ? form?.race?.selectedAncestry ||
       (form?.race?.selectedAncestryKey && giantAncestries
@@ -80,8 +93,115 @@ export default function CharacterInfo({
       goliathAncestry.label ||
       "Giant Ancestry"
     : null;
+  const dragonbornAncestry = isDragonborn
+    ? form?.race?.selectedAncestry ||
+      (form?.race?.selectedAncestryKey && dragonAncestries
+        ? dragonAncestries[form.race.selectedAncestryKey]
+        : null) ||
+      form?.dragonAncestry ||
+      (form?.dragonAncestryKey && dragonAncestries
+        ? dragonAncestries[form.dragonAncestryKey]
+        : null)
+    : null;
+  const dragonbornAncestryName = dragonbornAncestry
+    ? dragonbornAncestry.label ||
+      dragonbornAncestry.ancestryName ||
+      dragonbornAncestry.name ||
+      form?.dragonAncestryKey ||
+      form?.race?.selectedAncestryKey ||
+      "Draconic Ancestry"
+    : null;
+  const elvenLineage = isElf
+    ? form?.race?.selectedAncestry ||
+      (form?.race?.selectedAncestryKey && elvenLineages
+        ? elvenLineages[form.race.selectedAncestryKey]
+        : null) ||
+      form?.elvenLineage ||
+      (form?.elvenLineageKey && elvenLineages
+        ? elvenLineages[form.elvenLineageKey]
+        : null)
+    : null;
+  const elvenLineageName = elvenLineage
+    ? elvenLineage.label || elvenLineage.name || 'Elven Lineage'
+    : null;
+  const tieflingLegacy = isTiefling
+    ? form?.race?.selectedAncestry ||
+      (form?.race?.selectedAncestryKey && tieflingLegacies
+        ? tieflingLegacies[form.race.selectedAncestryKey]
+        : null) ||
+      form?.tieflingLegacy ||
+      (form?.tieflingLegacyKey && tieflingLegacies
+        ? tieflingLegacies[form.tieflingLegacyKey]
+        : null)
+    : null;
+  const tieflingLegacyName = tieflingLegacy
+    ? tieflingLegacy.label || tieflingLegacy.name || 'Fiendish Legacy'
+    : null;
+  const tieflingLegacyAbility = (() => {
+    const fromForm =
+      typeof form?.tieflingLegacyAbility === 'string'
+        ? form.tieflingLegacyAbility.trim()
+        : '';
+    if (fromForm) {
+      return fromForm;
+    }
+    const fromRace =
+      typeof form?.race?.selectedLineageAbility === 'string'
+        ? form.race.selectedLineageAbility.trim()
+        : '';
+    return fromRace;
+  })();
+  const tieflingLegacyResistance = (() => {
+    const fromRace =
+      typeof form?.race?.selectedFiendishLegacyResistance === 'string'
+        ? form.race.selectedFiendishLegacyResistance.trim()
+        : '';
+    if (fromRace) {
+      return fromRace;
+    }
+    const fromLegacy =
+      typeof tieflingLegacy?.resistance === 'string'
+        ? tieflingLegacy.resistance.trim()
+        : '';
+    return fromLegacy;
+  })();
+  const tieflingLegacySubtext = (() => {
+    if (!isTiefling) {
+      return null;
+    }
+    const parts = [];
+    if (tieflingLegacyName) {
+      parts.push(tieflingLegacyName);
+    }
+    if (tieflingLegacyResistance) {
+      parts.push(`Resistance: ${tieflingLegacyResistance}`);
+    }
+    if (tieflingLegacyAbility) {
+      parts.push(`Spellcasting Ability: ${tieflingLegacyAbility}`);
+    }
+    return parts.length ? parts.join(' • ') : null;
+  })();
   const displaySize =
     form?.temporarySize || form?.size || form?.height || "—";
+  const hasFigurineSelection = Boolean(
+    characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
+  );
+  const canOpenTokenPicker = typeof handleOpenTokenPicker === 'function';
+  const isFigurineButtonDisabled = tokenPickerSaving || !canOpenTokenPicker;
+
+  const figurineButtonLabel = tokenPickerSaving
+    ? 'Updating Figurine...'
+    : hasFigurineSelection
+    ? 'Change Figurine'
+    : 'Choose Figurine';
+
+  const handleFigurineButtonClick = useCallback(() => {
+    if (tokenPickerSaving || !canOpenTokenPicker) {
+      return;
+    }
+
+    handleOpenTokenPicker();
+  }, [canOpenTokenPicker, handleOpenTokenPicker, tokenPickerSaving]);
 
   return (
     <Modal
@@ -98,9 +218,43 @@ export default function CharacterInfo({
     >
       <Card className="modern-card text-center">
         <Card.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
           <Card.Title className="modal-title">Character Info</Card.Title>
         </Card.Header>
         <Card.Body className="modal-body character-info-body" style={{ maxHeight: "60vh" }}>
+          <div className="character-info-figurine">
+            <div className="character-info-figurine__preview" aria-live="polite">
+              {characterFigurine?.figurineImageUrl ? (
+                <img
+                  src={characterFigurine.figurineImageUrl}
+                  alt="Selected figurine token"
+                  className="character-info-figurine__image"
+                />
+              ) : (
+                <div className="character-info-figurine__placeholder" aria-hidden="true">
+                  <i className="fas fa-chess-king"></i>
+                </div>
+              )}
+              {!characterFigurine?.figurineImageUrl && hasFigurineSelection && (
+                <div className="character-info-figurine__details">Figurine selected</div>
+              )}
+              {!hasFigurineSelection && (
+                <div className="character-info-figurine__details">No figurine selected</div>
+              )}
+            </div>
+            <Button
+              variant="outline-light"
+              size="sm"
+              onClick={handleFigurineButtonClick}
+              disabled={isFigurineButtonDisabled}
+            >
+              {figurineButtonLabel}
+            </Button>
+          </div>
           <div className="character-info-grid">
             <div className="character-info-item">
               <div className="character-info-label">Level</div>
@@ -124,6 +278,15 @@ export default function CharacterInfo({
                 <span>{form.race?.name || "—"}</span>
                 {isGoliath && goliathAncestryName && (
                   <span className="character-info-subtext">{goliathAncestryName}</span>
+                )}
+                {isDragonborn && dragonbornAncestryName && (
+                  <span className="character-info-subtext">{dragonbornAncestryName}</span>
+                )}
+                {isElf && elvenLineageName && (
+                  <span className="character-info-subtext">{elvenLineageName}</span>
+                )}
+                {isTiefling && tieflingLegacySubtext && (
+                  <span className="character-info-subtext">{tieflingLegacySubtext}</span>
                 )}
               </div>
             </div>

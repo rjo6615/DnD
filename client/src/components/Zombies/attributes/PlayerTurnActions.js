@@ -3,8 +3,10 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useCallback,
 } from 'react';
-import { Button, Modal, Card, OverlayTrigger, Popover } from "react-bootstrap";
+import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
+import spellsData from '../../../data/spells';
 import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
@@ -37,6 +39,104 @@ function formatDamageRolls(rolls) {
 
 
 const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
+const HAND_SELECTIONS = {
+  ONE_HANDED: 'one-handed',
+  TWO_HANDED: 'two-handed',
+};
+
+const versatileRegex = /versatile\s*\(([^)]+)\)/i;
+const firstDamageDiceRegex = /^(\s*)(\d+d\d+(?:[+-]\d+)?)/;
+const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
+
+const spellsCatalog = spellsData || {};
+
+const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
+
+function extractDiceExpression(description = '') {
+  diceExpressionPattern.lastIndex = 0;
+  let match;
+  while ((match = diceExpressionPattern.exec(description))) {
+    const raw = match[0];
+    const sanitized = raw.replace(/\s+/g, '');
+    const start = Math.max(0, match.index - 80);
+    const end = Math.min(description.length, match.index + raw.length + 80);
+    const contextWindow = description.slice(start, end).toLowerCase();
+
+    if (contextWindow.includes('damage')) {
+      return sanitized;
+    }
+
+    if (/(regains|heals|gains)[\s\S]{0,100}hit points/.test(contextWindow)) {
+      return sanitized;
+    }
+  }
+  return '';
+}
+
+function extractHigherLevels(description = '') {
+  const match = description.match(/At Higher Levels?[:.]\s*([^]*)/i);
+  return match ? match[1].trim() : undefined;
+}
+
+function extractScaling(description = '') {
+  const level5 = description.match(/5th level \(([^)]+)\)/i);
+  const level11 = description.match(/11th level \(([^)]+)\)/i);
+  const level17 = description.match(/17th level \(([^)]+)\)/i);
+  const scaling = {};
+  if (level5) scaling[5] = level5[1].replace(/\s+/g, '');
+  if (level11) scaling[11] = level11[1].replace(/\s+/g, '');
+  if (level17) scaling[17] = level17[1].replace(/\s+/g, '');
+  return Object.keys(scaling).length ? scaling : undefined;
+}
+
+function augmentSpell(spell = {}) {
+  const enhanced = { ...spell };
+  if (!enhanced.damage) {
+    const dmg = extractDiceExpression(enhanced.description);
+    if (dmg) enhanced.damage = dmg;
+  }
+  if (!enhanced.higherLevels) {
+    const upcast = extractHigherLevels(enhanced.description);
+    if (upcast) enhanced.higherLevels = upcast;
+  }
+  if (enhanced.level === 0 && !enhanced.scaling) {
+    const scaling = extractScaling(enhanced.description);
+    if (scaling) enhanced.scaling = scaling;
+  }
+  return enhanced;
+}
+
+const SPELLS_BY_NAME = Object.values(spellsCatalog).reduce((acc, spell) => {
+  if (!spell || typeof spell.name !== 'string') return acc;
+  acc[spell.name.toLowerCase()] = augmentSpell(spell);
+  return acc;
+}, {});
+
+function parseSpellLevel(spellLevel) {
+  if (typeof spellLevel !== 'string') return 0;
+  const normalized = spellLevel.trim().toLowerCase();
+  if (!normalized) return 0;
+  if (normalized === 'cantrip') return 0;
+  const match = normalized.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+const getVersatileDamageDice = (weapon) => {
+  if (!Array.isArray(weapon?.properties)) return null;
+
+  for (const property of weapon.properties) {
+    if (typeof property !== 'string') continue;
+    const match = property.match(versatileRegex);
+    if (match) {
+      const dice = match[1]?.trim();
+      if (dice) {
+        return dice;
+      }
+    }
+  }
+
+  return null;
+};
 
 function toTitleCase(str) {
   const small = new Set(['of', 'the']);
@@ -281,12 +381,77 @@ const [isFumble, setIsFumble] = useState(false);
       weapon,
     }));
   }, [equipmentProvided, normalizedEquipment, form.weapon]);
-  // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
-  const abilityForWeapon = (weapon) => {
+
+  const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
+  const [weaponHandSelections, setWeaponHandSelections] = useState({});
+
+  const numericStrMod = Number(strMod) || 0;
+  const numericDexMod = Number(dexMod) || 0;
+
+  const formatModifier = (value) => (value >= 0 ? `+${value}` : `${value}`);
+
+  const isRangedWeapon = (weapon) => {
     const category = weapon?.category;
-    return typeof category === 'string' && category.toLowerCase().includes('ranged')
-      ? dexMod
-      : strMod;
+    return (
+      typeof category === 'string' && category.toLowerCase().includes('ranged')
+    );
+  };
+
+  const isFinesseWeapon = useCallback(
+    (weapon) =>
+      Array.isArray(weapon?.properties) &&
+      weapon.properties.some(
+        (prop) => typeof prop === 'string' && prop.toLowerCase().includes('finesse')
+      ),
+    []
+  );
+
+  const getAbilityKeyForWeapon = (slot, weapon) => {
+    if (isFinesseWeapon(weapon)) {
+      const stored = weaponAbilitySelections[slot];
+      if (stored === 'str' || stored === 'dex') {
+        return stored;
+      }
+      return numericDexMod >= numericStrMod ? 'dex' : 'str';
+    }
+    if (isRangedWeapon(weapon)) {
+      return 'dex';
+    }
+    return 'str';
+  };
+
+  useEffect(() => {
+    setWeaponAbilitySelections((prev) => {
+      const next = {};
+      equippedWeapons.forEach(({ slot, weapon }) => {
+        if (isFinesseWeapon(weapon)) {
+          const existing = prev[slot];
+          if (existing === 'dex' || existing === 'str') {
+            next[slot] = existing;
+          }
+        }
+      });
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      if (
+        prevKeys.length === nextKeys.length &&
+        nextKeys.every((key) => prev[key] === next[key])
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [equippedWeapons, isFinesseWeapon]);
+
+  useEffect(() => {
+    setWeaponHandSelections({});
+  }, [equippedWeapons]);
+  // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
+  const abilityForWeapon = (weapon, slot) => {
+    const key = getAbilityKeyForWeapon(slot, weapon);
+    if (key === 'dex') return numericDexMod;
+    if (key === 'str') return numericStrMod;
+    return numericStrMod;
   };
 
   const formatWeaponLabel = (value) => {
@@ -299,6 +464,50 @@ const [isFumble, setIsFumble] = useState(false);
   const getWeaponTypeLabel = (weapon) => {
     const raw = weapon?.type || weapon?.category;
     return formatWeaponLabel(raw || 'Unknown');
+  };
+
+  const getHandSelectionForWeapon = (slot, weapon) => {
+    if (!getVersatileDamageDice(weapon)) {
+      return HAND_SELECTIONS.ONE_HANDED;
+    }
+    const stored = weaponHandSelections[slot];
+    if (stored === HAND_SELECTIONS.TWO_HANDED) {
+      return HAND_SELECTIONS.TWO_HANDED;
+    }
+    return HAND_SELECTIONS.ONE_HANDED;
+  };
+
+  const getDamageStringForHandSelection = (
+    slot,
+    weapon,
+    overrideHandSelection
+  ) => {
+    const baseDamage =
+      typeof weapon?.damage === 'string' ? weapon.damage.trim() : '';
+    if (!baseDamage) return '';
+
+    const versatileDice = getVersatileDamageDice(weapon);
+    if (!versatileDice) {
+      return baseDamage;
+    }
+
+    const handSelection =
+      overrideHandSelection ?? getHandSelectionForWeapon(slot, weapon);
+    if (handSelection !== HAND_SELECTIONS.TWO_HANDED) {
+      return baseDamage;
+    }
+
+    const match = baseDamage.match(firstDamageDiceRegex);
+    if (!match) {
+      const replaced = baseDamage.replace(anyDamageDiceRegex, versatileDice);
+      if (replaced !== baseDamage) {
+        return replaced;
+      }
+      return versatileDice;
+    }
+
+    const [, leading = ''] = match;
+    return `${leading}${versatileDice}${baseDamage.slice(match[0].length)}`;
   };
 
   const getWeaponPropertyDefinitionKeys = (prop) => {
@@ -350,6 +559,100 @@ const [isFumble, setIsFumble] = useState(false);
     [form.occupation]
   );
 
+  const { tieflingLegacy, tieflingLegacyKey } = useMemo(() => {
+    const race = form?.race || {};
+    const legacyFromForm =
+      typeof form?.tieflingLegacy === 'object' ? form.tieflingLegacy : null;
+    const legacyKeyFromForm =
+      typeof form?.tieflingLegacyKey === 'string' ? form.tieflingLegacyKey : '';
+
+    let legacy = legacyFromForm;
+    let legacyKey = legacyKeyFromForm;
+
+    if (!legacy) {
+      if (legacyKey && race?.fiendishLegacies?.[legacyKey]) {
+        legacy = race.fiendishLegacies[legacyKey];
+      } else if (race?.selectedAncestry && race?.fiendishLegacies) {
+        legacy = race.selectedAncestry;
+        legacyKey =
+          typeof race?.selectedAncestryKey === 'string'
+            ? race.selectedAncestryKey
+            : '';
+      } else if (
+        typeof race?.selectedAncestryKey === 'string' &&
+        race?.fiendishLegacies?.[race.selectedAncestryKey]
+      ) {
+        legacy = race.fiendishLegacies[race.selectedAncestryKey];
+        legacyKey = race.selectedAncestryKey;
+      }
+    }
+
+    return { tieflingLegacy: legacy, tieflingLegacyKey: legacyKey };
+  }, [form?.race, form?.tieflingLegacy, form?.tieflingLegacyKey]);
+
+  const tieflingLegacyLabel = useMemo(() => {
+    if (typeof tieflingLegacy?.label === 'string') {
+      return tieflingLegacy.label;
+    }
+    if (typeof tieflingLegacy?.name === 'string') {
+      return tieflingLegacy.name;
+    }
+    if (tieflingLegacyKey) {
+      return toTitleCase(tieflingLegacyKey.replace(/[-_]/g, ' '));
+    }
+    return 'Fiendish Legacy';
+  }, [tieflingLegacy, tieflingLegacyKey]);
+
+  const fiendishLegacySpells = useMemo(() => {
+    if (!tieflingLegacy) return [];
+    const spells = Array.isArray(tieflingLegacy?.spells)
+      ? tieflingLegacy.spells
+      : [];
+
+    return spells
+      .map((legacySpell) => {
+        const requiredLevelRaw = Number(legacySpell?.unlockedAtLevel);
+        const requiredLevel = Number.isFinite(requiredLevelRaw)
+          ? requiredLevelRaw
+          : 1;
+        if (totalLevel < Math.max(1, requiredLevel)) {
+          return null;
+        }
+
+        const name =
+          typeof legacySpell?.name === 'string' ? legacySpell.name.trim() : '';
+        if (!name) return null;
+
+        const catalogSpell = SPELLS_BY_NAME[name.toLowerCase()] || null;
+
+        let damage = '';
+        if (typeof legacySpell?.damage === 'string' && legacySpell.damage.trim()) {
+          damage = legacySpell.damage.trim();
+        } else if (catalogSpell?.damage) {
+          damage = catalogSpell.damage;
+        }
+
+        if (!damage) return null;
+
+        const level = Number.isFinite(catalogSpell?.level)
+          ? catalogSpell.level
+          : parseSpellLevel(legacySpell?.spellLevel);
+
+        return {
+          name: catalogSpell?.name || name,
+          level: Number.isFinite(level) ? level : 0,
+          damage,
+          castingTime: catalogSpell?.castingTime || '',
+          range: catalogSpell?.range || '',
+          duration: catalogSpell?.duration || '',
+          higherLevels: catalogSpell?.higherLevels,
+          scaling: catalogSpell?.scaling,
+          casterType: tieflingLegacyLabel,
+        };
+      })
+      .filter(Boolean);
+  }, [tieflingLegacy, tieflingLegacyLabel, totalLevel]);
+
   const profBonus =
     form.proficiencyBonus ?? proficiencyBonus(totalLevel);
 
@@ -396,9 +699,9 @@ const [isFumble, setIsFumble] = useState(false);
     };
   }, [dragonbornAncestry, conMod, profBonus, totalLevel]);
 
-  const getAttackBonus = (weapon) =>
+  const getAttackBonus = (slot, weapon) =>
     profBonus +
-    abilityForWeapon(weapon) +
+    abilityForWeapon(weapon, slot) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
     
   const normalizeDamageTypeForClass = (type) => {
@@ -427,15 +730,18 @@ const [isFumble, setIsFumble] = useState(false);
         );
       });
 
-  const getDamageString = (weapon) => {
-    const ability = abilityForWeapon(weapon);
-    return formatDamageSegments(weapon.damage, ability);
+  const getDamageString = (slot, weapon) => {
+    const ability = abilityForWeapon(weapon, slot);
+    const damageString = getDamageStringForHandSelection(slot, weapon);
+    if (!damageString) return 'Unknown';
+    return formatDamageSegments(damageString, ability);
   };
 
-  const handleWeaponAttack = (weapon) => {
-    const ability = abilityForWeapon(weapon);
-    if (typeof weapon?.damage !== 'string' || !weapon.damage.trim()) return;
-    const result = calculateDamage(weapon.damage, ability, isCritical);
+  const handleWeaponAttack = (slot, weapon) => {
+    const ability = abilityForWeapon(weapon, slot);
+    const damageString = getDamageStringForHandSelection(slot, weapon);
+    if (typeof damageString !== 'string' || !damageString.trim()) return;
+    const result = calculateDamage(damageString, ability, isCritical);
     if (!result) return;
     updateDamageValueWithAnimation(
       result.total,
@@ -783,6 +1089,21 @@ useEffect(() => {
                       ? propertyLabels.join(', ')
                       : 'None';
                   const popoverId = `weapon-properties-${slot}`;
+                  const versatileDice = getVersatileDamageDice(weapon);
+                  const isVersatile = Boolean(versatileDice);
+                  const handSelection = getHandSelectionForWeapon(slot, weapon);
+                  const oneHandedDamage = getDamageStringForHandSelection(
+                    slot,
+                    weapon,
+                    HAND_SELECTIONS.ONE_HANDED
+                  );
+                  const twoHandedDamage = isVersatile
+                    ? getDamageStringForHandSelection(
+                        slot,
+                        weapon,
+                        HAND_SELECTIONS.TWO_HANDED
+                      )
+                    : '';
 
                   const propertiesPopover = (
                     <Popover id={popoverId}>
@@ -816,13 +1137,70 @@ useEffect(() => {
                         <div className="attack-card__row">
                           <span className="attack-card__label">Attack Bonus</span>
                           <span className="attack-card__value">
-                            {getAttackBonus(weapon)}
+                            {getAttackBonus(slot, weapon)}
                           </span>
                         </div>
+                        {isFinesseWeapon(weapon) && (
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Ability</span>
+                            <span className="attack-card__value">
+                              <Form.Select
+                                id={`weapon-ability-${slot}`}
+                                aria-label={`Select ability for ${weapon.name || slot}`}
+                                value={getAbilityKeyForWeapon(slot, weapon)}
+                                onChange={(event) => {
+                                  const selected = event.target.value === 'dex' ? 'dex' : 'str';
+                                  setWeaponAbilitySelections((prev) => ({
+                                    ...prev,
+                                    [slot]: selected,
+                                  }));
+                                }}
+                                size="sm"
+                              >
+                                <option value="str">
+                                  Strength ({formatModifier(numericStrMod)})
+                                </option>
+                                <option value="dex">
+                                  Dexterity ({formatModifier(numericDexMod)})
+                                </option>
+                              </Form.Select>
+                            </span>
+                          </div>
+                        )}
+                        {isVersatile && (
+                          <div className="attack-card__row">
+                            <span className="attack-card__label">Grip</span>
+                            <span className="attack-card__value">
+                              <Form.Select
+                                id={`weapon-grip-${slot}`}
+                                aria-label={`Select grip for ${weapon.name || slot}`}
+                                value={handSelection}
+                                onChange={(event) => {
+                                  const selectedHand =
+                                    event.target.value === HAND_SELECTIONS.TWO_HANDED
+                                      ? HAND_SELECTIONS.TWO_HANDED
+                                      : HAND_SELECTIONS.ONE_HANDED;
+                                  setWeaponHandSelections((prev) => ({
+                                    ...prev,
+                                    [slot]: selectedHand,
+                                  }));
+                                }}
+                                size="sm"
+                              >
+                                <option value={HAND_SELECTIONS.ONE_HANDED}>
+                                  One-Handed ({oneHandedDamage || 'Unknown'})
+                                </option>
+                                <option value={HAND_SELECTIONS.TWO_HANDED}>
+                                  Two-Handed ({twoHandedDamage || 'Unknown'})
+                                </option>
+                              </Form.Select>
+                            </span>
+                          </div>
+                        )}
                         <div className="attack-card__row">
                           <span className="attack-card__label">Damage</span>
                           <span className="attack-card__value">
-                            {getDamageString(weapon)}
+                            {getDamageString(slot, weapon)}
                           </span>
                         </div>
                         <div className="attack-card__row attack-card__row--properties">
@@ -852,7 +1230,7 @@ useEffect(() => {
                       <div className="attack-card__actions">
                         <Button
                           onClick={() => {
-                            handleWeaponAttack(weapon);
+                            handleWeaponAttack(slot, weapon);
                             handleCloseAttack();
                           }}
                           variant="link"
@@ -968,6 +1346,55 @@ useEffect(() => {
                         </div>
                       </div>
                     ))}
+                </div>
+              </>
+            )}
+            {fiendishLegacySpells.length > 0 && (
+              <>
+                <Card.Title className="modal-title mt-4">Fiendish Legacy</Card.Title>
+                <div className="attack-card-grid">
+                  {fiendishLegacySpells.map((spell, idx) => (
+                    <div className="attack-card" key={`fiendish-${idx}`}>
+                      <div className="attack-card__title">{spell.name}</div>
+                      <div className="attack-card__meta">
+                        <span>{spell.casterType || 'Fiendish Legacy'}</span>
+                        <span>• Level {spell.level}</span>
+                      </div>
+                      <div className="attack-card__details">
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Damage</span>
+                          <span className="attack-card__value">
+                            {formatDamageSegments(spell.damage)}
+                          </span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Casting Time</span>
+                          <span className="attack-card__value">{spell.castingTime}</span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Range</span>
+                          <span className="attack-card__value">{spell.range}</span>
+                        </div>
+                        <div className="attack-card__row">
+                          <span className="attack-card__label">Duration</span>
+                          <span className="attack-card__value">{spell.duration}</span>
+                        </div>
+                      </div>
+                      <div className="attack-card__actions">
+                        <Button
+                          onClick={() => {
+                            handleSpellsButtonClick(spell);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="roll"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-dice-d20"></i>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}

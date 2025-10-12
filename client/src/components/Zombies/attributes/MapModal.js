@@ -1,8 +1,11 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
 import MapDisplay from './MapDisplay';
 import CampaignMapBoard from './CampaignMapBoard';
+import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
+import { resolveFigurineImageData } from '../utils/figurineAssets';
+import DockControls from '../components/DockControls';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -106,6 +109,24 @@ const findMapById = (maps, id) => {
   return maps.find((map) => normalizeMapId(map?.mapId) === normalizedId) || null;
 };
 
+const areSetsEqual = (a, b) => {
+  if (a === b) {
+    return true;
+  }
+
+  if (!a || !b || a.size !== b.size) {
+    return false;
+  }
+
+  for (const value of a) {
+    if (!b.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const MapModal = ({
   show,
   onHide,
@@ -130,6 +151,7 @@ const MapModal = ({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) => {
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
@@ -181,6 +203,80 @@ const MapModal = ({
     [previewMap]
   );
 
+  const groupedMaps = useMemo(
+    () => groupMapsByFolder(normalizedMaps),
+    [normalizedMaps]
+  );
+
+  const autoExpandedFolderKeys = useMemo(() => {
+    const keys = new Set();
+
+    groupedMaps.forEach((group) => {
+      const shouldExpand = group.maps.some((mapItem) => {
+        const mapId = normalizeMapId(mapItem?.mapId);
+        if (!mapId) {
+          return false;
+        }
+
+        if (normalizedActiveId && normalizedActiveId === mapId) {
+          return true;
+        }
+
+        if (resolvedSelectedId && resolvedSelectedId === mapId) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (shouldExpand) {
+        keys.add(group.key);
+      }
+    });
+
+    return keys;
+  }, [groupedMaps, normalizedActiveId, resolvedSelectedId]);
+
+  const [expandedFolderKeys, setExpandedFolderKeys] = useState(
+    () => new Set(autoExpandedFolderKeys)
+  );
+
+  useEffect(() => {
+    setExpandedFolderKeys((previousKeys) => {
+      const validKeys = new Set(groupedMaps.map((group) => group.key));
+      const nextKeys = new Set();
+
+      previousKeys.forEach((key) => {
+        if (validKeys.has(key)) {
+          nextKeys.add(key);
+        }
+      });
+
+      autoExpandedFolderKeys.forEach((key) => {
+        nextKeys.add(key);
+      });
+
+      if (areSetsEqual(previousKeys, nextKeys)) {
+        return previousKeys;
+      }
+
+      return nextKeys;
+    });
+  }, [groupedMaps, autoExpandedFolderKeys]);
+
+  const handleToggleFolder = useCallback((folderKey) => {
+    setExpandedFolderKeys((previousKeys) => {
+      const nextKeys = new Set(previousKeys);
+      if (nextKeys.has(folderKey)) {
+        nextKeys.delete(folderKey);
+      } else {
+        nextKeys.add(folderKey);
+      }
+
+      return nextKeys;
+    });
+  }, []);
+
   const normalizedCurrentCharacterId = useMemo(
     () => normalizeMapId(currentCharacterId),
     [currentCharacterId]
@@ -228,6 +324,7 @@ const MapModal = ({
         typeof value?.size === 'string' && value.size.trim() !== ''
           ? value.size.trim().toLowerCase()
           : null;
+      const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(value);
 
       acc[trimmedKey] = {
         color,
@@ -237,6 +334,8 @@ const MapModal = ({
         ...(currentHp !== null ? { currentHp } : {}),
         ...(maxHp !== null ? { maxHp } : {}),
         ...(size ? { size } : {}),
+        ...(figurineImageUrl ? { figurineImageUrl } : {}),
+        ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
       };
       return acc;
     }, {});
@@ -354,6 +453,8 @@ const MapModal = ({
         const normalizedColor =
           typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
 
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(lookup, token);
+
         return {
           ...token,
           label: typeof rawLabel === 'string' ? rawLabel : token.characterId,
@@ -367,6 +468,8 @@ const MapModal = ({
           ...(currentHp !== null ? { currentHp } : {}),
           ...(maxHp !== null ? { maxHp } : {}),
           ...(size ? { size } : {}),
+          ...(figurineImageUrl ? { figurineImageUrl } : {}),
+          ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
         };
       })
       .sort((a, b) => {
@@ -392,7 +495,7 @@ const MapModal = ({
   }, [normalizedCurrentCharacterId, tokensDictionary]);
 
   const handleCommitMove = useCallback(
-    async ({ characterId, x, y }) => {
+    async ({ characterId, x, y, rotation }) => {
       if (!isInteractive || placementPending) {
         return;
       }
@@ -410,12 +513,18 @@ const MapModal = ({
       setPlacementError(null);
 
       try {
-        const result = await onTokenMove({
+        const payload = {
           mapId: previewMapId,
           characterId: normalizedCharacterId,
           x,
           y,
-        });
+        };
+
+        if (Number.isFinite(rotation)) {
+          payload.rotation = rotation;
+        }
+
+        const result = await onTokenMove(payload);
 
         if (result === false) {
           setPlacementError('Unable to update figurine position.');
@@ -440,12 +549,12 @@ const MapModal = ({
   );
 
   const handleTokenPositionChange = useCallback(
-    ({ characterId, x, y }) => {
+    ({ characterId, x, y, rotation }) => {
       if (!isInteractive) {
         return;
       }
 
-      handleCommitMove({ characterId, x, y });
+      handleCommitMove({ characterId, x, y, rotation });
     },
     [handleCommitMove, isInteractive]
   );
@@ -592,72 +701,141 @@ const MapModal = ({
       );
     }
 
+    const toFolderTestId = (groupKey, label) => {
+      if (groupKey === UNGROUPED_FOLDER_KEY) {
+        return 'map-modal-folder-no-folder';
+      }
+
+      const normalizedLabel = label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      return `map-modal-folder-${normalizedLabel || 'no-folder'}`;
+    };
+
     return (
       <ListGroup
         variant="flush"
         className="bg-transparent map-modal__list"
         data-testid="map-modal-list"
       >
-        {normalizedMaps.map((mapItem, index) => {
-          const mapId = normalizeMapId(mapItem?.mapId);
-          const key = mapId || `map-${index}`;
-          const isActive = Boolean(normalizedActiveId && mapId && normalizedActiveId === mapId);
-          const isSelected = Boolean(resolvedSelectedId && mapId && resolvedSelectedId === mapId);
-          const isProcessing = Boolean(mapId && normalizedActionId && normalizedActionId === mapId);
-          const titleText = resolveMapTitle(mapItem, index);
-          const canSelect = typeof onSelectMap === 'function' && Boolean(mapId);
-          const canActivate = typeof onActivateMap === 'function';
-          const canDelete = typeof onDeleteMap === 'function';
+        {groupedMaps.map((group) => {
+          const headerTestId = toFolderTestId(group.key, group.label);
+          const listBodyId = `${headerTestId}-body`;
+          const toggleTestId = `${headerTestId}-toggle`;
+          const isExpanded = expandedFolderKeys.has(group.key);
 
           return (
-            <ListGroup.Item
-              as="div"
-              key={key}
-              action={canSelect}
-              active={isSelected}
-              onClick={() => {
-                if (canSelect && mapId) {
-                  handleSelectMap(mapId);
-                }
-              }}
-              className="bg-dark text-light border-secondary"
-              data-testid={`map-modal-item-${key}`}
-            >
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="fw-semibold">{titleText}</div>
-                {isActive && (
-                  <Badge bg="success" className="ms-2" data-testid={`map-modal-active-badge-${key}`}>
-                    Active
+            <React.Fragment key={group.key}>
+              <ListGroup.Item
+                as="div"
+                className="bg-secondary bg-opacity-50 text-light border-secondary"
+                data-testid={headerTestId}
+              >
+                <div className="d-flex justify-content-between align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm text-decoration-none text-light d-flex align-items-center gap-2 p-0 flex-grow-1"
+                    onClick={() => handleToggleFolder(group.key)}
+                    aria-expanded={isExpanded}
+                    aria-controls={listBodyId}
+                    data-testid={toggleTestId}
+                  >
+                    <span aria-hidden="true">{isExpanded ? '▾' : '▸'}</span>
+                    <span className="fw-semibold text-uppercase small text-start">
+                      {group.label}
+                    </span>
+                  </button>
+                  <Badge bg="dark" pill>
+                    {group.maps.length}
                   </Badge>
-                )}
-              </div>
-              {(canActivate || canDelete) && (
-                <div className="d-flex flex-wrap gap-2 mt-3">
-                  {canActivate && (
-                    <Button
-                      variant="outline-light"
-                      size="sm"
-                      disabled={!mapId || isProcessing || isActive}
-                      onClick={(event) => handleActivateMap(event, mapId)}
-                      data-testid={`map-modal-activate-${key}`}
-                    >
-                      {isActive ? 'Active' : 'Set Active'}
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      disabled={!mapId || isProcessing}
-                      onClick={(event) => handleDeleteMap(event, mapId)}
-                      data-testid={`map-modal-delete-${key}`}
-                    >
-                      Delete
-                    </Button>
-                  )}
+                </div>
+              </ListGroup.Item>
+              {isExpanded && (
+                <div id={listBodyId}>
+                  {group.maps.map((mapItem, index) => {
+                    const mapId = normalizeMapId(mapItem?.mapId);
+                    const key = mapId || `map-${group.key}-${index}`;
+                    const isActive = Boolean(
+                      normalizedActiveId &&
+                      mapId &&
+                      normalizedActiveId === mapId
+                    );
+                    const isSelected = Boolean(
+                      resolvedSelectedId && mapId && resolvedSelectedId === mapId
+                    );
+                    const isProcessing = Boolean(
+                      mapId && normalizedActionId && normalizedActionId === mapId
+                    );
+                    const titleText = resolveMapTitle(mapItem, index);
+                    const canSelect =
+                      typeof onSelectMap === 'function' && Boolean(mapId);
+                    const canActivate = typeof onActivateMap === 'function';
+                    const canDelete = typeof onDeleteMap === 'function';
+
+                    return (
+                      <ListGroup.Item
+                        as="div"
+                        key={key}
+                        action={canSelect}
+                        active={isSelected}
+                        onClick={() => {
+                          if (canSelect && mapId) {
+                            handleSelectMap(mapId);
+                          }
+                        }}
+                        className="bg-dark text-light border-secondary"
+                        data-testid={`map-modal-item-${key}`}
+                        data-folder={
+                          group.key === UNGROUPED_FOLDER_KEY
+                            ? undefined
+                            : group.label
+                        }
+                      >
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div className="fw-semibold">{titleText}</div>
+                          {isActive && (
+                            <Badge
+                              bg="success"
+                              className="ms-2"
+                              data-testid={`map-modal-active-badge-${key}`}
+                            >
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                        {(canActivate || canDelete) && (
+                          <div className="d-flex flex-wrap gap-2 mt-3">
+                            {canActivate && (
+                              <Button
+                                variant="outline-light"
+                                size="sm"
+                                disabled={!mapId || isProcessing || isActive}
+                                onClick={(event) => handleActivateMap(event, mapId)}
+                                data-testid={`map-modal-activate-${key}`}
+                              >
+                                {isActive ? 'Active' : 'Set Active'}
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                disabled={!mapId || isProcessing}
+                                onClick={(event) => handleDeleteMap(event, mapId)}
+                                data-testid={`map-modal-delete-${key}`}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </ListGroup.Item>
+                    );
+                  })}
                 </div>
               )}
-            </ListGroup.Item>
+            </React.Fragment>
           );
         })}
       </ListGroup>
@@ -757,7 +935,12 @@ const MapModal = ({
       dialogClassName={dialogClassName}
       data-testid="map-modal-wrapper"
     >
-      <Modal.Header closeButton>
+      <Modal.Header className="modal-header">
+        <DockControls
+          dockedSide={dockedSide}
+          onDockChange={onDockChange}
+          isDocked={isDocked}
+        />
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -811,6 +994,12 @@ MapModal.propTypes = {
     PropTypes.shape({
       color: PropTypes.string,
       label: PropTypes.string,
+      entityType: PropTypes.string,
+      currentHp: PropTypes.number,
+      maxHp: PropTypes.number,
+      size: PropTypes.string,
+      figurineImageUrl: PropTypes.string,
+      figurineImagePublicId: PropTypes.string,
     })
   ),
   onTokenMove: PropTypes.func,
@@ -819,6 +1008,7 @@ MapModal.propTypes = {
   isDocked: PropTypes.bool,
   dockedSide: PropTypes.oneOf(['left', 'right']),
   onDockClose: PropTypes.func,
+  onDockChange: PropTypes.func,
 };
 
 MapModal.defaultProps = {
@@ -845,6 +1035,7 @@ MapModal.defaultProps = {
   isDocked: false,
   dockedSide: null,
   onDockClose: null,
+  onDockChange: null,
 };
 
 export default MapModal;

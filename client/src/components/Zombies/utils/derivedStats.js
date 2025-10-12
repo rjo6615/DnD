@@ -2,6 +2,9 @@ import { SKILLS } from '../skillSchema';
 
 export const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
+export const isExplicitlyUnowned = (entry) =>
+  !!entry && typeof entry === 'object' && !Array.isArray(entry) && entry.owned === false;
+
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -20,6 +23,9 @@ export const aggregateStatEffects = (collection) => {
   const entries = Array.isArray(collection) ? collection : [];
   return entries.reduce(
     (acc, el) => {
+      if (isExplicitlyUnowned(el)) {
+        return acc;
+      }
       STAT_KEYS.forEach((key) => {
         const bonusValue = toNumber(el?.statBonuses?.[key]);
         if (!Number.isNaN(bonusValue)) {

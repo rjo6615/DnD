@@ -73,6 +73,15 @@ const createDefaultForm = useCallback((campaign) => {
     dragonAncestry: null,
     giantAncestryKey: "",
     giantAncestry: null,
+    gnomeLineageKey: "",
+    gnomeLineage: null,
+    gnomeLineageAbility: "",
+    elvenLineageKey: "",
+    elvenLineage: null,
+    elvenLineageAbility: "",
+    tieflingLegacyKey: "",
+    tieflingLegacy: null,
+    tieflingLegacyAbility: "",
     background: null,
     feat: [],
     weapon: [],
@@ -217,12 +226,46 @@ const attachSelectedAncestryToRace = useCallback((race, {
   dragonAncestry,
   giantAncestryKey,
   giantAncestry,
+  gnomeLineageKey,
+  gnomeLineage,
+  gnomeLineageAbility,
+  elvenLineageKey,
+  elvenLineage,
+  elvenLineageAbility,
+  tieflingLegacyKey,
+  tieflingLegacy,
+  tieflingLegacyAbility,
 }) => {
   if (!race) return race;
   const updatedRace = { ...race };
 
+  const baseSpeed =
+    typeof race.__baseSpeed === "number" ? race.__baseSpeed : race.speed;
+  if (typeof baseSpeed === "number") {
+    updatedRace.__baseSpeed = baseSpeed;
+  }
+
+  const hasStoredBaseDarkvision = Object.prototype.hasOwnProperty.call(
+    race,
+    "__baseDarkvisionRange"
+  );
+  const hasRaceDarkvision = Object.prototype.hasOwnProperty.call(
+    race,
+    "darkvisionRange"
+  );
+  const baseDarkvision = hasStoredBaseDarkvision
+    ? race.__baseDarkvisionRange
+    : hasRaceDarkvision
+    ? race.darkvisionRange
+    : undefined;
+  if (hasStoredBaseDarkvision || hasRaceDarkvision) {
+    updatedRace.__baseDarkvisionRange = baseDarkvision;
+  }
+
   delete updatedRace.selectedAncestryKey;
   delete updatedRace.selectedAncestry;
+  delete updatedRace.selectedLineageAbility;
+  delete updatedRace.selectedFiendishLegacyResistance;
 
   if (race.dragonAncestries && dragonAncestryKey && dragonAncestry) {
     updatedRace.selectedAncestryKey = dragonAncestryKey;
@@ -230,6 +273,76 @@ const attachSelectedAncestryToRace = useCallback((race, {
   } else if (race.giantAncestries && giantAncestryKey && giantAncestry) {
     updatedRace.selectedAncestryKey = giantAncestryKey;
     updatedRace.selectedAncestry = giantAncestry;
+  } else if (race.gnomeLineages && gnomeLineageKey && gnomeLineage) {
+    updatedRace.selectedAncestryKey = gnomeLineageKey;
+    updatedRace.selectedAncestry = gnomeLineage;
+    if (gnomeLineageAbility) {
+      updatedRace.selectedLineageAbility = gnomeLineageAbility;
+    }
+  } else if (race.elvenLineages && elvenLineageKey && elvenLineage) {
+    updatedRace.selectedAncestryKey = elvenLineageKey;
+    updatedRace.selectedAncestry = elvenLineage;
+    if (elvenLineageAbility) {
+      updatedRace.selectedLineageAbility = elvenLineageAbility;
+    }
+  } else if (race.fiendishLegacies && tieflingLegacyKey && tieflingLegacy) {
+    updatedRace.selectedAncestryKey = tieflingLegacyKey;
+    updatedRace.selectedAncestry = tieflingLegacy;
+    if (tieflingLegacyAbility) {
+      updatedRace.selectedLineageAbility = tieflingLegacyAbility;
+    }
+    if (tieflingLegacy?.resistance) {
+      updatedRace.selectedFiendishLegacyResistance = tieflingLegacy.resistance;
+    }
+  }
+
+  if (race.elvenLineages) {
+    const hasExplicitElvenSelection =
+      typeof elvenLineageKey !== "undefined";
+    const lineageToApply = hasExplicitElvenSelection
+      ? elvenLineageKey && elvenLineage
+        ? elvenLineage
+        : null
+      : race.selectedAncestryKey && race.elvenLineages[race.selectedAncestryKey]
+      ? race.elvenLineages[race.selectedAncestryKey]
+      : null;
+
+    const lineageSpeed =
+      typeof lineageToApply?.speed === "number" ? lineageToApply.speed : null;
+    const lineageDarkvision =
+      typeof lineageToApply?.darkvisionRange === "number"
+        ? lineageToApply.darkvisionRange
+        : null;
+
+    if (typeof baseSpeed === "number") {
+      updatedRace.speed = lineageSpeed ?? baseSpeed;
+    } else if (lineageSpeed != null) {
+      updatedRace.speed = lineageSpeed;
+    }
+
+    if (lineageDarkvision != null) {
+      updatedRace.darkvisionRange = lineageDarkvision;
+    } else if (typeof baseDarkvision !== "undefined") {
+      if (baseDarkvision === null) {
+        delete updatedRace.darkvisionRange;
+      } else {
+        updatedRace.darkvisionRange = baseDarkvision;
+      }
+    }
+  }
+
+  if (race.fiendishLegacies) {
+    if (typeof baseSpeed === "number") {
+      updatedRace.speed = baseSpeed;
+    }
+
+    if (typeof baseDarkvision !== "undefined") {
+      if (baseDarkvision === null) {
+        delete updatedRace.darkvisionRange;
+      } else {
+        updatedRace.darkvisionRange = baseDarkvision;
+      }
+    }
   }
 
   return updatedRace;
@@ -350,8 +463,11 @@ function bigMaff() {
       delete chosenRace.abilityChoices;
     }
     if (chosenRace.skillChoices) {
-      const { count } = chosenRace.skillChoices;
-      const available = SKILLS.map((s) => s.key);
+      const { count, options } = chosenRace.skillChoices;
+      const available = (options && options.length
+        ? [...options]
+        : SKILLS.map((s) => s.key)
+      ).filter((skillKey) => !chosenRace.skills?.[skillKey]?.proficient);
       chosenRace.skills = chosenRace.skills || {};
       for (let i = 0; i < count; i++) {
         if (!available.length) break;
@@ -365,6 +481,15 @@ function bigMaff() {
     let selectedDragonAncestry = null;
     let selectedGiantAncestryKey = "";
     let selectedGiantAncestry = null;
+    let selectedGnomeLineageKey = "";
+    let selectedGnomeLineage = null;
+    let selectedGnomeLineageAbility = "";
+    let selectedElvenLineageKey = "";
+    let selectedElvenLineage = null;
+    let selectedElvenLineageAbility = "";
+    let selectedTieflingLegacyKey = "";
+    let selectedTieflingLegacy = null;
+    let selectedTieflingLegacyAbility = "";
     if (chosenRace.name === "Dragonborn" && chosenRace.dragonAncestries) {
       const ancestryKeys = Object.keys(chosenRace.dragonAncestries);
       const alignmentLower = alignmentValue.toLowerCase();
@@ -395,20 +520,92 @@ function bigMaff() {
         chosenRace.selectedAncestry = selectedGiantAncestry;
       }
     }
+    if (chosenRace.name === "Gnome" && chosenRace.gnomeLineages) {
+      const lineageKeys = Object.keys(chosenRace.gnomeLineages);
+      if (lineageKeys.length) {
+        selectedGnomeLineageKey = lineageKeys[Math.floor(Math.random() * lineageKeys.length)];
+        selectedGnomeLineage = chosenRace.gnomeLineages[selectedGnomeLineageKey];
+        chosenRace.selectedAncestryKey = selectedGnomeLineageKey;
+        chosenRace.selectedAncestry = selectedGnomeLineage;
+        const abilityOptions = selectedGnomeLineage?.spellcastingAbilities || [];
+        if (abilityOptions.length) {
+          selectedGnomeLineageAbility = abilityOptions[Math.floor(Math.random() * abilityOptions.length)];
+          chosenRace.selectedLineageAbility = selectedGnomeLineageAbility;
+        }
+      }
+    }
+    if (chosenRace.name === "Elf" && chosenRace.elvenLineages) {
+      const lineageKeys = Object.keys(chosenRace.elvenLineages);
+      if (lineageKeys.length) {
+        selectedElvenLineageKey = lineageKeys[Math.floor(Math.random() * lineageKeys.length)];
+        selectedElvenLineage = chosenRace.elvenLineages[selectedElvenLineageKey];
+        chosenRace.selectedAncestryKey = selectedElvenLineageKey;
+        chosenRace.selectedAncestry = selectedElvenLineage;
+        const abilityOptions = selectedElvenLineage?.spellcastingAbilities || [];
+        if (abilityOptions.length) {
+          selectedElvenLineageAbility = abilityOptions[Math.floor(Math.random() * abilityOptions.length)];
+          chosenRace.selectedLineageAbility = selectedElvenLineageAbility;
+        }
+      }
+    }
+    if (chosenRace.name === "Tiefling" && chosenRace.fiendishLegacies) {
+      const legacyKeys = Object.keys(chosenRace.fiendishLegacies);
+      if (legacyKeys.length) {
+        selectedTieflingLegacyKey = legacyKeys[Math.floor(Math.random() * legacyKeys.length)];
+        selectedTieflingLegacy = chosenRace.fiendishLegacies[selectedTieflingLegacyKey];
+        chosenRace.selectedAncestryKey = selectedTieflingLegacyKey;
+        chosenRace.selectedAncestry = selectedTieflingLegacy;
+        const abilityOptions = selectedTieflingLegacy?.spellcastingAbilities || [];
+        if (abilityOptions.length) {
+          selectedTieflingLegacyAbility = abilityOptions[Math.floor(Math.random() * abilityOptions.length)];
+          chosenRace.selectedLineageAbility = selectedTieflingLegacyAbility;
+        }
+        if (selectedTieflingLegacy?.resistance) {
+          chosenRace.selectedFiendishLegacyResistance = selectedTieflingLegacy.resistance;
+        }
+      }
+    }
+    const raceWithSelections = attachSelectedAncestryToRace(chosenRace, {
+      dragonAncestryKey: selectedDragonAncestry ? selectedDragonAncestryKey : "",
+      dragonAncestry: selectedDragonAncestry,
+      giantAncestryKey: selectedGiantAncestry ? selectedGiantAncestryKey : "",
+      giantAncestry: selectedGiantAncestry,
+      gnomeLineageKey: selectedGnomeLineage ? selectedGnomeLineageKey : "",
+      gnomeLineage: selectedGnomeLineage,
+      gnomeLineageAbility: selectedGnomeLineageAbility,
+      elvenLineageKey: selectedElvenLineage ? selectedElvenLineageKey : "",
+      elvenLineage: selectedElvenLineage,
+      elvenLineageAbility: selectedElvenLineageAbility,
+      tieflingLegacyKey: selectedTieflingLegacy ? selectedTieflingLegacyKey : "",
+      tieflingLegacy: selectedTieflingLegacy,
+      tieflingLegacyAbility: selectedTieflingLegacyAbility,
+    });
     setForm((prev) => {
       const updatedSkills = { ...(prev.skills || {}) };
-      if (chosenRace.skills) {
-        Object.assign(updatedSkills, chosenRace.skills);
+      if (raceWithSelections?.skills) {
+        Object.assign(updatedSkills, raceWithSelections.skills);
       }
       const nextForm = {
         ...prev,
-        race: chosenRace,
-        speed: chosenRace.speed,
+        race: raceWithSelections,
+        speed:
+          typeof raceWithSelections?.speed === "number"
+            ? raceWithSelections.speed
+            : prev.speed,
         size: selectedSize || prev.size || "",
         dragonAncestryKey: selectedDragonAncestry ? selectedDragonAncestryKey : "",
         dragonAncestry: selectedDragonAncestry || null,
         giantAncestryKey: selectedGiantAncestry ? selectedGiantAncestryKey : "",
         giantAncestry: selectedGiantAncestry || null,
+        gnomeLineageKey: selectedGnomeLineage ? selectedGnomeLineageKey : "",
+        gnomeLineage: selectedGnomeLineage || null,
+        gnomeLineageAbility: selectedGnomeLineageAbility || "",
+        elvenLineageKey: selectedElvenLineage ? selectedElvenLineageKey : "",
+        elvenLineage: selectedElvenLineage || null,
+        elvenLineageAbility: selectedElvenLineageAbility || "",
+        tieflingLegacyKey: selectedTieflingLegacy ? selectedTieflingLegacyKey : "",
+        tieflingLegacy: selectedTieflingLegacy || null,
+        tieflingLegacyAbility: selectedTieflingLegacyAbility || "",
       };
       if (Object.keys(updatedSkills).length) {
         nextForm.skills = updatedSkills;
@@ -530,10 +727,21 @@ useEffect(() => {
         dragonAncestry: baseCharacter.dragonAncestry,
         giantAncestryKey: baseCharacter.giantAncestryKey,
         giantAncestry: baseCharacter.giantAncestry,
+        gnomeLineageKey: baseCharacter.gnomeLineageKey,
+        gnomeLineage: baseCharacter.gnomeLineage,
+        gnomeLineageAbility: baseCharacter.gnomeLineageAbility,
+        elvenLineageKey: baseCharacter.elvenLineageKey,
+        elvenLineage: baseCharacter.elvenLineage,
+        elvenLineageAbility: baseCharacter.elvenLineageAbility,
+        tieflingLegacyKey: baseCharacter.tieflingLegacyKey,
+        tieflingLegacy: baseCharacter.tieflingLegacy,
+        tieflingLegacyAbility: baseCharacter.tieflingLegacyAbility,
       }
     );
     if (raceWithAncestry) {
       newCharacter.race = raceWithAncestry;
+      delete newCharacter.race.__baseSpeed;
+      delete newCharacter.race.__baseDarkvisionRange;
     } else {
       delete newCharacter.race;
     }
@@ -597,6 +805,15 @@ const handleRaceChange = (e) => {
         dragonAncestry: null,
         giantAncestryKey: "",
         giantAncestry: null,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+        elvenLineageKey: "",
+        elvenLineage: null,
+        elvenLineageAbility: "",
+        tieflingLegacyKey: "",
+        tieflingLegacy: null,
+        tieflingLegacyAbility: "",
       };
     }
 
@@ -616,6 +833,15 @@ const handleRaceChange = (e) => {
     let dragonAncestry = null;
     let giantAncestryKey = "";
     let giantAncestry = null;
+    let gnomeLineageKey = "";
+    let gnomeLineage = null;
+    let gnomeLineageAbility = "";
+    let elvenLineageKey = "";
+    let elvenLineage = null;
+    let elvenLineageAbility = "";
+    let tieflingLegacyKey = "";
+    let tieflingLegacy = null;
+    let tieflingLegacyAbility = "";
     if (raceObj.dragonAncestries) {
       const prevKey =
         prev.race?.name === raceObj.name && prev.dragonAncestryKey
@@ -638,22 +864,110 @@ const handleRaceChange = (e) => {
       }
     }
 
+    if (raceObj.gnomeLineages) {
+      const prevKey =
+        prev.race?.name === raceObj.name && prev.gnomeLineageKey
+          ? prev.gnomeLineageKey
+          : "";
+      if (prevKey && raceObj.gnomeLineages[prevKey]) {
+        gnomeLineageKey = prevKey;
+        gnomeLineage = raceObj.gnomeLineages[prevKey];
+        const prevAbility =
+          prev.race?.name === raceObj.name && prev.gnomeLineageAbility
+            ? prev.gnomeLineageAbility
+            : "";
+        if (
+          prevAbility &&
+          gnomeLineage?.spellcastingAbilities?.includes(prevAbility)
+        ) {
+          gnomeLineageAbility = prevAbility;
+        }
+      }
+    }
+
+    if (raceObj.elvenLineages) {
+      const prevKey =
+        prev.race?.name === raceObj.name && prev.elvenLineageKey
+          ? prev.elvenLineageKey
+          : "";
+      if (prevKey && raceObj.elvenLineages[prevKey]) {
+        elvenLineageKey = prevKey;
+        elvenLineage = raceObj.elvenLineages[prevKey];
+        const prevAbility =
+          prev.race?.name === raceObj.name && prev.elvenLineageAbility
+            ? prev.elvenLineageAbility
+            : "";
+        if (
+          prevAbility &&
+          elvenLineage?.spellcastingAbilities?.includes(prevAbility)
+        ) {
+          elvenLineageAbility = prevAbility;
+        } else if ((elvenLineage?.spellcastingAbilities || []).length === 1) {
+          elvenLineageAbility = elvenLineage.spellcastingAbilities[0];
+        }
+      }
+    }
+
+    if (raceObj.fiendishLegacies) {
+      const prevKey =
+        prev.race?.name === raceObj.name && prev.tieflingLegacyKey
+          ? prev.tieflingLegacyKey
+          : "";
+      if (prevKey && raceObj.fiendishLegacies[prevKey]) {
+        tieflingLegacyKey = prevKey;
+        tieflingLegacy = raceObj.fiendishLegacies[prevKey];
+        const prevAbility =
+          prev.race?.name === raceObj.name && prev.tieflingLegacyAbility
+            ? prev.tieflingLegacyAbility
+            : "";
+        if (
+          prevAbility &&
+          tieflingLegacy?.spellcastingAbilities?.includes(prevAbility)
+        ) {
+          tieflingLegacyAbility = prevAbility;
+        } else if ((tieflingLegacy?.spellcastingAbilities || []).length === 1) {
+          tieflingLegacyAbility = tieflingLegacy.spellcastingAbilities[0];
+        }
+      }
+    }
+
     const updatedRace = attachSelectedAncestryToRace(raceObj, {
       dragonAncestryKey,
       dragonAncestry,
       giantAncestryKey,
       giantAncestry,
+      gnomeLineageKey,
+      gnomeLineage,
+      gnomeLineageAbility,
+      elvenLineageKey,
+      elvenLineage,
+      elvenLineageAbility,
+      tieflingLegacyKey,
+      tieflingLegacy,
+      tieflingLegacyAbility,
     });
 
     const updatedForm = {
       ...prev,
       race: updatedRace,
-      speed: raceObj.speed,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
       size,
       dragonAncestryKey,
       dragonAncestry,
       giantAncestryKey,
       giantAncestry,
+      gnomeLineageKey,
+      gnomeLineage,
+      gnomeLineageAbility,
+      elvenLineageKey,
+      elvenLineage,
+      elvenLineageAbility,
+      tieflingLegacyKey,
+      tieflingLegacy,
+      tieflingLegacyAbility,
     };
 
     if (Object.keys(updatedSkills).length) {
@@ -673,6 +987,15 @@ const handleDragonAncestryChange = (e) => {
         dragonAncestry: null,
         giantAncestryKey: prev.giantAncestryKey,
         giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
       });
       return {
         ...prev,
@@ -681,6 +1004,19 @@ const handleDragonAncestryChange = (e) => {
         dragonAncestry: null,
         giantAncestryKey: prev.giantAncestryKey,
         giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
       };
     }
 
@@ -690,6 +1026,15 @@ const handleDragonAncestryChange = (e) => {
       dragonAncestry: ancestry || null,
       giantAncestryKey: "",
       giantAncestry: null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
+      elvenLineageKey: "",
+      elvenLineage: null,
+      elvenLineageAbility: "",
+      tieflingLegacyKey: "",
+      tieflingLegacy: null,
+      tieflingLegacyAbility: "",
     });
 
     return {
@@ -699,6 +1044,19 @@ const handleDragonAncestryChange = (e) => {
       dragonAncestry: ancestry || null,
       giantAncestryKey: "",
       giantAncestry: null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
+      elvenLineageKey: "",
+      elvenLineage: null,
+      elvenLineageAbility: "",
+      tieflingLegacyKey: "",
+      tieflingLegacy: null,
+      tieflingLegacyAbility: "",
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
     };
   });
 };
@@ -712,6 +1070,15 @@ const handleGiantAncestryChange = (e) => {
         dragonAncestry: prev.dragonAncestry,
         giantAncestryKey: "",
         giantAncestry: null,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
       });
       return {
         ...prev,
@@ -720,6 +1087,19 @@ const handleGiantAncestryChange = (e) => {
         dragonAncestry: prev.dragonAncestry,
         giantAncestryKey: "",
         giantAncestry: null,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
       };
     }
 
@@ -729,6 +1109,15 @@ const handleGiantAncestryChange = (e) => {
       dragonAncestry: null,
       giantAncestryKey: ancestry ? key : "",
       giantAncestry: ancestry || null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
+      elvenLineageKey: "",
+      elvenLineage: null,
+      elvenLineageAbility: "",
+      tieflingLegacyKey: "",
+      tieflingLegacy: null,
+      tieflingLegacyAbility: "",
     });
 
     return {
@@ -738,6 +1127,448 @@ const handleGiantAncestryChange = (e) => {
       dragonAncestry: null,
       giantAncestryKey: ancestry ? key : "",
       giantAncestry: ancestry || null,
+      gnomeLineageKey: "",
+      gnomeLineage: null,
+      gnomeLineageAbility: "",
+      elvenLineageKey: "",
+      elvenLineage: null,
+      elvenLineageAbility: "",
+      tieflingLegacyKey: "",
+      tieflingLegacy: null,
+      tieflingLegacyAbility: "",
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
+    };
+  });
+};
+
+const handleGnomeLineageChange = (e) => {
+  const key = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.gnomeLineages) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
+      };
+    }
+
+    const lineage = prev.race.gnomeLineages[key];
+    const abilityOptions = lineage?.spellcastingAbilities || [];
+    let nextAbility = "";
+    if (lineage) {
+      if (abilityOptions.includes(prev.gnomeLineageAbility)) {
+        nextAbility = prev.gnomeLineageAbility;
+      } else if (abilityOptions.length === 1) {
+        nextAbility = abilityOptions[0];
+      }
+    }
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: lineage ? key : "",
+      gnomeLineage: lineage || null,
+      gnomeLineageAbility: nextAbility,
+      elvenLineageKey: prev.elvenLineageKey,
+      elvenLineage: prev.elvenLineage,
+      elvenLineageAbility: prev.elvenLineageAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      gnomeLineageKey: lineage ? key : "",
+      gnomeLineage: lineage || null,
+      gnomeLineageAbility: nextAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
+    };
+  });
+};
+
+const handleGnomeLineageAbilityChange = (e) => {
+  const ability = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.gnomeLineages || !prev.gnomeLineageKey) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: "",
+        gnomeLineage: null,
+        gnomeLineageAbility: "",
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        gnomeLineageAbility: "",
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
+      };
+    }
+
+    const lineage = prev.race.gnomeLineages[prev.gnomeLineageKey];
+    const validAbility =
+      lineage?.spellcastingAbilities?.includes(ability) ? ability : "";
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: lineage ? prev.gnomeLineageKey : "",
+      gnomeLineage: lineage || null,
+      gnomeLineageAbility: validAbility,
+      elvenLineageKey: prev.elvenLineageKey,
+      elvenLineage: prev.elvenLineage,
+      elvenLineageAbility: prev.elvenLineageAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      gnomeLineageAbility: validAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
+    };
+  });
+};
+
+const handleElvenLineageChange = (e) => {
+  const key = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.elvenLineages) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: "",
+        elvenLineage: null,
+        elvenLineageAbility: "",
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        elvenLineageKey: "",
+        elvenLineage: null,
+        elvenLineageAbility: "",
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
+      };
+    }
+
+    const lineage = prev.race.elvenLineages[key];
+    const abilityOptions = lineage?.spellcastingAbilities || [];
+    let nextAbility = "";
+    if (lineage) {
+      if (abilityOptions.includes(prev.elvenLineageAbility)) {
+        nextAbility = prev.elvenLineageAbility;
+      } else if (abilityOptions.length === 1) {
+        nextAbility = abilityOptions[0];
+      }
+    }
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: prev.gnomeLineageKey,
+      gnomeLineage: prev.gnomeLineage,
+      gnomeLineageAbility: prev.gnomeLineageAbility,
+      elvenLineageKey: lineage ? key : "",
+      elvenLineage: lineage || null,
+      elvenLineageAbility: nextAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      elvenLineageKey: lineage ? key : "",
+      elvenLineage: lineage || null,
+      elvenLineageAbility: nextAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
+    };
+  });
+};
+
+const handleElvenLineageAbilityChange = (e) => {
+  const ability = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.elvenLineages || !prev.elvenLineageKey) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: "",
+        elvenLineage: null,
+        elvenLineageAbility: "",
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        elvenLineageAbility: "",
+        tieflingLegacyKey: prev.tieflingLegacyKey,
+        tieflingLegacy: prev.tieflingLegacy,
+        tieflingLegacyAbility: prev.tieflingLegacyAbility,
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
+      };
+    }
+
+    const lineage = prev.race.elvenLineages[prev.elvenLineageKey];
+    const validAbility =
+      lineage?.spellcastingAbilities?.includes(ability) ? ability : "";
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: prev.gnomeLineageKey,
+      gnomeLineage: prev.gnomeLineage,
+      gnomeLineageAbility: prev.gnomeLineageAbility,
+      elvenLineageKey: lineage ? prev.elvenLineageKey : "",
+      elvenLineage: lineage || null,
+      elvenLineageAbility: validAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      elvenLineageAbility: validAbility,
+      tieflingLegacyKey: prev.tieflingLegacyKey,
+      tieflingLegacy: prev.tieflingLegacy,
+      tieflingLegacyAbility: prev.tieflingLegacyAbility,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
+    };
+  });
+};
+
+const handleTieflingLegacyChange = (e) => {
+  const key = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.fiendishLegacies) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: "",
+        tieflingLegacy: null,
+        tieflingLegacyAbility: "",
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        tieflingLegacyKey: "",
+        tieflingLegacy: null,
+        tieflingLegacyAbility: "",
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
+      };
+    }
+
+    const legacy = prev.race.fiendishLegacies[key];
+    const abilityOptions = legacy?.spellcastingAbilities || [];
+    let nextAbility = "";
+    if (legacy) {
+      if (abilityOptions.includes(prev.tieflingLegacyAbility)) {
+        nextAbility = prev.tieflingLegacyAbility;
+      } else if (abilityOptions.length === 1) {
+        nextAbility = abilityOptions[0];
+      }
+    }
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: prev.gnomeLineageKey,
+      gnomeLineage: prev.gnomeLineage,
+      gnomeLineageAbility: prev.gnomeLineageAbility,
+      elvenLineageKey: prev.elvenLineageKey,
+      elvenLineage: prev.elvenLineage,
+      elvenLineageAbility: prev.elvenLineageAbility,
+      tieflingLegacyKey: legacy ? key : "",
+      tieflingLegacy: legacy || null,
+      tieflingLegacyAbility: nextAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      tieflingLegacyKey: legacy ? key : "",
+      tieflingLegacy: legacy || null,
+      tieflingLegacyAbility: nextAbility,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
+    };
+  });
+};
+
+const handleTieflingLegacyAbilityChange = (e) => {
+  const ability = e.target.value;
+  setForm((prev) => {
+    if (!prev.race?.fiendishLegacies || !prev.tieflingLegacyKey) {
+      const updatedRace = attachSelectedAncestryToRace(prev.race, {
+        dragonAncestryKey: prev.dragonAncestryKey,
+        dragonAncestry: prev.dragonAncestry,
+        giantAncestryKey: prev.giantAncestryKey,
+        giantAncestry: prev.giantAncestry,
+        gnomeLineageKey: prev.gnomeLineageKey,
+        gnomeLineage: prev.gnomeLineage,
+        gnomeLineageAbility: prev.gnomeLineageAbility,
+        elvenLineageKey: prev.elvenLineageKey,
+        elvenLineage: prev.elvenLineage,
+        elvenLineageAbility: prev.elvenLineageAbility,
+        tieflingLegacyKey: "",
+        tieflingLegacy: null,
+        tieflingLegacyAbility: "",
+      });
+      return {
+        ...prev,
+        race: updatedRace,
+        tieflingLegacyAbility: "",
+        speed:
+          typeof updatedRace?.speed === "number"
+            ? updatedRace.speed
+            : prev.speed,
+      };
+    }
+
+    const legacy = prev.race.fiendishLegacies[prev.tieflingLegacyKey];
+    const validAbility =
+      legacy?.spellcastingAbilities?.includes(ability) ? ability : "";
+
+    const updatedRace = attachSelectedAncestryToRace(prev.race, {
+      dragonAncestryKey: prev.dragonAncestryKey,
+      dragonAncestry: prev.dragonAncestry,
+      giantAncestryKey: prev.giantAncestryKey,
+      giantAncestry: prev.giantAncestry,
+      gnomeLineageKey: prev.gnomeLineageKey,
+      gnomeLineage: prev.gnomeLineage,
+      gnomeLineageAbility: prev.gnomeLineageAbility,
+      elvenLineageKey: prev.elvenLineageKey,
+      elvenLineage: prev.elvenLineage,
+      elvenLineageAbility: prev.elvenLineageAbility,
+      tieflingLegacyKey: legacy ? prev.tieflingLegacyKey : "",
+      tieflingLegacy: legacy || null,
+      tieflingLegacyAbility: validAbility,
+    });
+
+    return {
+      ...prev,
+      race: updatedRace,
+      tieflingLegacyAbility: validAbility,
+      speed:
+        typeof updatedRace?.speed === "number"
+          ? updatedRace.speed
+          : prev.speed,
     };
   });
 };
@@ -859,10 +1690,21 @@ const sendManualToDb = useCallback(async (characterData) => {
       dragonAncestry: baseCharacter.dragonAncestry,
       giantAncestryKey: baseCharacter.giantAncestryKey,
       giantAncestry: baseCharacter.giantAncestry,
+      gnomeLineageKey: baseCharacter.gnomeLineageKey,
+      gnomeLineage: baseCharacter.gnomeLineage,
+      gnomeLineageAbility: baseCharacter.gnomeLineageAbility,
+      elvenLineageKey: baseCharacter.elvenLineageKey,
+      elvenLineage: baseCharacter.elvenLineage,
+      elvenLineageAbility: baseCharacter.elvenLineageAbility,
+      tieflingLegacyKey: baseCharacter.tieflingLegacyKey,
+      tieflingLegacy: baseCharacter.tieflingLegacy,
+      tieflingLegacyAbility: baseCharacter.tieflingLegacyAbility,
     }
   );
   if (raceWithAncestry) {
     newCharacter.race = raceWithAncestry;
+    delete newCharacter.race.__baseSpeed;
+    delete newCharacter.race.__baseDarkvisionRange;
   } else {
     delete newCharacter.race;
   }
@@ -943,9 +1785,23 @@ const handleAbilitySkillConfirm = () => {
       dragonAncestry: form.dragonAncestry,
       giantAncestryKey: form.giantAncestryKey,
       giantAncestry: form.giantAncestry,
+      gnomeLineageKey: form.gnomeLineageKey,
+      gnomeLineage: form.gnomeLineage,
+      gnomeLineageAbility: form.gnomeLineageAbility,
+      elvenLineageKey: form.elvenLineageKey,
+      elvenLineage: form.elvenLineage,
+      elvenLineageAbility: form.elvenLineageAbility,
+      tieflingLegacyKey: form.tieflingLegacyKey,
+      tieflingLegacy: form.tieflingLegacy,
+      tieflingLegacyAbility: form.tieflingLegacyAbility,
     }
   );
-  const updatedForm = { ...form, race: updatedRace };
+  const updatedForm = {
+    ...form,
+    race: updatedRace,
+    speed:
+      typeof updatedRace?.speed === "number" ? updatedRace.speed : form.speed,
+  };
   if (Object.keys(updatedSkills).length) {
     updatedForm.skills = updatedSkills;
   }
@@ -968,7 +1824,11 @@ const getAvailableAbilityOptions = (index) => {
 
 const getAvailableSkillOptions = (index) => {
   const taken = skillSelections.filter((_, i) => i !== index);
-  const base = SKILLS.map((s) => s.key).filter((s) => !form.skills?.[s]?.proficient);
+  const raceOptions = form.race?.skillChoices?.options;
+  const allOptions = raceOptions?.length
+    ? raceOptions
+    : SKILLS.map((s) => s.key);
+  const base = allOptions.filter((s) => !form.skills?.[s]?.proficient);
   return base.filter((opt) => !taken.includes(opt));
 };
 
@@ -1127,6 +1987,102 @@ const getAvailableSkillOptions = (index) => {
             </Form.Select>
           </>
         )}
+        {form.race?.name === "Elf" && (
+          <>
+            <Form.Label className="text-light">Elven Lineage</Form.Label>
+            <Form.Select
+              value={form.elvenLineageKey || ""}
+              onChange={handleElvenLineageChange}
+            >
+              <option value="" disabled>Select your elven lineage</option>
+              {Object.entries(form.race.elvenLineages || {}).map(([key, lineage]) => (
+                <option key={key} value={key}>
+                  {lineage.label || lineage.name || "Elven Lineage"}
+                </option>
+              ))}
+            </Form.Select>
+            {form.elvenLineage?.spellcastingAbilities?.length ? (
+              <>
+                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
+                <Form.Select
+                  value={form.elvenLineageAbility || ""}
+                  onChange={handleElvenLineageAbilityChange}
+                >
+                  <option value="" disabled>Select your spellcasting ability</option>
+                  {(form.elvenLineage?.spellcastingAbilities || []).map((ability) => (
+                    <option key={ability} value={ability}>
+                      {ability}
+                    </option>
+                  ))}
+                </Form.Select>
+              </>
+            ) : null}
+          </>
+        )}
+        {form.race?.name === "Gnome" && (
+          <>
+            <Form.Label className="text-light">Gnome Lineage</Form.Label>
+            <Form.Select
+              value={form.gnomeLineageKey || ""}
+              onChange={handleGnomeLineageChange}
+            >
+              <option value="" disabled>Select your gnome lineage</option>
+              {Object.entries(form.race.gnomeLineages || {}).map(([key, lineage]) => (
+                <option key={key} value={key}>
+                  {lineage.label || lineage.name || "Gnome Lineage"}
+                </option>
+              ))}
+            </Form.Select>
+            {form.gnomeLineage?.spellcastingAbilities?.length ? (
+              <>
+                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
+                <Form.Select
+                  value={form.gnomeLineageAbility || ""}
+                  onChange={handleGnomeLineageAbilityChange}
+                >
+                  <option value="" disabled>Select your spellcasting ability</option>
+                  {(form.gnomeLineage?.spellcastingAbilities || []).map((ability) => (
+                    <option key={ability} value={ability}>
+                      {ability}
+                    </option>
+                  ))}
+                </Form.Select>
+              </>
+            ) : null}
+          </>
+        )}
+        {form.race?.name === "Tiefling" && (
+          <>
+            <Form.Label className="text-light">Fiendish Legacy</Form.Label>
+            <Form.Select
+              value={form.tieflingLegacyKey || ""}
+              onChange={handleTieflingLegacyChange}
+            >
+              <option value="" disabled>Select your fiendish legacy</option>
+              {Object.entries(form.race.fiendishLegacies || {}).map(([key, legacy]) => (
+                <option key={key} value={key}>
+                  {legacy.label || legacy.name || "Fiendish Legacy"}
+                </option>
+              ))}
+            </Form.Select>
+            {form.tieflingLegacy?.spellcastingAbilities?.length ? (
+              <>
+                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
+                <Form.Select
+                  value={form.tieflingLegacyAbility || ""}
+                  onChange={handleTieflingLegacyAbilityChange}
+                >
+                  <option value="" disabled>Select your spellcasting ability</option>
+                  {(form.tieflingLegacy?.spellcastingAbilities || []).map((ability) => (
+                    <option key={ability} value={ability}>
+                      {ability}
+                    </option>
+                  ))}
+                </Form.Select>
+              </>
+            ) : null}
+          </>
+        )}
         <Form.Label className="text-light">Background</Form.Label>
         <Form.Select onChange={handleBackgroundChange} defaultValue="">
           <option value="" disabled>Select your background</option>
@@ -1189,7 +2145,7 @@ const getAvailableSkillOptions = (index) => {
        <Modal className="dnd-modal" centered show={showAbilitySkillModal} onHide={() => setShowAbilitySkillModal(false)}>
        <div className="text-center">
         <Card className="dnd-background">
-          <Card.Title>Choose Half-Elf Bonuses</Card.Title>
+          <Card.Title>Choose Bonus Options</Card.Title>
         <Card.Body>
         {form.race?.abilityChoices && abilitySelections.map((sel, idx) => (
           <Form.Group className="mb-2" key={`ability-${idx}`}>

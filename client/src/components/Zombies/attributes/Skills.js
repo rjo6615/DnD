@@ -7,6 +7,7 @@ import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
+import DockControls from '../components/DockControls';
 
 const EMPTY_OBJECT = Object.freeze({});
 
@@ -37,6 +38,7 @@ export default function Skills({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const params = useParams();
   const safeForm = form ?? {};
@@ -342,6 +344,11 @@ export default function Skills({
       >
         <Card className="modern-card text-center">
           <Card.Header className="modal-header">
+            <DockControls
+              dockedSide={dockedSide}
+              onDockChange={onDockChange}
+              isDocked={isDocked}
+            />
             <Card.Title className="modal-title">Skills</Card.Title>
           </Card.Header>
           <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>

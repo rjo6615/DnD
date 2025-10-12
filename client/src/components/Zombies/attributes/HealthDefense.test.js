@@ -130,3 +130,27 @@ test('updates health when slider is dragged', () => {
   fireEvent.mouseUp(slider);
   expect(screen.getByText('8/10')).toBeInTheDocument();
 });
+
+test('includes racial hp bonus when feat overrides are zero', () => {
+  const dwarfForm = {
+    ...baseForm,
+    race: { name: 'Dwarf', hpMaxBonusPerLevel: 1 },
+    tempHealth: 10,
+    health: 10,
+  };
+
+  render(
+    <HealthDefense
+      form={dwarfForm}
+      conMod={2}
+      dexMod={0}
+      ac={0}
+      hpMaxBonus={0}
+      hpMaxBonusPerLevel={0}
+      initiative={0}
+      speed={0}
+    />
+  );
+
+  expect(screen.getByText('10/25')).toBeInTheDocument();
+});
