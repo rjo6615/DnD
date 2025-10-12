@@ -4,6 +4,7 @@ import { Modal, Card, Table, Button, Alert } from 'react-bootstrap'; // Adjust a
 import { useNavigate, useParams } from "react-router-dom";
 import CampaignModals from "../components/CampaignModals";
 import useCampaignActions from "../hooks/useCampaignActions";
+import DockControls from '../components/DockControls';
 
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 const DEFAULT_DICE_COLOR = '#000000';
@@ -25,6 +26,7 @@ export default function Help({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -186,6 +188,11 @@ export default function Help({
       >
         <Card className="modern-card text-center">
           <Card.Header className="modal-header">
+            <DockControls
+              dockedSide={dockedSide}
+              onDockChange={onDockChange}
+              isDocked={isDocked}
+            />
             <Card.Title className="modal-title">Help</Card.Title>
           </Card.Header>
           <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>

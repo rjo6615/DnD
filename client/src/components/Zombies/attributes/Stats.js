@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { Modal, Button } from "react-bootstrap";
+import DockControls from '../components/DockControls';
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
@@ -22,6 +23,7 @@ export default function Stats({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const [stats] = useState({
     str: form.str || 0,
@@ -181,6 +183,11 @@ export default function Stats({
         dialogClassName={dialogClassName}
       >
         <Modal.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
           <Modal.Title className="modal-title">Stats</Modal.Title>
         </Modal.Header>
         <Modal.Body className="stats-modal-body">

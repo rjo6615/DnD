@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button, Form } from 'react-bootstrap';
+import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
@@ -64,14 +64,6 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   map: { label: 'Campaign Map', component: MapModal },
   help: { label: 'Help', component: Help },
 };
-const DOCKABLE_MODAL_OPTIONS = [
-  { key: null, label: 'None' },
-  ...Object.entries(DOCKABLE_MODAL_DEFINITIONS).map(([key, { label }]) => ({
-    key,
-    label,
-  })),
-];
-const WIDE_SCREEN_QUERY = '(min-width: 1200px)';
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
 const toFiniteNumberOrNull = (value) => {
@@ -1011,12 +1003,6 @@ export default function ZombiesCharacterSheet() {
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
   const [dockedModals, setDockedModals] = useState({ left: null, right: null });
-  const [isWideScreen, setIsWideScreen] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return false;
-    }
-    return window.matchMedia(WIDE_SCREEN_QUERY).matches;
-  });
 
   useEffect(() => {
     setActiveEffects(getStoredActiveEffects(characterId));
@@ -1075,27 +1061,6 @@ export default function ZombiesCharacterSheet() {
       console.error('Failed to store used slots', error);
     }
   }, [characterId, usedSlots]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      const mediaQueryList = window.matchMedia(WIDE_SCREEN_QUERY);
-      const listener = (event) => {
-        setIsWideScreen(event.matches);
-      };
-
-      if (typeof mediaQueryList.addEventListener === 'function') {
-        mediaQueryList.addEventListener('change', listener);
-        return () => mediaQueryList.removeEventListener('change', listener);
-      }
-
-      if (typeof mediaQueryList.addListener === 'function') {
-        mediaQueryList.addListener(listener);
-        return () => mediaQueryList.removeListener(listener);
-      }
-    }
-
-    return undefined;
-  }, []);
 
   useEffect(() => {
     campaignMapTokensRef.current = campaignMapTokens || {};
@@ -1931,7 +1896,7 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     updateDockedModalMetrics();
-  }, [updateDockedModalMetrics, headerHeight, isWideScreen]);
+  }, [updateDockedModalMetrics, headerHeight]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -2191,19 +2156,106 @@ export default function ZombiesCharacterSheet() {
     });
   }, []);
 
-  const handleDockSelectionChange = useCallback((side, value) => {
-    const normalizedValue = value || null;
-    setDockedModals((prev) => {
-      const next = { ...prev, [side]: normalizedValue };
-      if (normalizedValue) {
+  const handleDockChange = useCallback(
+    (modalKey, side) => {
+      if (!modalKey) {
+        return;
+      }
+
+      setDockedModals((prev) => {
+        let next = prev;
+        let detached = false;
+
+        ['left', 'right'].forEach((position) => {
+          if (prev[position] === modalKey) {
+            if (next === prev) {
+              next = { ...prev };
+            }
+            next[position] = null;
+            detached = true;
+          }
+        });
+
+        if (!side) {
+          return next === prev ? prev : next;
+        }
+
+        if (side !== 'left' && side !== 'right') {
+          return next === prev ? prev : next;
+        }
+
+        if (prev[side] === modalKey && detached) {
+          return next;
+        }
+
+        if (next === prev) {
+          next = { ...prev };
+        }
+
         const otherSide = side === 'left' ? 'right' : 'left';
-        if (prev[otherSide] === normalizedValue) {
+        next[side] = modalKey;
+
+        if (next[otherSide] === modalKey) {
           next[otherSide] = null;
         }
+
+        return next;
+      });
+
+      if (side) {
+        switch (modalKey) {
+          case 'characterInfo':
+            setShowCharacterInfo(false);
+            break;
+          case 'stats':
+            setShowStats(false);
+            break;
+          case 'skills':
+            setShowSkill(false);
+            break;
+          case 'feats':
+            setShowFeats(false);
+            break;
+          case 'features':
+            setShowFeatures(false);
+            break;
+          case 'spells':
+            setShowSpells(false);
+            break;
+          case 'equipment':
+            setShowEquipment(false);
+            break;
+          case 'inventory':
+            setShowInventory(false);
+            break;
+          case 'shop':
+            setShowShop(false);
+            break;
+          case 'help':
+            setShowHelpModal(false);
+            break;
+          case 'map':
+            setShowMapModal(false);
+            break;
+          default:
+            break;
+        }
       }
-      return next;
-    });
-  }, []);
+    },
+    [
+      setShowCharacterInfo,
+      setShowStats,
+      setShowSkill,
+      setShowFeats,
+      setShowFeatures,
+      setShowSpells,
+      setShowEquipment,
+      setShowInventory,
+      setShowShop,
+      setShowHelpModal,
+      setShowMapModal,
+    ]
+  );
 
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
@@ -4150,6 +4202,7 @@ export default function ZombiesCharacterSheet() {
           onShowBackground: handleShowBackground,
           onLongRest: handleLongRest,
           onShortRest: handleShortRest,
+          onDockChange: (side) => handleDockChange('characterInfo', side),
         }),
       },
       stats: {
@@ -4159,6 +4212,7 @@ export default function ZombiesCharacterSheet() {
         getBaseProps: () => ({
           form,
           handleCloseStats,
+          onDockChange: (side) => handleDockChange('stats', side),
         }),
       },
       skills: {
@@ -4177,6 +4231,7 @@ export default function ZombiesCharacterSheet() {
           wisMod: statMods.wis,
           onSkillsChange: handleSkillsChange,
           onRollResult: handleRollResult,
+          onDockChange: (side) => handleDockChange('skills', side),
         }),
       },
       feats: {
@@ -4186,6 +4241,7 @@ export default function ZombiesCharacterSheet() {
         getBaseProps: () => ({
           form,
           handleCloseFeats,
+          onDockChange: (side) => handleDockChange('feats', side),
         }),
       },
       features: {
@@ -4199,6 +4255,7 @@ export default function ZombiesCharacterSheet() {
           onLargeForm: handleLargeForm,
           longRestCount,
           shortRestCount,
+          onDockChange: (side) => handleDockChange('features', side),
         }),
       },
       spells: {
@@ -4211,6 +4268,7 @@ export default function ZombiesCharacterSheet() {
           onSpellsChange: handleSpellsChange,
           onCastSpell: handleCastSpell,
           availableSlots,
+          onDockChange: (side) => handleDockChange('spells', side),
         }),
       },
       equipment: {
@@ -4221,6 +4279,7 @@ export default function ZombiesCharacterSheet() {
           form,
           onHide: handleCloseEquipment,
           onEquipmentChange: handleEquipmentChange,
+          onDockChange: (side) => handleDockChange('equipment', side),
         }),
       },
       inventory: {
@@ -4233,6 +4292,7 @@ export default function ZombiesCharacterSheet() {
           onHide: handleCloseInventory,
           onTabChange: setInventoryTab,
           characterId,
+          onDockChange: (side) => handleDockChange('inventory', side),
         }),
       },
       shop: {
@@ -4257,6 +4317,7 @@ export default function ZombiesCharacterSheet() {
             pp: form?.pp ?? 0,
           },
           onPurchase: handleShopPurchase,
+          onDockChange: (side) => handleDockChange('shop', side),
         }),
       },
       map: {
@@ -4273,6 +4334,7 @@ export default function ZombiesCharacterSheet() {
           characterLookup: tokenMetaById,
           onTokenMove: handleTokenMove,
           onHide: handleCloseMapModal,
+          onDockChange: (side) => handleDockChange('map', side),
         }),
       },
       help: {
@@ -4283,6 +4345,7 @@ export default function ZombiesCharacterSheet() {
           form,
           handleCloseHelpModal,
           onDiceColorChange: handleDiceColorChange,
+          onDockChange: (side) => handleDockChange('help', side),
         }),
       },
     }),
@@ -4311,6 +4374,7 @@ export default function ZombiesCharacterSheet() {
       handleCloseSpells,
       handleCloseStats,
       handleDiceColorChange,
+      handleDockChange,
       handleEquipmentChange,
       handleItemsChange,
       handleLongRest,
@@ -4383,11 +4447,12 @@ export default function ZombiesCharacterSheet() {
             isDocked
             dockedSide={dockedSide}
             onDockClose={() => handleDockClose(modalKey)}
+            onDockChange={(side) => handleDockChange(modalKey, side)}
           />
         );
       })
       .filter(Boolean);
-  }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockClose]);
+  }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
   return (
     <div
@@ -4415,72 +4480,6 @@ export default function ZombiesCharacterSheet() {
           minHeight: 0,
         }}
       >
-        {isWideScreen && (
-        <>
-          <div className="dock-selector dock-selector--left">
-            <label
-              className="dock-selector__label"
-              htmlFor="dock-selector-left"
-            >
-              Dock left modal
-            </label>
-            <Form.Select
-              id="dock-selector-left"
-              size="sm"
-              className="dock-selector__control"
-              value={dockedModals.left ?? ''}
-              onChange={(event) =>
-                handleDockSelectionChange('left', event.target.value)
-              }
-            >
-              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => {
-                const config = key ? DOCKABLE_MODAL_CONFIG[key] : null;
-                const isDisabled = key ? config?.isEnabled === false : false;
-                return (
-                  <option
-                    key={key ?? 'none'}
-                    value={key ?? ''}
-                    disabled={isDisabled}
-                  >
-                    {label}
-                  </option>
-                );
-              })}
-            </Form.Select>
-          </div>
-          <div className="dock-selector dock-selector--right">
-            <label
-              className="dock-selector__label"
-              htmlFor="dock-selector-right"
-            >
-              Dock right modal
-            </label>
-            <Form.Select
-              id="dock-selector-right"
-              size="sm"
-              className="dock-selector__control"
-              value={dockedModals.right ?? ''}
-              onChange={(event) =>
-                handleDockSelectionChange('right', event.target.value)
-              }
-            >
-              {DOCKABLE_MODAL_OPTIONS.map(({ key, label }) => {
-                const config = key ? DOCKABLE_MODAL_CONFIG[key] : null;
-                const isDisabled = key ? config?.isEnabled === false : false;
-                return (
-                  <option
-                    key={key ?? 'none'}
-                    value={key ?? ''}
-                    disabled={isDisabled}
-                  >
-                    {label}
-                  </option>
-                );
-              })}
-            </Form.Select>
-          </div>
-        </>
-      )}
       {isFormReady ? (
         <>
           <div ref={headerRef}>
@@ -4741,6 +4740,8 @@ export default function ZombiesCharacterSheet() {
           characterFigurine={characterFigurine}
           handleOpenTokenPicker={handleOpenTokenPicker}
           tokenPickerSaving={tokenPickerSaving}
+          dockedSide={getDockedSide('characterInfo')}
+          onDockChange={(side) => handleDockChange('characterInfo', side)}
         />
         <Skills
           form={form}
@@ -4755,11 +4756,15 @@ export default function ZombiesCharacterSheet() {
           wisMod={statMods.wis}
           onSkillsChange={handleSkillsChange}
           onRollResult={handleRollResult}
+          dockedSide={getDockedSide('skills')}
+          onDockChange={(side) => handleDockChange('skills', side)}
         />
         <Stats
           form={form}
           showStats={showStats}
           handleCloseStats={handleCloseStats}
+          dockedSide={getDockedSide('stats')}
+          onDockChange={(side) => handleDockChange('stats', side)}
         />
         <BackgroundModal
           show={showBackground}
@@ -4770,6 +4775,8 @@ export default function ZombiesCharacterSheet() {
           form={form}
           showFeats={showFeats}
           handleCloseFeats={handleCloseFeats}
+          dockedSide={getDockedSide('feats')}
+          onDockChange={(side) => handleDockChange('feats', side)}
         />
         <Features
           form={form}
@@ -4785,6 +4792,8 @@ export default function ZombiesCharacterSheet() {
           availableSlots={availableSlots}
           actionCount={actionCount}
           characterId={characterId}
+          dockedSide={getDockedSide('features')}
+          onDockChange={(side) => handleDockChange('features', side)}
         />
         <InventoryModal
           show={showInventory}
@@ -4793,12 +4802,16 @@ export default function ZombiesCharacterSheet() {
           onTabChange={setInventoryTab}
           form={form}
           characterId={characterId}
+          dockedSide={getDockedSide('inventory')}
+          onDockChange={(side) => handleDockChange('inventory', side)}
         />
         <EquipmentModal
           show={showEquipment}
           onHide={handleCloseEquipment}
           form={form}
           onEquipmentChange={handleEquipmentChange}
+          dockedSide={getDockedSide('equipment')}
+          onDockChange={(side) => handleDockChange('equipment', side)}
         />
         <ShopModal
           show={showShop}
@@ -4819,6 +4832,8 @@ export default function ZombiesCharacterSheet() {
             pp: form?.pp ?? 0,
           }}
           onPurchase={handleShopPurchase}
+          dockedSide={getDockedSide('shop')}
+          onDockChange={(side) => handleDockChange('shop', side)}
         />
         {hasSpellcasting && (
           <SpellSelector
@@ -4828,6 +4843,8 @@ export default function ZombiesCharacterSheet() {
             onSpellsChange={handleSpellsChange}
             onCastSpell={handleCastSpell}
             availableSlots={availableSlots}
+            dockedSide={getDockedSide('spells')}
+            onDockChange={(side) => handleDockChange('spells', side)}
           />
         )}
         <Help
@@ -4835,6 +4852,8 @@ export default function ZombiesCharacterSheet() {
           showHelpModal={showHelpModal}
           handleCloseHelpModal={handleCloseHelpModal}
           onDiceColorChange={handleDiceColorChange}
+          dockedSide={getDockedSide('help')}
+          onDockChange={(side) => handleDockChange('help', side)}
         />
       </>
     )}
@@ -4863,6 +4882,8 @@ export default function ZombiesCharacterSheet() {
       characterLookup={tokenMetaById}
       onTokenMove={handleTokenMove}
       onTokenRemove={handleTokenRemove}
+      dockedSide={getDockedSide('map')}
+      onDockChange={(side) => handleDockChange('map', side)}
     />
     {dockedModalElements}
   </div>

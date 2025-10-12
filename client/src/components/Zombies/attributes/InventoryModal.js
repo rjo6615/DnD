@@ -10,6 +10,7 @@ import {
   normalizeWeapons,
   normalizeAccessories,
 } from './inventoryNormalization';
+import DockControls from '../components/DockControls';
 
 const DEFAULT_TAB = 'weapons';
 
@@ -23,6 +24,7 @@ export default function InventoryModal({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -201,6 +203,11 @@ export default function InventoryModal({
     >
       <Card className="modern-card">
         <Card.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
           <Card.Title className="modal-title">Inventory</Card.Title>
         </Card.Header>
         <Card.Body

@@ -1,10 +1,11 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
 import MapDisplay from './MapDisplay';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
+import DockControls from '../components/DockControls';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -150,6 +151,7 @@ const MapModal = ({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) => {
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
@@ -933,8 +935,18 @@ const MapModal = ({
       dialogClassName={dialogClassName}
       data-testid="map-modal-wrapper"
     >
-      <Modal.Header closeButton>
+      <Modal.Header className="modal-header">
+        <DockControls
+          dockedSide={dockedSide}
+          onDockChange={onDockChange}
+          isDocked={isDocked}
+        />
         <Modal.Title>{title}</Modal.Title>
+        <CloseButton
+          variant="white"
+          onClick={handleModalHide}
+          aria-label="Close map"
+        />
       </Modal.Header>
       <Modal.Body>
         {hasManagementFeatures ? (
@@ -1001,6 +1013,7 @@ MapModal.propTypes = {
   isDocked: PropTypes.bool,
   dockedSide: PropTypes.oneOf(['left', 'right']),
   onDockClose: PropTypes.func,
+  onDockChange: PropTypes.func,
 };
 
 MapModal.defaultProps = {
@@ -1027,6 +1040,7 @@ MapModal.defaultProps = {
   isDocked: false,
   dockedSide: null,
   onDockClose: null,
+  onDockChange: null,
 };
 
 export default MapModal;

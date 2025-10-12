@@ -5,6 +5,7 @@ import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
 import AccessoryList from '../../Accessories/AccessoryList';
+import DockControls from '../components/DockControls';
 
 const DEFAULT_TAB = 'weapons';
 
@@ -419,6 +420,7 @@ export default function ShopModal({
   isDocked = false,
   dockedSide = null,
   onDockClose,
+  onDockChange,
 }) {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
@@ -692,6 +694,11 @@ export default function ShopModal({
       >
       <Card className="modern-card">
         <Card.Header className="modal-header">
+          <DockControls
+            dockedSide={dockedSide}
+            onDockChange={onDockChange}
+            isDocked={isDocked}
+          />
           <Card.Title className="modal-title">Shop</Card.Title>
         </Card.Header>
         <Card.Body
