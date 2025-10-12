@@ -175,6 +175,55 @@
   }
 }
 
+.combat-turn-header__figurine-area {
+  margin-top: 0.85rem;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.combat-turn-header__figurine {
+  width: clamp(48px, 9vw, 62px);
+  height: clamp(48px, 9vw, 62px);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  pointer-events: auto;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.combat-turn-header__figurine--has-image {
+  background: rgba(12, 10, 8, 0.45);
+}
+
+.combat-turn-header__figurine--active {
+  transform: scale(1.05);
+  box-shadow:
+    0 0 18px rgba(214, 178, 86, 0.65),
+    0 0 8px rgba(214, 178, 86, 0.5) inset;
+  border-color: rgba(214, 178, 86, 0.85);
+}
+
+.combat-turn-header__figurine-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.combat-turn-header__figurine-initial {
+  font-size: clamp(1rem, 3vw, 1.45rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .combat-turn-header__active-indicator {
   display: flex;
   align-items: center;
