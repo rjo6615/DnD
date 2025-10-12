@@ -395,7 +395,8 @@
   top: 0;
   bottom: 0;
   width: 12px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: ew-resize;
   z-index: 5;
   opacity: 0.4;
   transition: opacity 0.2s ease;

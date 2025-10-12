@@ -2113,6 +2113,7 @@ export default function ZombiesCharacterSheet() {
     };
 
     const EDGE_THRESHOLD_PX = 16;
+    const EDGE_HANDLE_BUFFER_PX = 12;
 
     const handlePointerDown = (event) => {
       if (event.button !== 0) {
@@ -2142,8 +2143,10 @@ export default function ZombiesCharacterSheet() {
       const rect = dialog.getBoundingClientRect();
       const distanceFromEdge =
         side === 'left' ? rect.right - event.clientX : event.clientX - rect.left;
+      const isWithinEdgeZone =
+        Math.abs(distanceFromEdge) <= EDGE_THRESHOLD_PX + EDGE_HANDLE_BUFFER_PX;
 
-      if (distanceFromEdge < 0 || distanceFromEdge > EDGE_THRESHOLD_PX) {
+      if (!isWithinEdgeZone) {
         return;
       }
 
