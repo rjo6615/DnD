@@ -396,6 +396,175 @@ describe('TokenPickerModal', () => {
     });
   });
 
+  test('player token picker limits folders to scoped race and class combinations', async () => {
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          children: [
+            {
+              name: 'Dragonborn',
+              path: 'Tokens/Adventurers/Dragonborn',
+              relativePath: 'Adventurers/Dragonborn',
+              children: [
+                {
+                  name: 'Druid',
+                  path: 'Tokens/Adventurers/Dragonborn/Druid',
+                  relativePath: 'Adventurers/Dragonborn/Druid',
+                  children: [],
+                },
+              ],
+            },
+            {
+              name: 'Dwarves',
+              path: 'Tokens/Adventurers/Dwarves',
+              relativePath: 'Adventurers/Dwarves',
+              children: [
+                {
+                  name: 'Druid',
+                  path: 'Tokens/Adventurers/Dwarves/Druid',
+                  relativePath: 'Adventurers/Dwarves/Druid',
+                  children: [],
+                },
+              ],
+            },
+            {
+              name: 'Core_Class_Tokens',
+              path: 'Tokens/Adventurers/Core_Class_Tokens',
+              relativePath: 'Adventurers/Core_Class_Tokens',
+              children: [
+                {
+                  name: 'Mediumfolk',
+                  path: 'Tokens/Adventurers/Core_Class_Tokens/Mediumfolk',
+                  relativePath: 'Adventurers/Core_Class_Tokens/Mediumfolk',
+                  children: [
+                    {
+                      name: 'Druid',
+                      path: 'Tokens/Adventurers/Core_Class_Tokens/Mediumfolk/Druid',
+                      relativePath: 'Adventurers/Core_Class_Tokens/Mediumfolk/Druid',
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      flatFolders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          depth: 0,
+          displayPath: 'Adventurers',
+        },
+        {
+          name: 'Dragonborn',
+          path: 'Tokens/Adventurers/Dragonborn',
+          relativePath: 'Adventurers/Dragonborn',
+          depth: 1,
+          displayPath: 'Adventurers/Dragonborn',
+        },
+        {
+          name: 'Druid',
+          path: 'Tokens/Adventurers/Dragonborn/Druid',
+          relativePath: 'Adventurers/Dragonborn/Druid',
+          depth: 2,
+          displayPath: 'Adventurers/Dragonborn/Druid',
+        },
+        {
+          name: 'Dwarves',
+          path: 'Tokens/Adventurers/Dwarves',
+          relativePath: 'Adventurers/Dwarves',
+          depth: 1,
+          displayPath: 'Adventurers/Dwarves',
+        },
+        {
+          name: 'Druid',
+          path: 'Tokens/Adventurers/Dwarves/Druid',
+          relativePath: 'Adventurers/Dwarves/Druid',
+          depth: 2,
+          displayPath: 'Adventurers/Dwarves/Druid',
+        },
+        {
+          name: 'Core_Class_Tokens',
+          path: 'Tokens/Adventurers/Core_Class_Tokens',
+          relativePath: 'Adventurers/Core_Class_Tokens',
+          depth: 1,
+          displayPath: 'Adventurers/Core_Class_Tokens',
+        },
+        {
+          name: 'Mediumfolk',
+          path: 'Tokens/Adventurers/Core_Class_Tokens/Mediumfolk',
+          relativePath: 'Adventurers/Core_Class_Tokens/Mediumfolk',
+          depth: 2,
+          displayPath: 'Adventurers/Core_Class_Tokens/Mediumfolk',
+        },
+        {
+          name: 'Druid',
+          path: 'Tokens/Adventurers/Core_Class_Tokens/Mediumfolk/Druid',
+          relativePath: 'Adventurers/Core_Class_Tokens/Mediumfolk/Druid',
+          depth: 3,
+          displayPath: 'Adventurers/Core_Class_Tokens/Mediumfolk/Druid',
+        },
+      ],
+    };
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    const scope = [
+      'Core_Class_Tokens/Druid',
+      'Adventurers/Core_Class_Tokens/Druid',
+      'Tokens/Adventurers/Core_Class_Tokens/Druid',
+      'Dwarves/Druid',
+      'Adventurers/Dwarves/Druid',
+      'Tokens/Adventurers/Dwarves/Druid',
+    ];
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={scope}
+      />
+    );
+
+    const select = await screen.findByLabelText(/Token Library/i);
+
+    await waitFor(() => {
+      const options = within(select).getAllByRole('option');
+      const normalizedOptions = options.map((option) => option.textContent.replace(/\u00A0/g, ''));
+
+      expect(normalizedOptions).toEqual([
+        'Dwarves/Druid',
+        'Core_Class_Tokens/Mediumfolk/Druid',
+      ]);
+    });
+  });
+
   test('player library dropdown stays disabled until folders finish loading', async () => {
     const folderTree = {
       rootFolder: 'Tokens',
