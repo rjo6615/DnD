@@ -52,6 +52,7 @@ import TokenPickerModal from '../components/TokenPickerModal';
 
 const HEADER_PADDING = 16;
 const MIN_DOCKED_MODAL_WIDTH = 320;
+const DOCKED_MODAL_VIEWPORT_PADDING = 32;
 const DOCKABLE_MODAL_DEFINITIONS = {
   characterInfo: { label: 'Character Info', component: CharacterInfo },
   stats: { label: 'Stats', component: Stats },
@@ -2006,6 +2007,13 @@ export default function ZombiesCharacterSheet() {
       right: computeMaxWidth(rightGutter),
     };
     const computedMaxWidth = computeMaxWidth(largestGutter) ?? 0;
+    const viewportLimit =
+      viewportWidth > 0
+        ? Math.max(
+            MIN_DOCKED_MODAL_WIDTH,
+            viewportWidth - DOCKED_MODAL_VIEWPORT_PADDING * 2
+          )
+        : null;
 
     dockingScopeElement.style.setProperty('--docked-modal-top-offset', `${Math.round(topOffset)}px`);
 
@@ -2028,18 +2036,17 @@ export default function ZombiesCharacterSheet() {
     setDockedModalWidths((prev) => {
       let next = prev;
       ['left', 'right'].forEach((side) => {
-        const maxWidth = computedMaxWidths[side];
         const currentWidth = prev[side];
         if (
-          typeof maxWidth === 'number' &&
-          maxWidth > 0 &&
+          typeof viewportLimit === 'number' &&
+          viewportLimit > 0 &&
           typeof currentWidth === 'number' &&
-          currentWidth > maxWidth + 0.5
+          currentWidth > viewportLimit + 0.5
         ) {
           if (next === prev) {
             next = { ...prev };
           }
-          next[side] = maxWidth;
+          next[side] = viewportLimit;
         }
       });
       return next;
@@ -2241,14 +2248,39 @@ export default function ZombiesCharacterSheet() {
       const root = document.documentElement || document.body;
       const computedStyles = root ? window.getComputedStyle(root) : null;
       const maxWidthFromSide =
-        parseWidthValue(computedStyles?.getPropertyValue(`--docked-modal-max-width-${side}`)) ?? null;
+        parseWidthValue(
+          computedStyles?.getPropertyValue(`--docked-modal-max-width-${side}`)
+        ) ?? null;
       const fallbackMaxWidth =
-        parseWidthValue(computedStyles?.getPropertyValue('--docked-modal-max-width')) ?? null;
+        parseWidthValue(
+          computedStyles?.getPropertyValue('--docked-modal-max-width')
+        ) ?? null;
+      const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportLimit =
+        viewportWidth > 0
+          ? Math.max(
+              MIN_DOCKED_MODAL_WIDTH,
+              viewportWidth - DOCKED_MODAL_VIEWPORT_PADDING * 2
+            )
+          : null;
       const startingWidth = rect.width;
-      const maxWidth = Math.max(
-        MIN_DOCKED_MODAL_WIDTH,
-        maxWidthFromSide ?? fallbackMaxWidth ?? startingWidth
-      );
+      const widthLimitCandidates = [MIN_DOCKED_MODAL_WIDTH];
+      const addCandidate = (value) => {
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+          widthLimitCandidates.push(value);
+        }
+      };
+
+      addCandidate(maxWidthFromSide);
+      addCandidate(fallbackMaxWidth);
+      addCandidate(startingWidth);
+      addCandidate(viewportLimit);
+
+      let maxWidth = Math.max(...widthLimitCandidates);
+      if (typeof viewportLimit === 'number' && Number.isFinite(viewportLimit)) {
+        maxWidth = Math.min(maxWidth, viewportLimit);
+      }
       const anchor = side === 'left' ? rect.left : rect.right;
       const pointerId = event.pointerId;
       let framePending = false;
