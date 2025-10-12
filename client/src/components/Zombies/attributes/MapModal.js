@@ -942,11 +942,6 @@ const MapModal = ({
           isDocked={isDocked}
         />
         <Modal.Title>{title}</Modal.Title>
-        <CloseButton
-          variant="white"
-          onClick={handleModalHide}
-          aria-label="Close map"
-        />
       </Modal.Header>
       <Modal.Body>
         {hasManagementFeatures ? (
