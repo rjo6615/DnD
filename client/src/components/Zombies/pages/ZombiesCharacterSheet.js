@@ -466,6 +466,13 @@ function CombatTurnHeader({ participants }) {
 
     return participants.findIndex((participant) => participant?.isActive);
   }, [participants]);
+  const activeParticipant = useMemo(() => {
+    if (activeIndex < 0 || !Array.isArray(participants)) {
+      return null;
+    }
+
+    return participants[activeIndex] ?? null;
+  }, [activeIndex, participants]);
 
   const updateOverflowHints = useCallback(() => {
     const container = headerRef.current;
@@ -476,10 +483,20 @@ function CombatTurnHeader({ participants }) {
       return;
     }
 
-    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const { scrollWidth, clientWidth } = container;
     const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
-    const nextCanScrollLeft = scrollLeft > 1;
-    const nextCanScrollRight = maxScrollLeft - scrollLeft > 1;
+    let { scrollLeft } = container;
+
+    if (scrollLeft < 1 && scrollLeft !== 0) {
+      container.scrollLeft = 0;
+      scrollLeft = 0;
+    } else if (maxScrollLeft - scrollLeft < 1 && scrollLeft !== maxScrollLeft) {
+      container.scrollLeft = maxScrollLeft;
+      scrollLeft = maxScrollLeft;
+    }
+
+    const nextCanScrollLeft = scrollLeft > 0;
+    const nextCanScrollRight = maxScrollLeft - scrollLeft > 0;
 
     setCanScrollLeft((prev) => (prev !== nextCanScrollLeft ? nextCanScrollLeft : prev));
     setCanScrollRight((prev) => (prev !== nextCanScrollRight ? nextCanScrollRight : prev));
@@ -498,11 +515,16 @@ function CombatTurnHeader({ participants }) {
     };
   }, [updateOverflowHints, participantsCount]);
 
+  const isScrollable = canScrollLeft || canScrollRight;
+
   const headerClassName = useMemo(() => {
     const classes = ['combat-turn-header'];
 
     if (isDragging) {
       classes.push('combat-turn-header--dragging');
+    }
+    if (isScrollable) {
+      classes.push('combat-turn-header--scrollable');
     }
     if (canScrollLeft) {
       classes.push('combat-turn-header--fade-left');
@@ -515,7 +537,7 @@ function CombatTurnHeader({ participants }) {
     }
 
     return classes.join(' ');
-  }, [isDragging, canScrollLeft, canScrollRight, participantsCount]);
+  }, [isDragging, isScrollable, canScrollLeft, canScrollRight, participantsCount]);
 
   const finishDrag = useCallback((event) => {
     if (!isDraggingRef.current) {
@@ -571,7 +593,13 @@ function CombatTurnHeader({ participants }) {
 
     const pointerX = event.clientX ?? 0;
     const deltaX = pointerX - startXRef.current;
-    container.scrollLeft = startScrollLeftRef.current - deltaX;
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    const nextScrollLeft = Math.max(
+      0,
+      Math.min(maxScrollLeft, startScrollLeftRef.current - deltaX),
+    );
+
+    container.scrollLeft = nextScrollLeft;
 
     updateOverflowHints();
   }, [updateOverflowHints]);
@@ -619,7 +647,9 @@ function CombatTurnHeader({ participants }) {
       return;
     }
 
-    const card = container.children?.[activeIndex];
+    const card = container.querySelector(
+      `.combat-turn-header__card[data-participant-index="${activeIndex}"]`
+    );
     if (!card) {
       return;
     }
@@ -663,113 +693,131 @@ function CombatTurnHeader({ participants }) {
   }, [activeIndex, participants, isDragging, updateOverflowHints]);
 
   return (
-    <div
-      ref={headerRef}
-      className={headerClassName}
-      role="group"
-      aria-label="Combat turn order"
-      touchAction={participantsCount ? 'pan-x' : 'auto'}
-      onPointerDown={participantsCount ? handlePointerDown : undefined}
-      onPointerMove={participantsCount ? handlePointerMove : undefined}
-      onPointerUp={participantsCount ? handlePointerUp : undefined}
-      onPointerLeave={participantsCount ? handlePointerLeave : undefined}
-      onPointerCancel={participantsCount ? handlePointerCancel : undefined}
-      onScroll={participantsCount ? handleScroll : undefined}
-    >
-      {participantsCount ? (
-        participants.map((participant, index) => {
-          const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
+    <>
+      <div
+        className={
+          activeParticipant
+            ? 'combat-turn-header__active-indicator'
+            : 'combat-turn-header__active-indicator combat-turn-header__active-indicator--inactive'
+        }
+        role="status"
+        aria-live="polite"
+      >
+        <span className="combat-turn-header__active-label">Current Turn:</span>
+        <span className="combat-turn-header__active-name">
+          {activeParticipant ? activeParticipant.name : 'No active combatant'}
+        </span>
+      </div>
+      <div
+        ref={headerRef}
+        className={headerClassName}
+        role="group"
+        aria-label="Combat turn order"
+        touchAction={participantsCount ? 'pan-x' : 'auto'}
+        onPointerDown={participantsCount ? handlePointerDown : undefined}
+        onPointerMove={participantsCount ? handlePointerMove : undefined}
+        onPointerUp={participantsCount ? handlePointerUp : undefined}
+        onPointerLeave={participantsCount ? handlePointerLeave : undefined}
+        onPointerCancel={participantsCount ? handlePointerCancel : undefined}
+        onScroll={participantsCount ? handleScroll : undefined}
+      >
+        <div className="combat-turn-header__track">
+          {participantsCount ? (
+            participants.map((participant, index) => {
+              const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
 
-          const hasHpData = hpCurrent !== null || hpMax !== null;
-          const computedPercentage =
-            hpCurrent !== null && hpMax !== null && hpMax > 0
-              ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
-              : null;
-          const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
-          const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
-          const hpFillColor =
-            computedPercentage !== null
-              ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
-              : "rgba(220, 220, 220, 0.35)";
+              const hasHpData = hpCurrent !== null || hpMax !== null;
+              const computedPercentage =
+                hpCurrent !== null && hpMax !== null && hpMax > 0
+                  ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
+                  : null;
+              const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
+              const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
+              const hpFillColor =
+                computedPercentage !== null
+                  ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
+                  : "rgba(220, 220, 220, 0.35)";
 
-          return (
-            <div
-              key={characterId}
-              className="combat-turn-header__card"
-              data-participant-id={characterId}
-              data-participant-index={index}
-              style={{
-                background: isActive
-                  ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
-                  : "rgba(28, 25, 22, 0.82)",
-                color: "#FFFFFF",
-                borderRadius: "12px",
-                padding: "10px 16px",
-                boxShadow: isActive
-                  ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
-                  : "0 0 8px rgba(0, 0, 0, 0.45)",
-                border: isActive
-                  ? "1px solid rgba(214, 178, 86, 0.85)"
-                  : "1px solid rgba(255, 255, 255, 0.18)",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                transform: isActive ? "scale(1.03)" : "scale(1)",
-              }}
-            >
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {name}
-              </div>
-              <div style={{ marginTop: "6px" }}>
+              return (
                 <div
+                  key={characterId ?? `combat-participant-${index}`}
+                  className="combat-turn-header__card"
+                  data-participant-id={characterId}
+                  data-participant-index={index}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "12px",
-                    opacity: 0.9,
-                    marginBottom: "4px",
-                  }}
-                >
-                  <span>HP</span>
-                  <span>{hasHpData ? hpDisplay : "—"}</span>
-                </div>
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    height: "8px",
-                    borderRadius: "6px",
-                    background: "rgba(0, 0, 0, 0.45)",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    background: isActive
+                      ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
+                      : "rgba(28, 25, 22, 0.82)",
+                    color: "#FFFFFF",
+                    borderRadius: "12px",
+                    padding: "10px 16px",
+                    boxShadow: isActive
+                      ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
+                      : "0 0 8px rgba(0, 0, 0, 0.45)",
+                    border: isActive
+                      ? "1px solid rgba(214, 178, 86, 0.85)"
+                      : "1px solid rgba(255, 255, 255, 0.18)",
+                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                    transform: isActive ? "scale(1.03)" : "scale(1)",
                   }}
                 >
                   <div
                     style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      height: "100%",
-                      width: `${hpPercentage}%`,
-                      background: computedPercentage !== null
-                        ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
-                        : "transparent",
-                      transition: "width 0.3s ease, background-color 0.3s ease",
+                      fontWeight: 600,
+                      fontSize: "14px",
+                      letterSpacing: "0.5px",
                     }}
-                  />
+                  >
+                    {name}
+                  </div>
+                  <div style={{ marginTop: "6px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "12px",
+                        opacity: 0.9,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      <span>HP</span>
+                      <span>{hasHpData ? hpDisplay : "—"}</span>
+                    </div>
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "8px",
+                        borderRadius: "6px",
+                        background: "rgba(0, 0, 0, 0.45)",
+                        overflow: "hidden",
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          height: "100%",
+                          width: `${hpPercentage}%`,
+                          background: computedPercentage !== null
+                            ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
+                            : "transparent",
+                          transition: "width 0.3s ease, background-color 0.3s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <div className="combat-turn-header__placeholder" aria-hidden="true" />
-      )}
-    </div>
+              );
+            })
+          ) : (
+            <div className="combat-turn-header__placeholder" aria-hidden="true" />
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
