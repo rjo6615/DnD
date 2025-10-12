@@ -140,6 +140,10 @@
   margin-inline: auto;
 }
 
+.combat-turn-header--scrollable .combat-turn-header__track {
+  margin-inline: 0;
+}
+
 .combat-turn-header__card {
   flex: 0 0 auto;
   width: clamp(160px, 22vw, 240px);

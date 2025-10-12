@@ -505,11 +505,16 @@ function CombatTurnHeader({ participants }) {
     };
   }, [updateOverflowHints, participantsCount]);
 
+  const isScrollable = canScrollLeft || canScrollRight;
+
   const headerClassName = useMemo(() => {
     const classes = ['combat-turn-header'];
 
     if (isDragging) {
       classes.push('combat-turn-header--dragging');
+    }
+    if (isScrollable) {
+      classes.push('combat-turn-header--scrollable');
     }
     if (canScrollLeft) {
       classes.push('combat-turn-header--fade-left');
@@ -522,7 +527,7 @@ function CombatTurnHeader({ participants }) {
     }
 
     return classes.join(' ');
-  }, [isDragging, canScrollLeft, canScrollRight, participantsCount]);
+  }, [isDragging, isScrollable, canScrollLeft, canScrollRight, participantsCount]);
 
   const finishDrag = useCallback((event) => {
     if (!isDraggingRef.current) {
