@@ -433,15 +433,15 @@ describe('TokenPickerModal', () => {
         dmFilters={[
           { key: 'all', label: 'All Tokens', folders: null, aliases: ['all'] },
           {
-            key: 'folder:Tokens/DM/Cultists',
-            label: 'DM/Cultists',
-            folders: ['Tokens/DM/Cultists'],
+            key: 'folder:Tokens/Adversaries/Cultist',
+            label: 'Adversaries/Cultist',
+            folders: ['Tokens/Adversaries/Cultist'],
             aliases: ['cultist', 'cultists'],
           },
           {
-            key: 'folder:Tokens/DM/Dragons',
-            label: 'DM/Dragons',
-            folders: ['Tokens/DM/Dragons'],
+            key: 'folder:Tokens/Adversaries/Dragons',
+            label: 'Adversaries/Dragons',
+            folders: ['Tokens/Adversaries/Dragons'],
             aliases: ['dragon'],
           },
         ]}
@@ -455,7 +455,7 @@ describe('TokenPickerModal', () => {
     const options = within(select).getAllByRole('option');
 
     expect(options).toHaveLength(1);
-    expect(options[0]).toHaveTextContent('DM/Cultists');
+    expect(options[0]).toHaveTextContent('Adversaries/Cultist');
   });
 
   test('does not include parent adversary filters when scope targets specific adversary', async () => {
@@ -471,15 +471,15 @@ describe('TokenPickerModal', () => {
         dmFilters={[
           { key: 'all', label: 'All Tokens', folders: null, aliases: ['all'] },
           {
-            key: 'folder:Tokens/DM/Adversaries',
-            label: 'DM/Adversaries',
-            folders: ['Tokens/DM/Adversaries'],
+            key: 'folder:Tokens/Adversaries',
+            label: 'Adversaries',
+            folders: ['Tokens/Adversaries'],
             aliases: ['adversaries'],
           },
           {
-            key: 'folder:Tokens/DM/Adversaries/Cultists',
-            label: 'DM/Adversaries/Cultists',
-            folders: ['Tokens/DM/Adversaries/Cultists'],
+            key: 'folder:Tokens/Adversaries/Cultists',
+            label: 'Adversaries/Cultists',
+            folders: ['Tokens/Adversaries/Cultists'],
             aliases: ['cultist', 'cultists'],
           },
         ]}
@@ -493,6 +493,6 @@ describe('TokenPickerModal', () => {
     const options = within(select).getAllByRole('option');
 
     expect(options).toHaveLength(1);
-    expect(options[0]).toHaveTextContent('DM/Adversaries/Cultists');
+    expect(options[0]).toHaveTextContent('Adversaries/Cultists');
   });
 });
