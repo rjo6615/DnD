@@ -111,8 +111,33 @@ export const buildRaceTokenNameVariants = (raceName) => {
   return Array.from(variantSet).filter(Boolean);
 };
 
-export const buildRaceTokenScopeData = (raceName) => {
+const normalizeSize = (size) => {
+  if (typeof size !== 'string') {
+    return null;
+  }
+
+  const trimmed = size.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed;
+};
+
+const SMALLFOLK_RACE_KEYWORDS = ['gnome', 'halfling', 'human', 'tiefling'];
+
+export const buildRaceTokenScopeData = (raceName, options = {}) => {
   const nameVariants = buildRaceTokenNameVariants(raceName);
+
+  const normalizedOptions = options && typeof options === 'object' ? options : {};
+  const normalizedSize = normalizeSize(normalizedOptions.size);
+  const normalizedRaceName = typeof raceName === 'string' ? raceName.toLowerCase() : '';
+
+  const isSmallSize = normalizedSize === 'small';
+  const isSmallfolkRace = SMALLFOLK_RACE_KEYWORDS.some(
+    (keyword) => keyword && normalizedRaceName.includes(keyword)
+  );
+  const shouldUseSmallfolk = isSmallSize && isSmallfolkRace;
 
   if (nameVariants.length === 0) {
     return {
@@ -123,20 +148,31 @@ export const buildRaceTokenScopeData = (raceName) => {
 
   const prefixSet = new Set();
 
+  const baseSmallfolkPrefixes = ['Smallfolk', 'Adventurers/Smallfolk', 'Tokens/Adventurers/Smallfolk'];
+
   nameVariants.forEach((variant) => {
     const trimmed = typeof variant === 'string' ? variant.trim() : '';
     if (!trimmed) {
       return;
     }
 
-    prefixSet.add(trimmed);
-    prefixSet.add(`Adventurers/${trimmed}`);
-    prefixSet.add(`Tokens/Adventurers/${trimmed}`);
+    if (shouldUseSmallfolk) {
+      baseSmallfolkPrefixes.forEach((prefix) => {
+        if (typeof prefix === 'string' && prefix.trim() !== '') {
+          prefixSet.add(`${prefix}/${trimmed}`);
+        }
+      });
+    } else {
+      prefixSet.add(trimmed);
+      prefixSet.add(`Adventurers/${trimmed}`);
+      prefixSet.add(`Tokens/Adventurers/${trimmed}`);
+    }
   });
 
   return {
     nameVariants,
     prefixes: Array.from(prefixSet).filter(Boolean),
+    isSmallfolk: shouldUseSmallfolk,
   };
 };
 

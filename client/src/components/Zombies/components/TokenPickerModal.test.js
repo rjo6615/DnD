@@ -565,6 +565,163 @@ describe('TokenPickerModal', () => {
     });
   });
 
+  test('player token picker targets smallfolk folders for small-sized races', async () => {
+    const user = setupUser();
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          children: [
+            {
+              name: 'Smallfolk',
+              path: 'Tokens/Adventurers/Smallfolk',
+              relativePath: 'Adventurers/Smallfolk',
+              children: [
+                {
+                  name: 'Halflings',
+                  path: 'Tokens/Adventurers/Smallfolk/Halflings',
+                  relativePath: 'Adventurers/Smallfolk/Halflings',
+                  children: [
+                    {
+                      name: 'Rogue',
+                      path: 'Tokens/Adventurers/Smallfolk/Halflings/Rogue',
+                      relativePath: 'Adventurers/Smallfolk/Halflings/Rogue',
+                      children: [],
+                    },
+                  ],
+                },
+                {
+                  name: 'Core_Class_Tokens',
+                  path: 'Tokens/Adventurers/Smallfolk/Core_Class_Tokens',
+                  relativePath: 'Adventurers/Smallfolk/Core_Class_Tokens',
+                  children: [
+                    {
+                      name: 'Rogue',
+                      path: 'Tokens/Adventurers/Smallfolk/Core_Class_Tokens/Rogue',
+                      relativePath: 'Adventurers/Smallfolk/Core_Class_Tokens/Rogue',
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      flatFolders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          depth: 0,
+          displayPath: 'Adventurers',
+        },
+        {
+          name: 'Smallfolk',
+          path: 'Tokens/Adventurers/Smallfolk',
+          relativePath: 'Adventurers/Smallfolk',
+          depth: 1,
+          displayPath: 'Adventurers/Smallfolk',
+        },
+        {
+          name: 'Halflings',
+          path: 'Tokens/Adventurers/Smallfolk/Halflings',
+          relativePath: 'Adventurers/Smallfolk/Halflings',
+          depth: 2,
+          displayPath: 'Adventurers/Smallfolk/Halflings',
+        },
+        {
+          name: 'Rogue',
+          path: 'Tokens/Adventurers/Smallfolk/Halflings/Rogue',
+          relativePath: 'Adventurers/Smallfolk/Halflings/Rogue',
+          depth: 3,
+          displayPath: 'Adventurers/Smallfolk/Halflings/Rogue',
+        },
+        {
+          name: 'Core_Class_Tokens',
+          path: 'Tokens/Adventurers/Smallfolk/Core_Class_Tokens',
+          relativePath: 'Adventurers/Smallfolk/Core_Class_Tokens',
+          depth: 2,
+          displayPath: 'Adventurers/Smallfolk/Core_Class_Tokens',
+        },
+        {
+          name: 'Rogue',
+          path: 'Tokens/Adventurers/Smallfolk/Core_Class_Tokens/Rogue',
+          relativePath: 'Adventurers/Smallfolk/Core_Class_Tokens/Rogue',
+          depth: 3,
+          displayPath: 'Adventurers/Smallfolk/Core_Class_Tokens/Rogue',
+        },
+      ],
+    };
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={['Smallfolk/Halflings/Rogue', 'Smallfolk/Core_Class_Tokens/Rogue']}
+      />
+    );
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/token-folders');
+    });
+
+    await waitFor(() => {
+      expect(manifestCalls.length).toBeGreaterThan(0);
+      expect(manifestCalls[0]).toBe(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FSmallfolk%2FHalflings%2FRogue'
+      );
+    });
+
+    expect(
+      manifestCalls.includes('/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FHalflings%2FRogue')
+    ).toBe(false);
+
+    const select = await screen.findByLabelText(/Token Library/i);
+    const options = within(select).getAllByRole('option');
+    expect(options).toHaveLength(2);
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Smallfolk/Halflings/Rogue');
+    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe(
+      'Smallfolk/Core_Class_Tokens/Rogue'
+    );
+
+    await user.selectOptions(select, options[1]);
+
+    await waitFor(() => {
+      const lastCall = manifestCalls[manifestCalls.length - 1];
+      expect(lastCall).toBe(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FSmallfolk%2FCore_Class_Tokens%2FRogue'
+      );
+    });
+  });
+
   test('player library dropdown stays disabled until folders finish loading', async () => {
     const folderTree = {
       rootFolder: 'Tokens',

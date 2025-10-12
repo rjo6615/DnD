@@ -28,5 +28,21 @@ describe('race token filter helpers', () => {
         ])
       );
     });
+
+    it('limits small-sized races to smallfolk token prefixes', () => {
+      const { prefixes, isSmallfolk } = buildRaceTokenScopeData('Halfling', { size: 'Small' });
+
+      expect(isSmallfolk).toBe(true);
+      expect(prefixes).toEqual(
+        expect.arrayContaining([
+          'Smallfolk/Halfling',
+          'Smallfolk/Halflings',
+          'Adventurers/Smallfolk/Halfling',
+          'Adventurers/Smallfolk/Halflings',
+          'Tokens/Adventurers/Smallfolk/Halfling',
+        ])
+      );
+      expect(prefixes).not.toEqual(expect.arrayContaining(['Adventurers/Halfling']));
+    });
   });
 });
