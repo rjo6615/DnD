@@ -1130,6 +1130,41 @@ export default function ZombiesCharacterSheet() {
   const [dockedModalWidths, setDockedModalWidths] = useState({ left: null, right: null });
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
+    const restoredWidths = {};
+    let hasRestoredWidth = false;
+
+    ['left', 'right'].forEach((side) => {
+      try {
+        const raw = window.localStorage.getItem(`zombiesDockedModalWidth:${side}`);
+        if (!raw) {
+          return;
+        }
+
+        const parsed = Number.parseFloat(raw);
+        if (!Number.isFinite(parsed)) {
+          return;
+        }
+
+        const normalized = Math.max(MIN_DOCKED_MODAL_WIDTH, Math.round(parsed));
+        restoredWidths[side] = normalized;
+        hasRestoredWidth = true;
+      } catch (storageError) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(storageError);
+        }
+      }
+    });
+
+    if (hasRestoredWidth) {
+      setDockedModalWidths((prev) => ({ ...prev, ...restoredWidths }));
+    }
+  }, [setDockedModalWidths]);
+
+  useEffect(() => {
     setActiveEffects(getStoredActiveEffects(characterId));
   }, [characterId, getStoredActiveEffects]);
 
@@ -2071,13 +2106,58 @@ export default function ZombiesCharacterSheet() {
       return undefined;
     }
 
+    const applyInlineWidthToDialogs = (side, width) => {
+      const dialogs = document.querySelectorAll(
+        `.docked-modal.modal-dialog.docked-modal--${side}`
+      );
+
+      dialogs.forEach((dialog) => {
+        if (!(dialog instanceof HTMLElement)) {
+          return;
+        }
+
+        if (typeof width === 'number' && Number.isFinite(width)) {
+          const pixelValue = `${Math.round(width)}px`;
+          dialog.style.setProperty('--docked-modal-inline-width', pixelValue);
+        } else {
+          dialog.style.removeProperty('--docked-modal-inline-width');
+        }
+      });
+    };
+
     ['left', 'right'].forEach((side) => {
       const width = dockedModalWidths[side];
       const propertyName = `--docked-modal-width-${side}`;
       if (typeof width === 'number' && Number.isFinite(width)) {
-        dockingScopeElement.style.setProperty(propertyName, `${Math.round(width)}px`);
+        const rounded = Math.round(width);
+        dockingScopeElement.style.setProperty(propertyName, `${rounded}px`);
+        applyInlineWidthToDialogs(side, rounded);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.setItem(
+              `zombiesDockedModalWidth:${side}`,
+              String(rounded)
+            );
+          } catch (storageError) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(storageError);
+            }
+          }
+        }
       } else {
         dockingScopeElement.style.removeProperty(propertyName);
+        applyInlineWidthToDialogs(side, null);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.removeItem(`zombiesDockedModalWidth:${side}`);
+          } catch (storageError) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(storageError);
+            }
+          }
+        }
       }
     });
 
@@ -2089,6 +2169,14 @@ export default function ZombiesCharacterSheet() {
 
       ['left', 'right'].forEach((side) => {
         scope.style.removeProperty(`--docked-modal-width-${side}`);
+        const dialogs = document.querySelectorAll(
+          `.docked-modal.modal-dialog.docked-modal--${side}`
+        );
+        dialogs.forEach((dialog) => {
+          if (dialog instanceof HTMLElement) {
+            dialog.style.removeProperty('--docked-modal-inline-width');
+          }
+        });
       });
     };
   }, [dockedModalWidths]);
@@ -2164,9 +2252,23 @@ export default function ZombiesCharacterSheet() {
       const anchor = side === 'left' ? rect.left : rect.right;
       const pointerId = event.pointerId;
       let framePending = false;
+      let hasMoved = false;
+
+      const updateDialogInlineWidth = (value) => {
+        if (!(dialog instanceof HTMLElement)) {
+          return;
+        }
+
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          dialog.style.setProperty('--docked-modal-inline-width', `${Math.round(value)}px`);
+        } else {
+          dialog.style.removeProperty('--docked-modal-inline-width');
+        }
+      };
 
       const applyWidth = (nextWidth) => {
         const rounded = Math.round(nextWidth);
+        updateDialogInlineWidth(rounded);
         setDockedModalWidths((prev) => {
           const prevWidth = prev[side];
           if (typeof prevWidth === 'number' && Math.abs(prevWidth - rounded) < 1) {
@@ -2199,6 +2301,7 @@ export default function ZombiesCharacterSheet() {
         }
 
         framePending = true;
+        hasMoved = true;
         window.requestAnimationFrame(() => {
           framePending = false;
           applyWidth(proposedWidth);
@@ -2212,7 +2315,13 @@ export default function ZombiesCharacterSheet() {
         document.removeEventListener('pointercancel', stopResizing);
         document.body.classList.remove('docked-modal--resizing');
         document.body.style.removeProperty('cursor');
+
+        if (!hasMoved) {
+          updateDialogInlineWidth(null);
+        }
       };
+
+      updateDialogInlineWidth(startingWidth);
 
       document.addEventListener('pointermove', handlePointerMove);
       document.addEventListener('pointerup', stopResizing);
@@ -2223,12 +2332,13 @@ export default function ZombiesCharacterSheet() {
       document.body.style.cursor = 'ew-resize';
 
       event.preventDefault();
+      event.stopPropagation();
     };
 
-    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('pointerdown', handlePointerDown, true);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
       document.body.classList.remove('docked-modal--resizing');
       document.body.style.removeProperty('cursor');
     };

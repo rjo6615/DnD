@@ -354,7 +354,10 @@
     --docked-modal-max-width,
     clamp(520px, 40vw, 640px)
   );
-  --docked-modal-current-width: var(--docked-modal-current-max-width);
+  --docked-modal-current-width: var(
+    --docked-modal-inline-width,
+    var(--docked-modal-current-max-width)
+  );
   width: var(--docked-modal-current-width);
   max-width: var(--docked-modal-current-max-width);
   display: flex;
@@ -370,8 +373,11 @@
     var(--docked-modal-max-width, clamp(520px, 40vw, 640px))
   );
   --docked-modal-current-width: var(
-    --docked-modal-width-left,
-    var(--docked-modal-current-max-width)
+    --docked-modal-inline-width,
+    var(
+      --docked-modal-width-left,
+      var(--docked-modal-current-max-width)
+    )
   );
 }
 
@@ -383,8 +389,11 @@
     var(--docked-modal-max-width, clamp(520px, 40vw, 640px))
   );
   --docked-modal-current-width: var(
-    --docked-modal-width-right,
-    var(--docked-modal-current-max-width)
+    --docked-modal-inline-width,
+    var(
+      --docked-modal-width-right,
+      var(--docked-modal-current-max-width)
+    )
   );
 }
 
@@ -400,6 +409,7 @@
   z-index: 5;
   opacity: 0.4;
   transition: opacity 0.2s ease;
+  touch-action: none;
 }
 
 .docked-modal--left::after {
