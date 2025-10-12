@@ -108,7 +108,7 @@ const filterMatchesScope = (filter, scopeSet) => {
       if (
         typeof scopeVariant === 'string' &&
         typeof filterVariant === 'string' &&
-        (filterVariant.includes(scopeVariant) || scopeVariant.includes(filterVariant))
+        filterVariant.includes(scopeVariant)
       ) {
         return true;
       }
