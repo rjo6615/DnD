@@ -2832,47 +2832,217 @@ export default function ZombiesCharacterSheet() {
   const tokenPickerFilterScope = useMemo(() => {
     const scopeSet = new Set();
 
-    const addScopeVariants = (rawValue, prefixes = []) => {
-      if (typeof rawValue !== 'string') {
+    const buildValueVariantSet = (value) => {
+      if (typeof value !== 'string') {
+        return new Set();
+      }
+
+      const trimmed = value.replace(/\s+/g, ' ').trim();
+      if (!trimmed) {
+        return new Set();
+      }
+
+      const lower = trimmed.toLowerCase();
+      const compact = lower.replace(/[^a-z0-9]/g, '');
+
+      return new Set([trimmed, lower, compact].filter(Boolean));
+    };
+
+    const addScopeValue = (value) => {
+      if (typeof value !== 'string') {
         return;
       }
 
-      const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
-      if (!normalizedValue) {
+      const variants = buildValueVariantSet(value);
+      if (variants.size === 0) {
         return;
       }
 
-      const lowerValue = normalizedValue.toLowerCase();
-      const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
+      variants.forEach((variant) => scopeSet.add(variant));
+    };
 
-      [normalizedValue, lowerValue, compactValue]
-        .filter(Boolean)
-        .forEach((entry) => scopeSet.add(entry));
+    const normalizeSegment = (segment) =>
+      typeof segment === 'string' ? segment.replace(/\s+/g, ' ').trim() : '';
 
-      prefixes
-        .map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
-        .filter(Boolean)
-        .forEach((prefix) => {
-          scopeSet.add(`${prefix}/${normalizedValue}`);
-          scopeSet.add(`${prefix}/${lowerValue}`);
-          if (compactValue) {
-            scopeSet.add(`${prefix}/${compactValue}`);
-          }
-        });
+    const addPathVariants = (segments) => {
+      const normalizedSegments = segments.map(normalizeSegment).filter(Boolean);
+      if (normalizedSegments.length === 0) {
+        return;
+      }
+
+      const basePath = normalizedSegments.join('/');
+      addScopeValue(basePath);
+
+      const underscorePath = normalizedSegments.map((segment) => segment.replace(/\s+/g, '_')).join('/');
+      if (underscorePath && underscorePath !== basePath) {
+        addScopeValue(underscorePath);
+      }
+
+      const hyphenPath = normalizedSegments
+        .map((segment) => segment.replace(/\s+/g, '-'))
+        .join('/');
+      if (hyphenPath && hyphenPath !== basePath && hyphenPath !== underscorePath) {
+        addScopeValue(hyphenPath);
+      }
+    };
+
+    const pluralizeRaceName = (rawName) => {
+      if (typeof rawName !== 'string') {
+        return [];
+      }
+
+      const trimmedName = rawName.replace(/\s+/g, ' ').trim();
+      if (!trimmedName) {
+        return [];
+      }
+
+      const lower = trimmedName.toLowerCase();
+      const irregular = {
+        aasimar: 'Aasimar',
+        bugbear: 'Bugbears',
+        dragonborn: 'Dragonborn',
+        dwarf: 'Dwarves',
+        elf: 'Elves',
+        goliath: 'Goliaths',
+        halfelf: 'Half-Elves',
+        'half elf': 'Half-Elves',
+        'half-elf': 'Half-Elves',
+        half-orc: 'Half-Orcs',
+        'half orc': 'Half-Orcs',
+        halfling: 'Halflings',
+        human: 'Humans',
+        kenku: 'Kenku',
+        lizardfolk: 'Lizardfolk',
+        orc: 'Orcs',
+        tabaxi: 'Tabaxi',
+        tiefling: 'Tieflings',
+      };
+
+      if (irregular[lower]) {
+        return [irregular[lower]];
+      }
+
+      if (lower.endsWith('man')) {
+        return [trimmedName.slice(0, -3) + 'men'];
+      }
+
+      if (lower.endsWith('woman')) {
+        return [trimmedName.slice(0, -5) + 'women'];
+      }
+
+      if (lower.endsWith('fe')) {
+        return [trimmedName.slice(0, -2) + 'ves'];
+      }
+
+      if (lower.endsWith('f')) {
+        return [trimmedName.slice(0, -1) + 'ves'];
+      }
+
+      if (lower.endsWith('y') && !/[aeiou]y$/.test(lower)) {
+        return [trimmedName.slice(0, -1) + 'ies'];
+      }
+
+      if (lower.endsWith('s')) {
+        return [trimmedName];
+      }
+
+      return [trimmedName + 's'];
+    };
+
+    const buildRaceFolderVariants = (rawName) => {
+      if (typeof rawName !== 'string') {
+        return [];
+      }
+
+      const trimmedName = rawName.replace(/\s+/g, ' ').trim();
+      if (!trimmedName) {
+        return [];
+      }
+
+      const variants = new Set([trimmedName]);
+      const pluralCandidates = pluralizeRaceName(trimmedName);
+      pluralCandidates.forEach((candidate) => {
+        if (typeof candidate === 'string' && candidate.trim()) {
+          variants.add(candidate.trim());
+        }
+      });
+
+      const hyphenNormalized = trimmedName.replace(/-/g, ' ');
+      if (hyphenNormalized && hyphenNormalized !== trimmedName) {
+        variants.add(hyphenNormalized);
+      }
+
+      const underscoreVariant = trimmedName.replace(/\s+/g, '_');
+      if (underscoreVariant && underscoreVariant !== trimmedName) {
+        variants.add(underscoreVariant);
+      }
+
+      const hyphenVariant = trimmedName.replace(/\s+/g, '-');
+      if (hyphenVariant && hyphenVariant !== trimmedName) {
+        variants.add(hyphenVariant);
+      }
+
+      return Array.from(variants);
+    };
+
+    const buildClassSegmentVariants = (rawClassName) => {
+      if (typeof rawClassName !== 'string') {
+        return [];
+      }
+
+      const trimmed = rawClassName.replace(/\s+/g, ' ').trim();
+      if (!trimmed) {
+        return [];
+      }
+
+      const variants = new Set([trimmed]);
+      const underscoreVariant = trimmed.replace(/\s+/g, '_');
+      if (underscoreVariant && underscoreVariant !== trimmed) {
+        variants.add(underscoreVariant);
+      }
+
+      const hyphenVariant = trimmed.replace(/\s+/g, '-');
+      if (hyphenVariant && hyphenVariant !== trimmed && hyphenVariant !== underscoreVariant) {
+        variants.add(hyphenVariant);
+      }
+
+      return Array.from(variants);
+    };
+
+    const resolveCoreClassSizeSegments = (rawSize) => {
+      if (rawSize === undefined || rawSize === null) {
+        return [];
+      }
+
+      const normalizedSize = normalizeCreatureSize(rawSize);
+      const normalizedKey = normalizedSize
+        ? normalizedSize
+        : typeof rawSize === 'string'
+          ? rawSize.replace(/\s+/g, ' ').trim().toLowerCase()
+          : '';
+
+      if (!normalizedKey) {
+        return [];
+      }
+
+      const sizeMap = {
+        tiny: ['Tinyfolk'],
+        small: ['Smallfolk'],
+        medium: ['Mediumfolk'],
+        large: ['Largefolk'],
+        huge: ['Hugefolk'],
+        gargantuan: ['Gargantuanfolk'],
+      };
+
+      return sizeMap[normalizedKey] ? [...sizeMap[normalizedKey]] : [];
     };
 
     const raceName = typeof form?.race?.name === 'string' ? form.race.name : '';
-    if (raceName) {
-      addScopeVariants(raceName, [
-        'Adventurers',
-        'Tokens/Adventurers',
-        'Adventurers/Races',
-        'Tokens/Adventurers/Races',
-      ]);
-    }
+    const raceFolderVariants = buildRaceFolderVariants(raceName);
 
     const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
-    const seenClasses = new Set();
+    const classSegmentMap = new Map();
+
     occupations.forEach((occupation) => {
       if (!occupation || typeof occupation !== 'object') {
         return;
@@ -2885,20 +3055,58 @@ export default function ZombiesCharacterSheet() {
       }
 
       const classKey = rawClassName.toLowerCase();
-      if (seenClasses.has(classKey)) {
+      if (classSegmentMap.has(classKey)) {
         return;
       }
-      seenClasses.add(classKey);
 
-      addScopeVariants(rawClassName, [
-        'Core_Class_Tokens',
-        'Adventurers/Core_Class_Tokens',
-        'Tokens/Adventurers/Core_Class_Tokens',
-      ]);
+      classSegmentMap.set(classKey, buildClassSegmentVariants(rawClassName));
     });
 
+    if (classSegmentMap.size === 0) {
+      return Array.from(scopeSet);
+    }
+
+    const coreClassPrefixes = [
+      ['Core_Class_Tokens'],
+      ['Adventurers', 'Core_Class_Tokens'],
+      ['Tokens', 'Adventurers', 'Core_Class_Tokens'],
+    ];
+
+    const sizeSegments = resolveCoreClassSizeSegments(form?.race?.size ?? form?.size);
+
+    classSegmentMap.forEach((classVariants) => {
+      classVariants.forEach((classSegment) => {
+        coreClassPrefixes.forEach((prefix) => {
+          addPathVariants([...prefix, classSegment]);
+          sizeSegments.forEach((sizeSegment) => {
+            addPathVariants([...prefix, sizeSegment, classSegment]);
+          });
+        });
+      });
+    });
+
+    if (raceFolderVariants.length > 0) {
+      const racePrefixes = [
+        [],
+        ['Adventurers'],
+        ['Tokens', 'Adventurers'],
+        ['Adventurers', 'Races'],
+        ['Tokens', 'Adventurers', 'Races'],
+      ];
+
+      raceFolderVariants.forEach((raceVariant) => {
+        classSegmentMap.forEach((classVariants) => {
+          classVariants.forEach((classSegment) => {
+            racePrefixes.forEach((prefix) => {
+              addPathVariants([...prefix, raceVariant, classSegment]);
+            });
+          });
+        });
+      });
+    }
+
     return Array.from(scopeSet);
-  }, [form?.occupation, form?.race?.name]);
+  }, [form?.occupation, form?.race?.name, form?.race?.size, form?.size]);
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor) => {
