@@ -2870,23 +2870,8 @@ export default function ZombiesCharacterSheet() {
         });
     };
 
-    const raceSize = normalizeCreatureSize(
-      form?.temporarySize ??
-        form?.size ??
-        form?.characterSize ??
-        form?.character?.size ??
-        form?.creature?.size ??
-        form?.profile?.size ??
-        form?.race?.size ??
-        form?.attributes?.size ??
-        form?.displayType
-    );
-
-    const {
-      nameVariants: raceNameVariants,
-      prefixes: racePrefixList,
-      isSmallfolk: isSmallfolkRace,
-    } = buildRaceTokenScopeData(form?.race?.name, { size: raceSize });
+    const { nameVariants: raceNameVariants, prefixes: racePrefixList } =
+      buildRaceTokenScopeData(form?.race?.name);
 
     const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
     const seenClasses = new Set();
@@ -2907,19 +2892,11 @@ export default function ZombiesCharacterSheet() {
       }
       seenClasses.add(classKey);
 
-      const coreClassPrefixes = isSmallfolkRace
-        ? [
-            'Smallfolk/Core_Class_Tokens',
-            'Adventurers/Smallfolk/Core_Class_Tokens',
-            'Tokens/Adventurers/Smallfolk/Core_Class_Tokens',
-          ]
-        : [
-            'Core_Class_Tokens',
-            'Adventurers/Core_Class_Tokens',
-            'Tokens/Adventurers/Core_Class_Tokens',
-          ];
-
-      addScopeVariants(rawClassName, coreClassPrefixes);
+      addScopeVariants(rawClassName, [
+        'Core_Class_Tokens',
+        'Adventurers/Core_Class_Tokens',
+        'Tokens/Adventurers/Core_Class_Tokens',
+      ]);
 
       if (racePrefixList.length > 0) {
         addScopeVariants(rawClassName, racePrefixList);
@@ -2929,28 +2906,15 @@ export default function ZombiesCharacterSheet() {
     if (scopeSet.size === 0 && raceNameVariants.length > 0) {
       const fallbackRace = raceNameVariants.find((variant) => typeof variant === 'string' && variant.trim() !== '');
       if (fallbackRace) {
-        const fallbackPrefixes = isSmallfolkRace
-          ? ['Smallfolk', 'Adventurers/Smallfolk', 'Tokens/Adventurers/Smallfolk']
-          : ['Adventurers', 'Tokens/Adventurers'];
-
-        addScopeVariants(fallbackRace, fallbackPrefixes);
+        addScopeVariants(fallbackRace, [
+          'Adventurers',
+          'Tokens/Adventurers',
+        ]);
       }
     }
 
     return Array.from(scopeSet);
-  }, [
-    form?.occupation,
-    form?.race?.name,
-    form?.temporarySize,
-    form?.size,
-    form?.characterSize,
-    form?.character?.size,
-    form?.creature?.size,
-    form?.profile?.size,
-    form?.race?.size,
-    form?.attributes?.size,
-    form?.displayType,
-  ]);
+  }, [form?.occupation, form?.race?.name]);
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor) => {
