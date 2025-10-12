@@ -2729,6 +2729,77 @@ export default function ZombiesCharacterSheet() {
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
+  const tokenPickerFilterScope = useMemo(() => {
+    const scopeSet = new Set();
+
+    const addScopeVariants = (rawValue, prefixes = []) => {
+      if (typeof rawValue !== 'string') {
+        return;
+      }
+
+      const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
+      if (!normalizedValue) {
+        return;
+      }
+
+      const lowerValue = normalizedValue.toLowerCase();
+      const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
+
+      [normalizedValue, lowerValue, compactValue]
+        .filter(Boolean)
+        .forEach((entry) => scopeSet.add(entry));
+
+      prefixes
+        .map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
+        .filter(Boolean)
+        .forEach((prefix) => {
+          scopeSet.add(`${prefix}/${normalizedValue}`);
+          scopeSet.add(`${prefix}/${lowerValue}`);
+          if (compactValue) {
+            scopeSet.add(`${prefix}/${compactValue}`);
+          }
+        });
+    };
+
+    const raceName = typeof form?.race?.name === 'string' ? form.race.name : '';
+    if (raceName) {
+      addScopeVariants(raceName, [
+        'Adventurers',
+        'Tokens/Adventurers',
+        'Adventurers/Races',
+        'Tokens/Adventurers/Races',
+      ]);
+    }
+
+    const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
+    const seenClasses = new Set();
+    occupations.forEach((occupation) => {
+      if (!occupation || typeof occupation !== 'object') {
+        return;
+      }
+
+      const rawClassName =
+        typeof occupation.Occupation === 'string' ? occupation.Occupation.trim() : '';
+      if (!rawClassName) {
+        return;
+      }
+
+      const classKey = rawClassName.toLowerCase();
+      if (seenClasses.has(classKey)) {
+        return;
+      }
+      seenClasses.add(classKey);
+
+      addScopeVariants(rawClassName, [
+        'Core_Class_Tokens',
+        'Adventurers/Core_Class_Tokens',
+        'Tokens/Adventurers/Core_Class_Tokens',
+      ]);
+    });
+
+    return Array.from(scopeSet);
+  }, [form?.occupation, form?.race?.name]);
+
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor) => {
       const normalizedCharacterId =
@@ -4730,6 +4801,7 @@ export default function ZombiesCharacterSheet() {
       onClear={() => handleTokenSelection(null)}
       isBusy={tokenPickerSaving}
       errorMessage={tokenPickerError}
+      filterScope={tokenPickerFilterScope}
     />
     <MapModal
       show={shouldShowMapModal}

@@ -514,6 +514,18 @@ const TokenPickerModal = ({
     return null;
   }, [filterLookup, selectedFilterKey]);
 
+  const activeFilterMatchesScope = useMemo(() => {
+    if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
+      return true;
+    }
+
+    if (!activeFilter) {
+      return false;
+    }
+
+    return filterMatchesScope(activeFilter, filterScopeSet);
+  }, [activeFilter, filterScopeSet]);
+
   const manifestFilterKey = useMemo(() => {
     if (!activeFilter) {
       return 'none';
@@ -528,6 +540,14 @@ const TokenPickerModal = ({
 
     return `${activeFilter.key || 'unknown'}::${folders}`;
   }, [activeFilter]);
+
+  const shouldDeferManifest = useMemo(() => {
+    if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
+      return false;
+    }
+
+    return !activeFilterMatchesScope;
+  }, [activeFilterMatchesScope, filterScopeSet]);
 
   const fetchManifest = useCallback(
     async ({ cursor = null, append = false } = {}) => {
@@ -626,7 +646,7 @@ const TokenPickerModal = ({
       return;
     }
 
-    if (!campaignId || manifestFilterKey === 'none') {
+    if (!campaignId || manifestFilterKey === 'none' || shouldDeferManifest) {
       return;
     }
 
@@ -642,7 +662,14 @@ const TokenPickerModal = ({
     if (fetchManifestRef.current) {
       fetchManifestRef.current({ append: false, cursor: null });
     }
-  }, [show, manifestFilterKey, campaignId, isDm, resetState]);
+  }, [
+    show,
+    manifestFilterKey,
+    campaignId,
+    isDm,
+    resetState,
+    shouldDeferManifest,
+  ]);
 
   useEffect(() => {
     if (!isDm) {
