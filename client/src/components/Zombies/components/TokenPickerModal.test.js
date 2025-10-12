@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TokenPickerModal from './TokenPickerModal';
 import apiFetch from '../../../utils/apiFetch';
+import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 
 jest.mock('../../../utils/apiFetch');
 
@@ -455,5 +456,43 @@ describe('TokenPickerModal', () => {
 
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('DM/Cultists');
+  });
+
+  test('does not include parent adversary filters when scope targets specific adversary', async () => {
+    const scope = buildEnemyTokenFilterScopeValues('cultist', {
+      index: 'cultist',
+      name: 'Cultist',
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        isDm
+        dmFilters={[
+          { key: 'all', label: 'All Tokens', folders: null, aliases: ['all'] },
+          {
+            key: 'folder:Tokens/DM/Adversaries',
+            label: 'DM/Adversaries',
+            folders: ['Tokens/DM/Adversaries'],
+            aliases: ['adversaries'],
+          },
+          {
+            key: 'folder:Tokens/DM/Adversaries/Cultists',
+            label: 'DM/Adversaries/Cultists',
+            folders: ['Tokens/DM/Adversaries/Cultists'],
+            aliases: ['cultist', 'cultists'],
+          },
+        ]}
+        filterScope={scope}
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+      />
+    );
+
+    const select = await screen.findByLabelText(/Token Library/i);
+    const options = within(select).getAllByRole('option');
+
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('DM/Adversaries/Cultists');
   });
 });
