@@ -160,68 +160,63 @@ const addEnemyScopeValue = (set, value) => {
   set.add(trimmed);
 };
 
-const addEnemyNameVariantsToScope = (set, name) => {
-  const variants = extractEnemyNameVariants(name);
-  variants.forEach((variant) => addEnemyScopeValue(set, variant));
+const normalizeAdversaryFolderPath = (folderPath) => {
+  if (typeof folderPath !== 'string') {
+    return null;
+  }
+
+  const normalized = folderPath
+    .replace(/[\\]+/g, '/')
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (normalized[0].toLowerCase() !== 'tokens') {
+    normalized.unshift('Tokens');
+  } else {
+    normalized[0] = 'Tokens';
+  }
+
+  if (normalized.length >= 3 && normalized[1].toLowerCase() === 'dm') {
+    normalized.splice(1, 1);
+  }
+
+  if (normalized.length < 3 || normalized[1].toLowerCase() !== 'adversaries') {
+    return null;
+  }
+
+  normalized[1] = 'Adversaries';
+
+  return normalized.join('/');
 };
 
 const addEnemyFolderVariantsToScope = (set, folderPath) => {
-  if (typeof folderPath !== 'string') {
+  const pathWithTokens = normalizeAdversaryFolderPath(folderPath);
+
+  if (!pathWithTokens) {
     return;
   }
 
-  const normalized = folderPath.replace(/\\+/g, '/').replace(/^\/+|\/+$/g, '');
-  if (!normalized) {
-    return;
-  }
-
-  const pathWithTokens = normalized.toLowerCase().startsWith('tokens/')
-    ? normalized
-    : `Tokens/${normalized}`;
-
-  const variants = new Set([
-    pathWithTokens,
-    pathWithTokens.replace(/^Tokens\//i, ''),
-    pathWithTokens.replace(/^Tokens\/DM\//i, 'DM/'),
-    pathWithTokens.replace(/^Tokens\/DM\/Adversaries\//i, 'Adversaries/'),
-  ]);
-
-  const segments = pathWithTokens.split('/');
-  const leaf = segments[segments.length - 1];
-  if (leaf) {
-    variants.add(leaf);
-  }
+  const variants = new Set([pathWithTokens, pathWithTokens.replace(/^Tokens\//i, '')]);
 
   variants.forEach((variant) => {
     addEnemyScopeValue(set, variant);
-    addEnemyScopeValue(set, variant.replace(/\//g, ' '));
-    addEnemyScopeValue(set, variant.replace(/\//g, '-'));
+    addEnemyScopeValue(set, `folder:${variant}`);
   });
-
-  addEnemyScopeValue(set, `folder:${pathWithTokens}`);
 };
 
 export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) => {
   const scopeSet = new Set();
-
-  if (monsterIndex) {
-    addEnemyNameVariantsToScope(scopeSet, monsterIndex);
-    addEnemyNameVariantsToScope(scopeSet, monsterIndex.replace(/[-_]+/g, ' '));
-  }
-
-  if (monsterDetail && typeof monsterDetail === 'object') {
-    addEnemyNameVariantsToScope(scopeSet, monsterDetail.name);
-  }
 
   const config =
     (monsterIndex && ENEMY_ADVERSARY_TOKEN_CONFIG[monsterIndex]) ||
     (monsterDetail && ENEMY_ADVERSARY_TOKEN_CONFIG[monsterDetail?.index]);
 
   if (config) {
-    if (Array.isArray(config.aliases)) {
-      config.aliases.forEach((alias) => addEnemyNameVariantsToScope(scopeSet, alias));
-    }
-
     const folders = Array.isArray(config.folders) ? config.folders : config.folder ? [config.folder] : [];
     folders.forEach((folder) => addEnemyFolderVariantsToScope(scopeSet, folder));
   }
@@ -234,6 +229,12 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
     );
     extractEnemyNameVariants(monsterDetail.name).forEach((variant) =>
       folderNameCandidates.add(variant)
+    );
+  }
+
+  if (config && Array.isArray(config.aliases)) {
+    config.aliases.forEach((alias) =>
+      extractEnemyNameVariants(alias).forEach((variant) => folderNameCandidates.add(variant))
     );
   }
 

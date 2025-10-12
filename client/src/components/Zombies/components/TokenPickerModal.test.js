@@ -426,6 +426,11 @@ describe('TokenPickerModal', () => {
   });
 
   test('limits available filters when filterScope is provided', async () => {
+    const scope = buildEnemyTokenFilterScopeValues('cultist', {
+      index: 'cultist',
+      name: 'Cultist',
+    });
+
     render(
       <TokenPickerModal
         show
@@ -445,7 +450,7 @@ describe('TokenPickerModal', () => {
             aliases: ['dragon'],
           },
         ]}
-        filterScope={['cultist']}
+        filterScope={scope}
         onHide={jest.fn()}
         onSelect={jest.fn()}
       />

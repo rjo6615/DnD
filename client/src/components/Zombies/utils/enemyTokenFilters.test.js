@@ -13,9 +13,6 @@ describe('buildEnemyTokenFilterScopeValues', () => {
         'Tokens/Adversaries/Cultists',
       ])
     );
-    expect(scope.map((value) => value.toLowerCase())).toEqual(
-      expect.arrayContaining(['cultist', 'cultists'])
-    );
   });
 
   it('includes pluralized wolves scope for wolf adversaries', () => {
@@ -23,10 +20,10 @@ describe('buildEnemyTokenFilterScopeValues', () => {
 
     expect(scope.map((value) => value.toLowerCase())).toEqual(
       expect.arrayContaining([
-        'wolf',
-        'wolves',
         'folder:tokens/adversaries/wolf',
         'folder:tokens/adversaries/wolves',
+        'tokens/adversaries/wolf',
+        'tokens/adversaries/wolves',
       ])
     );
   });
@@ -46,8 +43,37 @@ describe('buildEnemyTokenFilterScopeValues', () => {
       ])
     );
     expect(scope.map((value) => value.toLowerCase())).toEqual(
-      expect.arrayContaining(['giant wolf spider', 'giant wolf spiders'])
+      expect.arrayContaining([
+        'folder:tokens/adversaries/giant wolf spider',
+        'tokens/adversaries/giant wolf spider',
+        'folder:tokens/adversaries/giant wolf spiders',
+        'tokens/adversaries/giant wolf spiders',
+      ])
     );
+  });
+
+  it('limits scope values to adversary folders for orc adversaries', () => {
+    const scope = buildEnemyTokenFilterScopeValues('orc', { index: 'orc', name: 'Orc' });
+
+    expect(scope).toBeInstanceOf(Array);
+    expect(scope.length).toBeGreaterThan(0);
+    scope
+      .map((value) => value.toLowerCase())
+      .forEach((value) => {
+        expect(value).toContain('adversaries');
+        expect(value).not.toContain('adventurers');
+      });
+  });
+
+  it('does not include unrelated wolf spider folders when selecting wolf', () => {
+    const scope = buildEnemyTokenFilterScopeValues('wolf', { index: 'wolf', name: 'Wolf' });
+
+    const lowerScope = scope.map((value) => value.toLowerCase());
+
+    expect(lowerScope).not.toEqual(expect.arrayContaining(['wolf spider', 'wolf spiders']));
+    lowerScope.forEach((value) => {
+      expect(value).not.toContain('wolf spider');
+    });
   });
 
   it('returns null when no identifying information is provided', () => {
