@@ -49,7 +49,6 @@ import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
-import buildRaceTokenScopeData from '../utils/raceTokenFilters';
 
 const HEADER_PADDING = 16;
 const DOCKABLE_MODAL_DEFINITIONS = {
@@ -2862,8 +2861,11 @@ export default function ZombiesCharacterSheet() {
         });
     };
 
-    const { nameVariants: raceNameVariants, prefixes: racePrefixList } =
-      buildRaceTokenScopeData(form?.race?.name);
+    const raceName =
+      typeof form?.race?.name === 'string' ? form.race.name.replace(/\s+/g, ' ').trim() : '';
+    const racePrefixes = raceName
+      ? [raceName, `Adventurers/${raceName}`, `Tokens/Adventurers/${raceName}`]
+      : [];
 
     const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
     const seenClasses = new Set();
@@ -2890,19 +2892,16 @@ export default function ZombiesCharacterSheet() {
         'Tokens/Adventurers/Core_Class_Tokens',
       ]);
 
-      if (racePrefixList.length > 0) {
-        addScopeVariants(rawClassName, racePrefixList);
+      if (racePrefixes.length > 0) {
+        addScopeVariants(rawClassName, racePrefixes);
       }
     });
 
-    if (scopeSet.size === 0 && raceNameVariants.length > 0) {
-      const fallbackRace = raceNameVariants.find((variant) => typeof variant === 'string' && variant.trim() !== '');
-      if (fallbackRace) {
-        addScopeVariants(fallbackRace, [
-          'Adventurers',
-          'Tokens/Adventurers',
-        ]);
-      }
+    if (scopeSet.size === 0 && raceName) {
+      addScopeVariants(raceName, [
+        'Adventurers',
+        'Tokens/Adventurers',
+      ]);
     }
 
     return Array.from(scopeSet);
