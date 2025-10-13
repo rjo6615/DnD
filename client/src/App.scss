@@ -2952,7 +2952,7 @@ h1 {
     justify-content: flex-end;
     filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
     transform-origin: 50% 50%;
-    transform: translate(-50%, -50%) rotate(var(--figurine-rotation, 0deg));
+    transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 1;
   }
@@ -2963,8 +2963,6 @@ h1 {
     align-items: stretch;
     justify-content: flex-end;
     width: 100%;
-    transform: rotate(calc(var(--figurine-rotation, 0deg) * -1));
-    transform-origin: 50% 50%;
   }
 
   &__health-track {
