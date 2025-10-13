@@ -1048,6 +1048,7 @@ const CampaignMapBoard = ({
       const pointerAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
       const pointerDegrees = normalizeDegrees(radiansToDegrees(pointerAngle));
       const normalizedCurrent = normalizeDegrees(currentRotation);
+      const currentRotationRadians = degreesToRadians(normalizedCurrent);
       const initialHandleAngle = normalizeDegrees(pointerDegrees + 90);
 
       setRotationHandleAngles((prev) => {
