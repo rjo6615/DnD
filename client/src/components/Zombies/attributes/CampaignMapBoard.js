@@ -966,22 +966,47 @@ const CampaignMapBoard = ({
         return;
       }
 
-      const tokensList = tokenPositionsRef.current;
-      const overrides = rotationOverridesRef.current || {};
-      const currentOverride = overrides[tokenId];
-      let baseRotation = Number.isFinite(currentOverride)
-        ? currentOverride
-        : (() => {
-            if (!Array.isArray(tokensList)) {
-              return 0;
-            }
-            const foundToken = tokensList.find((entry) => entry?.characterId === tokenId);
-            const rawRotation = Number(foundToken?.rotation);
-            return Number.isFinite(rawRotation) ? rawRotation : 0;
-          })();
+    if (rotationMoveHandlerRef.current) {
+      targets.forEach((target) => {
+        if (target && typeof target.removeEventListener === 'function') {
+          target.removeEventListener('pointermove', rotationMoveHandlerRef.current);
+        }
+      });
+      rotationMoveHandlerRef.current = null;
+    }
 
-      const nextRotation = normalizeDegrees(baseRotation + delta);
-      if (!Number.isFinite(nextRotation)) {
+    if (rotationUpHandlerRef.current) {
+      targets.forEach((target) => {
+        if (target && typeof target.removeEventListener === 'function') {
+          target.removeEventListener('pointerup', rotationUpHandlerRef.current);
+        }
+      });
+      rotationUpHandlerRef.current = null;
+    }
+
+    if (rotationCancelHandlerRef.current) {
+      targets.forEach((target) => {
+        if (target && typeof target.removeEventListener === 'function') {
+          target.removeEventListener('pointercancel', rotationCancelHandlerRef.current);
+        }
+      });
+      rotationCancelHandlerRef.current = null;
+    }
+
+    rotationDragStateRef.current = null;
+  }, []);
+
+  useEffect(() => () => stopRotationDrag(), [stopRotationDrag]);
+
+  useEffect(() => {
+    if (interactionDisabled) {
+      stopRotationDrag();
+    }
+  }, [interactionDisabled, stopRotationDrag]);
+
+  const applyTokenRotation = useCallback(
+    (tokenId, rotation) => {
+      if (!tokenId || !Number.isFinite(rotation)) {
         return;
       }
 
@@ -1071,6 +1096,157 @@ const CampaignMapBoard = ({
           };
         });
 
+        applyTokenRotation(tokenId, nextRotation);
+      };
+
+      const handleRelease = (releaseEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          stopRotationDrag();
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          releaseEvent.pointerId !== undefined &&
+          releaseEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        releaseEvent.preventDefault();
+        releaseEvent.stopPropagation();
+        stopRotationDrag();
+      };
+
+      const handleCancel = (cancelEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (
+          dragState &&
+          dragState.pointerId !== undefined &&
+          cancelEvent.pointerId !== undefined &&
+          cancelEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        stopRotationDrag();
+      };
+
+      rotationMoveHandlerRef.current = handleMove;
+      rotationUpHandlerRef.current = handleRelease;
+      rotationCancelHandlerRef.current = handleCancel;
+
+      const targets = [];
+      if (typeof window !== 'undefined') {
+        targets.push(window);
+      }
+      if (typeof document !== 'undefined') {
+        targets.push(document);
+      }
+
+      targets.forEach((target) => {
+        if (target && typeof target.addEventListener === 'function') {
+          target.addEventListener('pointermove', handleMove, { passive: false });
+          target.addEventListener('pointerup', handleRelease, { passive: false });
+          target.addEventListener('pointercancel', handleCancel, { passive: false });
+        }
+      });
+
+      setLastDraggedTokenId(tokenId);
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [applyTokenRotation, interactionDisabled, stopRotationDrag]
+  );
+
+  const rotateTokenBy = useCallback(
+    (tokenId, delta) => {
+      if (!tokenId || !Number.isFinite(delta)) {
+        return;
+      }
+
+      const tokensList = tokenPositionsRef.current;
+      const overrides = rotationOverridesRef.current || {};
+      const currentOverride = overrides[tokenId];
+      let baseRotation = Number.isFinite(currentOverride)
+        ? currentOverride
+        : (() => {
+            if (!Array.isArray(tokensList)) {
+              return 0;
+            }
+            const foundToken = tokensList.find((entry) => entry?.characterId === tokenId);
+            const rawRotation = Number(foundToken?.rotation);
+            return Number.isFinite(rawRotation) ? rawRotation : 0;
+          })();
+
+      const nextRotation = normalizeDegrees(baseRotation + delta);
+      if (!Number.isFinite(nextRotation)) {
+        return;
+      }
+
+      applyTokenRotation(tokenId, nextRotation);
+    },
+    [applyTokenRotation]
+  );
+
+  const handleRotationHandlePointerDown = useCallback(
+    (event, tokenId, currentRotation) => {
+      if (interactionDisabled || !tokenId) {
+        return;
+      }
+
+      if (typeof event?.button === 'number' && event.button !== 0) {
+        return;
+      }
+
+      const tokenElement = event.currentTarget?.closest('.campaign-map-board__token');
+      if (!tokenElement) {
+        return;
+      }
+
+      const rect = tokenElement.getBoundingClientRect();
+      if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.top)) {
+        return;
+      }
+
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const pointerAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
+      const pointerDegrees = normalizeDegrees((pointerAngle * 180) / Math.PI);
+      const normalizedCurrent = normalizeDegrees(currentRotation);
+
+      stopRotationDrag();
+
+      rotationDragStateRef.current = {
+        tokenId,
+        pointerId: event.pointerId,
+        centerX,
+        centerY,
+        offset: normalizeDegrees(normalizedCurrent - pointerDegrees),
+      };
+
+      const handleMove = (moveEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          moveEvent.pointerId !== undefined &&
+          moveEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
+
+        const angle = Math.atan2(moveEvent.clientY - dragState.centerY, moveEvent.clientX - dragState.centerX);
+        const angleDegrees = normalizeDegrees((angle * 180) / Math.PI);
+        const nextRotation = normalizeDegrees(angleDegrees + dragState.offset);
         applyTokenRotation(tokenId, nextRotation);
       };
 
