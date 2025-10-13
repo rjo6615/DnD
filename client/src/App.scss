@@ -2944,6 +2944,8 @@ h1 {
       0 0 1rem rgba(255, 125, 127, 0.75);
     animation: campaignMapBoardTurnIndicatorPulse 1.4s ease-in-out infinite;
     filter: drop-shadow(0 0.2rem 0.45rem rgba(0, 0, 0, 0.55));
+    z-index: 2;
+    transform: translateY(calc(var(--figurine-base-size) * -0.35));
   }
 
   &__health {
