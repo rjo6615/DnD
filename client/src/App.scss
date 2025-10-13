@@ -2943,7 +2943,7 @@ h1 {
       #51cf66
     );
     position: absolute;
-    top: 50%;
+    top: calc(50% - var(--figurine-base-size) * 0.68);
     left: 50%;
     width: calc(var(--figurine-base-size) * 0.95);
     display: flex;
@@ -2952,8 +2952,7 @@ h1 {
     justify-content: flex-end;
     filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
     transform-origin: 50% 50%;
-    transform: translate(-50%, -50%) rotate(var(--figurine-rotation, 0deg))
-      translateY(calc(var(--figurine-base-size) * -0.68));
+    transform: translate(-50%, -50%) rotate(var(--figurine-rotation, 0deg));
     pointer-events: none;
     z-index: 1;
   }
