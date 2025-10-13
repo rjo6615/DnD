@@ -1044,25 +1044,28 @@ useEffect(() => {
         }}
       >
         <div className="attack-roll-controls">
-          {/* Attack Button */}
-          <button
-            onClick={handleShowAttack}
-            style={{
-              width: '64px',
-              height: '64px',
-              backgroundImage: `url(${sword})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              border: 'none',
-              transition: 'transform 0.2s ease',
-              cursor: 'pointer',
-              backgroundColor: 'transparent',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            title="Attack"
-          />
+          <div className="attack-roll-controls__button">
+            {/* Attack Button */}
+            <button
+              onClick={handleShowAttack}
+              style={{
+                width: '64px',
+                height: '64px',
+                backgroundImage: `url(${sword})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                border: 'none',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              title="Attack"
+            />
+          </div>
           <D20RollerModal renderInline diceColor={form?.diceColor} />
+          <div className="attack-roll-controls__spacer" aria-hidden="true" />
         </div>
       </div>
 {/* Attack Modal */}

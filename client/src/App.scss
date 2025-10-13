@@ -1715,13 +1715,23 @@ $rotateX: -$angle;
 // Layout helpers for the attack button and dice roller
 .attack-roll-controls {
   --attack-die-size: min(25vw, 120px);
+  --attack-roll-footer-height: clamp(84px, var(--attack-die-size), 140px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   gap: calc(var(--attack-die-size) * 0.25);
-  min-height: calc(var(--attack-die-size) + 88px);
-  padding-bottom: calc(var(--attack-die-size) * 0.35);
+  min-height: calc(var(--attack-die-size) + var(--attack-roll-footer-height));
+  width: 100%;
+  max-width: min(70vw, 360px);
+  margin: 0 auto;
+  flex: 1 1 auto;
+}
+
+.attack-roll-controls__button {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .attack-roll-controls__die {
@@ -1729,31 +1739,27 @@ $rotateX: -$angle;
   align-items: center;
   justify-content: center;
   width: 100%;
-  margin-bottom: calc(var(--attack-die-size) * 0.2);
+  margin: auto 0;
+}
+
+.attack-roll-controls__spacer {
+  height: var(--attack-roll-footer-height);
+  flex-shrink: 0;
+  width: 100%;
 }
 
 @media (max-height: 600px) {
   .attack-roll-controls {
     --attack-die-size: min(20vw, 100px);
+    --attack-roll-footer-height: clamp(64px, var(--attack-die-size) * 0.9, 110px);
     gap: calc(var(--attack-die-size) * 0.25);
-    min-height: calc(var(--attack-die-size) + 88px);
-    padding-bottom: calc(var(--attack-die-size) * 0.35);
-  }
-
-  .attack-roll-controls__die {
-    margin-bottom: calc(var(--attack-die-size) * 0.2);
   }
 }
 
 @media (max-width: 576px) {
   .attack-roll-controls {
-    gap: calc(var(--attack-die-size) * 0.4);
-    min-height: calc(var(--attack-die-size) * 1.9);
-    padding-bottom: calc(var(--attack-die-size) * 0.5);
-  }
-
-  .attack-roll-controls__die {
-    margin-bottom: calc(var(--attack-die-size) * 0.3);
+    gap: calc(var(--attack-die-size) * 0.3);
+    max-width: min(80vw, 320px);
   }
 }
 
