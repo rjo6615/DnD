@@ -2910,12 +2910,21 @@ h1 {
     align-items: center;
     justify-content: flex-end;
     gap: clamp(1px, calc(var(--figurine-base-size) * 0.05), 0.25rem);
+  }
+
+  &__figurine-rotation-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
     transform: rotate(var(--figurine-rotation, 0deg));
     transform-origin: 50% calc(var(--figurine-base-size) * 0.75);
     transition: transform 0.2s ease;
   }
 
-  &__token--rotation-active &__token-figure {
+  &__token--rotation-active &__figurine-rotation-wrapper {
     transition: transform 0s linear;
   }
 
