@@ -382,6 +382,8 @@ const resolveFigurineSquaresFromImageSize = (metrics, metadataSquareSize) => {
 
 const ROTATION_STEP_DEGREES = 15;
 
+const TWO_PI = Math.PI * 2;
+
 const normalizeDegrees = (value) => {
   if (value === null || value === undefined || value === '') {
     return 0;
@@ -395,6 +397,10 @@ const normalizeDegrees = (value) => {
   const normalized = parsed % 360;
   return normalized < 0 ? normalized + 360 : normalized;
 };
+
+const degreesToRadians = (degrees) => (Number(degrees) * Math.PI) / 180;
+
+const radiansToDegrees = (radians) => (Number(radians) * 180) / Math.PI;
 
 const CampaignMapBoard = ({
   map,
@@ -429,6 +435,7 @@ const CampaignMapBoard = ({
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
   const [rotationHandleAngles, setRotationHandleAngles] = useState({});
+  const [draggingRotationTokenId, setDraggingRotationTokenId] = useState(null);
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
@@ -868,12 +875,26 @@ const CampaignMapBoard = ({
   );
 
   const stopRotationDrag = useCallback(() => {
+    const activeDragState = rotationDragStateRef.current;
     const targets = [];
     if (typeof window !== 'undefined') {
       targets.push(window);
     }
     if (typeof document !== 'undefined') {
       targets.push(document);
+    }
+
+    if (
+      activeDragState &&
+      activeDragState.handleElement &&
+      typeof activeDragState.handleElement.releasePointerCapture === 'function' &&
+      activeDragState.pointerId !== undefined
+    ) {
+      try {
+        activeDragState.handleElement.releasePointerCapture(activeDragState.pointerId);
+      } catch (releaseError) {
+        // Ignore release errors – capturing might not be active or supported
+      }
     }
 
     if (rotationMoveHandlerRef.current) {
@@ -904,7 +925,8 @@ const CampaignMapBoard = ({
     }
 
     rotationDragStateRef.current = null;
-  }, []);
+    setDraggingRotationTokenId(null);
+  }, [setDraggingRotationTokenId]);
 
   useEffect(() => () => stopRotationDrag(), [stopRotationDrag]);
 
@@ -1026,8 +1048,9 @@ const CampaignMapBoard = ({
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
       const pointerAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
-      const pointerDegrees = normalizeDegrees((pointerAngle * 180) / Math.PI);
+      const pointerDegrees = normalizeDegrees(radiansToDegrees(pointerAngle));
       const normalizedCurrent = normalizeDegrees(currentRotation);
+      const currentRotationRadians = degreesToRadians(normalizedCurrent);
       const initialHandleAngle = normalizeDegrees(pointerDegrees + 90);
 
       setRotationHandleAngles((prev) => {
@@ -1043,13 +1066,30 @@ const CampaignMapBoard = ({
 
       stopRotationDrag();
 
+      setDraggingRotationTokenId(tokenId);
+
       rotationDragStateRef.current = {
         tokenId,
         pointerId: event.pointerId,
         centerX,
         centerY,
-        offset: normalizeDegrees(normalizedCurrent - pointerDegrees),
+        initialRotationRadians: currentRotationRadians,
+        lastPointerAngle: pointerAngle,
+        accumulatedDelta: 0,
+        handleElement: event.currentTarget || null,
       };
+
+      if (
+        event.currentTarget &&
+        typeof event.currentTarget.setPointerCapture === 'function' &&
+        event.pointerId !== undefined
+      ) {
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (captureError) {
+          // Ignore capture errors – some browsers might throw if capture isn't supported
+        }
+      }
 
       const handleMove = (moveEvent) => {
         const dragState = rotationDragStateRef.current;
@@ -1069,9 +1109,21 @@ const CampaignMapBoard = ({
         moveEvent.stopPropagation();
 
         const angle = Math.atan2(moveEvent.clientY - dragState.centerY, moveEvent.clientX - dragState.centerX);
-        const angleDegrees = normalizeDegrees((angle * 180) / Math.PI);
-        const nextRotation = normalizeDegrees(angleDegrees + dragState.offset);
-        const handleAngle = normalizeDegrees(angleDegrees + 90);
+        const { lastPointerAngle = angle, accumulatedDelta = 0 } = dragState;
+        let delta = angle - lastPointerAngle;
+        if (delta > Math.PI) {
+          delta -= TWO_PI;
+        } else if (delta < -Math.PI) {
+          delta += TWO_PI;
+        }
+
+        const nextAccumulatedDelta = accumulatedDelta + delta;
+        dragState.lastPointerAngle = angle;
+        dragState.accumulatedDelta = nextAccumulatedDelta;
+
+        const nextRotationRadians = dragState.initialRotationRadians + nextAccumulatedDelta;
+        const nextRotation = normalizeDegrees(radiansToDegrees(nextRotationRadians));
+        const handleAngle = normalizeDegrees(radiansToDegrees(angle) + 90);
 
         setRotationHandleAngles((prev) => {
           if (prev[tokenId] === handleAngle) {
@@ -1146,7 +1198,7 @@ const CampaignMapBoard = ({
       event.preventDefault();
       event.stopPropagation();
     },
-    [applyTokenRotation, interactionDisabled, stopRotationDrag]
+    [applyTokenRotation, interactionDisabled, setDraggingRotationTokenId, stopRotationDrag]
   );
 
   const lockRotation = useCallback((tokenId) => {
@@ -1293,6 +1345,7 @@ const CampaignMapBoard = ({
                   : fallbackHandleAngle;
                 const rotationHandleStyleValue = `${effectiveHandleAngle}deg`;
                 const isRotationActive = lastDraggedTokenId === characterId;
+                const isRotationDragging = draggingRotationTokenId === characterId;
 
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
@@ -1311,7 +1364,8 @@ const CampaignMapBoard = ({
                       isLabelActive && 'campaign-map-board__token--label-active',
                       isActiveTurn && 'campaign-map-board__token--active-turn',
                       `campaign-map-board__token--size-${sizeKey}`,
-                      isRotationActive && 'lastDragged'
+                      isRotationActive && 'lastDragged',
+                      isRotationDragging && 'campaign-map-board__token--rotation-active'
                     )}
                     style={{
                       left: `${(position?.x ?? 0) * 100}%`,
