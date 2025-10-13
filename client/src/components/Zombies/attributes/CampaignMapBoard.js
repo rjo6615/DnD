@@ -79,6 +79,237 @@ const FIGURINE_SIZE_MULTIPLIERS = {
   gargantuan: 4,
 };
 
+const DEFAULT_GRID_DIMENSION = 24;
+
+const parsePositiveNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const match = value.match(/([0-9]*\.?[0-9]+)/);
+    if (match) {
+      const parsed = Number.parseFloat(match[1]);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const parseGridDimensionsFromValue = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    const [first, second] = value;
+    const firstNumber = parsePositiveNumber(first);
+    const secondNumber = parsePositiveNumber(second);
+
+    if (firstNumber !== null || secondNumber !== null) {
+      const resolvedFirst = firstNumber ?? secondNumber;
+      const resolvedSecond = secondNumber ?? firstNumber;
+      if (resolvedFirst !== null) {
+        return {
+          columns: Math.max(1, Math.round(resolvedFirst)),
+          rows: Math.max(1, Math.round(resolvedSecond ?? resolvedFirst)),
+        };
+      }
+    }
+
+    return null;
+  }
+
+  const numericValue = parsePositiveNumber(value);
+  if (numericValue !== null) {
+    const rounded = Math.max(1, Math.round(numericValue));
+    return { columns: rounded, rows: rounded };
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const pairMatch = trimmed.match(/(\d+)\s*[x×]\s*(\d+)/i);
+    if (pairMatch) {
+      const [, columnMatch, rowMatch] = pairMatch;
+      const parsedColumns = Number.parseInt(columnMatch, 10);
+      const parsedRows = Number.parseInt(rowMatch, 10);
+      if (Number.isFinite(parsedColumns) && Number.isFinite(parsedRows)) {
+        return {
+          columns: Math.max(1, parsedColumns),
+          rows: Math.max(1, parsedRows),
+        };
+      }
+    }
+  }
+
+  return null;
+};
+
+const resolveGridDimensions = (map) => {
+  if (!map || typeof map !== 'object') {
+    return { columns: DEFAULT_GRID_DIMENSION, rows: DEFAULT_GRID_DIMENSION };
+  }
+
+  const assignDimension = (current, value) => {
+    const parsed = parsePositiveNumber(value);
+    if (parsed === null) {
+      return current;
+    }
+
+    const rounded = Math.max(1, Math.round(parsed));
+    return current ?? rounded;
+  };
+
+  let columns = null;
+  let rows = null;
+
+  const gridLikeObjects = [map.grid, map.meta, map.metadata, map.settings, map.details];
+  const directColumnCandidates = [
+    map.gridColumns,
+    map.gridWidth,
+    map.columns,
+    map.widthSquares,
+    map.width,
+  ];
+  const directRowCandidates = [
+    map.gridRows,
+    map.gridHeight,
+    map.rows,
+    map.heightSquares,
+    map.height,
+  ];
+
+  directColumnCandidates.forEach((candidate) => {
+    columns = assignDimension(columns, candidate);
+  });
+  directRowCandidates.forEach((candidate) => {
+    rows = assignDimension(rows, candidate);
+  });
+
+  gridLikeObjects.forEach((obj) => {
+    if (!obj || typeof obj !== 'object') {
+      return;
+    }
+
+    columns = assignDimension(columns, obj.columns ?? obj.cols ?? obj.width);
+    rows = assignDimension(rows, obj.rows ?? obj.height);
+
+    if (columns !== null && rows !== null) {
+      return;
+    }
+
+    const dimensionsValue =
+      obj.dimensions ?? obj.size ?? obj.gridSize ?? obj.gridDimensions ?? obj.shape;
+    const parsedDimensions = parseGridDimensionsFromValue(dimensionsValue);
+    if (parsedDimensions) {
+      if (columns === null && parsedDimensions.columns) {
+        columns = parsedDimensions.columns;
+      }
+      if (rows === null && parsedDimensions.rows) {
+        rows = parsedDimensions.rows;
+      }
+    }
+  });
+
+  const fallbackDimensionStrings = [
+    map.gridSize,
+    map.gridDimensions,
+    map.dimensions,
+    map.size,
+    map.mapSize,
+  ];
+
+  fallbackDimensionStrings.forEach((value) => {
+    if (columns !== null && rows !== null) {
+      return;
+    }
+
+    const parsed = parseGridDimensionsFromValue(value);
+    if (!parsed) {
+      return;
+    }
+
+    if (columns === null && parsed.columns) {
+      columns = parsed.columns;
+    }
+    if (rows === null && parsed.rows) {
+      rows = parsed.rows;
+    }
+  });
+
+  const safeColumns = columns ?? DEFAULT_GRID_DIMENSION;
+  const safeRows = rows ?? safeColumns;
+
+  return {
+    columns: Math.max(1, safeColumns),
+    rows: Math.max(1, safeRows),
+  };
+};
+
+const resolveSquareSizeFromMetadata = (map) => {
+  if (!map || typeof map !== 'object') {
+    return null;
+  }
+
+  const candidatePaths = [
+    ['squareSize'],
+    ['square_size'],
+    ['squareSizePixels'],
+    ['squareSizePx'],
+    ['squarePixelSize'],
+    ['square_pixels'],
+    ['square_size_pixels'],
+    ['squareDimension'],
+    ['pixelsPerSquare'],
+    ['pixelPerSquare'],
+    ['gridSquareSize'],
+    ['grid', 'squareSize'],
+    ['grid', 'cellSize'],
+    ['grid', 'pixelsPerSquare'],
+    ['grid', 'squarePixels'],
+    ['meta', 'squareSize'],
+    ['meta', 'pixelsPerSquare'],
+    ['metadata', 'squareSize'],
+    ['metadata', 'pixelsPerSquare'],
+    ['settings', 'squareSize'],
+    ['settings', 'pixelsPerSquare'],
+    ['details', 'squareSize'],
+    ['details', 'pixelsPerSquare'],
+  ];
+
+  for (const path of candidatePaths) {
+    let current = map;
+    let found = true;
+
+    for (const key of path) {
+      if (current && typeof current === 'object' && key in current) {
+        current = current[key];
+      } else {
+        found = false;
+        break;
+      }
+    }
+
+    if (!found) {
+      continue;
+    }
+
+    const parsed = parsePositiveNumber(current);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
 const resolveFigurineSizeKey = (value) => {
   if (typeof value !== 'string') {
     return 'medium';
@@ -149,6 +380,7 @@ const CampaignMapBoard = ({
 
   const interactionDisabled = disabled || !imageSrc;
 
+  const boardRef = useRef(null);
   const layerRef = useRef(null);
   const dragStateRef = useRef({ tokenId: null, pointerId: null });
   const [dragPositions, setDragPositions] = useState({});
@@ -157,9 +389,107 @@ const CampaignMapBoard = ({
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
   const tokenPositionsRef = useRef([]);
+  const [layerNode, setLayerNode] = useState(null);
   const handleLayerRef = useCallback((node) => {
     layerRef.current = node;
+    setLayerNode(node);
   }, []);
+
+  const { columns: gridColumns, rows: gridRows } = useMemo(
+    () => resolveGridDimensions(map),
+    [map]
+  );
+  const metadataSquareSize = useMemo(() => resolveSquareSizeFromMetadata(map), [map]);
+
+  useEffect(() => {
+    const boardElement = boardRef.current;
+
+    if (!boardElement) {
+      return () => {};
+    }
+
+    const safeColumns = Math.max(1, gridColumns || DEFAULT_GRID_DIMENSION);
+    const safeRows = Math.max(1, gridRows || safeColumns);
+    const columnWidthPercent = `${100 / safeColumns}%`;
+    const rowHeightPercent = `${100 / safeRows}%`;
+
+    boardElement.style.setProperty('--campaign-map-grid-columns', `${safeColumns}`);
+    boardElement.style.setProperty('--campaign-map-grid-rows', `${safeRows}`);
+    boardElement.style.setProperty('--campaign-map-grid-cell-width', columnWidthPercent);
+    boardElement.style.setProperty('--campaign-map-grid-cell-height', rowHeightPercent);
+
+    const cleanupGridVariables = () => {
+      boardElement.style.removeProperty('--campaign-map-grid-columns');
+      boardElement.style.removeProperty('--campaign-map-grid-rows');
+      boardElement.style.removeProperty('--campaign-map-grid-cell-width');
+      boardElement.style.removeProperty('--campaign-map-grid-cell-height');
+    };
+
+    if (metadataSquareSize !== null) {
+      boardElement.style.setProperty(
+        '--campaign-map-square-size',
+        `${metadataSquareSize}px`
+      );
+
+      return () => {
+        boardElement.style.removeProperty('--campaign-map-square-size');
+        cleanupGridVariables();
+      };
+    }
+
+    const layerElement = layerNode;
+
+    if (!layerElement) {
+      boardElement.style.removeProperty('--campaign-map-square-size');
+      return () => {
+        cleanupGridVariables();
+      };
+    }
+
+    const updateSquareSize = () => {
+      const rect = layerElement.getBoundingClientRect();
+      const widthPerColumn = rect.width ? rect.width / safeColumns : null;
+      const heightPerRow = rect.height ? rect.height / safeRows : null;
+      const candidates = [widthPerColumn, heightPerRow].filter(
+        (value) => Number.isFinite(value) && value > 0
+      );
+
+      if (candidates.length === 0) {
+        boardElement.style.removeProperty('--campaign-map-square-size');
+        return;
+      }
+
+      const resolved = Math.min(...candidates);
+      boardElement.style.setProperty('--campaign-map-square-size', `${resolved}px`);
+    };
+
+    updateSquareSize();
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(() => {
+        updateSquareSize();
+      });
+      observer.observe(layerElement);
+
+      return () => {
+        observer.disconnect();
+        boardElement.style.removeProperty('--campaign-map-square-size');
+        cleanupGridVariables();
+      };
+    }
+
+    const handleResize = () => {
+      updateSquareSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      boardElement.style.removeProperty('--campaign-map-square-size');
+      cleanupGridVariables();
+    };
+  }, [gridColumns, gridRows, layerNode, metadataSquareSize]);
 
   const tokenPositions = useMemo(() => {
     if (!Array.isArray(tokens)) {
@@ -564,7 +894,14 @@ const CampaignMapBoard = ({
   }, [lastDraggedTokenId, lockRotation, rotateTokenBy]);
 
   return (
-    <div className={classNames('campaign-map-board', className, interactionDisabled && 'campaign-map-board--disabled')}>
+    <div
+      ref={boardRef}
+      className={classNames(
+        'campaign-map-board',
+        className,
+        interactionDisabled && 'campaign-map-board--disabled'
+      )}
+    >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
         <div className="campaign-map-board__stage">
