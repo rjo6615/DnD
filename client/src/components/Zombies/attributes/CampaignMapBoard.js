@@ -935,13 +935,12 @@ const CampaignMapBoard = ({
     }
   }, [interactionDisabled, stopRotationDrag]);
 
-  const updateTokenRotation = useCallback(
+  const previewTokenRotation = useCallback(
     (tokenId, rotation) => {
       if (!tokenId || !Number.isFinite(rotation)) {
         return;
       }
 
-      const tokensList = tokenPositionsRef.current;
       const normalizedRotation = normalizeDegrees(rotation);
 
       setRotationOverrides((prev) => {
@@ -956,6 +955,21 @@ const CampaignMapBoard = ({
       });
 
       setLastDraggedTokenId(tokenId);
+    },
+    []
+  );
+
+
+  const applyTokenRotation = useCallback(
+    (tokenId, rotation) => {
+      if (!tokenId || !Number.isFinite(rotation)) {
+        return;
+      }
+
+      previewTokenRotation(tokenId, rotation);
+
+      const tokensList = tokenPositionsRef.current;
+      const normalizedRotation = normalizeDegrees(rotation);
 
       if (typeof onTokenPositionChange === 'function' && Array.isArray(tokensList)) {
         const foundToken = tokensList.find((entry) => entry?.characterId === tokenId);
@@ -978,19 +992,7 @@ const CampaignMapBoard = ({
         }
       }
     },
-    [onTokenPositionChange]
-  );
-
-
-  const applyTokenRotation = useCallback(
-    (tokenId, rotation) => {
-      if (!tokenId || !Number.isFinite(rotation)) {
-        return;
-      }
-
-      updateTokenRotation(tokenId, rotation);
-    },
-    [updateTokenRotation]
+    [onTokenPositionChange, previewTokenRotation]
   );
 
 
@@ -1082,6 +1084,7 @@ const CampaignMapBoard = ({
         initialPointerAngle: pointerAngle,
         lastPointerAngle: pointerAngle,
         unwrappedPointerAngle: pointerAngle,
+        pendingRotationDegrees: normalizedCurrent,
         handleElement: event.currentTarget || null,
       };
 
@@ -1175,7 +1178,9 @@ const CampaignMapBoard = ({
           };
         });
 
-        applyTokenRotation(tokenId, nextRotation);
+        dragState.pendingRotationDegrees = nextRotation;
+
+        previewTokenRotation(tokenId, nextRotation);
       };
 
       const handleRelease = (releaseEvent) => {
@@ -1193,6 +1198,16 @@ const CampaignMapBoard = ({
           return;
         }
 
+        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
+
+        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
+          ? pendingRotationDegrees
+          : Number.isFinite(baseRotationDegrees)
+            ? baseRotationDegrees
+            : normalizedCurrent;
+
+        applyTokenRotation(tokenId, rotationToCommit);
+
         releaseEvent.preventDefault();
         releaseEvent.stopPropagation();
         stopRotationDrag();
@@ -1207,6 +1222,10 @@ const CampaignMapBoard = ({
           cancelEvent.pointerId !== dragState.pointerId
         ) {
           return;
+        }
+
+        if (dragState && Number.isFinite(dragState.baseRotationDegrees)) {
+          previewTokenRotation(tokenId, dragState.baseRotationDegrees);
         }
 
         stopRotationDrag();
@@ -1237,7 +1256,13 @@ const CampaignMapBoard = ({
       event.preventDefault();
       event.stopPropagation();
     },
-    [applyTokenRotation, interactionDisabled, setDraggingRotationTokenId, stopRotationDrag]
+    [
+      applyTokenRotation,
+      interactionDisabled,
+      previewTokenRotation,
+      setDraggingRotationTokenId,
+      stopRotationDrag,
+    ]
   );
 
   const lockRotation = useCallback((tokenId) => {
