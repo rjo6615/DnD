@@ -428,6 +428,7 @@ const CampaignMapBoard = ({
   const [lastDraggedTokenId, setLastDraggedTokenId] = useState(null);
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
+  const [rotationHandleAngles, setRotationHandleAngles] = useState({});
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
@@ -595,6 +596,7 @@ const CampaignMapBoard = ({
     rotationOverridesRef.current = rotationOverrides;
   }, [rotationOverrides]);
 
+
   useEffect(() => {
     const activeIds = new Set(tokenPositions.map((token) => token?.characterId));
 
@@ -612,6 +614,23 @@ const CampaignMapBoard = ({
         prevKeys.length === nextKeys.length &&
         prevKeys.every((key) => next[key] === prev[key])
       ) {
+        return prev;
+      }
+
+      return next;
+    });
+
+    setRotationHandleAngles((prev) => {
+      const next = {};
+      activeIds.forEach((id) => {
+        if (Object.prototype.hasOwnProperty.call(prev, id)) {
+          next[id] = prev[id];
+        }
+      });
+
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      if (prevKeys.length === nextKeys.length && prevKeys.every((key) => next[key] === prev[key])) {
         return prev;
       }
 
@@ -947,6 +966,207 @@ const CampaignMapBoard = ({
         return;
       }
 
+    if (rotationMoveHandlerRef.current) {
+      targets.forEach((target) => {
+        if (target && typeof target.removeEventListener === 'function') {
+          target.removeEventListener('pointermove', rotationMoveHandlerRef.current);
+        }
+      });
+      rotationMoveHandlerRef.current = null;
+    }
+
+    if (rotationUpHandlerRef.current) {
+      targets.forEach((target) => {
+        if (target && typeof target.removeEventListener === 'function') {
+          target.removeEventListener('pointerup', rotationUpHandlerRef.current);
+        }
+      });
+      rotationUpHandlerRef.current = null;
+    }
+
+    if (rotationCancelHandlerRef.current) {
+      targets.forEach((target) => {
+        if (target && typeof target.removeEventListener === 'function') {
+          target.removeEventListener('pointercancel', rotationCancelHandlerRef.current);
+        }
+      });
+      rotationCancelHandlerRef.current = null;
+    }
+
+    rotationDragStateRef.current = null;
+  }, []);
+
+  useEffect(() => () => stopRotationDrag(), [stopRotationDrag]);
+
+  useEffect(() => {
+    if (interactionDisabled) {
+      stopRotationDrag();
+    }
+  }, [interactionDisabled, stopRotationDrag]);
+
+  const applyTokenRotation = useCallback(
+    (tokenId, rotation) => {
+      if (!tokenId || !Number.isFinite(rotation)) {
+        return;
+      }
+
+      applyTokenRotation(tokenId, nextRotation);
+    },
+    [applyTokenRotation]
+  );
+
+  const handleRotationHandlePointerDown = useCallback(
+    (event, tokenId, currentRotation) => {
+      if (interactionDisabled || !tokenId) {
+        return;
+      }
+
+      if (typeof event?.button === 'number' && event.button !== 0) {
+        return;
+      }
+
+      const tokenElement = event.currentTarget?.closest('.campaign-map-board__token');
+      if (!tokenElement) {
+        return;
+      }
+
+      const rect = tokenElement.getBoundingClientRect();
+      if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.top)) {
+        return;
+      }
+
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const pointerAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
+      const pointerDegrees = normalizeDegrees((pointerAngle * 180) / Math.PI);
+      const normalizedCurrent = normalizeDegrees(currentRotation);
+      const initialHandleAngle = normalizeDegrees(pointerDegrees + 90);
+
+      setRotationHandleAngles((prev) => {
+        if (prev[tokenId] === initialHandleAngle) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [tokenId]: initialHandleAngle,
+        };
+      });
+
+      stopRotationDrag();
+
+      rotationDragStateRef.current = {
+        tokenId,
+        pointerId: event.pointerId,
+        centerX,
+        centerY,
+        offset: normalizeDegrees(normalizedCurrent - pointerDegrees),
+      };
+
+      const handleMove = (moveEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          moveEvent.pointerId !== undefined &&
+          moveEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
+
+        const angle = Math.atan2(moveEvent.clientY - dragState.centerY, moveEvent.clientX - dragState.centerX);
+        const angleDegrees = normalizeDegrees((angle * 180) / Math.PI);
+        const nextRotation = normalizeDegrees(angleDegrees + dragState.offset);
+        const handleAngle = normalizeDegrees(angleDegrees + 90);
+
+        setRotationHandleAngles((prev) => {
+          if (prev[tokenId] === handleAngle) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [tokenId]: handleAngle,
+          };
+        });
+
+        applyTokenRotation(tokenId, nextRotation);
+      };
+
+      const handleRelease = (releaseEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          stopRotationDrag();
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          releaseEvent.pointerId !== undefined &&
+          releaseEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        releaseEvent.preventDefault();
+        releaseEvent.stopPropagation();
+        stopRotationDrag();
+      };
+
+      const handleCancel = (cancelEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (
+          dragState &&
+          dragState.pointerId !== undefined &&
+          cancelEvent.pointerId !== undefined &&
+          cancelEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        stopRotationDrag();
+      };
+
+      rotationMoveHandlerRef.current = handleMove;
+      rotationUpHandlerRef.current = handleRelease;
+      rotationCancelHandlerRef.current = handleCancel;
+
+      const targets = [];
+      if (typeof window !== 'undefined') {
+        targets.push(window);
+      }
+      if (typeof document !== 'undefined') {
+        targets.push(document);
+      }
+
+      targets.forEach((target) => {
+        if (target && typeof target.addEventListener === 'function') {
+          target.addEventListener('pointermove', handleMove, { passive: false });
+          target.addEventListener('pointerup', handleRelease, { passive: false });
+          target.addEventListener('pointercancel', handleCancel, { passive: false });
+        }
+      });
+
+      setLastDraggedTokenId(tokenId);
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [applyTokenRotation, interactionDisabled, stopRotationDrag]
+  );
+
+  const rotateTokenBy = useCallback(
+    (tokenId, delta) => {
+      if (!tokenId || !Number.isFinite(delta)) {
+        return;
+      }
+
       const tokensList = tokenPositionsRef.current;
       const overrides = rotationOverridesRef.current || {};
       const currentOverride = overrides[tokenId];
@@ -1229,6 +1449,12 @@ const CampaignMapBoard = ({
                   : 0;
                 const rotationDisplay = Math.round(rotationValue * 10) / 10;
                 const rotationStyleValue = `${rotationValue}deg`;
+                const storedHandleAngle = rotationHandleAngles[characterId];
+                const fallbackHandleAngle = normalizeDegrees(rotationValue + 90);
+                const effectiveHandleAngle = Number.isFinite(storedHandleAngle)
+                  ? storedHandleAngle
+                  : fallbackHandleAngle;
+                const rotationHandleStyleValue = `${effectiveHandleAngle}deg`;
                 const isRotationActive = lastDraggedTokenId === characterId;
 
                 const labelClassName = classNames(
@@ -1255,6 +1481,7 @@ const CampaignMapBoard = ({
                       top: `${(position?.y ?? 0) * 100}%`,
                       '--figurine-size-scale': figurineScale,
                       '--figurine-rotation': rotationStyleValue,
+                      '--rotation-handle-angle': rotationHandleStyleValue,
                     }}
                     title={displayLabel || undefined}
                     onPointerDown={(event) => {
@@ -1363,31 +1590,34 @@ const CampaignMapBoard = ({
                     {isRotationActive && (
                       <div
                         className="campaign-map-board__rotation-controls"
+                        style={{ '--rotation-handle-angle': rotationHandleStyleValue }}
                         onPointerDown={(event) => event.stopPropagation()}
                         onPointerMove={(event) => event.stopPropagation()}
                         onPointerUp={(event) => event.stopPropagation()}
                       >
-                        <button
-                          type="button"
-                          className="campaign-map-board__rotation-handle"
-                          aria-label={
-                            Number.isFinite(rotationDisplay)
-                              ? `Rotate figurine (current ${rotationDisplay}°)`
-                              : 'Rotate figurine'
-                          }
-                          onPointerDown={(event) =>
-                            handleRotationHandlePointerDown(event, characterId, rotationValue)
-                          }
-                          onFocus={() => setLastDraggedTokenId(characterId)}
-                          onBlur={() =>
-                            setLastDraggedTokenId((prev) => (prev === characterId ? null : prev))
-                          }
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="campaign-map-board__rotation-handle-icon"
-                          />
-                        </button>
+                        <div className="campaign-map-board__rotation-handle-track">
+                          <button
+                            type="button"
+                            className="campaign-map-board__rotation-handle"
+                            aria-label={
+                              Number.isFinite(rotationDisplay)
+                                ? `Rotate figurine (current ${rotationDisplay}°)`
+                                : 'Rotate figurine'
+                            }
+                            onPointerDown={(event) =>
+                              handleRotationHandlePointerDown(event, characterId, rotationValue)
+                            }
+                            onFocus={() => setLastDraggedTokenId(characterId)}
+                            onBlur={() =>
+                              setLastDraggedTokenId((prev) => (prev === characterId ? null : prev))
+                            }
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="campaign-map-board__rotation-handle-icon"
+                            />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
