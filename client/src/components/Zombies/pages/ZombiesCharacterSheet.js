@@ -216,6 +216,21 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const normalizeRotation = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = parsed % 360;
+  const resolved = normalized < 0 ? normalized + 360 : normalized;
+  return Math.round(resolved * 1000) / 1000;
+};
+
 const createCircleState = () => ({
   0: 'active',
   1: 'active',
@@ -4306,7 +4321,7 @@ export default function ZombiesCharacterSheet() {
   }, [activeMapTokens, campaignMap, campaignMapTokens]);
 
   const handleTokenMove = useCallback(
-    async ({ mapId, characterId: tokenCharacterId, x, y }) => {
+    async ({ mapId, characterId: tokenCharacterId, x, y, rotation }) => {
       const normalizedCampaign =
         typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
       const normalizedMapId =
@@ -4340,6 +4355,7 @@ export default function ZombiesCharacterSheet() {
       const previousCampaignTokens = campaignMapTokensRef.current || {};
       const previousActiveTokens = activeMapTokensRef.current || {};
       const previousCampaignMap = campaignMapRef.current || null;
+      const normalizedRotation = normalizeRotation(rotation);
 
       const nextToken = {
         ...(previousCampaignTokens?.[normalizedMapId]?.[normalizedCharacterId] || {}),
@@ -4347,6 +4363,7 @@ export default function ZombiesCharacterSheet() {
         x: clampedX,
         y: clampedY,
         updatedAt: new Date().toISOString(),
+        ...(normalizedRotation !== null ? { rotation: normalizedRotation } : {}),
       };
 
       setCampaignMapTokens((prev) => {
@@ -4407,7 +4424,11 @@ export default function ZombiesCharacterSheet() {
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ x: clampedX, y: clampedY }),
+            body: JSON.stringify({
+              x: clampedX,
+              y: clampedY,
+              ...(normalizedRotation !== null ? { rotation: normalizedRotation } : {}),
+            }),
           }
         );
 
