@@ -2870,6 +2870,7 @@ h1 {
     touch-action: none;
     width: var(--figurine-base-size);
     height: calc(var(--figurine-base-size) * 1.6);
+    isolation: isolate;
   }
 
   &__token.lastDragged {
@@ -2900,6 +2901,24 @@ h1 {
     --figurine-size-scale: 4;
   }
 
+  &__token-figure {
+    position: relative;
+    width: 100%;
+    height: calc(var(--figurine-base-size) * 1.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: clamp(1px, calc(var(--figurine-base-size) * 0.05), 0.25rem);
+    transform: rotate(var(--figurine-rotation, 0deg));
+    transform-origin: 50% calc(var(--figurine-base-size) * 0.75);
+    transition: transform 0.2s ease;
+  }
+
+  &__token--rotation-active &__token-figure {
+    transition: transform 0s linear;
+  }
+
   &__turn-indicator {
     position: relative;
     display: inline-flex;
@@ -2923,14 +2942,30 @@ h1 {
       --campaign-map-board-health-color,
       #51cf66
     );
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: calc(var(--figurine-base-size) * 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
+    transform-origin: 50% 50%;
+    transform: translate(-50%, -50%) rotate(var(--figurine-rotation, 0deg))
+      translateY(calc(var(--figurine-base-size) * -0.68));
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  &__health-content {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
-    transform: rotate(var(--figurine-rotation, 0deg));
-    transform-origin: 50% 100%;
+    width: 100%;
+    transform: rotate(calc(var(--figurine-rotation, 0deg) * -1));
+    transform-origin: 50% 50%;
   }
 
   &__health-track {
@@ -2980,7 +3015,7 @@ h1 {
       drop-shadow(0 0.05rem 0.25rem rgba(255, 255, 255, 0.12));
     transition: transform 0.2s ease, filter 0.2s ease;
     position: relative;
-    transform: rotate(var(--figurine-rotation, 0deg));
+    transform: translateY(0);
   }
 
   &__token--rotation-active &__figurine {
@@ -2988,7 +3023,7 @@ h1 {
   }
 
   &__figurine--active {
-    transform: rotate(var(--figurine-rotation, 0deg)) translateY(-3px) scale(1.02);
+    transform: translateY(-3px) scale(1.02);
     filter: drop-shadow(0 0.55rem 1.25rem rgba(7, 8, 13, 0.75))
       drop-shadow(0 0.15rem 0.35rem rgba(255, 255, 255, 0.2));
   }

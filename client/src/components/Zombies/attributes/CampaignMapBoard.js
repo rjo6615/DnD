@@ -1494,53 +1494,57 @@ const CampaignMapBoard = ({
                         </span>
                       </span>
                     )}
-                    {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
-                      <div
-                        className="campaign-map-board__health"
-                        style={{ '--campaign-map-board-health-color': healthColor }}
-                      >
-                        <span className="visually-hidden">{`HP: ${formatHpValue(
-                          safeCurrentHp
-                        )}/${formatHpValue(safeMaxHp)}`}</span>
-                        <div className="campaign-map-board__health-track">
-                          <div
-                            className="campaign-map-board__health-fill"
-                            style={{ width: `${Math.max(0, Math.min(100, fillPercent))}%` }}
-                          />
+                    <div className="campaign-map-board__token-figure">
+                      {hasHealth && safeCurrentHp !== null && safeMaxHp !== null && safeMaxHp > 0 && (
+                        <div
+                          className="campaign-map-board__health"
+                          style={{ '--campaign-map-board-health-color': healthColor }}
+                        >
+                          <div className="campaign-map-board__health-content">
+                            <span className="visually-hidden">{`HP: ${formatHpValue(
+                              safeCurrentHp
+                            )}/${formatHpValue(safeMaxHp)}`}</span>
+                            <div className="campaign-map-board__health-track">
+                              <div
+                                className="campaign-map-board__health-fill"
+                                style={{ width: `${Math.max(0, Math.min(100, fillPercent))}%` }}
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    <div
-                      className={classNames(
-                        'campaign-map-board__figurine',
-                        draggable && 'campaign-map-board__figurine--active',
-                        isActiveTurn && 'campaign-map-board__figurine--active-turn',
-                        hasFigurineImage && 'campaign-map-board__figurine--has-image'
                       )}
-                      style={{ '--figurine-color': figurineColor }}
-                    >
-                      {hasFigurineImage && (
-                        <span className="campaign-map-board__figurine-image-wrapper" aria-hidden="true">
-                          <img
-                            src={figurineImageUrl}
-                            alt=""
-                            className="campaign-map-board__figurine-image"
-                            data-figurine-public-id={figurineImagePublicId || undefined}
-                            loading="lazy"
-                            onLoad={(event) =>
-                              handleFigurineImageLoad(
-                                figurineMetricKey,
-                                event?.currentTarget || event?.target || null
-                              )
-                            }
-                          />
+                      <div
+                        className={classNames(
+                          'campaign-map-board__figurine',
+                          draggable && 'campaign-map-board__figurine--active',
+                          isActiveTurn && 'campaign-map-board__figurine--active-turn',
+                          hasFigurineImage && 'campaign-map-board__figurine--has-image'
+                        )}
+                        style={{ '--figurine-color': figurineColor }}
+                      >
+                        {hasFigurineImage && (
+                          <span className="campaign-map-board__figurine-image-wrapper" aria-hidden="true">
+                            <img
+                              src={figurineImageUrl}
+                              alt=""
+                              className="campaign-map-board__figurine-image"
+                              data-figurine-public-id={figurineImagePublicId || undefined}
+                              loading="lazy"
+                              onLoad={(event) =>
+                                handleFigurineImageLoad(
+                                  figurineMetricKey,
+                                  event?.currentTarget || event?.target || null
+                                )
+                              }
+                            />
+                          </span>
+                        )}
+                        <span className="campaign-map-board__figurine-figure" aria-hidden="true">
+                          <span className="campaign-map-board__figurine-head" />
+                          <span className="campaign-map-board__figurine-torso" />
+                          <span className="campaign-map-board__figurine-cloak" />
                         </span>
-                      )}
-                      <span className="campaign-map-board__figurine-figure" aria-hidden="true">
-                        <span className="campaign-map-board__figurine-head" />
-                        <span className="campaign-map-board__figurine-torso" />
-                        <span className="campaign-map-board__figurine-cloak" />
-                      </span>
+                      </div>
                     </div>
                     {isRotationActive && (
                       <div
