@@ -2983,6 +2983,10 @@ h1 {
     transform: rotate(var(--figurine-rotation, 0deg));
   }
 
+  &__token--rotation-active &__figurine {
+    transition: transform 0s linear, filter 0.2s ease;
+  }
+
   &__figurine--active {
     transform: rotate(var(--figurine-rotation, 0deg)) translateY(-3px) scale(1.02);
     filter: drop-shadow(0 0.55rem 1.25rem rgba(7, 8, 13, 0.75))
@@ -3020,6 +3024,10 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  &__token--rotation-active &__rotation-handle-track {
+    transition: none;
   }
 
   &__token.lastDragged &__rotation-controls,

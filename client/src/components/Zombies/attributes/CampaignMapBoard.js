@@ -435,6 +435,7 @@ const CampaignMapBoard = ({
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
   const [rotationHandleAngles, setRotationHandleAngles] = useState({});
+  const [draggingRotationTokenId, setDraggingRotationTokenId] = useState(null);
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
@@ -924,7 +925,8 @@ const CampaignMapBoard = ({
     }
 
     rotationDragStateRef.current = null;
-  }, []);
+    setDraggingRotationTokenId(null);
+  }, [setDraggingRotationTokenId]);
 
   useEffect(() => () => stopRotationDrag(), [stopRotationDrag]);
 
@@ -1064,6 +1066,8 @@ const CampaignMapBoard = ({
 
       stopRotationDrag();
 
+      setDraggingRotationTokenId(tokenId);
+
       rotationDragStateRef.current = {
         tokenId,
         pointerId: event.pointerId,
@@ -1194,7 +1198,7 @@ const CampaignMapBoard = ({
       event.preventDefault();
       event.stopPropagation();
     },
-    [applyTokenRotation, interactionDisabled, stopRotationDrag]
+    [applyTokenRotation, interactionDisabled, setDraggingRotationTokenId, stopRotationDrag]
   );
 
   const lockRotation = useCallback((tokenId) => {
@@ -1341,6 +1345,7 @@ const CampaignMapBoard = ({
                   : fallbackHandleAngle;
                 const rotationHandleStyleValue = `${effectiveHandleAngle}deg`;
                 const isRotationActive = lastDraggedTokenId === characterId;
+                const isRotationDragging = draggingRotationTokenId === characterId;
 
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
@@ -1359,7 +1364,8 @@ const CampaignMapBoard = ({
                       isLabelActive && 'campaign-map-board__token--label-active',
                       isActiveTurn && 'campaign-map-board__token--active-turn',
                       `campaign-map-board__token--size-${sizeKey}`,
-                      isRotationActive && 'lastDragged'
+                      isRotationActive && 'lastDragged',
+                      isRotationDragging && 'campaign-map-board__token--rotation-active'
                     )}
                     style={{
                       left: `${(position?.x ?? 0) * 100}%`,
