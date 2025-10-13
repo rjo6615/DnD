@@ -2910,12 +2910,21 @@ h1 {
     align-items: center;
     justify-content: flex-end;
     gap: clamp(1px, calc(var(--figurine-base-size) * 0.05), 0.25rem);
+  }
+
+  &__figurine-rotation-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
     transform: rotate(var(--figurine-rotation, 0deg));
     transform-origin: 50% calc(var(--figurine-base-size) * 0.75);
     transition: transform 0.2s ease;
   }
 
-  &__token--rotation-active &__token-figure {
+  &__token--rotation-active &__figurine-rotation-wrapper {
     transition: transform 0s linear;
   }
 
@@ -2952,7 +2961,7 @@ h1 {
     justify-content: flex-end;
     filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
     transform-origin: 50% 50%;
-    transform: translate(-50%, -50%) rotate(var(--figurine-rotation, 0deg));
+    transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 1;
   }
@@ -2963,8 +2972,6 @@ h1 {
     align-items: stretch;
     justify-content: flex-end;
     width: 100%;
-    transform: rotate(calc(var(--figurine-rotation, 0deg) * -1));
-    transform-origin: 50% 50%;
   }
 
   &__health-track {
