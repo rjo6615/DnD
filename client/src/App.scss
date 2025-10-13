@@ -2968,9 +2968,11 @@ h1 {
   &__figurine {
     --figurine-color: #adb5bd;
     width: var(--figurine-base-size);
+    height: var(--figurine-base-size);
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-end;
     pointer-events: none;
     filter: drop-shadow(0 0.35rem 0.85rem rgba(6, 7, 10, 0.65))
       drop-shadow(0 0.05rem 0.25rem rgba(255, 255, 255, 0.12));
@@ -3065,20 +3067,23 @@ h1 {
 
   &__figurine-image-wrapper {
     position: absolute;
-    inset: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--figurine-base-size);
+    height: var(--figurine-base-size);
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
+    align-items: flex-end;
+    justify-content: center;
     pointer-events: none;
     z-index: 2;
   }
 
   &__figurine-image {
-    width: var(--figurine-body-width);
-    max-width: 100%;
-    height: auto;
-    max-height: calc(var(--figurine-base-size) * 2.35);
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
     object-fit: contain;
     filter: drop-shadow(0 0.4rem 0.9rem rgba(0, 0, 0, 0.55));
   }

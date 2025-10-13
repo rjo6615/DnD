@@ -296,7 +296,7 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(figurineImage?.getAttribute('alt')).toBe('');
   });
 
-  it('applies a reduced figurine scale for enemy variants', () => {
+  it('keeps enemy figurine scale aligned with their size category', () => {
     const { container } = renderBoard({
       token: {
         variant: 'enemy',
@@ -309,7 +309,7 @@ describe('CampaignMapBoard pointer interactions', () => {
     const scaleValue = Number.parseFloat(
       tokenElement?.style.getPropertyValue('--figurine-size-scale') ?? ''
     );
-    expect(scaleValue).toBeCloseTo(1.5, 5);
+    expect(scaleValue).toBeCloseTo(2, 5);
   });
 
   it('provides a finite figurine scale when no size is specified', () => {
@@ -326,5 +326,81 @@ describe('CampaignMapBoard pointer interactions', () => {
     );
     expect(Number.isFinite(scaleValue)).toBe(true);
     expect(scaleValue).toBeCloseTo(1, 5);
+  });
+
+  it('derives figurine footprint from image size when map metadata defines pixels per square', async () => {
+    const { container } = render(
+      <CampaignMapBoard
+        map={{ ...baseMap, pixelsPerSquare: 256 }}
+        tokens={[
+          {
+            ...baseToken,
+            size: 'medium',
+            figurineImageUrl: 'https://example.com/figurines/large.png',
+          },
+        ]}
+      />
+    );
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    if (figurineImage) {
+      Object.defineProperty(figurineImage, 'naturalWidth', {
+        configurable: true,
+        value: 512,
+      });
+      Object.defineProperty(figurineImage, 'naturalHeight', {
+        configurable: true,
+        value: 512,
+      });
+
+      fireEvent.load(figurineImage);
+
+      await waitFor(() => {
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('2');
+      });
+    }
+  });
+
+  it('falls back to image dimensions when metadata is unavailable', async () => {
+    const { container } = render(
+      <CampaignMapBoard
+        map={baseMap}
+        tokens={[
+          {
+            ...baseToken,
+            size: 'medium',
+            figurineImageUrl: 'https://example.com/figurines/colossal.png',
+          },
+        ]}
+      />
+    );
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    if (figurineImage) {
+      Object.defineProperty(figurineImage, 'naturalWidth', {
+        configurable: true,
+        value: 1024,
+      });
+      Object.defineProperty(figurineImage, 'naturalHeight', {
+        configurable: true,
+        value: 1024,
+      });
+
+      fireEvent.load(figurineImage);
+
+      await waitFor(() => {
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('2');
+      });
+    }
   });
 });

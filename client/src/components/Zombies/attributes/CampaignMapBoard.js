@@ -71,13 +71,17 @@ const normalizeText = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
 const FIGURINE_SIZE_MULTIPLIERS = {
-  tiny: 0.25,
-  small: 0.5,
+  tiny: 0.5,
+  small: 1,
   medium: 1,
   large: 2,
   huge: 3,
   gargantuan: 4,
 };
+
+const MAX_FIGURINE_GRID_SQUARES = FIGURINE_SIZE_MULTIPLIERS.gargantuan;
+const DEFAULT_FIGURINE_GRID_SQUARES = FIGURINE_SIZE_MULTIPLIERS.medium;
+const FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE = 512;
 
 const DEFAULT_GRID_DIMENSION = 24;
 
@@ -340,6 +344,42 @@ const resolveFigurineSizeKey = (value) => {
   return 'medium';
 };
 
+const resolveFigurineSquaresFromImageSize = (metrics, metadataSquareSize) => {
+  if (!metrics || typeof metrics !== 'object') {
+    return null;
+  }
+
+  const { width, height } = metrics;
+  const numericWidth = Number(width);
+  const numericHeight = Number(height);
+
+  if (!Number.isFinite(numericWidth) || !Number.isFinite(numericHeight)) {
+    return null;
+  }
+
+  if (numericWidth <= 0 || numericHeight <= 0) {
+    return null;
+  }
+
+  const maxDimension = Math.max(numericWidth, numericHeight);
+  const squareSize = Number.isFinite(metadataSquareSize) && metadataSquareSize > 0
+    ? metadataSquareSize
+    : FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE;
+
+  if (!Number.isFinite(squareSize) || squareSize <= 0) {
+    return null;
+  }
+
+  const rawSquares = maxDimension / squareSize;
+
+  if (!Number.isFinite(rawSquares) || rawSquares <= 0) {
+    return null;
+  }
+
+  const rounded = Math.round(rawSquares);
+  return Math.max(1, Math.min(MAX_FIGURINE_GRID_SQUARES, rounded));
+};
+
 const ROTATION_STEP_DEGREES = 15;
 
 const normalizeDegrees = (value) => {
@@ -390,9 +430,40 @@ const CampaignMapBoard = ({
   const rotationOverridesRef = useRef({});
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
+  const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
   const handleLayerRef = useCallback((node) => {
     layerRef.current = node;
     setLayerNode(node);
+  }, []);
+
+  const handleFigurineImageLoad = useCallback((metricKey, target) => {
+    if (!metricKey || !target) {
+      return;
+    }
+
+    const { naturalWidth, naturalHeight } = target;
+
+    if (!Number.isFinite(naturalWidth) || !Number.isFinite(naturalHeight)) {
+      return;
+    }
+
+    setFigurineImageMetrics((prev) => {
+      const nextWidth = Math.round(naturalWidth);
+      const nextHeight = Math.round(naturalHeight);
+      const existing = prev[metricKey];
+
+      if (existing && existing.width === nextWidth && existing.height === nextHeight) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [metricKey]: {
+          width: nextWidth,
+          height: nextHeight,
+        },
+      };
+    });
   }, []);
 
   const { columns: gridColumns, rows: gridRows } = useMemo(
@@ -913,7 +984,7 @@ const CampaignMapBoard = ({
               ref={handleLayerRef}
               onPointerDown={handleLayerPointerDown}
             >
-              {tokenPositions.map((token) => {
+              {tokenPositions.map((token, tokenIndex) => {
                 const {
                   characterId,
                   position,
@@ -946,21 +1017,26 @@ const CampaignMapBoard = ({
                     ? variant.trim().toLowerCase()
                     : null;
 
+                const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(token);
+                const hasFigurineImage = Boolean(figurineImageUrl);
+                const figurineMetricKey = figurineImageUrl || characterId || `token-${tokenIndex}`;
+                const metrics = figurineMetricKey ? figurineImageMetrics[figurineMetricKey] : null;
+                const imageFootprint = hasFigurineImage
+                  ? resolveFigurineSquaresFromImageSize(metrics, metadataSquareSize)
+                  : null;
                 const sizeKey = resolveFigurineSizeKey(size);
                 const baseFigurineScale =
-                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? FIGURINE_SIZE_MULTIPLIERS.medium;
-                const scaleMultiplier = normalizedVariant === 'enemy' ? 0.75 : 1;
-                const figurineScale = Number.isFinite(baseFigurineScale)
-                  ? baseFigurineScale * scaleMultiplier
-                  : FIGURINE_SIZE_MULTIPLIERS.medium * scaleMultiplier;
+                  FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
+                const figurineScale = Number.isFinite(imageFootprint)
+                  ? imageFootprint
+                  : Number.isFinite(baseFigurineScale)
+                    ? baseFigurineScale
+                    : DEFAULT_FIGURINE_GRID_SQUARES;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
                     ? ENEMY_FIGURINE_COLOR
                     : normalizeText(color) || undefined;
-
-                const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(token);
-                const hasFigurineImage = Boolean(figurineImageUrl);
                 const resolvedRotation = getResolvedRotationForToken(token);
                 const rotationValue = Number.isFinite(resolvedRotation)
                   ? resolvedRotation
@@ -1083,6 +1159,12 @@ const CampaignMapBoard = ({
                             className="campaign-map-board__figurine-image"
                             data-figurine-public-id={figurineImagePublicId || undefined}
                             loading="lazy"
+                            onLoad={(event) =>
+                              handleFigurineImageLoad(
+                                figurineMetricKey,
+                                event?.currentTarget || event?.target || null
+                              )
+                            }
                           />
                         </span>
                       )}
