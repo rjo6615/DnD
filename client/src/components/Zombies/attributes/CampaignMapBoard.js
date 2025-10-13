@@ -399,6 +399,7 @@ const normalizeDegrees = (value) => {
 };
 
 const radiansToDegrees = (radians) => (Number(radians) * 180) / Math.PI;
+const degreesToRadians = (degrees) => (Number(degrees) * Math.PI) / 180;
 
 const CampaignMapBoard = ({
   map,
