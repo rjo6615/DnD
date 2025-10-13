@@ -177,7 +177,7 @@ describe('CampaignMapBoard pointer interactions', () => {
 
   it('marks the last dragged token and enables rotation controls', async () => {
     const onTokenPositionChange = jest.fn();
-    const { container, findByRole, queryByRole } = renderBoard({ onTokenPositionChange });
+    const { container, findByRole } = renderBoard({ onTokenPositionChange });
 
     const applyLayerRect = () => {
       const layer = container.querySelector('.campaign-map-board__tokens-layer');
@@ -239,42 +239,78 @@ describe('CampaignMapBoard pointer interactions', () => {
       expect(latestToken).toHaveClass('lastDragged');
     });
 
-    const rotateClockwiseButton = await findByRole('button', { name: /rotate clockwise/i });
-    fireEvent.click(rotateClockwiseButton);
-
-    expect(onTokenPositionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        characterId: 'char-1',
-        rotation: 15,
-        x: expect.any(Number),
-        y: expect.any(Number),
-      })
-    );
-
-    tokenElement = container.querySelector('[data-token-id="char-1"]');
-    expect(tokenElement?.getAttribute('data-rotation')).toBe('15');
-
-    fireEvent.keyDown(window, { key: 'ArrowLeft' });
-
-    expect(onTokenPositionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        characterId: 'char-1',
-        rotation: 0,
-        x: expect.any(Number),
-        y: expect.any(Number),
-      })
-    );
-
-    tokenElement = container.querySelector('[data-token-id="char-1"]');
-    expect(tokenElement?.getAttribute('data-rotation')).toBe('0');
-
-    const lockButton = await findByRole('button', { name: /lock rotation/i });
-    fireEvent.click(lockButton);
+    const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
+    expect(rotationHandle).not.toBeNull();
 
     tokenElement = container.querySelector('[data-token-id="char-1"]');
     expect(tokenElement).not.toBeNull();
-    expect(tokenElement).not.toHaveClass('lastDragged');
-    expect(queryByRole('button', { name: /lock rotation/i })).toBeNull();
+    if (tokenElement) {
+      tokenElement.getBoundingClientRect = () => ({
+        left: 100,
+        top: 100,
+        right: 180,
+        bottom: 180,
+        width: 80,
+        height: 80,
+      });
+    }
+
+    const pointerDownHandle = createEvent.pointerDown(rotationHandle, {
+      button: 0,
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerDownHandle, 'clientX', { value: 180 });
+    Object.defineProperty(pointerDownHandle, 'clientY', { value: 140 });
+    fireEvent(rotationHandle, pointerDownHandle);
+
+    const pointerMoveHandle = createEvent.pointerMove(document.body, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+      buttons: 1,
+    });
+    Object.defineProperty(pointerMoveHandle, 'clientX', { value: 140 });
+    Object.defineProperty(pointerMoveHandle, 'clientY', { value: 180 });
+    fireEvent(document.body, pointerMoveHandle);
+
+    const pointerUpHandle = createEvent.pointerUp(document.body, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerUpHandle, 'clientX', { value: 140 });
+    Object.defineProperty(pointerUpHandle, 'clientY', { value: 180 });
+    fireEvent(document.body, pointerUpHandle);
+
+    expect(onTokenPositionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        characterId: 'char-1',
+        rotation: expect.any(Number),
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
+
+    let lastCall =
+      onTokenPositionChange.mock.calls[onTokenPositionChange.mock.calls.length - 1]?.[0];
+    expect(lastCall).toBeDefined();
+    expect(lastCall.rotation).toBeCloseTo(90, 3);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    expect(Number(tokenElement?.getAttribute('data-rotation'))).toBeCloseTo(90, 3);
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+
+    lastCall = onTokenPositionChange.mock.calls[onTokenPositionChange.mock.calls.length - 1]?.[0];
+    expect(lastCall).toBeDefined();
+    expect(lastCall.rotation).toBeCloseTo(75, 3);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    expect(Number(tokenElement?.getAttribute('data-rotation'))).toBeCloseTo(75, 3);
   });
 
   it('renders a figurine image overlay when provided and preserves accessibility labels', () => {
