@@ -2955,7 +2955,7 @@ h1 {
     transform: translate(-50%, -50%) rotate(var(--figurine-rotation, 0deg))
       translateY(calc(var(--figurine-base-size) * -0.68));
     pointer-events: none;
-    z-index: 3;
+    z-index: 1;
   }
 
   &__health-content {
@@ -3015,6 +3015,7 @@ h1 {
       drop-shadow(0 0.05rem 0.25rem rgba(255, 255, 255, 0.12));
     transition: transform 0.2s ease, filter 0.2s ease;
     position: relative;
+    z-index: 2;
     transform: translateY(0);
   }
 
