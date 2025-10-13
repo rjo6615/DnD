@@ -1052,6 +1052,11 @@ const CampaignMapBoard = ({
       const currentRotationRadians = degreesToRadians(normalizedCurrent);
       const initialHandleAngle = normalizeDegrees(pointerDegrees + 90);
 
+      if (tokenElement.style && typeof tokenElement.style.setProperty === 'function') {
+        tokenElement.style.setProperty('--figurine-rotation', `${normalizedCurrent}deg`);
+        tokenElement.style.setProperty('--rotation-handle-angle', `${initialHandleAngle}deg`);
+      }
+
       setRotationHandleAngles((prev) => {
         if (prev[tokenId] === initialHandleAngle) {
           return prev;
@@ -1149,6 +1154,15 @@ const CampaignMapBoard = ({
           baseRotationDegrees + radiansToDegrees(deltaRadians)
         );
         const handleAngle = normalizeDegrees(radiansToDegrees(nextUnwrappedAngle) + 90);
+
+        if (
+          dragState.tokenElement &&
+          dragState.tokenElement.style &&
+          typeof dragState.tokenElement.style.setProperty === 'function'
+        ) {
+          dragState.tokenElement.style.setProperty('--figurine-rotation', `${nextRotation}deg`);
+          dragState.tokenElement.style.setProperty('--rotation-handle-angle', `${handleAngle}deg`);
+        }
 
         setRotationHandleAngles((prev) => {
           if (prev[tokenId] === handleAngle) {
