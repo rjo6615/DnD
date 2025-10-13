@@ -398,8 +398,6 @@ const normalizeDegrees = (value) => {
   return normalized < 0 ? normalized + 360 : normalized;
 };
 
-const degreesToRadians = (degrees) => (Number(degrees) * Math.PI) / 180;
-
 const radiansToDegrees = (radians) => (Number(radians) * 180) / Math.PI;
 
 const CampaignMapBoard = ({
@@ -1073,9 +1071,11 @@ const CampaignMapBoard = ({
         pointerId: event.pointerId,
         centerX,
         centerY,
-        initialRotationRadians: currentRotationRadians,
+        tokenElement,
+        baseRotationDegrees: normalizedCurrent,
+        initialPointerAngle: pointerAngle,
         lastPointerAngle: pointerAngle,
-        accumulatedDelta: 0,
+        unwrappedPointerAngle: pointerAngle,
         handleElement: event.currentTarget || null,
       };
 
@@ -1108,8 +1108,28 @@ const CampaignMapBoard = ({
         moveEvent.preventDefault();
         moveEvent.stopPropagation();
 
-        const angle = Math.atan2(moveEvent.clientY - dragState.centerY, moveEvent.clientX - dragState.centerX);
-        const { lastPointerAngle = angle, accumulatedDelta = 0 } = dragState;
+        let centerX = dragState.centerX;
+        let centerY = dragState.centerY;
+
+        if (
+          dragState.tokenElement &&
+          typeof dragState.tokenElement.getBoundingClientRect === 'function'
+        ) {
+          const updatedRect = dragState.tokenElement.getBoundingClientRect();
+          if (
+            updatedRect &&
+            Number.isFinite(updatedRect.left) &&
+            Number.isFinite(updatedRect.top)
+          ) {
+            centerX = updatedRect.left + updatedRect.width / 2;
+            centerY = updatedRect.top + updatedRect.height / 2;
+            dragState.centerX = centerX;
+            dragState.centerY = centerY;
+          }
+        }
+
+        const angle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
+        const { lastPointerAngle = angle, unwrappedPointerAngle = lastPointerAngle } = dragState;
         let delta = angle - lastPointerAngle;
         if (delta > Math.PI) {
           delta -= TWO_PI;
@@ -1117,13 +1137,17 @@ const CampaignMapBoard = ({
           delta += TWO_PI;
         }
 
-        const nextAccumulatedDelta = accumulatedDelta + delta;
+        const nextUnwrappedAngle = unwrappedPointerAngle + delta;
         dragState.lastPointerAngle = angle;
-        dragState.accumulatedDelta = nextAccumulatedDelta;
+        dragState.unwrappedPointerAngle = nextUnwrappedAngle;
 
-        const nextRotationRadians = dragState.initialRotationRadians + nextAccumulatedDelta;
-        const nextRotation = normalizeDegrees(radiansToDegrees(nextRotationRadians));
-        const handleAngle = normalizeDegrees(radiansToDegrees(angle) + 90);
+        const initialPointerAngle = dragState.initialPointerAngle ?? nextUnwrappedAngle;
+        const baseRotationDegrees = dragState.baseRotationDegrees ?? 0;
+        const deltaRadians = nextUnwrappedAngle - initialPointerAngle;
+        const nextRotation = normalizeDegrees(
+          baseRotationDegrees + radiansToDegrees(deltaRadians)
+        );
+        const handleAngle = normalizeDegrees(radiansToDegrees(nextUnwrappedAngle) + 90);
 
         setRotationHandleAngles((prev) => {
           if (prev[tokenId] === handleAngle) {
