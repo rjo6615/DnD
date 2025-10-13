@@ -2929,7 +2929,9 @@ h1 {
   }
 
   &__turn-indicator {
-    position: relative;
+    position: absolute;
+    bottom: calc(var(--figurine-base-size) * 1.1);
+    left: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2944,6 +2946,8 @@ h1 {
       0 0 1rem rgba(255, 125, 127, 0.75);
     animation: campaignMapBoardTurnIndicatorPulse 1.4s ease-in-out infinite;
     filter: drop-shadow(0 0.2rem 0.45rem rgba(0, 0, 0, 0.55));
+    z-index: 2;
+    transform: translate(-50%, 0);
   }
 
   &__health {
@@ -3307,7 +3311,7 @@ h1 {
 
 @keyframes campaignMapBoardTurnIndicatorPulse {
   0% {
-    transform: translateY(0) scale(0.92);
+    transform: translate(-50%, 0) scale(0.92);
     opacity: 0.85;
     text-shadow:
       0 0.25rem 0.65rem rgba(0, 0, 0, 0.55),
@@ -3315,7 +3319,11 @@ h1 {
       0 0 0.85rem rgba(255, 140, 143, 0.6);
   }
   50% {
-    transform: translateY(calc(var(--figurine-base-size) * -0.04)) scale(1.05);
+    transform: translate(
+        -50%,
+        calc(var(--figurine-base-size) * -0.04)
+      )
+      scale(1.05);
     opacity: 1;
     text-shadow:
       0 0.45rem 1rem rgba(0, 0, 0, 0.65),
@@ -3323,7 +3331,7 @@ h1 {
       0 0 1.4rem rgba(255, 168, 170, 0.85);
   }
   100% {
-    transform: translateY(0) scale(0.92);
+    transform: translate(-50%, 0) scale(0.92);
     opacity: 0.85;
     text-shadow:
       0 0.25rem 0.65rem rgba(0, 0, 0, 0.55),
