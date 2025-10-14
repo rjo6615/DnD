@@ -3271,7 +3271,7 @@ h1 {
     max-width: clamp(8rem, calc(var(--figurine-base-size) * 3.5), 16rem);
     text-overflow: ellipsis;
     overflow: hidden;
-    z-index: 5;
+    z-index: 20;
 
     &--enemy {
       box-shadow:
@@ -3299,6 +3299,12 @@ h1 {
     outline: 3px solid rgba(255, 255, 255, 0.85);
     outline-offset: 4px;
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
+  }
+
+  &__token--label-active,
+  &__token:hover,
+  &__token:focus-visible {
+    z-index: 50;
   }
 
   &__token--label-active .campaign-map-board__figurine-label,
