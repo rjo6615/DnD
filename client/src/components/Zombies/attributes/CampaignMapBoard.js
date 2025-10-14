@@ -1386,11 +1386,14 @@ const CampaignMapBoard = ({
                 const sizeKey = resolveFigurineSizeKey(size);
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
-                const figurineScale = Number.isFinite(imageFootprint)
-                  ? imageFootprint
-                  : Number.isFinite(baseFigurineScale)
-                    ? baseFigurineScale
-                    : DEFAULT_FIGURINE_GRID_SQUARES;
+                const figurineScale =
+                  sizeKey === 'medium'
+                    ? 1
+                    : Number.isFinite(imageFootprint)
+                      ? imageFootprint
+                      : Number.isFinite(baseFigurineScale)
+                        ? baseFigurineScale
+                        : DEFAULT_FIGURINE_GRID_SQUARES;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
@@ -1531,6 +1534,11 @@ const CampaignMapBoard = ({
                                 className="campaign-map-board__figurine-image"
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
+                                style={
+                                  metrics?.width === 1200 && metrics?.height === 1200
+                                    ? { scale: 3 }
+                                    : undefined
+                                }
                                 onLoad={(event) =>
                                   handleFigurineImageLoad(
                                     figurineMetricKey,
