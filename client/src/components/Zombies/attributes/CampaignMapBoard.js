@@ -1399,11 +1399,6 @@ const CampaignMapBoard = ({
                   normalizedVariant === 'enemy'
                     ? ENEMY_FIGURINE_COLOR
                     : normalizeText(color) || undefined;
-                const shouldScaleFigurineImage =
-                  metrics?.width === 1200 && metrics?.height === 1200
-                    ? true
-                    : typeof figurineImageUrl === 'string' &&
-                        figurineImageUrl.includes('Scale300_01');
                 const resolvedRotation = getResolvedRotationForToken(token);
                 const rotationValue = Number.isFinite(resolvedRotation)
                   ? resolvedRotation
