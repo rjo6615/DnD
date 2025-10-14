@@ -1534,11 +1534,6 @@ const CampaignMapBoard = ({
                                 className={figurineImageUrl.includes("Scale300_01") ?"campaign-map-board__figurine-image__scale-up":"campaign-map-board__figurine-image"}
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
-                                style={
-                                  metrics?.width === 1200 && metrics?.height === 1200
-                                    ? { scale: 3 }
-                                    : undefined
-                                }
                                 onLoad={(event) =>
                                   handleFigurineImageLoad(
                                     figurineMetricKey,
