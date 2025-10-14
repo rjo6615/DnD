@@ -1378,6 +1378,9 @@ const CampaignMapBoard = ({
 
                 const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(token);
                 const hasFigurineImage = Boolean(figurineImageUrl);
+                const shouldScaleFigurineImage =
+                  typeof figurineImageUrl === 'string' &&
+                  figurineImageUrl.toLowerCase().includes('scale300_01');
                 const figurineMetricKey = figurineImageUrl || characterId || `token-${tokenIndex}`;
                 const metrics = figurineMetricKey ? figurineImageMetrics[figurineMetricKey] : null;
                 const imageFootprint = hasFigurineImage
@@ -1534,11 +1537,7 @@ const CampaignMapBoard = ({
                                 className="campaign-map-board__figurine-image"
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
-                                style={
-                                  metrics?.width === 1200 && metrics?.height === 1200
-                                    ? { scale: 3 }
-                                    : undefined
-                                }
+                                style={shouldScaleFigurineImage ? { scale: 3 } : undefined}
                                 onLoad={(event) =>
                                   handleFigurineImageLoad(
                                     figurineMetricKey,
