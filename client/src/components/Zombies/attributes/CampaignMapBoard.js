@@ -1380,25 +1380,20 @@ const CampaignMapBoard = ({
                 const hasFigurineImage = Boolean(figurineImageUrl);
                 const figurineMetricKey = figurineImageUrl || characterId || `token-${tokenIndex}`;
                 const metrics = figurineMetricKey ? figurineImageMetrics[figurineMetricKey] : null;
-                const normalizedFigurinePublicId =
-                  typeof figurineImagePublicId === 'string'
-                    ? figurineImagePublicId.trim()
-                    : null;
-                const shouldScaleFigurineImage =
-                  (metrics?.width === 1200 && metrics?.height === 1200) ||
-                  (typeof normalizedFigurinePublicId === 'string' &&
-                    normalizedFigurinePublicId.toLowerCase().includes('scale300_01'));
                 const imageFootprint = hasFigurineImage
                   ? resolveFigurineSquaresFromImageSize(metrics, metadataSquareSize)
                   : null;
                 const sizeKey = resolveFigurineSizeKey(size);
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
-                const figurineScale = Number.isFinite(imageFootprint)
-                  ? imageFootprint
-                  : Number.isFinite(baseFigurineScale)
-                    ? baseFigurineScale
-                    : DEFAULT_FIGURINE_GRID_SQUARES;
+                const figurineScale =
+                  sizeKey === 'medium'
+                    ? 1
+                    : Number.isFinite(imageFootprint)
+                      ? imageFootprint
+                      : Number.isFinite(baseFigurineScale)
+                        ? baseFigurineScale
+                        : DEFAULT_FIGURINE_GRID_SQUARES;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
@@ -1539,7 +1534,11 @@ const CampaignMapBoard = ({
                                 className="campaign-map-board__figurine-image"
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
-                                style={shouldScaleFigurineImage ? { scale: '3' } : undefined}
+                                style={
+                                  metrics?.width === 1200 && metrics?.height === 1200
+                                    ? { scale: 3 }
+                                    : undefined
+                                }
                                 onLoad={(event) =>
                                   handleFigurineImageLoad(
                                     figurineMetricKey,
