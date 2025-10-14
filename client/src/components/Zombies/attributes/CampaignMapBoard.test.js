@@ -239,6 +239,18 @@ describe('CampaignMapBoard pointer interactions', () => {
       expect(latestToken).toHaveClass('lastDragged');
     });
 
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    if (tokenElement) {
+      const pointerOverEvent = createEvent.pointerOver(tokenElement, {
+        pointerId: 3,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(tokenElement, pointerOverEvent);
+    }
+
     const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
     expect(rotationHandle).not.toBeNull();
 
