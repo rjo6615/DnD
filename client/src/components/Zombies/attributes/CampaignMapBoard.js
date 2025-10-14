@@ -1038,6 +1038,14 @@ const CampaignMapBoard = ({
         return;
       }
 
+      if (
+        (event?.pointerType === 'mouse' || event?.pointerType === 'pen') &&
+        typeof event.buttons === 'number' &&
+        (event.buttons & 1) === 0
+      ) {
+        return;
+      }
+
       const tokenElement = event.currentTarget?.closest('.campaign-map-board__token');
       if (!tokenElement) {
         return;
@@ -1080,6 +1088,7 @@ const CampaignMapBoard = ({
       rotationDragStateRef.current = {
         tokenId,
         pointerId: event.pointerId,
+        pointerType: event.pointerType || null,
         centerX,
         centerY,
         tokenElement,
@@ -1103,6 +1112,60 @@ const CampaignMapBoard = ({
         }
       }
 
+      const handleRelease = (releaseEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          stopRotationDrag();
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          releaseEvent.pointerId !== undefined &&
+          releaseEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
+
+        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
+          ? pendingRotationDegrees
+          : Number.isFinite(baseRotationDegrees)
+            ? baseRotationDegrees
+            : normalizedCurrent;
+
+        applyTokenRotation(tokenId, rotationToCommit);
+
+        if (dragState.tokenElement && typeof dragState.tokenElement.getBoundingClientRect === 'function') {
+          const rect = dragState.tokenElement.getBoundingClientRect();
+          if (
+            rect &&
+            Number.isFinite(rect.left) &&
+            Number.isFinite(rect.top) &&
+            Number.isFinite(rect.right) &&
+            Number.isFinite(rect.bottom)
+          ) {
+            const isPointerInside =
+              releaseEvent.clientX >= rect.left &&
+              releaseEvent.clientX <= rect.right &&
+              releaseEvent.clientY >= rect.top &&
+              releaseEvent.clientY <= rect.bottom;
+
+            setHoveredTokenId((prev) => {
+              if (isPointerInside) {
+                return tokenId;
+              }
+              return prev === tokenId ? null : prev;
+            });
+          }
+        }
+
+        releaseEvent.preventDefault();
+        releaseEvent.stopPropagation();
+        stopRotationDrag();
+      };
+
       const handleMove = (moveEvent) => {
         const dragState = rotationDragStateRef.current;
         if (!dragState || dragState.tokenId !== tokenId) {
@@ -1114,6 +1177,17 @@ const CampaignMapBoard = ({
           moveEvent.pointerId !== undefined &&
           moveEvent.pointerId !== dragState.pointerId
         ) {
+          return;
+        }
+
+        const pointerType = dragState.pointerType;
+        if (
+          pointerType &&
+          (pointerType === 'mouse' || pointerType === 'pen') &&
+          typeof moveEvent.buttons === 'number' &&
+          (moveEvent.buttons & 1) === 0
+        ) {
+          handleRelease(moveEvent);
           return;
         }
 
@@ -1184,60 +1258,6 @@ const CampaignMapBoard = ({
         dragState.pendingRotationDegrees = nextRotation;
 
         previewTokenRotation(tokenId, nextRotation);
-      };
-
-      const handleRelease = (releaseEvent) => {
-        const dragState = rotationDragStateRef.current;
-        if (!dragState || dragState.tokenId !== tokenId) {
-          stopRotationDrag();
-          return;
-        }
-
-        if (
-          dragState.pointerId !== undefined &&
-          releaseEvent.pointerId !== undefined &&
-          releaseEvent.pointerId !== dragState.pointerId
-        ) {
-          return;
-        }
-
-        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
-
-        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
-          ? pendingRotationDegrees
-          : Number.isFinite(baseRotationDegrees)
-            ? baseRotationDegrees
-            : normalizedCurrent;
-
-        applyTokenRotation(tokenId, rotationToCommit);
-
-        if (dragState.tokenElement && typeof dragState.tokenElement.getBoundingClientRect === 'function') {
-          const rect = dragState.tokenElement.getBoundingClientRect();
-          if (
-            rect &&
-            Number.isFinite(rect.left) &&
-            Number.isFinite(rect.top) &&
-            Number.isFinite(rect.right) &&
-            Number.isFinite(rect.bottom)
-          ) {
-            const isPointerInside =
-              releaseEvent.clientX >= rect.left &&
-              releaseEvent.clientX <= rect.right &&
-              releaseEvent.clientY >= rect.top &&
-              releaseEvent.clientY <= rect.bottom;
-
-            setHoveredTokenId((prev) => {
-              if (isPointerInside) {
-                return tokenId;
-              }
-              return prev === tokenId ? null : prev;
-            });
-          }
-        }
-
-        releaseEvent.preventDefault();
-        releaseEvent.stopPropagation();
-        stopRotationDrag();
       };
 
       const handleCancel = (cancelEvent) => {
