@@ -1386,16 +1386,24 @@ const CampaignMapBoard = ({
                 const sizeKey = resolveFigurineSizeKey(size);
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
-                const figurineScale = Number.isFinite(imageFootprint)
-                  ? imageFootprint
-                  : Number.isFinite(baseFigurineScale)
-                    ? baseFigurineScale
-                    : DEFAULT_FIGURINE_GRID_SQUARES;
+                const figurineScale =
+                  sizeKey === 'medium'
+                    ? 1
+                    : Number.isFinite(imageFootprint)
+                      ? imageFootprint
+                      : Number.isFinite(baseFigurineScale)
+                        ? baseFigurineScale
+                        : DEFAULT_FIGURINE_GRID_SQUARES;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
                     ? ENEMY_FIGURINE_COLOR
                     : normalizeText(color) || undefined;
+                const shouldScaleFigurineImage =
+                  metrics?.width === 1200 && metrics?.height === 1200
+                    ? true
+                    : typeof figurineImageUrl === 'string' &&
+                        figurineImageUrl.includes('Scale300_01');
                 const resolvedRotation = getResolvedRotationForToken(token);
                 const rotationValue = Number.isFinite(resolvedRotation)
                   ? resolvedRotation
@@ -1531,6 +1539,7 @@ const CampaignMapBoard = ({
                                 className="campaign-map-board__figurine-image"
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
+                                style={shouldScaleFigurineImage ? { scale: 3 } : undefined}
                                 onLoad={(event) =>
                                   handleFigurineImageLoad(
                                     figurineMetricKey,
