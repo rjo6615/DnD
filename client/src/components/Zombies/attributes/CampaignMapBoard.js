@@ -1539,7 +1539,11 @@ const CampaignMapBoard = ({
                                 className="campaign-map-board__figurine-image"
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
-                                style={shouldScaleFigurineImage ? { scale: 3 } : undefined}
+                                style={
+                                  metrics?.width === 1200 && metrics?.height === 1200
+                                    ? { scale: 3 }
+                                    : undefined
+                                }
                                 onLoad={(event) =>
                                   handleFigurineImageLoad(
                                     figurineMetricKey,
