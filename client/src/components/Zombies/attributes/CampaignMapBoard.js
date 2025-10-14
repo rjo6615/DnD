@@ -1386,14 +1386,11 @@ const CampaignMapBoard = ({
                 const sizeKey = resolveFigurineSizeKey(size);
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
-                const figurineScale =
-                  sizeKey === 'medium'
-                    ? 1
-                    : Number.isFinite(imageFootprint)
-                      ? imageFootprint
-                      : Number.isFinite(baseFigurineScale)
-                        ? baseFigurineScale
-                        : DEFAULT_FIGURINE_GRID_SQUARES;
+                const figurineScale = Number.isFinite(imageFootprint)
+                  ? imageFootprint
+                  : Number.isFinite(baseFigurineScale)
+                    ? baseFigurineScale
+                    : DEFAULT_FIGURINE_GRID_SQUARES;
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
@@ -1411,6 +1408,9 @@ const CampaignMapBoard = ({
                   ? storedHandleAngle
                   : fallbackHandleAngle;
                 const rotationHandleStyleValue = `${effectiveHandleAngle}deg`;
+                const shouldScaleUpFigurineImage =
+                  typeof figurineImageUrl === 'string' &&
+                  figurineImageUrl.toLowerCase().includes('scale300_');
                 const isRotationActive = lastDraggedTokenId === characterId;
                 const isRotationDragging = draggingRotationTokenId === characterId;
 
@@ -1531,7 +1531,11 @@ const CampaignMapBoard = ({
                               <img
                                 src={figurineImageUrl}
                                 alt=""
-                                className={figurineImageUrl.includes("Scale300_01") ?"campaign-map-board__figurine-image__scale-up":"campaign-map-board__figurine-image"}
+                                className={classNames(
+                                  'campaign-map-board__figurine-image',
+                                  shouldScaleUpFigurineImage &&
+                                    'campaign-map-board__figurine-image__scale-up'
+                                )}
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
                                 onLoad={(event) =>
