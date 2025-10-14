@@ -332,6 +332,25 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(figurineImage?.getAttribute('alt')).toBe('');
   });
 
+  it('forces figurine image scale when public id indicates Scale300_01 asset', () => {
+    const { container } = renderBoard({
+      token: {
+        figurineImageUrl: 'https://example.com/figurines/special.png',
+        figurineImagePublicId: ' Figurines/SCALE300_01 ',
+      },
+    });
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    const inlineStyle = figurineImage?.getAttribute('style') ?? '';
+    const scaleProperty = figurineImage?.style?.scale ?? '';
+    expect(inlineStyle.includes('scale: 3') || scaleProperty === '3').toBe(true);
+  });
+
   it('keeps enemy figurine scale aligned with their size category', () => {
     const { container } = renderBoard({
       token: {
