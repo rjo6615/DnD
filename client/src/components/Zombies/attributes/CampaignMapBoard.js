@@ -431,9 +431,9 @@ const CampaignMapBoard = ({
   const [dragPositions, setDragPositions] = useState({});
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
   const [lastDraggedTokenId, setLastDraggedTokenId] = useState(null);
+  const [hoveredTokenId, setHoveredTokenId] = useState(null);
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
-  const [rotationHandleAngles, setRotationHandleAngles] = useState({});
   const [draggingRotationTokenId, setDraggingRotationTokenId] = useState(null);
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
@@ -626,24 +626,8 @@ const CampaignMapBoard = ({
       return next;
     });
 
-    setRotationHandleAngles((prev) => {
-      const next = {};
-      activeIds.forEach((id) => {
-        if (Object.prototype.hasOwnProperty.call(prev, id)) {
-          next[id] = prev[id];
-        }
-      });
-
-      const prevKeys = Object.keys(prev);
-      const nextKeys = Object.keys(next);
-      if (prevKeys.length === nextKeys.length && prevKeys.every((key) => next[key] === prev[key])) {
-        return prev;
-      }
-
-      return next;
-    });
-
     setLastDraggedTokenId((prev) => (prev && !activeIds.has(prev) ? null : prev));
+    setHoveredTokenId((prev) => (prev && !activeIds.has(prev) ? null : prev));
   }, [tokenPositions]);
 
   const resetDragState = useCallback(() => {
@@ -1036,6 +1020,10 @@ const CampaignMapBoard = ({
         return;
       }
 
+      if (typeof event?.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+
       const tokenElement = event.currentTarget?.closest('.campaign-map-board__token');
       if (!tokenElement) {
         return;
@@ -1049,34 +1037,23 @@ const CampaignMapBoard = ({
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
       const pointerAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
-      const pointerDegrees = normalizeDegrees(radiansToDegrees(pointerAngle));
       const normalizedCurrent = normalizeDegrees(currentRotation);
-      const currentRotationRadians = degreesToRadians(normalizedCurrent);
-      const initialHandleAngle = normalizeDegrees(pointerDegrees + 90);
+      const initialHandleAngle = normalizeDegrees(normalizedCurrent + 90);
 
       if (tokenElement.style && typeof tokenElement.style.setProperty === 'function') {
         tokenElement.style.setProperty('--figurine-rotation', `${normalizedCurrent}deg`);
         tokenElement.style.setProperty('--rotation-handle-angle', `${initialHandleAngle}deg`);
       }
 
-      setRotationHandleAngles((prev) => {
-        if (prev[tokenId] === initialHandleAngle) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          [tokenId]: initialHandleAngle,
-        };
-      });
-
       stopRotationDrag();
 
       setDraggingRotationTokenId(tokenId);
+      setHoveredTokenId(tokenId);
 
       rotationDragStateRef.current = {
         tokenId,
         pointerId: event.pointerId,
+        pointerType: event.pointerType || null,
         centerX,
         centerY,
         tokenElement,
@@ -1099,6 +1076,60 @@ const CampaignMapBoard = ({
           // Ignore capture errors – some browsers might throw if capture isn't supported
         }
       }
+
+      const handleRelease = (releaseEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          stopRotationDrag();
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          releaseEvent.pointerId !== undefined &&
+          releaseEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
+
+        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
+          ? pendingRotationDegrees
+          : Number.isFinite(baseRotationDegrees)
+            ? baseRotationDegrees
+            : normalizedCurrent;
+
+        applyTokenRotation(tokenId, rotationToCommit);
+
+        if (dragState.tokenElement && typeof dragState.tokenElement.getBoundingClientRect === 'function') {
+          const rect = dragState.tokenElement.getBoundingClientRect();
+          if (
+            rect &&
+            Number.isFinite(rect.left) &&
+            Number.isFinite(rect.top) &&
+            Number.isFinite(rect.right) &&
+            Number.isFinite(rect.bottom)
+          ) {
+            const isPointerInside =
+              releaseEvent.clientX >= rect.left &&
+              releaseEvent.clientX <= rect.right &&
+              releaseEvent.clientY >= rect.top &&
+              releaseEvent.clientY <= rect.bottom;
+
+            setHoveredTokenId((prev) => {
+              if (isPointerInside) {
+                return tokenId;
+              }
+              return prev === tokenId ? null : prev;
+            });
+          }
+        }
+
+        releaseEvent.preventDefault();
+        releaseEvent.stopPropagation();
+        stopRotationDrag();
+      };
 
       const handleMove = (moveEvent) => {
         const dragState = rotationDragStateRef.current;
@@ -1156,7 +1187,7 @@ const CampaignMapBoard = ({
         const nextRotation = normalizeDegrees(
           baseRotationDegrees + radiansToDegrees(deltaRadians)
         );
-        const handleAngle = normalizeDegrees(radiansToDegrees(nextUnwrappedAngle) + 90);
+        const handleAngle = normalizeDegrees(nextRotation + 90);
 
         if (
           dragState.tokenElement &&
@@ -1167,50 +1198,9 @@ const CampaignMapBoard = ({
           dragState.tokenElement.style.setProperty('--rotation-handle-angle', `${handleAngle}deg`);
         }
 
-        setRotationHandleAngles((prev) => {
-          if (prev[tokenId] === handleAngle) {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            [tokenId]: handleAngle,
-          };
-        });
-
         dragState.pendingRotationDegrees = nextRotation;
 
         previewTokenRotation(tokenId, nextRotation);
-      };
-
-      const handleRelease = (releaseEvent) => {
-        const dragState = rotationDragStateRef.current;
-        if (!dragState || dragState.tokenId !== tokenId) {
-          stopRotationDrag();
-          return;
-        }
-
-        if (
-          dragState.pointerId !== undefined &&
-          releaseEvent.pointerId !== undefined &&
-          releaseEvent.pointerId !== dragState.pointerId
-        ) {
-          return;
-        }
-
-        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
-
-        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
-          ? pendingRotationDegrees
-          : Number.isFinite(baseRotationDegrees)
-            ? baseRotationDegrees
-            : normalizedCurrent;
-
-        applyTokenRotation(tokenId, rotationToCommit);
-
-        releaseEvent.preventDefault();
-        releaseEvent.stopPropagation();
-        stopRotationDrag();
       };
 
       const handleCancel = (cancelEvent) => {
@@ -1228,6 +1218,7 @@ const CampaignMapBoard = ({
           previewTokenRotation(tokenId, dragState.baseRotationDegrees);
         }
 
+        setHoveredTokenId((prev) => (prev === tokenId ? null : prev));
         stopRotationDrag();
       };
 
@@ -1261,6 +1252,7 @@ const CampaignMapBoard = ({
       interactionDisabled,
       previewTokenRotation,
       setDraggingRotationTokenId,
+      setHoveredTokenId,
       stopRotationDrag,
     ]
   );
@@ -1405,14 +1397,11 @@ const CampaignMapBoard = ({
                   : 0;
                 const rotationDisplay = Math.round(rotationValue * 10) / 10;
                 const rotationStyleValue = `${rotationValue}deg`;
-                const storedHandleAngle = rotationHandleAngles[characterId];
-                const fallbackHandleAngle = normalizeDegrees(rotationValue + 90);
-                const effectiveHandleAngle = Number.isFinite(storedHandleAngle)
-                  ? storedHandleAngle
-                  : fallbackHandleAngle;
-                const rotationHandleStyleValue = `${effectiveHandleAngle}deg`;
+                const rotationHandleStyleValue = `${normalizeDegrees(rotationValue + 90)}deg`;
                 const isRotationActive = lastDraggedTokenId === characterId;
+                const isRotationHovered = hoveredTokenId === characterId;
                 const isRotationDragging = draggingRotationTokenId === characterId;
+                const isRotationVisible = isRotationHovered || isRotationDragging;
 
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
@@ -1460,6 +1449,27 @@ const CampaignMapBoard = ({
                         prev === characterId ? null : prev
                       );
                       handlePointerCancel(event);
+                    }}
+                    onPointerOver={() => {
+                      if (!interactionDisabled && characterId) {
+                        setHoveredTokenId(characterId);
+                      }
+                    }}
+                    onPointerEnter={() => {
+                      if (!interactionDisabled && characterId) {
+                        setHoveredTokenId(characterId);
+                      }
+                    }}
+                    onPointerLeave={(event) => {
+                      if (
+                        draggingRotationTokenId === characterId ||
+                        (event?.relatedTarget &&
+                          event.currentTarget &&
+                          event.currentTarget.contains(event.relatedTarget))
+                      ) {
+                        return;
+                      }
+                      setHoveredTokenId((prev) => (prev === characterId ? null : prev));
                     }}
                     onContextMenu={(event) => {
                       event.preventDefault();
@@ -1551,13 +1561,21 @@ const CampaignMapBoard = ({
                         </div>
                       </div>
                     </div>
-                    {isRotationActive && (
+                    {isRotationVisible && (
                       <div
                         className="campaign-map-board__rotation-controls"
                         style={{ '--rotation-handle-angle': rotationHandleStyleValue }}
                         onPointerDown={(event) => event.stopPropagation()}
-                        onPointerMove={(event) => event.stopPropagation()}
-                        onPointerUp={(event) => event.stopPropagation()}
+                        onPointerMove={(event) => {
+                          if (!isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onPointerUp={(event) => {
+                          if (!isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
                       >
                         <div className="campaign-map-board__rotation-handle-track">
                           <button
