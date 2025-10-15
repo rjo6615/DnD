@@ -431,6 +431,7 @@ const CampaignMapBoard = ({
   const [dragPositions, setDragPositions] = useState({});
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
   const [lastDraggedTokenId, setLastDraggedTokenId] = useState(null);
+  const [hoveredTokenId, setHoveredTokenId] = useState(null);
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
   const [rotationHandleAngles, setRotationHandleAngles] = useState({});
@@ -644,6 +645,7 @@ const CampaignMapBoard = ({
     });
 
     setLastDraggedTokenId((prev) => (prev && !activeIds.has(prev) ? null : prev));
+    setHoveredTokenId((prev) => (prev && !activeIds.has(prev) ? null : prev));
   }, [tokenPositions]);
 
   const resetDragState = useCallback(() => {
@@ -1073,10 +1075,12 @@ const CampaignMapBoard = ({
       stopRotationDrag();
 
       setDraggingRotationTokenId(tokenId);
+      setHoveredTokenId(tokenId);
 
       rotationDragStateRef.current = {
         tokenId,
         pointerId: event.pointerId,
+        pointerType: event.pointerType || null,
         centerX,
         centerY,
         tokenElement,
@@ -1099,6 +1103,60 @@ const CampaignMapBoard = ({
           // Ignore capture errors – some browsers might throw if capture isn't supported
         }
       }
+
+      const handleRelease = (releaseEvent) => {
+        const dragState = rotationDragStateRef.current;
+        if (!dragState || dragState.tokenId !== tokenId) {
+          stopRotationDrag();
+          return;
+        }
+
+        if (
+          dragState.pointerId !== undefined &&
+          releaseEvent.pointerId !== undefined &&
+          releaseEvent.pointerId !== dragState.pointerId
+        ) {
+          return;
+        }
+
+        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
+
+        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
+          ? pendingRotationDegrees
+          : Number.isFinite(baseRotationDegrees)
+            ? baseRotationDegrees
+            : normalizedCurrent;
+
+        applyTokenRotation(tokenId, rotationToCommit);
+
+        if (dragState.tokenElement && typeof dragState.tokenElement.getBoundingClientRect === 'function') {
+          const rect = dragState.tokenElement.getBoundingClientRect();
+          if (
+            rect &&
+            Number.isFinite(rect.left) &&
+            Number.isFinite(rect.top) &&
+            Number.isFinite(rect.right) &&
+            Number.isFinite(rect.bottom)
+          ) {
+            const isPointerInside =
+              releaseEvent.clientX >= rect.left &&
+              releaseEvent.clientX <= rect.right &&
+              releaseEvent.clientY >= rect.top &&
+              releaseEvent.clientY <= rect.bottom;
+
+            setHoveredTokenId((prev) => {
+              if (isPointerInside) {
+                return tokenId;
+              }
+              return prev === tokenId ? null : prev;
+            });
+          }
+        }
+
+        releaseEvent.preventDefault();
+        releaseEvent.stopPropagation();
+        stopRotationDrag();
+      };
 
       const handleMove = (moveEvent) => {
         const dragState = rotationDragStateRef.current;
@@ -1183,36 +1241,6 @@ const CampaignMapBoard = ({
         previewTokenRotation(tokenId, nextRotation);
       };
 
-      const handleRelease = (releaseEvent) => {
-        const dragState = rotationDragStateRef.current;
-        if (!dragState || dragState.tokenId !== tokenId) {
-          stopRotationDrag();
-          return;
-        }
-
-        if (
-          dragState.pointerId !== undefined &&
-          releaseEvent.pointerId !== undefined &&
-          releaseEvent.pointerId !== dragState.pointerId
-        ) {
-          return;
-        }
-
-        const { pendingRotationDegrees, baseRotationDegrees } = dragState;
-
-        const rotationToCommit = Number.isFinite(pendingRotationDegrees)
-          ? pendingRotationDegrees
-          : Number.isFinite(baseRotationDegrees)
-            ? baseRotationDegrees
-            : normalizedCurrent;
-
-        applyTokenRotation(tokenId, rotationToCommit);
-
-        releaseEvent.preventDefault();
-        releaseEvent.stopPropagation();
-        stopRotationDrag();
-      };
-
       const handleCancel = (cancelEvent) => {
         const dragState = rotationDragStateRef.current;
         if (
@@ -1228,6 +1256,7 @@ const CampaignMapBoard = ({
           previewTokenRotation(tokenId, dragState.baseRotationDegrees);
         }
 
+        setHoveredTokenId((prev) => (prev === tokenId ? null : prev));
         stopRotationDrag();
       };
 
@@ -1261,6 +1290,7 @@ const CampaignMapBoard = ({
       interactionDisabled,
       previewTokenRotation,
       setDraggingRotationTokenId,
+      setHoveredTokenId,
       stopRotationDrag,
     ]
   );
@@ -1412,7 +1442,9 @@ const CampaignMapBoard = ({
                   : fallbackHandleAngle;
                 const rotationHandleStyleValue = `${effectiveHandleAngle}deg`;
                 const isRotationActive = lastDraggedTokenId === characterId;
+                const isRotationHovered = hoveredTokenId === characterId;
                 const isRotationDragging = draggingRotationTokenId === characterId;
+                const isRotationVisible = isRotationHovered || isRotationDragging;
 
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
@@ -1460,6 +1492,27 @@ const CampaignMapBoard = ({
                         prev === characterId ? null : prev
                       );
                       handlePointerCancel(event);
+                    }}
+                    onPointerOver={() => {
+                      if (!interactionDisabled && characterId) {
+                        setHoveredTokenId(characterId);
+                      }
+                    }}
+                    onPointerEnter={() => {
+                      if (!interactionDisabled && characterId) {
+                        setHoveredTokenId(characterId);
+                      }
+                    }}
+                    onPointerLeave={(event) => {
+                      if (
+                        draggingRotationTokenId === characterId ||
+                        (event?.relatedTarget &&
+                          event.currentTarget &&
+                          event.currentTarget.contains(event.relatedTarget))
+                      ) {
+                        return;
+                      }
+                      setHoveredTokenId((prev) => (prev === characterId ? null : prev));
                     }}
                     onContextMenu={(event) => {
                       event.preventDefault();
@@ -1551,7 +1604,7 @@ const CampaignMapBoard = ({
                         </div>
                       </div>
                     </div>
-                    {isRotationActive && (
+                    {isRotationVisible && (
                       <div
                         className="campaign-map-board__rotation-controls"
                         style={{ '--rotation-handle-angle': rotationHandleStyleValue }}
