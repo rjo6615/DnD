@@ -239,6 +239,18 @@ describe('CampaignMapBoard pointer interactions', () => {
       expect(latestToken).toHaveClass('lastDragged');
     });
 
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    if (tokenElement) {
+      const pointerOverEvent = createEvent.pointerOver(tokenElement, {
+        pointerId: 3,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(tokenElement, pointerOverEvent);
+    }
+
     const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
     expect(rotationHandle).not.toBeNull();
 
@@ -263,25 +275,70 @@ describe('CampaignMapBoard pointer interactions', () => {
     });
     Object.defineProperty(pointerDownHandle, 'clientX', { value: 180 });
     Object.defineProperty(pointerDownHandle, 'clientY', { value: 140 });
+    Object.defineProperty(pointerDownHandle, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerDownHandle, 'buttons', { value: 1, configurable: true });
     fireEvent(rotationHandle, pointerDownHandle);
 
-    const pointerMoveHandle = createEvent.pointerMove(document.body, {
+    const pointerUpWithoutDrag = createEvent.pointerUp(document.body, {
       pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerUpWithoutDrag, 'clientX', { value: 120 });
+    Object.defineProperty(pointerUpWithoutDrag, 'clientY', { value: 180 });
+    Object.defineProperty(pointerUpWithoutDrag, 'pointerType', { value: 'mouse' });
+    fireEvent(document.body, pointerUpWithoutDrag);
+
+    const pointerMoveAfterRelease = createEvent.pointerMove(document.body, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+      buttons: 0,
+    });
+    Object.defineProperty(pointerMoveAfterRelease, 'clientX', { value: 120 });
+    Object.defineProperty(pointerMoveAfterRelease, 'clientY', { value: 180 });
+    Object.defineProperty(pointerMoveAfterRelease, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerMoveAfterRelease, 'buttons', { value: 0, configurable: true });
+    fireEvent(document.body, pointerMoveAfterRelease);
+
+    await waitFor(() => {
+      const latestToken = container.querySelector('[data-token-id="char-1"]');
+      expect(latestToken).not.toBeNull();
+      expect(Number(latestToken?.getAttribute('data-rotation'))).toBeCloseTo(0, 3);
+    });
+
+    const pointerDownHandleActive = createEvent.pointerDown(rotationHandle, {
+      button: 0,
+      pointerId: 4,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerDownHandleActive, 'clientX', { value: 180 });
+    Object.defineProperty(pointerDownHandleActive, 'clientY', { value: 140 });
+    Object.defineProperty(pointerDownHandleActive, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerDownHandleActive, 'buttons', { value: 1, configurable: true });
+    fireEvent(rotationHandle, pointerDownHandleActive);
+
+    const pointerMoveHandle = createEvent.pointerMove(document.body, {
+      pointerId: 4,
       bubbles: true,
       cancelable: true,
       buttons: 1,
     });
     Object.defineProperty(pointerMoveHandle, 'clientX', { value: 140 });
     Object.defineProperty(pointerMoveHandle, 'clientY', { value: 180 });
+    Object.defineProperty(pointerMoveHandle, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerMoveHandle, 'buttons', { value: 1, configurable: true });
     fireEvent(document.body, pointerMoveHandle);
 
     const pointerUpHandle = createEvent.pointerUp(document.body, {
-      pointerId: 2,
+      pointerId: 4,
       bubbles: true,
       cancelable: true,
     });
     Object.defineProperty(pointerUpHandle, 'clientX', { value: 140 });
     Object.defineProperty(pointerUpHandle, 'clientY', { value: 180 });
+    Object.defineProperty(pointerUpHandle, 'pointerType', { value: 'mouse' });
     fireEvent(document.body, pointerUpHandle);
 
     expect(onTokenPositionChange).toHaveBeenCalledWith(
