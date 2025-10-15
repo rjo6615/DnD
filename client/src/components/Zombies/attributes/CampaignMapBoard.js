@@ -1605,10 +1605,45 @@ const CampaignMapBoard = ({
                               setLastDraggedTokenId((prev) => (prev === characterId ? null : prev))
                             }
                           >
-                            <span
+                            <svg
                               aria-hidden="true"
                               className="campaign-map-board__rotation-handle-icon"
-                            />
+                              viewBox="0 0 48 48"
+                              focusable="false"
+                            >
+                              <path
+                                d="M24 8A16 16 0 1 0 36.5 12.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M36.5 12.5H45V21"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M45 12.5 38 19.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M45 12.5 38 5.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
                           </button>
                         </div>
                       </div>

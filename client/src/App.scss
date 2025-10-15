@@ -3049,10 +3049,10 @@ h1 {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: calc(var(--figurine-base-size) * 1.9);
-    height: calc(var(--figurine-base-size) * 1.9);
-    margin-left: calc(var(--figurine-base-size) * -0.95);
-    margin-top: calc(var(--figurine-base-size) * -0.95);
+    width: calc(var(--figurine-base-size) * 1.35);
+    height: calc(var(--figurine-base-size) * 1.35);
+    margin-left: calc(var(--figurine-base-size) * -0.675);
+    margin-top: calc(var(--figurine-base-size) * -0.675);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3089,9 +3089,9 @@ h1 {
 
   &__rotation-handle {
     position: absolute;
-    top: 25%;
-    left: 75%;
-    transform: translate(-50%, calc(var(--figurine-base-size) * -0.08)) scale(1);
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
     transform-origin: 50% 50%;
     background: rgba(51, 154, 240, 0.25);
     border: 1px solid rgba(51, 154, 240, 0.6);
@@ -3115,42 +3115,23 @@ h1 {
     outline-offset: 3px;
     background: rgba(51, 154, 240, 0.35);
     border-color: rgba(102, 187, 255, 0.8);
-    transform: translate(-50%, calc(var(--figurine-base-size) * -0.08)) scale(1.05);
+    transform: translate(-50%, -50%) scale(1.05);
   }
 
   &__rotation-handle:hover {
     background: rgba(51, 154, 240, 0.35);
     border-color: rgba(102, 187, 255, 0.8);
-    transform: translate(-50%, calc(var(--figurine-base-size) * -0.08)) scale(1.05);
+    transform: translate(-50%, -50%) scale(1.05);
   }
 
   &__rotation-handle:active {
     cursor: grabbing;
-    transform: translate(-50%, calc(var(--figurine-base-size) * -0.08)) scale(0.97);
+    transform: translate(-50%, -50%) scale(0.97);
   }
 
   &__rotation-handle-icon {
-    width: 58%;
-    height: 58%;
-    border: 1.75px solid currentColor;
-    border-right-color: transparent;
-    border-bottom-color: transparent;
-    border-radius: 50%;
-    transform: rotate(-35deg);
-    position: relative;
-    display: inline-block;
-  }
-
-  &__rotation-handle-icon::after {
-    content: "";
-    position: absolute;
-    top: -0.05rem;
-    right: -0.1rem;
-    width: 0.4rem;
-    height: 0.4rem;
-    border-top: 1.75px solid currentColor;
-    border-right: 1.75px solid currentColor;
-    transform: rotate(35deg);
+    width: 62%;
+    height: 62%;
   }
 
   &__figurine-image-wrapper {
