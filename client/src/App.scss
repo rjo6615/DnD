@@ -2864,6 +2864,9 @@ h1 {
     --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
     --figurine-rotation: 0deg;
     --figurine-rotation-origin-y: calc(var(--figurine-base-size) * 0.65);
+    --figurine-rotation-origin-y-token: calc(
+      var(--figurine-rotation-origin-y) + var(--figurine-base-size) * 0.45
+    );
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
@@ -3049,7 +3052,7 @@ h1 {
   &__rotation-controls {
     position: absolute;
     left: 50%;
-    top: var(--figurine-rotation-origin-y);
+    top: var(--figurine-rotation-origin-y-token);
     width: calc(var(--figurine-base-size) * 1.35);
     height: calc(var(--figurine-base-size) * 1.35);
     transform: translate(-50%, -50%);
