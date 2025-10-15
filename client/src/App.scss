@@ -3089,16 +3089,16 @@ h1 {
 
   &__rotation-handle {
     position: absolute;
-    top: 0;
-    left: 50%;
+    top: 25%;
+    left: 75%;
     transform: translate(-50%, calc(var(--figurine-base-size) * -0.08)) scale(1);
     transform-origin: 50% 50%;
     background: rgba(51, 154, 240, 0.25);
     border: 1px solid rgba(51, 154, 240, 0.6);
     color: #f8f9fa;
     border-radius: 50%;
-    width: clamp(1.65rem, calc(var(--figurine-base-size) * 0.55), 2.25rem);
-    height: clamp(1.65rem, calc(var(--figurine-base-size) * 0.55), 2.25rem);
+    width: clamp(1rem, calc(var(--figurine-base-size) * 0.55), 2.25rem);
+    height: clamp(1rem, calc(var(--figurine-base-size) * 0.55), 2.25rem);
     display: inline-flex;
     align-items: center;
     justify-content: center;
