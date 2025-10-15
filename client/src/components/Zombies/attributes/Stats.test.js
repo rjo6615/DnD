@@ -135,3 +135,59 @@ test('stat overrides do not lower higher native scores', async () => {
   expect(screen.queryByText('Override')).not.toBeInTheDocument();
   expect(totalLabel.nextElementSibling).toHaveTextContent('22');
 });
+
+test('rolling a stat dispatches a roll event and closes the modal when undocked', async () => {
+  const form = {
+    str: 14,
+    dex: 0,
+    con: 0,
+    int: 0,
+    wis: 0,
+    cha: 0,
+    race: { abilities: {} },
+    feat: [],
+    item: [],
+    occupation: [],
+  };
+
+  const handleCloseStats = jest.fn();
+  const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
+
+  render(
+    <Stats
+      form={form}
+      showStats={true}
+      handleCloseStats={handleCloseStats}
+      isDocked={false}
+    />
+  );
+
+  const strengthKey = screen.getByText('STR');
+  const strengthCard = strengthKey.closest('.stat-card');
+  expect(strengthCard).not.toBeNull();
+
+  try {
+    await act(async () => {
+      await userEvent.click(
+        within(strengthCard).getByRole('button', { name: /Roll Strength check/i })
+      );
+    });
+
+    const rollEventCall = dispatchSpy.mock.calls.find(
+      ([event]) => event?.type === 'damage-roll'
+    );
+    expect(rollEventCall).toBeDefined();
+    const [rollEvent] = rollEventCall || [];
+    expect(rollEvent.detail).toMatchObject({
+      value: 18,
+      source: 'Strength',
+      critical: false,
+      fumble: false,
+    });
+    expect(handleCloseStats).toHaveBeenCalled();
+  } finally {
+    randomSpy.mockRestore();
+    dispatchSpy.mockRestore();
+  }
+});
