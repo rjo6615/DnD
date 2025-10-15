@@ -3049,10 +3049,10 @@ h1 {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: calc(var(--figurine-base-size) * 1.9);
-    height: calc(var(--figurine-base-size) * 1.9);
-    margin-left: calc(var(--figurine-base-size) * -0.95);
-    margin-top: calc(var(--figurine-base-size) * -0.95);
+    width: calc(var(--figurine-base-size) * 1.35);
+    height: calc(var(--figurine-base-size) * 1.35);
+    margin-left: calc(var(--figurine-base-size) * -0.675);
+    margin-top: calc(var(--figurine-base-size) * -0.675);
     display: flex;
     align-items: center;
     justify-content: center;

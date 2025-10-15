@@ -1611,40 +1611,37 @@ const CampaignMapBoard = ({
                               viewBox="0 0 48 48"
                               focusable="false"
                             >
-                              <circle
-                                cx="24"
-                                cy="24"
-                                r="18"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeDasharray="90 32"
-                                strokeDashoffset="12"
-                              />
                               <path
-                                d="M29.5 11.5c4.4-4.4 10.2-6.7 16.3-6.7"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                              />
-                              <polyline
-                                points="34 4 44 4 44 14"
+                                d="M24 8A16 16 0 1 0 36.5 12.5"
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="3"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               />
-                              <line
-                                x1="44"
-                                y1="4"
-                                x2="33"
-                                y2="15"
+                              <path
+                                d="M36.5 12.5H45V21"
+                                fill="none"
                                 stroke="currentColor"
                                 strokeWidth="3"
                                 strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M45 12.5 38 19.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M45 12.5 38 5.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                               />
                             </svg>
                           </button>
