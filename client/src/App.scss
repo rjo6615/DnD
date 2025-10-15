@@ -2926,7 +2926,7 @@ h1 {
     align-items: center;
     justify-content: flex-end;
     transform: rotate(var(--figurine-rotation, 0deg));
-    transform-origin: 50% calc(var(--figurine-base-size) * 0.75);
+    transform-origin: 50% calc(var(--figurine-base-size) * 0.65);
     transition: transform 0.2s ease;
   }
 
