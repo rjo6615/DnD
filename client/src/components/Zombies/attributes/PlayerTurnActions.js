@@ -14,6 +14,7 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
+import { rollSkill } from './Skills';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -737,6 +738,27 @@ const [isFumble, setIsFumble] = useState(false);
     return formatDamageSegments(damageString, ability);
   };
 
+  const getWeaponDisplayName = (slot, weapon) => {
+    if (weapon?.name && typeof weapon.name === 'string') {
+      const trimmed = weapon.name.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+
+    if (typeof slot === 'string') {
+      const normalized = slot
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/[_-]+/g, ' ')
+        .trim();
+      if (normalized) {
+        return toTitleCase(normalized);
+      }
+    }
+
+    return 'Attack';
+  };
+
   const handleWeaponAttack = (slot, weapon) => {
     const ability = abilityForWeapon(weapon, slot);
     const damageString = getDamageStringForHandSelection(slot, weapon);
@@ -747,6 +769,26 @@ const [isFumble, setIsFumble] = useState(false);
       result.total,
       result.breakdown,
       weapon.name
+    );
+  };
+
+  const handleWeaponAttackRoll = (slot, weapon) => {
+    const rawBonus = Number(getAttackBonus(slot, weapon));
+    const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
+    const { result, d20 } = rollSkill(bonus);
+    const weaponLabel = getWeaponDisplayName(slot, weapon);
+    const breakdown = `${d20} (d20) + ${bonus} Attack Bonus`;
+
+    window.dispatchEvent(
+      new CustomEvent('damage-roll', {
+        detail: {
+          value: result,
+          breakdown,
+          source: `${weaponLabel} Attack Roll`,
+          critical: d20 === 20,
+          fumble: d20 === 1,
+        },
+      })
     );
   };
 
@@ -1233,11 +1275,22 @@ useEffect(() => {
                       <div className="attack-card__actions">
                         <Button
                           onClick={() => {
+                            handleWeaponAttackRoll(slot, weapon);
+                            handleCloseAttack();
+                          }}
+                          variant="link"
+                          aria-label="Roll to hit"
+                          className="attack-card__roll"
+                        >
+                          <i className="fa-solid fa-bullseye"></i>
+                        </Button>
+                        <Button
+                          onClick={() => {
                             handleWeaponAttack(slot, weapon);
                             handleCloseAttack();
                           }}
                           variant="link"
-                          aria-label="roll"
+                          aria-label="Roll damage"
                           className="attack-card__roll"
                         >
                           <i className="fa-solid fa-dice-d20"></i>
@@ -1291,7 +1344,7 @@ useEffect(() => {
                           handleCloseAttack();
                         }}
                         variant="link"
-                        aria-label="roll"
+                        aria-label="Roll damage"
                         className="attack-card__roll"
                       >
                         <i className="fa-solid fa-dice-d20"></i>
@@ -1341,7 +1394,7 @@ useEffect(() => {
                               handleCloseAttack();
                             }}
                             variant="link"
-                            aria-label="roll"
+                            aria-label="Roll damage"
                             className="attack-card__roll"
                           >
                             <i className="fa-solid fa-dice-d20"></i>
@@ -1390,7 +1443,7 @@ useEffect(() => {
                             handleCloseAttack();
                           }}
                           variant="link"
-                          aria-label="roll"
+                          aria-label="Roll damage"
                           className="attack-card__roll"
                         >
                           <i className="fa-solid fa-dice-d20"></i>

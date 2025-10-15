@@ -334,7 +334,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       expect(fireBoltCard).not.toBeNull();
       if (!fireBoltCard) throw new Error('missing Fire Bolt card');
 
-      const rollButton = within(fireBoltCard).getByLabelText('roll');
+      const rollButton = within(fireBoltCard).getByLabelText(/Roll damage/i);
       await act(async () => {
         fireEvent.click(rollButton);
       });
@@ -346,6 +346,55 @@ describe('PlayerTurnActions weapon damage display', () => {
         if (!/^\d+$/.test(text) || text === '0') {
           throw new Error('waiting');
         }
+      });
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  test('weapon attack roll adds attack bonus to d20 result', async () => {
+    const weapon = {
+      name: 'Longsword',
+      damage: '1d8 slashing',
+      category: 'martial melee weapon',
+      source: 'weapon',
+      attackBonus: 1,
+    };
+    const originalRandom = Math.random;
+    Math.random = () => 0.4;
+
+    try {
+      render(
+        <PlayerTurnActions
+          form={{
+            diceColor: '#000000',
+            equipment: { mainHand: weapon },
+            spells: [],
+            proficiencyBonus: 3,
+          }}
+          strMod={2}
+          dexMod={0}
+        />
+      );
+
+      act(() => {
+        fireEvent.click(screen.getByTitle('Attack'));
+      });
+
+      const card = screen.getByText('Longsword').closest('.attack-card');
+      expect(card).not.toBeNull();
+      if (!card) throw new Error('missing Longsword card');
+
+      const toHitButton = within(card).getByLabelText(/Roll to hit/i);
+
+      await act(async () => {
+        fireEvent.click(toHitButton);
+      });
+
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value node');
+        expect(valueNode.textContent).toBe('15');
       });
     } finally {
       Math.random = originalRandom;
@@ -377,7 +426,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       });
       const card = screen.getByText('Healing Word').closest('.attack-card');
       expect(card).not.toBeNull();
-      const rollButton = within(card).getByLabelText('roll');
+      const rollButton = within(card).getByLabelText(/Roll damage/i);
       await act(async () => {
         fireEvent.click(rollButton);
       });
@@ -529,7 +578,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -575,7 +624,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -628,7 +677,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -675,7 +724,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -875,7 +924,7 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -917,7 +966,7 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -965,7 +1014,7 @@ describe('PlayerTurnActions spell casting', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1006,7 +1055,7 @@ describe('PlayerTurnActions spell casting', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1095,7 +1144,7 @@ describe('cantrip scaling', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
