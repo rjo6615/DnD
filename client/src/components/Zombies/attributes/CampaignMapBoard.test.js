@@ -279,17 +279,27 @@ describe('CampaignMapBoard pointer interactions', () => {
     Object.defineProperty(pointerDownHandle, 'buttons', { value: 1, configurable: true });
     fireEvent(rotationHandle, pointerDownHandle);
 
-    const pointerMoveNoButton = createEvent.pointerMove(document.body, {
+    const pointerUpWithoutDrag = createEvent.pointerUp(document.body, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerUpWithoutDrag, 'clientX', { value: 120 });
+    Object.defineProperty(pointerUpWithoutDrag, 'clientY', { value: 180 });
+    Object.defineProperty(pointerUpWithoutDrag, 'pointerType', { value: 'mouse' });
+    fireEvent(document.body, pointerUpWithoutDrag);
+
+    const pointerMoveAfterRelease = createEvent.pointerMove(document.body, {
       pointerId: 2,
       bubbles: true,
       cancelable: true,
       buttons: 0,
     });
-    Object.defineProperty(pointerMoveNoButton, 'clientX', { value: 120 });
-    Object.defineProperty(pointerMoveNoButton, 'clientY', { value: 180 });
-    Object.defineProperty(pointerMoveNoButton, 'pointerType', { value: 'mouse' });
-    Object.defineProperty(pointerMoveNoButton, 'buttons', { value: 0, configurable: true });
-    fireEvent(document.body, pointerMoveNoButton);
+    Object.defineProperty(pointerMoveAfterRelease, 'clientX', { value: 120 });
+    Object.defineProperty(pointerMoveAfterRelease, 'clientY', { value: 180 });
+    Object.defineProperty(pointerMoveAfterRelease, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerMoveAfterRelease, 'buttons', { value: 0, configurable: true });
+    fireEvent(document.body, pointerMoveAfterRelease);
 
     await waitFor(() => {
       const latestToken = container.querySelector('[data-token-id="char-1"]');
