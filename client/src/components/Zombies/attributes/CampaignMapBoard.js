@@ -1605,10 +1605,48 @@ const CampaignMapBoard = ({
                               setLastDraggedTokenId((prev) => (prev === characterId ? null : prev))
                             }
                           >
-                            <span
+                            <svg
                               aria-hidden="true"
                               className="campaign-map-board__rotation-handle-icon"
-                            />
+                              viewBox="0 0 48 48"
+                              focusable="false"
+                            >
+                              <circle
+                                cx="24"
+                                cy="24"
+                                r="18"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeDasharray="90 32"
+                                strokeDashoffset="12"
+                              />
+                              <path
+                                d="M29.5 11.5c4.4-4.4 10.2-6.7 16.3-6.7"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                              />
+                              <polyline
+                                points="34 4 44 4 44 14"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <line
+                                x1="44"
+                                y1="4"
+                                x2="33"
+                                y2="15"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                              />
+                            </svg>
                           </button>
                         </div>
                       </div>
