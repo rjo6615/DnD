@@ -2863,6 +2863,7 @@ h1 {
     --figurine-base-size: calc(var(--map-square-size) * var(--figurine-size-scale, 1));
     --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
     --figurine-rotation: 0deg;
+    --figurine-rotation-origin-y: calc(var(--figurine-base-size) * 0.65);
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
@@ -2926,7 +2927,7 @@ h1 {
     align-items: center;
     justify-content: flex-end;
     transform: rotate(var(--figurine-rotation, 0deg));
-    transform-origin: 50% calc(var(--figurine-base-size) * 0.65);
+    transform-origin: 50% var(--figurine-rotation-origin-y);
     transition: transform 0.2s ease;
   }
 
@@ -3048,11 +3049,10 @@ h1 {
   &__rotation-controls {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: var(--figurine-rotation-origin-y);
     width: calc(var(--figurine-base-size) * 1.35);
     height: calc(var(--figurine-base-size) * 1.35);
-    margin-left: calc(var(--figurine-base-size) * -0.675);
-    margin-top: calc(var(--figurine-base-size) * -0.675);
+    transform: translate(-50%, -50%);
     display: flex;
     align-items: center;
     justify-content: center;
