@@ -1628,8 +1628,16 @@ const CampaignMapBoard = ({
                         className="campaign-map-board__rotation-controls"
                         style={{ '--rotation-handle-angle': rotationHandleStyleValue }}
                         onPointerDown={(event) => event.stopPropagation()}
-                        onPointerMove={(event) => event.stopPropagation()}
-                        onPointerUp={(event) => event.stopPropagation()}
+                        onPointerMove={(event) => {
+                          if (!isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onPointerUp={(event) => {
+                          if (!isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
                       >
                         <div className="campaign-map-board__rotation-handle-track">
                           <button
