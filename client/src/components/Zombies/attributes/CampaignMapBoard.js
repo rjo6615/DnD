@@ -1145,6 +1145,17 @@ const CampaignMapBoard = ({
           return;
         }
 
+        const pointerType = dragState.pointerType;
+        if (
+          pointerType &&
+          (pointerType === 'mouse' || pointerType === 'pen') &&
+          typeof moveEvent.buttons === 'number' &&
+          (moveEvent.buttons & 1) === 0
+        ) {
+          handleRelease(moveEvent);
+          return;
+        }
+
         moveEvent.preventDefault();
         moveEvent.stopPropagation();
 
