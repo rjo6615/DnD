@@ -4,6 +4,7 @@ import DockControls from '../components/DockControls';
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
+import { rollSkill } from './Skills';
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
@@ -136,6 +137,31 @@ export default function Stats({
     setShowBreakdown(false);
   };
 
+  const handleRoll = useCallback(
+    (statKey) => {
+      const statMod = statMods[statKey] ?? 0;
+      const { result, d20 } = rollSkill(statMod);
+      const statInfo = STATS.find((stat) => stat.key === statKey);
+      const statLabel = statInfo?.label || statKey.toUpperCase();
+
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', {
+          detail: {
+            value: result,
+            source: statLabel,
+            critical: d20 === 20,
+            fumble: d20 === 1,
+          },
+        })
+      );
+
+      if (!isDocked) {
+        handleCloseStats?.();
+      }
+    },
+    [handleCloseStats, isDocked, statMods]
+  );
+
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
       return undefined;
@@ -199,14 +225,24 @@ export default function Stats({
                     <span className="stat-card-key">{key.toUpperCase()}</span>
                     {label && <span className="stat-card-label">{label}</span>}
                   </div>
-                  <Button
-                    onClick={() => handleView(key)}
-                    variant="link"
-                    aria-label={`View ${label || key} details`}
-                    className="stat-card-view"
-                  >
-                    <i className="fa-solid fa-eye"></i>
-                  </Button>
+                  <div className="stat-card-actions">
+                    <Button
+                      onClick={() => handleView(key)}
+                      variant="link"
+                      aria-label={`View ${label || key} details`}
+                      className="stat-card-view"
+                    >
+                      <i className="fa-solid fa-eye"></i>
+                    </Button>
+                    <Button
+                      onClick={() => handleRoll(key)}
+                      variant="link"
+                      aria-label={`Roll ${label || key} check`}
+                      className="stat-card-roll"
+                    >
+                      <i className="fa-solid fa-dice-d20"></i>
+                    </Button>
+                  </div>
                 </div>
                 <div className="stat-card-body">
                   <div className="stat-card-metric">
