@@ -1038,6 +1038,14 @@ const CampaignMapBoard = ({
         return;
       }
 
+      if (
+        (event?.pointerType === 'mouse' || event?.pointerType === 'pen') &&
+        typeof event.buttons === 'number' &&
+        (event.buttons & 1) === 0
+      ) {
+        return;
+      }
+
       const tokenElement = event.currentTarget?.closest('.campaign-map-board__token');
       if (!tokenElement) {
         return;
@@ -1169,6 +1177,17 @@ const CampaignMapBoard = ({
           moveEvent.pointerId !== undefined &&
           moveEvent.pointerId !== dragState.pointerId
         ) {
+          return;
+        }
+
+        const pointerType = dragState.pointerType;
+        if (
+          pointerType &&
+          (pointerType === 'mouse' || pointerType === 'pen') &&
+          typeof moveEvent.buttons === 'number' &&
+          (moveEvent.buttons & 1) === 0
+        ) {
+          handleRelease(moveEvent);
           return;
         }
 
