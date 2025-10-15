@@ -3085,7 +3085,6 @@ h1 {
   &__token.lastDragged &__rotation-controls,
   &__rotation-controls:focus-within {
     opacity: 1;
-    pointer-events: auto;
   }
 
   &__rotation-handle {
