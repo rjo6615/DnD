@@ -22,8 +22,33 @@ jest.mock('react-router-dom', () => ({
 
 const mockCharacterInfoProps = { current: null };
 jest.mock('../attributes/CharacterInfo', () => (props) => {
+  const React = require('react');
   mockCharacterInfoProps.current = props;
-  return null;
+  const {
+    handleOpenTokenPicker,
+    tokenPickerSaving,
+    characterFigurine,
+  } = props;
+
+  const hasSelection = Boolean(
+    characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
+  );
+  const label = tokenPickerSaving
+    ? 'Updating Figurine...'
+    : hasSelection
+    ? 'Change Figurine'
+    : 'Choose Figurine';
+
+  return (
+    <div>
+      {hasSelection && characterFigurine?.figurineImageUrl ? (
+        <img src={characterFigurine.figurineImageUrl} alt="Current figurine token" />
+      ) : null}
+      <button type="button" onClick={handleOpenTokenPicker} disabled={tokenPickerSaving}>
+        {label}
+      </button>
+    </div>
+  );
 });
 jest.mock('../attributes/Stats', () => () => null);
 const mockSkillsModalProps = { current: null };
@@ -2688,7 +2713,7 @@ test('allows selecting a figurine token through the token picker modal', async (
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2715,7 +2740,9 @@ test('allows selecting a figurine token through the token picker modal', async (
   await userEvent.click(openPickerButton);
 
   await waitFor(() => {
-    expect(apiFetch).toHaveBeenCalledWith(`/campaigns/${campaignId}/token-manifest`);
+    expect(apiFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/token-manifest`)
+    );
   });
 
   const heroTokenButton = await screen.findByRole('button', { name: /hero token/i });

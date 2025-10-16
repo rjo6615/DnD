@@ -1722,6 +1722,92 @@ export default function ZombiesCharacterSheet() {
     });
   }, [activeEffects, form]);
 
+  useEffect(() => {
+    const resolvedId = resolvedCharacterIdRef.current;
+    const normalizedId =
+      typeof resolvedId === 'string' && resolvedId.trim() !== '' ? resolvedId.trim() : null;
+
+    const normalizedSize =
+      typeof temporarySize === 'string' && temporarySize.trim() !== ''
+        ? temporarySize.trim()
+        : null;
+
+    const normalizedSpeed = (() => {
+      const numeric = Number(temporarySpeedBonus);
+      return Number.isFinite(numeric) ? numeric : null;
+    })();
+
+    const previous = previousTemporaryStateRef.current;
+
+    if (!normalizedId) {
+      previousTemporaryStateRef.current = {
+        characterId: null,
+        size: null,
+        speedBonus: null,
+        initialized: false,
+      };
+      return;
+    }
+
+    if (!previous.initialized || previous.characterId !== normalizedId) {
+      previousTemporaryStateRef.current = {
+        characterId: normalizedId,
+        size: normalizedSize,
+        speedBonus: normalizedSpeed,
+        initialized: true,
+      };
+      return;
+    }
+
+    const sizeChanged = previous.size !== normalizedSize;
+    const speedChanged = previous.speedBonus !== normalizedSpeed;
+
+    if (!sizeChanged && !speedChanged) {
+      return;
+    }
+
+    previousTemporaryStateRef.current = {
+      characterId: normalizedId,
+      size: normalizedSize,
+      speedBonus: normalizedSpeed,
+      initialized: true,
+    };
+
+    const payload = {};
+    if (sizeChanged) {
+      payload.temporarySize = normalizedSize;
+    }
+    if (speedChanged) {
+      payload.temporarySpeedBonus = normalizedSpeed;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+
+    const encodedId = encodeURIComponent(normalizedId);
+
+    (async () => {
+      try {
+        const response = await apiFetch(`/characters/${encodedId}/temporary-size`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response || !response.ok) {
+          const message = await parseErrorMessage(
+            response,
+            'Failed to update temporary size.'
+          );
+          throw new Error(message);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, [temporarySize, temporarySpeedBonus]);
+
   const consumeCircle = useCallback(
     (type, index) => {
       setUsedSlots((prev) => {
@@ -3367,9 +3453,21 @@ export default function ZombiesCharacterSheet() {
   }, [characterId, form]);
 
   const resolvedCharacterIdRef = useRef(resolvedCharacterId);
+  const previousTemporaryStateRef = useRef({
+    characterId: null,
+    size: null,
+    speedBonus: null,
+    initialized: false,
+  });
 
   useEffect(() => {
     resolvedCharacterIdRef.current = resolvedCharacterId;
+    previousTemporaryStateRef.current = {
+      characterId: null,
+      size: null,
+      speedBonus: null,
+      initialized: false,
+    };
   }, [resolvedCharacterId]);
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
@@ -3669,10 +3767,161 @@ export default function ZombiesCharacterSheet() {
           changed = true;
         }
 
+      return changed ? nextForm : prev;
+    });
+  },
+  [setCampaignCharacters, setForm]
+);
+
+  const updateLocalTemporaryState = useCallback(
+    (
+      incomingCharacterId,
+      {
+        hasSizeUpdate = false,
+        sizeValue,
+        hasSpeedUpdate = false,
+        speedValue,
+      } = {}
+    ) => {
+      const normalizedCharacterId =
+        typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
+          ? incomingCharacterId.trim()
+          : null;
+
+      if (!normalizedCharacterId) {
+        return;
+      }
+
+      const normalizedSize =
+        typeof sizeValue === 'string' && sizeValue.trim() !== '' ? sizeValue.trim() : null;
+      const normalizedSpeed = (() => {
+        if (!hasSpeedUpdate) {
+          return null;
+        }
+        const numeric = Number(speedValue);
+        return Number.isFinite(numeric) ? numeric : null;
+      })();
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object' || Object.keys(prev).length === 0) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const next = { ...prev };
+
+        Object.entries(prev).forEach(([key, value]) => {
+          if (!value || typeof value !== 'object') {
+            return;
+          }
+
+          const identifiers = new Set();
+          if (typeof key === 'string' && key.trim() !== '') {
+            identifiers.add(key.trim());
+          }
+          if (typeof value._id === 'string' && value._id.trim() !== '') {
+            identifiers.add(value._id.trim());
+          }
+          if (typeof value.characterId === 'string' && value.characterId.trim() !== '') {
+            identifiers.add(value.characterId.trim());
+          }
+
+          if (!identifiers.has(normalizedCharacterId)) {
+            return;
+          }
+
+          const nextValue = { ...value };
+          let changed = false;
+
+          if (hasSizeUpdate) {
+            if (normalizedSize) {
+              if (nextValue.temporarySize !== normalizedSize) {
+                nextValue.temporarySize = normalizedSize;
+                changed = true;
+              }
+            } else if (Object.prototype.hasOwnProperty.call(nextValue, 'temporarySize')) {
+              delete nextValue.temporarySize;
+              changed = true;
+            }
+          }
+
+          if (hasSpeedUpdate) {
+            if (normalizedSpeed !== null) {
+              if (nextValue.temporarySpeedBonus !== normalizedSpeed) {
+                nextValue.temporarySpeedBonus = normalizedSpeed;
+                changed = true;
+              }
+            } else if (
+              Object.prototype.hasOwnProperty.call(nextValue, 'temporarySpeedBonus')
+            ) {
+              delete nextValue.temporarySpeedBonus;
+              changed = true;
+            }
+          }
+
+          if (changed) {
+            next[key] = nextValue;
+            didUpdate = true;
+          }
+        });
+
+        return didUpdate ? next : prev;
+      });
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const identifiers = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          identifiers.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          identifiers.push(prev.characterId.trim());
+        }
+        const resolvedId = resolvedCharacterIdRef.current;
+        if (typeof resolvedId === 'string' && resolvedId.trim() !== '') {
+          identifiers.push(resolvedId.trim());
+        }
+
+        if (!identifiers.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        const nextForm = { ...prev };
+        let changed = false;
+
+        if (hasSizeUpdate) {
+          if (normalizedSize) {
+            if (nextForm.temporarySize !== normalizedSize) {
+              nextForm.temporarySize = normalizedSize;
+              changed = true;
+            }
+          } else if (Object.prototype.hasOwnProperty.call(nextForm, 'temporarySize')) {
+            delete nextForm.temporarySize;
+            changed = true;
+          }
+        }
+
+        if (hasSpeedUpdate) {
+          if (normalizedSpeed !== null) {
+            if (nextForm.temporarySpeedBonus !== normalizedSpeed) {
+              nextForm.temporarySpeedBonus = normalizedSpeed;
+              changed = true;
+            }
+          } else if (
+            Object.prototype.hasOwnProperty.call(nextForm, 'temporarySpeedBonus')
+          ) {
+            delete nextForm.temporarySpeedBonus;
+            changed = true;
+          }
+        }
+
         return changed ? nextForm : prev;
       });
     },
-    [setCampaignCharacters, setForm]
+    [resolvedCharacterIdRef, setCampaignCharacters, setForm]
   );
 
   useEffect(() => {
@@ -4002,8 +4251,22 @@ export default function ZombiesCharacterSheet() {
         update,
         'figurineImagePublicId'
       );
+      const hasTemporarySizeUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'temporarySize'
+      );
+      const hasTemporarySpeedUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'temporarySpeedBonus'
+      );
 
-      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
+      if (
+        !hasDiceColorUpdate &&
+        !hasFigurineUrlUpdate &&
+        !hasFigurineIdUpdate &&
+        !hasTemporarySizeUpdate &&
+        !hasTemporarySpeedUpdate
+      ) {
         return;
       }
 
@@ -4029,6 +4292,15 @@ export default function ZombiesCharacterSheet() {
             : null;
         updateLocalFigurineImage(normalizedCharacterId, normalizedUrl, normalizedPublicId);
       }
+
+      if (hasTemporarySizeUpdate || hasTemporarySpeedUpdate) {
+        updateLocalTemporaryState(normalizedCharacterId, {
+          hasSizeUpdate: hasTemporarySizeUpdate,
+          sizeValue: update.temporarySize,
+          hasSpeedUpdate: hasTemporarySpeedUpdate,
+          speedValue: update.temporarySpeedBonus,
+        });
+      }
     };
 
     socket.on('combat:update', handleCombatUpdate);
@@ -4048,7 +4320,13 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
+  }, [
+    campaignId,
+    applyMapPayload,
+    updateLocalDiceColor,
+    updateLocalFigurineImage,
+    updateLocalTemporaryState,
+  ]);
 
   const handleDiceColorChange = useCallback(
     (nextColor) => {
