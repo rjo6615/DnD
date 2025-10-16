@@ -59,7 +59,7 @@ const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
-const DIE_MODEL_SCALE = 20;
+const DIE_MODEL_SCALE = 12;
 const LIGHT_VECTOR = normalizeVector([0.35, 0.82, 1]);
 const dieGeometryCache = new Map();
 
@@ -1127,7 +1127,7 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     previousLeftPx = leftPx;
     const left = (leftPx / areaWidth) * 100;
     const rotation = (Math.random() - 0.5) * 40;
-    const dropDistance = 80 + Math.random() * 110;
+    const dropDistance = 60 + Math.random() * 70;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
     const initialTiltX = (Math.random() - 0.5) * 90;

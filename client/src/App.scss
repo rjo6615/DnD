@@ -1942,16 +1942,16 @@ $rotateX: -$angle;
 
 .damage-die {
   position: absolute;
-  top: -36px;
-  width: var(--die-size, 46px);
-  height: var(--die-size, 46px);
+  top: -28px;
+  width: var(--die-size, 36px);
+  height: var(--die-size, 36px);
   pointer-events: none;
   transform: translate(-50%, -120%);
   opacity: 0;
   --drop-delay: 0s;
   --drop-duration: 0.9s;
   --drop-rotation: 0deg;
-  --drop-distance: 60px;
+  --drop-distance: 48px;
   --initial-tilt-x: -26deg;
   --initial-tilt-y: 18deg;
   --initial-tilt-z: -18deg;
@@ -1961,12 +1961,12 @@ $rotateX: -$angle;
   --final-tilt-x: 22deg;
   --final-tilt-y: -16deg;
   --final-tilt-z: 24deg;
-  --start-depth: 108px;
-  --mid-depth: -28px;
+  --start-depth: 84px;
+  --mid-depth: -18px;
   --final-depth: 0px;
-  --die-perspective: 760px;
-  --die-model-scale: 40px;
-  --die-label-elevation: 26px;
+  --die-perspective: 620px;
+  --die-model-scale: 26px;
+  --die-label-elevation: 18px;
   --die-surface-color: #1f46cc;
   --die-edge-highlight: rgba(255, 255, 255, 0.24);
   --die-surface-shadow: rgba(0, 0, 0, 0.45);
@@ -1998,18 +1998,6 @@ $rotateX: -$angle;
   transform-style: preserve-3d;
   backface-visibility: hidden;
   overflow: visible;
-}
-
-.damage-die__face::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  clip-path: inherit;
-  background: linear-gradient(150deg, rgba(4, 11, 42, 0.85), rgba(18, 41, 122, 0.6));
-  transform: translateZ(calc(var(--die-depth) * -1)) rotateY(180deg);
-  opacity: 0.9;
-  pointer-events: none;
 }
 
 .damage-die__value-wrap {
