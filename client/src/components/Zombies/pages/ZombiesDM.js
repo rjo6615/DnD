@@ -2029,12 +2029,16 @@ export default function ZombiesDM() {
           return;
         }
 
-        const normalizedDiceColor =
-          typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
-            ? update.diceColor.trim()
-            : null;
+        const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'diceColor'
+        );
+        const hasTemporarySizeUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'temporarySize'
+        );
 
-        if (!normalizedDiceColor) {
+        if (!hasDiceColorUpdate && !hasTemporarySizeUpdate) {
           return;
         }
 
@@ -2061,15 +2065,61 @@ export default function ZombiesDM() {
               return record;
             }
 
-            if (
-              typeof record.diceColor === 'string' &&
-              record.diceColor.trim() === normalizedDiceColor
-            ) {
+            let updatedRecord = record;
+            let recordChanged = false;
+
+            if (hasDiceColorUpdate) {
+              const normalizedDiceColor =
+                typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+                  ? update.diceColor.trim()
+                  : null;
+
+              if (
+                normalizedDiceColor &&
+                (!record.diceColor || record.diceColor.trim() !== normalizedDiceColor)
+              ) {
+                updatedRecord = { ...updatedRecord, diceColor: normalizedDiceColor };
+                recordChanged = true;
+              }
+            }
+
+            if (hasTemporarySizeUpdate) {
+              const normalizedSize =
+                typeof update.temporarySize === 'string' && update.temporarySize.trim() !== ''
+                  ? update.temporarySize.trim()
+                  : null;
+              const currentSize =
+                typeof record.temporarySize === 'string' && record.temporarySize.trim() !== ''
+                  ? record.temporarySize.trim()
+                  : null;
+              const hasSizeProp = Object.prototype.hasOwnProperty.call(
+                record,
+                'temporarySize'
+              );
+
+              if (normalizedSize) {
+                if (currentSize !== normalizedSize) {
+                  if (updatedRecord === record) {
+                    updatedRecord = { ...record };
+                  }
+                  updatedRecord.temporarySize = normalizedSize;
+                  recordChanged = true;
+                }
+              } else if (hasSizeProp) {
+                if (updatedRecord === record) {
+                  updatedRecord = { ...record };
+                }
+                delete updatedRecord.temporarySize;
+                recordChanged = true;
+              }
+            }
+
+            if (!recordChanged) {
               return record;
             }
 
             didUpdate = true;
-            return { ...record, diceColor: normalizedDiceColor };
+            return updatedRecord;
           });
 
           return didUpdate ? next : prev;
@@ -2890,7 +2940,8 @@ export default function ZombiesDM() {
           );
 
           const recordSize = normalizeCreatureSize(
-            record.size ??
+            record.temporarySize ??
+              record.size ??
               record.characterSize ??
               record?.character?.size ??
               record?.creature?.size ??

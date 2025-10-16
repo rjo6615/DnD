@@ -630,6 +630,105 @@ module.exports = (router) => {
     }
   );
 
+  characterRouter.route('/:id/temporary-size').put(
+    [
+      body('temporarySize')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('temporarySize must be a string')
+        .trim(),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+
+      const db_connect = req.db;
+      const { temporarySize } = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
+
+      const updates = {};
+      const unset = {};
+
+      if (temporarySize !== undefined) {
+        const trimmedSize =
+          typeof temporarySize === 'string' ? temporarySize.trim() : '';
+        if (trimmedSize) {
+          updates.temporarySize = trimmedSize;
+        } else {
+          unset.temporarySize = '';
+        }
+      }
+
+      if (Object.keys(updates).length === 0 && Object.keys(unset).length === 0) {
+        return res.status(400).json({ message: 'No updates provided' });
+      }
+
+      const updateDoc = {};
+      if (Object.keys(updates).length > 0) {
+        updateDoc.$set = updates;
+      }
+      if (Object.keys(unset).length > 0) {
+        updateDoc.$unset = unset;
+      }
+
+      try {
+        const result = await db_connect.collection('Characters').findOneAndUpdate(
+          { _id: ObjectId(req.params.id) },
+          updateDoc,
+          { returnDocument: 'after' }
+        );
+
+        const updatedCharacter = result && result.value ? result.value : null;
+        if (!updatedCharacter) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+
+        const normalizedTemporarySize =
+          typeof updatedCharacter.temporarySize === 'string' &&
+          updatedCharacter.temporarySize.trim() !== ''
+            ? updatedCharacter.temporarySize.trim()
+            : null;
+
+        const rawCampaignId =
+          typeof updatedCharacter.campaign === 'string'
+            ? updatedCharacter.campaign
+            : typeof updatedCharacter.campaignId === 'string'
+              ? updatedCharacter.campaignId
+              : null;
+        const campaignId =
+          rawCampaignId && rawCampaignId.trim() !== '' ? rawCampaignId.trim() : null;
+        const characterId =
+          updatedCharacter._id && typeof updatedCharacter._id.toString === 'function'
+            ? updatedCharacter._id.toString()
+            : typeof updatedCharacter.characterId === 'string'
+              ? updatedCharacter.characterId
+              : null;
+
+        if (campaignId && characterId) {
+          emitCharacterMetadataUpdate(campaignId, {
+            characterId,
+            campaignId,
+            temporarySize: normalizedTemporarySize,
+          });
+        }
+
+        logger.info('Temporary size updated for character');
+
+        res.json({
+          campaignId,
+          characterId,
+          temporarySize: normalizedTemporarySize,
+        });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   characterRouter.route('/:id/figurine').put(
     [
       body('figurineImageUrl')
