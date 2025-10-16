@@ -1777,11 +1777,28 @@ $rotateX: -$angle;
 }
 
 @keyframes roll {
-  10% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) }
-  30% { transform: rotateX(120deg) rotateY(240deg) rotateZ(0deg) translateX(40px) translateY(40px) }
-  50% { transform: rotateX(240deg) rotateY(480deg) rotateZ(0deg) translateX(-40px) translateY(-40px) }
-  70% { transform: rotateX(360deg) rotateY(720deg) rotateZ(0deg) }
-  90% { transform: rotateX(480deg) rotateY(960deg) rotateZ(0deg) }
+  0% {
+    transform: rotateX($rotateX) rotateY(0deg) rotateZ(0deg);
+  }
+
+  25% {
+    transform: rotateX($rotateX + 120deg) rotateY(240deg) rotateZ(0deg)
+      translate3d(40px, 40px, 20px);
+  }
+
+  50% {
+    transform: rotateX($rotateX + 240deg) rotateY(480deg) rotateZ(0deg)
+      translate3d(-40px, -40px, -20px);
+  }
+
+  75% {
+    transform: rotateX($rotateX + 360deg) rotateY(720deg) rotateZ(0deg)
+      translate3d(20px, -30px, 10px);
+  }
+
+  100% {
+    transform: rotateX($rotateX + 480deg) rotateY(960deg) rotateZ(0deg);
+  }
 }
 
 @include dice-size(min(25vw, 120px));
@@ -1925,119 +1942,123 @@ $rotateX: -$angle;
 
 .damage-die {
   position: absolute;
-  top: -36px;
-  width: 42px;
-  height: 42px;
+  top: -28px;
+  width: var(--die-size, 36px);
+  height: var(--die-size, 36px);
   pointer-events: none;
   transform: translate(-50%, -120%);
   opacity: 0;
   --drop-delay: 0s;
   --drop-duration: 0.9s;
   --drop-rotation: 0deg;
-  --drop-distance: 60px;
-  --initial-tilt-x: 0deg;
-  --initial-tilt-y: 0deg;
-  --initial-tilt-z: 0deg;
-  --mid-tilt-x: 360deg;
-  --mid-tilt-y: 360deg;
-  --mid-tilt-z: 360deg;
-  --final-tilt-x: 0deg;
-  --final-tilt-y: 0deg;
-  --final-tilt-z: 0deg;
-  --damage-die-clip: polygon(12% 12%, 88% 12%, 100% 50%, 88% 88%, 12% 88%, 0% 50%);
+  --drop-distance: 48px;
+  --initial-tilt-x: -26deg;
+  --initial-tilt-y: 18deg;
+  --initial-tilt-z: -18deg;
+  --mid-tilt-x: 420deg;
+  --mid-tilt-y: 312deg;
+  --mid-tilt-z: 558deg;
+  --final-tilt-x: 22deg;
+  --final-tilt-y: -16deg;
+  --final-tilt-z: 24deg;
+  --start-depth: 84px;
+  --mid-depth: -18px;
+  --final-depth: 0px;
+  --die-perspective: 620px;
+  --die-model-scale: 26px;
+  --die-label-elevation: 18px;
+  --die-surface-color: #1f46cc;
+  --die-edge-highlight: rgba(255, 255, 255, 0.24);
+  --die-surface-shadow: rgba(0, 0, 0, 0.45);
   animation: damage-die-drop var(--drop-duration) ease-out forwards;
   animation-delay: var(--drop-delay);
   transform-style: preserve-3d;
+  perspective: var(--die-perspective);
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45));
 }
 
-.damage-die__face {
-  width: 100%;
-  height: 100%;
-  position: relative;
+.damage-die__mesh {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.damage-die__poly-face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--die-model-scale);
+  height: var(--die-model-scale);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.35)),
+    var(--die-surface-color);
+  border: 0 solid transparent;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25), 0 0 0.75px var(--die-edge-highlight);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transform-origin: 50% 50%;
+}
+
+.damage-die__value-wrap {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
-  background: linear-gradient(145deg, rgba(0, 76, 255, 0.65), rgba(0, 76, 255, 0.35));
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
-  clip-path: var(--damage-die-clip);
-  box-shadow:
-    inset 0 1px 8px rgba(255, 255, 255, 0.35),
-    0 4px 12px rgba(0, 0, 0, 0.35);
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-}
-
-.damage-die__face::after {
-  content: '';
-  position: absolute;
-  inset: 12%;
-  border-radius: inherit;
-  clip-path: inherit;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  transform: translateZ(var(--die-label-elevation));
   pointer-events: none;
-  opacity: 0.9;
 }
 
 .damage-die__value {
   font-size: 1.1rem;
   line-height: 1;
-  transform: translateZ(1px);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-.damage-die--d4 {
-  --damage-die-clip: polygon(50% 0%, 0% 100%, 100% 100%);
+.damage-die__face--flat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.55)),
+    var(--die-surface-color);
+  border: 1px solid var(--die-edge-highlight);
+  box-shadow:
+    inset 0 1px 12px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+  transform-style: preserve-3d;
 }
 
-.damage-die--d6 {
-  --damage-die-clip: polygon(12% 12%, 88% 12%, 88% 88%, 12% 88%);
-  border-radius: 10px;
+.damage-die--bonus {
+  --die-surface-color: #30b86f;
+  --die-edge-highlight: rgba(190, 255, 213, 0.5);
 }
 
-.damage-die--d8 {
-  --damage-die-clip: polygon(50% 0%, 82% 18%, 100% 50%, 82% 82%, 50% 100%, 18% 82%, 0% 50%, 18% 18%);
+.damage-die--critical {
+  --die-surface-color: #f2c100;
+  --die-edge-highlight: rgba(255, 246, 196, 0.7);
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.55));
 }
 
-.damage-die--d10 {
-  --damage-die-clip: polygon(50% 0%, 78% 6%, 96% 32%, 100% 50%, 96% 68%, 78% 94%, 50% 100%, 22% 94%, 4% 68%, 0% 50%, 4% 32%, 22% 6%);
-}
-
-.damage-die--d12 {
-  --damage-die-clip: polygon(35% 0%, 65% 0%, 88% 15%, 100% 38%, 100% 62%, 88% 85%, 65% 100%, 35% 100%, 12% 85%, 0% 62%, 0% 38%, 12% 15%);
-}
-
-.damage-die--d20 {
-  --damage-die-clip: polygon(50% 0%, 72% 6%, 88% 18%, 98% 34%, 100% 50%, 98% 66%, 88% 82%, 72% 94%, 50% 100%, 28% 94%, 12% 82%, 2% 66%, 0% 50%, 2% 34%, 12% 18%, 28% 6%);
-}
-
-.damage-die--generic {
-  border-radius: 50%;
-  --damage-die-clip: ellipse(50% 50% at 50% 50%);
-}
-
-.damage-die--bonus .damage-die__face {
-  background: rgba(46, 204, 113, 0.45);
-  border-color: rgba(46, 204, 113, 0.6);
-}
-
-.damage-die--critical .damage-die__face {
-  background: rgba(255, 215, 0, 0.45);
-  border-color: rgba(255, 215, 0, 0.8);
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
-}
-
-.damage-die--critical-bonus .damage-die__face {
-  background: rgba(255, 111, 0, 0.45);
-  border-color: rgba(255, 167, 38, 0.8);
-  box-shadow: 0 0 12px rgba(255, 167, 38, 0.55);
+.damage-die--critical-bonus {
+  --die-surface-color: #ff8a33;
+  --die-edge-highlight: rgba(255, 212, 162, 0.7);
+  filter: drop-shadow(0 0 12px rgba(255, 167, 38, 0.55));
 }
 
 @keyframes damage-die-drop {
   0% {
-    transform: translate(-50%, -140%) rotateX(var(--initial-tilt-x))
+    transform: perspective(var(--die-perspective))
+      translate3d(-50%, -140%, var(--start-depth))
+      rotateX(var(--initial-tilt-x))
       rotateY(var(--initial-tilt-y))
       rotateZ(calc(var(--initial-tilt-z) + var(--drop-rotation)));
     opacity: 0;
@@ -2046,13 +2067,15 @@ $rotateX: -$angle;
     opacity: 1;
   }
   55% {
-    transform: translate(-50%, calc(var(--drop-distance) * 0.35))
+    transform: perspective(var(--die-perspective))
+      translate3d(-50%, calc(var(--drop-distance) * 0.35), var(--mid-depth))
       rotateX(var(--mid-tilt-x))
       rotateY(var(--mid-tilt-y))
       rotateZ(var(--mid-tilt-z));
   }
   100% {
-    transform: translate(-50%, var(--drop-distance))
+    transform: perspective(var(--die-perspective))
+      translate3d(-50%, var(--drop-distance), var(--final-depth))
       rotateX(var(--final-tilt-x))
       rotateY(var(--final-tilt-y))
       rotateZ(var(--final-tilt-z));

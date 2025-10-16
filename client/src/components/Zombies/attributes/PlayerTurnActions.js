@@ -15,6 +15,7 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
+import { createPolyhedronFaces } from '../../../utils/dieGeometry';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -57,6 +58,80 @@ const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
 const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
+
+const DIE_MODEL_SCALE = 1;
+const LIGHT_VECTOR = normalizeVector([0.35, 0.82, 1]);
+const dieGeometryCache = new Map();
+
+function normalizeVector(vector) {
+  const magnitude = Math.hypot(...vector);
+  if (magnitude === 0) {
+    return [0, 0, 0];
+  }
+  return vector.map((component) => component / magnitude);
+}
+
+function clamp(value, min, max) {
+  if (value < min) {
+    return min;
+  }
+  if (value > max) {
+    return max;
+  }
+  return value;
+}
+
+function getPolyhedronFaces(sides) {
+  if (dieGeometryCache.has(sides)) {
+    return dieGeometryCache.get(sides);
+  }
+
+  const faces = createPolyhedronFaces(sides, DIE_MODEL_SCALE);
+  dieGeometryCache.set(sides, faces);
+  return faces;
+}
+
+function DamageDieMesh({ die, typeClass }) {
+  const faces = useMemo(() => getPolyhedronFaces(die.sides), [die.sides]);
+
+  if (!faces) {
+    return (
+      <div className="damage-die__face damage-die__face--flat">
+        <span className={`damage-die__value ${typeClass}`}>{die.value}</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="damage-die__mesh" aria-hidden="true">
+        {faces.map((face, index) => {
+          const dot =
+            face.normal[0] * LIGHT_VECTOR[0] +
+            face.normal[1] * LIGHT_VECTOR[1] +
+            face.normal[2] * LIGHT_VECTOR[2];
+          const brightness = 0.35 + 0.65 * clamp(dot, 0, 1);
+
+          return (
+            <div
+              key={`die-face-${die.id}-${index}`}
+              className="damage-die__poly-face"
+              style={{
+                transform: `matrix3d(${face.matrix
+                  .map((component) => component.toFixed(6))
+                  .join(',')})`,
+                filter: `brightness(${brightness.toFixed(3)})`,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div className="damage-die__value-wrap">
+        <span className={`damage-die__value ${typeClass}`}>{die.value}</span>
+      </div>
+    </>
+  );
+}
 
 function extractDiceExpression(description = '') {
   diceExpressionPattern.lastIndex = 0;
@@ -1052,7 +1127,7 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     previousLeftPx = leftPx;
     const left = (leftPx / areaWidth) * 100;
     const rotation = (Math.random() - 0.5) * 40;
-    const dropDistance = 80 + Math.random() * 110;
+    const dropDistance = 60 + Math.random() * 70;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
     const initialTiltX = (Math.random() - 0.5) * 90;
@@ -1286,11 +1361,7 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                     '--final-tilt-z': `${die.finalTiltZ}deg`,
                   }}
                 >
-                  <div className="damage-die__face">
-                    <span className={`damage-die__value ${typeClass}`}>
-                      {die.value}
-                    </span>
-                  </div>
+                  <DamageDieMesh die={die} typeClass={typeClass} />
                 </div>
               );
             })}
