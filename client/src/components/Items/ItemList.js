@@ -109,17 +109,21 @@ const isConsumableItem = (item) =>
     (prop) => typeof prop === 'string' && prop.trim().toLowerCase() === 'consumable'
   );
 
+const isConsumablePotion = (item) => {
+  if (!isConsumableItem(item)) {
+    return false;
+  }
+
+  const label = `${item?.displayName || item?.name || ''}`.toLowerCase();
+  return label.includes('potion');
+};
+
 const dispatchConsumablePotionUsed = (item) => {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
     return;
   }
 
-  if (!isConsumableItem(item)) {
-    return;
-  }
-
-  const label = `${item?.displayName || item?.name || ''}`.toLowerCase();
-  if (!label.includes('potion')) {
+  if (!isConsumablePotion(item)) {
     return;
   }
 
@@ -521,9 +525,16 @@ function ItemList({
     });
 
     const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
-    if (nextEntries !== ownedEntries && item?.healing) {
-      triggerHealingRoll(item);
-      dispatchConsumablePotionUsed(item);
+    if (nextEntries !== ownedEntries) {
+      if (item?.healing) {
+        triggerHealingRoll(item);
+      }
+      if (isConsumablePotion(item)) {
+        dispatchConsumablePotionUsed(item);
+        if (typeof onClose === 'function') {
+          onClose();
+        }
+      }
     }
   };
 

@@ -25,6 +25,7 @@ export default function InventoryModal({
   dockedSide = null,
   onDockClose,
   onDockChange,
+  onItemsChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -66,6 +67,17 @@ export default function InventoryModal({
       onTabChange(key);
     }
   };
+
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    onHide?.();
+  }, [isDocked, onDockClose, onHide]);
 
   const tabConfigs = useMemo(
     () => [
@@ -123,6 +135,8 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onItemsChange}
+              onClose={handleModalHide}
             />
           ),
       },
@@ -152,6 +166,8 @@ export default function InventoryModal({
       normalizedItems,
       normalizedAccessories,
       normalizedWeapons,
+      onItemsChange,
+      handleModalHide,
     ]
   );
 
@@ -175,17 +191,6 @@ export default function InventoryModal({
     }
     return classes.join(' ');
   }, [isDocked]);
-
-  const handleModalHide = useCallback(() => {
-    if (isDocked) {
-      if (typeof onDockClose === 'function') {
-        onDockClose();
-      }
-      return;
-    }
-
-    onHide?.();
-  }, [isDocked, onDockClose, onHide]);
 
   return (
     <Modal
