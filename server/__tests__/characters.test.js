@@ -16,7 +16,11 @@ jest.mock('../utils/socket', () => ({
 const charactersRouter = require('../routes');
 const classes = require('../data/classes');
 const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
-const { emitMapUpdate, emitCombatUpdate } = require('../utils/socket');
+const {
+  emitMapUpdate,
+  emitCombatUpdate,
+  emitCharacterMetadataUpdate,
+} = require('../utils/socket');
 const { ObjectId } = require('mongodb');
 
 const app = express();
@@ -203,6 +207,116 @@ describe('Character routes', () => {
       });
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Spells updated');
+  });
+
+  test('update temporary size persists values, updates stored size, and emits metadata update', async () => {
+    const findOne = jest.fn().mockResolvedValue({
+      _id: new ObjectId('507f1f77bcf86cd799439011'),
+      campaign: 'The Wilds ',
+      characterId: 'hero-1',
+      size: 'Medium',
+    });
+
+    const findOneAndUpdate = jest.fn().mockResolvedValue({
+      value: {
+        _id: new ObjectId('507f1f77bcf86cd799439011'),
+        campaign: 'The Wilds ',
+        characterId: 'hero-1',
+        temporarySize: 'Large',
+        temporarySpeedBonus: 10,
+        size: 'Large',
+        sizeBaseValue: 'Medium',
+      },
+    });
+
+    dbo.mockResolvedValue({
+      collection: () => ({ findOne, findOneAndUpdate }),
+    });
+
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/temporary-size')
+      .send({ temporarySize: ' Large ', temporarySpeedBonus: 10 });
+
+    expect(res.status).toBe(200);
+    expect(findOne).toHaveBeenCalledWith({
+      _id: new ObjectId('507f1f77bcf86cd799439011'),
+    });
+    expect(findOneAndUpdate).toHaveBeenCalledTimes(1);
+    expect(findOneAndUpdate.mock.calls[0][0]).toEqual({
+      _id: new ObjectId('507f1f77bcf86cd799439011'),
+    });
+    expect(findOneAndUpdate.mock.calls[0][1]).toEqual({
+      $set: {
+        temporarySize: 'Large',
+        temporarySpeedBonus: 10,
+        size: 'Large',
+        sizeBaseValue: 'Medium',
+      },
+    });
+    expect(res.body).toEqual({
+      campaignId: 'The Wilds',
+      characterId: 'hero-1',
+      temporarySize: 'Large',
+      temporarySpeedBonus: 10,
+      size: 'Large',
+    });
+    expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith('The Wilds', {
+      characterId: 'hero-1',
+      temporarySize: 'Large',
+      temporarySpeedBonus: 10,
+      size: 'Large',
+    });
+  });
+
+  test('clearing temporary size restores stored size and emits metadata removal', async () => {
+    const findOne = jest.fn().mockResolvedValue({
+      _id: new ObjectId('507f1f77bcf86cd799439011'),
+      campaign: 'The Wilds',
+      characterId: 'hero-1',
+      temporarySize: 'Large',
+      temporarySpeedBonus: 10,
+      size: 'Large',
+      sizeBaseValue: 'Medium',
+    });
+
+    const findOneAndUpdate = jest.fn().mockResolvedValue({
+      value: {
+        _id: new ObjectId('507f1f77bcf86cd799439011'),
+        campaign: 'The Wilds',
+        characterId: 'hero-1',
+        size: 'Medium',
+      },
+    });
+
+    dbo.mockResolvedValue({
+      collection: () => ({ findOne, findOneAndUpdate }),
+    });
+
+    const res = await request(app)
+      .put('/characters/507f1f77bcf86cd799439011/temporary-size')
+      .send({ temporarySize: null, temporarySpeedBonus: null });
+
+    expect(res.status).toBe(200);
+    expect(findOne).toHaveBeenCalledWith({
+      _id: new ObjectId('507f1f77bcf86cd799439011'),
+    });
+    expect(findOneAndUpdate.mock.calls[0][1]).toEqual({
+      $set: { size: 'Medium' },
+      $unset: { temporarySize: '', temporarySpeedBonus: '', sizeBaseValue: '' },
+    });
+    expect(res.body).toEqual({
+      campaignId: 'The Wilds',
+      characterId: 'hero-1',
+      temporarySize: null,
+      temporarySpeedBonus: null,
+      size: 'Medium',
+    });
+    expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith('The Wilds', {
+      characterId: 'hero-1',
+      temporarySize: null,
+      temporarySpeedBonus: null,
+      size: 'Medium',
+    });
   });
 
   test('get characters for campaign and user success', async () => {

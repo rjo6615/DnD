@@ -1705,6 +1705,135 @@ describe('ZombiesDM AI generation', () => {
     });
   });
 
+  test('character token metadata reflects temporary size updates', async () => {
+    const characters = [
+      {
+        _id: 'abc123',
+        characterId: 'hero-1',
+        characterName: 'Hero One',
+        diceColor: '#3366ff',
+        size: 'Medium',
+      },
+    ];
+
+    const mapTokens = {
+      'map-1': {
+        'hero-1': { characterId: 'hero-1', x: 0.1, y: 0.2 },
+      },
+    };
+
+    const activeMap = {
+      mapId: 'map-1',
+      title: 'Active Map',
+      tokens: mapTokens['map-1'],
+    };
+
+    apiFetch.mockImplementation((url) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [activeMap],
+              activeMapId: activeMap.mapId,
+              map: activeMap,
+              tokensByMapId: mapTokens,
+              activeMapTokens: mapTokens['map-1'],
+            }),
+          });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const mapTab = await screen.findByRole('tab', { name: 'Map' });
+    await userEvent.click(mapTab);
+
+    await waitFor(() => {
+      expect(CampaignMapBoard).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(CampaignMapBoard.mock.calls.length).toBeGreaterThan(0);
+      const latestProps =
+        CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      const lookupEntries = Object.entries(latestProps?.characterLookup || {});
+      const matchingEntry = lookupEntries.find(([key, value]) => {
+        if (key === 'hero-1' || key === 'abc123') {
+          return true;
+        }
+        const label = value && typeof value.label === 'string' ? value.label : null;
+        return label === 'Hero One';
+      });
+      expect(matchingEntry?.[1]?.size).toBe('medium');
+    });
+
+    const sockets = socketModule.__getMockSockets();
+    const socketInstance = sockets[sockets.length - 1];
+    const characterUpdateHandler = socketInstance.on.mock.calls.find(
+      ([eventName]) => eventName === 'campaign:characters:update'
+    )[1];
+
+    await act(async () => {
+      characterUpdateHandler({
+        characterId: 'hero-1',
+        temporarySize: 'Large',
+      });
+    });
+
+    await waitFor(() => {
+      expect(CampaignMapBoard.mock.calls.length).toBeGreaterThan(0);
+      const latestProps =
+        CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      const lookupEntries = Object.entries(latestProps?.characterLookup || {});
+      const matchingEntry = lookupEntries.find(([key, value]) => {
+        if (key === 'hero-1' || key === 'abc123') {
+          return true;
+        }
+        const label = value && typeof value.label === 'string' ? value.label : null;
+        return label === 'Hero One';
+      });
+      expect(matchingEntry?.[1]?.size).toBe('large');
+    });
+
+    await act(async () => {
+      characterUpdateHandler({
+        characterId: 'hero-1',
+        temporarySize: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(CampaignMapBoard.mock.calls.length).toBeGreaterThan(0);
+      const latestProps =
+        CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+      const lookupEntries = Object.entries(latestProps?.characterLookup || {});
+      const matchingEntry = lookupEntries.find(([key, value]) => {
+        if (key === 'hero-1' || key === 'abc123') {
+          return true;
+        }
+        const label = value && typeof value.label === 'string' ? value.label : null;
+        return label === 'Hero One';
+      });
+      expect(matchingEntry?.[1]?.size).toBe('medium');
+    });
+  });
+
   test('submits normalized currency adjustments to the API', async () => {
     const characters = [
       {
