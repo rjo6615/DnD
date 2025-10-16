@@ -710,73 +710,6 @@ const [isFumble, setIsFumble] = useState(false);
     return trimmed ? trimmed.toLowerCase().replace(/\s+/g, '-') : '';
   };
 
-  const renderBreakdownContent = (breakdown) => {
-    if (!breakdown) return null;
-
-    if (typeof breakdown === 'object') {
-      const { label, expression, entries } = breakdown;
-      return (
-        <>
-          {(label || expression) && (
-            <div>
-              {label}
-              {expression ? `${label ? ' - ' : ''}(${expression})` : ''}
-            </div>
-          )}
-          {Array.isArray(entries) &&
-            entries.map((segment, i) => {
-              const text =
-                segment && typeof segment === 'object'
-                  ? segment.text ?? ''
-                  : String(segment);
-              const type =
-                segment && typeof segment === 'object' && segment.type
-                  ? segment.type
-                  : '';
-              const normalizedType = normalizeDamageTypeForClass(type);
-              return (
-                <div key={i}>
-                  -{' '}
-                  <span
-                    className={normalizedType ? `damage-${normalizedType}` : ''}
-                  >
-                    {text}
-                  </span>
-                </div>
-              );
-            })}
-        </>
-      );
-    }
-
-    const normalizedSegments = breakdown
-      .split(';')
-      .map((section) => section.trim())
-      .filter(Boolean)
-      .flatMap((section) =>
-        section
-          .split(' + ')
-          .map((segment) => segment.trim())
-          .filter(Boolean)
-      );
-
-    return normalizedSegments.map((segment, i) => {
-      const [valueToken, ...typeParts] = segment.split(/\s+/);
-      const value = valueToken || segment;
-      const type = typeParts.join(' ');
-      const normalizedType = normalizeDamageTypeForClass(type);
-      return (
-        <div key={i}>
-          -{' '}
-          <span className={normalizedType ? `damage-${normalizedType}` : ''}>
-            {value}
-            {type ? ` ${type}` : ''}
-          </span>
-        </div>
-      );
-    });
-  };
-
   const formatDamageSegments = (damage, ability) =>
     damage
       .split(/\s+\+\s+/)
@@ -1116,10 +1049,26 @@ useEffect(() => {
               ) : (
                 <li key={idx}>
                   <div>
-                    {entry.source ? `${entry.source} - (${entry.total})` : entry.total}
+                    {entry.source ? `${entry.source} (${entry.total})` : entry.total}
                   </div>
                   {entry.breakdown && (
-                    <div>{renderBreakdownContent(entry.breakdown)}</div>
+                    <div>
+                      {entry.breakdown.split(' + ').map((segment, i) => {
+                        const [valueToken, ...typeParts] = segment.trim().split(/\s+/);
+                        const value = valueToken || segment;
+                        const type = typeParts.join(' ');
+                        const normalizedType = normalizeDamageTypeForClass(type);
+                        return (
+                          <div key={i}>
+                            -{' '}
+                            <span className={normalizedType ? `damage-${normalizedType}` : ''}>
+                              {value}
+                              {type ? ` ${type}` : ''}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </li>
               )

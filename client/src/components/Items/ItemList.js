@@ -244,29 +244,10 @@ const rollHealingValue = (healing) => {
     );
   }
 
-  const breakdownEntries = [];
-  diceSections.forEach(({ rolls }) => {
-    rolls.forEach((value) => breakdownEntries.push(value.toString()));
-  });
-  modifierValues.forEach((value) => {
-    const sign = value >= 0 ? '+' : '-';
-    breakdownEntries.push(`${sign}${Math.abs(value)}`);
-  });
-
-  const expressionDisplay = sanitized
-    .replace(/([+-])/g, ' $1 ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
   return {
     total,
     breakdown: breakdownSections.join('; '),
     expression: sanitized,
-    detailedBreakdown: {
-      label: 'Healing',
-      expression: expressionDisplay,
-      entries: breakdownEntries,
-    },
   };
 };
 
@@ -283,8 +264,8 @@ const triggerHealingRoll = (item) => {
   const sourceLabel = item?.displayName || item?.name || 'Healing Potion';
   const detail = {
     value: result.total,
-    breakdown: result.detailedBreakdown || result.breakdown || result.expression,
-    source: sourceLabel,
+    breakdown: result.breakdown || result.expression,
+    source: `${sourceLabel} Healing`,
   };
 
   window.dispatchEvent(new CustomEvent('damage-roll', { detail }));
