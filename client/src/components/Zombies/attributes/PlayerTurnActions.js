@@ -4,6 +4,7 @@ import React, {
   useImperativeHandle,
   useMemo,
   useCallback,
+  useRef,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
@@ -390,6 +391,7 @@ const PlayerTurnActions = React.forwardRef(
 //--------------------------------------------Critical status------------------------------------------------
 const [isCritical, setIsCritical] = useState(false);
 const [isFumble, setIsFumble] = useState(false);
+const manualCriticalRef = useRef(false);
   const equipmentProvided = useMemo(
     () => typeof form?.equipment === 'object' && form.equipment !== null,
     [form.equipment]
@@ -910,7 +912,11 @@ const [pendingSpell, setPendingSpell] = useState(null);
   };
 
 const handleDamageClick = useCallback(() => {
-  setIsCritical((prev) => !prev);
+  setIsCritical((prev) => {
+    const next = !prev;
+    manualCriticalRef.current = next;
+    return next;
+  });
   setIsFumble(false);
 }, []);
 
@@ -1038,6 +1044,7 @@ const updateDamageValueWithAnimation = (
   const details = Array.isArray(extra?.diceRolls) ? extra.diceRolls : [];
   triggerDiceAnimation(details);
   setLastRollTimestamp(Date.now());
+  manualCriticalRef.current = false;
   if (newValue !== undefined) {
     setDamageLog((prev) => {
       const entry = {
@@ -1074,7 +1081,9 @@ useEffect(() => {
   setPulseClass(cls);
   const timer = setTimeout(() => {
     setPulseClass('');
-    setIsCritical(false);
+    if (!manualCriticalRef.current) {
+      setIsCritical(false);
+    }
     setIsFumble(false);
   }, 2000);
   return () => clearTimeout(timer);
@@ -1086,6 +1095,7 @@ useEffect(() => {
     const { value, breakdown, source, critical, fumble, ...extra } =
       e.detail || {};
     updateDamageValueWithAnimation(value, breakdown, source, extra);
+    manualCriticalRef.current = false;
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };

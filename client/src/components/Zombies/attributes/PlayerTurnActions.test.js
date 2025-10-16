@@ -904,20 +904,56 @@ describe('PlayerTurnActions critical events', () => {
     );
 
     const damage = document.getElementById('damageAmount');
+    const toggle = document.getElementById('damageValue');
 
     expect(damage.classList.contains('critical-active')).toBe(false);
 
     act(() => {
-      fireEvent.click(damage);
+      fireEvent.click(toggle);
     });
 
     expect(damage.classList.contains('critical-active')).toBe(true);
 
     act(() => {
-      fireEvent.click(damage);
+      fireEvent.click(toggle);
     });
 
     expect(damage.classList.contains('critical-active')).toBe(false);
+  });
+
+  test('manual critical toggle persists after automatic reset timer', () => {
+    jest.useFakeTimers();
+
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+
+    const damage = document.getElementById('damageAmount');
+    const toggle = document.getElementById('damageValue');
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', { detail: { value: 7 } })
+      );
+    });
+
+    act(() => {
+      fireEvent.click(toggle);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
+
+    jest.useRealTimers();
   });
 });
 
