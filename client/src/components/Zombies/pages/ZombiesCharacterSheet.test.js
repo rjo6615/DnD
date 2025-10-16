@@ -60,8 +60,12 @@ jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
 const mockInventoryModalProps = { current: null };
+const mockDockedInventoryModalProps = { current: null };
 jest.mock('../attributes/InventoryModal', () => (props) => {
   mockInventoryModalProps.current = props;
+  if (props && typeof props.isDocked !== 'undefined') {
+    mockDockedInventoryModalProps.current = props.isDocked ? props : null;
+  }
   return null;
 });
 const mockEquipmentModalProps = { current: null };
@@ -149,6 +153,7 @@ beforeEach(() => {
   mockHandleClose.current = null;
   mockShopModalProps.current = null;
   mockInventoryModalProps.current = null;
+  mockDockedInventoryModalProps.current = null;
   mockEquipmentModalProps.current = null;
   mockMapModalProps.current = null;
   mockFeaturesModalProps.current = null;
@@ -670,6 +675,52 @@ test('modal docking controls update docking state', async () => {
     expect(mockMapModalProps.current).not.toBeNull();
     if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
       expect(mockMapModalProps.current.isDocked).toBe(false);
+    }
+  });
+});
+
+test('docked inventory modal retains item change handler', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      expertisePoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => {
+    expect(mockInventoryModalProps.current).not.toBeNull();
+  });
+
+  const initialHandler = mockInventoryModalProps.current?.onItemsChange;
+  expect(typeof initialHandler).toBe('function');
+
+  act(() => {
+    mockInventoryModalProps.current?.onDockChange?.('left');
+  });
+
+  await waitFor(() => {
+    expect(mockDockedInventoryModalProps.current).not.toBeNull();
+    if (mockDockedInventoryModalProps.current) {
+      expect(mockDockedInventoryModalProps.current.isDocked).toBe(true);
+      expect(mockDockedInventoryModalProps.current.dockedSide).toBe('left');
+      expect(mockDockedInventoryModalProps.current.onItemsChange).toBe(initialHandler);
     }
   });
 });
