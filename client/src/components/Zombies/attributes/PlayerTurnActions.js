@@ -59,7 +59,7 @@ const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
-const DIE_MODEL_SCALE = 12;
+const DIE_MODEL_SCALE = 1;
 const LIGHT_VECTOR = normalizeVector([0.35, 0.82, 1]);
 const dieGeometryCache = new Map();
 

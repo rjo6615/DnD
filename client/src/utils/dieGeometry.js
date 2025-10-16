@@ -134,11 +134,6 @@ const baseTriangle = [
   [0.5, -baseTriangleHeight / 3, 0],
 ];
 
-const baseEdgeLength = Math.hypot(
-  baseTriangle[1][0] - baseTriangle[0][0],
-  baseTriangle[1][1] - baseTriangle[0][1],
-);
-
 function subtract(a, b) {
   return a.map((v, i) => v - b[i]);
 }
@@ -283,16 +278,27 @@ function generateConvexHullTriangles(vertices) {
   return faces;
 }
 
-const baseU = normalize(subtract(baseTriangle[1], baseTriangle[0]));
-const baseVTemp = subtract(baseTriangle[2], baseTriangle[0]);
-const baseV = normalize(
-  subtract(baseVTemp, baseU.map((v) => v * dot(baseVTemp, baseU))),
-);
-const baseW = cross(baseU, baseV);
-const baseMatrix = matrixFromColumns(baseU, baseV, baseW);
+const baseOrigin = baseTriangle[0];
+const baseEdge1 = subtract(baseTriangle[1], baseOrigin);
+const baseEdge2 = subtract(baseTriangle[2], baseOrigin);
+const baseNormal = normalize(cross(baseEdge1, baseEdge2));
+const baseMatrix = matrixFromColumns(baseEdge1, baseEdge2, baseNormal);
 const baseInverse = inverse3x3(baseMatrix);
+const baseCentroid = baseTriangle
+  .reduce(
+    (acc, vertex) => acc.map((value, index) => value + vertex[index] / 3),
+    [0, 0, 0],
+  );
 
-export function createPolyhedronFaces(sides, scale = 20) {
+function multiplyMatrixVector(matrix, vector) {
+  return [
+    matrix[0] * vector[0] + matrix[3] * vector[1] + matrix[6] * vector[2],
+    matrix[1] * vector[0] + matrix[4] * vector[1] + matrix[7] * vector[2],
+    matrix[2] * vector[0] + matrix[5] * vector[1] + matrix[8] * vector[2],
+  ];
+}
+
+export function createPolyhedronFaces(sides, scale = 1) {
   const geometryFactory = polyhedraDefinitions[sides];
 
   if (!geometryFactory) {
@@ -305,28 +311,27 @@ export function createPolyhedronFaces(sides, scale = 20) {
 
   faces.forEach((face) => {
     const verts = face.map((index) => vertices[index]);
-    const centroid = verts.reduce(
-      (acc, vertex) => acc.map((v, i) => v + vertex[i] / 3),
-      [0, 0, 0],
-    );
+    const v0 = verts[0];
+    const v1 = verts[1];
+    const v2 = verts[2];
 
-    const uVec = subtract(verts[1], verts[0]);
-    const faceScale = norm(uVec) / baseEdgeLength;
-    const u = normalize(uVec);
-    const vTemp = subtract(verts[2], verts[0]);
-    const v = normalize(
-      subtract(vTemp, u.map((value) => value * dot(vTemp, u))),
-    );
-    const w = cross(u, v);
+    const edge1 = subtract(v1, v0);
+    const edge2 = subtract(v2, v0);
+    const faceNormal = normalize(cross(edge1, edge2));
 
-    const faceMatrix = matrixFromColumns(
-      u.map((value) => value * faceScale),
-      v.map((value) => value * faceScale),
-      w,
-    );
+    const faceMatrix = matrixFromColumns(edge1, edge2, faceNormal);
     const transformMatrix = multiply3x3(faceMatrix, baseInverse);
 
-    const translation = centroid.map((value) => value * scale);
+    const centroidOffset = multiplyMatrixVector(transformMatrix, baseCentroid);
+    const actualCentroid = verts.reduce(
+      (acc, vertex) => acc.map((value, index) => value + vertex[index] / 3),
+      [0, 0, 0],
+    );
+    const translation = [
+      (actualCentroid[0] - centroidOffset[0]) * scale,
+      (actualCentroid[1] - centroidOffset[1]) * scale,
+      (actualCentroid[2] - centroidOffset[2]) * scale,
+    ];
 
     const cssMatrix = [
       transformMatrix[0] * scale,
@@ -347,7 +352,7 @@ export function createPolyhedronFaces(sides, scale = 20) {
       1,
     ];
 
-    const normal = normalize(w);
+    const normal = faceNormal;
 
     faceData.push({
       matrix: cssMatrix,
