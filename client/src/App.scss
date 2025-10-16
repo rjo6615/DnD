@@ -1997,6 +1997,7 @@ $rotateX: -$angle;
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25), 0 0 0.75px var(--die-edge-highlight);
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  overflow: visible;
 }
 
 .damage-die__value-wrap {
