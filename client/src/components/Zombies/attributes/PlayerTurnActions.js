@@ -1274,7 +1274,7 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                     '--drop-delay': `${die.delay}s`,
                     '--drop-distance': `${die.dropDistance}px`,
                     '--drop-rotation': `${die.rotation}deg`,
-                    '--roll-duration': `${die.rollDuration}s`,
+                    '--drop-duration': `${die.rollDuration}s`,
                     '--initial-tilt-x': `${die.initialTiltX}deg`,
                     '--initial-tilt-y': `${die.initialTiltY}deg`,
                     '--initial-tilt-z': `${die.initialTiltZ}deg`,
@@ -1286,11 +1286,10 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                     '--final-tilt-z': `${die.finalTiltZ}deg`,
                   }}
                 >
-                  <div className="damage-die__inner">
+                  <div className="damage-die__face">
                     <span className={`damage-die__value ${typeClass}`}>
                       {die.value}
                     </span>
-                    <span className="damage-die__sides">d{die.sides}</span>
                   </div>
                 </div>
               );
