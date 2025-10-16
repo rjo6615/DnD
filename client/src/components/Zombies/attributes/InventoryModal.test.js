@@ -160,4 +160,34 @@ describe('InventoryModal', () => {
     expect(mockItemListProps.current?.ownedOnly).toBe(true);
   });
 
+  test('forwards onItemsChange to the embedded ItemList', async () => {
+    const handleItemsChange = jest.fn();
+    const form = {
+      item: [
+        [
+          'Potion of Healing',
+          'consumable',
+          '',
+          '',
+          '',
+          {},
+          {},
+        ],
+      ],
+    };
+
+    render(
+      <InventoryModal
+        show
+        activeTab="items"
+        onHide={jest.fn()}
+        onTabChange={jest.fn()}
+        form={form}
+        onItemsChange={handleItemsChange}
+      />
+    );
+
+    expect(await screen.findByTestId('item-list')).toBeInTheDocument();
+    expect(mockItemListProps.current?.onChange).toBe(handleItemsChange);
+  });
 });
