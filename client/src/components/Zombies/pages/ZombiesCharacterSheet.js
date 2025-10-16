@@ -1749,6 +1749,33 @@ export default function ZombiesCharacterSheet() {
       if (event?.detail?.type !== 'potion') {
         return;
       }
+
+      const potionLabel = `${
+        event?.detail?.item?.displayName || event?.detail?.item?.name || ''
+      }`
+        .trim()
+        .toLowerCase();
+
+      if (potionLabel === 'potion of speed') {
+        setActiveEffects((prev = []) => {
+          const existingIndex = prev.findIndex((effect) => effect?.name === 'Haste');
+
+          if (existingIndex === -1) {
+            return [...prev, { name: 'Haste', icon: hasteIcon, remaining: 10 }];
+          }
+
+          const existing = prev[existingIndex] || {};
+          const next = [...prev];
+          next[existingIndex] = {
+            ...existing,
+            name: 'Haste',
+            icon: hasteIcon,
+            remaining: 10,
+          };
+          return next;
+        });
+      }
+
       consumeCircle('bonus');
     };
 
