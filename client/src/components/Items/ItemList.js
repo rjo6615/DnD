@@ -162,6 +162,115 @@ const buildItemOwnershipMap = (initialItems) => {
   return map;
 };
 
+const HEALING_DICE_REGEX = /(\d+)d(\d+)/gi;
+const HEALING_MODIFIER_REGEX = /([+-]\s*\d+)/gi;
+
+const sanitizeHealingString = (healing) => {
+  if (typeof healing !== 'string') {
+    return '';
+  }
+
+  const withoutHpText = healing
+    .replace(/hit points?.*$/i, '')
+    .replace(/hp.*$/i, '')
+    .trim();
+
+  return withoutHpText.replace(/\s+/g, ' ').trim();
+};
+
+const rollHealingValue = (healing) => {
+  const sanitized = sanitizeHealingString(healing);
+  if (!sanitized) {
+    return null;
+  }
+
+  HEALING_DICE_REGEX.lastIndex = 0;
+  const diceMatches = Array.from(sanitized.matchAll(HEALING_DICE_REGEX));
+  if (diceMatches.length === 0) {
+    return null;
+  }
+
+  let total = 0;
+  const diceSections = diceMatches
+    .map((match) => {
+      const count = parseInt(match[1], 10);
+      const sides = parseInt(match[2], 10);
+      if (!Number.isFinite(count) || !Number.isFinite(sides)) {
+        return null;
+      }
+
+      const rolls = Array.from({ length: count }, () =>
+        Math.floor(Math.random() * sides) + 1
+      );
+      const subtotal = rolls.reduce((sum, value) => sum + value, 0);
+      total += subtotal;
+      return { label: match[0], rolls };
+    })
+    .filter(Boolean);
+
+  HEALING_MODIFIER_REGEX.lastIndex = 0;
+  const modifierMatches = Array.from(
+    sanitized.matchAll(HEALING_MODIFIER_REGEX)
+  );
+  const modifierValues = modifierMatches
+    .map((match) => {
+      const raw = (match[1] || match[0] || '').replace(/\s+/g, '');
+      const value = parseInt(raw, 10);
+      if (!Number.isFinite(value)) {
+        return null;
+      }
+      total += value;
+      return value;
+    })
+    .filter((value) => value !== null);
+
+  const breakdownSections = [];
+  if (diceSections.length > 0) {
+    breakdownSections.push(
+      diceSections
+        .map(
+          ({ label, rolls }) => `${rolls.join(' + ')} (${label.trim()})`
+        )
+        .join(' + ')
+    );
+  }
+  if (modifierValues.length > 0) {
+    breakdownSections.push(
+      modifierValues
+        .map(
+          (value) => `${value >= 0 ? '+' : '-'}${Math.abs(value)} modifier`
+        )
+        .join(' + ')
+    );
+  }
+
+  return {
+    total,
+    breakdown: breakdownSections.join('; '),
+    expression: sanitized,
+  };
+};
+
+const triggerHealingRoll = (item) => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  const result = rollHealingValue(item?.healing);
+  if (!result) {
+    return;
+  }
+
+  const sourceLabel = item?.displayName || item?.name || 'Healing Potion';
+  const detail = {
+    value: result.total,
+    breakdown: result.breakdown || result.expression,
+    source: `${sourceLabel} Healing`,
+  };
+
+  window.dispatchEvent(new CustomEvent('damage-roll', { detail }));
+};
+
 function ItemList({
   campaign,
   onChange,
@@ -320,6 +429,7 @@ function ItemList({
     if (!ownedOnly || !isConsumableItem(item)) {
       return;
     }
+
     setOwnedEntries((prev) => {
       const next = removeFirstMatchingEntry(prev, item, dataKey);
       if (next === prev) {
@@ -330,6 +440,11 @@ function ItemList({
       }
       return next;
     });
+
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
+    if (nextEntries !== ownedEntries && item?.healing) {
+      triggerHealingRoll(item);
+    }
   };
 
   const getCartCount = (item) => {
@@ -345,36 +460,11 @@ function ItemList({
   const filteredEntries = Object.entries(items).filter(([, item]) =>
     ownedOnly ? (item.ownedCount ?? 0) > 0 : true
   );
-  const expandedEntries = ownedOnly
-    ? filteredEntries.flatMap(([key, item]) => {
-        const count = item.ownedCount ?? 0;
-        if (count <= 0) return [];
-        if (count === 1) {
-          return [
-            {
-              reactKey: key,
-              dataKey: key,
-              item,
-              copyIndex: 0,
-              copyCount: 1,
-            },
-          ];
-        }
-        return Array.from({ length: count }, (_, index) => ({
-          reactKey: `${key}-${index}`,
-          dataKey: key,
-          item,
-          copyIndex: index,
-          copyCount: count,
-        }));
-      })
-    : filteredEntries.map(([key, item]) => ({
-        reactKey: key,
-        dataKey: key,
-        item,
-        copyIndex: 0,
-        copyCount: item.ownedCount ?? 0,
-      }));
+  const displayEntries = filteredEntries.map(([key, item]) => ({
+    reactKey: key,
+    dataKey: key,
+    item,
+  }));
   const bodyContent = (
     <>
       {error && (
@@ -389,7 +479,7 @@ function ItemList({
           Unrecognized items from server: {unknownItems.join(', ')}
         </Alert>
       )}
-      {expandedEntries.length === 0 ? (
+      {displayEntries.length === 0 ? (
         <div className="text-center text-muted py-3">
           {ownedOnly
             ? 'No items in inventory.'
@@ -397,16 +487,22 @@ function ItemList({
         </div>
       ) : (
         <Row className="row-cols-2 row-cols-lg-3 g-3">
-          {expandedEntries.map(({ reactKey, dataKey, item, copyIndex, copyCount }) => {
+          {displayEntries.map(({ reactKey, dataKey, item }) => {
             const categoryKey =
               typeof item.category === 'string'
                 ? item.category.toLowerCase()
                 : '';
             const Icon = categoryIcons[categoryKey] || GiTreasureMap;
             const canUseItem = ownedOnly && isConsumableItem(item);
+            const quantity = ownedOnly ? item.ownedCount ?? 0 : 0;
             return (
               <Col key={reactKey}>
-                <Card className="item-card h-100">
+                <Card className="item-card h-100 position-relative">
+                  {ownedOnly && quantity > 1 ? (
+                    <span className="item-card__quantity badge bg-dark">
+                      ×{quantity}
+                    </span>
+                  ) : null}
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-center mb-2">
                       <Icon size={40} title={item.category} />
@@ -437,23 +533,16 @@ function ItemList({
                         )}
                       </Card.Text>
                     )}
-                    {(item.notes || (ownedOnly && copyCount > 1)) && (
+                    {item.notes && (
                       <div className="mt-auto d-flex flex-column align-items-start gap-1">
-                        {item.notes && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0"
-                            onClick={handleShowNotes(item)}
-                          >
-                            Notes
-                          </Button>
-                        )}
-                        {ownedOnly && copyCount > 1 && (
-                          <span className="text-muted small">
-                            Copy {copyIndex + 1} of {copyCount}
-                          </span>
-                        )}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0"
+                          onClick={handleShowNotes(item)}
+                        >
+                          Notes
+                        </Button>
                       </div>
                     )}
                   </Card.Body>

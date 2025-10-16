@@ -138,7 +138,7 @@ test('omits card header and footer when embedded', async () => {
   expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
 });
 
-test('renders duplicate item cards when multiple copies are owned', async () => {
+test('shows quantity badge when multiple copies are owned', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
 
   render(
@@ -154,10 +154,11 @@ test('renders duplicate item cards when multiple copies are owned', async () => 
     />
   );
 
-  const torches = await screen.findAllByText('Torch');
-  expect(torches).toHaveLength(2);
-  expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
-  expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
+  const torchHeading = await screen.findByText('Torch');
+  const torchCard = torchHeading.closest('.card');
+  expect(torchCard).not.toBeNull();
+  expect(screen.getAllByText('Torch')).toHaveLength(1);
+  expect(within(torchCard).getByText('×2')).toBeInTheDocument();
   expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
 });
 
@@ -188,10 +189,14 @@ test('use button removes a consumable item copy and triggers onChange', async ()
     />
   );
 
-  const initialCards = await screen.findAllByText('Potion of healing');
-  expect(initialCards).toHaveLength(2);
+  const potionHeading = await screen.findByText('Potion of healing');
+  const potionCard = potionHeading.closest('.card');
+  expect(potionCard).not.toBeNull();
+  expect(within(potionCard).getByText('×2')).toBeInTheDocument();
 
-  const useButton = within(initialCards[0].closest('.card')).getByRole('button', {
+  const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+
+  const useButton = within(potionCard).getByRole('button', {
     name: /use/i,
   });
   await userEvent.click(useButton);
@@ -202,6 +207,18 @@ test('use button removes a consumable item copy and triggers onChange', async ()
   expect(updatedItems).toHaveLength(1);
 
   await waitFor(() =>
-    expect(screen.getAllByText('Potion of healing')).toHaveLength(1)
+    expect(within(potionCard).queryByText('×2')).not.toBeInTheDocument()
   );
+  expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
+
+  await waitFor(() => expect(dispatchSpy).toHaveBeenCalled());
+  const [event] = dispatchSpy.mock.calls.pop() || [];
+  expect(event).toBeInstanceOf(CustomEvent);
+  expect(event?.detail?.source).toMatch(/potion of healing/i);
+  expect(typeof event?.detail?.value).toBe('number');
+  expect(event.detail.value).toBeGreaterThanOrEqual(4);
+  expect(event.detail.value).toBeLessThanOrEqual(10);
+  expect(typeof event.detail.breakdown).toBe('string');
+
+  dispatchSpy.mockRestore();
 });
