@@ -1997,6 +1997,19 @@ $rotateX: -$angle;
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25), 0 0 0.75px var(--die-edge-highlight);
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  overflow: visible;
+}
+
+.damage-die__face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  clip-path: inherit;
+  background: linear-gradient(150deg, rgba(4, 11, 42, 0.85), rgba(18, 41, 122, 0.6));
+  transform: translateZ(calc(var(--die-depth) * -1)) rotateY(180deg);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .damage-die__value-wrap {
