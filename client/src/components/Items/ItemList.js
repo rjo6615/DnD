@@ -518,24 +518,24 @@ function ItemList({
       if (next === prev) {
         return prev;
       }
-      if (typeof onChange === 'function') {
-        onChange(next);
-      }
-      return next;
-    });
 
-    const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
-    if (nextEntries !== ownedEntries) {
       if (item?.healing) {
         triggerHealingRoll(item);
       }
+
       if (isConsumablePotion(item)) {
         dispatchConsumablePotionUsed(item);
         if (typeof onClose === 'function') {
           onClose();
         }
       }
-    }
+
+      if (typeof onChange === 'function') {
+        onChange(next);
+      }
+
+      return next;
+    });
   };
 
   const getCartCount = (item) => {

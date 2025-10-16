@@ -231,3 +231,42 @@ test('use button removes a consumable item copy and triggers onChange', async ()
 
   dispatchSpy.mockRestore();
 });
+
+test('using all copies of a consumable potion removes it from the inventory', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
+  const onChange = jest.fn();
+  const initialItems = Array.from({ length: 3 }, () => ({
+    name: 'potion-healing',
+    displayName: 'Potion of healing',
+    properties: ['consumable'],
+    owned: true,
+  }));
+
+  render(
+    <ItemList
+      ownedOnly
+      embedded
+      initialItems={initialItems}
+      onChange={onChange}
+    />
+  );
+
+  const potionHeading = await screen.findByText('Potion of healing');
+  const potionCard = potionHeading.closest('.card');
+  expect(potionCard).not.toBeNull();
+  expect(within(potionCard).getByText('×3')).toBeInTheDocument();
+
+  const useButton = within(potionCard).getByRole('button', { name: /use/i });
+
+  await userEvent.click(useButton);
+  await userEvent.click(useButton);
+  await userEvent.click(useButton);
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(3));
+  const finalItems = onChange.mock.calls[2][0];
+  expect(finalItems).toHaveLength(0);
+
+  await waitFor(() =>
+    expect(screen.queryByText('Potion of healing')).not.toBeInTheDocument()
+  );
+});
