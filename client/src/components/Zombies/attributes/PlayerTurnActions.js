@@ -1067,9 +1067,16 @@ useEffect(() => {
               ) : (
                 <li key={idx}>
                   <div>
-                    {entry.source
-                      ? `${entry.source}${entry.actionLabel ? ' -' : ''} (${entry.total})`
-                      : entry.total}
+                    {entry.source ? (
+                      <>
+                        {entry.source}
+                        {entry.total !== undefined && entry.total !== null
+                          ? ` - (${entry.total})`
+                          : ''}
+                      </>
+                    ) : (
+                      entry.total
+                    )}
                   </div>
                   {entry.actionLabel && entry.expression ? (
                     <div>
