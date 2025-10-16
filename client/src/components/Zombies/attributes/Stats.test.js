@@ -182,8 +182,17 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
     expect(rollEvent.detail).toMatchObject({
       value: 18,
       source: 'Strength',
+      breakdown: '16 (d20) + 2 Strength Modifier',
       critical: false,
       fumble: false,
+      diceRolls: [
+        expect.objectContaining({
+          sides: 20,
+          value: 16,
+          type: 'Strength Check',
+          category: 'base',
+        }),
+      ],
     });
     expect(handleCloseStats).toHaveBeenCalled();
   } finally {

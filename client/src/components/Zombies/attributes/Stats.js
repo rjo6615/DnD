@@ -8,6 +8,12 @@ import { rollSkill } from './Skills';
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
+const formatAdjustmentSegment = (value, label) => {
+  if (!value) return null;
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign} ${Math.abs(value)} ${label}`;
+};
+
 const createEmptyStatMap = () => ({
   str: 0,
   dex: 0,
@@ -143,14 +149,33 @@ export default function Stats({
       const { result, d20 } = rollSkill(statMod);
       const statInfo = STATS.find((stat) => stat.key === statKey);
       const statLabel = statInfo?.label || statKey.toUpperCase();
+      const breakdownParts = [`${d20} (d20)`];
+      const modifierSegment = formatAdjustmentSegment(
+        statMod,
+        `${statLabel} Modifier`
+      );
+      if (modifierSegment) {
+        breakdownParts.push(modifierSegment);
+      }
+
+      const diceRolls = [
+        {
+          sides: 20,
+          value: d20,
+          type: `${statLabel} Check`,
+          category: 'base',
+        },
+      ];
 
       window.dispatchEvent(
         new CustomEvent('damage-roll', {
           detail: {
             value: result,
+            breakdown: breakdownParts.join(' '),
             source: statLabel,
             critical: d20 === 20,
             fumble: d20 === 1,
+            diceRolls,
           },
         })
       );

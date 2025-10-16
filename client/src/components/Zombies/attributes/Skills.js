@@ -11,6 +11,21 @@ import DockControls from '../components/DockControls';
 
 const EMPTY_OBJECT = Object.freeze({});
 
+const ABILITY_LABELS = {
+  str: 'Strength',
+  dex: 'Dexterity',
+  con: 'Constitution',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma',
+};
+
+const formatAdjustmentSegment = (value, label) => {
+  if (!value) return null;
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign} ${Math.abs(value)} ${label}`;
+};
+
 export function rollSkill(bonus = 0) {
   const d20 = Math.floor(Math.random() * 20) + 1;
   if (d20 === 20) {
@@ -293,6 +308,7 @@ export default function Skills({
 
   const handleRoll = (skillKey, ability, proficient, expertise) => {
     const skill = SKILLS.find((s) => s.key === skillKey);
+    const skillLabel = skill?.label || skill?.name || skillKey;
     const armorPenalty = skill?.armorPenalty || 0;
     const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
     const bonus =
@@ -303,13 +319,46 @@ export default function Skills({
       featTotals[skillKey] +
       raceTotals[skillKey];
     const { result, d20 } = rollSkill(bonus);
+    const abilityLabel =
+      ABILITY_LABELS[ability] || ability?.toUpperCase?.() || ability || 'Ability';
+    const proficiencyValue = profBonus * (expertise ? 2 : proficient ? 1 : 0);
+    const breakdownParts = [`${d20} (d20)`];
+
+    const segments = [
+      formatAdjustmentSegment(modMap[ability], `${abilityLabel} Modifier`),
+      proficiencyValue
+        ? formatAdjustmentSegment(
+            proficiencyValue,
+            expertise ? 'Expertise Bonus' : 'Proficiency Bonus'
+          )
+        : null,
+      formatAdjustmentSegment(penalty, 'Armor Penalty'),
+      formatAdjustmentSegment(itemTotals[skillKey], 'Item Bonus'),
+      formatAdjustmentSegment(featTotals[skillKey], 'Feat Bonus'),
+      formatAdjustmentSegment(raceTotals[skillKey], 'Race Bonus'),
+    ];
+
+    segments.filter(Boolean).forEach((segment) => {
+      breakdownParts.push(segment);
+    });
+
+    const diceRolls = [
+      {
+        sides: 20,
+        value: d20,
+        type: `${skillLabel} Check`,
+        category: 'base',
+      },
+    ];
     window.dispatchEvent(
       new CustomEvent('damage-roll', {
         detail: {
           value: result,
-          source: skill?.name,
+          breakdown: breakdownParts.join(' '),
+          source: skillLabel,
           critical: d20 === 20,
           fumble: d20 === 1,
+          diceRolls,
         },
       })
     );
