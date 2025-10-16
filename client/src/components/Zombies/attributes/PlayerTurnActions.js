@@ -931,6 +931,32 @@ const [showLog, setShowLog] = useState(false);
 const [activeDice, setActiveDice] = useState([]);
 const diceTimerRef = useRef(null);
 
+const getDieShapeClass = (sides) => {
+  if (!Number.isFinite(sides)) {
+    return 'damage-die--generic';
+  }
+
+  const normalized = Math.max(0, Math.round(sides));
+
+  switch (normalized) {
+    case 4:
+      return 'damage-die--d4';
+    case 6:
+      return 'damage-die--d6';
+    case 8:
+      return 'damage-die--d8';
+    case 10:
+    case 100:
+      return 'damage-die--d10';
+    case 12:
+      return 'damage-die--d12';
+    case 20:
+      return 'damage-die--d20';
+    default:
+      return 'damage-die--generic';
+  }
+};
+
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
   if (diceTimerRef.current) {
     clearTimeout(diceTimerRef.current);
@@ -948,6 +974,13 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     const rotation = (Math.random() - 0.5) * 40;
     const dropDistance = 40 + Math.random() * 50;
     const delay = index * 0.05;
+    const rollDuration = 0.85 + Math.random() * 0.45;
+    const initialTiltX = (Math.random() - 0.5) * 90;
+    const initialTiltY = (Math.random() - 0.5) * 90;
+    const initialTiltZ = (Math.random() - 0.5) * 75;
+    const midTiltX = initialTiltX + 360 + Math.random() * 360;
+    const midTiltY = initialTiltY + 360 + Math.random() * 360;
+    const midTiltZ = initialTiltZ + (Math.random() - 0.5) * 540;
     return {
       id: `${baseTime}-${index}`,
       value: typeof detail?.value === 'number' ? detail.value : Number(detail?.value) || 0,
@@ -958,6 +991,13 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
       rotation,
       dropDistance,
       delay,
+      rollDuration,
+      initialTiltX,
+      initialTiltY,
+      initialTiltZ,
+      midTiltX,
+      midTiltY,
+      midTiltZ,
     };
   });
 
@@ -1139,21 +1179,31 @@ useEffect(() => {
               const categoryClass = die.category
                 ? `damage-die--${die.category}`
                 : '';
+              const shapeClass = getDieShapeClass(die.sides);
               return (
                 <div
                   key={die.id}
-                  className={`damage-die ${categoryClass}`}
+                  className={`damage-die ${shapeClass} ${categoryClass}`}
                   style={{
                     left: `${die.left}%`,
                     '--drop-delay': `${die.delay}s`,
                     '--drop-distance': `${die.dropDistance}px`,
                     '--drop-rotation': `${die.rotation}deg`,
+                    '--roll-duration': `${die.rollDuration}s`,
+                    '--initial-tilt-x': `${die.initialTiltX}deg`,
+                    '--initial-tilt-y': `${die.initialTiltY}deg`,
+                    '--initial-tilt-z': `${die.initialTiltZ}deg`,
+                    '--mid-tilt-x': `${die.midTiltX}deg`,
+                    '--mid-tilt-y': `${die.midTiltY}deg`,
+                    '--mid-tilt-z': `${die.midTiltZ}deg`,
                   }}
                 >
-                  <span className={`damage-die__value ${typeClass}`}>
-                    {die.value}
-                  </span>
-                  <span className="damage-die__sides">d{die.sides}</span>
+                  <div className="damage-die__inner">
+                    <span className={`damage-die__value ${typeClass}`}>
+                      {die.value}
+                    </span>
+                    <span className="damage-die__sides">d{die.sides}</span>
+                  </div>
                 </div>
               );
             })}
