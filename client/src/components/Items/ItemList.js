@@ -6,6 +6,7 @@ import {
   GiChariot,
   GiHammerNails,
   GiHorseHead,
+  GiPotionBall,
   GiSaddle,
   GiSailboat,
   GiTreasureMap,
@@ -27,6 +28,7 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
 const categoryIcons = {
   'adventuring gear': GiBackpack,
   ammunition: GiAmmoBox,
+  consumable: GiPotionBall,
   tool: GiHammerNails,
   mount: GiHorseHead,
   'tack and harness': GiSaddle,
@@ -39,6 +41,73 @@ const renderBonuses = (bonuses, labels) =>
   Object.entries(bonuses || {})
     .map(([k, v]) => `${labels[k] || k}: ${v}`)
     .join(', ');
+
+const EMPTY_ARRAY = Object.freeze([]);
+
+const normalizeItemName = (value) => {
+  if (typeof value === 'string') {
+    return value.trim().toLowerCase();
+  }
+  return '';
+};
+
+const extractEntryName = (entry) => {
+  if (!entry) return '';
+  if (typeof entry === 'string') {
+    return normalizeItemName(entry);
+  }
+  if (Array.isArray(entry)) {
+    return extractEntryName(entry[0]);
+  }
+  if (typeof entry === 'object') {
+    return (
+      normalizeItemName(entry.displayName) ||
+      normalizeItemName(entry.itemName) ||
+      normalizeItemName(entry.name)
+    );
+  }
+  return '';
+};
+
+const buildMatchKeySet = (item, dataKey) => {
+  const keys = new Set();
+  const addKey = (value) => {
+    const normalized = normalizeItemName(value);
+    if (normalized) {
+      keys.add(normalized);
+    }
+  };
+  addKey(dataKey);
+  if (item) {
+    addKey(item.displayName);
+    addKey(item.itemName);
+    addKey(item.name);
+  }
+  return keys;
+};
+
+const removeFirstMatchingEntry = (entries, item, dataKey) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return entries;
+  }
+  const matchKeys = buildMatchKeySet(item, dataKey);
+  if (matchKeys.size === 0) {
+    return entries;
+  }
+  const index = entries.findIndex((entry) => matchKeys.has(extractEntryName(entry)));
+  if (index === -1) {
+    return entries;
+  }
+  const next = entries.slice();
+  next.splice(index, 1);
+  return next;
+};
+
+const isConsumableItem = (item) =>
+  Array.isArray(item?.properties) &&
+  item.properties.some(
+    (prop) => typeof prop === 'string' && prop.trim().toLowerCase() === 'consumable'
+  );
 
 /** @typedef {import('../../../../types/item').Item} Item */
 
@@ -96,7 +165,7 @@ const buildItemOwnershipMap = (initialItems) => {
 function ItemList({
   campaign,
   onChange,
-  initialItems = [],
+  initialItems = EMPTY_ARRAY,
   characterId,
   show = true,
   onClose,
@@ -110,10 +179,21 @@ function ItemList({
   const [error, setError] = useState(null);
   const [unknownItems, setUnknownItems] = useState([]);
   const [notesItem, setNotesItem] = useState(null);
+  const [ownedEntries, setOwnedEntries] = useState(() =>
+    Array.isArray(initialItems) ? initialItems : EMPTY_ARRAY
+  );
+
+  useEffect(() => {
+    if (Array.isArray(initialItems)) {
+      setOwnedEntries((prev) => (prev === initialItems ? prev : initialItems));
+    } else {
+      setOwnedEntries((prev) => (prev === EMPTY_ARRAY ? prev : EMPTY_ARRAY));
+    }
+  }, [initialItems]);
 
   const ownershipMap = useMemo(
-    () => buildItemOwnershipMap(initialItems),
-    [initialItems]
+    () => buildItemOwnershipMap(ownedEntries),
+    [ownedEntries]
   );
 
   useEffect(() => {
@@ -236,6 +316,22 @@ function ItemList({
     onAddToCart(payload);
   };
 
+  const handleUseItem = (dataKey, item) => () => {
+    if (!ownedOnly || !isConsumableItem(item)) {
+      return;
+    }
+    setOwnedEntries((prev) => {
+      const next = removeFirstMatchingEntry(prev, item, dataKey);
+      if (next === prev) {
+        return prev;
+      }
+      if (typeof onChange === 'function') {
+        onChange(next);
+      }
+      return next;
+    });
+  };
+
   const getCartCount = (item) => {
     if (!cartCounts) return 0;
     const key = `item::${String(item?.name || '').toLowerCase()}`;
@@ -307,6 +403,7 @@ function ItemList({
                 ? item.category.toLowerCase()
                 : '';
             const Icon = categoryIcons[categoryKey] || GiTreasureMap;
+            const canUseItem = ownedOnly && isConsumableItem(item);
             return (
               <Col key={reactKey}>
                 <Card className="item-card h-100">
@@ -318,6 +415,12 @@ function ItemList({
                     <Card.Text>Category: {item.category}</Card.Text>
                     <Card.Text>Weight: {item.weight}</Card.Text>
                     <Card.Text>Cost: {item.cost}</Card.Text>
+                    {item.rarity ? (
+                      <Card.Text>Rarity: {item.rarity}</Card.Text>
+                    ) : null}
+                    {item.healing ? (
+                      <Card.Text>HP Regained: {item.healing}</Card.Text>
+                    ) : null}
                     {renderBonuses(item.statBonuses, STAT_LABELS) && (
                       <Card.Text>
                         Stat Bonuses: {renderBonuses(
@@ -354,8 +457,19 @@ function ItemList({
                       </div>
                     )}
                   </Card.Body>
-                  {!ownedOnly && (
-                    <Card.Footer className="d-flex justify-content-center">
+                  <Card.Footer className="d-flex justify-content-center">
+                    {ownedOnly ? (
+                      <Button
+                        size="sm"
+                        onClick={handleUseItem(dataKey, item)}
+                        disabled={!canUseItem}
+                        title={
+                          canUseItem ? undefined : 'Only consumable items can be used.'
+                        }
+                      >
+                        Use
+                      </Button>
+                    ) : (
                       <div className="d-flex align-items-center gap-2">
                         <Button size="sm" onClick={handleAddToCart(item)}>
                           Add to Cart
@@ -366,8 +480,8 @@ function ItemList({
                           </Badge>
                         ) : null}
                       </div>
-                    </Card.Footer>
-                  )}
+                    )}
+                  </Card.Footer>
                 </Card>
               </Col>
             );

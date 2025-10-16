@@ -88,7 +88,7 @@ test('fetches items, handles add to cart, and displays cart count', async () => 
       displayName: 'Potion of healing',
       type: 'item',
       cost: '50 gp',
-      category: 'adventuring gear',
+      category: 'consumable',
       weight: 0.5,
     })
   );
@@ -159,4 +159,49 @@ test('renders duplicate item cards when multiple copies are owned', async () => 
   expect(screen.getByText('Copy 1 of 2')).toBeInTheDocument();
   expect(screen.getByText('Copy 2 of 2')).toBeInTheDocument();
   expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
+});
+
+test('use button removes a consumable item copy and triggers onChange', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
+  const onChange = jest.fn();
+  const initialItems = [
+    {
+      name: 'potion-healing',
+      displayName: 'Potion of healing',
+      properties: ['consumable'],
+      owned: true,
+    },
+    {
+      name: 'potion-healing',
+      displayName: 'Potion of healing',
+      properties: ['consumable'],
+      owned: true,
+    },
+  ];
+
+  render(
+    <ItemList
+      ownedOnly
+      embedded
+      initialItems={initialItems}
+      onChange={onChange}
+    />
+  );
+
+  const initialCards = await screen.findAllByText('Potion of healing');
+  expect(initialCards).toHaveLength(2);
+
+  const useButton = within(initialCards[0].closest('.card')).getByRole('button', {
+    name: /use/i,
+  });
+  await userEvent.click(useButton);
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  const updatedItems = onChange.mock.calls[0][0];
+  expect(Array.isArray(updatedItems)).toBe(true);
+  expect(updatedItems).toHaveLength(1);
+
+  await waitFor(() =>
+    expect(screen.getAllByText('Potion of healing')).toHaveLength(1)
+  );
 });

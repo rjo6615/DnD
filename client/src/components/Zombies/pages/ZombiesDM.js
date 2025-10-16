@@ -45,6 +45,7 @@ import {
   GiArmorVest,
   GiBackpack,
   GiAmmoBox,
+  GiPotionBall,
   GiHammerNails,
   GiHorseHead,
   GiSaddle,
@@ -5098,6 +5099,7 @@ const armorCategoryIcons = {
 const itemCategoryIcons = {
   'adventuring gear': GiBackpack,
   ammunition: GiAmmoBox,
+  consumable: GiPotionBall,
   tool: GiHammerNails,
   mount: GiHorseHead,
   'tack and harness': GiSaddle,
