@@ -219,6 +219,7 @@ const rollHealingValue = (healing) => {
   }
 
   let total = 0;
+  const diceRolls = [];
   const diceSections = diceMatches
     .map((match) => {
       const count = parseInt(match[1], 10);
@@ -227,12 +228,19 @@ const rollHealingValue = (healing) => {
         return null;
       }
 
-      const rolls = Array.from({ length: count }, () =>
-        Math.floor(Math.random() * sides) + 1
-      );
+      const rolls = Array.from({ length: count }, () => {
+        const value = Math.floor(Math.random() * sides) + 1;
+        diceRolls.push({
+          sides,
+          value,
+          type: 'Healing',
+          category: 'base',
+        });
+        return value;
+      });
       const subtotal = rolls.reduce((sum, value) => sum + value, 0);
       total += subtotal;
-      return { label: match[0], rolls };
+      return { label: match[0], rolls, sides };
     })
     .filter(Boolean);
 
@@ -278,6 +286,7 @@ const rollHealingValue = (healing) => {
     expression: sanitized,
     diceSections,
     modifierValues,
+    diceRolls,
   };
 };
 
@@ -313,6 +322,7 @@ const triggerHealingRoll = (item) => {
     expression,
     rollValues,
     modifierValues: modifierLabels,
+    diceRolls: result.diceRolls,
   };
 
   window.dispatchEvent(new CustomEvent('damage-roll', { detail }));

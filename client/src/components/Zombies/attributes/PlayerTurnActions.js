@@ -4,7 +4,6 @@ import React, {
   useImperativeHandle,
   useMemo,
   useCallback,
-  useRef,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
@@ -935,12 +934,11 @@ const sortedSpells = useMemo(() => {
 }, [form.spells]);
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
-const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
 const [damageLog, setDamageLog] = useState([]);
 const [showLog, setShowLog] = useState(false);
 const [activeDice, setActiveDice] = useState([]);
-const diceTimerRef = useRef(null);
+const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 
 const getDieShapeClass = (sides) => {
   if (!Number.isFinite(sides)) {
@@ -969,11 +967,6 @@ const getDieShapeClass = (sides) => {
 };
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
-  if (diceTimerRef.current) {
-    clearTimeout(diceTimerRef.current);
-    diceTimerRef.current = null;
-  }
-
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
     setActiveDice([]);
     return;
@@ -992,9 +985,15 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     const midTiltX = initialTiltX + 360 + Math.random() * 360;
     const midTiltY = initialTiltY + 360 + Math.random() * 360;
     const midTiltZ = initialTiltZ + (Math.random() - 0.5) * 540;
+    const finalTiltX = (Math.random() - 0.5) * 50;
+    const finalTiltY = (Math.random() - 0.5) * 50;
+    const finalTiltZ = (Math.random() - 0.5) * 50;
     return {
       id: `${baseTime}-${index}`,
-      value: typeof detail?.value === 'number' ? detail.value : Number(detail?.value) || 0,
+      value:
+        typeof detail?.value === 'number'
+          ? detail.value
+          : Number(detail?.value) || 0,
       sides: detail?.sides || 0,
       type: detail?.type || '',
       category: detail?.category || 'base',
@@ -1009,31 +1008,14 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
       midTiltX,
       midTiltY,
       midTiltZ,
+      finalTiltX,
+      finalTiltY,
+      finalTiltZ,
     };
   });
 
   setActiveDice(nextDice);
-  diceTimerRef.current = setTimeout(() => {
-    setActiveDice([]);
-    diceTimerRef.current = null;
-  }, 2000);
 }, []);
-
-useEffect(() => () => {
-  if (diceTimerRef.current) {
-    clearTimeout(diceTimerRef.current);
-    diceTimerRef.current = null;
-  }
-}, []);
-
-useEffect(() => {
-  if (loading) {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000); // 1 second delay
-    return () => clearTimeout(timer);
-  }
-}, [loading]);
 
 const updateDamageValueWithAnimation = (
   newValue,
@@ -1041,11 +1023,11 @@ const updateDamageValueWithAnimation = (
   source,
   extra = {}
 ) => {
-  setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
   const details = Array.isArray(extra?.diceRolls) ? extra.diceRolls : [];
   triggerDiceAnimation(details);
+  setLastRollTimestamp(Date.now());
   if (newValue !== undefined) {
     setDamageLog((prev) => {
       const entry = {
@@ -1074,6 +1056,20 @@ useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
 
 const [pulseClass, setPulseClass] = useState('');
 
+useEffect(() => {
+  if (!lastRollTimestamp) {
+    return undefined;
+  }
+  const cls = isCritical ? 'pulse-gold' : isFumble ? 'pulse-red' : 'pulse';
+  setPulseClass(cls);
+  const timer = setTimeout(() => {
+    setPulseClass('');
+    setIsCritical(false);
+    setIsFumble(false);
+  }, 2000);
+  return () => clearTimeout(timer);
+}, [lastRollTimestamp, isCritical, isFumble]);
+
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
@@ -1087,19 +1083,7 @@ useEffect(() => {
   return () => window.removeEventListener('damage-roll', handler);
 }, []);
 
-useEffect(() => {
-  if (!loading) {
-    const cls = isCritical ? 'pulse-gold' : isFumble ? 'pulse-red' : 'pulse';
-    setPulseClass(cls);
-    const timer = setTimeout(() => {
-      setPulseClass('');
-      setIsCritical(false);
-      setIsFumble(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }
-}, [loading]);
-  const passDisabled = !canPassTurn || isPassTurnInProgress;
+const passDisabled = !canPassTurn || isPassTurnInProgress;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -1178,9 +1162,9 @@ useEffect(() => {
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
         <div
           id="damageAmount"
-          className={`${loading ? 'loading' : ''} ${pulseClass} ${
-            isCritical ? 'critical-active' : ''
-          } ${isFumble ? 'critical-failure' : ''}`}
+          className={`${pulseClass} ${isCritical ? 'critical-active' : ''} ${
+            isFumble ? 'critical-failure' : ''
+          }`}
           onClick={handleDamageClick}
         >
           <div className="damage-roller__dice-area" aria-hidden="true">
@@ -1207,6 +1191,9 @@ useEffect(() => {
                     '--mid-tilt-x': `${die.midTiltX}deg`,
                     '--mid-tilt-y': `${die.midTiltY}deg`,
                     '--mid-tilt-z': `${die.midTiltZ}deg`,
+                    '--final-tilt-x': `${die.finalTiltX}deg`,
+                    '--final-tilt-y': `${die.finalTiltY}deg`,
+                    '--final-tilt-z': `${die.finalTiltZ}deg`,
                   }}
                 >
                   <div className="damage-die__inner">
@@ -1223,17 +1210,13 @@ useEffect(() => {
             <span className="damage-roller__total-label">Total</span>
             <span
               id="damageValue"
-              className={`damage-roller__total-value ${loading ? 'hidden' : ''} ${
+              className={`damage-roller__total-value ${
                 typeof damageValue === 'string' ? 'spell-cast-label' : ''
               }`}
             >
               {damageValue}
             </span>
           </div>
-          <div
-            id="loadingSpinner"
-            className={`spinner ${loading ? '' : 'hidden'}`}
-          ></div>
         </div>
       </div>
       <Modal centered show={showLog} onHide={() => setShowLog(false)}>
