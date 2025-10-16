@@ -79,6 +79,14 @@ export default function InventoryModal({
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
+  const handleItemListClose = useCallback(() => {
+    if (isDocked) {
+      return;
+    }
+
+    handleModalHide();
+  }, [isDocked, handleModalHide]);
+
   const tabConfigs = useMemo(
     () => [
       {
@@ -136,7 +144,7 @@ export default function InventoryModal({
               embedded
               ownedOnly
               onChange={onItemsChange}
-              onClose={handleModalHide}
+              onClose={handleItemListClose}
             />
           ),
       },
@@ -167,7 +175,7 @@ export default function InventoryModal({
       normalizedAccessories,
       normalizedWeapons,
       onItemsChange,
-      handleModalHide,
+      handleItemListClose,
     ]
   );
 

@@ -160,4 +160,64 @@ describe('InventoryModal', () => {
     expect(mockItemListProps.current?.ownedOnly).toBe(true);
   });
 
+  test('item list close handler hides the modal when not docked', async () => {
+    const onHide = jest.fn();
+    const form = {
+      item: [['Potion']],
+    };
+
+    render(
+      <InventoryModal
+        show
+        onHide={onHide}
+        onTabChange={jest.fn()}
+        form={form}
+      />
+    );
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
+    });
+
+    expect(typeof mockItemListProps.current?.onClose).toBe('function');
+
+    await act(async () => {
+      mockItemListProps.current?.onClose?.();
+    });
+
+    expect(onHide).toHaveBeenCalledTimes(1);
+  });
+
+  test('item list close handler is ignored when docked', async () => {
+    const onHide = jest.fn();
+    const onDockClose = jest.fn();
+    const form = {
+      item: [['Potion']],
+    };
+
+    render(
+      <InventoryModal
+        show
+        isDocked
+        onHide={onHide}
+        onDockClose={onDockClose}
+        onTabChange={jest.fn()}
+        form={form}
+      />
+    );
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
+    });
+
+    expect(typeof mockItemListProps.current?.onClose).toBe('function');
+
+    await act(async () => {
+      mockItemListProps.current?.onClose?.();
+    });
+
+    expect(onHide).not.toHaveBeenCalled();
+    expect(onDockClose).not.toHaveBeenCalled();
+  });
+
 });
