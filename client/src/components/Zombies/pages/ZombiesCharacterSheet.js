@@ -4823,6 +4823,7 @@ export default function ZombiesCharacterSheet() {
           onHide: handleCloseInventory,
           onTabChange: setInventoryTab,
           characterId,
+          onItemsChange: handleItemsChange,
           onDockChange: (side) => handleDockChange('inventory', side),
         }),
       },
