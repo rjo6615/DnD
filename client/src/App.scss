@@ -1952,19 +1952,25 @@ $rotateX: -$angle;
   --drop-duration: 0.9s;
   --drop-rotation: 0deg;
   --drop-distance: 60px;
-  --initial-tilt-x: 0deg;
-  --initial-tilt-y: 0deg;
-  --initial-tilt-z: 0deg;
-  --mid-tilt-x: 360deg;
-  --mid-tilt-y: 360deg;
-  --mid-tilt-z: 360deg;
-  --final-tilt-x: 0deg;
-  --final-tilt-y: 0deg;
-  --final-tilt-z: 0deg;
+  --initial-tilt-x: -26deg;
+  --initial-tilt-y: 18deg;
+  --initial-tilt-z: -18deg;
+  --mid-tilt-x: 420deg;
+  --mid-tilt-y: 312deg;
+  --mid-tilt-z: 558deg;
+  --final-tilt-x: 22deg;
+  --final-tilt-y: -16deg;
+  --final-tilt-z: 24deg;
+  --start-depth: 108px;
+  --mid-depth: -28px;
+  --final-depth: 0px;
+  --die-perspective: 760px;
+  --die-depth: 12px;
   --damage-die-clip: polygon(12% 12%, 88% 12%, 100% 50%, 88% 88%, 12% 88%, 0% 50%);
   animation: damage-die-drop var(--drop-duration) ease-out forwards;
   animation-delay: var(--drop-delay);
   transform-style: preserve-3d;
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45));
 }
 
 .damage-die__face {
@@ -1977,26 +1983,54 @@ $rotateX: -$angle;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
-  background: linear-gradient(145deg, rgba(0, 76, 255, 0.65), rgba(0, 76, 255, 0.35));
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: radial-gradient(
+      circle at 30% 28%,
+      rgba(255, 255, 255, 0.32) 0%,
+      rgba(255, 255, 255, 0) 45%
+    ),
+    linear-gradient(135deg, rgba(37, 92, 255, 0.95), rgba(12, 32, 110, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
   clip-path: var(--damage-die-clip);
   box-shadow:
-    inset 0 1px 8px rgba(255, 255, 255, 0.35),
-    0 4px 12px rgba(0, 0, 0, 0.35);
+    inset 0 1px 12px rgba(255, 255, 255, 0.4),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.35);
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  overflow: visible;
+}
+
+.damage-die__face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  clip-path: inherit;
+  background: linear-gradient(150deg, rgba(4, 11, 42, 0.85), rgba(18, 41, 122, 0.6));
+  transform: translateZ(calc(var(--die-depth) * -1)) rotateY(180deg);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .damage-die__face::after {
   content: '';
   position: absolute;
-  inset: 12%;
+  inset: 10%;
   border-radius: inherit;
   clip-path: inherit;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  background:
+    radial-gradient(circle at 26% 24%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0)),
+    conic-gradient(
+      from 110deg at 50% 50%,
+      rgba(255, 255, 255, 0.25) 0deg,
+      rgba(255, 255, 255, 0) 120deg,
+      rgba(0, 0, 0, 0.35) 180deg,
+      rgba(0, 0, 0, 0) 320deg,
+      rgba(255, 255, 255, 0.25) 360deg
+    );
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.75;
 }
 
 .damage-die__value {
@@ -2030,6 +2064,30 @@ $rotateX: -$angle;
   --damage-die-clip: polygon(50% 0%, 72% 6%, 88% 18%, 98% 34%, 100% 50%, 98% 66%, 88% 82%, 72% 94%, 50% 100%, 28% 94%, 12% 82%, 2% 66%, 0% 50%, 2% 34%, 12% 18%, 28% 6%);
 }
 
+.damage-die--d20 .damage-die__face {
+  background:
+    linear-gradient(160deg, rgba(24, 61, 182, 0.95), rgba(10, 25, 92, 0.94)),
+    radial-gradient(circle at 70% 68%, rgba(66, 132, 255, 0.3), rgba(0, 0, 0, 0) 60%);
+  box-shadow:
+    inset 0 2px 14px rgba(255, 255, 255, 0.45),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.55),
+    0 10px 22px rgba(0, 0, 0, 0.45);
+}
+
+.damage-die--d20 .damage-die__face::after {
+  background:
+    radial-gradient(circle at 24% 22%, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 52%),
+    conic-gradient(
+      from 100deg at 50% 50%,
+      rgba(255, 255, 255, 0.35) 0deg,
+      rgba(255, 255, 255, 0) 120deg,
+      rgba(0, 0, 0, 0.45) 195deg,
+      rgba(0, 0, 0, 0.1) 320deg,
+      rgba(255, 255, 255, 0.35) 360deg
+    );
+  opacity: 0.8;
+}
+
 .damage-die--generic {
   border-radius: 50%;
   --damage-die-clip: ellipse(50% 50% at 50% 50%);
@@ -2054,7 +2112,9 @@ $rotateX: -$angle;
 
 @keyframes damage-die-drop {
   0% {
-    transform: translate(-50%, -140%) rotateX(var(--initial-tilt-x))
+    transform: perspective(var(--die-perspective))
+      translate3d(-50%, -140%, var(--start-depth))
+      rotateX(var(--initial-tilt-x))
       rotateY(var(--initial-tilt-y))
       rotateZ(calc(var(--initial-tilt-z) + var(--drop-rotation)));
     opacity: 0;
@@ -2063,13 +2123,15 @@ $rotateX: -$angle;
     opacity: 1;
   }
   55% {
-    transform: translate(-50%, calc(var(--drop-distance) * 0.35))
+    transform: perspective(var(--die-perspective))
+      translate3d(-50%, calc(var(--drop-distance) * 0.35), var(--mid-depth))
       rotateX(var(--mid-tilt-x))
       rotateY(var(--mid-tilt-y))
       rotateZ(var(--mid-tilt-z));
   }
   100% {
-    transform: translate(-50%, var(--drop-distance))
+    transform: perspective(var(--die-perspective))
+      translate3d(-50%, var(--drop-distance), var(--final-depth))
       rotateX(var(--final-tilt-x))
       rotateY(var(--final-tilt-y))
       rotateZ(var(--final-tilt-z));
