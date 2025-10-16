@@ -895,7 +895,12 @@ useEffect(() => {
   }
 }, [loading]);
 
-const updateDamageValueWithAnimation = (newValue, breakdown, source) => {
+const updateDamageValueWithAnimation = (
+  newValue,
+  breakdown,
+  source,
+  extra = {}
+) => {
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
@@ -904,7 +909,19 @@ const updateDamageValueWithAnimation = (newValue, breakdown, source) => {
       const entry = {
         total: newValue,
         breakdown,
-        source: source ? toTitleCase(source) : undefined,
+        source: extra.sourceLabel
+          ? extra.sourceLabel
+          : source
+          ? toTitleCase(source)
+          : undefined,
+        actionLabel: extra.actionLabel,
+        expression: extra.expression,
+        rollValues: Array.isArray(extra.rollValues)
+          ? extra.rollValues
+          : undefined,
+        modifierValues: Array.isArray(extra.modifierValues)
+          ? extra.modifierValues
+          : undefined,
       };
       return [entry, { divider: true }, ...prev].slice(0, 10);
     });
@@ -918,8 +935,9 @@ const [pulseClass, setPulseClass] = useState('');
 // Allow other components to display values in the damage circle
 useEffect(() => {
   const handler = (e) => {
-    const { value, breakdown, source, critical, fumble } = e.detail || {};
-    updateDamageValueWithAnimation(value, breakdown, source);
+    const { value, breakdown, source, critical, fumble, ...extra } =
+      e.detail || {};
+    updateDamageValueWithAnimation(value, breakdown, source, extra);
     setIsCritical(!!critical && !fumble);
     setIsFumble(!!fumble);
   };
@@ -1049,26 +1067,58 @@ useEffect(() => {
               ) : (
                 <li key={idx}>
                   <div>
-                    {entry.source ? `${entry.source} (${entry.total})` : entry.total}
+                    {entry.source
+                      ? `${entry.source}${entry.actionLabel ? ' -' : ''} (${entry.total})`
+                      : entry.total}
                   </div>
-                  {entry.breakdown && (
+                  {entry.actionLabel && entry.expression ? (
                     <div>
-                      {entry.breakdown.split(' + ').map((segment, i) => {
-                        const [valueToken, ...typeParts] = segment.trim().split(/\s+/);
-                        const value = valueToken || segment;
-                        const type = typeParts.join(' ');
-                        const normalizedType = normalizeDamageTypeForClass(type);
-                        return (
-                          <div key={i}>
-                            -{' '}
-                            <span className={normalizedType ? `damage-${normalizedType}` : ''}>
-                              {value}
-                              {type ? ` ${type}` : ''}
-                            </span>
-                          </div>
-                        );
-                      })}
+                      <div>{`${entry.actionLabel} - (${entry.expression})`}</div>
+                      {Array.isArray(entry.rollValues) &&
+                        entry.rollValues.map((value, rollIdx) => (
+                          <div key={`roll-${rollIdx}`}>- {value}</div>
+                        ))}
+                      {Array.isArray(entry.modifierValues) &&
+                        entry.modifierValues.map((value, modIdx) => (
+                          <div key={`mod-${modIdx}`}>- {value}</div>
+                        ))}
                     </div>
+                  ) : (
+                    entry.breakdown && (
+                      <div>
+                        {entry.breakdown
+                          .split(';')
+                          .map((section) => section.trim())
+                          .filter(Boolean)
+                          .flatMap((section) =>
+                            section
+                              .split(' + ')
+                              .map((segment) => segment.trim())
+                              .filter(Boolean)
+                          )
+                          .map((segment, i) => {
+                            const [valueToken, ...typeParts] = segment
+                              .trim()
+                              .split(/\s+/);
+                            const value = valueToken || segment;
+                            const type = typeParts.join(' ');
+                            const normalizedType = normalizeDamageTypeForClass(type);
+                            return (
+                              <div key={i}>
+                                -{' '}
+                                <span
+                                  className={
+                                    normalizedType ? `damage-${normalizedType}` : ''
+                                  }
+                                >
+                                  {value}
+                                  {type ? ` ${type}` : ''}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )
                   )}
                 </li>
               )
