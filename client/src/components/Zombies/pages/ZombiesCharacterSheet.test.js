@@ -2265,6 +2265,47 @@ test('pass-turn event resets action and bonus usage', async () => {
   });
 });
 
+test('using a consumable potion consumes the bonus action circle', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.bonus-circle')).toBeTruthy());
+  const bonus = container.querySelector('.bonus-circle');
+  expect(bonus).toHaveClass('slot-active');
+
+  await act(async () => {
+    window.dispatchEvent(
+      new CustomEvent('inventory:consumable-used', {
+        detail: { type: 'potion' },
+      })
+    );
+  });
+
+  await waitFor(() => {
+    expect(bonus).toHaveClass('slot-used');
+  });
+});
+
 test('action and bonus markers cycle through states', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
