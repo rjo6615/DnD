@@ -5,6 +5,8 @@ const DEFAULT_TOKEN_ROOT_FOLDER = 'Tokens';
 const TOKEN_FALLBACK_MAX_RESULTS = 200;
 const DEFAULT_TOKEN_CACHE_TTL_MS = 60_000;
 const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 120_000;
+const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
+const MAX_FOLDER_TREE_CONCURRENCY = 12;
 
 const tokenListCache = new Map();
 const folderTreeCache = new Map();
@@ -25,6 +27,63 @@ const getFolderTreeCacheTtlMs = () =>
     process.env.CLOUDINARY_FOLDER_TREE_CACHE_TTL_MS,
     DEFAULT_FOLDER_TREE_CACHE_TTL_MS
   );
+
+const parsePositiveInteger = (value, fallback, max) => {
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue >= 1) {
+    const normalized = Math.floor(numericValue);
+    if (Number.isFinite(max) && max >= 1) {
+      return Math.min(normalized, max);
+    }
+    return normalized;
+  }
+
+  return fallback;
+};
+
+const getFolderTreeConcurrency = () =>
+  parsePositiveInteger(
+    process.env.CLOUDINARY_FOLDER_TREE_CONCURRENCY,
+    DEFAULT_FOLDER_TREE_CONCURRENCY,
+    MAX_FOLDER_TREE_CONCURRENCY
+  );
+
+const mapWithConcurrency = async (items, mapper, options = {}) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  const { concurrency } = options;
+  const limit = Math.max(
+    1,
+    Math.min(
+      Number.isInteger(concurrency) && concurrency > 0 ? concurrency : DEFAULT_FOLDER_TREE_CONCURRENCY,
+      MAX_FOLDER_TREE_CONCURRENCY,
+      items.length
+    )
+  );
+
+  const results = new Array(items.length);
+  let currentIndex = 0;
+
+  const worker = async () => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const nextIndex = currentIndex;
+      currentIndex += 1;
+
+      if (nextIndex >= items.length) {
+        break;
+      }
+
+      results[nextIndex] = await mapper(items[nextIndex], nextIndex);
+    }
+  };
+
+  await Promise.all(Array.from({ length: limit }, worker));
+
+  return results;
+};
 
 const getCacheEntry = (cache, key) => {
   const entry = cache.get(key);
@@ -308,6 +367,7 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
   }
 
   const visited = new Set();
+  const folderFetchConcurrency = getFolderTreeConcurrency();
 
   const fetchSubfolders = async (folderPath) => {
     const results = [];
@@ -373,11 +433,19 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
 
     const children = [];
     const subFolders = await fetchSubfolders(normalizedPath);
-    for (const subFolder of subFolders) {
-      const childNode = await buildNode(subFolder.path);
-      if (childNode) {
-        children.push(childNode);
-      }
+
+    if (subFolders.length > 0) {
+      const childNodes = await mapWithConcurrency(
+        subFolders,
+        async (subFolder) => buildNode(subFolder.path),
+        { concurrency: folderFetchConcurrency }
+      );
+
+      childNodes.forEach((childNode) => {
+        if (childNode) {
+          children.push(childNode);
+        }
+      });
     }
 
     return {
@@ -390,22 +458,36 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
 
   const collectNodes = async () => {
     const nodes = [];
-    for (const target of normalizedTargets) {
-      if (target === normalizedRoot) {
-        const rootChildren = await fetchSubfolders(normalizedRoot);
-        for (const child of rootChildren) {
-          const node = await buildNode(child.path);
-          if (node) {
-            nodes.push(node);
+
+    const targetResults = await mapWithConcurrency(
+      normalizedTargets,
+      async (target) => {
+        if (target === normalizedRoot) {
+          const rootChildren = await fetchSubfolders(normalizedRoot);
+          if (rootChildren.length === 0) {
+            return [];
           }
+
+          const childNodes = await mapWithConcurrency(
+            rootChildren,
+            async (child) => buildNode(child.path),
+            { concurrency: folderFetchConcurrency }
+          );
+
+          return childNodes.filter(Boolean);
         }
-      } else {
+
         const node = await buildNode(target);
-        if (node) {
-          nodes.push(node);
-        }
+        return node ? [node] : [];
+      },
+      { concurrency: folderFetchConcurrency }
+    );
+
+    targetResults.forEach((targetNodes) => {
+      if (Array.isArray(targetNodes) && targetNodes.length > 0) {
+        nodes.push(...targetNodes);
       }
-    }
+    });
 
     const uniqueByPath = new Map();
     nodes.forEach((node) => {
