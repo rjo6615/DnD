@@ -1777,11 +1777,28 @@ $rotateX: -$angle;
 }
 
 @keyframes roll {
-  10% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) }
-  30% { transform: rotateX(120deg) rotateY(240deg) rotateZ(0deg) translateX(40px) translateY(40px) }
-  50% { transform: rotateX(240deg) rotateY(480deg) rotateZ(0deg) translateX(-40px) translateY(-40px) }
-  70% { transform: rotateX(360deg) rotateY(720deg) rotateZ(0deg) }
-  90% { transform: rotateX(480deg) rotateY(960deg) rotateZ(0deg) }
+  0% {
+    transform: rotateX($rotateX) rotateY(0deg) rotateZ(0deg);
+  }
+
+  25% {
+    transform: rotateX($rotateX + 120deg) rotateY(240deg) rotateZ(0deg)
+      translate3d(40px, 40px, 20px);
+  }
+
+  50% {
+    transform: rotateX($rotateX + 240deg) rotateY(480deg) rotateZ(0deg)
+      translate3d(-40px, -40px, -20px);
+  }
+
+  75% {
+    transform: rotateX($rotateX + 360deg) rotateY(720deg) rotateZ(0deg)
+      translate3d(20px, -30px, 10px);
+  }
+
+  100% {
+    transform: rotateX($rotateX + 480deg) rotateY(960deg) rotateZ(0deg);
+  }
 }
 
 @include dice-size(min(25vw, 120px));
