@@ -630,6 +630,153 @@ module.exports = (router) => {
     }
   );
 
+  characterRouter.route('/:id/temporary-size').put(
+    [
+      body('temporarySize')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('temporarySize must be a string')
+        .trim(),
+      body('temporarySpeedBonus')
+        .optional({ nullable: true })
+        .isFloat()
+        .withMessage('temporarySpeedBonus must be a number')
+        .toFloat(),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+
+      const db_connect = req.db;
+      const requestData = matchedData(req, {
+        locations: ['body'],
+        includeOptionals: true,
+      });
+
+      const hasSizeUpdate = Object.prototype.hasOwnProperty.call(
+        requestData,
+        'temporarySize'
+      );
+      const hasSpeedUpdate = Object.prototype.hasOwnProperty.call(
+        requestData,
+        'temporarySpeedBonus'
+      );
+
+      if (!hasSizeUpdate && !hasSpeedUpdate) {
+        return res.status(400).json({ message: 'No updates provided' });
+      }
+
+      const updates = {};
+      const unset = {};
+
+      if (hasSizeUpdate) {
+        const rawSize = requestData.temporarySize;
+        const trimmedSize =
+          typeof rawSize === 'string' ? rawSize.trim() : '';
+        if (trimmedSize) {
+          updates.temporarySize = trimmedSize;
+        } else {
+          unset.temporarySize = '';
+        }
+      }
+
+      if (hasSpeedUpdate) {
+        const rawSpeed = requestData.temporarySpeedBonus;
+        if (rawSpeed === null || rawSpeed === undefined || rawSpeed === '') {
+          unset.temporarySpeedBonus = '';
+        } else {
+          const numericSpeed = Number(rawSpeed);
+          if (Number.isFinite(numericSpeed)) {
+            updates.temporarySpeedBonus = numericSpeed;
+          } else {
+            unset.temporarySpeedBonus = '';
+          }
+        }
+      }
+
+      const updateDoc = {};
+      if (Object.keys(updates).length > 0) {
+        updateDoc.$set = updates;
+      }
+      if (Object.keys(unset).length > 0) {
+        updateDoc.$unset = unset;
+      }
+
+      if (Object.keys(updateDoc).length === 0) {
+        return res.status(400).json({ message: 'No updates provided' });
+      }
+
+      try {
+        const result = await db_connect.collection('Characters').findOneAndUpdate(
+          { _id: ObjectId(req.params.id) },
+          updateDoc,
+          { returnDocument: 'after' }
+        );
+
+        const updatedCharacter = result && result.value ? result.value : null;
+        if (!updatedCharacter) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+
+        const payload = {};
+        if (hasSizeUpdate) {
+          payload.temporarySize =
+            typeof updatedCharacter.temporarySize === 'string' &&
+            updatedCharacter.temporarySize.trim() !== ''
+              ? updatedCharacter.temporarySize.trim()
+              : null;
+        }
+        if (hasSpeedUpdate) {
+          const rawValue = updatedCharacter.temporarySpeedBonus;
+          const numericValue = Number(rawValue);
+          payload.temporarySpeedBonus = Number.isFinite(numericValue)
+            ? numericValue
+            : null;
+        }
+
+        const rawCampaignId =
+          typeof updatedCharacter.campaign === 'string'
+            ? updatedCharacter.campaign
+            : typeof updatedCharacter.campaignId === 'string'
+              ? updatedCharacter.campaignId
+              : null;
+        const campaignId =
+          rawCampaignId && rawCampaignId.trim() !== ''
+            ? rawCampaignId.trim()
+            : null;
+
+        let characterId = null;
+        if (
+          typeof updatedCharacter.characterId === 'string' &&
+          updatedCharacter.characterId.trim() !== ''
+        ) {
+          characterId = updatedCharacter.characterId.trim();
+        } else if (updatedCharacter._id) {
+          try {
+            characterId = updatedCharacter._id.toString();
+          } catch (err) {
+            characterId = String(updatedCharacter._id);
+          }
+        }
+
+        if (campaignId && characterId) {
+          emitCharacterMetadataUpdate(campaignId, {
+            ...payload,
+            characterId,
+          });
+        }
+
+        logger.info('Temporary size updated for character');
+
+        return res.json({ ...payload, campaignId, characterId });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   characterRouter.route('/:id/figurine').put(
     [
       body('figurineImageUrl')

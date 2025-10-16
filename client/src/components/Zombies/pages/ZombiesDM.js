@@ -2029,14 +2029,40 @@ export default function ZombiesDM() {
           return;
         }
 
+        const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(update, 'diceColor');
+        const hasTemporarySizeUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'temporarySize'
+        );
+        const hasTemporarySpeedUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'temporarySpeedBonus'
+        );
+
+        if (!hasDiceColorUpdate && !hasTemporarySizeUpdate && !hasTemporarySpeedUpdate) {
+          return;
+        }
+
         const normalizedDiceColor =
-          typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+          hasDiceColorUpdate &&
+          typeof update.diceColor === 'string' &&
+          update.diceColor.trim() !== ''
             ? update.diceColor.trim()
             : null;
 
-        if (!normalizedDiceColor) {
-          return;
-        }
+        const normalizedTemporarySize =
+          hasTemporarySizeUpdate &&
+          typeof update.temporarySize === 'string' &&
+          update.temporarySize.trim() !== ''
+            ? update.temporarySize.trim()
+            : null;
+
+        const normalizedTemporarySpeed = hasTemporarySpeedUpdate
+          ? (() => {
+              const numeric = Number(update.temporarySpeedBonus);
+              return Number.isFinite(numeric) ? numeric : null;
+            })()
+          : null;
 
         setRecords((prev) => {
           if (!Array.isArray(prev) || prev.length === 0) {
@@ -2061,15 +2087,51 @@ export default function ZombiesDM() {
               return record;
             }
 
-            if (
-              typeof record.diceColor === 'string' &&
-              record.diceColor.trim() === normalizedDiceColor
-            ) {
-              return record;
+            let changed = false;
+            const nextRecord = { ...record };
+
+            if (hasDiceColorUpdate && normalizedDiceColor) {
+              if (
+                typeof nextRecord.diceColor !== 'string' ||
+                nextRecord.diceColor.trim() !== normalizedDiceColor
+              ) {
+                nextRecord.diceColor = normalizedDiceColor;
+                changed = true;
+              }
             }
 
-            didUpdate = true;
-            return { ...record, diceColor: normalizedDiceColor };
+            if (hasTemporarySizeUpdate) {
+              if (normalizedTemporarySize) {
+                if (nextRecord.temporarySize !== normalizedTemporarySize) {
+                  nextRecord.temporarySize = normalizedTemporarySize;
+                  changed = true;
+                }
+              } else if (Object.prototype.hasOwnProperty.call(nextRecord, 'temporarySize')) {
+                delete nextRecord.temporarySize;
+                changed = true;
+              }
+            }
+
+            if (hasTemporarySpeedUpdate) {
+              if (normalizedTemporarySpeed !== null) {
+                if (nextRecord.temporarySpeedBonus !== normalizedTemporarySpeed) {
+                  nextRecord.temporarySpeedBonus = normalizedTemporarySpeed;
+                  changed = true;
+                }
+              } else if (
+                Object.prototype.hasOwnProperty.call(nextRecord, 'temporarySpeedBonus')
+              ) {
+                delete nextRecord.temporarySpeedBonus;
+                changed = true;
+              }
+            }
+
+            if (changed) {
+              didUpdate = true;
+              return nextRecord;
+            }
+
+            return record;
           });
 
           return didUpdate ? next : prev;
@@ -2889,16 +2951,19 @@ export default function ZombiesDM() {
             (value) => typeof value === 'string' && value.trim() !== ''
           );
 
-          const recordSize = normalizeCreatureSize(
-            record.size ??
-              record.characterSize ??
-              record?.character?.size ??
-              record?.creature?.size ??
-              record?.profile?.size ??
-              record?.race?.size ??
-              record?.attributes?.size ??
-              record?.displayType
-          );
+          const temporarySize = normalizeCreatureSize(record?.temporarySize);
+          const recordSize =
+            temporarySize ??
+            normalizeCreatureSize(
+              record.size ??
+                record.characterSize ??
+                record?.character?.size ??
+                record?.creature?.size ??
+                record?.profile?.size ??
+                record?.race?.size ??
+                record?.attributes?.size ??
+                record?.displayType
+            );
 
           const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(record);
 
