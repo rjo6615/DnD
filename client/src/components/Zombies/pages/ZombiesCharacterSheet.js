@@ -4823,6 +4823,10 @@ export default function ZombiesCharacterSheet() {
           onHide: handleCloseInventory,
           onTabChange: setInventoryTab,
           characterId,
+          onWeaponsChange: handleWeaponsChange,
+          onArmorChange: handleArmorChange,
+          onItemsChange: handleItemsChange,
+          onAccessoriesChange: handleAccessoriesChange,
           onDockChange: (side) => handleDockChange('inventory', side),
         }),
       },
@@ -5336,6 +5340,10 @@ export default function ZombiesCharacterSheet() {
           onTabChange={setInventoryTab}
           form={form}
           characterId={characterId}
+          onWeaponsChange={handleWeaponsChange}
+          onArmorChange={handleArmorChange}
+          onItemsChange={handleItemsChange}
+          onAccessoriesChange={handleAccessoriesChange}
           dockedSide={getDockedSide('inventory')}
           onDockChange={(side) => handleDockChange('inventory', side)}
         />
