@@ -1844,6 +1844,7 @@ $rotateX: -$angle;
   border-radius: 24px;
   transition: box-shadow 0.3s ease;
   isolation: isolate;
+  cursor: pointer;
 
   &::before {
     content: '';
@@ -1897,14 +1898,23 @@ $rotateX: -$angle;
 
 .damage-roller__total-value {
   color: #ffffff;
+  transition: color 0.2s ease;
 }
 
 #damageAmount.critical-active .damage-roller__total {
   box-shadow: 0 0 28px rgba(255, 215, 0, 0.45);
 }
 
+#damageAmount.critical-active .damage-roller__total-value {
+  color: #ffd966;
+}
+
 #damageAmount.critical-failure .damage-roller__total {
   box-shadow: 0 0 28px rgba(255, 45, 45, 0.42);
+}
+
+#damageAmount.critical-failure .damage-roller__total-value {
+  color: #ff6b6b;
 }
 
 .damage-die {
