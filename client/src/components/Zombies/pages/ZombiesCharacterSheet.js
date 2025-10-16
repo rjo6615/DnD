@@ -5338,7 +5338,6 @@ export default function ZombiesCharacterSheet() {
           characterId={characterId}
           dockedSide={getDockedSide('inventory')}
           onDockChange={(side) => handleDockChange('inventory', side)}
-          onItemsChange={handleItemsChange}
         />
         <EquipmentModal
           show={showEquipment}
