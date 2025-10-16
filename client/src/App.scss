@@ -1810,14 +1810,18 @@ $rotateX: -$angle;
   box-shadow: none;
   overflow: visible;
   transition: transform 0.2s ease;
+  --damage-total-pulse-color: rgba(0, 85, 255, 0.68);
+  --damage-total-pulse-shadow: rgba(0, 85, 255, 0.38);
 }
 
 #damageAmount.critical-active {
-  box-shadow: 0 0 32px rgba(255, 215, 0, 0.45);
+  --damage-total-pulse-color: rgba(255, 215, 0, 0.72);
+  --damage-total-pulse-shadow: rgba(255, 215, 0, 0.42);
 }
 
 #damageAmount.critical-failure {
-  box-shadow: 0 0 32px rgba(255, 0, 0, 0.4);
+  --damage-total-pulse-color: rgba(255, 70, 70, 0.72);
+  --damage-total-pulse-shadow: rgba(255, 70, 70, 0.42);
 }
 
 .damage-roller__dice-area {
@@ -1836,6 +1840,29 @@ $rotateX: -$angle;
   align-items: center;
   gap: 6px;
   margin-top: auto;
+  padding: 14px 26px;
+  border-radius: 24px;
+  transition: box-shadow 0.3s ease;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -18px;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.88);
+    background: radial-gradient(
+      circle at center,
+      var(--damage-total-pulse-color, rgba(0, 85, 255, 0.6)) 0%,
+      transparent 68%
+    );
+    box-shadow: 0 0 0 0 var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.35));
+    filter: blur(0.5px);
+    transition: opacity 0.2s ease;
+    z-index: -1;
+  }
 }
 
 .damage-roller__total-label {
@@ -1870,6 +1897,14 @@ $rotateX: -$angle;
 
 .damage-roller__total-value {
   color: #ffffff;
+}
+
+#damageAmount.critical-active .damage-roller__total {
+  box-shadow: 0 0 28px rgba(255, 215, 0, 0.45);
+}
+
+#damageAmount.critical-failure .damage-roller__total {
+  box-shadow: 0 0 28px rgba(255, 45, 45, 0.42);
 }
 
 .damage-die {
@@ -2607,48 +2642,30 @@ h1 {
   transform: scale(0.95);
 }
 
-@keyframes pulseOnce {
+@keyframes damageTotalPulse {
   0% {
-    background-color: rgba(0, 85, 255, 0.8);
-    transform: scale(1);
+    opacity: 0;
+    transform: scale(0.82);
+    background-color: transparent;
+    box-shadow: 0 0 0 0 var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.3));
   }
-  50% {
-    background-color: rgba(0, 85, 255, 0.4);
-    transform: scale(1.1);
+  30% {
+    opacity: 0.9;
+    transform: scale(0.98);
+    background-color: var(--damage-total-pulse-color, rgba(0, 85, 255, 0.58));
+    box-shadow: 0 0 28px 6px var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.35));
+  }
+  55% {
+    opacity: 0.75;
+    transform: scale(1.02);
+    background-color: var(--damage-total-pulse-color, rgba(0, 85, 255, 0.45));
+    box-shadow: 0 0 34px 10px var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.35));
   }
   100% {
-    background-color: rgba(0, 85, 255, 0.8);
-    transform: scale(1);
-  }
-}
-
-@keyframes pulseGold {
-  0% {
-    background-color: rgba(255, 215, 0, 0.8);
-    transform: scale(1);
-  }
-  50% {
-    background-color: rgba(255, 215, 0, 0.4);
-    transform: scale(1.1);
-  }
-  100% {
-    background-color: rgba(255, 215, 0, 0.8);
-    transform: scale(1);
-  }
-}
-
-@keyframes pulseRed {
-  0% {
-    background-color: rgba(255, 0, 0, 0.8);
-    transform: scale(1);
-  }
-  50% {
-    background-color: rgba(255, 0, 0, 0.4);
-    transform: scale(1.1);
-  }
-  100% {
-    background-color: rgba(255, 0, 0, 0.8);
-    transform: scale(1);
+    opacity: 0;
+    transform: scale(1.18);
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -2656,18 +2673,28 @@ h1 {
   transition: transform 0.5s ease;
 }
 
-.pulse {
-  animation: pulseOnce 2s 1; /* Run the animation once over 2 seconds */
+#damageAmount.pulse,
+#damageAmount.pulse-gold,
+#damageAmount.pulse-red {
+  --damage-total-pulse-color: rgba(0, 85, 255, 0.68);
+  --damage-total-pulse-shadow: rgba(0, 85, 255, 0.38);
 }
 
-.pulse-gold {
-  animation: pulseGold 2s 1;
-  box-shadow: 0 0 10px #FFD700;
+#damageAmount.pulse-gold {
+  --damage-total-pulse-color: rgba(255, 215, 0, 0.7);
+  --damage-total-pulse-shadow: rgba(255, 215, 0, 0.45);
 }
 
-.pulse-red {
-  animation: pulseRed 2s 1;
-  box-shadow: 0 0 10px #FF0000;
+#damageAmount.pulse-red {
+  --damage-total-pulse-color: rgba(255, 64, 64, 0.72);
+  --damage-total-pulse-shadow: rgba(255, 64, 64, 0.45);
+}
+
+#damageAmount.pulse .damage-roller__total::before,
+#damageAmount.pulse-gold .damage-roller__total::before,
+#damageAmount.pulse-red .damage-roller__total::before {
+  opacity: 1;
+  animation: damageTotalPulse 2s ease-out 1;
 }
 
 @keyframes pointsGlow {
