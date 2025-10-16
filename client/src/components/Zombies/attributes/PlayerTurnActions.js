@@ -8,7 +8,6 @@ import React, {
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
-import D20RollerModal from '../common/D20RollerModal';
 import UpcastModal from './UpcastModal';
 import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -817,16 +816,28 @@ const [isFumble, setIsFumble] = useState(false);
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
     const { result, d20 } = rollSkill(bonus);
     const weaponLabel = getWeaponDisplayName(slot, weapon);
-    const breakdown = `${d20} (d20) + ${bonus} Attack Bonus`;
+    const segments = [`${d20} (d20)`];
+    if (bonus) {
+      const sign = bonus >= 0 ? '+' : '-';
+      segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
+    }
 
     window.dispatchEvent(
       new CustomEvent('damage-roll', {
         detail: {
           value: result,
-          breakdown,
+          breakdown: segments.join(' '),
           source: `${weaponLabel} Attack Roll`,
           critical: d20 === 20,
           fumble: d20 === 1,
+          diceRolls: [
+            {
+              sides: 20,
+              value: d20,
+              type: 'Attack Roll',
+              category: 'base',
+            },
+          ],
         },
       })
     );
@@ -1333,8 +1344,6 @@ useEffect(() => {
               title="Attack"
             />
           </div>
-          <D20RollerModal renderInline diceColor={form?.diceColor} />
-          <div className="attack-roll-controls__spacer" aria-hidden="true" />
         </div>
       </div>
 {/* Attack Modal */}
