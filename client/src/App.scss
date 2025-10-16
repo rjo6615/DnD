@@ -1943,8 +1943,8 @@ $rotateX: -$angle;
 .damage-die {
   position: absolute;
   top: -36px;
-  width: 42px;
-  height: 42px;
+  width: var(--die-size, 46px);
+  height: var(--die-size, 46px);
   pointer-events: none;
   transform: translate(-50%, -120%);
   opacity: 0;
@@ -1965,37 +1965,36 @@ $rotateX: -$angle;
   --mid-depth: -28px;
   --final-depth: 0px;
   --die-perspective: 760px;
-  --die-depth: 12px;
-  --damage-die-clip: polygon(12% 12%, 88% 12%, 100% 50%, 88% 88%, 12% 88%, 0% 50%);
+  --die-model-scale: 40px;
+  --die-label-elevation: 26px;
+  --die-surface-color: #1f46cc;
+  --die-edge-highlight: rgba(255, 255, 255, 0.24);
+  --die-surface-shadow: rgba(0, 0, 0, 0.45);
   animation: damage-die-drop var(--drop-duration) ease-out forwards;
   animation-delay: var(--drop-delay);
   transform-style: preserve-3d;
+  perspective: var(--die-perspective);
   filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45));
 }
 
-.damage-die__face {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
-  background: radial-gradient(
-      circle at 30% 28%,
-      rgba(255, 255, 255, 0.32) 0%,
-      rgba(255, 255, 255, 0) 45%
-    ),
-    linear-gradient(135deg, rgba(37, 92, 255, 0.95), rgba(12, 32, 110, 0.9));
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  clip-path: var(--damage-die-clip);
-  box-shadow:
-    inset 0 1px 12px rgba(255, 255, 255, 0.4),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.45),
-    0 6px 16px rgba(0, 0, 0, 0.35);
+.damage-die__mesh {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.damage-die__poly-face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--die-model-scale);
+  height: var(--die-model-scale);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.35)),
+    var(--die-surface-color);
+  border: 0 solid transparent;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25), 0 0 0.75px var(--die-edge-highlight);
   transform-style: preserve-3d;
   backface-visibility: hidden;
   overflow: visible;
@@ -2013,101 +2012,58 @@ $rotateX: -$angle;
   pointer-events: none;
 }
 
-.damage-die__face::after {
-  content: '';
+.damage-die__value-wrap {
   position: absolute;
-  inset: 10%;
-  border-radius: inherit;
-  clip-path: inherit;
-  background:
-    radial-gradient(circle at 26% 24%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0)),
-    conic-gradient(
-      from 110deg at 50% 50%,
-      rgba(255, 255, 255, 0.25) 0deg,
-      rgba(255, 255, 255, 0) 120deg,
-      rgba(0, 0, 0, 0.35) 180deg,
-      rgba(0, 0, 0, 0) 320deg,
-      rgba(255, 255, 255, 0.25) 360deg
-    );
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateZ(var(--die-label-elevation));
   pointer-events: none;
-  opacity: 0.75;
 }
 
 .damage-die__value {
   font-size: 1.1rem;
   line-height: 1;
-  transform: translateZ(1px);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-.damage-die--d4 {
-  --damage-die-clip: polygon(50% 0%, 0% 100%, 100% 100%);
-}
-
-.damage-die--d6 {
-  --damage-die-clip: polygon(12% 12%, 88% 12%, 88% 88%, 12% 88%);
-  border-radius: 10px;
-}
-
-.damage-die--d8 {
-  --damage-die-clip: polygon(50% 0%, 82% 18%, 100% 50%, 82% 82%, 50% 100%, 18% 82%, 0% 50%, 18% 18%);
-}
-
-.damage-die--d10 {
-  --damage-die-clip: polygon(50% 0%, 78% 6%, 96% 32%, 100% 50%, 96% 68%, 78% 94%, 50% 100%, 22% 94%, 4% 68%, 0% 50%, 4% 32%, 22% 6%);
-}
-
-.damage-die--d12 {
-  --damage-die-clip: polygon(35% 0%, 65% 0%, 88% 15%, 100% 38%, 100% 62%, 88% 85%, 65% 100%, 35% 100%, 12% 85%, 0% 62%, 0% 38%, 12% 15%);
-}
-
-.damage-die--d20 {
-  --damage-die-clip: polygon(50% 0%, 72% 6%, 88% 18%, 98% 34%, 100% 50%, 98% 66%, 88% 82%, 72% 94%, 50% 100%, 28% 94%, 12% 82%, 2% 66%, 0% 50%, 2% 34%, 12% 18%, 28% 6%);
-}
-
-.damage-die--d20 .damage-die__face {
+.damage-die__face--flat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
   background:
-    linear-gradient(160deg, rgba(24, 61, 182, 0.95), rgba(10, 25, 92, 0.94)),
-    radial-gradient(circle at 70% 68%, rgba(66, 132, 255, 0.3), rgba(0, 0, 0, 0) 60%);
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.55)),
+    var(--die-surface-color);
+  border: 1px solid var(--die-edge-highlight);
   box-shadow:
-    inset 0 2px 14px rgba(255, 255, 255, 0.45),
-    inset 0 -8px 18px rgba(0, 0, 0, 0.55),
-    0 10px 22px rgba(0, 0, 0, 0.45);
+    inset 0 1px 12px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+  transform-style: preserve-3d;
 }
 
-.damage-die--d20 .damage-die__face::after {
-  background:
-    radial-gradient(circle at 24% 22%, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 52%),
-    conic-gradient(
-      from 100deg at 50% 50%,
-      rgba(255, 255, 255, 0.35) 0deg,
-      rgba(255, 255, 255, 0) 120deg,
-      rgba(0, 0, 0, 0.45) 195deg,
-      rgba(0, 0, 0, 0.1) 320deg,
-      rgba(255, 255, 255, 0.35) 360deg
-    );
-  opacity: 0.8;
+.damage-die--bonus {
+  --die-surface-color: #30b86f;
+  --die-edge-highlight: rgba(190, 255, 213, 0.5);
 }
 
-.damage-die--generic {
-  border-radius: 50%;
-  --damage-die-clip: ellipse(50% 50% at 50% 50%);
+.damage-die--critical {
+  --die-surface-color: #f2c100;
+  --die-edge-highlight: rgba(255, 246, 196, 0.7);
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.55));
 }
 
-.damage-die--bonus .damage-die__face {
-  background: rgba(46, 204, 113, 0.45);
-  border-color: rgba(46, 204, 113, 0.6);
-}
-
-.damage-die--critical .damage-die__face {
-  background: rgba(255, 215, 0, 0.45);
-  border-color: rgba(255, 215, 0, 0.8);
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
-}
-
-.damage-die--critical-bonus .damage-die__face {
-  background: rgba(255, 111, 0, 0.45);
-  border-color: rgba(255, 167, 38, 0.8);
-  box-shadow: 0 0 12px rgba(255, 167, 38, 0.55);
+.damage-die--critical-bonus {
+  --die-surface-color: #ff8a33;
+  --die-edge-highlight: rgba(255, 212, 162, 0.7);
+  filter: drop-shadow(0 0 12px rgba(255, 167, 38, 0.55));
 }
 
 @keyframes damage-die-drop {
