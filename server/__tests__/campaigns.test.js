@@ -188,6 +188,70 @@ describe('Cloudinary caching helpers', () => {
 
     expect(mockSubFolders).toHaveBeenCalledTimes(2);
   });
+
+  test('listTokenFolderTree only fetches each folder path once with concurrency', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_FOLDER_TREE_CONCURRENCY: '8',
+    };
+
+    const callOrder = [];
+    const mockSubFolders = jest.fn().mockImplementation(async (path) => {
+      callOrder.push(path);
+
+      if (path === 'Tokens') {
+        return {
+          folders: [
+            { path: 'Tokens/Creatures', name: 'Creatures' },
+            { path: 'Tokens/Items', name: 'Items' },
+          ],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Creatures') {
+        return {
+          folders: [{ path: 'Tokens/Creatures/Undead', name: 'Undead' }],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Items') {
+        return {
+          folders: [{ path: 'Tokens/Items/Potions', name: 'Potions' }],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Creatures/Undead' || path === 'Tokens/Items/Potions') {
+        return { folders: [], next_cursor: null };
+      }
+
+      throw new Error(`Unexpected folder path: ${path}`);
+    });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          sub_folders: mockSubFolders,
+        },
+      },
+    }));
+
+    const { listTokenFolderTree: actualListTokenFolderTree } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    await actualListTokenFolderTree({});
+
+    expect(mockSubFolders).toHaveBeenCalledTimes(5);
+    expect(new Set(callOrder).size).toBe(callOrder.length);
+  });
 });
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
