@@ -106,7 +106,7 @@ jest.mock('../attributes/Features', () => (props) => {
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
-const defaultApiFetchImplementation = (url, options = {}) => {
+const defaultApiFetchImplementation = (url) => {
   if (typeof url === 'string' && url.includes('/maps')) {
     return Promise.resolve({ ok: false, status: 404 });
   }
@@ -117,25 +117,6 @@ const defaultApiFetchImplementation = (url, options = {}) => {
 
   if (typeof url === 'string' && url.includes('/classes/')) {
     return Promise.resolve({ ok: true, json: async () => ({ spellsKnown: 0 }) });
-  }
-
-  if (typeof url === 'string' && url.includes('/temporary-size')) {
-    let parsedSize = null;
-    if (options && typeof options.body === 'string') {
-      try {
-        const parsed = JSON.parse(options.body);
-        if (typeof parsed.temporarySize === 'string' && parsed.temporarySize.trim() !== '') {
-          parsedSize = parsed.temporarySize.trim();
-        }
-      } catch (error) {
-        // Ignore JSON parsing errors for test mocks
-      }
-    }
-
-    return Promise.resolve({
-      ok: true,
-      json: async () => ({ temporarySize: parsedSize }),
-    });
   }
 
   if (typeof url === 'string' && url.includes('/combat')) {
@@ -328,16 +309,15 @@ test('reapplies Large Form bonuses after persisted effects and refetch', async (
     campaign: null,
   };
 
-  apiFetch.mockImplementation((url, options) => {
-    if (typeof url === 'string' && url.includes('/characters/1') && (!options || !options.method)) {
-      return Promise.resolve({
-        ok: true,
-        json: async () => baseCharacter,
-      });
-    }
-
-    return defaultApiFetchImplementation(url, options);
-  });
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
 
   const { rerender } = render(<ZombiesCharacterSheet key="initial" />);
 
