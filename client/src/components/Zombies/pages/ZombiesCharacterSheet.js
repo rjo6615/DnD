@@ -1643,168 +1643,10 @@ export default function ZombiesCharacterSheet() {
   const temporarySize = form?.temporarySize;
   const temporarySpeedBonus = form?.temporarySpeedBonus;
 
-  const updateLocalTemporarySize = useCallback(
-    (incomingCharacterId, nextSizeRaw) => {
-      const normalizedCharacterId =
-        typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
-          ? incomingCharacterId.trim()
-          : null;
-      if (!normalizedCharacterId) {
-        return;
-      }
-
-      const normalizedSize =
-        typeof nextSizeRaw === 'string' && nextSizeRaw.trim() !== ''
-          ? nextSizeRaw.trim()
-          : null;
-
-      setCampaignCharacters((prev) => {
-        if (!prev || typeof prev !== 'object' || Object.keys(prev).length === 0) {
-          return prev;
-        }
-
-        let didUpdate = false;
-        const next = { ...prev };
-
-        Object.entries(prev).forEach(([key, value]) => {
-          if (!value || typeof value !== 'object') {
-            return;
-          }
-
-          const identifiers = new Set([
-            ...collectCharacterIdentifiers(value),
-            typeof key === 'string' && key.trim() !== '' ? key.trim() : null,
-          ].filter(Boolean));
-
-          if (!identifiers.has(normalizedCharacterId)) {
-            return;
-          }
-
-          const currentSize =
-            typeof value.temporarySize === 'string' && value.temporarySize.trim() !== ''
-              ? value.temporarySize.trim()
-              : null;
-          const hasProperty = Object.prototype.hasOwnProperty.call(value, 'temporarySize');
-
-          if (currentSize === normalizedSize && (normalizedSize !== null || !hasProperty)) {
-            return;
-          }
-
-          const updated = { ...value };
-          if (normalizedSize) {
-            updated.temporarySize = normalizedSize;
-          } else if (hasProperty) {
-            delete updated.temporarySize;
-          } else {
-            return;
-          }
-
-          next[key] = updated;
-          didUpdate = true;
-        });
-
-        return didUpdate ? next : prev;
-      });
-
-      setForm((prev) => {
-        if (!prev || typeof prev !== 'object') {
-          return prev;
-        }
-
-        const identifiers = collectCharacterIdentifiers(prev);
-        if (!identifiers.includes(normalizedCharacterId)) {
-          return prev;
-        }
-
-        const currentSize =
-          typeof prev.temporarySize === 'string' && prev.temporarySize.trim() !== ''
-            ? prev.temporarySize.trim()
-            : null;
-        const hasProperty = Object.prototype.hasOwnProperty.call(prev, 'temporarySize');
-
-        if (currentSize === normalizedSize && (normalizedSize !== null || !hasProperty)) {
-          return prev;
-        }
-
-        const nextForm = { ...prev };
-        if (normalizedSize) {
-          nextForm.temporarySize = normalizedSize;
-        } else if (hasProperty) {
-          delete nextForm.temporarySize;
-        } else {
-          return prev;
-        }
-
-        return nextForm;
-      });
-
-      if (
-        typeof characterId === 'string' &&
-        characterId.trim() !== '' &&
-        normalizedCharacterId === characterId.trim()
-      ) {
-        lastPersistedTempSizeRef.current = normalizedSize;
-      }
-    },
-    [characterId, setCampaignCharacters, setForm]
-  );
-
-  const persistTemporarySize = useCallback(
-    async (nextSizeRaw) => {
-      if (typeof characterId !== 'string' || characterId.trim() === '') {
-        return;
-      }
-
-      const normalizedCharacterId = characterId.trim();
-      const normalizedSize =
-        typeof nextSizeRaw === 'string' && nextSizeRaw.trim() !== ''
-          ? nextSizeRaw.trim()
-          : null;
-
-      const previous = lastPersistedTempSizeRef.current;
-      if (previous === normalizedSize) {
-        return;
-      }
-
-      lastPersistedTempSizeRef.current = normalizedSize;
-
-      try {
-        const response = await apiFetch(`/characters/${normalizedCharacterId}/temporary-size`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ temporarySize: normalizedSize }),
-        });
-
-        if (!response.ok) {
-          const message = await parseErrorMessage(
-            response,
-            'Failed to update temporary size.'
-          );
-          throw new Error(message);
-        }
-
-        const result = await response.json().catch(() => ({}));
-        const persistedSize =
-          typeof result?.temporarySize === 'string' && result.temporarySize.trim() !== ''
-            ? result.temporarySize.trim()
-            : null;
-        lastPersistedTempSizeRef.current = persistedSize;
-      } catch (error) {
-        console.error(error);
-        lastPersistedTempSizeRef.current = previous;
-      }
-    },
-    [characterId]
-  );
-
   useEffect(() => {
     if (!form) {
       return;
     }
-
-    const resolvedId = resolvedCharacterIdRef.current;
-    const normalizedCharacterId =
-      typeof resolvedId === 'string' && resolvedId.trim() !== '' ? resolvedId.trim() : null;
 
     const hasLargeForm = activeEffects.some(
       (effect) => effect && effect.name === 'Large Form'
@@ -1813,13 +1655,10 @@ export default function ZombiesCharacterSheet() {
     if (hasLargeForm) {
       const desiredSize = 'Large';
       const desiredSpeedBonus = 10;
-      const currentSize =
-        typeof form.temporarySize === 'string' && form.temporarySize.trim() !== ''
-          ? form.temporarySize.trim()
-          : null;
-      const currentSpeedBonus = Number(form.temporarySpeedBonus ?? 0);
+      const nextSize = form.temporarySize;
+      const nextSpeedBonus = Number(form.temporarySpeedBonus ?? 0);
 
-      if (currentSize === desiredSize && currentSpeedBonus === desiredSpeedBonus) {
+      if (nextSize === desiredSize && nextSpeedBonus === desiredSpeedBonus) {
         return;
       }
 
@@ -1828,13 +1667,13 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        const prevSize =
-          typeof prev.temporarySize === 'string' && prev.temporarySize.trim() !== ''
-            ? prev.temporarySize.trim()
-            : null;
-        const prevSpeed = Number(prev.temporarySpeedBonus ?? 0);
+        const currentSize = prev.temporarySize;
+        const currentSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
 
-        if (prevSize === desiredSize && prevSpeed === desiredSpeedBonus) {
+        if (
+          currentSize === desiredSize &&
+          currentSpeedBonus === desiredSpeedBonus
+        ) {
           return prev;
         }
 
@@ -1844,11 +1683,6 @@ export default function ZombiesCharacterSheet() {
           temporarySpeedBonus: desiredSpeedBonus,
         };
       });
-
-      if (normalizedCharacterId) {
-        updateLocalTemporarySize(normalizedCharacterId, desiredSize);
-        persistTemporarySize(desiredSize);
-      }
 
       return;
     }
@@ -1866,7 +1700,10 @@ export default function ZombiesCharacterSheet() {
         return prev;
       }
 
-      const ownsTemporarySize = Object.prototype.hasOwnProperty.call(prev, 'temporarySize');
+      const ownsTemporarySize = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySize'
+      );
       const ownsTemporarySpeed = Object.prototype.hasOwnProperty.call(
         prev,
         'temporarySpeedBonus'
@@ -1876,21 +1713,14 @@ export default function ZombiesCharacterSheet() {
         return prev;
       }
 
-      const next = { ...prev };
-      if (ownsTemporarySize) {
-        delete next.temporarySize;
-      }
-      if (ownsTemporarySpeed) {
-        delete next.temporarySpeedBonus;
-      }
-      return next;
+      const {
+        temporarySize: _ignoredSize,
+        temporarySpeedBonus: _ignoredSpeed,
+        ...rest
+      } = prev;
+      return rest;
     });
-
-    if (normalizedCharacterId) {
-      updateLocalTemporarySize(normalizedCharacterId, null);
-      persistTemporarySize(null);
-    }
-  }, [activeEffects, form, persistTemporarySize, updateLocalTemporarySize]);
+  }, [activeEffects, form]);
 
   const consumeCircle = useCallback(
     (type, index) => {
@@ -2669,12 +2499,6 @@ export default function ZombiesCharacterSheet() {
           accessory: accessories,
           equipment: normalizeEquipmentMap(data.equipment),
         });
-
-        const normalizedTemporarySize =
-          typeof data?.temporarySize === 'string' && data.temporarySize.trim() !== ''
-            ? data.temporarySize.trim()
-            : null;
-        lastPersistedTempSizeRef.current = normalizedTemporarySize;
 
         setCampaignId(normalizedCampaign);
         setEnemies([]);
@@ -3543,15 +3367,10 @@ export default function ZombiesCharacterSheet() {
   }, [characterId, form]);
 
   const resolvedCharacterIdRef = useRef(resolvedCharacterId);
-  const lastPersistedTempSizeRef = useRef(null);
 
   useEffect(() => {
     resolvedCharacterIdRef.current = resolvedCharacterId;
   }, [resolvedCharacterId]);
-
-  useEffect(() => {
-    lastPersistedTempSizeRef.current = null;
-  }, [characterId]);
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
@@ -3855,7 +3674,6 @@ export default function ZombiesCharacterSheet() {
     },
     [setCampaignCharacters, setForm]
   );
-
 
   useEffect(() => {
     if (!campaignId) {
@@ -4184,17 +4002,8 @@ export default function ZombiesCharacterSheet() {
         update,
         'figurineImagePublicId'
       );
-      const hasTemporarySizeUpdate = Object.prototype.hasOwnProperty.call(
-        update,
-        'temporarySize'
-      );
 
-      if (
-        !hasDiceColorUpdate &&
-        !hasFigurineUrlUpdate &&
-        !hasFigurineIdUpdate &&
-        !hasTemporarySizeUpdate
-      ) {
+      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
         return;
       }
 
@@ -4220,10 +4029,6 @@ export default function ZombiesCharacterSheet() {
             : null;
         updateLocalFigurineImage(normalizedCharacterId, normalizedUrl, normalizedPublicId);
       }
-
-      if (hasTemporarySizeUpdate) {
-        updateLocalTemporarySize(normalizedCharacterId, update.temporarySize);
-      }
     };
 
     socket.on('combat:update', handleCombatUpdate);
@@ -4243,13 +4048,7 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [
-    campaignId,
-    applyMapPayload,
-    updateLocalDiceColor,
-    updateLocalFigurineImage,
-    updateLocalTemporarySize,
-  ]);
+  }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
 
   const handleDiceColorChange = useCallback(
     (nextColor) => {
