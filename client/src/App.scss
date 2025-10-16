@@ -1793,46 +1793,41 @@ $rotateX: -$angle;
 // Damage display-------------------------------------------------------
 #damageAmount {
   position: relative;
-  width: clamp(90px, 18vw, 140px);
-  height: clamp(90px, 18vw, 140px);
-  border: 2px solid #0040ff;
-  border-radius: 50%;
-  color: #ffffff;
-  font-weight: bold;
-  font-family: 'Courier New', monospace;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  padding: 12px 10px 16px;
-  background: radial-gradient(
-      circle at 25% 20%,
-      rgba(0, 64, 255, 0.55),
-      rgba(0, 0, 0, 0)
-    ),
-    radial-gradient(circle at bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.2));
-  box-shadow: inset 0 0 14px rgba(0, 64, 255, 0.45), 0 0 22px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(1px);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: min(90vw, 520px);
+  min-height: clamp(220px, 45vh, 360px);
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+  color: #ffffff;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  transition: transform 0.2s ease;
+  --damage-total-pulse-color: rgba(0, 85, 255, 0.68);
+  --damage-total-pulse-shadow: rgba(0, 85, 255, 0.38);
 }
 
 #damageAmount.critical-active {
-  border: 2px solid #ffd700;
-  box-shadow: 0 0 16px rgba(255, 215, 0, 0.75),
-    inset 0 0 14px rgba(255, 215, 0, 0.55);
+  --damage-total-pulse-color: rgba(255, 215, 0, 0.72);
+  --damage-total-pulse-shadow: rgba(255, 215, 0, 0.42);
 }
 
 #damageAmount.critical-failure {
-  border: 2px solid #ff0000;
-  box-shadow: 0 0 16px rgba(255, 0, 0, 0.75),
-    inset 0 0 14px rgba(255, 0, 0, 0.4);
+  --damage-total-pulse-color: rgba(255, 70, 70, 0.72);
+  --damage-total-pulse-shadow: rgba(255, 70, 70, 0.42);
 }
 
 .damage-roller__dice-area {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: none;
   z-index: 1;
 }
@@ -1843,7 +1838,31 @@ $rotateX: -$angle;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
+  margin-top: auto;
+  padding: 14px 26px;
+  border-radius: 24px;
+  transition: box-shadow 0.3s ease;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -18px;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.88);
+    background: radial-gradient(
+      circle at center,
+      var(--damage-total-pulse-color, rgba(0, 85, 255, 0.6)) 0%,
+      transparent 68%
+    );
+    box-shadow: 0 0 0 0 var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.35));
+    filter: blur(0.5px);
+    transition: opacity 0.2s ease;
+    z-index: -1;
+  }
 }
 
 .damage-roller__total-label {
@@ -1851,6 +1870,7 @@ $rotateX: -$angle;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.65);
+  text-align: center;
 }
 
 #damageValue {
@@ -1877,6 +1897,14 @@ $rotateX: -$angle;
 
 .damage-roller__total-value {
   color: #ffffff;
+}
+
+#damageAmount.critical-active .damage-roller__total {
+  box-shadow: 0 0 28px rgba(255, 215, 0, 0.45);
+}
+
+#damageAmount.critical-failure .damage-roller__total {
+  box-shadow: 0 0 28px rgba(255, 45, 45, 0.42);
 }
 
 .damage-die {
@@ -2614,67 +2642,59 @@ h1 {
   transform: scale(0.95);
 }
 
-@keyframes pulseOnce {
+@keyframes damageTotalPulse {
   0% {
-    background-color: rgba(0, 85, 255, 0.8);
-    transform: scale(1);
+    opacity: 0;
+    transform: scale(0.82);
+    background-color: transparent;
+    box-shadow: 0 0 0 0 var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.3));
   }
-  50% {
-    background-color: rgba(0, 85, 255, 0.4);
-    transform: scale(1.1);
+  30% {
+    opacity: 0.9;
+    transform: scale(0.98);
+    background-color: var(--damage-total-pulse-color, rgba(0, 85, 255, 0.58));
+    box-shadow: 0 0 28px 6px var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.35));
+  }
+  55% {
+    opacity: 0.75;
+    transform: scale(1.02);
+    background-color: var(--damage-total-pulse-color, rgba(0, 85, 255, 0.45));
+    box-shadow: 0 0 34px 10px var(--damage-total-pulse-shadow, rgba(0, 85, 255, 0.35));
   }
   100% {
-    background-color: rgba(0, 85, 255, 0.8);
-    transform: scale(1);
-  }
-}
-
-@keyframes pulseGold {
-  0% {
-    background-color: rgba(255, 215, 0, 0.8);
-    transform: scale(1);
-  }
-  50% {
-    background-color: rgba(255, 215, 0, 0.4);
-    transform: scale(1.1);
-  }
-  100% {
-    background-color: rgba(255, 215, 0, 0.8);
-    transform: scale(1);
-  }
-}
-
-@keyframes pulseRed {
-  0% {
-    background-color: rgba(255, 0, 0, 0.8);
-    transform: scale(1);
-  }
-  50% {
-    background-color: rgba(255, 0, 0, 0.4);
-    transform: scale(1.1);
-  }
-  100% {
-    background-color: rgba(255, 0, 0, 0.8);
-    transform: scale(1);
+    opacity: 0;
+    transform: scale(1.18);
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
 #damageAmount {
-  transition: background-color 0.5s ease, transform 0.5s ease;
+  transition: transform 0.5s ease;
 }
 
-.pulse {
-  animation: pulseOnce 2s 1; /* Run the animation once over 2 seconds */
+#damageAmount.pulse,
+#damageAmount.pulse-gold,
+#damageAmount.pulse-red {
+  --damage-total-pulse-color: rgba(0, 85, 255, 0.68);
+  --damage-total-pulse-shadow: rgba(0, 85, 255, 0.38);
 }
 
-.pulse-gold {
-  animation: pulseGold 2s 1;
-  box-shadow: 0 0 10px #FFD700;
+#damageAmount.pulse-gold {
+  --damage-total-pulse-color: rgba(255, 215, 0, 0.7);
+  --damage-total-pulse-shadow: rgba(255, 215, 0, 0.45);
 }
 
-.pulse-red {
-  animation: pulseRed 2s 1;
-  box-shadow: 0 0 10px #FF0000;
+#damageAmount.pulse-red {
+  --damage-total-pulse-color: rgba(255, 64, 64, 0.72);
+  --damage-total-pulse-shadow: rgba(255, 64, 64, 0.45);
+}
+
+#damageAmount.pulse .damage-roller__total::before,
+#damageAmount.pulse-gold .damage-roller__total::before,
+#damageAmount.pulse-red .damage-roller__total::before {
+  opacity: 1;
+  animation: damageTotalPulse 2s ease-out 1;
 }
 
 @keyframes pointsGlow {

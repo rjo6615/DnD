@@ -974,9 +974,9 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
 
   const baseTime = Date.now();
   const nextDice = diceDetails.map((detail, index) => {
-    const left = 15 + Math.random() * 70;
+    const left = 5 + Math.random() * 90;
     const rotation = (Math.random() - 0.5) * 40;
-    const dropDistance = 40 + Math.random() * 50;
+    const dropDistance = 80 + Math.random() * 110;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
     const initialTiltX = (Math.random() - 0.5) * 90;
@@ -1159,7 +1159,14 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
           ⚔️ Log
         </Button>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginTop: '4px',
+          width: '100%',
+        }}
+      >
         <div
           id="damageAmount"
           className={`${pulseClass} ${isCritical ? 'critical-active' : ''} ${
