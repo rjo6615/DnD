@@ -60,6 +60,7 @@ const spellsCatalog = spellsData || {};
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
 const DIE_MODEL_SCALE = 1;
+const DIE_MODEL_PIXEL_SIZE = 26; // keep in sync with --die-model-scale in App.scss
 const LIGHT_VECTOR = normalizeVector([0.35, 0.82, 1]);
 const dieGeometryCache = new Map();
 
@@ -1346,6 +1347,7 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                   className={`damage-die ${shapeClass} ${categoryClass}`}
                   style={{
                     left: `${die.left}%`,
+                    '--die-model-scale': `${DIE_MODEL_PIXEL_SIZE}px`,
                     '--drop-delay': `${die.delay}s`,
                     '--drop-distance': `${die.dropDistance}px`,
                     '--drop-rotation': `${die.rotation}deg`,
