@@ -1774,6 +1774,14 @@ export default function ZombiesCharacterSheet() {
           };
           return next;
         });
+      } else if (potionLabel === 'potion of growth') {
+        setActiveEffects((prev = []) => {
+          if (prev.some((effect) => effect?.name === 'Large Form')) {
+            return prev;
+          }
+
+          return [...prev, { name: 'Large Form', icon: largeFormIcon }];
+        });
       }
 
       consumeCircle('bonus');
