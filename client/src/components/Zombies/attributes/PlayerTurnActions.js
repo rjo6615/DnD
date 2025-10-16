@@ -32,6 +32,11 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   return results;
 }
 
+const DAMAGE_DIE_WIDTH_PX = 42;
+const DAMAGE_DIE_SPREAD_FACTOR = 1.15;
+const DAMAGE_AREA_BASE_RATIO = 0.42;
+const DAMAGE_AREA_MAX_RATIO = 0.92;
+
 function formatDamageRolls(rolls) {
   return rolls
     .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
@@ -955,6 +960,7 @@ const [damageLog, setDamageLog] = useState([]);
 const [showLog, setShowLog] = useState(false);
 const [activeDice, setActiveDice] = useState([]);
 const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
+const diceAreaRef = useRef(null);
 
 const getDieShapeClass = (sides) => {
   if (!Number.isFinite(sides)) {
@@ -989,8 +995,62 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
   }
 
   const baseTime = Date.now();
+  const areaWidth = Math.max(
+    1,
+    diceAreaRef.current?.offsetWidth ||
+      diceAreaRef.current?.parentElement?.offsetWidth ||
+      520
+  );
+
+  const diceCount = diceDetails.length;
+  const usableWidthPx = (() => {
+    if (diceCount <= 1) {
+      return Math.min(
+        areaWidth * DAMAGE_AREA_MAX_RATIO,
+        areaWidth * DAMAGE_AREA_BASE_RATIO
+      );
+    }
+    const desiredClusterWidth = Math.max(
+      areaWidth * DAMAGE_AREA_BASE_RATIO,
+      (diceCount - 1) * DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR
+    );
+    return Math.min(areaWidth * DAMAGE_AREA_MAX_RATIO, desiredClusterWidth);
+  })();
+
+  const slotWidthPx =
+    diceCount > 1 ? usableWidthPx / (diceCount - 1) : usableWidthPx || areaWidth;
+  const minGapPx =
+    diceCount > 1
+      ? Math.min(DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR, slotWidthPx)
+      : 0;
+  const startPx = (areaWidth - usableWidthPx) / 2;
+  const maxPx = startPx + usableWidthPx;
+  const jitterPx = Math.min(slotWidthPx * 0.25, DAMAGE_DIE_WIDTH_PX * 0.4);
+  let previousLeftPx = null;
+
   const nextDice = diceDetails.map((detail, index) => {
-    const left = 5 + Math.random() * 90;
+    const fraction = diceCount === 1 ? 0.5 : index / (diceCount - 1 || 1);
+    const baseLeftPx = startPx + fraction * usableWidthPx;
+    const rawOffsetPx = jitterPx
+      ? (Math.random() - 0.5) * 2 * jitterPx
+      : 0;
+    const remainingDice = diceCount - index - 1;
+    const minAllowedPx = startPx + index * minGapPx;
+    const maxAllowedPx = maxPx - remainingDice * minGapPx;
+
+    let leftPx = baseLeftPx + rawOffsetPx;
+    if (Number.isFinite(minAllowedPx)) {
+      leftPx = Math.max(leftPx, minAllowedPx);
+    }
+    if (Number.isFinite(maxAllowedPx)) {
+      leftPx = Math.min(leftPx, maxAllowedPx);
+    }
+    if (previousLeftPx !== null && leftPx - previousLeftPx < minGapPx) {
+      leftPx = Math.min(maxAllowedPx, previousLeftPx + minGapPx);
+    }
+
+    previousLeftPx = leftPx;
+    const left = (leftPx / areaWidth) * 100;
     const rotation = (Math.random() - 0.5) * 40;
     const dropDistance = 80 + Math.random() * 110;
     const delay = index * 0.05;
@@ -1031,7 +1091,7 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
   });
 
   setActiveDice(nextDice);
-}, []);
+}, [diceAreaRef]);
 
 const updateDamageValueWithAnimation = (
   newValue,
@@ -1193,7 +1253,11 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
             isFumble ? 'critical-failure' : ''
           }`}
         >
-          <div className="damage-roller__dice-area" aria-hidden="true">
+          <div
+            className="damage-roller__dice-area"
+            aria-hidden="true"
+            ref={diceAreaRef}
+          >
             {activeDice.map((die) => {
               const normalizedType = normalizeDamageTypeForClass(die.type);
               const typeClass = normalizedType ? `damage-${normalizedType}` : '';
