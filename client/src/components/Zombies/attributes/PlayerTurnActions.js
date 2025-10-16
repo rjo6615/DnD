@@ -909,10 +909,20 @@ const [pendingSpell, setPendingSpell] = useState(null);
     applyUpcast(spell, spell.level, crit || isCritical);
   };
 
-const handleDamageClick = () => {
+const handleDamageClick = useCallback(() => {
   setIsCritical((prev) => !prev);
   setIsFumble(false);
-};
+}, []);
+
+const handleDamageKeyDown = useCallback(
+  (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleDamageClick();
+    }
+  },
+  [handleDamageClick]
+);
 
 // Spells may come from different caster types (e.g., Wizard, Cleric). Before
 // rendering the spell table, group spells by caster type and sort each group by
@@ -1172,7 +1182,21 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
           className={`${pulseClass} ${isCritical ? 'critical-active' : ''} ${
             isFumble ? 'critical-failure' : ''
           }`}
+          role="button"
+          tabIndex={0}
+          aria-pressed={isCritical}
+          aria-label={
+            isCritical
+              ? 'Critical damage roll enabled. Click to roll normally.'
+              : 'Click to enable a critical damage roll on your next roll.'
+          }
+          title={
+            isCritical
+              ? 'Critical roll ready. Click to roll normally.'
+              : 'Click to make your next damage roll critical.'
+          }
           onClick={handleDamageClick}
+          onKeyDown={handleDamageKeyDown}
         >
           <div className="damage-roller__dice-area" aria-hidden="true">
             {activeDice.map((die) => {
