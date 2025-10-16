@@ -513,29 +513,27 @@ function ItemList({
       return;
     }
 
-    setOwnedEntries((prev) => {
-      const next = removeFirstMatchingEntry(prev, item, dataKey);
-      if (next === prev) {
-        return prev;
-      }
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
+    if (nextEntries === ownedEntries) {
+      return;
+    }
 
-      if (item?.healing) {
-        triggerHealingRoll(item);
-      }
+    setOwnedEntries(nextEntries);
 
-      if (isConsumablePotion(item)) {
-        dispatchConsumablePotionUsed(item);
-        if (typeof onClose === 'function') {
-          onClose();
-        }
-      }
+    if (item?.healing) {
+      triggerHealingRoll(item);
+    }
 
-      if (typeof onChange === 'function') {
-        onChange(next);
+    if (isConsumablePotion(item)) {
+      dispatchConsumablePotionUsed(item);
+      if (typeof onClose === 'function') {
+        onClose();
       }
+    }
 
-      return next;
-    });
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
   };
 
   const getCartCount = (item) => {
