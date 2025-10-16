@@ -1648,12 +1648,11 @@ export default function ZombiesCharacterSheet() {
       return;
     }
 
-    const hasGrowthEffect = activeEffects.some(
-      (effect) =>
-        effect && (effect.name === 'Large Form' || effect.name === 'Enlarge')
+    const hasLargeForm = activeEffects.some(
+      (effect) => effect && effect.name === 'Large Form'
     );
 
-    if (hasGrowthEffect) {
+    if (hasLargeForm) {
       const desiredSize = 'Large';
       const desiredSpeedBonus = 10;
       const nextSize = form.temporarySize;
@@ -1759,20 +1758,20 @@ export default function ZombiesCharacterSheet() {
 
       if (potionLabel === 'potion of speed') {
         setActiveEffects((prev = []) => {
+          const existingIndex = prev.findIndex((effect) => effect?.name === 'Haste');
+
+          if (existingIndex === -1) {
+            return [...prev, { name: 'Haste', icon: hasteIcon, remaining: 10 }];
+          }
+
+          const existing = prev[existingIndex] || {};
           const next = [...prev];
-
-          const upsertEffect = (effect) => {
-            const index = next.findIndex((entry) => entry?.name === effect.name);
-            if (index === -1) {
-              next.push(effect);
-              return;
-            }
-            next[index] = { ...next[index], ...effect };
+          next[existingIndex] = {
+            ...existing,
+            name: 'Haste',
+            icon: hasteIcon,
+            remaining: 10,
           };
-
-          upsertEffect({ name: 'Haste', icon: hasteIcon, remaining: 10 });
-          upsertEffect({ name: 'Enlarge', icon: largeFormIcon });
-
           return next;
         });
       }
@@ -1797,12 +1796,7 @@ export default function ZombiesCharacterSheet() {
 
   const handleLargeForm = useCallback(() => {
     setActiveEffects((prev) => {
-      if (
-        prev.some(
-          (effect) =>
-            effect && (effect.name === 'Large Form' || effect.name === 'Enlarge')
-        )
-      ) {
+      if (prev.some((effect) => effect.name === 'Large Form')) {
         return prev;
       }
       return [...prev, { name: 'Large Form', icon: largeFormIcon }];
