@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent, act, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import hasteIcon from '../../../images/spell-haste-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
+import largeFormIcon from '../../../images/large-form-icon.png';
 import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalsIcon from '../../../images/speak-with-animal.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
@@ -1274,7 +1275,7 @@ test('casting Haste adds status icon and extra action circle', async () => {
   expect(icon).toHaveAttribute('src', hasteIcon);
 });
 
-test('using Potion of Speed grants Haste effect and extra action circle', async () => {
+test('using Potion of Speed grants Haste and Enlarge effects plus extra action circle', async () => {
   apiFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
@@ -1313,8 +1314,16 @@ test('using Potion of Speed grants Haste effect and extra action circle', async 
   await waitFor(() =>
     expect(container.querySelectorAll('.action-circle').length).toBe(2)
   );
-  const icon = screen.getByAltText('Haste');
-  expect(icon).toHaveAttribute('src', hasteIcon);
+  const hasteEffectIcon = screen.getByAltText('Haste');
+  expect(hasteEffectIcon).toHaveAttribute('src', hasteIcon);
+
+  const enlargeEffectIcon = await screen.findByAltText('Enlarge');
+  expect(enlargeEffectIcon).toHaveAttribute('src', largeFormIcon);
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
 });
 
 test('casting Speak with Animals adds status icon for free and slot casts', async () => {
