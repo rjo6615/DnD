@@ -212,13 +212,22 @@ test('use button removes a consumable item copy and triggers onChange', async ()
   expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
 
   await waitFor(() => expect(dispatchSpy).toHaveBeenCalled());
-  const [event] = dispatchSpy.mock.calls.pop() || [];
-  expect(event).toBeInstanceOf(CustomEvent);
-  expect(event?.detail?.source).toMatch(/potion of healing/i);
-  expect(typeof event?.detail?.value).toBe('number');
-  expect(event.detail.value).toBeGreaterThanOrEqual(4);
-  expect(event.detail.value).toBeLessThanOrEqual(10);
-  expect(typeof event.detail.breakdown).toBe('string');
+  const events = dispatchSpy.mock.calls.map(([evt]) => evt);
+
+  const healingEvent = events.find((evt) => evt?.type === 'damage-roll');
+  expect(healingEvent).toBeInstanceOf(CustomEvent);
+  expect(healingEvent?.detail?.source).toMatch(/potion of healing/i);
+  expect(typeof healingEvent?.detail?.value).toBe('number');
+  expect(healingEvent.detail.value).toBeGreaterThanOrEqual(4);
+  expect(healingEvent.detail.value).toBeLessThanOrEqual(10);
+  expect(typeof healingEvent.detail.breakdown).toBe('string');
+
+  const consumableEvent = events.find(
+    (evt) => evt?.type === 'inventory:consumable-used'
+  );
+  expect(consumableEvent).toBeInstanceOf(CustomEvent);
+  expect(consumableEvent?.detail?.type).toBe('potion');
+  expect(consumableEvent?.detail?.item?.displayName).toMatch(/potion/i);
 
   dispatchSpy.mockRestore();
 });

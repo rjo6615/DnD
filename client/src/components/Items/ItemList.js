@@ -109,6 +109,30 @@ const isConsumableItem = (item) =>
     (prop) => typeof prop === 'string' && prop.trim().toLowerCase() === 'consumable'
   );
 
+const dispatchConsumablePotionUsed = (item) => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  if (!isConsumableItem(item)) {
+    return;
+  }
+
+  const label = `${item?.displayName || item?.name || ''}`.toLowerCase();
+  if (!label.includes('potion')) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('inventory:consumable-used', {
+      detail: {
+        type: 'potion',
+        item,
+      },
+    })
+  );
+};
+
 /** @typedef {import('../../../../types/item').Item} Item */
 
 /**
@@ -499,6 +523,7 @@ function ItemList({
     const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
     if (nextEntries !== ownedEntries && item?.healing) {
       triggerHealingRoll(item);
+      dispatchConsumablePotionUsed(item);
     }
   };
 

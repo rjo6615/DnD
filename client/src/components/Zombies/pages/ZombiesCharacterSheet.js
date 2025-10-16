@@ -1740,6 +1740,22 @@ export default function ZombiesCharacterSheet() {
     []
   );
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handler = (event) => {
+      if (event?.detail?.type !== 'potion') {
+        return;
+      }
+      consumeCircle('bonus');
+    };
+
+    window.addEventListener('inventory:consumable-used', handler);
+    return () => window.removeEventListener('inventory:consumable-used', handler);
+  }, [consumeCircle]);
+
   const handleActionSurge = useCallback(() => {
     setActionCount((prev) => {
       const next = prev + 1;
