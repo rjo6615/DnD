@@ -218,17 +218,7 @@ test('use button removes a consumable item copy and triggers onChange', async ()
   expect(typeof event?.detail?.value).toBe('number');
   expect(event.detail.value).toBeGreaterThanOrEqual(4);
   expect(event.detail.value).toBeLessThanOrEqual(10);
-  if (typeof event.detail.breakdown === 'string') {
-    expect(typeof event.detail.breakdown).toBe('string');
-  } else {
-    expect(event.detail.breakdown).toEqual(
-      expect.objectContaining({
-        label: expect.any(String),
-        expression: expect.any(String),
-        entries: expect.arrayContaining([expect.any(String)]),
-      })
-    );
-  }
+  expect(typeof event.detail.breakdown).toBe('string');
 
   dispatchSpy.mockRestore();
 });
