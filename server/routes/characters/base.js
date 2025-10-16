@@ -707,107 +707,48 @@ module.exports = (router) => {
         return res.status(400).json({ message: 'No updates provided' });
       }
 
+      const updates = {};
+      const unset = {};
+
+      if (hasSizeUpdate) {
+        const rawSize = requestData.temporarySize;
+        const trimmedSize =
+          typeof rawSize === 'string' ? rawSize.trim() : '';
+        if (trimmedSize) {
+          updates.temporarySize = trimmedSize;
+        } else {
+          unset.temporarySize = '';
+        }
+      }
+
+      if (hasSpeedUpdate) {
+        const rawSpeed = requestData.temporarySpeedBonus;
+        if (rawSpeed === null || rawSpeed === undefined || rawSpeed === '') {
+          unset.temporarySpeedBonus = '';
+        } else {
+          const numericSpeed = Number(rawSpeed);
+          if (Number.isFinite(numericSpeed)) {
+            updates.temporarySpeedBonus = numericSpeed;
+          } else {
+            unset.temporarySpeedBonus = '';
+          }
+        }
+      }
+
+      const updateDoc = {};
+      if (Object.keys(updates).length > 0) {
+        updateDoc.$set = updates;
+      }
+      if (Object.keys(unset).length > 0) {
+        updateDoc.$unset = unset;
+      }
+
+      if (Object.keys(updateDoc).length === 0) {
+        return res.status(400).json({ message: 'No updates provided' });
+      }
+
       try {
-        const charactersCollection = db_connect.collection('Characters');
-
-        const existingCharacter = await charactersCollection.findOne({
-          _id: ObjectId(req.params.id),
-        });
-
-        if (!existingCharacter) {
-          return res.status(404).json({ message: 'Character not found' });
-        }
-
-        const updates = {};
-        const unset = {};
-
-        const existingTemporarySize = normalizeSizeValue(
-          existingCharacter.temporarySize
-        );
-        const existingSize = normalizeSizeValue(existingCharacter.size);
-        const existingStoredBaseSize = normalizeSizeValue(
-          existingCharacter.sizeBaseValue
-        );
-
-        if (hasSizeUpdate) {
-          const normalizedIncomingSize = normalizeSizeValue(
-            requestData.temporarySize
-          );
-
-          if (normalizedIncomingSize) {
-            if (existingTemporarySize !== normalizedIncomingSize) {
-              updates.temporarySize = normalizedIncomingSize;
-            }
-
-            const canonicalBaseSize =
-              existingStoredBaseSize || deriveCharacterBaseSize(existingCharacter);
-
-            if (
-              !existingStoredBaseSize &&
-              canonicalBaseSize &&
-              canonicalBaseSize !== normalizedIncomingSize
-            ) {
-              updates.sizeBaseValue = canonicalBaseSize;
-            }
-
-            if (existingSize !== normalizedIncomingSize) {
-              updates.size = normalizedIncomingSize;
-            }
-          } else {
-            if (existingTemporarySize !== null) {
-              unset.temporarySize = '';
-            }
-
-            const shouldExcludeCurrentSize = existingTemporarySize !== null;
-            const baseSizeToRestore =
-              existingStoredBaseSize ||
-              deriveCharacterBaseSize(existingCharacter, {
-                includeCurrentSize: !shouldExcludeCurrentSize,
-              });
-
-            if (existingStoredBaseSize) {
-              unset.sizeBaseValue = '';
-            }
-
-            const normalizedBaseSize = normalizeSizeValue(baseSizeToRestore);
-
-            if (normalizedBaseSize && existingSize !== normalizedBaseSize) {
-              updates.size = normalizedBaseSize;
-            }
-          }
-        }
-
-        if (hasSpeedUpdate) {
-          const rawSpeed = requestData.temporarySpeedBonus;
-          if (rawSpeed === null || rawSpeed === undefined || rawSpeed === '') {
-            if (existingCharacter.temporarySpeedBonus !== undefined) {
-              unset.temporarySpeedBonus = '';
-            }
-          } else {
-            const numericSpeed = Number(rawSpeed);
-            if (Number.isFinite(numericSpeed)) {
-              if (existingCharacter.temporarySpeedBonus !== numericSpeed) {
-                updates.temporarySpeedBonus = numericSpeed;
-              }
-            } else if (existingCharacter.temporarySpeedBonus !== undefined) {
-              unset.temporarySpeedBonus = '';
-            }
-          }
-        }
-
-        const updateDoc = {};
-        if (Object.keys(updates).length > 0) {
-          updateDoc.$set = updates;
-        }
-        if (Object.keys(unset).length > 0) {
-          updateDoc.$unset = unset;
-        }
-
-        if (Object.keys(updateDoc).length === 0) {
-          return res.status(400).json({ message: 'No updates provided' });
-        }
-
-        const result = await charactersCollection.findOneAndUpdate(
+        const result = await db_connect.collection('Characters').findOneAndUpdate(
           { _id: ObjectId(req.params.id) },
           updateDoc,
           { returnDocument: 'after' }
@@ -825,11 +766,6 @@ module.exports = (router) => {
             updatedCharacter.temporarySize.trim() !== ''
               ? updatedCharacter.temporarySize.trim()
               : null;
-
-          const normalizedSize = normalizeSizeValue(updatedCharacter.size);
-          if (normalizedSize) {
-            payload.size = normalizedSize;
-          }
         }
         if (hasSpeedUpdate) {
           const rawValue = updatedCharacter.temporarySpeedBonus;

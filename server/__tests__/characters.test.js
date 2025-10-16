@@ -209,14 +209,7 @@ describe('Character routes', () => {
     expect(res.body.message).toBe('Spells updated');
   });
 
-  test('update temporary size persists values, updates stored size, and emits metadata update', async () => {
-    const findOne = jest.fn().mockResolvedValue({
-      _id: new ObjectId('507f1f77bcf86cd799439011'),
-      campaign: 'The Wilds ',
-      characterId: 'hero-1',
-      size: 'Medium',
-    });
-
+  test('update temporary size persists values and emits metadata update', async () => {
     const findOneAndUpdate = jest.fn().mockResolvedValue({
       value: {
         _id: new ObjectId('507f1f77bcf86cd799439011'),
@@ -224,13 +217,11 @@ describe('Character routes', () => {
         characterId: 'hero-1',
         temporarySize: 'Large',
         temporarySpeedBonus: 10,
-        size: 'Large',
-        sizeBaseValue: 'Medium',
       },
     });
 
     dbo.mockResolvedValue({
-      collection: () => ({ findOne, findOneAndUpdate }),
+      collection: () => ({ findOneAndUpdate }),
     });
 
     const res = await request(app)
@@ -238,58 +229,37 @@ describe('Character routes', () => {
       .send({ temporarySize: ' Large ', temporarySpeedBonus: 10 });
 
     expect(res.status).toBe(200);
-    expect(findOne).toHaveBeenCalledWith({
-      _id: new ObjectId('507f1f77bcf86cd799439011'),
-    });
     expect(findOneAndUpdate).toHaveBeenCalledTimes(1);
     expect(findOneAndUpdate.mock.calls[0][0]).toEqual({
       _id: new ObjectId('507f1f77bcf86cd799439011'),
     });
     expect(findOneAndUpdate.mock.calls[0][1]).toEqual({
-      $set: {
-        temporarySize: 'Large',
-        temporarySpeedBonus: 10,
-        size: 'Large',
-        sizeBaseValue: 'Medium',
-      },
+      $set: { temporarySize: 'Large', temporarySpeedBonus: 10 },
     });
     expect(res.body).toEqual({
       campaignId: 'The Wilds',
       characterId: 'hero-1',
       temporarySize: 'Large',
       temporarySpeedBonus: 10,
-      size: 'Large',
     });
     expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith('The Wilds', {
       characterId: 'hero-1',
       temporarySize: 'Large',
       temporarySpeedBonus: 10,
-      size: 'Large',
     });
   });
 
-  test('clearing temporary size restores stored size and emits metadata removal', async () => {
-    const findOne = jest.fn().mockResolvedValue({
-      _id: new ObjectId('507f1f77bcf86cd799439011'),
-      campaign: 'The Wilds',
-      characterId: 'hero-1',
-      temporarySize: 'Large',
-      temporarySpeedBonus: 10,
-      size: 'Large',
-      sizeBaseValue: 'Medium',
-    });
-
+  test('clearing temporary size unsets fields and emits metadata removal', async () => {
     const findOneAndUpdate = jest.fn().mockResolvedValue({
       value: {
         _id: new ObjectId('507f1f77bcf86cd799439011'),
         campaign: 'The Wilds',
         characterId: 'hero-1',
-        size: 'Medium',
       },
     });
 
     dbo.mockResolvedValue({
-      collection: () => ({ findOne, findOneAndUpdate }),
+      collection: () => ({ findOneAndUpdate }),
     });
 
     const res = await request(app)
@@ -297,25 +267,19 @@ describe('Character routes', () => {
       .send({ temporarySize: null, temporarySpeedBonus: null });
 
     expect(res.status).toBe(200);
-    expect(findOne).toHaveBeenCalledWith({
-      _id: new ObjectId('507f1f77bcf86cd799439011'),
-    });
     expect(findOneAndUpdate.mock.calls[0][1]).toEqual({
-      $set: { size: 'Medium' },
-      $unset: { temporarySize: '', temporarySpeedBonus: '', sizeBaseValue: '' },
+      $unset: { temporarySize: '', temporarySpeedBonus: '' },
     });
     expect(res.body).toEqual({
       campaignId: 'The Wilds',
       characterId: 'hero-1',
       temporarySize: null,
       temporarySpeedBonus: null,
-      size: 'Medium',
     });
     expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith('The Wilds', {
       characterId: 'hero-1',
       temporarySize: null,
       temporarySpeedBonus: null,
-      size: 'Medium',
     });
   });
 
