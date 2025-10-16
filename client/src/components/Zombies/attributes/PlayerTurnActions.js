@@ -118,7 +118,7 @@ function DamageDieMesh({ die, typeClass }) {
               key={`die-face-${die.id}-${index}`}
               className="damage-die__poly-face"
               style={{
-                transform: `matrix3d(${face.matrix
+                transform: `translate(-50%, -50%) matrix3d(${face.matrix
                   .map((component) => component.toFixed(6))
                   .join(',')})`,
                 filter: `brightness(${brightness.toFixed(3)})`,
