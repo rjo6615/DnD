@@ -691,6 +691,25 @@ describe('Equipment routes', () => {
         .send({ item: ['potion-healing'] });
       expect(res.status).toBe(400);
     });
+
+    test('update item allows numeric strings with units for weight', async () => {
+      const updateOne = jest
+        .fn()
+        .mockResolvedValue({ matchedCount: 1 });
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne })
+      });
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: [{ name: 'Lantern', weight: ' 1 lb. ' }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Item updated');
+      expect(updateOne).toHaveBeenCalledTimes(1);
+      const callArgs = updateOne.mock.calls[0];
+      expect(callArgs[1].$set.item).toEqual([
+        expect.objectContaining({ name: 'Lantern', weight: '1 lb.' })
+      ]);
+    });
   });
 
   describe('update-accessories', () => {
@@ -775,6 +794,25 @@ describe('Equipment routes', () => {
           accessories: [{ ...baseAccessory, weight: 'heavy' }],
         });
       expect(res.status).toBe(400);
+    });
+
+    test('update accessories allows numeric strings with units for weight', async () => {
+      const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, weight: ' 0.5 lb. ' }],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessories updated');
+      expect(updateOne).toHaveBeenCalledTimes(1);
+      const callArgs = updateOne.mock.calls[0];
+      expect(callArgs[1].$set.accessories).toEqual([
+        expect.objectContaining({ weight: '0.5 lb.' })
+      ]);
     });
   });
 

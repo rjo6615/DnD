@@ -125,6 +125,36 @@ const normalizeAccessorySlots = (slots = []) => {
   );
 };
 
+const validateWeightField = (value) => {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new Error('weight must be a finite number');
+    }
+    return true;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return true;
+    }
+    if (Number.isNaN(Number.parseFloat(trimmed))) {
+      throw new Error('weight must be a number or numeric string');
+    }
+    return true;
+  }
+  throw new Error('weight must be a number or string');
+};
+
+const sanitizeWeightField = (value) => {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return value;
+};
+
 module.exports = (router) => {
   const equipmentRouter = express.Router();
 
@@ -632,7 +662,10 @@ module.exports = (router) => {
       body('item.*').isObject().withMessage('each item must be an object'),
       body('item.*.name').trim().notEmpty().withMessage('name is required'),
       body('item.*.category').optional().isString().trim(),
-      body('item.*.weight').optional({ checkFalsy: true }).isFloat().toFloat(),
+      body('item.*.weight')
+        .optional({ nullable: true })
+        .custom(validateWeightField)
+        .customSanitizer(sanitizeWeightField),
       body('item.*.cost').optional().isString().trim(),
       body('item.*.notes').optional().isString().trim(),
       body('item.*.statBonuses').optional().custom(validateBonusObject),
@@ -686,9 +719,9 @@ module.exports = (router) => {
         }),
       body('accessories.*.rarity').optional().isString().trim(),
       body('accessories.*.weight')
-        .optional({ checkFalsy: true })
-        .isFloat()
-        .toFloat(),
+        .optional({ nullable: true })
+        .custom(validateWeightField)
+        .customSanitizer(sanitizeWeightField),
       body('accessories.*.cost').optional().isString().trim(),
       body('accessories.*.notes').optional().isString().trim(),
       body('accessories.*.statBonuses')
