@@ -25,7 +25,6 @@ export default function InventoryModal({
   dockedSide = null,
   onDockClose,
   onDockChange,
-  onItemsChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -124,7 +123,6 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
-              onChange={onItemsChange}
             />
           ),
       },
@@ -154,7 +152,6 @@ export default function InventoryModal({
       normalizedItems,
       normalizedAccessories,
       normalizedWeapons,
-      onItemsChange,
     ]
   );
 
