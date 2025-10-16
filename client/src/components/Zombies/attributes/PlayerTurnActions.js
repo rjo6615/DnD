@@ -4,6 +4,7 @@ import React, {
   useImperativeHandle,
   useMemo,
   useCallback,
+  useRef,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
@@ -162,6 +163,26 @@ export function calculateDamage(
 ) {
   const parts = damageString.split(/\s+\+\s+/);
   const results = [];
+  const diceRolls = [];
+
+  const normalizeRollArray = (value, count) => {
+    if (Array.isArray(value)) {
+      return value.map((rollValue) =>
+        typeof rollValue === 'number' ? rollValue : Number(rollValue) || 0
+      );
+    }
+    if (typeof value === 'number') {
+      return Array(count).fill(value);
+    }
+    return Array(count).fill(0);
+  };
+
+  const recordDiceRolls = (rollArray, sides, type, category) => {
+    rollArray.forEach((value) => {
+      diceRolls.push({ sides, value, type, category });
+    });
+  };
+
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i].trim();
     const [token, ...rest] = part.split(' ');
@@ -186,24 +207,42 @@ export function calculateDamage(
     const sidesOfDiceValue = parseInt(match[2], 10);
     const modifier = parseInt(match[3] || 0, 10);
 
-    let damageSum = roll(numberOfDiceValue, sidesOfDiceValue).reduce(
-      (partialSum, a) => partialSum + a,
-      0
+    const baseRolls = normalizeRollArray(
+      roll(numberOfDiceValue, sidesOfDiceValue),
+      numberOfDiceValue
     );
+    let damageSum = baseRolls.reduce((partialSum, a) => partialSum + a, 0);
+    recordDiceRolls(baseRolls, sidesOfDiceValue, type, 'base');
 
     if (extraDice && levelsAbove > 0 && i === 0) {
       const totalExtra = extraDice.count * levelsAbove;
-      const extraRolls = roll(totalExtra, extraDice.sides);
-      damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+      if (totalExtra > 0) {
+        const extraRolls = normalizeRollArray(
+          roll(totalExtra, extraDice.sides),
+          totalExtra
+        );
+        damageSum += extraRolls.reduce((partialSum, a) => partialSum + a, 0);
+        recordDiceRolls(extraRolls, extraDice.sides, type, 'bonus');
+      }
     }
 
     if (crit) {
-      const critRolls = roll(numberOfDiceValue, sidesOfDiceValue);
+      const critRolls = normalizeRollArray(
+        roll(numberOfDiceValue, sidesOfDiceValue),
+        numberOfDiceValue
+      );
       damageSum += critRolls.reduce((partialSum, a) => partialSum + a, 0);
+      recordDiceRolls(critRolls, sidesOfDiceValue, type, 'critical');
       if (extraDice && levelsAbove > 0 && i === 0) {
         const totalExtra = extraDice.count * levelsAbove;
-        const critExtra = roll(totalExtra, extraDice.sides);
-        damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+        if (totalExtra > 0) {
+          const critExtra = normalizeRollArray(
+            roll(totalExtra, extraDice.sides),
+            totalExtra
+          );
+          damageSum += critExtra.reduce((partialSum, a) => partialSum + a, 0);
+          recordDiceRolls(critExtra, extraDice.sides, type, 'critical-bonus');
+        }
       }
     }
 
@@ -211,7 +250,7 @@ export function calculateDamage(
   }
 
   const total = results.reduce((sum, r) => sum + r.value, 0);
-  return { total, breakdown: formatDamageRolls(results) };
+  return { total, breakdown: formatDamageRolls(results), diceRolls };
 }
 
 const PlayerTurnActions = React.forwardRef(
@@ -768,7 +807,8 @@ const [isFumble, setIsFumble] = useState(false);
     updateDamageValueWithAnimation(
       result.total,
       result.breakdown,
-      weapon.name
+      weapon.name,
+      { diceRolls: result.diceRolls }
     );
   };
 
@@ -799,7 +839,8 @@ const [isFumble, setIsFumble] = useState(false);
     updateDamageValueWithAnimation(
       result.total,
       result.breakdown,
-      'Breath Weapon'
+      'Breath Weapon',
+      { diceRolls: result.diceRolls }
     );
   };
 
@@ -843,7 +884,9 @@ const [pendingSpell, setPendingSpell] = useState(null);
       });
       return;
     }
-    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name);
+    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name, {
+      diceRolls: value.diceRolls,
+    });
   };
 
   const handleSpellsButtonClick = (spell, crit = false) => {
@@ -885,6 +928,92 @@ const [loading, setLoading] = useState(false);
 const [damageValue, setDamageValue] = useState(0);
 const [damageLog, setDamageLog] = useState([]);
 const [showLog, setShowLog] = useState(false);
+const [activeDice, setActiveDice] = useState([]);
+const diceTimerRef = useRef(null);
+
+const getDieShapeClass = (sides) => {
+  if (!Number.isFinite(sides)) {
+    return 'damage-die--generic';
+  }
+
+  const normalized = Math.max(0, Math.round(sides));
+
+  switch (normalized) {
+    case 4:
+      return 'damage-die--d4';
+    case 6:
+      return 'damage-die--d6';
+    case 8:
+      return 'damage-die--d8';
+    case 10:
+    case 100:
+      return 'damage-die--d10';
+    case 12:
+      return 'damage-die--d12';
+    case 20:
+      return 'damage-die--d20';
+    default:
+      return 'damage-die--generic';
+  }
+};
+
+const triggerDiceAnimation = useCallback((diceDetails = []) => {
+  if (diceTimerRef.current) {
+    clearTimeout(diceTimerRef.current);
+    diceTimerRef.current = null;
+  }
+
+  if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
+    setActiveDice([]);
+    return;
+  }
+
+  const baseTime = Date.now();
+  const nextDice = diceDetails.map((detail, index) => {
+    const left = 15 + Math.random() * 70;
+    const rotation = (Math.random() - 0.5) * 40;
+    const dropDistance = 40 + Math.random() * 50;
+    const delay = index * 0.05;
+    const rollDuration = 0.85 + Math.random() * 0.45;
+    const initialTiltX = (Math.random() - 0.5) * 90;
+    const initialTiltY = (Math.random() - 0.5) * 90;
+    const initialTiltZ = (Math.random() - 0.5) * 75;
+    const midTiltX = initialTiltX + 360 + Math.random() * 360;
+    const midTiltY = initialTiltY + 360 + Math.random() * 360;
+    const midTiltZ = initialTiltZ + (Math.random() - 0.5) * 540;
+    return {
+      id: `${baseTime}-${index}`,
+      value: typeof detail?.value === 'number' ? detail.value : Number(detail?.value) || 0,
+      sides: detail?.sides || 0,
+      type: detail?.type || '',
+      category: detail?.category || 'base',
+      left,
+      rotation,
+      dropDistance,
+      delay,
+      rollDuration,
+      initialTiltX,
+      initialTiltY,
+      initialTiltZ,
+      midTiltX,
+      midTiltY,
+      midTiltZ,
+    };
+  });
+
+  setActiveDice(nextDice);
+  diceTimerRef.current = setTimeout(() => {
+    setActiveDice([]);
+    diceTimerRef.current = null;
+  }, 2000);
+}, []);
+
+useEffect(() => () => {
+  if (diceTimerRef.current) {
+    clearTimeout(diceTimerRef.current);
+    diceTimerRef.current = null;
+  }
+}, []);
 
 useEffect(() => {
   if (loading) {
@@ -904,6 +1033,8 @@ const updateDamageValueWithAnimation = (
   setLoading(true);
   setPulseClass('');
   setDamageValue(newValue);
+  const details = Array.isArray(extra?.diceRolls) ? extra.diceRolls : [];
+  triggerDiceAnimation(details);
   if (newValue !== undefined) {
     setDamageLog((prev) => {
       const entry = {
@@ -1041,14 +1172,53 @@ useEffect(() => {
           } ${isFumble ? 'critical-failure' : ''}`}
           onClick={handleDamageClick}
         >
-          <span
-            id="damageValue"
-            className={`${loading ? 'hidden' : ''} ${
-              typeof damageValue === 'string' ? 'spell-cast-label' : ''
-            }`}
-          >
-            {damageValue}
-          </span>
+          <div className="damage-roller__dice-area" aria-hidden="true">
+            {activeDice.map((die) => {
+              const normalizedType = normalizeDamageTypeForClass(die.type);
+              const typeClass = normalizedType ? `damage-${normalizedType}` : '';
+              const categoryClass = die.category
+                ? `damage-die--${die.category}`
+                : '';
+              const shapeClass = getDieShapeClass(die.sides);
+              return (
+                <div
+                  key={die.id}
+                  className={`damage-die ${shapeClass} ${categoryClass}`}
+                  style={{
+                    left: `${die.left}%`,
+                    '--drop-delay': `${die.delay}s`,
+                    '--drop-distance': `${die.dropDistance}px`,
+                    '--drop-rotation': `${die.rotation}deg`,
+                    '--roll-duration': `${die.rollDuration}s`,
+                    '--initial-tilt-x': `${die.initialTiltX}deg`,
+                    '--initial-tilt-y': `${die.initialTiltY}deg`,
+                    '--initial-tilt-z': `${die.initialTiltZ}deg`,
+                    '--mid-tilt-x': `${die.midTiltX}deg`,
+                    '--mid-tilt-y': `${die.midTiltY}deg`,
+                    '--mid-tilt-z': `${die.midTiltZ}deg`,
+                  }}
+                >
+                  <div className="damage-die__inner">
+                    <span className={`damage-die__value ${typeClass}`}>
+                      {die.value}
+                    </span>
+                    <span className="damage-die__sides">d{die.sides}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="damage-roller__total">
+            <span className="damage-roller__total-label">Total</span>
+            <span
+              id="damageValue"
+              className={`damage-roller__total-value ${loading ? 'hidden' : ''} ${
+                typeof damageValue === 'string' ? 'spell-cast-label' : ''
+              }`}
+            >
+              {damageValue}
+            </span>
+          </div>
           <div
             id="loadingSpinner"
             className={`spinner ${loading ? '' : 'hidden'}`}
