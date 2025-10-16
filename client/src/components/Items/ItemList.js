@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Alert, Button, Modal, Badge } from 'react-bootstrap';
+import { Card, Row, Col, Alert, Button, Modal, Badge, Form } from 'react-bootstrap';
 import {
   GiAmmoBox,
   GiBackpack,
@@ -310,6 +310,27 @@ function ItemList({
   const [ownedEntries, setOwnedEntries] = useState(() =>
     Array.isArray(initialItems) ? initialItems : EMPTY_ARRAY
   );
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const categoryOptions = useMemo(() => {
+    if (!items) {
+      return [];
+    }
+
+    const categoryMap = new Map();
+    Object.values(items).forEach((item) => {
+      const label = typeof item?.category === 'string' ? item.category.trim() : '';
+      if (!label) return;
+      const value = label.toLowerCase();
+      if (!categoryMap.has(value)) {
+        categoryMap.set(value, label);
+      }
+    });
+
+    return Array.from(categoryMap.entries())
+      .sort(([, aLabel], [, bLabel]) => aLabel.localeCompare(bLabel))
+      .map(([value, label]) => ({ value, label }));
+  }, [items]);
 
   useEffect(() => {
     if (Array.isArray(initialItems)) {
@@ -318,6 +339,17 @@ function ItemList({
       setOwnedEntries((prev) => (prev === EMPTY_ARRAY ? prev : EMPTY_ARRAY));
     }
   }, [initialItems]);
+
+  useEffect(() => {
+    if (selectedCategory === 'all') {
+      return;
+    }
+
+    const hasSelected = categoryOptions.some(({ value }) => value === selectedCategory);
+    if (!hasSelected) {
+      setSelectedCategory('all');
+    }
+  }, [categoryOptions, selectedCategory]);
 
   const ownershipMap = useMemo(
     () => buildItemOwnershipMap(ownedEntries),
@@ -444,6 +476,10 @@ function ItemList({
     onAddToCart(payload);
   };
 
+  const handleCategoryChange = (event) => {
+    setSelectedCategory(event.target.value);
+  };
+
   const handleUseItem = (dataKey, item) => () => {
     if (!ownedOnly || !isConsumableItem(item)) {
       return;
@@ -476,9 +512,19 @@ function ItemList({
   const handleShowNotes = (item) => () => setNotesItem(item);
 
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
-  const filteredEntries = Object.entries(items).filter(([, item]) =>
-    ownedOnly ? (item.ownedCount ?? 0) > 0 : true
-  );
+  const filteredEntries = Object.entries(items).filter(([, item]) => {
+    if (ownedOnly && (item.ownedCount ?? 0) <= 0) {
+      return false;
+    }
+
+    if (selectedCategory !== 'all') {
+      const normalizedCategory =
+        typeof item.category === 'string' ? item.category.trim().toLowerCase() : '';
+      return normalizedCategory === selectedCategory;
+    }
+
+    return true;
+  });
   const displayEntries = filteredEntries.map(([key, item]) => ({
     reactKey: key,
     dataKey: key,
@@ -497,6 +543,28 @@ function ItemList({
         <Alert variant="warning">
           Unrecognized items from server: {unknownItems.join(', ')}
         </Alert>
+      )}
+      {categoryOptions.length > 0 && (
+        <div className="d-flex flex-wrap justify-content-end mb-3">
+          <Form.Group className="d-flex align-items-center gap-2 mb-0">
+            <Form.Label className="mb-0" htmlFor="item-category-filter">
+              Category
+            </Form.Label>
+            <Form.Select
+              id="item-category-filter"
+              size="sm"
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+            >
+              <option value="all">All</option>
+              {categoryOptions.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </div>
       )}
       {displayEntries.length === 0 ? (
         <div className="text-center text-muted py-3">
