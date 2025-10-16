@@ -55,7 +55,14 @@ describe('calculateDamage parser', () => {
   test('handles multi-type damage and returns breakdown string', () => {
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
+    ).toMatchObject({
+      total: 4,
+      breakdown: '3 cold + 1 slashing',
+      diceRolls: [
+        { sides: 4, value: 1, type: 'cold', category: 'base' },
+        { sides: 6, value: 1, type: 'slashing', category: 'base' },
+      ],
+    });
   });
 });
 
@@ -233,7 +240,15 @@ describe('PlayerTurnActions weapon damage display', () => {
     const deterministicRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage(weapon.damage, 3, false, deterministicRoll)
-    ).toEqual({ total: 6, breakdown: '5 slashing + 1 lightning' });
+    ).toMatchObject({
+      total: 6,
+      breakdown: '5 slashing + 1 lightning',
+      diceRolls: [
+        { sides: 8, value: 1, type: 'slashing', category: 'base' },
+        { sides: 8, value: 1, type: 'slashing', category: 'base' },
+        { sides: 6, value: 1, type: 'lightning', category: 'base' },
+      ],
+    });
   });
 
   test('spell damage segments include type classes', () => {
@@ -597,7 +612,7 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Frost Brand (4)');
+    expect(totalLine).toHaveTextContent('Frost Brand - (4)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -694,7 +709,7 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Greatsword of Fire (3)');
+    expect(totalLine).toHaveTextContent('Greatsword of Fire - (3)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -741,7 +756,7 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Fire Bolt (1)');
+    expect(totalLine).toHaveTextContent('Fire Bolt - (1)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -753,7 +768,14 @@ describe('PlayerTurnActions damage log', () => {
     const fixedRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
+    ).toMatchObject({
+      total: 4,
+      breakdown: '3 cold + 1 slashing',
+      diceRolls: [
+        { sides: 4, value: 1, type: 'cold', category: 'base' },
+        { sides: 6, value: 1, type: 'slashing', category: 'base' },
+      ],
+    });
   });
 });
 

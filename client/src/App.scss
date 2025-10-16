@@ -1792,68 +1792,195 @@ $rotateX: -$angle;
 
 // Damage display-------------------------------------------------------
 #damageAmount {
-  width: 70px;
-  height: 70px;
-  border: 2px solid #0040ff; /* Dark red border */
+  position: relative;
+  width: clamp(90px, 18vw, 140px);
+  height: clamp(90px, 18vw, 140px);
+  border: 2px solid #0040ff;
   border-radius: 50%;
-  color: #ffffff; /* Dark red text color */
-  font-size: 22px;
+  color: #ffffff;
   font-weight: bold;
-  text-align: center;
-  line-height: 80px; /* Center content vertically */
-  font-family: 'Courier New', monospace; /* Zombie-themed font */
-  position: relative; /* Required for pseudo-element */
-  overflow: hidden; /* Hide overflow to enable animation */
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
   display: flex;
-  justify-content: center; /* Center horizontally */
-  align-items: center; /* Center vertically */
-  background-size: 70px;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 10px 16px;
+  background: radial-gradient(
+      circle at 25% 20%,
+      rgba(0, 64, 255, 0.55),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(circle at bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.2));
+  box-shadow: inset 0 0 14px rgba(0, 64, 255, 0.45), 0 0 22px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(1px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 #damageAmount.critical-active {
-  border: 2px solid #FFD700;
-  color: #FFD700;
-  box-shadow: 0 0 10px #FFD700;
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.75),
+    inset 0 0 14px rgba(255, 215, 0, 0.55);
 }
 
 #damageAmount.critical-failure {
-  border: 2px solid #FF0000;
-  color: #FF0000;
-  box-shadow: 0 0 10px #FF0000;
+  border: 2px solid #ff0000;
+  box-shadow: 0 0 16px rgba(255, 0, 0, 0.75),
+    inset 0 0 14px rgba(255, 0, 0, 0.4);
+}
+
+.damage-roller__dice-area {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.damage-roller__total {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.damage-roller__total-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 #damageValue {
-  padding-top: 5px;
-  display: inline-block; /* Make the text an inline block */
-  animation: rollAnimation 0.5s ease-in-out; /* Apply animation */
+  padding-top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: rollAnimation 0.45s ease-in-out;
+  font-size: clamp(1.8rem, 4.5vw, 2.4rem);
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
 #damageValue.spell-cast-label {
-  font-size: 10px;
+  font-size: 0.75rem;
   line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-/* Prevent the animation on initial load */
 #damageAmount:not(:hover) #damageValue {
   animation: none;
+}
+
+.damage-roller__total-value {
+  color: #ffffff;
 }
 
 #damageAmount.loading .spinner {
   display: block;
 }
 
-/* Spinner styles */
-.spinner {
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #ffffff; /* Dark red top border */
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite; /* Rotate animation */
+#damageAmount .spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
 }
 
 .spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #ffffff;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
   display: none;
+}
+
+.damage-die {
+  position: absolute;
+  top: -36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(0, 76, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+  transform: translate(-50%, -120%);
+  opacity: 0;
+  --drop-delay: 0s;
+  --drop-duration: 0.9s;
+  --fade-duration: 0.35s;
+  --drop-rotation: 0deg;
+  --drop-distance: 60px;
+  animation:
+    damage-die-drop var(--drop-duration) ease-out forwards,
+    damage-die-fade var(--fade-duration) ease-in forwards;
+  animation-delay: var(--drop-delay),
+    calc(var(--drop-delay) + var(--drop-duration));
+}
+
+.damage-die__value {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.damage-die__sides {
+  font-size: 0.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.damage-die--bonus {
+  background: rgba(46, 204, 113, 0.45);
+  border-color: rgba(46, 204, 113, 0.6);
+}
+
+.damage-die--critical {
+  background: rgba(255, 215, 0, 0.45);
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
+}
+
+.damage-die--critical-bonus {
+  background: rgba(255, 111, 0, 0.45);
+  border-color: rgba(255, 167, 38, 0.8);
+  box-shadow: 0 0 12px rgba(255, 167, 38, 0.55);
+}
+
+@keyframes damage-die-drop {
+  0% {
+    transform: translate(-50%, -120%) rotate(var(--drop-rotation));
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, var(--drop-distance)) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes damage-die-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes spin {
