@@ -1899,6 +1899,12 @@ $rotateX: -$angle;
 .damage-roller__total-value {
   color: #ffffff;
   transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+#damageValue:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 4px;
 }
 
 #damageAmount.critical-active .damage-roller__total {
