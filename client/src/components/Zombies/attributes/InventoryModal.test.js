@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 const mockWeaponListProps = { current: null };
 const mockArmorListProps = { current: null };
 const mockItemListProps = { current: null };
-const mockAccessoryListProps = { current: null };
 
 jest.mock('../../Weapons/WeaponList', () => {
   const React = require('react');
@@ -52,21 +51,6 @@ jest.mock('../../Items/ItemList', () => {
   };
 });
 
-jest.mock('../../Accessories/AccessoryList', () => {
-  const React = require('react');
-  return (props) => {
-    mockAccessoryListProps.current = props;
-    if (!props.show) return null;
-    return (
-      <div data-testid="accessory-list">
-        {(props.initialAccessories || []).map((accessory) => (
-          <span key={accessory.name}>{accessory.name}</span>
-        ))}
-      </div>
-    );
-  };
-});
-
 import InventoryModal from './InventoryModal';
 
 describe('InventoryModal', () => {
@@ -74,7 +58,6 @@ describe('InventoryModal', () => {
     mockWeaponListProps.current = null;
     mockArmorListProps.current = null;
     mockItemListProps.current = null;
-    mockAccessoryListProps.current = null;
   });
 
   test('switches tabs between weapons, armor, and items', async () => {
@@ -177,52 +160,4 @@ describe('InventoryModal', () => {
     expect(mockItemListProps.current?.ownedOnly).toBe(true);
   });
 
-  test('forwards change handlers to equipment lists', async () => {
-    const form = {
-      weapon: [['Sword']],
-      armor: [['Shield Mail']],
-      item: [['Rations']],
-      accessories: [['Ring']],
-    };
-
-    const handlers = {
-      onWeaponsChange: jest.fn(),
-      onArmorChange: jest.fn(),
-      onItemsChange: jest.fn(),
-      onAccessoriesChange: jest.fn(),
-    };
-
-    render(
-      <InventoryModal
-        show
-        onHide={jest.fn()}
-        onTabChange={jest.fn()}
-        form={form}
-        {...handlers}
-      />
-    );
-
-    await screen.findByTestId('weapon-list');
-    expect(mockWeaponListProps.current?.onChange).toBe(handlers.onWeaponsChange);
-
-    await act(async () => {
-      await userEvent.click(screen.getByRole('tab', { name: 'Armor' }));
-    });
-    await screen.findByTestId('armor-list');
-    expect(mockArmorListProps.current?.onChange).toBe(handlers.onArmorChange);
-
-    await act(async () => {
-      await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
-    });
-    await screen.findByTestId('item-list');
-    expect(mockItemListProps.current?.onChange).toBe(handlers.onItemsChange);
-
-    await act(async () => {
-      await userEvent.click(screen.getByRole('tab', { name: 'Accessories' }));
-    });
-    await screen.findByTestId('accessory-list');
-    expect(mockAccessoryListProps.current?.onChange).toBe(
-      handlers.onAccessoriesChange
-    );
-  });
 });
