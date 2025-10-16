@@ -21,6 +21,10 @@ export default function InventoryModal({
   onTabChange,
   form = {},
   characterId,
+  onWeaponsChange,
+  onArmorChange,
+  onItemsChange,
+  onAccessoriesChange,
   isDocked = false,
   dockedSide = null,
   onDockClose,
@@ -81,6 +85,7 @@ export default function InventoryModal({
             <WeaponList
               campaign={form.campaign}
               initialWeapons={normalizedWeapons}
+              onChange={onWeaponsChange}
               characterId={characterId}
               show={isActive}
               embedded
@@ -100,6 +105,7 @@ export default function InventoryModal({
             <ArmorList
               campaign={form.campaign}
               initialArmor={normalizedArmor}
+              onChange={onArmorChange}
               characterId={characterId}
               show={isActive}
               embedded
@@ -119,6 +125,7 @@ export default function InventoryModal({
             <ItemList
               campaign={form.campaign}
               initialItems={normalizedItems}
+              onChange={onItemsChange}
               characterId={characterId}
               show={isActive}
               embedded
@@ -138,6 +145,7 @@ export default function InventoryModal({
             <AccessoryList
               campaign={form.campaign}
               initialAccessories={normalizedAccessories}
+              onChange={onAccessoriesChange}
               show={isActive}
               embedded
               ownedOnly
@@ -152,6 +160,10 @@ export default function InventoryModal({
       normalizedItems,
       normalizedAccessories,
       normalizedWeapons,
+      onArmorChange,
+      onItemsChange,
+      onAccessoriesChange,
+      onWeaponsChange,
     ]
   );
 
