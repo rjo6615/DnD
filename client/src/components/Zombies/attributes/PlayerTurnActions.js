@@ -15,6 +15,7 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
+import DiceBoxCanvas from '../common/DiceBoxCanvas';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -1013,6 +1014,12 @@ const [showLog, setShowLog] = useState(false);
 const [activeDice, setActiveDice] = useState([]);
 const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 const diceAreaRef = useRef(null);
+const diceBoxControllerRef = useRef(null);
+const [isDiceBoxReady, setIsDiceBoxReady] = useState(false);
+
+const handleDiceBoxReadyChange = useCallback((ready) => {
+  setIsDiceBoxReady(!!ready);
+}, []);
 
 const getDieShapeClass = (sides) => {
   if (!Number.isFinite(sides)) {
@@ -1040,96 +1047,126 @@ const getDieShapeClass = (sides) => {
   }
 };
 
-const triggerDiceAnimation = useCallback((diceDetails = []) => {
-  if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
-    setActiveDice([]);
-    return;
-  }
+const triggerDiceAnimation = useCallback(
+  (diceDetails = [], options = {}) => {
+    const diceBox = diceBoxControllerRef.current;
+    let used3dAnimation = false;
 
-  const baseTime = Date.now();
-  const areaWidth = Math.max(
-    1,
-    diceAreaRef.current?.offsetWidth ||
-      diceAreaRef.current?.parentElement?.offsetWidth ||
-      520
-  );
-
-  const diceCount = diceDetails.length;
-  const usableWidthPx = (() => {
-    if (diceCount <= 1) {
-      return Math.min(
-        areaWidth * DAMAGE_AREA_MAX_RATIO,
-        areaWidth * DAMAGE_AREA_BASE_RATIO
-      );
+    if (
+      isDiceBoxReady &&
+      diceBox &&
+      typeof diceBox.roll === 'function' &&
+      Array.isArray(diceDetails) &&
+      diceDetails.length > 0
+    ) {
+      try {
+        const rollResult = diceBox.roll(diceDetails, options);
+        used3dAnimation = rollResult !== false;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('DiceBox roll invocation failed', error);
+        used3dAnimation = false;
+      }
     }
-    const desiredClusterWidth = Math.max(
-      areaWidth * DAMAGE_AREA_BASE_RATIO,
-      (diceCount - 1) * DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR
+
+    if (used3dAnimation) {
+      setActiveDice([]);
+      return;
+    }
+
+    if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
+      setActiveDice([]);
+      return;
+    }
+
+    const baseTime = Date.now();
+    const areaWidth = Math.max(
+      1,
+      diceAreaRef.current?.offsetWidth ||
+        diceAreaRef.current?.parentElement?.offsetWidth ||
+        520
     );
-    return Math.min(areaWidth * DAMAGE_AREA_MAX_RATIO, desiredClusterWidth);
-  })();
 
-  const slotWidthPx =
-    diceCount > 1 ? usableWidthPx / (diceCount - 1) : usableWidthPx || areaWidth;
-  const minGapPx =
-    diceCount > 1
-      ? Math.min(DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR, slotWidthPx)
-      : 0;
-  const startPx = (areaWidth - usableWidthPx) / 2;
-  const maxPx = startPx + usableWidthPx;
-  const jitterPx = Math.min(slotWidthPx * 0.25, DAMAGE_DIE_WIDTH_PX * 0.4);
-  let previousLeftPx = null;
+    const diceCount = diceDetails.length;
+    const usableWidthPx = (() => {
+      if (diceCount <= 1) {
+        return Math.min(
+          areaWidth * DAMAGE_AREA_MAX_RATIO,
+          areaWidth * DAMAGE_AREA_BASE_RATIO
+        );
+      }
+      const desiredClusterWidth = Math.max(
+        areaWidth * DAMAGE_AREA_BASE_RATIO,
+        (diceCount - 1) * DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR
+      );
+      return Math.min(areaWidth * DAMAGE_AREA_MAX_RATIO, desiredClusterWidth);
+    })();
 
-  const nextDice = diceDetails.map((detail, index) => {
-    const fraction = diceCount === 1 ? 0.5 : index / (diceCount - 1 || 1);
-    const baseLeftPx = startPx + fraction * usableWidthPx;
-    const rawOffsetPx = jitterPx
-      ? (Math.random() - 0.5) * 2 * jitterPx
-      : 0;
-    const remainingDice = diceCount - index - 1;
-    const minAllowedPx = startPx + index * minGapPx;
-    const maxAllowedPx = maxPx - remainingDice * minGapPx;
+    const slotWidthPx =
+      diceCount > 1
+        ? usableWidthPx / (diceCount - 1)
+        : usableWidthPx || areaWidth;
+    const minGapPx =
+      diceCount > 1
+        ? Math.min(DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR, slotWidthPx)
+        : 0;
+    const startPx = (areaWidth - usableWidthPx) / 2;
+    const maxPx = startPx + usableWidthPx;
+    const jitterPx = Math.min(slotWidthPx * 0.25, DAMAGE_DIE_WIDTH_PX * 0.4);
+    let previousLeftPx = null;
 
-    let leftPx = baseLeftPx + rawOffsetPx;
-    if (Number.isFinite(minAllowedPx)) {
-      leftPx = Math.max(leftPx, minAllowedPx);
-    }
-    if (Number.isFinite(maxAllowedPx)) {
-      leftPx = Math.min(leftPx, maxAllowedPx);
-    }
-    if (previousLeftPx !== null && leftPx - previousLeftPx < minGapPx) {
-      leftPx = Math.min(maxAllowedPx, previousLeftPx + minGapPx);
-    }
+    const nextDice = diceDetails.map((detail, index) => {
+      const fraction = diceCount === 1 ? 0.5 : index / (diceCount - 1 || 1);
+      const baseLeftPx = startPx + fraction * usableWidthPx;
+      const rawOffsetPx = jitterPx
+        ? (Math.random() - 0.5) * 2 * jitterPx
+        : 0;
+      const remainingDice = diceCount - index - 1;
+      const minAllowedPx = startPx + index * minGapPx;
+      const maxAllowedPx = maxPx - remainingDice * minGapPx;
 
-    previousLeftPx = leftPx;
-    const left = (leftPx / areaWidth) * 100;
-    const dropDistance = 60 + Math.random() * 70;
-    const delay = index * 0.05;
-    const rollDuration = 0.85 + Math.random() * 0.45;
-    const spinEnd = (Math.random() - 0.5) * 60;
-    const spinStart = spinEnd + (Math.random() - 0.5) * 200;
-    const spinMid = (spinStart + spinEnd) / 2;
-    return {
-      id: `${baseTime}-${index}`,
-      value:
-        typeof detail?.value === 'number'
-          ? detail.value
-          : Number(detail?.value) || 0,
-      sides: detail?.sides || 0,
-      type: detail?.type || '',
-      category: detail?.category || 'base',
-      left,
-      dropDistance,
-      delay,
-      rollDuration,
-      spinStart,
-      spinMid,
-      spinEnd,
-    };
-  });
+      let leftPx = baseLeftPx + rawOffsetPx;
+      if (Number.isFinite(minAllowedPx)) {
+        leftPx = Math.max(leftPx, minAllowedPx);
+      }
+      if (Number.isFinite(maxAllowedPx)) {
+        leftPx = Math.min(leftPx, maxAllowedPx);
+      }
+      if (previousLeftPx !== null && leftPx - previousLeftPx < minGapPx) {
+        leftPx = Math.min(maxAllowedPx, previousLeftPx + minGapPx);
+      }
 
-  setActiveDice(nextDice);
-}, [diceAreaRef]);
+      previousLeftPx = leftPx;
+      const left = (leftPx / areaWidth) * 100;
+      const dropDistance = 60 + Math.random() * 70;
+      const delay = index * 0.05;
+      const rollDuration = 0.85 + Math.random() * 0.45;
+      const spinEnd = (Math.random() - 0.5) * 60;
+      const spinStart = spinEnd + (Math.random() - 0.5) * 200;
+      const spinMid = (spinStart + spinEnd) / 2;
+      return {
+        id: `${baseTime}-${index}`,
+        value:
+          typeof detail?.value === 'number'
+            ? detail.value
+            : Number(detail?.value) || 0,
+        sides: detail?.sides || 0,
+        type: detail?.type || '',
+        category: detail?.category || 'base',
+        left,
+        dropDistance,
+        delay,
+        rollDuration,
+        spinStart,
+        spinMid,
+        spinEnd,
+      };
+    });
+
+    setActiveDice(nextDice);
+  },
+  [diceAreaRef, isDiceBoxReady]
+);
 
 const updateDamageValueWithAnimation = (
   newValue,
@@ -1140,7 +1177,13 @@ const updateDamageValueWithAnimation = (
   setPulseClass('');
   setDamageValue(newValue);
   const details = Array.isArray(extra?.diceRolls) ? extra.diceRolls : [];
-  triggerDiceAnimation(details);
+  triggerDiceAnimation(details, {
+    expression: extra.expression,
+    diceColor: form?.diceColor,
+    rollValues: extra.rollValues,
+    modifierValues: extra.modifierValues,
+    total: newValue,
+  });
   setLastRollTimestamp(Date.now());
   manualCriticalRef.current = false;
   if (newValue !== undefined) {
@@ -1296,31 +1339,40 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
             aria-hidden="true"
             ref={diceAreaRef}
           >
-            {activeDice.map((die) => {
-              const normalizedType = normalizeDamageTypeForClass(die.type);
-              const typeClass = normalizedType ? `damage-${normalizedType}` : '';
-              const categoryClass = die.category
-                ? `damage-die--${die.category}`
-                : '';
-              const shapeClass = getDieShapeClass(die.sides);
-              return (
-                <div
-                  key={die.id}
-                  className={`damage-die ${shapeClass} ${categoryClass}`}
-                  style={{
-                    left: `${die.left}%`,
-                    '--drop-delay': `${die.delay}s`,
-                    '--drop-distance': `${die.dropDistance}px`,
-                    '--drop-duration': `${die.rollDuration}s`,
-                    '--drop-spin-start': `${die.spinStart}deg`,
-                    '--drop-spin-mid': `${die.spinMid}deg`,
-                    '--drop-spin-end': `${die.spinEnd}deg`,
-                  }}
-                >
-                  <DamageDieMesh die={die} typeClass={typeClass} />
-                </div>
-              );
-            })}
+            <DiceBoxCanvas
+              ref={diceBoxControllerRef}
+              diceColor={form?.diceColor}
+              onReadyChange={handleDiceBoxReadyChange}
+            />
+            <div className="damage-roller__dice-fallback">
+              {activeDice.map((die) => {
+                const normalizedType = normalizeDamageTypeForClass(die.type);
+                const typeClass = normalizedType
+                  ? `damage-${normalizedType}`
+                  : '';
+                const categoryClass = die.category
+                  ? `damage-die--${die.category}`
+                  : '';
+                const shapeClass = getDieShapeClass(die.sides);
+                return (
+                  <div
+                    key={die.id}
+                    className={`damage-die ${shapeClass} ${categoryClass}`}
+                    style={{
+                      left: `${die.left}%`,
+                      '--drop-delay': `${die.delay}s`,
+                      '--drop-distance': `${die.dropDistance}px`,
+                      '--drop-duration': `${die.rollDuration}s`,
+                      '--drop-spin-start': `${die.spinStart}deg`,
+                      '--drop-spin-mid': `${die.spinMid}deg`,
+                      '--drop-spin-end': `${die.spinEnd}deg`,
+                    }}
+                  >
+                    <DamageDieMesh die={die} typeClass={typeClass} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div className="damage-roller__total">
             <span className="damage-roller__total-label">Total</span>
