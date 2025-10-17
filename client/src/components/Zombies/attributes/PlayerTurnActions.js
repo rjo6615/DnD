@@ -171,8 +171,6 @@ function DamageDieMesh({ die, typeClass }) {
     typeof die?.value === 'number' ? die.value : Number(die?.value) || 0;
   const [displayValue, setDisplayValue] = useState(finalValue);
   const faceData = useMemo(() => getFaceDataForSides(die?.sides), [die?.sides]);
-
-  const faceData = useMemo(() => getFaceDataForSides(die?.sides), [die?.sides]);
   const fallbackSides = Number.isFinite(die?.sides)
     ? Math.max(2, Math.round(die.sides))
     : 20;
@@ -242,16 +240,6 @@ function DamageDieMesh({ die, typeClass }) {
       </div>
     );
   }
-
-  if (!Array.isArray(faceData) || faceData.length === 0) {
-    return (
-      <div className="damage-die__icon">
-        <span className="damage-die__shape" aria-hidden="true" />
-        <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
-      </div>
-    );
-  }
-
   return (
     <div className="damage-die__icon" aria-hidden="true">
       <div className="damage-die__poly">
