@@ -91,6 +91,7 @@ const DiceBoxCanvas = forwardRef(
       diceColor,
       onReadyChange = () => {},
       assetPath = DICE_BOX_ASSET_PATH,
+      onRollComplete,
     },
     ref
   ) => {
@@ -249,11 +250,41 @@ const DiceBoxCanvas = forwardRef(
             }
 
             const result = diceBoxInstance.roll(expression);
-            if (result && typeof result.then === 'function') {
-              result.catch((error) => {
-                // eslint-disable-next-line no-console
-                console.error('DiceBox roll promise rejected', error);
+            const completionHandlers = [];
+
+            if (typeof onRollComplete === 'function') {
+              completionHandlers.push(onRollComplete);
+            }
+
+            if (typeof options.onRollComplete === 'function') {
+              completionHandlers.push(options.onRollComplete);
+            }
+
+            const invokeCompletionHandlers = (payload) => {
+              completionHandlers.forEach((handler) => {
+                try {
+                  handler(payload);
+                } catch (handlerError) {
+                  // eslint-disable-next-line no-console
+                  console.error('DiceBox roll completion handler failed', handlerError);
+                }
               });
+            };
+
+            if (result && typeof result.then === 'function') {
+              result
+                .then((payload) => {
+                  if (completionHandlers.length > 0) {
+                    invokeCompletionHandlers(payload);
+                  }
+                  return payload;
+                })
+                .catch((error) => {
+                  // eslint-disable-next-line no-console
+                  console.error('DiceBox roll promise rejected', error);
+                });
+            } else if (completionHandlers.length > 0) {
+              invokeCompletionHandlers(result);
             }
             return true;
           } catch (error) {
@@ -274,7 +305,7 @@ const DiceBoxCanvas = forwardRef(
           }
         },
       }),
-      [isReady, normalizedColor]
+      [isReady, normalizedColor, onRollComplete]
     );
 
     return (

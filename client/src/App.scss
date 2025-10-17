@@ -1755,6 +1755,70 @@ $rotateX: -$angle;
   margin: auto 0;
 }
 
+.attack-roll-controls__die .content {
+  position: relative;
+}
+
+.attack-roll-controls__dice-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.attack-roll-controls__dice-box {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.attack-roll-controls__dice-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+.attack-roll-controls__sparkles {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.attack-roll-controls__fallback {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.attack-roll-controls__fallback--hidden {
+  display: none;
+}
+
+.attack-roll-controls__trigger {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.attack-roll-controls__trigger:focus-visible {
+  outline: 2px solid var(--bs-primary, #0d6efd);
+  border-radius: 50%;
+}
+
 .attack-roll-controls__spacer {
   height: var(--attack-roll-footer-height);
   flex-shrink: 0;
