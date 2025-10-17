@@ -122,6 +122,10 @@ function DamageDieMesh({ die, typeClass }) {
                   .map((component) => component.toFixed(6))
                   .join(',')})`,
                 filter: `brightness(${brightness.toFixed(3)})`,
+                clipPath: face.clipPath,
+                WebkitClipPath: face.clipPath,
+                '--die-face-height-ratio': face.heightRatio.toFixed(6),
+                '--die-face-clip-path': face.clipPath,
               }}
             />
           );
