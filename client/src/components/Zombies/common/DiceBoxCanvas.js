@@ -97,6 +97,10 @@ const DiceBoxCanvas = forwardRef(
     const containerRef = useRef(null);
     const diceBoxRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
+    const elementId = useMemo(
+      () => `dice-box-${Math.random().toString(36).slice(2, 11)}`,
+      []
+    );
 
     const normalizedColor = useMemo(
       () => normalizeColor(diceColor),
@@ -132,14 +136,40 @@ const DiceBoxCanvas = forwardRef(
             return;
           }
 
-          const diceBoxInstance = new DiceBoxCtor(target, {
+          const selector = `#${elementId}`;
+          const baseOptions = {
             assetPath,
             theme: 'default',
             scale: 9,
             throwForce: 6,
             enableShadows: true,
             gravity: 9.81,
-          });
+            element: selector,
+            target: selector,
+            container: target,
+          };
+
+          let diceBoxInstance = null;
+
+          try {
+            diceBoxInstance = new DiceBoxCtor(selector, baseOptions);
+          } catch (primaryError) {
+            try {
+              diceBoxInstance = new DiceBoxCtor({
+                ...baseOptions,
+                element: target,
+                target,
+              });
+            } catch (secondaryError) {
+              // eslint-disable-next-line no-console
+              console.error(
+                'Failed to construct DiceBox with provided options',
+                primaryError,
+                secondaryError
+              );
+              throw secondaryError;
+            }
+          }
 
           diceBoxRef.current = diceBoxInstance;
 
@@ -173,7 +203,7 @@ const DiceBoxCanvas = forwardRef(
           diceBoxRef.current = null;
         }
       };
-    }, [assetPath, onReadyChange]);
+    }, [assetPath, elementId, onReadyChange]);
 
     useEffect(() => {
       if (!containerRef.current) {
@@ -250,6 +280,7 @@ const DiceBoxCanvas = forwardRef(
     return (
       <div
         ref={containerRef}
+        id={elementId}
         className={`damage-roller__dice-box ${className}`.trim()}
         style={style}
         aria-hidden="true"
