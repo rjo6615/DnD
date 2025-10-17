@@ -595,9 +595,14 @@ export function createPolyhedronFaces(sides, scale = 1) {
 
     const heightRatio = Math.max(height / width, 0.01);
 
+    const faceTangent = tangent;
+    const faceBitangent = bitangent;
+
     faceData.push({
       matrix: cssMatrix,
       normal,
+      tangent: faceTangent,
+      bitangent: faceBitangent,
       clipPath: `polygon(${clipPoints})`,
       heightRatio,
     });
