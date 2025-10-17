@@ -17,7 +17,15 @@ function createTetrahedron() {
     [-1, -1, 1],
   ]);
 
-  return { vertices };
+  return {
+    vertices,
+    faces: [
+      [0, 2, 1],
+      [0, 1, 3],
+      [0, 3, 2],
+      [1, 2, 3],
+    ],
+  };
 }
 
 function createCube() {
@@ -32,7 +40,17 @@ function createCube() {
     [-1, 1, 1],
   ]);
 
-  return { vertices };
+  return {
+    vertices,
+    faces: [
+      [0, 3, 2, 1],
+      [4, 5, 6, 7],
+      [0, 1, 5, 4],
+      [2, 3, 7, 6],
+      [1, 2, 6, 5],
+      [3, 0, 4, 7],
+    ],
+  };
 }
 
 function createOctahedron() {
@@ -45,7 +63,19 @@ function createOctahedron() {
     [0, 0, -1],
   ]);
 
-  return { vertices };
+  return {
+    vertices,
+    faces: [
+      [0, 4, 2],
+      [2, 4, 1],
+      [1, 4, 3],
+      [3, 4, 0],
+      [0, 2, 5],
+      [2, 1, 5],
+      [1, 3, 5],
+      [3, 0, 5],
+    ],
+  };
 }
 
 function createIcosahedron() {
@@ -115,7 +145,14 @@ function createPentagonalTrapezohedron() {
 
   const vertices = normalizeVertices([top, bottom, ...ring]);
 
-  return { vertices };
+  const faces = [];
+  for (let i = 0; i < 10; i += 1) {
+    const current = 2 + i;
+    const next = 2 + ((i + 1) % 10);
+    faces.push([0, current, 1, next]);
+  }
+
+  return { vertices, faces };
 }
 
 const polyhedraDefinitions = {
@@ -156,6 +193,9 @@ function norm(a) {
 
 function normalize(a) {
   const length = norm(a);
+  if (length < EPSILON) {
+    return [0, 0, 0];
+  }
   return a.map((v) => v / length);
 }
 
@@ -278,6 +318,134 @@ function generateConvexHullTriangles(vertices) {
   return faces;
 }
 
+function computeFaceCentroid(face, vertices) {
+  const sum = face.reduce(
+    (acc, index) => acc.map((value, axis) => value + vertices[index][axis]),
+    [0, 0, 0],
+  );
+  return sum.map((value) => value / face.length);
+}
+
+function computeFaceNormal(face, vertices) {
+  const normal = [0, 0, 0];
+
+  for (let i = 0; i < face.length; i += 1) {
+    const current = vertices[face[i]];
+    const next = vertices[face[(i + 1) % face.length]];
+    normal[0] += (current[1] - next[1]) * (current[2] + next[2]);
+    normal[1] += (current[2] - next[2]) * (current[0] + next[0]);
+    normal[2] += (current[0] - next[0]) * (current[1] + next[1]);
+  }
+
+  return normalize(normal);
+}
+
+function ensureFaceOrientation(face, vertices) {
+  if (face.length < 3) {
+    return { indices: face, normal: [0, 0, 0] };
+  }
+
+  const centroid = computeFaceCentroid(face, vertices);
+  let normal = computeFaceNormal(face, vertices);
+  const orientation = dot(normal, centroid);
+
+  if (orientation < 0) {
+    const reversed = [...face].reverse();
+    normal = normal.map((value) => -value);
+    return { indices: reversed, normal };
+  }
+
+  return { indices: face, normal };
+}
+
+function mergeCoplanarFaces(faces, vertices) {
+  const groups = new Map();
+
+  faces.forEach((face) => {
+    if (!Array.isArray(face) || face.length < 3) {
+      return;
+    }
+
+    const v0 = vertices[face[0]];
+    const v1 = vertices[face[1]];
+    let edgeIndex = 2;
+    let edge2 = subtract(vertices[face[edgeIndex]], v0);
+    let edge1 = subtract(v1, v0);
+    let normalVector = cross(edge1, edge2);
+
+    while (norm(normalVector) < EPSILON && edgeIndex < face.length - 1) {
+      edgeIndex += 1;
+      edge2 = subtract(vertices[face[edgeIndex]], v0);
+      edge1 = subtract(v1, v0);
+      normalVector = cross(edge1, edge2);
+    }
+
+    if (norm(normalVector) < EPSILON) {
+      return;
+    }
+
+    let normal = normalize(normalVector);
+    let distance = dot(normal, v0);
+
+    if (distance < 0) {
+      normal = normal.map((value) => -value);
+      distance = -distance;
+    }
+
+    const formatComponent = (value) => {
+      const normalizedValue = Math.abs(value) < 1e-8 ? 0 : value;
+      return normalizedValue.toFixed(6);
+    };
+
+    const key = `${normal.map((value) => formatComponent(value)).join(':')}:${formatComponent(distance)}`;
+
+    if (!groups.has(key)) {
+      groups.set(key, { normal, indices: new Set() });
+    }
+
+    const group = groups.get(key);
+    face.forEach((index) => group.indices.add(index));
+  });
+
+  const merged = [];
+
+  groups.forEach(({ normal, indices }) => {
+    const unique = Array.from(indices);
+    if (unique.length < 3) {
+      return;
+    }
+
+    const centroid = computeFaceCentroid(unique, vertices);
+
+    let basis = subtract(vertices[unique[0]], centroid);
+    let basisIndex = 1;
+
+    while (norm(basis) < EPSILON && basisIndex < unique.length) {
+      basis = subtract(vertices[unique[basisIndex]], centroid);
+      basisIndex += 1;
+    }
+
+    const u = normalize(basis);
+    const v = normalize(cross(normal, u));
+
+    const ordered = unique
+      .map((index) => {
+        const relative = subtract(vertices[index], centroid);
+        const x = dot(relative, u);
+        const y = dot(relative, v);
+        const angle = Math.atan2(y, x);
+        return { index, angle };
+      })
+      .sort((a, b) => a.angle - b.angle)
+      .map(({ index }) => index);
+
+    const oriented = ensureFaceOrientation(ordered, vertices);
+    merged.push(oriented);
+  });
+
+  return merged;
+}
+
 const baseOrigin = baseTriangle[0];
 const baseEdge1 = subtract(baseTriangle[1], baseOrigin);
 const baseEdge2 = subtract(baseTriangle[2], baseOrigin);
@@ -306,27 +474,50 @@ export function createPolyhedronFaces(sides, scale = 1) {
   }
 
   const { vertices, faces: presetFaces } = geometryFactory();
-  const faces = presetFaces || generateConvexHullTriangles(vertices);
+  const rawFaces = presetFaces || generateConvexHullTriangles(vertices);
+  const processedFaces = Array.isArray(presetFaces)
+    ? rawFaces.map((face) => ensureFaceOrientation(face, vertices))
+    : mergeCoplanarFaces(rawFaces, vertices);
   const faceData = [];
 
-  faces.forEach((face) => {
-    const verts = face.map((index) => vertices[index]);
-    const v0 = verts[0];
-    const v1 = verts[1];
-    const v2 = verts[2];
+  processedFaces.forEach(({ indices, normal: presetNormal }) => {
+    if (!Array.isArray(indices) || indices.length < 3) {
+      return;
+    }
 
-    const edge1 = subtract(v1, v0);
-    const edge2 = subtract(v2, v0);
-    const faceNormal = normalize(cross(edge1, edge2));
+    const verts = indices.map((index) => vertices[index]);
+    const v0 = verts[0];
+    let v1 = verts[1];
+    let v2 = verts[2];
+
+    let edge1 = subtract(v1, v0);
+    let edge2 = subtract(v2, v0);
+    let faceNormal = cross(edge1, edge2);
+    let edgeIndex = 3;
+
+    while (norm(faceNormal) < EPSILON && edgeIndex < verts.length) {
+      v2 = verts[edgeIndex];
+      edge2 = subtract(v2, v0);
+      faceNormal = cross(edge1, edge2);
+      edgeIndex += 1;
+    }
+
+    faceNormal = normalize(faceNormal);
+    const hasPresetNormal = Array.isArray(presetNormal) && norm(presetNormal) >= EPSILON;
+
+    if (hasPresetNormal) {
+      if (dot(faceNormal, presetNormal) < 0) {
+        faceNormal = presetNormal.map((value) => -value);
+      } else {
+        faceNormal = presetNormal;
+      }
+    }
 
     const faceMatrix = matrixFromColumns(edge1, edge2, faceNormal);
     const transformMatrix = multiply3x3(faceMatrix, baseInverse);
 
     const centroidOffset = multiplyMatrixVector(transformMatrix, baseCentroid);
-    const actualCentroid = verts.reduce(
-      (acc, vertex) => acc.map((value, index) => value + vertex[index] / 3),
-      [0, 0, 0],
-    );
+    const actualCentroid = computeFaceCentroid(indices, vertices);
     const translation = [
       (actualCentroid[0] - centroidOffset[0]) * scale,
       (actualCentroid[1] - centroidOffset[1]) * scale,
@@ -354,9 +545,54 @@ export function createPolyhedronFaces(sides, scale = 1) {
 
     const normal = faceNormal;
 
+    const centroid = computeFaceCentroid(indices, vertices);
+    let basis = subtract(v0, centroid);
+    let basisIndex = 1;
+
+    while (norm(basis) < EPSILON && basisIndex < verts.length) {
+      basis = subtract(verts[basisIndex], centroid);
+      basisIndex += 1;
+    }
+
+    const u = normalize(basis);
+    const v = normalize(cross(normal, u));
+
+    const projected = verts.map((vertex) => {
+      const relative = subtract(vertex, centroid);
+      return {
+        x: dot(relative, u),
+        y: dot(relative, v),
+      };
+    });
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    projected.forEach(({ x, y }) => {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    });
+
+    const width = maxX - minX || EPSILON;
+    const height = maxY - minY || EPSILON;
+
+    const clipPoints = projected
+      .map(({ x, y }) => {
+        const px = ((x - minX) / width) * 100;
+        const py = 100 - ((y - minY) / height) * 100;
+        return `${px.toFixed(3)}% ${py.toFixed(3)}%`;
+      })
+      .join(', ');
+
     faceData.push({
       matrix: cssMatrix,
       normal,
+      clipPath: `polygon(${clipPoints})`,
+      heightRatio: Math.max(height / width, 0.01),
     });
   });
 
