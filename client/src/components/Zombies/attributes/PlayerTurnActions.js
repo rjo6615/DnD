@@ -36,7 +36,6 @@ const DAMAGE_DIE_WIDTH_PX = 42;
 const DAMAGE_DIE_SPREAD_FACTOR = 1.15;
 const DAMAGE_AREA_BASE_RATIO = 0.42;
 const DAMAGE_AREA_MAX_RATIO = 0.92;
-
 function formatDamageRolls(rolls) {
   return rolls
     .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
@@ -105,7 +104,15 @@ function DamageDieMesh({ die, typeClass }) {
   return (
     <div className="damage-die__icon">
       <span className="damage-die__shape" aria-hidden="true" />
-      <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
+      <span className={`damage-die__value damage-die__value--front ${typeClass}`}>
+        {displayValue}
+      </span>
+      <span
+        className={`damage-die__value damage-die__value--back ${typeClass}`}
+        aria-hidden="true"
+      >
+        {displayValue}
+      </span>
     </div>
   );
 }
@@ -1106,9 +1113,23 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     const dropDistance = 60 + Math.random() * 70;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
-    const spinEnd = (Math.random() - 0.5) * 60;
-    const spinStart = spinEnd + (Math.random() - 0.5) * 200;
-    const spinMid = (spinStart + spinEnd) / 2;
+    const entryDirection = Math.random() < 0.5 ? -1 : 1;
+    const startX = entryDirection * (areaWidth * (0.55 + Math.random() * 0.35));
+    const midX = startX * -0.25;
+    const startY = -(120 + Math.random() * 80);
+    const midY = -(40 + Math.random() * 60);
+    const startZ = entryDirection * (30 + Math.random() * 90);
+    const midZ = (Math.random() - 0.5) * 80;
+    const rotXStart = (Math.random() - 0.5) * 220;
+    const rotYStart = (Math.random() - 0.5) * 220;
+    const rotZStart = (Math.random() - 0.5) * 220;
+    const rotXMid = rotXStart + entryDirection * (240 + Math.random() * 240);
+    const rotYMid = rotYStart + (Math.random() - 0.5) * 480;
+    const rotZMid = rotZStart + (Math.random() - 0.5) * 420;
+    const rotXEnd = (Math.random() - 0.5) * 90;
+    const rotYEnd = (Math.random() - 0.5) * 90;
+    const rotZEnd = (Math.random() - 0.5) * 90;
+    const settleBounce = 6 + Math.random() * 10;
     return {
       id: `${baseTime}-${index}`,
       value:
@@ -1122,9 +1143,22 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
       dropDistance,
       delay,
       rollDuration,
-      spinStart,
-      spinMid,
-      spinEnd,
+      startX,
+      startY,
+      startZ,
+      midX,
+      midY,
+      midZ,
+      rotXStart,
+      rotYStart,
+      rotZStart,
+      rotXMid,
+      rotYMid,
+      rotZMid,
+      rotXEnd,
+      rotYEnd,
+      rotZEnd,
+      settleBounce,
     };
   });
 
@@ -1310,11 +1344,24 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                   style={{
                     left: `${die.left}%`,
                     '--drop-delay': `${die.delay}s`,
-                    '--drop-distance': `${die.dropDistance}px`,
                     '--drop-duration': `${die.rollDuration}s`,
-                    '--drop-spin-start': `${die.spinStart}deg`,
-                    '--drop-spin-mid': `${die.spinMid}deg`,
-                    '--drop-spin-end': `${die.spinEnd}deg`,
+                    '--flight-start-x': `${die.startX}px`,
+                    '--flight-start-y': `${die.startY}px`,
+                    '--flight-start-z': `${die.startZ}px`,
+                    '--flight-mid-x': `${die.midX}px`,
+                    '--flight-mid-y': `${die.midY}px`,
+                    '--flight-mid-z': `${die.midZ}px`,
+                    '--flight-end-y': `${die.dropDistance}px`,
+                    '--flight-settle-bounce': `${die.settleBounce}px`,
+                    '--rot-x-start': `${die.rotXStart}deg`,
+                    '--rot-y-start': `${die.rotYStart}deg`,
+                    '--rot-z-start': `${die.rotZStart}deg`,
+                    '--rot-x-mid': `${die.rotXMid}deg`,
+                    '--rot-y-mid': `${die.rotYMid}deg`,
+                    '--rot-z-mid': `${die.rotZMid}deg`,
+                    '--rot-x-end': `${die.rotXEnd}deg`,
+                    '--rot-y-end': `${die.rotYEnd}deg`,
+                    '--rot-z-end': `${die.rotZEnd}deg`,
                   }}
                 >
                   <DamageDieMesh die={die} typeClass={typeClass} />
