@@ -1847,6 +1847,8 @@ $rotateX: -$angle;
   overflow: visible;
   pointer-events: none;
   z-index: 1;
+  perspective: 1400px;
+  transform-style: preserve-3d;
 }
 
 .damage-roller__total {
@@ -1942,23 +1944,38 @@ $rotateX: -$angle;
 
 .damage-die {
   position: absolute;
-  top: -28px;
+  top: 0;
   width: var(--die-size, 36px);
   height: var(--die-size, 36px);
   pointer-events: none;
-  transform: translate(-50%, -120%);
+  transform-origin: center;
+  transform-style: preserve-3d;
   opacity: 0;
   --drop-delay: 0s;
-  --drop-duration: 0.9s;
-  --drop-distance: 48px;
-  --drop-spin-start: -12deg;
-  --drop-spin-mid: 4deg;
-  --drop-spin-end: 0deg;
+  --drop-duration: 0.95s;
+  --flight-start-x: -160px;
+  --flight-start-y: -140px;
+  --flight-start-z: 0px;
+  --flight-mid-x: 0px;
+  --flight-mid-y: -60px;
+  --flight-mid-z: 0px;
+  --flight-end-y: 48px;
+  --flight-settle-bounce: 8px;
+  --rot-x-start: 0deg;
+  --rot-y-start: 0deg;
+  --rot-z-start: 0deg;
+  --rot-x-mid: 240deg;
+  --rot-y-mid: 240deg;
+  --rot-z-mid: 120deg;
+  --rot-x-end: 0deg;
+  --rot-y-end: 0deg;
+  --rot-z-end: 0deg;
   --die-surface-color: var(--dice-face-color, #1f46cc);
-  --die-edge-color: rgba(255, 255, 255, 0.5);
-  animation: damage-die-drop var(--drop-duration) cubic-bezier(0.32, 0.74, 0.23, 0.99) forwards;
-  animation-delay: var(--drop-delay);
   filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
+  animation: damage-die-flight var(--drop-duration) cubic-bezier(0.25, 0.72, 0.13, 0.99)
+    forwards;
+  animation-delay: var(--drop-delay);
+  will-change: transform, opacity;
 }
 
 .damage-die__icon {
@@ -1968,22 +1985,106 @@ $rotateX: -$angle;
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.28));
+}
+
+.damage-die__poly {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.damage-die__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 24% 28%, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 68%),
+    linear-gradient(146deg, rgba(255, 255, 255, 0.32), rgba(0, 0, 0, 0.45)),
+    var(--die-surface-color, #1f46cc);
+  border: 1.4px solid var(--die-edge-color, rgba(255, 255, 255, 0.38));
+  box-shadow:
+    inset 0 3px 6px rgba(255, 255, 255, 0.22),
+    inset 0 -8px 14px rgba(0, 0, 0, 0.45);
+  transform-origin: center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  clip-path: inherit;
+  opacity: 0.78;
+  transition: opacity 0.4s ease, filter 0.4s ease;
+  will-change: transform;
+}
+
+.damage-die__face::before {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  opacity: 0.4;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.damage-die__face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(0, 0, 0, 0.35), transparent 55%);
+  opacity: 0.55;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.damage-die__face-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 2px 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  transform: translateZ(1.2px);
+}
+
+.damage-die__face--active {
+  opacity: 1;
+  filter: brightness(1.08);
 }
 
 .damage-die__shape {
   position: absolute;
   inset: 0;
+  border-radius: 18%;
+  clip-path: polygon(18% 6%, 82% 6%, 100% 24%, 100% 76%, 82% 94%, 18% 94%, 0% 76%, 0% 24%);
   background:
     radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 58%),
     linear-gradient(140deg, rgba(255, 255, 255, 0.42), rgba(0, 0, 0, 0.38)),
     var(--die-surface-color);
-  border: 2px solid var(--die-edge-color, rgba(255, 255, 255, 0.45));
+  border: 2px solid rgba(255, 255, 255, 0.35);
   box-shadow:
     inset 0 4px 8px rgba(255, 255, 255, 0.18),
     inset 0 -6px 12px rgba(0, 0, 0, 0.42);
-  border-radius: 18%;
-  clip-path: polygon(18% 6%, 82% 6%, 100% 24%, 100% 76%, 82% 94%, 18% 94%, 0% 76%, 0% 24%);
-  transition: transform 0.2s ease;
+  transform: translateZ(-4px);
+}
+
+.damage-die__shape::before {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border-radius: inherit;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 .damage-die__shape::after {
@@ -1991,20 +2092,31 @@ $rotateX: -$angle;
   position: absolute;
   inset: 16%;
   border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
-  opacity: 0.85;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0));
+  opacity: 0.9;
   mix-blend-mode: screen;
   pointer-events: none;
 }
 
 .damage-die__value {
-  position: relative;
-  z-index: 1;
-  font-size: 1.1rem;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
   line-height: 1;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  backface-visibility: hidden;
+  transform: translateZ(6px);
+}
+
+.damage-die__value--back {
+  transform: rotateY(180deg) translateZ(6px);
+  opacity: 0.75;
 }
 
 .damage-die--bonus {
@@ -2056,22 +2168,52 @@ $rotateX: -$angle;
   border-radius: 8%;
 }
 
-@keyframes damage-die-drop {
+@keyframes damage-die-flight {
   0% {
-    transform: translate(-50%, -150%) scale(0.6) rotate(var(--drop-spin-start, 0deg));
     opacity: 0;
+    transform: translateX(-50%)
+      translate3d(
+        var(--flight-start-x, -160px),
+        var(--flight-start-y, -140px),
+        var(--flight-start-z, 0px)
+      )
+      rotateX(var(--rot-x-start, 0deg))
+      rotateY(var(--rot-y-start, 0deg))
+      rotateZ(var(--rot-z-start, 0deg))
+      scale(0.88);
   }
   30% {
     opacity: 1;
   }
-  65% {
-    transform: translate(-50%, calc(var(--drop-distance, 48px) * 0.6)) scale(1.05)
-      rotate(var(--drop-spin-mid, 12deg));
+  58% {
+    transform: translateX(-50%)
+      translate3d(
+        var(--flight-mid-x, 0px),
+        var(--flight-mid-y, -60px),
+        var(--flight-mid-z, 0px)
+      )
+      rotateX(var(--rot-x-mid, 200deg))
+      rotateY(var(--rot-y-mid, 260deg))
+      rotateZ(var(--rot-z-mid, 110deg));
+  }
+  78% {
+    transform: translateX(-50%)
+      translate3d(
+        calc(var(--flight-mid-x, 0px) * 0.25),
+        calc(var(--flight-end-y, 48px) - var(--flight-settle-bounce, 8px)),
+        calc(var(--flight-mid-z, 0px) * 0.2)
+      )
+      rotateX(calc((var(--rot-x-mid, 200deg) + var(--rot-x-end, 0deg)) / 2))
+      rotateY(calc((var(--rot-y-mid, 260deg) + var(--rot-y-end, 0deg)) / 2))
+      rotateZ(calc((var(--rot-z-mid, 110deg) + var(--rot-z-end, 0deg)) / 2));
   }
   100% {
-    transform: translate(-50%, var(--drop-distance, 48px)) scale(1)
-      rotate(var(--drop-spin-end, 0deg));
     opacity: 1;
+    transform: translateX(-50%)
+      translate3d(0, var(--flight-end-y, 48px), 0)
+      rotateX(var(--rot-x-end, 0deg))
+      rotateY(var(--rot-y-end, 0deg))
+      rotateZ(var(--rot-z-end, 0deg));
   }
 }
 
