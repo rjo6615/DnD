@@ -557,42 +557,50 @@ export function createPolyhedronFaces(sides, scale = 1) {
     const u = normalize(basis);
     const v = normalize(cross(normal, u));
 
-    const projected = verts.map((vertex) => {
-      const relative = subtract(vertex, centroid);
-      return {
-        x: dot(relative, u),
-        y: dot(relative, v),
-      };
-    });
+    let clipPath;
+    let heightRatio;
 
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
+    if (verts.length > 3) {
+      const projected = verts.map((vertex) => {
+        const relative = subtract(vertex, centroid);
+        return {
+          x: dot(relative, u),
+          y: dot(relative, v),
+        };
+      });
 
-    projected.forEach(({ x, y }) => {
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    });
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
 
-    const width = maxX - minX || EPSILON;
-    const height = maxY - minY || EPSILON;
+      projected.forEach(({ x, y }) => {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      });
 
-    const clipPoints = projected
-      .map(({ x, y }) => {
-        const px = ((x - minX) / width) * 100;
-        const py = 100 - ((y - minY) / height) * 100;
-        return `${px.toFixed(3)}% ${py.toFixed(3)}%`;
-      })
-      .join(', ');
+      const width = maxX - minX || EPSILON;
+      const height = maxY - minY || EPSILON;
+
+      const clipPoints = projected
+        .map(({ x, y }) => {
+          const px = ((x - minX) / width) * 100;
+          const py = 100 - ((y - minY) / height) * 100;
+          return `${px.toFixed(3)}% ${py.toFixed(3)}%`;
+        })
+        .join(', ');
+
+      clipPath = `polygon(${clipPoints})`;
+      heightRatio = Math.max(height / width, 0.01);
+    }
 
     faceData.push({
       matrix: cssMatrix,
       normal,
-      clipPath: `polygon(${clipPoints})`,
-      heightRatio: Math.max(height / width, 0.01),
+      clipPath,
+      heightRatio,
     });
   });
 
