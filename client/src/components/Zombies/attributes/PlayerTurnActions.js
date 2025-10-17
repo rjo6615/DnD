@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { DiceRoller } from '@dice-roller/rpg-dice-roller';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
 import UpcastModal from './UpcastModal';
@@ -17,17 +18,87 @@ import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
 import DamageDiceBox, { sanitizeDiceDetails } from './DamageDiceBox';
 
+const sharedDiceRoller = (() => {
+  try {
+    return new DiceRoller();
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      // eslint-disable-next-line no-console
+      console.error('Failed to initialize DiceRoller', error);
+    }
+    return null;
+  }
+})();
+
+const collectRollValues = (node, acc = []) => {
+  if (!node) {
+    return acc;
+  }
+
+  if (Array.isArray(node)) {
+    node.forEach((item) => collectRollValues(item, acc));
+    return acc;
+  }
+
+  if (typeof node === 'number') {
+    acc.push(node);
+    return acc;
+  }
+
+  if (typeof node === 'object') {
+    if (typeof node.value === 'number') {
+      acc.push(node.value);
+    }
+
+    if (Array.isArray(node.rolls)) {
+      collectRollValues(node.rolls, acc);
+    }
+
+    if (Array.isArray(node.results)) {
+      collectRollValues(node.results, acc);
+    }
+
+    if (Array.isArray(node.values)) {
+      collectRollValues(node.values, acc);
+    }
+  }
+
+  return acc;
+};
+
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
   if (numberOfDiceValue <= 0 || sidesOfDiceValue <= 0) {
     return "Both the number of dice and sides must be greater than zero.";
   }
 
+  if (sharedDiceRoller && typeof sharedDiceRoller.roll === 'function') {
+    try {
+      const notation = `${numberOfDiceValue}d${sidesOfDiceValue}`;
+      const roll = sharedDiceRoller.roll(notation);
+
+      const exported =
+        roll && typeof roll.export === 'function' ? roll.export('json') : null;
+
+      let values = collectRollValues(exported);
+      if (!values.length) {
+        values = collectRollValues(roll?.rolls);
+      }
+
+      if (values.length) {
+        return values.slice(0, numberOfDiceValue);
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        // eslint-disable-next-line no-console
+        console.error('Dice roll failed, falling back to Math.random()', error);
+      }
+    }
+  }
+
   const results = [];
   for (let i = 0; i < numberOfDiceValue; i++) {
-    // Generate a random number between 1 and sidesOfDiceValue (inclusive)
-    const result = Math.floor(Math.random() * sidesOfDiceValue) + 1;
-    results.push(result);
+    results.push(Math.floor(Math.random() * sidesOfDiceValue) + 1);
   }
 
   return results;
