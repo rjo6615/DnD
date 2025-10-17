@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from 'react-bootstrap';
+import DiceBoxCanvas from './DiceBoxCanvas';
 
 const DEFAULT_DICE_COLOR = '#3366ff';
 const SPARKLE_DURATION_MS = 2000;
@@ -37,6 +38,8 @@ const D20RollerModal = ({ show = false, onHide = () => {}, diceColor, renderInli
   const sparkleTimeoutRef = useRef(null);
   const sparkleRepeatTimeoutRef = useRef(null);
   const previousColorRef = useRef(null);
+  const diceBoxControllerRef = useRef(null);
+  const [isDiceBoxReady, setIsDiceBoxReady] = useState(false);
 
   const shouldApplyColor = renderInline || show;
 
@@ -66,7 +69,11 @@ const D20RollerModal = ({ show = false, onHide = () => {}, diceColor, renderInli
 
   const getRandomFace = () => Math.floor(Math.random() * DICE_SIDES) + INITIAL_SIDE;
 
-  const triggerSparkles = (face, isRepeat = false) => {
+  const handleDiceBoxReadyChange = useCallback((ready) => {
+    setIsDiceBoxReady(!!ready);
+  }, []);
+
+  const triggerSparkles = useCallback((face, isRepeat = false) => {
     clearTimeout(sparkleTimeoutRef.current);
 
     if (face === 20) {
@@ -90,25 +97,116 @@ const D20RollerModal = ({ show = false, onHide = () => {}, diceColor, renderInli
         SPARKLE_REPEAT_DELAY_MS
       );
     }
-  };
+  }, []);
 
-  const rollTo = (face) => {
-    clearTimeout(rollTimeoutRef.current);
-    setActiveFace(face);
-    setRolling(false);
+  const rollTo = useCallback(
+    (face) => {
+      clearTimeout(rollTimeoutRef.current);
+      setActiveFace(face);
+      setRolling(false);
 
-    if (face === 20 || face === 1) {
-      triggerSparkles(face);
-    } else {
-      clearTimeout(sparkleTimeoutRef.current);
-      clearTimeout(sparkleRepeatTimeoutRef.current);
-      setShowCriticalSparkles(false);
-      setShowFumbleSparkles(false);
+      if (face === 20 || face === 1) {
+        triggerSparkles(face);
+      } else {
+        clearTimeout(sparkleTimeoutRef.current);
+        clearTimeout(sparkleRepeatTimeoutRef.current);
+        setShowCriticalSparkles(false);
+        setShowFumbleSparkles(false);
+      }
+    },
+    [triggerSparkles]
+  );
+
+  const extractFaceFromResult = useCallback((payload) => {
+    if (!payload) {
+      return null;
     }
-  };
+
+    const candidates = [];
+
+    if (Array.isArray(payload)) {
+      candidates.push(...payload);
+    } else {
+      candidates.push(payload);
+      if (Array.isArray(payload.dice)) {
+        candidates.push(...payload.dice);
+      }
+      if (Array.isArray(payload.rolls)) {
+        candidates.push(...payload.rolls);
+      }
+      if (Array.isArray(payload.results)) {
+        candidates.push(...payload.results);
+      }
+      if (Array.isArray(payload.values)) {
+        candidates.push(...payload.values);
+      }
+      if (Array.isArray(payload.rolledDice)) {
+        candidates.push(...payload.rolledDice);
+      }
+    }
+
+    for (const candidate of candidates) {
+      if (!candidate) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      const value = candidate.value ?? candidate.total ?? candidate.result ?? candidate.roll ?? candidate.face;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric >= INITIAL_SIDE && numeric <= DICE_SIDES) {
+        return numeric;
+      }
+    }
+
+    const fallbackValue = Number(
+      payload.value ?? payload.total ?? payload.result ?? payload.roll ?? payload.face
+    );
+    return Number.isFinite(fallbackValue) ? fallbackValue : null;
+  }, []);
+
+  const handleDiceBoxRollComplete = useCallback(
+    (payload) => {
+      const face = extractFaceFromResult(payload);
+      if (face !== null) {
+        rollTo(face);
+      }
+    },
+    [extractFaceFromResult, rollTo]
+  );
+
+  const rollWithDiceBox = useCallback(() => {
+    const diceBox = diceBoxControllerRef.current;
+    if (!isDiceBoxReady || !diceBox || typeof diceBox.roll !== 'function') {
+      return false;
+    }
+
+    try {
+      const result = diceBox.roll(
+        [
+          {
+            id: 'd20',
+            sides: DICE_SIDES,
+          },
+        ],
+        { expression: '1d20' }
+      );
+
+      return result !== false;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('DiceBox roll invocation failed', error);
+      return false;
+    }
+  }, [isDiceBoxReady]);
 
   const handleRandomizeClick = (event) => {
     event.preventDefault();
+    const usedDiceBox = rollWithDiceBox();
+    if (usedDiceBox) {
+      setRolling(true);
+      return;
+    }
+
     setRolling(true);
     clearTimeout(rollTimeoutRef.current);
 
@@ -133,16 +231,31 @@ const D20RollerModal = ({ show = false, onHide = () => {}, diceColor, renderInli
   const dieContent = (
     <div className="attack-roll-controls__die">
       <div className="content">
-        {showCriticalSparkles && <div className="sparkle"></div>}
-        {showFumbleSparkles && <div className="sparkle1"></div>}
+        <div className="attack-roll-controls__dice-layer" aria-hidden="true">
+          <DiceBoxCanvas
+            ref={diceBoxControllerRef}
+            diceColor={diceColor}
+            onReadyChange={handleDiceBoxReadyChange}
+            onRollComplete={handleDiceBoxRollComplete}
+            className="attack-roll-controls__dice-box"
+          />
+        </div>
         <div
-          role="button"
-          aria-label="Roll a d20"
-          onClick={handleRandomizeClick}
-          className={`die ${rolling ? 'rolling' : ''}`}
-          data-face={activeFace}
+          className={`attack-roll-controls__fallback ${
+            isDiceBoxReady ? 'attack-roll-controls__fallback--hidden' : ''
+          }`}
         >
-          {faceElements}
+          {showCriticalSparkles && <div className="sparkle"></div>}
+          {showFumbleSparkles && <div className="sparkle1"></div>}
+          <div
+            role="button"
+            aria-label="Roll a d20"
+            onClick={handleRandomizeClick}
+            className={`die ${rolling ? 'rolling' : ''}`}
+            data-face={activeFace}
+          >
+            {faceElements}
+          </div>
         </div>
       </div>
     </div>

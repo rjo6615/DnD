@@ -1755,6 +1755,44 @@ $rotateX: -$angle;
   margin: auto 0;
 }
 
+.attack-roll-controls__die .content {
+  position: relative;
+}
+
+.attack-roll-controls__dice-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.attack-roll-controls__dice-box {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.attack-roll-controls__dice-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+.attack-roll-controls__fallback {
+  position: relative;
+  z-index: 2;
+}
+
+.attack-roll-controls__fallback--hidden {
+  opacity: 0;
+}
+
 .attack-roll-controls__spacer {
   height: var(--attack-roll-footer-height);
   flex-shrink: 0;
