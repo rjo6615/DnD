@@ -152,23 +152,45 @@ const DiceBoxCanvas = forwardRef(
 
           let diceBoxInstance = null;
 
-          try {
-            diceBoxInstance = new DiceBoxCtor(selector, baseOptions);
-          } catch (primaryError) {
-            try {
-              diceBoxInstance = new DiceBoxCtor({
+          const instantiationAttempts = [
+            () => new DiceBoxCtor(selector, baseOptions),
+            () => new DiceBoxCtor(target, baseOptions),
+            () =>
+              new DiceBoxCtor({
                 ...baseOptions,
                 element: target,
                 target,
+              }),
+          ];
+          let lastInstantiationError = null;
+
+          for (const attempt of instantiationAttempts) {
+            try {
+              diceBoxInstance = attempt();
+              if (diceBoxInstance) {
+                break;
+              }
+            } catch (attemptError) {
+              diceBoxInstance = null;
+              lastInstantiationError = attemptError;
+            }
+          }
+
+          if (!diceBoxInstance) {
+            try {
+              diceBoxInstance = new DiceBoxCtor({
+                ...baseOptions,
+                element: selector,
+                target: selector,
               });
-            } catch (secondaryError) {
+            } catch (finalError) {
               // eslint-disable-next-line no-console
               console.error(
                 'Failed to construct DiceBox with provided options',
-                primaryError,
-                secondaryError
+                lastInstantiationError || finalError,
+                finalError
               );
-              throw secondaryError;
+              throw finalError;
             }
           }
 
