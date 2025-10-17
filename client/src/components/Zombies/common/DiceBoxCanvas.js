@@ -28,6 +28,26 @@ const normalizeColor = (value) => {
   return DEFAULT_DICE_COLOR;
 };
 
+const toDieSides = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(numeric));
+};
+
+const sanitizeExpression = (expression) => {
+  if (typeof expression !== 'string') {
+    return '';
+  }
+
+  return expression
+    .replace(/\s+/g, '')
+    .replace(/[^0-9dD+-]/g, '')
+    .toLowerCase();
+};
+
 const buildDiceNotation = (diceDetails) => {
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
     return '';
@@ -35,9 +55,7 @@ const buildDiceNotation = (diceDetails) => {
 
   const groups = new Map();
   diceDetails.forEach((die) => {
-    const sides = Number.isFinite(die?.sides)
-      ? Math.max(0, Math.round(die.sides))
-      : 0;
+    const sides = toDieSides(die?.sides);
     if (sides > 0) {
       groups.set(sides, (groups.get(sides) || 0) + 1);
     }
@@ -50,7 +68,7 @@ const buildDiceNotation = (diceDetails) => {
   return Array.from(groups.entries())
     .sort((a, b) => a[0] - b[0])
     .map(([sides, count]) => `${count}d${sides}`)
-    .join(' + ');
+    .join('+');
 };
 
 const loadDiceBoxModule = async () => {
@@ -177,9 +195,8 @@ const DiceBoxCanvas = forwardRef(
 
           const diceBoxInstance = diceBoxRef.current;
           const expression =
-            (typeof options.expression === 'string'
-              ? options.expression.trim()
-              : '') || buildDiceNotation(diceDetails);
+            sanitizeExpression(options.expression) ||
+            buildDiceNotation(diceDetails);
 
           if (!expression) {
             return false;
