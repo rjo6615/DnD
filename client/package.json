@@ -7,6 +7,7 @@
     "@capacitor/android": "^5.6.0",
     "@capacitor/core": "^5.6.0",
     "@capacitor/ios": "^5.6.0",
+    "@dice-roller/rpg-dice-roller": "^5.1.0",
     "@fortawesome/fontawesome": "^1.1.8",
     "@fortawesome/fontawesome-free": "^6.3.0",
     "@testing-library/jest-dom": "^5.16.5",

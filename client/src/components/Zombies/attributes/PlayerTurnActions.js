@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { DiceRoller } from '@dice-roller/rpg-dice-roller';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
 import UpcastModal from './UpcastModal';
@@ -15,6 +16,55 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
+import DamageDiceBox, { sanitizeDiceDetails, buildDiceNotation } from './DamageDiceBox';
+
+const sharedDiceRoller = (() => {
+  try {
+    return new DiceRoller();
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      // eslint-disable-next-line no-console
+      console.error('Failed to initialize DiceRoller', error);
+    }
+    return null;
+  }
+})();
+
+const collectRollValues = (node, acc = []) => {
+  if (!node) {
+    return acc;
+  }
+
+  if (Array.isArray(node)) {
+    node.forEach((item) => collectRollValues(item, acc));
+    return acc;
+  }
+
+  if (typeof node === 'number') {
+    acc.push(node);
+    return acc;
+  }
+
+  if (typeof node === 'object') {
+    if (typeof node.value === 'number') {
+      acc.push(node.value);
+    }
+
+    if (Array.isArray(node.rolls)) {
+      collectRollValues(node.rolls, acc);
+    }
+
+    if (Array.isArray(node.results)) {
+      collectRollValues(node.results, acc);
+    }
+
+    if (Array.isArray(node.values)) {
+      collectRollValues(node.values, acc);
+    }
+  }
+
+  return acc;
+};
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -22,20 +72,37 @@ function rollDice(numberOfDiceValue, sidesOfDiceValue) {
     return "Both the number of dice and sides must be greater than zero.";
   }
 
+  if (sharedDiceRoller && typeof sharedDiceRoller.roll === 'function') {
+    try {
+      const notation = `${numberOfDiceValue}d${sidesOfDiceValue}`;
+      const roll = sharedDiceRoller.roll(notation);
+
+      const exported =
+        roll && typeof roll.export === 'function' ? roll.export('json') : null;
+
+      let values = collectRollValues(exported);
+      if (!values.length) {
+        values = collectRollValues(roll?.rolls);
+      }
+
+      if (values.length) {
+        return values.slice(0, numberOfDiceValue);
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        // eslint-disable-next-line no-console
+        console.error('Dice roll failed, falling back to Math.random()', error);
+      }
+    }
+  }
+
   const results = [];
   for (let i = 0; i < numberOfDiceValue; i++) {
-    // Generate a random number between 1 and sidesOfDiceValue (inclusive)
-    const result = Math.floor(Math.random() * sidesOfDiceValue) + 1;
-    results.push(result);
+    results.push(Math.floor(Math.random() * sidesOfDiceValue) + 1);
   }
 
   return results;
 }
-
-const DAMAGE_DIE_WIDTH_PX = 42;
-const DAMAGE_DIE_SPREAD_FACTOR = 1.15;
-const DAMAGE_AREA_BASE_RATIO = 0.42;
-const DAMAGE_AREA_MAX_RATIO = 0.92;
 
 function formatDamageRolls(rolls) {
   return rolls
@@ -58,57 +125,27 @@ const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
-function DamageDieMesh({ die, typeClass }) {
-  const finalValue =
-    typeof die?.value === 'number' ? die.value : Number(die?.value) || 0;
-  const [displayValue, setDisplayValue] = useState(finalValue);
+const getDiceCategoryLabel = (category) => {
+  switch (category) {
+    case 'bonus':
+      return 'Bonus';
+    case 'critical':
+      return 'Critical';
+    case 'critical-bonus':
+      return 'Critical Bonus';
+    default:
+      return '';
+  }
+};
 
-  useEffect(() => {
-    const sides = Number.isFinite(die?.sides) ? Math.max(2, Math.round(die.sides)) : 20;
-    const delayMs = Number.isFinite(die?.delay)
-      ? Math.max(0, die.delay * 1000)
-      : 0;
-    const durationMs = Number.isFinite(die?.rollDuration)
-      ? Math.max(350, die.rollDuration * 1000)
-      : 900;
-
-    let scrambleIntervalId = null;
-    let scrambleTimeoutId = null;
-    let startTimeoutId = null;
-
-    const startScramble = () => {
-      if (sides < 2 || durationMs <= 0) {
-        setDisplayValue(finalValue);
-        return;
-      }
-
-      const intervalMs = Math.max(65, Math.min(160, durationMs / 6));
-      scrambleIntervalId = setInterval(() => {
-        setDisplayValue(Math.floor(Math.random() * sides) + 1);
-      }, intervalMs);
-
-      scrambleTimeoutId = setTimeout(() => {
-        if (scrambleIntervalId) clearInterval(scrambleIntervalId);
-        setDisplayValue(finalValue);
-      }, durationMs);
-    };
-
-    startTimeoutId = setTimeout(startScramble, delayMs);
-
-    return () => {
-      if (startTimeoutId) clearTimeout(startTimeoutId);
-      if (scrambleIntervalId) clearInterval(scrambleIntervalId);
-      if (scrambleTimeoutId) clearTimeout(scrambleTimeoutId);
-    };
-  }, [die?.id, die?.sides, die?.delay, die?.rollDuration, finalValue]);
-
-  return (
-    <div className="damage-die__icon">
-      <span className="damage-die__shape" aria-hidden="true" />
-      <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
-    </div>
-  );
-}
+const formatDiceGroupSubtitle = (group) => {
+  const count = group.dice.length;
+  const parts = [`${count} × d${group.sides}`];
+  if (group.categoryLabel) {
+    parts.push(group.categoryLabel);
+  }
+  return parts.join(' • ');
+};
 
 function extractDiceExpression(description = '') {
   diceExpressionPattern.lastIndex = 0;
@@ -1010,126 +1047,74 @@ const sortedSpells = useMemo(() => {
 const [damageValue, setDamageValue] = useState(0);
 const [damageLog, setDamageLog] = useState([]);
 const [showLog, setShowLog] = useState(false);
-const [activeDice, setActiveDice] = useState([]);
+const [diceGroups, setDiceGroups] = useState([]);
+const [diceNotation, setDiceNotation] = useState('');
 const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
-const diceAreaRef = useRef(null);
-
-const getDieShapeClass = (sides) => {
-  if (!Number.isFinite(sides)) {
-    return 'damage-die--generic';
-  }
-
-  const normalized = Math.max(0, Math.round(sides));
-
-  switch (normalized) {
-    case 4:
-      return 'damage-die--d4';
-    case 6:
-      return 'damage-die--d6';
-    case 8:
-      return 'damage-die--d8';
-    case 10:
-    case 100:
-      return 'damage-die--d10';
-    case 12:
-      return 'damage-die--d12';
-    case 20:
-      return 'damage-die--d20';
-    default:
-      return 'damage-die--generic';
-  }
-};
+const diceBoxControllerRef = useRef(null);
+const [diceBoxStatus, setDiceBoxStatus] = useState('idle');
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
-  if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
-    setActiveDice([]);
+  const controller = diceBoxControllerRef.current;
+  let sanitizedDetails = sanitizeDiceDetails(diceDetails);
+  let used3d = false;
+
+  if (controller && typeof controller.rollDice === 'function') {
+    const result = controller.rollDice(diceDetails);
+    if (result && Array.isArray(result.sanitized)) {
+      sanitizedDetails = result.sanitized;
+    }
+    used3d = !!result?.used3d;
+  }
+
+  if (used3d) {
+    setDiceGroups([]);
+    setDiceNotation('');
     return;
   }
 
-  const baseTime = Date.now();
-  const areaWidth = Math.max(
-    1,
-    diceAreaRef.current?.offsetWidth ||
-      diceAreaRef.current?.parentElement?.offsetWidth ||
-      520
-  );
+  if (!Array.isArray(sanitizedDetails) || sanitizedDetails.length === 0) {
+    setDiceGroups([]);
+    setDiceNotation('');
+    return;
+  }
 
-  const diceCount = diceDetails.length;
-  const usableWidthPx = (() => {
-    if (diceCount <= 1) {
-      return Math.min(
-        areaWidth * DAMAGE_AREA_MAX_RATIO,
-        areaWidth * DAMAGE_AREA_BASE_RATIO
-      );
+  const timestamp = Date.now();
+  const normalizedDice = sanitizedDetails.map((detail, index) => ({
+    id: `${timestamp}-${index}`,
+    sides: Math.max(0, Number(detail?.sides) || 0),
+    value:
+      typeof detail?.value === 'number'
+        ? detail.value
+        : Number(detail?.value) || 0,
+    type: typeof detail?.type === 'string' ? detail.type : '',
+    category: typeof detail?.category === 'string' ? detail.category : 'base',
+  }));
+
+  const groupMap = new Map();
+  normalizedDice.forEach((die) => {
+    const key = `${die.sides}|${die.type}|${die.category}`;
+    if (!groupMap.has(key)) {
+      const categoryLabel = getDiceCategoryLabel(die.category);
+      groupMap.set(key, {
+        id: `${key}-${timestamp}`,
+        typeLabel: die.type ? die.type : 'Damage',
+        categoryLabel,
+        category: die.category,
+        sides: die.sides,
+        dice: [],
+      });
     }
-    const desiredClusterWidth = Math.max(
-      areaWidth * DAMAGE_AREA_BASE_RATIO,
-      (diceCount - 1) * DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR
-    );
-    return Math.min(areaWidth * DAMAGE_AREA_MAX_RATIO, desiredClusterWidth);
-  })();
-
-  const slotWidthPx =
-    diceCount > 1 ? usableWidthPx / (diceCount - 1) : usableWidthPx || areaWidth;
-  const minGapPx =
-    diceCount > 1
-      ? Math.min(DAMAGE_DIE_WIDTH_PX * DAMAGE_DIE_SPREAD_FACTOR, slotWidthPx)
-      : 0;
-  const startPx = (areaWidth - usableWidthPx) / 2;
-  const maxPx = startPx + usableWidthPx;
-  const jitterPx = Math.min(slotWidthPx * 0.25, DAMAGE_DIE_WIDTH_PX * 0.4);
-  let previousLeftPx = null;
-
-  const nextDice = diceDetails.map((detail, index) => {
-    const fraction = diceCount === 1 ? 0.5 : index / (diceCount - 1 || 1);
-    const baseLeftPx = startPx + fraction * usableWidthPx;
-    const rawOffsetPx = jitterPx
-      ? (Math.random() - 0.5) * 2 * jitterPx
-      : 0;
-    const remainingDice = diceCount - index - 1;
-    const minAllowedPx = startPx + index * minGapPx;
-    const maxAllowedPx = maxPx - remainingDice * minGapPx;
-
-    let leftPx = baseLeftPx + rawOffsetPx;
-    if (Number.isFinite(minAllowedPx)) {
-      leftPx = Math.max(leftPx, minAllowedPx);
-    }
-    if (Number.isFinite(maxAllowedPx)) {
-      leftPx = Math.min(leftPx, maxAllowedPx);
-    }
-    if (previousLeftPx !== null && leftPx - previousLeftPx < minGapPx) {
-      leftPx = Math.min(maxAllowedPx, previousLeftPx + minGapPx);
-    }
-
-    previousLeftPx = leftPx;
-    const left = (leftPx / areaWidth) * 100;
-    const dropDistance = 60 + Math.random() * 70;
-    const delay = index * 0.05;
-    const rollDuration = 0.85 + Math.random() * 0.45;
-    const spinEnd = (Math.random() - 0.5) * 60;
-    const spinStart = spinEnd + (Math.random() - 0.5) * 200;
-    const spinMid = (spinStart + spinEnd) / 2;
-    return {
-      id: `${baseTime}-${index}`,
-      value:
-        typeof detail?.value === 'number'
-          ? detail.value
-          : Number(detail?.value) || 0,
-      sides: detail?.sides || 0,
-      type: detail?.type || '',
-      category: detail?.category || 'base',
-      left,
-      dropDistance,
-      delay,
-      rollDuration,
-      spinStart,
-      spinMid,
-      spinEnd,
-    };
+    groupMap.get(key).dice.push(die);
   });
 
-  setActiveDice(nextDice);
-}, [diceAreaRef]);
+  const groups = Array.from(groupMap.values()).map((group) => ({
+    ...group,
+    subtitle: formatDiceGroupSubtitle(group),
+  }));
+
+  setDiceGroups(groups);
+  setDiceNotation(buildDiceNotation(normalizedDice));
+}, []);
 
 const updateDamageValueWithAnimation = (
   newValue,
@@ -1202,6 +1187,9 @@ useEffect(() => {
 }, []);
 
 const passDisabled = !canPassTurn || isPassTurnInProgress;
+const diceAreaClassName = `damage-roller__dice-area ${
+  diceBoxStatus === 'ready' ? 'damage-roller__dice-area--3d-ready' : ''
+}`.trim();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -1291,36 +1279,70 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
             isFumble ? 'critical-failure' : ''
           }`}
         >
-          <div
-            className="damage-roller__dice-area"
-            aria-hidden="true"
-            ref={diceAreaRef}
-          >
-            {activeDice.map((die) => {
-              const normalizedType = normalizeDamageTypeForClass(die.type);
-              const typeClass = normalizedType ? `damage-${normalizedType}` : '';
-              const categoryClass = die.category
-                ? `damage-die--${die.category}`
-                : '';
-              const shapeClass = getDieShapeClass(die.sides);
-              return (
-                <div
-                  key={die.id}
-                  className={`damage-die ${shapeClass} ${categoryClass}`}
-                  style={{
-                    left: `${die.left}%`,
-                    '--drop-delay': `${die.delay}s`,
-                    '--drop-distance': `${die.dropDistance}px`,
-                    '--drop-duration': `${die.rollDuration}s`,
-                    '--drop-spin-start': `${die.spinStart}deg`,
-                    '--drop-spin-mid': `${die.spinMid}deg`,
-                    '--drop-spin-end': `${die.spinEnd}deg`,
-                  }}
-                >
-                  <DamageDieMesh die={die} typeClass={typeClass} />
+          <div className={diceAreaClassName} aria-hidden="true">
+            <DamageDiceBox
+              ref={diceBoxControllerRef}
+              color={form?.diceColor}
+              onStateChange={setDiceBoxStatus}
+            />
+            {diceGroups.length > 0 && (
+              <div
+                className="damage-roller__dice-fallback"
+                role="list"
+                aria-live="polite"
+                aria-label={
+                  diceNotation
+                    ? `RPG Dice Roller results: ${diceNotation}`
+                    : 'RPG Dice Roller results'
+                }
+              >
+                {diceNotation && (
+                  <div className="damage-roller__dice-notation">
+                    <span className="damage-roller__dice-notation-label">Roll</span>
+                    <span className="damage-roller__dice-notation-value">
+                      {diceNotation}
+                    </span>
+                  </div>
+                )}
+                <div className="damage-roller__dice-groups">
+                  {diceGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className={`damage-die-group damage-die-group--${group.category}`}
+                      role="listitem"
+                    >
+                      <div className="damage-die-group__header">
+                        <span className="damage-die-group__title">{group.typeLabel}</span>
+                        <span className="damage-die-group__subtitle">{group.subtitle}</span>
+                      </div>
+                      <div className="damage-die-group__dice" role="list">
+                        {group.dice.map((die) => {
+                          const sides = Math.max(0, Number(die.sides) || 0);
+                          const displaySides = sides >= 2 ? sides : '?';
+                          const normalizedType = normalizeDamageTypeForClass(die.type);
+                          const chipClasses = [
+                            'damage-die-chip',
+                            `damage-die-chip--category-${group.category || 'base'}`,
+                          ];
+                          if (sides >= 2) {
+                            chipClasses.push(`damage-die-chip--d${Math.round(sides)}`);
+                          }
+                          if (normalizedType) {
+                            chipClasses.push(`damage-die-chip--${normalizedType}`);
+                          }
+                          return (
+                            <span key={die.id} className={chipClasses.join(' ')}>
+                              <span className="damage-die-chip__sides">d{displaySides}</span>
+                              <span className="damage-die-chip__value">{die.value}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
           <div className="damage-roller__total">
             <span className="damage-roller__total-label">Total</span>
