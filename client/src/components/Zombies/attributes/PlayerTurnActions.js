@@ -1106,9 +1106,26 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     const dropDistance = 60 + Math.random() * 70;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
-    const spinEnd = (Math.random() - 0.5) * 60;
-    const spinStart = spinEnd + (Math.random() - 0.5) * 200;
-    const spinMid = (spinStart + spinEnd) / 2;
+    const horizontalStart = (Math.random() - 0.5) * 120;
+    const horizontalMid = horizontalStart * (0.35 + Math.random() * 0.25);
+    const verticalOffset = (Math.random() - 0.5) * 60;
+    const depthStart = -120 - Math.random() * 90;
+    const depthMid = -30 - Math.random() * 60;
+    const scaleStart = 0.62 + Math.random() * 0.18;
+    const scaleMid = 1.04 + Math.random() * 0.16;
+    const bounceHeight = 12 + Math.random() * 18;
+    const tiltXStart = (Math.random() - 0.5) * 240;
+    const tiltYStart = (Math.random() - 0.5) * 240;
+    const tiltZStart = (Math.random() - 0.5) * 200;
+    const tiltXMid = tiltXStart + (Math.random() - 0.5) * 540;
+    const tiltYMid = tiltYStart + (Math.random() - 0.5) * 540;
+    const tiltZMid = tiltZStart + (Math.random() - 0.5) * 360;
+    const tiltXEnd = tiltXMid + (Math.random() - 0.5) * 260;
+    const tiltYEnd = tiltYMid + (Math.random() - 0.5) * 260;
+    const tiltZEnd = tiltZMid + (Math.random() - 0.5) * 200;
+    const tiltXSettle = (Math.random() - 0.5) * 16;
+    const tiltYSettle = (Math.random() - 0.5) * 16;
+    const tiltZSettle = (Math.random() - 0.5) * 12;
     return {
       id: `${baseTime}-${index}`,
       value:
@@ -1122,9 +1139,26 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
       dropDistance,
       delay,
       rollDuration,
-      spinStart,
-      spinMid,
-      spinEnd,
+      horizontalStart,
+      horizontalMid,
+      verticalOffset,
+      depthStart,
+      depthMid,
+      scaleStart,
+      scaleMid,
+      bounceHeight,
+      tiltXStart,
+      tiltYStart,
+      tiltZStart,
+      tiltXMid,
+      tiltYMid,
+      tiltZMid,
+      tiltXEnd,
+      tiltYEnd,
+      tiltZEnd,
+      tiltXSettle,
+      tiltYSettle,
+      tiltZSettle,
     };
   });
 
@@ -1312,9 +1346,26 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                     '--drop-delay': `${die.delay}s`,
                     '--drop-distance': `${die.dropDistance}px`,
                     '--drop-duration': `${die.rollDuration}s`,
-                    '--drop-spin-start': `${die.spinStart}deg`,
-                    '--drop-spin-mid': `${die.spinMid}deg`,
-                    '--drop-spin-end': `${die.spinEnd}deg`,
+                    '--roll-horizontal-start': `${die.horizontalStart}px`,
+                    '--roll-horizontal-mid': `${die.horizontalMid}px`,
+                    '--roll-vertical-offset': `${die.verticalOffset}px`,
+                    '--roll-depth-start': `${die.depthStart}px`,
+                    '--roll-depth-mid': `${die.depthMid}px`,
+                    '--roll-scale-start': die.scaleStart,
+                    '--roll-scale-mid': die.scaleMid,
+                    '--roll-bounce-height': `${die.bounceHeight}px`,
+                    '--roll-tilt-x-start': `${die.tiltXStart}deg`,
+                    '--roll-tilt-y-start': `${die.tiltYStart}deg`,
+                    '--roll-tilt-z-start': `${die.tiltZStart}deg`,
+                    '--roll-tilt-x-mid': `${die.tiltXMid}deg`,
+                    '--roll-tilt-y-mid': `${die.tiltYMid}deg`,
+                    '--roll-tilt-z-mid': `${die.tiltZMid}deg`,
+                    '--roll-tilt-x-end': `${die.tiltXEnd}deg`,
+                    '--roll-tilt-y-end': `${die.tiltYEnd}deg`,
+                    '--roll-tilt-z-end': `${die.tiltZEnd}deg`,
+                    '--roll-tilt-x-settle': `${die.tiltXSettle}deg`,
+                    '--roll-tilt-y-settle': `${die.tiltYSettle}deg`,
+                    '--roll-tilt-z-settle': `${die.tiltZSettle}deg`,
                   }}
                 >
                   <DamageDieMesh die={die} typeClass={typeClass} />
