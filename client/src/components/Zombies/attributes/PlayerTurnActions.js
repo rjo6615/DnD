@@ -15,7 +15,6 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
-import { createPolyhedronFaces } from '../../../utils/dieGeometry';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -59,90 +58,12 @@ const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
-const DIE_MODEL_SCALE = 1;
-const DIE_MODEL_PIXEL_SIZE = 26; // keep in sync with --die-model-scale in App.scss
-const LIGHT_VECTOR = normalizeVector([0.35, 0.82, 1]);
-const dieGeometryCache = new Map();
-
-function normalizeVector(vector) {
-  const magnitude = Math.hypot(...vector);
-  if (magnitude === 0) {
-    return [0, 0, 0];
-  }
-  return vector.map((component) => component / magnitude);
-}
-
-function clamp(value, min, max) {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-}
-
-function getPolyhedronFaces(sides) {
-  if (dieGeometryCache.has(sides)) {
-    return dieGeometryCache.get(sides);
-  }
-
-  const faces = createPolyhedronFaces(sides, DIE_MODEL_SCALE);
-  dieGeometryCache.set(sides, faces);
-  return faces;
-}
-
 function DamageDieMesh({ die, typeClass }) {
-  const faces = useMemo(() => getPolyhedronFaces(die.sides), [die.sides]);
-
-  if (!faces) {
-    return (
-      <div className="damage-die__face damage-die__face--flat">
-        <span className={`damage-die__value ${typeClass}`}>{die.value}</span>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="damage-die__mesh" aria-hidden="true">
-        {faces.map((face, index) => {
-          const dot =
-            face.normal[0] * LIGHT_VECTOR[0] +
-            face.normal[1] * LIGHT_VECTOR[1] +
-            face.normal[2] * LIGHT_VECTOR[2];
-          const brightness = 0.35 + 0.65 * clamp(dot, 0, 1);
-
-          const style = {
-            transform: `translate(-50%, -50%) matrix3d(${face.matrix
-              .map((component) => component.toFixed(6))
-              .join(',')})`,
-            filter: `brightness(${brightness.toFixed(3)})`,
-          };
-
-          if (typeof face.heightRatio === 'number') {
-            style['--die-face-height-ratio'] = face.heightRatio.toFixed(6);
-          }
-
-          if (face.clipPath) {
-            style.clipPath = face.clipPath;
-            style.WebkitClipPath = face.clipPath;
-            style['--die-face-clip-path'] = face.clipPath;
-          }
-
-          return (
-            <div
-              key={`die-face-${die.id}-${index}`}
-              className="damage-die__poly-face"
-              style={style}
-            />
-          );
-        })}
-      </div>
-      <div className="damage-die__value-wrap">
-        <span className={`damage-die__value ${typeClass}`}>{die.value}</span>
-      </div>
-    </>
+    <div className="damage-die__icon">
+      <span className="damage-die__shape" aria-hidden="true" />
+      <span className={`damage-die__value ${typeClass}`}>{die.value}</span>
+    </div>
   );
 }
 
@@ -1139,19 +1060,12 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
 
     previousLeftPx = leftPx;
     const left = (leftPx / areaWidth) * 100;
-    const rotation = (Math.random() - 0.5) * 40;
     const dropDistance = 60 + Math.random() * 70;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
-    const initialTiltX = (Math.random() - 0.5) * 90;
-    const initialTiltY = (Math.random() - 0.5) * 90;
-    const initialTiltZ = (Math.random() - 0.5) * 75;
-    const midTiltX = initialTiltX + 360 + Math.random() * 360;
-    const midTiltY = initialTiltY + 360 + Math.random() * 360;
-    const midTiltZ = initialTiltZ + (Math.random() - 0.5) * 540;
-    const finalTiltX = (Math.random() - 0.5) * 50;
-    const finalTiltY = (Math.random() - 0.5) * 50;
-    const finalTiltZ = (Math.random() - 0.5) * 50;
+    const spinEnd = (Math.random() - 0.5) * 60;
+    const spinStart = spinEnd + (Math.random() - 0.5) * 200;
+    const spinMid = (spinStart + spinEnd) / 2;
     return {
       id: `${baseTime}-${index}`,
       value:
@@ -1162,19 +1076,12 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
       type: detail?.type || '',
       category: detail?.category || 'base',
       left,
-      rotation,
       dropDistance,
       delay,
       rollDuration,
-      initialTiltX,
-      initialTiltY,
-      initialTiltZ,
-      midTiltX,
-      midTiltY,
-      midTiltZ,
-      finalTiltX,
-      finalTiltY,
-      finalTiltZ,
+      spinStart,
+      spinMid,
+      spinEnd,
     };
   });
 
@@ -1359,20 +1266,12 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                   className={`damage-die ${shapeClass} ${categoryClass}`}
                   style={{
                     left: `${die.left}%`,
-                    '--die-model-scale': `${DIE_MODEL_PIXEL_SIZE}px`,
                     '--drop-delay': `${die.delay}s`,
                     '--drop-distance': `${die.dropDistance}px`,
-                    '--drop-rotation': `${die.rotation}deg`,
                     '--drop-duration': `${die.rollDuration}s`,
-                    '--initial-tilt-x': `${die.initialTiltX}deg`,
-                    '--initial-tilt-y': `${die.initialTiltY}deg`,
-                    '--initial-tilt-z': `${die.initialTiltZ}deg`,
-                    '--mid-tilt-x': `${die.midTiltX}deg`,
-                    '--mid-tilt-y': `${die.midTiltY}deg`,
-                    '--mid-tilt-z': `${die.midTiltZ}deg`,
-                    '--final-tilt-x': `${die.finalTiltX}deg`,
-                    '--final-tilt-y': `${die.finalTiltY}deg`,
-                    '--final-tilt-z': `${die.finalTiltZ}deg`,
+                    '--drop-spin-start': `${die.spinStart}deg`,
+                    '--drop-spin-mid': `${die.spinMid}deg`,
+                    '--drop-spin-end': `${die.spinEnd}deg`,
                   }}
                 >
                   <DamageDieMesh die={die} typeClass={typeClass} />
