@@ -1988,8 +1988,11 @@ $rotateX: -$angle;
   top: 50%;
   left: 50%;
   width: var(--die-model-scale);
-  height: calc(var(--die-model-scale) * 0.8660254);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  height: calc(var(--die-model-scale) * var(--die-face-height-ratio, 0.8660254));
+  clip-path: var(
+    --die-face-clip-path,
+    polygon(50% 0%, 0% 100%, 100% 100%)
+  );
   background:
     linear-gradient(155deg, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.35)),
     var(--die-surface-color);

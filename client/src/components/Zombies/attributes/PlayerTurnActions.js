@@ -113,16 +113,28 @@ function DamageDieMesh({ die, typeClass }) {
             face.normal[2] * LIGHT_VECTOR[2];
           const brightness = 0.35 + 0.65 * clamp(dot, 0, 1);
 
+          const style = {
+            transform: `translate(-50%, -50%) matrix3d(${face.matrix
+              .map((component) => component.toFixed(6))
+              .join(',')})`,
+            filter: `brightness(${brightness.toFixed(3)})`,
+          };
+
+          if (typeof face.heightRatio === 'number') {
+            style['--die-face-height-ratio'] = face.heightRatio.toFixed(6);
+          }
+
+          if (face.clipPath) {
+            style.clipPath = face.clipPath;
+            style.WebkitClipPath = face.clipPath;
+            style['--die-face-clip-path'] = face.clipPath;
+          }
+
           return (
             <div
               key={`die-face-${die.id}-${index}`}
               className="damage-die__poly-face"
-              style={{
-                transform: `translate(-50%, -50%) matrix3d(${face.matrix
-                  .map((component) => component.toFixed(6))
-                  .join(',')})`,
-                filter: `brightness(${brightness.toFixed(3)})`,
-              }}
+              style={style}
             />
           );
         })}
