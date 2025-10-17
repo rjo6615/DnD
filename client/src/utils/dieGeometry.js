@@ -487,19 +487,28 @@ export function createPolyhedronFaces(sides, scale = 1) {
 
     const verts = indices.map((index) => vertices[index]);
     const v0 = verts[0];
-    let v1 = verts[1];
-    let v2 = verts[2];
+    let edge1Index = 1;
+    let edge2Index = verts.length - 1;
+    let edge1 = subtract(verts[edge1Index], v0);
+    let edge2 = subtract(verts[edge2Index], v0);
 
-    let edge1 = subtract(v1, v0);
-    let edge2 = subtract(v2, v0);
+    while (norm(edge1) < EPSILON && edge1Index < verts.length - 1) {
+      edge1Index += 1;
+      edge1 = subtract(verts[edge1Index], v0);
+    }
+
+    while (norm(edge2) < EPSILON && edge2Index > 0) {
+      edge2Index -= 1;
+      edge2 = subtract(verts[edge2Index], v0);
+    }
+
     let faceNormal = cross(edge1, edge2);
-    let edgeIndex = 3;
+    let searchIndex = 1;
 
-    while (norm(faceNormal) < EPSILON && edgeIndex < verts.length) {
-      v2 = verts[edgeIndex];
-      edge2 = subtract(v2, v0);
-      faceNormal = cross(edge1, edge2);
-      edgeIndex += 1;
+    while (norm(faceNormal) < EPSILON && searchIndex < verts.length - 1) {
+      const candidateEdge = subtract(verts[(edge1Index + searchIndex) % verts.length], v0);
+      faceNormal = cross(edge1, candidateEdge);
+      searchIndex += 1;
     }
 
     faceNormal = normalize(faceNormal);
@@ -546,60 +555,50 @@ export function createPolyhedronFaces(sides, scale = 1) {
     const normal = faceNormal;
 
     const centroid = computeFaceCentroid(indices, vertices);
-    let basis = subtract(v0, centroid);
-    let basisIndex = 1;
+    const tangent = normalize(edge1);
+    let bitangent = normalize(cross(normal, tangent));
 
-    while (norm(basis) < EPSILON && basisIndex < verts.length) {
-      basis = subtract(verts[basisIndex], centroid);
-      basisIndex += 1;
+    if (dot(edge2, bitangent) < 0) {
+      bitangent = bitangent.map((value) => -value);
     }
 
-    const u = normalize(basis);
-    const v = normalize(cross(normal, u));
+    const projected = verts.map((vertex) => {
+      const relative = subtract(vertex, centroid);
+      return {
+        x: dot(relative, tangent),
+        y: dot(relative, bitangent),
+      };
+    });
 
-    let clipPath;
-    let heightRatio;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
 
-    if (verts.length > 3) {
-      const projected = verts.map((vertex) => {
-        const relative = subtract(vertex, centroid);
-        return {
-          x: dot(relative, u),
-          y: dot(relative, v),
-        };
-      });
+    projected.forEach(({ x, y }) => {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    });
 
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
+    const width = maxX - minX || EPSILON;
+    const height = maxY - minY || EPSILON;
 
-      projected.forEach(({ x, y }) => {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      });
+    const clipPoints = projected
+      .map(({ x, y }) => {
+        const px = ((x - minX) / width) * 100;
+        const py = 100 - ((y - minY) / height) * 100;
+        return `${px.toFixed(3)}% ${py.toFixed(3)}%`;
+      })
+      .join(', ');
 
-      const width = maxX - minX || EPSILON;
-      const height = maxY - minY || EPSILON;
-
-      const clipPoints = projected
-        .map(({ x, y }) => {
-          const px = ((x - minX) / width) * 100;
-          const py = 100 - ((y - minY) / height) * 100;
-          return `${px.toFixed(3)}% ${py.toFixed(3)}%`;
-        })
-        .join(', ');
-
-      clipPath = `polygon(${clipPoints})`;
-      heightRatio = Math.max(height / width, 0.01);
-    }
+    const heightRatio = Math.max(height / width, 0.01);
 
     faceData.push({
       matrix: cssMatrix,
       normal,
-      clipPath,
+      clipPath: `polygon(${clipPoints})`,
       heightRatio,
     });
   });
