@@ -1849,6 +1849,30 @@ $rotateX: -$angle;
   z-index: 1;
 }
 
+.damage-roller__dice-area--3d-ready .damage-roller__dice-fallback {
+  opacity: 0;
+}
+
+.damage-roller__dice-box {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+.damage-roller__dice-fallback {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.3s ease;
+}
+
 .damage-roller__total {
   position: relative;
   z-index: 2;
