@@ -37,34 +37,6 @@ const DAMAGE_DIE_WIDTH_PX = 42;
 const DAMAGE_DIE_SPREAD_FACTOR = 1.15;
 const DAMAGE_AREA_BASE_RATIO = 0.42;
 const DAMAGE_AREA_MAX_RATIO = 0.92;
-const DAMAGE_DIE_SCALE_PX = 18;
-
-const LIGHT_VECTOR = (() => {
-  const vector = [0.32, 0.84, 0.45];
-  const length = Math.hypot(...vector) || 1;
-  return vector.map((value) => value / length);
-})();
-
-const FACE_CACHE = new Map();
-
-function getFaceDataForSides(sides = 20) {
-  const normalizedSides = Number.isFinite(sides)
-    ? Math.max(4, Math.round(sides))
-    : 20;
-  const lookupSides = normalizedSides === 100 ? 10 : normalizedSides;
-
-  if (!FACE_CACHE.has(lookupSides)) {
-    try {
-      const faces = createPolyhedronFaces(lookupSides, DAMAGE_DIE_SCALE_PX) || [];
-      FACE_CACHE.set(lookupSides, faces);
-    } catch (error) {
-      FACE_CACHE.set(lookupSides, []);
-    }
-  }
-
-  return FACE_CACHE.get(lookupSides);
-}
-
 function formatDamageRolls(rolls) {
   return rolls
     .map(({ value, type }) => `${value}${type ? ` ${type}` : ''}`)
@@ -142,43 +114,16 @@ function DamageDieMesh({ die, typeClass }) {
 
   return (
     <div className="damage-die__icon">
-      <div className="damage-die__mesh" aria-hidden="true">
-        <div className="damage-die__mesh-inner">
-          {faceData.map((face, index) => {
-            const intensity = (() => {
-              if (!Array.isArray(face.normal)) {
-                return 0.5;
-              }
-              const dot = face.normal.reduce(
-                (sum, value, axis) => sum + value * LIGHT_VECTOR[axis],
-                0,
-              );
-              return Math.min(1, Math.max(0, (dot + 1) / 2));
-            })();
-
-            const highlight = (0.22 + 0.45 * intensity).toFixed(3);
-            const shadow = (0.55 + 0.35 * (1 - intensity)).toFixed(3);
-            const brightness = (0.7 + intensity * 0.45).toFixed(3);
-            const matrix = Array.isArray(face.matrix)
-              ? face.matrix.map((value) => value.toFixed(6)).join(', ')
-              : '1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1';
-
-            return (
-              <div
-                key={`face-${index}`}
-                className="damage-die__face"
-                style={{
-                  clipPath: face.clipPath,
-                  transform: `matrix3d(${matrix})`,
-                  background: `linear-gradient(145deg, rgba(255,255,255,${highlight}), rgba(0,0,0,${shadow})), var(--die-surface-color)`,
-                  filter: `brightness(${brightness}) saturate(1.05)`,
-                }}
-              />
-            );
-          })}
-        </div>
-      </div>
-      <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
+      <span className="damage-die__shape" aria-hidden="true" />
+      <span className={`damage-die__value damage-die__value--front ${typeClass}`}>
+        {displayValue}
+      </span>
+      <span
+        className={`damage-die__value damage-die__value--back ${typeClass}`}
+        aria-hidden="true"
+      >
+        {displayValue}
+      </span>
     </div>
   );
 }
