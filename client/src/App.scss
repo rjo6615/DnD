@@ -1589,61 +1589,139 @@ label {
 $transitionDuration: 0.5s;
 $animationDuration:  3s;
 
-.attack-roll-controls__die {
-  --d20-scale: calc(var(--attack-die-size) / 2);
+$angle: 53deg;
+$ringAngle: -11deg;
+$sideAngle: calc(360deg / 5);
+$color: var(--dice-face-color);
+
+$rotateX: -$angle;
+
+@mixin dice-size($containerWidth) {
+  $containerHeight: $containerWidth;
+  $faceWidth:  calc(#{$containerWidth} * 0.5);
+  $faceHeight: calc(#{$faceWidth} * 0.86);
+
+  $translateZ: calc(#{$faceWidth} * 0.335);
+  $translateY: calc(#{$faceHeight} * -0.15);
+  $translateRingZ: calc(#{$faceWidth} * 0.75);
+  $translateRingY: calc(#{$faceHeight} * 0.78 + #{$translateY});
+  $translateLowerZ: $translateZ;
+  $translateLowerY: calc(#{$faceHeight} * 0.78 + #{$translateRingY});
 
   .content {
     margin: 0 auto;
     position: relative;
-    top: calc(var(--attack-die-size) * -0.18);
-    width: var(--attack-die-size);
-    height: var(--attack-die-size);
+    top: calc(#{$containerHeight} * -0.18);
+    width: $containerWidth;
+    height: $containerHeight;
     perspective: 1500px;
 
     @media (max-width: 576px), (max-height: 600px) {
-      top: calc(var(--attack-die-size) * -0.06);
+      top: calc(#{$containerHeight} * -0.06);
     }
   }
 
   .die {
     position: absolute;
-    inset: 0;
     width: 100%;
     height: 100%;
     transform-style: preserve-3d;
     transition: transform $transitionDuration ease-out;
     cursor: pointer;
 
+    transform: rotateX($rotateX);
+
     &.rolling {
-      animation: d20-roll $animationDuration linear infinite;
+      animation: roll $animationDuration linear;
     }
-  }
 
-  .face {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: calc(var(--d20-scale) * 1.0514622242);
-    height: calc(var(--d20-scale) * 0.9105929973);
-    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-    background: var(--dice-face-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-    font-size: calc(var(--d20-scale) * 0.42);
-    font-weight: 700;
-    line-height: 1;
-    backface-visibility: hidden;
-    transform-origin: 0 0 0;
-    border-radius: 4px;
-    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
-  }
+    @for $i from 1 through 5 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 1;
+        transform: rotateX(-$angle) rotateY($sideAngle * $angleMultiplier);
+      }
+    }
 
-  .face__label {
-    position: relative;
-    top: calc(var(--d20-scale) * -0.02);
+    @for $i from 16 through 20 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 15;
+        transform: rotateX(-$angle + 180deg) rotateY(-$sideAngle * $angleMultiplier);
+      }
+    }
+
+    @for $i from 6 through 10 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 6;
+        transform: rotateX(-$ringAngle) rotateZ(180deg) rotateY($sideAngle * $angleMultiplier);
+      }
+    }
+
+    @for $i from 11 through 15 {
+      &[data-face="#{$i}"] {
+        $angleMultiplier: $i - 8;
+        transform: rotateX(-$ringAngle) rotateY(-$sideAngle * $angleMultiplier - calc($sideAngle / 2));
+      }
+    }
+
+    .face {
+      $horizontalMargin: calc(#{$faceWidth} * -0.5);
+
+      position: absolute;
+      left: 50%;
+      top: 0;
+      margin: 0 $horizontalMargin;
+      border-left: calc(#{$faceWidth} * 0.5) solid transparent;
+      border-right: calc(#{$faceWidth} * 0.5) solid transparent;
+      border-bottom: $faceHeight solid $color;
+      width: 0px;
+      height: 0px;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+
+      counter-increment: steps 1;
+
+      &:before {
+        content: counter(steps);
+        position: absolute;
+        top: calc(#{$faceHeight} * 0.25);
+        left: calc(#{$faceWidth} * -1);
+        color: #fff;
+        text-shadow: 1px 1px 3px #000;
+        font-size: calc(#{$faceHeight} * 0.5);
+        text-align: center;
+        line-height: calc(#{$faceHeight} * 0.9);
+        width: calc(#{$faceWidth} * 2);
+        height: $faceHeight;
+      }
+
+      @for $i from 1 through 5 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 1;
+          transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateZ) translateY($translateY) rotateX($angle);
+        }
+      }
+
+      @for $i from 16 through 20 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 18;
+          transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateLowerZ) translateY($translateLowerY) rotateZ(180deg) rotateX($angle);
+        }
+      }
+
+      @for $i from 6 through 10 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 11;
+          transform: rotateY(-$sideAngle * $angleMultiplier) translateZ($translateRingZ) translateY($translateRingY) rotateZ(180deg) rotateX($ringAngle);
+        }
+      }
+
+      @for $i from 11 through 15 {
+        &:nth-child(#{$i}) {
+          $angleMultiplier: $i - 8;
+          transform: rotateY($sideAngle * $angleMultiplier + calc($sideAngle / 2)) translateZ($translateRingZ) translateY($translateRingY) rotateX($ringAngle);
+        }
+      }
+    }
   }
 }
 
@@ -1698,26 +1776,35 @@ $animationDuration:  3s;
   }
 }
 
-@keyframes d20-roll {
+@keyframes roll {
   0% {
-    transform: rotate3d(0.35, 0.2, 0.91, 0deg);
+    transform: rotateX($rotateX) rotateY(0deg) rotateZ(0deg);
   }
 
   25% {
-    transform: rotate3d(-0.75, 0.44, 0.5, 180deg);
+    transform: rotateX($rotateX + 120deg) rotateY(240deg) rotateZ(0deg)
+      translate3d(40px, 40px, 20px);
   }
 
   50% {
-    transform: rotate3d(0.18, -0.83, 0.53, 360deg);
+    transform: rotateX($rotateX + 240deg) rotateY(480deg) rotateZ(0deg)
+      translate3d(-40px, -40px, -20px);
   }
 
   75% {
-    transform: rotate3d(0.66, 0.74, -0.1, 540deg);
+    transform: rotateX($rotateX + 360deg) rotateY(720deg) rotateZ(0deg)
+      translate3d(20px, -30px, 10px);
   }
 
   100% {
-    transform: rotate3d(-0.35, 0.24, -0.91, 720deg);
+    transform: rotateX($rotateX + 480deg) rotateY(960deg) rotateZ(0deg);
   }
+}
+
+@include dice-size(min(25vw, 120px));
+
+@media (max-height: 600px) {
+  @include dice-size(min(20vw, 100px));
 }
 
 // Damage display-------------------------------------------------------
