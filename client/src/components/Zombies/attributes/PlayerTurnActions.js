@@ -59,10 +59,53 @@ const spellsCatalog = spellsData || {};
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
 function DamageDieMesh({ die, typeClass }) {
+  const finalValue =
+    typeof die?.value === 'number' ? die.value : Number(die?.value) || 0;
+  const [displayValue, setDisplayValue] = useState(finalValue);
+
+  useEffect(() => {
+    const sides = Number.isFinite(die?.sides) ? Math.max(2, Math.round(die.sides)) : 20;
+    const delayMs = Number.isFinite(die?.delay)
+      ? Math.max(0, die.delay * 1000)
+      : 0;
+    const durationMs = Number.isFinite(die?.rollDuration)
+      ? Math.max(350, die.rollDuration * 1000)
+      : 900;
+
+    let scrambleIntervalId = null;
+    let scrambleTimeoutId = null;
+    let startTimeoutId = null;
+
+    const startScramble = () => {
+      if (sides < 2 || durationMs <= 0) {
+        setDisplayValue(finalValue);
+        return;
+      }
+
+      const intervalMs = Math.max(65, Math.min(160, durationMs / 6));
+      scrambleIntervalId = setInterval(() => {
+        setDisplayValue(Math.floor(Math.random() * sides) + 1);
+      }, intervalMs);
+
+      scrambleTimeoutId = setTimeout(() => {
+        if (scrambleIntervalId) clearInterval(scrambleIntervalId);
+        setDisplayValue(finalValue);
+      }, durationMs);
+    };
+
+    startTimeoutId = setTimeout(startScramble, delayMs);
+
+    return () => {
+      if (startTimeoutId) clearTimeout(startTimeoutId);
+      if (scrambleIntervalId) clearInterval(scrambleIntervalId);
+      if (scrambleTimeoutId) clearTimeout(scrambleTimeoutId);
+    };
+  }, [die?.id, die?.sides, die?.delay, die?.rollDuration, finalValue]);
+
   return (
     <div className="damage-die__icon">
       <span className="damage-die__shape" aria-hidden="true" />
-      <span className={`damage-die__value ${typeClass}`}>{die.value}</span>
+      <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
     </div>
   );
 }
