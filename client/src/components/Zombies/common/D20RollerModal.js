@@ -200,7 +200,7 @@ const D20RollerModal = ({ show = false, onHide = () => {}, diceColor, renderInli
   }, [isDiceBoxReady]);
 
   const handleRandomizeClick = (event) => {
-    event.preventDefault();
+    event?.preventDefault?.();
     const usedDiceBox = rollWithDiceBox();
     if (usedDiceBox) {
       setRolling(true);
@@ -240,23 +240,29 @@ const D20RollerModal = ({ show = false, onHide = () => {}, diceColor, renderInli
             className="attack-roll-controls__dice-box"
           />
         </div>
+        <div className="attack-roll-controls__sparkles" aria-hidden="true">
+          {showCriticalSparkles && <div className="sparkle"></div>}
+          {showFumbleSparkles && <div className="sparkle1"></div>}
+        </div>
         <div
           className={`attack-roll-controls__fallback ${
             isDiceBoxReady ? 'attack-roll-controls__fallback--hidden' : ''
           }`}
+          aria-hidden={isDiceBoxReady}
         >
-          {showCriticalSparkles && <div className="sparkle"></div>}
-          {showFumbleSparkles && <div className="sparkle1"></div>}
           <div
-            role="button"
-            aria-label="Roll a d20"
-            onClick={handleRandomizeClick}
             className={`die ${rolling ? 'rolling' : ''}`}
             data-face={activeFace}
           >
             {faceElements}
           </div>
         </div>
+        <button
+          type="button"
+          aria-label="Roll a d20"
+          onClick={handleRandomizeClick}
+          className="attack-roll-controls__trigger"
+        ></button>
       </div>
     </div>
   );
