@@ -1950,70 +1950,56 @@ $rotateX: -$angle;
   opacity: 0;
   --drop-delay: 0s;
   --drop-duration: 0.9s;
-  --drop-rotation: 0deg;
   --drop-distance: 48px;
-  --initial-tilt-x: -26deg;
-  --initial-tilt-y: 18deg;
-  --initial-tilt-z: -18deg;
-  --mid-tilt-x: 420deg;
-  --mid-tilt-y: 312deg;
-  --mid-tilt-z: 558deg;
-  --final-tilt-x: 22deg;
-  --final-tilt-y: -16deg;
-  --final-tilt-z: 24deg;
-  --start-depth: 84px;
-  --mid-depth: -18px;
-  --final-depth: 0px;
-  --die-perspective: 620px;
-  --die-model-scale: 26px;
-  --die-label-elevation: 18px;
-  --die-surface-color: #1f46cc;
-  --die-edge-highlight: rgba(255, 255, 255, 0.24);
-  --die-surface-shadow: rgba(0, 0, 0, 0.45);
-  animation: damage-die-drop var(--drop-duration) ease-out forwards;
+  --drop-spin-start: -12deg;
+  --drop-spin-mid: 4deg;
+  --drop-spin-end: 0deg;
+  --die-surface-color: var(--dice-face-color, #1f46cc);
+  --die-edge-color: rgba(255, 255, 255, 0.5);
+  animation: damage-die-drop var(--drop-duration) cubic-bezier(0.32, 0.74, 0.23, 0.99) forwards;
   animation-delay: var(--drop-delay);
-  transform-style: preserve-3d;
-  perspective: var(--die-perspective);
-  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
 }
 
-.damage-die__mesh {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-}
-
-.damage-die__poly-face {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: var(--die-model-scale);
-  height: calc(var(--die-model-scale) * var(--die-face-height-ratio, 0.8660254));
-  clip-path: var(
-    --die-face-clip-path,
-    polygon(50% 0%, 0% 100%, 100% 100%)
-  );
-  background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.35)),
-    var(--die-surface-color);
-  border: 0 solid transparent;
-  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25), 0 0 0.75px var(--die-edge-highlight);
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  transform-origin: 50% 50%;
-}
-
-.damage-die__value-wrap {
-  position: absolute;
-  inset: 0;
+.damage-die__icon {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateZ(var(--die-label-elevation));
+}
+
+.damage-die__shape {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 58%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.42), rgba(0, 0, 0, 0.38)),
+    var(--die-surface-color);
+  border: 2px solid var(--die-edge-color, rgba(255, 255, 255, 0.45));
+  box-shadow:
+    inset 0 4px 8px rgba(255, 255, 255, 0.18),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.42);
+  border-radius: 18%;
+  clip-path: polygon(18% 6%, 82% 6%, 100% 24%, 100% 76%, 82% 94%, 18% 94%, 0% 76%, 0% 24%);
+  transition: transform 0.2s ease;
+}
+
+.damage-die__shape::after {
+  content: '';
+  position: absolute;
+  inset: 16%;
+  border-radius: inherit;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  opacity: 0.85;
+  mix-blend-mode: screen;
   pointer-events: none;
 }
 
 .damage-die__value {
+  position: relative;
+  z-index: 1;
   font-size: 1.1rem;
   line-height: 1;
   font-weight: 700;
@@ -2021,67 +2007,70 @@ $rotateX: -$angle;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-.damage-die__face--flat {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 48%),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.55)),
-    var(--die-surface-color);
-  border: 1px solid var(--die-edge-highlight);
-  box-shadow:
-    inset 0 1px 12px rgba(255, 255, 255, 0.35),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.45),
-    0 6px 16px rgba(0, 0, 0, 0.35);
-  transform-style: preserve-3d;
-}
-
 .damage-die--bonus {
   --die-surface-color: #30b86f;
-  --die-edge-highlight: rgba(190, 255, 213, 0.5);
+  --die-edge-color: rgba(190, 255, 213, 0.6);
 }
 
 .damage-die--critical {
   --die-surface-color: #f2c100;
-  --die-edge-highlight: rgba(255, 246, 196, 0.7);
-  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.55));
+  --die-edge-color: rgba(255, 246, 196, 0.75);
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 12px rgba(255, 215, 0, 0.55));
 }
 
 .damage-die--critical-bonus {
   --die-surface-color: #ff8a33;
-  --die-edge-highlight: rgba(255, 212, 162, 0.7);
-  filter: drop-shadow(0 0 12px rgba(255, 167, 38, 0.55));
+  --die-edge-color: rgba(255, 212, 162, 0.7);
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 12px rgba(255, 167, 38, 0.55));
+}
+
+.damage-die--d4 .damage-die__shape {
+  clip-path: polygon(50% 4%, 95% 86%, 5% 86%);
+  border-radius: 10%;
+}
+
+.damage-die--d6 .damage-die__shape,
+.damage-die--generic .damage-die__shape {
+  clip-path: polygon(18% 6%, 82% 6%, 100% 24%, 100% 76%, 82% 94%, 18% 94%, 0% 76%, 0% 24%);
+}
+
+.damage-die--d8 .damage-die__shape {
+  clip-path: polygon(50% 4%, 88% 26%, 98% 50%, 88% 74%, 50% 96%, 12% 74%, 2% 50%, 12% 26%);
+  border-radius: 12%;
+}
+
+.damage-die--d10 .damage-die__shape {
+  clip-path: polygon(50% 3%, 78% 12%, 95% 32%, 98% 55%, 86% 84%, 50% 97%, 14% 84%, 2% 55%, 5% 32%, 22% 12%);
+  border-radius: 12%;
+}
+
+.damage-die--d12 .damage-die__shape {
+  clip-path: polygon(50% 2%, 72% 8%, 90% 22%, 98% 40%, 98% 60%, 90% 78%, 72% 92%, 50% 98%, 28% 92%, 10% 78%, 2% 60%, 2% 40%, 10% 22%, 28% 8%);
+  border-radius: 10%;
+}
+
+.damage-die--d20 .damage-die__shape {
+  clip-path: polygon(50% 1%, 68% 6%, 84% 17%, 94% 32%, 99% 50%, 94% 68%, 84% 83%, 68% 94%, 50% 99%, 32% 94%, 16% 83%, 6% 68%, 1% 50%, 6% 32%, 16% 17%, 32% 6%);
+  border-radius: 8%;
 }
 
 @keyframes damage-die-drop {
   0% {
-    transform: perspective(var(--die-perspective))
-      translate3d(-50%, -140%, var(--start-depth))
-      rotateX(var(--initial-tilt-x))
-      rotateY(var(--initial-tilt-y))
-      rotateZ(calc(var(--initial-tilt-z) + var(--drop-rotation)));
+    transform: translate(-50%, -150%) scale(0.6) rotate(var(--drop-spin-start, 0deg));
     opacity: 0;
   }
-  20% {
+  30% {
     opacity: 1;
   }
-  55% {
-    transform: perspective(var(--die-perspective))
-      translate3d(-50%, calc(var(--drop-distance) * 0.35), var(--mid-depth))
-      rotateX(var(--mid-tilt-x))
-      rotateY(var(--mid-tilt-y))
-      rotateZ(var(--mid-tilt-z));
+  65% {
+    transform: translate(-50%, calc(var(--drop-distance, 48px) * 0.6)) scale(1.05)
+      rotate(var(--drop-spin-mid, 12deg));
   }
   100% {
-    transform: perspective(var(--die-perspective))
-      translate3d(-50%, var(--drop-distance), var(--final-depth))
-      rotateX(var(--final-tilt-x))
-      rotateY(var(--final-tilt-y))
-      rotateZ(var(--final-tilt-z));
+    transform: translate(-50%, var(--drop-distance, 48px)) scale(1)
+      rotate(var(--drop-spin-end, 0deg));
     opacity: 1;
   }
 }
