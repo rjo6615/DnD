@@ -1847,9 +1847,6 @@ $rotateX: -$angle;
   overflow: visible;
   pointer-events: none;
   z-index: 1;
-  perspective: 1400px;
-  perspective-origin: 50% calc(100% - 28px);
-  transform-style: preserve-3d;
 }
 
 .damage-roller__total {
@@ -1954,14 +1951,14 @@ $rotateX: -$angle;
   --drop-delay: 0s;
   --drop-duration: 0.9s;
   --drop-distance: 48px;
+  --drop-spin-start: -12deg;
+  --drop-spin-mid: 4deg;
+  --drop-spin-end: 0deg;
   --die-surface-color: var(--dice-face-color, #1f46cc);
   --die-edge-color: rgba(255, 255, 255, 0.5);
-  animation: damage-die-roll var(--drop-duration)
-    cubic-bezier(0.22, 0.74, 0.22, 0.99) forwards;
+  animation: damage-die-drop var(--drop-duration) cubic-bezier(0.32, 0.74, 0.23, 0.99) forwards;
   animation-delay: var(--drop-delay);
   filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
-  transform-style: preserve-3d;
-  will-change: transform;
 }
 
 .damage-die__icon {
@@ -1971,7 +1968,6 @@ $rotateX: -$angle;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform-style: preserve-3d;
 }
 
 .damage-die__shape {
@@ -1988,7 +1984,6 @@ $rotateX: -$angle;
   border-radius: 18%;
   clip-path: polygon(18% 6%, 82% 6%, 100% 24%, 100% 76%, 82% 94%, 18% 94%, 0% 76%, 0% 24%);
   transition: transform 0.2s ease;
-  backface-visibility: hidden;
 }
 
 .damage-die__shape::after {
@@ -2010,8 +2005,6 @@ $rotateX: -$angle;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  backface-visibility: hidden;
-  transform: translateZ(0.8px);
 }
 
 .damage-die--bonus {
@@ -2063,61 +2056,22 @@ $rotateX: -$angle;
   border-radius: 8%;
 }
 
-@keyframes damage-die-roll {
+@keyframes damage-die-drop {
   0% {
+    transform: translate(-50%, -150%) scale(0.6) rotate(var(--drop-spin-start, 0deg));
     opacity: 0;
-    transform: translate3d(
-        calc(-50% + var(--roll-horizontal-start, 0px)),
-        calc(-140% + var(--roll-vertical-offset, 0px)),
-        var(--roll-depth-start, -120px)
-      )
-      scale(var(--roll-scale-start, 0.7))
-      rotateX(var(--roll-tilt-x-start, -180deg))
-      rotateY(var(--roll-tilt-y-start, 120deg))
-      rotateZ(var(--roll-tilt-z-start, 0deg));
   }
-  18% {
+  30% {
     opacity: 1;
   }
-  55% {
-    transform: translate3d(
-        calc(-50% + var(--roll-horizontal-mid, 0px)),
-        calc(var(--drop-distance, 48px) * 0.55),
-        var(--roll-depth-mid, -40px)
-      )
-      scale(var(--roll-scale-mid, 1.05))
-      rotateX(var(--roll-tilt-x-mid, 240deg))
-      rotateY(var(--roll-tilt-y-mid, 210deg))
-      rotateZ(var(--roll-tilt-z-mid, 120deg));
-  }
-  78% {
-    transform: translate3d(
-        -50%,
-        var(--drop-distance, 48px),
-        0px
-      )
-      scale(1)
-      rotateX(var(--roll-tilt-x-end, 360deg))
-      rotateY(var(--roll-tilt-y-end, 360deg))
-      rotateZ(var(--roll-tilt-z-end, 90deg));
-  }
-  90% {
-    transform: translate3d(
-        -50%,
-        calc(var(--drop-distance, 48px) - var(--roll-bounce-height, 14px)),
-        0px
-      )
-      scale(1)
-      rotateX(var(--roll-tilt-x-settle, 12deg))
-      rotateY(var(--roll-tilt-y-settle, -10deg))
-      rotateZ(var(--roll-tilt-z-settle, 6deg));
+  65% {
+    transform: translate(-50%, calc(var(--drop-distance, 48px) * 0.6)) scale(1.05)
+      rotate(var(--drop-spin-mid, 12deg));
   }
   100% {
+    transform: translate(-50%, var(--drop-distance, 48px)) scale(1)
+      rotate(var(--drop-spin-end, 0deg));
     opacity: 1;
-    transform: translate3d(-50%, var(--drop-distance, 48px), 0px) scale(1)
-      rotateX(0deg)
-      rotateY(0deg)
-      rotateZ(0deg);
   }
 }
 
