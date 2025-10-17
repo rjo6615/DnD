@@ -15,6 +15,7 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
+import { createPolyhedronFaces } from '../../../utils/dieGeometry';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -36,6 +37,33 @@ const DAMAGE_DIE_WIDTH_PX = 42;
 const DAMAGE_DIE_SPREAD_FACTOR = 1.15;
 const DAMAGE_AREA_BASE_RATIO = 0.42;
 const DAMAGE_AREA_MAX_RATIO = 0.92;
+const DAMAGE_DIE_SCALE_PX = 18;
+
+const LIGHT_VECTOR = (() => {
+  const vector = [0.32, 0.84, 0.45];
+  const length = Math.hypot(...vector) || 1;
+  return vector.map((value) => value / length);
+})();
+
+const FACE_CACHE = new Map();
+
+function getFaceDataForSides(sides = 20) {
+  const normalizedSides = Number.isFinite(sides)
+    ? Math.max(4, Math.round(sides))
+    : 20;
+  const lookupSides = normalizedSides === 100 ? 10 : normalizedSides;
+
+  if (!FACE_CACHE.has(lookupSides)) {
+    try {
+      const faces = createPolyhedronFaces(lookupSides, DAMAGE_DIE_SCALE_PX) || [];
+      FACE_CACHE.set(lookupSides, faces);
+    } catch (error) {
+      FACE_CACHE.set(lookupSides, []);
+    }
+  }
+
+  return FACE_CACHE.get(lookupSides);
+}
 
 function formatDamageRolls(rolls) {
   return rolls
@@ -62,6 +90,7 @@ function DamageDieMesh({ die, typeClass }) {
   const finalValue =
     typeof die?.value === 'number' ? die.value : Number(die?.value) || 0;
   const [displayValue, setDisplayValue] = useState(finalValue);
+  const faceData = useMemo(() => getFaceDataForSides(die?.sides), [die?.sides]);
 
   useEffect(() => {
     const sides = Number.isFinite(die?.sides) ? Math.max(2, Math.round(die.sides)) : 20;
@@ -102,9 +131,53 @@ function DamageDieMesh({ die, typeClass }) {
     };
   }, [die?.id, die?.sides, die?.delay, die?.rollDuration, finalValue]);
 
+  if (!Array.isArray(faceData) || faceData.length === 0) {
+    return (
+      <div className="damage-die__icon">
+        <span className="damage-die__shape" aria-hidden="true" />
+        <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
+      </div>
+    );
+  }
+
   return (
     <div className="damage-die__icon">
-      <span className="damage-die__shape" aria-hidden="true" />
+      <div className="damage-die__mesh" aria-hidden="true">
+        <div className="damage-die__mesh-inner">
+          {faceData.map((face, index) => {
+            const intensity = (() => {
+              if (!Array.isArray(face.normal)) {
+                return 0.5;
+              }
+              const dot = face.normal.reduce(
+                (sum, value, axis) => sum + value * LIGHT_VECTOR[axis],
+                0,
+              );
+              return Math.min(1, Math.max(0, (dot + 1) / 2));
+            })();
+
+            const highlight = (0.22 + 0.45 * intensity).toFixed(3);
+            const shadow = (0.55 + 0.35 * (1 - intensity)).toFixed(3);
+            const brightness = (0.7 + intensity * 0.45).toFixed(3);
+            const matrix = Array.isArray(face.matrix)
+              ? face.matrix.map((value) => value.toFixed(6)).join(', ')
+              : '1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1';
+
+            return (
+              <div
+                key={`face-${index}`}
+                className="damage-die__face"
+                style={{
+                  clipPath: face.clipPath,
+                  transform: `matrix3d(${matrix})`,
+                  background: `linear-gradient(145deg, rgba(255,255,255,${highlight}), rgba(0,0,0,${shadow})), var(--die-surface-color)`,
+                  filter: `brightness(${brightness}) saturate(1.05)`,
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
       <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
     </div>
   );
@@ -1106,9 +1179,23 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
     const dropDistance = 60 + Math.random() * 70;
     const delay = index * 0.05;
     const rollDuration = 0.85 + Math.random() * 0.45;
-    const spinEnd = (Math.random() - 0.5) * 60;
-    const spinStart = spinEnd + (Math.random() - 0.5) * 200;
-    const spinMid = (spinStart + spinEnd) / 2;
+    const entryDirection = Math.random() < 0.5 ? -1 : 1;
+    const startX = entryDirection * (areaWidth * (0.55 + Math.random() * 0.35));
+    const midX = startX * -0.25;
+    const startY = -(120 + Math.random() * 80);
+    const midY = -(40 + Math.random() * 60);
+    const startZ = entryDirection * (30 + Math.random() * 90);
+    const midZ = (Math.random() - 0.5) * 80;
+    const rotXStart = (Math.random() - 0.5) * 220;
+    const rotYStart = (Math.random() - 0.5) * 220;
+    const rotZStart = (Math.random() - 0.5) * 220;
+    const rotXMid = rotXStart + entryDirection * (240 + Math.random() * 240);
+    const rotYMid = rotYStart + (Math.random() - 0.5) * 480;
+    const rotZMid = rotZStart + (Math.random() - 0.5) * 420;
+    const rotXEnd = (Math.random() - 0.5) * 90;
+    const rotYEnd = (Math.random() - 0.5) * 90;
+    const rotZEnd = (Math.random() - 0.5) * 90;
+    const settleBounce = 6 + Math.random() * 10;
     return {
       id: `${baseTime}-${index}`,
       value:
@@ -1122,9 +1209,22 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
       dropDistance,
       delay,
       rollDuration,
-      spinStart,
-      spinMid,
-      spinEnd,
+      startX,
+      startY,
+      startZ,
+      midX,
+      midY,
+      midZ,
+      rotXStart,
+      rotYStart,
+      rotZStart,
+      rotXMid,
+      rotYMid,
+      rotZMid,
+      rotXEnd,
+      rotYEnd,
+      rotZEnd,
+      settleBounce,
     };
   });
 
@@ -1310,11 +1410,24 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
                   style={{
                     left: `${die.left}%`,
                     '--drop-delay': `${die.delay}s`,
-                    '--drop-distance': `${die.dropDistance}px`,
                     '--drop-duration': `${die.rollDuration}s`,
-                    '--drop-spin-start': `${die.spinStart}deg`,
-                    '--drop-spin-mid': `${die.spinMid}deg`,
-                    '--drop-spin-end': `${die.spinEnd}deg`,
+                    '--flight-start-x': `${die.startX}px`,
+                    '--flight-start-y': `${die.startY}px`,
+                    '--flight-start-z': `${die.startZ}px`,
+                    '--flight-mid-x': `${die.midX}px`,
+                    '--flight-mid-y': `${die.midY}px`,
+                    '--flight-mid-z': `${die.midZ}px`,
+                    '--flight-end-y': `${die.dropDistance}px`,
+                    '--flight-settle-bounce': `${die.settleBounce}px`,
+                    '--rot-x-start': `${die.rotXStart}deg`,
+                    '--rot-y-start': `${die.rotYStart}deg`,
+                    '--rot-z-start': `${die.rotZStart}deg`,
+                    '--rot-x-mid': `${die.rotXMid}deg`,
+                    '--rot-y-mid': `${die.rotYMid}deg`,
+                    '--rot-z-mid': `${die.rotZMid}deg`,
+                    '--rot-x-end': `${die.rotXEnd}deg`,
+                    '--rot-y-end': `${die.rotYEnd}deg`,
+                    '--rot-z-end': `${die.rotZEnd}deg`,
                   }}
                 >
                   <DamageDieMesh die={die} typeClass={typeClass} />
