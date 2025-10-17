@@ -15,6 +15,7 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
+import { createPolyhedronFaces } from '../../../utils/dieGeometry';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -61,6 +62,7 @@ function DamageDieMesh({ die, typeClass }) {
   const finalValue =
     typeof die?.value === 'number' ? die.value : Number(die?.value) || 0;
   const [displayValue, setDisplayValue] = useState(finalValue);
+  const faceData = useMemo(() => getFaceDataForSides(die?.sides), [die?.sides]);
 
   useEffect(() => {
     const sides = Number.isFinite(die?.sides) ? Math.max(2, Math.round(die.sides)) : 20;
@@ -100,6 +102,15 @@ function DamageDieMesh({ die, typeClass }) {
       if (scrambleTimeoutId) clearTimeout(scrambleTimeoutId);
     };
   }, [die?.id, die?.sides, die?.delay, die?.rollDuration, finalValue]);
+
+  if (!Array.isArray(faceData) || faceData.length === 0) {
+    return (
+      <div className="damage-die__icon">
+        <span className="damage-die__shape" aria-hidden="true" />
+        <span className={`damage-die__value ${typeClass}`}>{displayValue}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="damage-die__icon">
