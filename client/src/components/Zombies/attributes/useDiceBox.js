@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const CDN_ASSET_PATH = 'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/';
+const CDN_ASSET_PATHS = [
+  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/assets/',
+  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/',
+];
 const DEFAULT_THROW_FORCE = 2.6;
 
 const normalizeDiceColor = (value) => {
@@ -43,8 +46,40 @@ const mapDiceToEntries = (diceDetails = []) => {
   return entries;
 };
 
+async function loadDiceBoxModule() {
+  try {
+    return await import('@3d-dice/dice-box');
+  } catch (localError) {
+    console.warn('Failed to load local DiceBox bundle, falling back to CDN', localError);
+    try {
+      return await import(
+        /* webpackIgnore: true */
+        'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/dice-box.es.js'
+      );
+    } catch (cdnError) {
+      const error = new Error('Unable to load DiceBox from both local package and CDN.');
+      error.cause = cdnError;
+      throw error;
+    }
+  }
+}
+
 async function createDiceBoxInstance(DiceBoxCtor, target, assetPath) {
-  const instance = new DiceBoxCtor(target, {
+  const resolvedTarget =
+    typeof Element !== 'undefined' && target instanceof Element
+      ? target
+      : typeof target === 'object' && target !== null && 'current' in target
+      ? target.current
+      : null;
+
+  const targetElement =
+    typeof Element !== 'undefined' && resolvedTarget instanceof Element ? resolvedTarget : null;
+
+  if (!targetElement) {
+    throw new Error('DiceBox target element unavailable.');
+  }
+
+  const instance = new DiceBoxCtor(targetElement, {
     assetPath,
     theme: 'default',
     sounds: false,
@@ -81,15 +116,21 @@ const useDiceBox = ({ color } = {}) => {
       }
 
       try {
-        const module = await import('@3d-dice/dice-box');
+        const module = await loadDiceBoxModule();
         const DiceBoxCtor = module?.DiceBox || module?.default;
         if (!DiceBoxCtor) {
           throw new Error('DiceBox constructor export not found.');
         }
 
         const publicUrl = typeof process !== 'undefined' ? process.env?.PUBLIC_URL : undefined;
-        const localAssetPath = `${publicUrl || ''}/dice-box`;
-        const assetCandidates = [localAssetPath, CDN_ASSET_PATH].filter(Boolean);
+        const baseLocalAssetPath = `${publicUrl || ''}/dice-box`;
+        const localAssetCandidates = [
+          `${baseLocalAssetPath}/assets/`,
+          `${baseLocalAssetPath}/`,
+        ]
+          .map((candidate) => (candidate ? `${candidate.replace(/\/?$/, '')}/` : null))
+          .filter(Boolean);
+        const assetCandidates = [...CDN_ASSET_PATHS, ...localAssetCandidates];
 
         let lastError;
 
@@ -98,6 +139,7 @@ const useDiceBox = ({ color } = {}) => {
             diceBoxInstance = await createDiceBoxInstance(DiceBoxCtor, target, assetPath);
             break;
           } catch (error) {
+            console.warn('DiceBox init failed for asset path', assetPath, error);
             lastError = error;
             if (diceBoxInstance && typeof diceBoxInstance.destroy === 'function') {
               diceBoxInstance.destroy();
@@ -159,24 +201,40 @@ const useDiceBox = ({ color } = {}) => {
       return undefined;
     }
 
-    const forcedResults = mappedEntries.every((entry) => Array.isArray(entry.values))
+    const forcedResults = mappedEntries.every(
+      (entry) => Array.isArray(entry.values) && entry.values.length === entry.qty
+    )
       ? mappedEntries.flatMap((entry) => entry.values)
       : null;
 
+    const notation = mappedEntries
+      .map(({ type, qty }) => {
+        const normalizedQty = Number.isFinite(qty) ? Math.max(0, Math.round(qty)) : 0;
+        return normalizedQty > 0 ? `${normalizedQty}${type}` : null;
+      })
+      .filter(Boolean)
+      .join(' + ');
+
+    const rollOptions = {
+      clear: true,
+      ...(forcedResults ? { result: forcedResults } : {}),
+    };
+
     try {
       if (typeof diceBox.roll === 'function') {
-        return await diceBox.roll(mappedEntries, {
-          clear: true,
-          ...(forcedResults ? { result: forcedResults } : {}),
-        });
+        if (notation) {
+          try {
+            return await diceBox.roll(notation, rollOptions);
+          } catch (notationError) {
+            console.warn('DiceBox roll with notation failed, retrying with entries', notationError);
+          }
+        }
+
+        return await diceBox.roll(mappedEntries, rollOptions);
       }
     } catch (error) {
-      console.warn('DiceBox roll with detailed entries failed, attempting notation fallback', error);
+      console.warn('DiceBox roll failed, attempting notation fallback', error);
       try {
-        const notation = mappedEntries
-          .map(({ type, qty }) => `${qty}${type}`)
-          .filter(Boolean)
-          .join(' + ');
         if (notation && typeof diceBox.roll === 'function') {
           return await diceBox.roll(notation, { clear: true });
         }
