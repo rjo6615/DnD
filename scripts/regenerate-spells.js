@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const spells = require('../server/data/spells');
+
+const DATA_PATH = path.join(__dirname, '../data/srd-5.2-spells.json');
+const CLIENT_PATH = path.join(__dirname, '../client/src/data/spells.json');
+
+/** @type {Record<string, import('../types/spell').Spell>} */
+const spells = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
 
 function extractHigherLevels(description = '') {
   const match = description.match(/At Higher Levels?[:.]\s*([^]*)/i);
@@ -26,7 +31,7 @@ const manualHigherLevels = {
   'hellish-rebuke': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st.',
   'inflict-wounds': 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st.',
   'magic-missile': 'When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.',
-  'acid-arrow': 'When you cast this spell using a spell slot of 3rd level or higher, the initial damage increases by 1d4 for each slot level above 2nd, and the damage at the end of the target\'s next turn increases by 1d4 for each slot level above 2nd.',
+  'acid-arrow': "When you cast this spell using a spell slot of 3rd level or higher, the initial damage increases by 1d4 for each slot level above 2nd, and the damage at the end of the target's next turn increases by 1d4 for each slot level above 2nd.",
   'scorching-ray': 'When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd.',
   'shatter': 'When you cast this spell using a spell slot of 3rd level or higher, the damage increases by 1d8 for each slot level above 2nd.',
   'fireball': 'When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.',
@@ -38,13 +43,13 @@ const manualHigherLevels = {
   'disintegrate': 'When you cast this spell using a spell slot of 7th level or higher, the damage increases by 3d6 for each slot level above 6th.',
 };
 
-Object.values(spells).forEach(spell => {
+Object.entries(spells).forEach(([id, spell]) => {
   if (!spell.higherLevels) {
     const hl = extractHigherLevels(spell.description);
     if (hl) {
       spell.higherLevels = hl;
-    } else if (manualHigherLevels[spell.name.toLowerCase().replace(/\s+/g, '-')]) {
-      spell.higherLevels = manualHigherLevels[spell.name.toLowerCase().replace(/\s+/g, '-')];
+    } else if (manualHigherLevels[id]) {
+      spell.higherLevels = manualHigherLevels[id];
     }
   }
   if (spell.level === 0 && !spell.scaling) {
@@ -53,16 +58,8 @@ Object.values(spells).forEach(spell => {
   }
 });
 
-const output = `/**
- * D&D 5e SRD Spells (generated)
- * Source: SRD 5.1 (CC-BY 4.0 — © Wizards of the Coast)
- * Generated: ${new Date().toISOString()}
- */
-/** @typedef {import('../../types/spell').Spell} Spell */
-/** @type {Record<string, Spell>} */
-const spells = ${JSON.stringify(spells, null, 2)};
+const ordered = Object.fromEntries(Object.keys(spells).sort().map(key => [key, spells[key]]));
+fs.writeFileSync(DATA_PATH, `${JSON.stringify(ordered, null, 2)}\n`);
+fs.copyFileSync(DATA_PATH, CLIENT_PATH);
 
-module.exports = spells;
-`;
-
-fs.writeFileSync(path.join(__dirname, '../server/data/spells.js'), output);
+console.log(`Updated ${Object.keys(spells).length} spells.`);

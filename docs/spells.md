@@ -1,6 +1,8 @@
 # Spell data structure
 
-The `Spell` type is shared between the client and server to ensure consistent data.
+The `Spell` type is shared between the client and server to ensure consistent data. The canonical
+record set lives in [`data/srd-5.2-spells.json`](../data/srd-5.2-spells.json) and is consumed by the
+server (via `server/data/spells.js`) and the client bundle (`client/src/data/spells.json`).
 
 | Field | Type | Description |
 |-------|------|-------------|
