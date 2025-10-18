@@ -79,15 +79,6 @@ const toFiniteNumberOrNull = (value) => {
 };
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
-const CREATURE_SIZE_ORDER_ASC = [...CREATURE_SIZE_KEYS].reverse();
-
-const normalizeEffectName = (effect) => {
-  if (!effect || typeof effect.name !== 'string') {
-    return '';
-  }
-
-  return effect.name.trim().toLowerCase();
-};
 
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
@@ -113,78 +104,6 @@ const normalizeCreatureSize = (value) => {
   const prefixMatch = CREATURE_SIZE_KEYS.find((size) => trimmed.startsWith(size));
   if (prefixMatch) {
     return prefixMatch;
-  }
-
-  return null;
-};
-
-const clampCreatureSizeKey = (value) => {
-  const normalized = normalizeCreatureSize(value);
-  return normalized && CREATURE_SIZE_KEYS.includes(normalized) ? normalized : null;
-};
-
-const formatCreatureSizeLabel = (sizeKey) => {
-  if (!sizeKey) {
-    return null;
-  }
-
-  return sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1);
-};
-
-const getLargerCreatureSizeKey = (first, second) => {
-  if (!first) {
-    return second || null;
-  }
-
-  if (!second) {
-    return first;
-  }
-
-  const firstIndex = CREATURE_SIZE_ORDER_ASC.indexOf(first);
-  const secondIndex = CREATURE_SIZE_ORDER_ASC.indexOf(second);
-
-  if (firstIndex === -1) {
-    return second;
-  }
-
-  if (secondIndex === -1) {
-    return first;
-  }
-
-  return firstIndex >= secondIndex ? first : second;
-};
-
-const incrementCreatureSizeKey = (sizeKey) => {
-  const currentIndex = CREATURE_SIZE_ORDER_ASC.indexOf(sizeKey);
-  if (currentIndex === -1) {
-    return null;
-  }
-
-  const nextIndex = Math.min(currentIndex + 1, CREATURE_SIZE_ORDER_ASC.length - 1);
-  return CREATURE_SIZE_ORDER_ASC[nextIndex];
-};
-
-const resolveBaseCreatureSizeKey = (entity) => {
-  if (!entity || typeof entity !== 'object') {
-    return null;
-  }
-
-  const candidates = [
-    entity.size,
-    entity.characterSize,
-    entity.character?.size,
-    entity.creature?.size,
-    entity.profile?.size,
-    entity.race?.size,
-    entity.attributes?.size,
-    entity.displayType,
-  ];
-
-  for (const candidate of candidates) {
-    const normalized = normalizeCreatureSize(candidate);
-    if (normalized) {
-      return normalized;
-    }
   }
 
   return null;
@@ -1729,24 +1648,17 @@ export default function ZombiesCharacterSheet() {
       return;
     }
 
-    const largeFormActive = activeEffects.some((effect) => {
-      const normalized = normalizeEffectName(effect);
-      return normalized.startsWith('large form');
-    });
+    const hasLargeForm = activeEffects.some(
+      (effect) => effect && effect.name === 'Large Form'
+    );
 
-    const enlargeActive = activeEffects.some((effect) => {
-      const normalized = normalizeEffectName(effect);
-      return normalized.startsWith('enlarge');
-    });
+    if (hasLargeForm) {
+      const desiredSize = 'Large';
+      const desiredSpeedBonus = 10;
+      const nextSize = form.temporarySize;
+      const nextSpeedBonus = Number(form.temporarySpeedBonus ?? 0);
 
-    const sizeEffectActive = largeFormActive || enlargeActive;
-
-    if (!sizeEffectActive) {
-      const hasTemporaryFields =
-        Object.prototype.hasOwnProperty.call(form, 'temporarySize') ||
-        Object.prototype.hasOwnProperty.call(form, 'temporarySpeedBonus');
-
-      if (!hasTemporaryFields) {
+      if (nextSize === desiredSize && nextSpeedBonus === desiredSpeedBonus) {
         return;
       }
 
@@ -1755,27 +1667,31 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        const ownsTemporarySize = Object.prototype.hasOwnProperty.call(
-          prev,
-          'temporarySize'
-        );
-        const ownsTemporarySpeed = Object.prototype.hasOwnProperty.call(
-          prev,
-          'temporarySpeedBonus'
-        );
+        const currentSize = prev.temporarySize;
+        const currentSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
 
-        if (!ownsTemporarySize && !ownsTemporarySpeed) {
+        if (
+          currentSize === desiredSize &&
+          currentSpeedBonus === desiredSpeedBonus
+        ) {
           return prev;
         }
 
-        const {
-          temporarySize: _ignoredSize,
-          temporarySpeedBonus: _ignoredSpeed,
-          ...rest
-        } = prev;
-        return rest;
+        return {
+          ...prev,
+          temporarySize: desiredSize,
+          temporarySpeedBonus: desiredSpeedBonus,
+        };
       });
 
+      return;
+    }
+
+    const hasTemporaryFields =
+      Object.prototype.hasOwnProperty.call(form, 'temporarySize') ||
+      Object.prototype.hasOwnProperty.call(form, 'temporarySpeedBonus');
+
+    if (!hasTemporaryFields) {
       return;
     }
 
@@ -1784,56 +1700,25 @@ export default function ZombiesCharacterSheet() {
         return prev;
       }
 
-      const baseSizeKey = resolveBaseCreatureSizeKey(prev) ?? 'medium';
-      const largeFormTargetKey = largeFormActive
-        ? getLargerCreatureSizeKey(baseSizeKey, 'large')
-        : null;
-      const enlargeTargetKey = enlargeActive
-        ? incrementCreatureSizeKey(baseSizeKey) ?? baseSizeKey
-        : null;
-
-      let desiredSizeKey = getLargerCreatureSizeKey(
-        largeFormTargetKey,
-        enlargeTargetKey
+      const ownsTemporarySize = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySize'
+      );
+      const ownsTemporarySpeed = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySpeedBonus'
       );
 
-      if (!desiredSizeKey) {
-        desiredSizeKey = largeFormTargetKey ?? enlargeTargetKey ?? baseSizeKey;
-      }
-
-      const desiredSizeLabel = formatCreatureSizeLabel(desiredSizeKey);
-      const currentSizeKey = clampCreatureSizeKey(prev.temporarySize);
-      const currentSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
-
-      const shouldApplySize =
-        desiredSizeLabel && currentSizeKey !== desiredSizeKey;
-      const shouldRemoveSize =
-        !desiredSizeLabel &&
-        Object.prototype.hasOwnProperty.call(prev, 'temporarySize');
-      const shouldApplySpeed = largeFormActive && currentSpeedBonus !== 10;
-      const shouldRemoveSpeed =
-        !largeFormActive &&
-        Object.prototype.hasOwnProperty.call(prev, 'temporarySpeedBonus');
-
-      if (!shouldApplySize && !shouldRemoveSize && !shouldApplySpeed && !shouldRemoveSpeed) {
+      if (!ownsTemporarySize && !ownsTemporarySpeed) {
         return prev;
       }
 
-      const nextState = { ...prev };
-
-      if (desiredSizeLabel) {
-        nextState.temporarySize = desiredSizeLabel;
-      } else if (shouldRemoveSize) {
-        delete nextState.temporarySize;
-      }
-
-      if (largeFormActive) {
-        nextState.temporarySpeedBonus = 10;
-      } else if (shouldRemoveSpeed) {
-        delete nextState.temporarySpeedBonus;
-      }
-
-      return nextState;
+      const {
+        temporarySize: _ignoredSize,
+        temporarySpeedBonus: _ignoredSpeed,
+        ...rest
+      } = prev;
+      return rest;
     });
   }, [activeEffects, form]);
 
