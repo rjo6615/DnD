@@ -92,7 +92,7 @@ const useDiceBox = ({ color } = {}) => {
         const normalizedLocalAssetPath = localAssetPath
           ? `${localAssetPath.replace(/\/$/, '')}/`
           : null;
-        const assetCandidates = [normalizedLocalAssetPath, CDN_ASSET_PATH].filter(Boolean);
+        const assetCandidates = [CDN_ASSET_PATH, normalizedLocalAssetPath].filter(Boolean);
 
         let lastError;
 
