@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { getPolyhedronGeometry } from '../../../utils/dieGeometry';
+import DiceSandboxRenderer from '../../../utils/diceSandbox';
 
 const LIGHT_DIRECTION = normalizeVector([0.42, 0.86, 0.52]);
 const GRAVITY = 9.8;
