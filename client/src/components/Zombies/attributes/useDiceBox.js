@@ -43,6 +43,24 @@ const mapDiceToEntries = (diceDetails = []) => {
   return entries;
 };
 
+async function loadDiceBoxModule() {
+  try {
+    return await import('@3d-dice/dice-box');
+  } catch (localError) {
+    console.warn('Failed to load local DiceBox bundle, falling back to CDN', localError);
+    try {
+      return await import(
+        /* webpackIgnore: true */
+        'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/dice-box.es.js'
+      );
+    } catch (cdnError) {
+      const error = new Error('Unable to load DiceBox from both local package and CDN.');
+      error.cause = cdnError;
+      throw error;
+    }
+  }
+}
+
 async function createDiceBoxInstance(DiceBoxCtor, target, assetPath) {
   const instance = new DiceBoxCtor(target, {
     assetPath,
@@ -81,7 +99,7 @@ const useDiceBox = ({ color } = {}) => {
       }
 
       try {
-        const module = await import('@3d-dice/dice-box');
+        const module = await loadDiceBoxModule();
         const DiceBoxCtor = module?.DiceBox || module?.default;
         if (!DiceBoxCtor) {
           throw new Error('DiceBox constructor export not found.');
