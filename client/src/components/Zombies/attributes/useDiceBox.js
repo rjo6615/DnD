@@ -13,6 +13,8 @@ const DEFAULT_FALLBACK_COLOR = '#2a52be';
 const SIMPLE_STAGE_CLASS = 'damage-roller__dice-stage--simple';
 const SIMPLE_CONTAINER_CLASS = 'damage-roller__simple-container';
 const SIMPLE_DIE_CLASS = 'damage-roller__simple-die';
+const SIMPLE_DIE_SHAPE_CLASS = 'damage-roller__simple-die-shape';
+const SIMPLE_DIE_SHADOW_CLASS = 'damage-roller__simple-die-shadow';
 
 const normalizeDiceColor = (value) => {
   if (typeof value !== 'string') {
@@ -160,6 +162,61 @@ const createSimpleDiceBox = (target) => {
     }
   };
 
+  const createDieElement = (value, sides, index) => {
+    const die = document.createElement('div');
+    die.className = SIMPLE_DIE_CLASS;
+    const normalizedSides = Number.isFinite(sides) ? Math.max(2, Math.round(sides)) : 6;
+    die.dataset.sides = `d${normalizedSides}`;
+
+    const shape = document.createElement('div');
+    shape.className = SIMPLE_DIE_SHAPE_CLASS;
+    shape.textContent = Number(value).toString();
+
+    const shadow = document.createElement('div');
+    shadow.className = SIMPLE_DIE_SHADOW_CLASS;
+
+    die.appendChild(shape);
+    die.appendChild(shadow);
+
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+    const tumbleStartX = randomInRange(-540, 540);
+    const tumbleStartY = randomInRange(-540, 540);
+    const tumbleStartZ = randomInRange(-270, 270);
+    const tumbleEndX = randomInRange(-110, 110);
+    const tumbleEndY = randomInRange(-110, 110);
+    const tumbleEndZ = randomInRange(-95, 95);
+    const tumbleMidX = (tumbleStartX + tumbleEndX) / 2;
+    const tumbleMidY = (tumbleStartY + tumbleEndY) / 2;
+    const tumbleMidZ = (tumbleStartZ + tumbleEndZ) / 2;
+    const driftX = randomInRange(-32, 32);
+    const driftY = randomInRange(-22, 22);
+    const popHeight = randomInRange(18, 42);
+    const rollDuration = randomInRange(820, 1180);
+    const rollDelay = index * 80 + randomInRange(25, 140);
+
+    die.style.setProperty('--die-start-rotate-x', `${tumbleStartX}deg`);
+    die.style.setProperty('--die-start-rotate-y', `${tumbleStartY}deg`);
+    die.style.setProperty('--die-start-rotate-z', `${tumbleStartZ}deg`);
+    die.style.setProperty('--die-end-rotate-x', `${tumbleEndX}deg`);
+    die.style.setProperty('--die-end-rotate-y', `${tumbleEndY}deg`);
+    die.style.setProperty('--die-end-rotate-z', `${tumbleEndZ}deg`);
+    die.style.setProperty('--die-mid-rotate-x', `${tumbleMidX}deg`);
+    die.style.setProperty('--die-mid-rotate-y', `${tumbleMidY}deg`);
+    die.style.setProperty('--die-mid-rotate-z', `${tumbleMidZ}deg`);
+    die.style.setProperty('--die-drift-x', `${driftX}px`);
+    die.style.setProperty('--die-drift-y', `${driftY}px`);
+    die.style.setProperty('--die-pop-height', `${popHeight}px`);
+    die.style.setProperty('--die-roll-duration', `${rollDuration}ms`);
+    die.style.setProperty('--die-roll-delay', `${rollDelay}ms`);
+
+    requestAnimationFrame(() => {
+      die.dataset.rolled = 'true';
+    });
+
+    return die;
+  };
+
   const roll = async (input, options = {}) => {
     const entries = Array.isArray(input) ? input : parseNotationToEntries(input);
     const results = expandEntriesToResults(entries, options?.result);
@@ -170,11 +227,8 @@ const createSimpleDiceBox = (target) => {
       return undefined;
     }
 
-    results.forEach(({ value, sides }) => {
-      const die = document.createElement('div');
-      die.className = SIMPLE_DIE_CLASS;
-      die.textContent = Number(value).toString();
-      die.dataset.sides = `d${Number(sides)}`;
+    results.forEach(({ value, sides }, index) => {
+      const die = createDieElement(value, sides, index);
       container.appendChild(die);
     });
 
