@@ -25,7 +25,8 @@
     "sass": "^1.66.1",
     "socket.io-client": "^4.7.5",
     "web-vitals": "^2.1.4",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "@3d-dice/dice-box": "^1.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
