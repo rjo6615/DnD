@@ -2890,7 +2890,8 @@ export default function ZombiesDM() {
           );
 
           const recordSize = normalizeCreatureSize(
-            record.size ??
+            record.temporarySize ??
+              record.size ??
               record.characterSize ??
               record?.character?.size ??
               record?.creature?.size ??
@@ -2946,18 +2947,22 @@ export default function ZombiesDM() {
           );
           const enemyMaxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
 
-        const enemySize = normalizeCreatureSize(
-          enemy.size ?? enemy.displayType ?? enemy.type ?? enemy.enemyType
-        );
+          const enemySize = normalizeCreatureSize(
+            enemy.temporarySize ??
+              enemy.size ??
+              enemy.displayType ??
+              enemy.type ??
+              enemy.enemyType
+          );
 
-        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
+          const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(enemy);
 
-        lookup[enemyId] = {
-          color: ENEMY_FIGURINE_COLOR,
-          label,
-          entityType: 'enemy',
-          ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
-          ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
+          lookup[enemyId] = {
+            color: ENEMY_FIGURINE_COLOR,
+            label,
+            entityType: 'enemy',
+            ...(enemyCurrentHp !== null ? { currentHp: enemyCurrentHp } : {}),
+            ...(enemyMaxHp !== null ? { maxHp: enemyMaxHp } : {}),
           ...(enemySize ? { size: enemySize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
