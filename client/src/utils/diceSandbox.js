@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { getPolyhedronGeometry } from '../../../utils/dieGeometry';
+import { getPolyhedronGeometry } from './dieGeometry';
 
 const LIGHT_DIRECTION = normalizeVector([0.42, 0.86, 0.52]);
 const GRAVITY = 9.8;
@@ -248,7 +247,17 @@ class ColorPalette {
   }
 }
 
-class DiceRenderer {
+function createEllipsePath(cx, cy, rx, ry) {
+  const points = [];
+  const steps = 16;
+  for (let i = 0; i < steps; i += 1) {
+    const angle = (i / steps) * Math.PI * 2;
+    points.push([cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry]);
+  }
+  return points;
+}
+
+export class DiceSandboxRenderer {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas?.getContext('2d', { alpha: true });
@@ -258,7 +267,7 @@ class DiceRenderer {
     this.lastTimestamp = 0;
     this.active = false;
     this.colorPalette = new ColorPalette(options.root);
-    this.labelElements = options.labelElements || (() => null);
+    this.getLabelElement = options.getLabelElement || (() => null);
     this.camera = computeCamera({ width: canvas?.clientWidth || 300, height: canvas?.clientHeight || 300 });
 
     this.handleResize = this.handleResize.bind(this);
@@ -289,8 +298,8 @@ class DiceRenderer {
     this.active = false;
   }
 
-  setLabelElements(resolver) {
-    this.labelElements = typeof resolver === 'function' ? resolver : () => null;
+  setLabelResolver(resolver) {
+    this.getLabelElement = typeof resolver === 'function' ? resolver : () => null;
   }
 
   setDice(dice) {
@@ -300,9 +309,7 @@ class DiceRenderer {
       return;
     }
 
-    this.dice = dice.map((die, index) =>
-      createDieState(die, index, dice.length, this.colorPalette),
-    );
+    this.dice = dice.map((die, index) => createDieState(die, index, dice.length, this.colorPalette));
     this.start();
   }
 
@@ -369,13 +376,12 @@ class DiceRenderer {
         facesToRender.push({ path, fill, depth: averageDepth });
       });
 
-      const center = transformed.reduce(
-        (acc, vertex) => [acc[0] + vertex[0], acc[1] + vertex[1], acc[2] + vertex[2]],
-        [0, 0, 0],
-      ).map((value) => value / transformed.length);
+      const center = transformed
+        .reduce((acc, vertex) => [acc[0] + vertex[0], acc[1] + vertex[1], acc[2] + vertex[2]], [0, 0, 0])
+        .map((value) => value / transformed.length);
       const projectedCenter = projectToScreen(center, this.camera, this.viewport);
 
-      const labelElement = this.labelElements(die.id);
+      const labelElement = this.getLabelElement(die.id);
       if (labelElement) {
         const clampedX = clamp(projectedCenter.x, 20, this.viewport.width - 20);
         const clampedY = clamp(projectedCenter.y, 20, this.viewport.height - 18);
@@ -384,11 +390,7 @@ class DiceRenderer {
         labelElement.style.opacity = visibility.toFixed(3);
       }
 
-      const shadow = projectToScreen(
-        [die.position[0], BASE_PLANE_Y + 0.1, die.position[2]],
-        this.camera,
-        this.viewport,
-      );
+      const shadow = projectToScreen([die.position[0], BASE_PLANE_Y + 0.1, die.position[2]], this.camera, this.viewport);
       const shadowSize = 26 * clamp(1.1 - die.position[1] * 0.15, 0.4, 1.1);
       facesToRender.push({
         path: createEllipsePath(shadow.x, shadow.y, shadowSize * 1.2, shadowSize * 0.65),
@@ -470,69 +472,8 @@ class DiceRenderer {
   }
 }
 
-function createEllipsePath(cx, cy, rx, ry) {
-  const points = [];
-  const steps = 16;
-  for (let i = 0; i < steps; i += 1) {
-    const angle = (i / steps) * Math.PI * 2;
-    points.push([cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry]);
-  }
-  return points;
+export function createDiceSandbox(canvas, options = {}) {
+  return new DiceSandboxRenderer(canvas, options);
 }
 
-const registerMapEntry = (map, key, node) => {
-  if (!map) return;
-  if (node) {
-    map.set(key, node);
-  } else {
-    map.delete(key);
-  }
-};
-
-const DamageDiceCanvas = ({ dice = [] }) => {
-  const canvasRef = useRef(null);
-  const rendererRef = useRef(null);
-  const labelsRef = useRef(new Map());
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const renderer = new DiceSandboxRenderer(canvas, {
-      root: document.documentElement,
-      getLabelElement: (id) => labelsRef.current.get(id) || null,
-    });
-    rendererRef.current = renderer;
-    return () => renderer.dispose();
-  }, []);
-
-  useEffect(() => {
-    if (!rendererRef.current) return;
-    rendererRef.current.setLabelResolver((id) => labelsRef.current.get(id) || null);
-    rendererRef.current.setDice(dice);
-  }, [dice]);
-
-  const labelItems = useMemo(
-    () =>
-      dice.map((die) => (
-        <span
-          key={die.id}
-          data-die-id={die.id}
-          className={`damage-dice-label ${die.typeClass || ''}`.trim()}
-          ref={(node) => registerMapEntry(labelsRef.current, die.id, node)}
-          style={{ opacity: 0 }}
-        >
-          {die.value}
-        </span>
-      )),
-    [dice],
-  );
-
-  return (
-    <div className="damage-dice-canvas">
-      <canvas ref={canvasRef} className="damage-dice-canvas__surface" />
-      <div className="damage-dice-canvas__labels">{labelItems}</div>
-    </div>
-  );
-};
-
-export default DamageDiceCanvas;
+export default DiceSandboxRenderer;
