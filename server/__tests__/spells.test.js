@@ -60,7 +60,7 @@ describe('Spells routes', () => {
     dbo.mockResolvedValue({});
     const res = await request(app).get('/spells/healing-word');
     expect(res.status).toBe(200);
-    expect(res.body.damage).toBe('1d4');
+    expect(res.body.damage).toBe('2d4');
   });
 
   test('upcastable spells include higherLevels field', async () => {
