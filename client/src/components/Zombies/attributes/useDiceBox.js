@@ -89,7 +89,10 @@ const useDiceBox = ({ color } = {}) => {
 
         const publicUrl = typeof process !== 'undefined' ? process.env?.PUBLIC_URL : undefined;
         const localAssetPath = `${publicUrl || ''}/dice-box`;
-        const assetCandidates = [localAssetPath, CDN_ASSET_PATH].filter(Boolean);
+        const normalizedLocalAssetPath = localAssetPath
+          ? `${localAssetPath.replace(/\/$/, '')}/`
+          : null;
+        const assetCandidates = [CDN_ASSET_PATH, normalizedLocalAssetPath].filter(Boolean);
 
         let lastError;
 
@@ -159,24 +162,40 @@ const useDiceBox = ({ color } = {}) => {
       return undefined;
     }
 
-    const forcedResults = mappedEntries.every((entry) => Array.isArray(entry.values))
+    const forcedResults = mappedEntries.every(
+      (entry) => Array.isArray(entry.values) && entry.values.length === entry.qty
+    )
       ? mappedEntries.flatMap((entry) => entry.values)
       : null;
 
+    const notation = mappedEntries
+      .map(({ type, qty }) => {
+        const normalizedQty = Number.isFinite(qty) ? Math.max(0, Math.round(qty)) : 0;
+        return normalizedQty > 0 ? `${normalizedQty}${type}` : null;
+      })
+      .filter(Boolean)
+      .join(' + ');
+
+    const rollOptions = {
+      clear: true,
+      ...(forcedResults ? { result: forcedResults } : {}),
+    };
+
     try {
       if (typeof diceBox.roll === 'function') {
-        return await diceBox.roll(mappedEntries, {
-          clear: true,
-          ...(forcedResults ? { result: forcedResults } : {}),
-        });
+        if (notation) {
+          try {
+            return await diceBox.roll(notation, rollOptions);
+          } catch (notationError) {
+            console.warn('DiceBox roll with notation failed, retrying with entries', notationError);
+          }
+        }
+
+        return await diceBox.roll(mappedEntries, rollOptions);
       }
     } catch (error) {
-      console.warn('DiceBox roll with detailed entries failed, attempting notation fallback', error);
+      console.warn('DiceBox roll failed, attempting notation fallback', error);
       try {
-        const notation = mappedEntries
-          .map(({ type, qty }) => `${qty}${type}`)
-          .filter(Boolean)
-          .join(' + ');
         if (notation && typeof diceBox.roll === 'function') {
           return await diceBox.roll(notation, { clear: true });
         }
