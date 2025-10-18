@@ -52,7 +52,79 @@ const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
 
 const spellsCatalog = spellsData || {};
 
+const SPELLS_BY_NAME = Object.values(spellsCatalog).reduce((acc, spell) => {
+  if (spell && typeof spell.name === 'string') {
+    acc[spell.name.trim().toLowerCase()] = spell;
+  }
+  return acc;
+}, {});
+
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
+
+const parseSpellLevel = (value) => {
+  if (typeof value !== 'string') {
+    return 0;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === 'cantrip') {
+    return 0;
+  }
+  const match = normalized.match(/(\d+)/);
+  if (!match) {
+    return 0;
+  }
+  return Number(match[1]);
+};
+
+const getVersatileDamageDice = (weapon) => {
+  if (!weapon || typeof weapon !== 'object') {
+    return '';
+  }
+
+  const candidates = [
+    weapon?.versatileDamage,
+    weapon?.damageVersatile,
+    weapon?.twoHandedDamage,
+  ];
+
+  const fromDirectProperty = candidates.find(
+    (value) => typeof value === 'string' && value.trim()
+  );
+  if (fromDirectProperty) {
+    return fromDirectProperty.trim();
+  }
+
+  const properties = Array.isArray(weapon?.properties) ? weapon.properties : [];
+  for (const prop of properties) {
+    const label =
+      typeof prop === 'string'
+        ? prop
+        : typeof prop === 'object'
+        ? prop?.label || prop?.name || ''
+        : '';
+
+    if (typeof label !== 'string') {
+      continue;
+    }
+
+    const match = label.match(versatileRegex);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+
+    if (label.trim().toLowerCase() === 'versatile') {
+      const damage =
+        typeof prop === 'object' && typeof prop?.damage === 'string'
+          ? prop.damage.trim()
+          : '';
+      if (damage) {
+        return damage;
+      }
+    }
+  }
+
+  return '';
+};
 
 const normalizeDamageTypeForClass = (type) => {
   if (typeof type !== 'string') {
