@@ -296,7 +296,6 @@ class DiceRenderer {
     if (!Array.isArray(dice) || !dice.length) {
       this.dice = [];
       this.clear();
-      this.updateLabels([]);
       return;
     }
 
