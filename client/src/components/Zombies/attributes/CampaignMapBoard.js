@@ -1390,10 +1390,10 @@ const CampaignMapBoard = ({
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
                 const figurineScale =
-                  sizeKey === 'medium'
-                    ? 1
-                    : Number.isFinite(imageFootprint)
-                      ? imageFootprint
+                  Number.isFinite(imageFootprint) && imageFootprint > 0
+                    ? imageFootprint
+                    : sizeKey === 'medium'
+                      ? 1
                       : Number.isFinite(baseFigurineScale)
                         ? baseFigurineScale
                         : DEFAULT_FIGURINE_GRID_SQUARES;

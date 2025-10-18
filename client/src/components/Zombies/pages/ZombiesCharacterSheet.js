@@ -1643,85 +1643,6 @@ export default function ZombiesCharacterSheet() {
   const temporarySize = form?.temporarySize;
   const temporarySpeedBonus = form?.temporarySpeedBonus;
 
-  useEffect(() => {
-    if (!form) {
-      return;
-    }
-
-    const hasLargeForm = activeEffects.some(
-      (effect) => effect && effect.name === 'Large Form'
-    );
-
-    if (hasLargeForm) {
-      const desiredSize = 'Large';
-      const desiredSpeedBonus = 10;
-      const nextSize = form.temporarySize;
-      const nextSpeedBonus = Number(form.temporarySpeedBonus ?? 0);
-
-      if (nextSize === desiredSize && nextSpeedBonus === desiredSpeedBonus) {
-        return;
-      }
-
-      setForm((prev) => {
-        if (!prev) {
-          return prev;
-        }
-
-        const currentSize = prev.temporarySize;
-        const currentSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
-
-        if (
-          currentSize === desiredSize &&
-          currentSpeedBonus === desiredSpeedBonus
-        ) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          temporarySize: desiredSize,
-          temporarySpeedBonus: desiredSpeedBonus,
-        };
-      });
-
-      return;
-    }
-
-    const hasTemporaryFields =
-      Object.prototype.hasOwnProperty.call(form, 'temporarySize') ||
-      Object.prototype.hasOwnProperty.call(form, 'temporarySpeedBonus');
-
-    if (!hasTemporaryFields) {
-      return;
-    }
-
-    setForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const ownsTemporarySize = Object.prototype.hasOwnProperty.call(
-        prev,
-        'temporarySize'
-      );
-      const ownsTemporarySpeed = Object.prototype.hasOwnProperty.call(
-        prev,
-        'temporarySpeedBonus'
-      );
-
-      if (!ownsTemporarySize && !ownsTemporarySpeed) {
-        return prev;
-      }
-
-      const {
-        temporarySize: _ignoredSize,
-        temporarySpeedBonus: _ignoredSpeed,
-        ...rest
-      } = prev;
-      return rest;
-    });
-  }, [activeEffects, form]);
-
   const consumeCircle = useCallback(
     (type, index) => {
       setUsedSlots((prev) => {
@@ -3542,11 +3463,306 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        return { ...prev, diceColor: normalizedColor };
+      return { ...prev, diceColor: normalizedColor };
+    });
+  },
+  [setCampaignCharacters, setForm]
+);
+
+  const updateLocalTemporaryState = useCallback(
+    (incomingCharacterId, sizeValue, speedValue) => {
+      const normalizedCharacterId =
+        typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
+          ? incomingCharacterId.trim()
+          : null;
+      const hasSizeUpdate = sizeValue !== undefined;
+      const hasSpeedUpdate = speedValue !== undefined;
+
+      if (!normalizedCharacterId || (!hasSizeUpdate && !hasSpeedUpdate)) {
+        return;
+      }
+
+      let normalizedSize = null;
+      if (hasSizeUpdate) {
+        if (typeof sizeValue === 'string') {
+          const trimmed = sizeValue.trim();
+          normalizedSize = trimmed ? trimmed : null;
+        } else {
+          normalizedSize = null;
+        }
+      }
+
+      let normalizedSpeed = null;
+      if (hasSpeedUpdate) {
+        if (speedValue === null || speedValue === undefined || speedValue === '') {
+          normalizedSpeed = null;
+        } else {
+          const parsed = Number(speedValue);
+          normalizedSpeed = Number.isFinite(parsed) ? parsed : null;
+        }
+      }
+
+      setCampaignCharacters((prev) => {
+        if (!prev || typeof prev !== 'object' || Object.keys(prev).length === 0) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const next = { ...prev };
+
+        Object.entries(prev).forEach(([key, value]) => {
+          if (!value || typeof value !== 'object') {
+            return;
+          }
+
+          const identifiers = new Set();
+          if (typeof key === 'string' && key.trim() !== '') {
+            identifiers.add(key.trim());
+          }
+          if (typeof value._id === 'string' && value._id.trim() !== '') {
+            identifiers.add(value._id.trim());
+          }
+          if (typeof value.characterId === 'string' && value.characterId.trim() !== '') {
+            identifiers.add(value.characterId.trim());
+          }
+
+          if (!identifiers.has(normalizedCharacterId)) {
+            return;
+          }
+
+          const nextValue = { ...value };
+          let changed = false;
+
+          if (hasSizeUpdate) {
+            if (normalizedSize) {
+              if (nextValue.temporarySize !== normalizedSize) {
+                nextValue.temporarySize = normalizedSize;
+                changed = true;
+              }
+            } else if (Object.prototype.hasOwnProperty.call(nextValue, 'temporarySize')) {
+              delete nextValue.temporarySize;
+              changed = true;
+            }
+          }
+
+          if (hasSpeedUpdate) {
+            if (normalizedSpeed !== null) {
+              if (nextValue.temporarySpeedBonus !== normalizedSpeed) {
+                nextValue.temporarySpeedBonus = normalizedSpeed;
+                changed = true;
+              }
+            } else if (
+              Object.prototype.hasOwnProperty.call(nextValue, 'temporarySpeedBonus')
+            ) {
+              delete nextValue.temporarySpeedBonus;
+              changed = true;
+            }
+          }
+
+          if (changed) {
+            next[key] = nextValue;
+            didUpdate = true;
+          }
+        });
+
+        return didUpdate ? next : prev;
+      });
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const identifiers = [];
+        if (typeof prev._id === 'string' && prev._id.trim() !== '') {
+          identifiers.push(prev._id.trim());
+        }
+        if (typeof prev.characterId === 'string' && prev.characterId.trim() !== '') {
+          identifiers.push(prev.characterId.trim());
+        }
+        const resolvedId = resolvedCharacterIdRef.current;
+        if (typeof resolvedId === 'string' && resolvedId.trim() !== '') {
+          identifiers.push(resolvedId.trim());
+        }
+
+        if (!identifiers.includes(normalizedCharacterId)) {
+          return prev;
+        }
+
+        let didUpdate = false;
+        const nextForm = { ...prev };
+
+        if (hasSizeUpdate) {
+          if (normalizedSize) {
+            if (nextForm.temporarySize !== normalizedSize) {
+              nextForm.temporarySize = normalizedSize;
+              didUpdate = true;
+            }
+          } else if (Object.prototype.hasOwnProperty.call(nextForm, 'temporarySize')) {
+            delete nextForm.temporarySize;
+            didUpdate = true;
+          }
+        }
+
+        if (hasSpeedUpdate) {
+          if (normalizedSpeed !== null) {
+            if (nextForm.temporarySpeedBonus !== normalizedSpeed) {
+              nextForm.temporarySpeedBonus = normalizedSpeed;
+              didUpdate = true;
+            }
+          } else if (Object.prototype.hasOwnProperty.call(nextForm, 'temporarySpeedBonus')) {
+            delete nextForm.temporarySpeedBonus;
+            didUpdate = true;
+          }
+        }
+
+        return didUpdate ? nextForm : prev;
       });
     },
     [setCampaignCharacters, setForm]
   );
+
+  const persistTemporaryState = useCallback(
+    async (sizeValue, speedValue) => {
+      if (!characterId) {
+        return;
+      }
+
+      const payload = {};
+      if (sizeValue !== undefined) {
+        payload.temporarySize = sizeValue === null ? null : sizeValue;
+      }
+      if (speedValue !== undefined) {
+        if (speedValue === null) {
+          payload.temporarySpeedBonus = null;
+        } else {
+          const parsed = Number(speedValue);
+          payload.temporarySpeedBonus = Number.isFinite(parsed) ? parsed : null;
+        }
+      }
+
+      if (Object.keys(payload).length === 0) {
+        return;
+      }
+
+      try {
+        const response = await apiFetch(`/characters/${characterId}/temporary-state`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response || !response.ok) {
+          const message = await parseErrorMessage(
+            response,
+            'Failed to update temporary state.'
+          );
+          throw new Error(message);
+        }
+
+        const result = await response.json();
+        const resolvedId = resolvedCharacterIdRef.current;
+        if (resolvedId) {
+          const resultSize = Object.prototype.hasOwnProperty.call(result, 'temporarySize')
+            ? result.temporarySize
+            : sizeValue;
+          const resultSpeed = Object.prototype.hasOwnProperty.call(
+            result,
+            'temporarySpeedBonus'
+          )
+            ? result.temporarySpeedBonus
+            : speedValue;
+          updateLocalTemporaryState(resolvedId, resultSize, resultSpeed);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [characterId, updateLocalTemporaryState]
+  );
+
+  const wasLargeFormActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (!form) {
+      wasLargeFormActiveRef.current = false;
+      return;
+    }
+
+    const hasLargeForm = activeEffects.some(
+      (effect) => effect && effect.name === 'Large Form'
+    );
+    const wasLargeFormActive = wasLargeFormActiveRef.current;
+    wasLargeFormActiveRef.current = hasLargeForm;
+
+    if (hasLargeForm) {
+      const desiredSize = 'Large';
+      const desiredSpeedBonus = 10;
+      const nextSize = form.temporarySize;
+      const nextSpeedBonus = Number(form.temporarySpeedBonus ?? 0);
+
+      if (nextSize === desiredSize && nextSpeedBonus === desiredSpeedBonus) {
+        return;
+      }
+
+      setForm((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const currentSize = prev.temporarySize;
+        const currentSpeedBonus = Number(prev.temporarySpeedBonus ?? 0);
+
+        if (
+          currentSize === desiredSize &&
+          currentSpeedBonus === desiredSpeedBonus
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          temporarySize: desiredSize,
+          temporarySpeedBonus: desiredSpeedBonus,
+        };
+      });
+
+      persistTemporaryState(desiredSize, desiredSpeedBonus);
+      return;
+    }
+
+    if (!wasLargeFormActive) {
+      return;
+    }
+
+    setForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const ownsTemporarySize = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySize'
+      );
+      const ownsTemporarySpeed = Object.prototype.hasOwnProperty.call(
+        prev,
+        'temporarySpeedBonus'
+      );
+
+      if (!ownsTemporarySize && !ownsTemporarySpeed) {
+        return prev;
+      }
+
+      const {
+        temporarySize: _ignoredSize,
+        temporarySpeedBonus: _ignoredSpeed,
+        ...rest
+      } = prev;
+      return rest;
+    });
+
+    persistTemporaryState(null, null);
+  }, [activeEffects, form, persistTemporaryState]);
 
   const updateLocalFigurineImage = useCallback(
     (incomingCharacterId, nextUrl, nextPublicId) => {
@@ -4002,8 +4218,22 @@ export default function ZombiesCharacterSheet() {
         update,
         'figurineImagePublicId'
       );
+      const hasTemporarySizeUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'temporarySize'
+      );
+      const hasTemporarySpeedUpdate = Object.prototype.hasOwnProperty.call(
+        update,
+        'temporarySpeedBonus'
+      );
 
-      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
+      if (
+        !hasDiceColorUpdate &&
+        !hasFigurineUrlUpdate &&
+        !hasFigurineIdUpdate &&
+        !hasTemporarySizeUpdate &&
+        !hasTemporarySpeedUpdate
+      ) {
         return;
       }
 
@@ -4029,6 +4259,14 @@ export default function ZombiesCharacterSheet() {
             : null;
         updateLocalFigurineImage(normalizedCharacterId, normalizedUrl, normalizedPublicId);
       }
+
+      if (hasTemporarySizeUpdate || hasTemporarySpeedUpdate) {
+        const nextSize = hasTemporarySizeUpdate ? update.temporarySize : undefined;
+        const nextSpeed = hasTemporarySpeedUpdate
+          ? update.temporarySpeedBonus
+          : undefined;
+        updateLocalTemporaryState(normalizedCharacterId, nextSize, nextSpeed);
+      }
     };
 
     socket.on('combat:update', handleCombatUpdate);
@@ -4048,7 +4286,13 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
+  }, [
+    campaignId,
+    applyMapPayload,
+    updateLocalDiceColor,
+    updateLocalFigurineImage,
+    updateLocalTemporaryState,
+  ]);
 
   const handleDiceColorChange = useCallback(
     (nextColor) => {

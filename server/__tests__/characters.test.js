@@ -16,8 +16,10 @@ jest.mock('../utils/socket', () => ({
 const charactersRouter = require('../routes');
 const classes = require('../data/classes');
 const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
-const { emitMapUpdate, emitCombatUpdate } = require('../utils/socket');
+const { emitMapUpdate, emitCombatUpdate, emitCharacterMetadataUpdate } = require('../utils/socket');
 const { ObjectId } = require('mongodb');
+
+const CHARACTER_ID = '507f1f77bcf86cd799439011';
 
 const app = express();
 app.use(express.json());
@@ -180,6 +182,122 @@ describe('Character routes', () => {
       $set: { cp: 0, sp: 1, gp: 1, pp: 1 },
     });
     expect(res.body).toEqual({ cp: 0, sp: 1, gp: 1, pp: 1 });
+  });
+
+  test('updates temporary state and emits metadata update', async () => {
+    const findOneAndUpdate = jest.fn().mockResolvedValue({
+      value: {
+        _id: new ObjectId(CHARACTER_ID),
+        campaign: 'TestCampaign',
+        characterId: 'char-1',
+        temporarySize: 'Large',
+        temporarySpeedBonus: 10,
+      },
+    });
+
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate,
+      }),
+    });
+
+    const res = await request(app)
+      .put(`/characters/${CHARACTER_ID}/temporary-state`)
+      .send({ temporarySize: 'Large', temporarySpeedBonus: 10 });
+
+    expect(res.status).toBe(200);
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: new ObjectId(CHARACTER_ID) },
+      { $set: { temporarySize: 'Large', temporarySpeedBonus: 10 } },
+      {
+        returnDocument: 'after',
+        projection: {
+          campaign: 1,
+          characterId: 1,
+          temporarySize: 1,
+          temporarySpeedBonus: 1,
+        },
+      }
+    );
+    expect(res.body).toEqual({ temporarySize: 'Large', temporarySpeedBonus: 10 });
+    expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith('TestCampaign', {
+      characterId: 'char-1',
+      temporarySize: 'Large',
+      temporarySpeedBonus: 10,
+    });
+  });
+
+  test('clears temporary state when null values are provided', async () => {
+    const findOneAndUpdate = jest.fn().mockResolvedValue({
+      value: {
+        _id: new ObjectId(CHARACTER_ID),
+        campaign: 'TestCampaign',
+        characterId: 'char-1',
+        temporarySize: null,
+        temporarySpeedBonus: null,
+      },
+    });
+
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate,
+      }),
+    });
+
+    const res = await request(app)
+      .put(`/characters/${CHARACTER_ID}/temporary-state`)
+      .send({ temporarySize: null, temporarySpeedBonus: null });
+
+    expect(res.status).toBe(200);
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: new ObjectId(CHARACTER_ID) },
+      { $unset: { temporarySize: '', temporarySpeedBonus: '' } },
+      {
+        returnDocument: 'after',
+        projection: {
+          campaign: 1,
+          characterId: 1,
+          temporarySize: 1,
+          temporarySpeedBonus: 1,
+        },
+      }
+    );
+    expect(res.body).toEqual({ temporarySize: null, temporarySpeedBonus: null });
+    expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith('TestCampaign', {
+      characterId: 'char-1',
+      temporarySize: null,
+      temporarySpeedBonus: null,
+    });
+  });
+
+  test('rejects invalid temporary size values', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: jest.fn(),
+      }),
+    });
+
+    const res = await request(app)
+      .put(`/characters/${CHARACTER_ID}/temporary-state`)
+      .send({ temporarySize: 'Colossal' });
+
+    expect(res.status).toBe(400);
+    expect(emitCharacterMetadataUpdate).not.toHaveBeenCalled();
+  });
+
+  test('requires at least one temporary state field', async () => {
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: jest.fn(),
+      }),
+    });
+
+    const res = await request(app)
+      .put(`/characters/${CHARACTER_ID}/temporary-state`)
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(emitCharacterMetadataUpdate).not.toHaveBeenCalled();
   });
 
   test('update spells success', async () => {

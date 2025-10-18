@@ -23,7 +23,38 @@ jest.mock('react-router-dom', () => ({
 const mockCharacterInfoProps = { current: null };
 jest.mock('../attributes/CharacterInfo', () => (props) => {
   mockCharacterInfoProps.current = props;
-  return null;
+
+  if (!props) {
+    return null;
+  }
+
+  const hasFigurineSelection = Boolean(
+    props.characterFigurine?.figurineImageUrl || props.characterFigurine?.figurineImagePublicId
+  );
+
+  const figurinePreview = hasFigurineSelection ? (
+    <img
+      alt="Current figurine token"
+      src={props.characterFigurine?.figurineImageUrl || ''}
+    />
+  ) : null;
+
+  return (
+    <div>
+      {figurinePreview}
+      <button
+        type="button"
+        onClick={props.handleOpenTokenPicker}
+        disabled={props.tokenPickerSaving}
+      >
+        {props.tokenPickerSaving
+          ? 'Updating Figurine...'
+          : hasFigurineSelection
+          ? 'Change Figurine'
+          : 'Choose Figurine'}
+      </button>
+    </div>
+  );
 });
 jest.mock('../attributes/Stats', () => () => null);
 const mockSkillsModalProps = { current: null };
@@ -106,13 +137,34 @@ jest.mock('../attributes/Features', () => (props) => {
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
 
-const defaultApiFetchImplementation = (url) => {
+const defaultApiFetchImplementation = (url, options = {}) => {
   if (typeof url === 'string' && url.includes('/maps')) {
     return Promise.resolve({ ok: false, status: 404 });
   }
 
   if (typeof url === 'string' && url.includes('/map')) {
     return Promise.resolve({ ok: false, status: 404 });
+  }
+
+  if (typeof url === 'string' && url.includes('/temporary-state')) {
+    const body = { temporarySize: null, temporarySpeedBonus: null };
+    if (options && typeof options.body === 'string') {
+      try {
+        const parsed = JSON.parse(options.body);
+        body.temporarySize =
+          Object.prototype.hasOwnProperty.call(parsed, 'temporarySize')
+            ? parsed.temporarySize
+            : null;
+        body.temporarySpeedBonus =
+          Object.prototype.hasOwnProperty.call(parsed, 'temporarySpeedBonus')
+            ? parsed.temporarySpeedBonus
+            : null;
+      } catch (error) {
+        // Ignore malformed payloads in tests
+      }
+    }
+
+    return Promise.resolve({ ok: true, json: async () => body });
   }
 
   if (typeof url === 'string' && url.includes('/classes/')) {
@@ -2688,7 +2740,7 @@ test('allows selecting a figurine token through the token picker modal', async (
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2715,7 +2767,9 @@ test('allows selecting a figurine token through the token picker modal', async (
   await userEvent.click(openPickerButton);
 
   await waitFor(() => {
-    expect(apiFetch).toHaveBeenCalledWith(`/campaigns/${campaignId}/token-manifest`);
+    expect(apiFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/token-manifest`)
+    );
   });
 
   const heroTokenButton = await screen.findByRole('button', { name: /hero token/i });
@@ -2804,7 +2858,7 @@ test('allows clearing an existing figurine selection from the token picker modal
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 

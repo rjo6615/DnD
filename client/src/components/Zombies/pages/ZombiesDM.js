@@ -2029,14 +2029,32 @@ export default function ZombiesDM() {
           return;
         }
 
+        const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'diceColor'
+        );
+        const hasSizeUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'temporarySize'
+        );
+        const hasSpeedUpdate = Object.prototype.hasOwnProperty.call(
+          update,
+          'temporarySpeedBonus'
+        );
+
+        if (!hasDiceColorUpdate && !hasSizeUpdate && !hasSpeedUpdate) {
+          return;
+        }
+
         const normalizedDiceColor =
-          typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
+          hasDiceColorUpdate &&
+          typeof update.diceColor === 'string' &&
+          update.diceColor.trim() !== ''
             ? update.diceColor.trim()
             : null;
 
-        if (!normalizedDiceColor) {
-          return;
-        }
+        const sizeValue = hasSizeUpdate ? update.temporarySize : undefined;
+        const speedValue = hasSpeedUpdate ? update.temporarySpeedBonus : undefined;
 
         setRecords((prev) => {
           if (!Array.isArray(prev) || prev.length === 0) {
@@ -2061,15 +2079,63 @@ export default function ZombiesDM() {
               return record;
             }
 
-            if (
-              typeof record.diceColor === 'string' &&
-              record.diceColor.trim() === normalizedDiceColor
-            ) {
+            const nextRecord = { ...record };
+            let changed = false;
+
+            if (hasDiceColorUpdate && normalizedDiceColor) {
+              if (
+                typeof nextRecord.diceColor !== 'string' ||
+                nextRecord.diceColor.trim() !== normalizedDiceColor
+              ) {
+                nextRecord.diceColor = normalizedDiceColor;
+                changed = true;
+              }
+            }
+
+            if (hasSizeUpdate) {
+              const normalizedSize =
+                typeof sizeValue === 'string' && sizeValue.trim() !== ''
+                  ? sizeValue.trim()
+                  : null;
+              if (normalizedSize) {
+                if (nextRecord.temporarySize !== normalizedSize) {
+                  nextRecord.temporarySize = normalizedSize;
+                  changed = true;
+                }
+              } else if (
+                Object.prototype.hasOwnProperty.call(nextRecord, 'temporarySize')
+              ) {
+                delete nextRecord.temporarySize;
+                changed = true;
+              }
+            }
+
+            if (hasSpeedUpdate) {
+              let normalizedSpeed = null;
+              if (speedValue !== null && speedValue !== undefined && speedValue !== '') {
+                const parsed = Number(speedValue);
+                normalizedSpeed = Number.isFinite(parsed) ? parsed : null;
+              }
+
+              if (normalizedSpeed !== null) {
+                if (nextRecord.temporarySpeedBonus !== normalizedSpeed) {
+                  nextRecord.temporarySpeedBonus = normalizedSpeed;
+                  changed = true;
+                }
+              } else if (
+                Object.prototype.hasOwnProperty.call(nextRecord, 'temporarySpeedBonus')
+              ) {
+                delete nextRecord.temporarySpeedBonus;
+                changed = true;
+              }
+            }
+
+            if (!changed) {
               return record;
             }
 
             didUpdate = true;
-            return { ...record, diceColor: normalizedDiceColor };
+            return nextRecord;
           });
 
           return didUpdate ? next : prev;
@@ -2890,7 +2956,8 @@ export default function ZombiesDM() {
           );
 
           const recordSize = normalizeCreatureSize(
-            record.size ??
+            record.temporarySize ??
+              record.size ??
               record.characterSize ??
               record?.character?.size ??
               record?.creature?.size ??
