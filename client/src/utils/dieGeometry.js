@@ -164,6 +164,15 @@ const polyhedraDefinitions = {
   20: createIcosahedron,
 };
 
+const scaleBySides = {
+  4: 1.32,
+  6: 1.28,
+  8: 1.24,
+  10: 1.24,
+  12: 1.2,
+  20: 1.16,
+};
+
 const baseTriangleHeight = SQRT3 / 2;
 const baseTriangle = [
   [0, (2 * baseTriangleHeight) / 3, 0],
@@ -444,6 +453,30 @@ function mergeCoplanarFaces(faces, vertices) {
   });
 
   return merged;
+}
+
+export function getPolyhedronGeometry(sides) {
+  const normalized = Math.max(2, Math.round(Number(sides) || 0));
+  const factory = polyhedraDefinitions[normalized];
+
+  if (!factory) {
+    return { vertices: [], faces: [], scale: 1 };
+  }
+
+  const { vertices, faces: presetFaces } = factory();
+  const rawFaces = Array.isArray(presetFaces) && presetFaces.length
+    ? presetFaces
+    : generateConvexHullTriangles(vertices);
+
+  const faces = rawFaces
+    .map((face) => ensureFaceOrientation(face, vertices))
+    .map(({ indices }) => indices);
+
+  return {
+    vertices,
+    faces,
+    scale: scaleBySides[normalized] || 1.18,
+  };
 }
 
 const baseOrigin = baseTriangle[0];
