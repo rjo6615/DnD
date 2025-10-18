@@ -7,12 +7,123 @@ import React, {
   useState,
 } from 'react';
 
-const DICE_BOX_ASSET_PATH =
+const DEFAULT_DICE_BOX_MODULE_URL =
+  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1/dist/dice-box.esm.min.js';
+const LOCAL_DICE_BOX_MODULE_URL = '/assets/dice-box/dice-box.esm.min.js';
+const DEFAULT_DICE_BOX_ASSET_PATH =
   'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1/dist/assets/';
+const LOCAL_DICE_BOX_ASSET_PATH = '/assets/dice-box/';
 const DEFAULT_DICE_COLOR = '#3366ff';
 
 const diceBoxModuleCache = {
   promise: null,
+};
+
+const readRuntimeString = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : '';
+};
+
+const sanitizeAssetPath = (value) => {
+  const runtimeValue = readRuntimeString(value);
+  if (!runtimeValue) {
+    return '';
+  }
+
+  return runtimeValue.endsWith('/') ? runtimeValue : `${runtimeValue}/`;
+};
+
+const resolveAssetPathCandidates = (propValue) => {
+  const candidates = [];
+
+  const addCandidate = (value) => {
+    const sanitized = sanitizeAssetPath(value);
+    if (!sanitized || candidates.includes(sanitized)) {
+      return;
+    }
+    candidates.push(sanitized);
+  };
+
+  addCandidate(propValue);
+  addCandidate(process.env.REACT_APP_DICE_BOX_ASSET_PATH);
+
+  if (typeof window !== 'undefined') {
+    addCandidate(window.__DICE_BOX_ASSET_PATH__);
+  }
+
+  addCandidate(LOCAL_DICE_BOX_ASSET_PATH);
+  addCandidate(DEFAULT_DICE_BOX_ASSET_PATH);
+
+  return candidates;
+};
+
+const resolveConfiguredModuleUrls = () => {
+  const urls = [];
+  const envValue = readRuntimeString(process.env.REACT_APP_DICE_BOX_MODULE_URL);
+  if (envValue) {
+    urls.push(envValue);
+  }
+
+  if (typeof window !== 'undefined') {
+    const windowValue = readRuntimeString(window.__DICE_BOX_MODULE_URL__);
+    if (windowValue) {
+      urls.push(windowValue);
+    }
+  }
+
+  urls.push(LOCAL_DICE_BOX_MODULE_URL);
+
+  return urls;
+};
+
+const resolveGlobalDiceBoxCtor = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const ctor = window.DiceBox || window.diceBox || null;
+  return typeof ctor === 'function' ? ctor : null;
+};
+
+const loadExternalModule = async (url) =>
+  import(/* webpackIgnore: true */ url);
+
+const loadDiceBoxModuleFromSources = async () => {
+  const globalCtor = resolveGlobalDiceBoxCtor();
+  if (globalCtor) {
+    return { DiceBox: globalCtor, default: globalCtor };
+  }
+
+  const urls = [
+    ...new Set([
+      ...resolveConfiguredModuleUrls(),
+      DEFAULT_DICE_BOX_MODULE_URL,
+    ]),
+  ];
+
+  for (const url of urls) {
+    try {
+      const module = await loadExternalModule(url);
+      if (module) {
+        return module;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to load DiceBox module from ${url}`, error);
+    }
+  }
+
+  const attemptedSources = urls
+    .map((url) => `- ${url}`)
+    .join('\n');
+
+  throw new Error(
+    `Unable to load DiceBox module from the available sources.\nAttempted sources:\n${attemptedSources}`
+  );
 };
 
 const normalizeColor = (value) => {
@@ -76,8 +187,11 @@ const loadDiceBoxModule = async () => {
     return diceBoxModuleCache.promise;
   }
 
-  diceBoxModuleCache.promise = import(
-    /* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1/dist/dice-box.esm.min.js'
+  diceBoxModuleCache.promise = loadDiceBoxModuleFromSources().catch(
+    (error) => {
+      diceBoxModuleCache.promise = null;
+      throw error;
+    }
   );
 
   return diceBoxModuleCache.promise;
@@ -90,7 +204,7 @@ const DiceBoxCanvas = forwardRef(
       style = {},
       diceColor,
       onReadyChange = () => {},
-      assetPath = DICE_BOX_ASSET_PATH,
+      assetPath,
       onRollComplete,
     },
     ref
@@ -106,6 +220,16 @@ const DiceBoxCanvas = forwardRef(
     const normalizedColor = useMemo(
       () => normalizeColor(diceColor),
       [diceColor]
+    );
+
+    const assetPathCandidates = useMemo(
+      () => resolveAssetPathCandidates(assetPath),
+      [assetPath]
+    );
+
+    const assetPathKey = useMemo(
+      () => assetPathCandidates.join('|'),
+      [assetPathCandidates]
     );
 
     useEffect(() => {
@@ -139,7 +263,6 @@ const DiceBoxCanvas = forwardRef(
 
           const selector = `#${elementId}`;
           const baseOptions = {
-            assetPath,
             theme: 'default',
             scale: 9,
             throwForce: 6,
@@ -150,39 +273,38 @@ const DiceBoxCanvas = forwardRef(
             container: target,
           };
 
-          let diceBoxInstance = null;
+          const constructDiceBox = (options) => {
+            const instantiationAttempts = [
+              () => new DiceBoxCtor(selector, options),
+              () => new DiceBoxCtor(target, options),
+              () =>
+                new DiceBoxCtor({
+                  ...options,
+                  element: target,
+                  target,
+                }),
+            ];
 
-          const instantiationAttempts = [
-            () => new DiceBoxCtor(selector, baseOptions),
-            () => new DiceBoxCtor(target, baseOptions),
-            () =>
-              new DiceBoxCtor({
-                ...baseOptions,
-                element: target,
-                target,
-              }),
-          ];
-          let lastInstantiationError = null;
-
-          for (const attempt of instantiationAttempts) {
-            try {
-              diceBoxInstance = attempt();
-              if (diceBoxInstance) {
-                break;
+            let lastInstantiationError = null;
+            for (const attempt of instantiationAttempts) {
+              try {
+                const instance = attempt();
+                if (instance) {
+                  return instance;
+                }
+              } catch (attemptError) {
+                lastInstantiationError = attemptError;
               }
-            } catch (attemptError) {
-              diceBoxInstance = null;
-              lastInstantiationError = attemptError;
             }
-          }
 
-          if (!diceBoxInstance) {
+            const finalOptions = {
+              ...options,
+              element: selector,
+              target: selector,
+            };
+
             try {
-              diceBoxInstance = new DiceBoxCtor({
-                ...baseOptions,
-                element: selector,
-                target: selector,
-              });
+              return new DiceBoxCtor(finalOptions);
             } catch (finalError) {
               // eslint-disable-next-line no-console
               console.error(
@@ -192,22 +314,45 @@ const DiceBoxCanvas = forwardRef(
               );
               throw finalError;
             }
+          };
+
+          let lastInitializationError = null;
+
+          for (const candidatePath of assetPathCandidates) {
+            let diceBoxInstance = null;
+            try {
+              diceBoxInstance = constructDiceBox({
+                ...baseOptions,
+                assetPath: candidatePath,
+              });
+
+              if (typeof diceBoxInstance.init === 'function') {
+                await diceBoxInstance.init();
+              }
+
+              if (cancelled) {
+                diceBoxInstance.destroy?.();
+                return;
+              }
+
+              diceBoxRef.current = diceBoxInstance;
+              setIsReady(true);
+              onReadyChange(true);
+              return;
+            } catch (candidateError) {
+              lastInitializationError = candidateError;
+              if (diceBoxInstance) {
+                diceBoxInstance.destroy?.();
+              }
+              // eslint-disable-next-line no-console
+              console.error(
+                `Failed to initialize DiceBox with asset path "${candidatePath}"`,
+                candidateError
+              );
+            }
           }
 
-          diceBoxRef.current = diceBoxInstance;
-
-          if (typeof diceBoxInstance.init === 'function') {
-            await diceBoxInstance.init();
-          }
-
-          if (cancelled) {
-            diceBoxInstance.destroy?.();
-            diceBoxRef.current = null;
-            return;
-          }
-
-          setIsReady(true);
-          onReadyChange(true);
+          throw lastInitializationError || new Error('Unable to initialize DiceBox');
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error('Failed to initialize DiceBox', error);
@@ -226,7 +371,7 @@ const DiceBoxCanvas = forwardRef(
           diceBoxRef.current = null;
         }
       };
-    }, [assetPath, elementId, onReadyChange]);
+    }, [assetPathKey, elementId, onReadyChange]);
 
     useEffect(() => {
       if (!containerRef.current) {

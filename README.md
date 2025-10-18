@@ -26,6 +26,12 @@ Example gif is listed below:
 
 Run `npm run build` to generate the production build of the client. The `npm start` script runs this build step before launching the server so deployments always serve the latest assets from `client/build`.
 
+### Dice Box assets
+
+The 3D dice roller can operate fully offline once you mirror the Dice Box module
+and textures. See [`docs/dice-box.md`](docs/dice-box.md) for instructions on
+downloading and configuring the assets locally.
+
 ## Database Indexes
 
 The server ensures critical MongoDB indexes at startup so common lookups stay performant:
