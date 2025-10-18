@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const CDN_ASSET_PATH = 'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/';
+const CDN_ASSET_PATHS = [
+  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/assets/',
+  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/',
+];
 const DEFAULT_THROW_FORCE = 2.6;
 
 const normalizeDiceColor = (value) => {
@@ -62,7 +65,21 @@ async function loadDiceBoxModule() {
 }
 
 async function createDiceBoxInstance(DiceBoxCtor, target, assetPath) {
-  const instance = new DiceBoxCtor(target, {
+  const resolvedTarget =
+    typeof Element !== 'undefined' && target instanceof Element
+      ? target
+      : typeof target === 'object' && target !== null && 'current' in target
+      ? target.current
+      : null;
+
+  const targetElement =
+    typeof Element !== 'undefined' && resolvedTarget instanceof Element ? resolvedTarget : null;
+
+  if (!targetElement) {
+    throw new Error('DiceBox target element unavailable.');
+  }
+
+  const instance = new DiceBoxCtor(targetElement, {
     assetPath,
     theme: 'default',
     sounds: false,
@@ -106,11 +123,14 @@ const useDiceBox = ({ color } = {}) => {
         }
 
         const publicUrl = typeof process !== 'undefined' ? process.env?.PUBLIC_URL : undefined;
-        const localAssetPath = `${publicUrl || ''}/dice-box`;
-        const normalizedLocalAssetPath = localAssetPath
-          ? `${localAssetPath.replace(/\/$/, '')}/`
-          : null;
-        const assetCandidates = [CDN_ASSET_PATH, normalizedLocalAssetPath].filter(Boolean);
+        const baseLocalAssetPath = `${publicUrl || ''}/dice-box`;
+        const localAssetCandidates = [
+          `${baseLocalAssetPath}/assets/`,
+          `${baseLocalAssetPath}/`,
+        ]
+          .map((candidate) => (candidate ? `${candidate.replace(/\/?$/, '')}/` : null))
+          .filter(Boolean);
+        const assetCandidates = [...CDN_ASSET_PATHS, ...localAssetCandidates];
 
         let lastError;
 
@@ -119,6 +139,7 @@ const useDiceBox = ({ color } = {}) => {
             diceBoxInstance = await createDiceBoxInstance(DiceBoxCtor, target, assetPath);
             break;
           } catch (error) {
+            console.warn('DiceBox init failed for asset path', assetPath, error);
             lastError = error;
             if (diceBoxInstance && typeof diceBoxInstance.destroy === 'function') {
               diceBoxInstance.destroy();
