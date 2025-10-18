@@ -234,6 +234,12 @@ const useDiceBox = ({ color } = {}) => {
         return;
       }
 
+      const { width, height } = target.getBoundingClientRect();
+      if ((width === 0 || height === 0) && !cancelled) {
+        frame = requestAnimationFrame(initialize);
+        return;
+      }
+
       try {
         const module = await loadDiceBoxModule();
         const DiceBoxCtor = module?.DiceBox || module?.default;
@@ -256,6 +262,13 @@ const useDiceBox = ({ color } = {}) => {
         for (const assetPath of assetCandidates) {
           try {
             diceBoxInstance = await createDiceBoxInstance(DiceBoxCtor, target, assetPath);
+            if (typeof diceBoxInstance?.resize === 'function') {
+              try {
+                diceBoxInstance.resize();
+              } catch (resizeError) {
+                console.warn('DiceBox resize after init failed', resizeError);
+              }
+            }
             break;
           } catch (error) {
             console.warn('DiceBox init failed for asset path', assetPath, error);
