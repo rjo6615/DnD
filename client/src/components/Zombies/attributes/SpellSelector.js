@@ -83,6 +83,18 @@ const createEmptyStatMap = () => ({
   cha: 0,
 });
 
+const normalizeClassName = (value) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+const spellSupportsClass = (spell, className) => {
+  const normalized = normalizeClassName(className);
+  if (!normalized) {
+    return false;
+  }
+  const classes = Array.isArray(spell?.classes) ? spell.classes : [];
+  return classes.some((cls) => normalizeClassName(cls) === normalized);
+};
+
 const aggregateStatEffects = (entries) =>
   (Array.isArray(entries) ? entries : []).reduce(
     (acc, el) => {
@@ -366,7 +378,7 @@ export default function SpellSelector({
   function spellsForClass(cls) {
     return Object.values(allSpells).filter(
       (spell) =>
-        spell.classes.includes(cls) &&
+        spellSupportsClass(spell, cls) &&
         spell.level === Number(selectedLevels[cls])
     );
   }
@@ -382,7 +394,7 @@ export default function SpellSelector({
       const count = selectedSpells.reduce((sum, spellName) => {
         const info = Object.values(allSpells).find((s) => s.name === spellName);
         return info &&
-          info.classes.includes(name) &&
+          spellSupportsClass(info, name) &&
           (selectedLevel === 0 ? info.level === 0 : info.level > 0)
           ? sum + 1
           : sum;
@@ -499,7 +511,7 @@ export default function SpellSelector({
         const count = spells.reduce((acc, spellName) => {
           const info = Object.values(allSpells).find((s) => s.name === spellName);
           return info &&
-            info.classes.includes(name) &&
+            spellSupportsClass(info, name) &&
             (selectedLevel === 0 ? info.level === 0 : info.level > 0)
             ? acc + 1
             : acc;
