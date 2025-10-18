@@ -89,7 +89,10 @@ const useDiceBox = ({ color } = {}) => {
 
         const publicUrl = typeof process !== 'undefined' ? process.env?.PUBLIC_URL : undefined;
         const localAssetPath = `${publicUrl || ''}/dice-box`;
-        const assetCandidates = [localAssetPath, CDN_ASSET_PATH].filter(Boolean);
+        const normalizedLocalAssetPath = localAssetPath
+          ? `${localAssetPath.replace(/\/$/, '')}/`
+          : null;
+        const assetCandidates = [normalizedLocalAssetPath, CDN_ASSET_PATH].filter(Boolean);
 
         let lastError;
 
