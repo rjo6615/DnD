@@ -9,6 +9,10 @@ const CDN_MODULE_CANDIDATES = [
   `${CDN_BASE_URL}/dice-box.es.js`,
 ];
 const DEFAULT_THROW_FORCE = 2.6;
+const DEFAULT_FALLBACK_COLOR = '#2a52be';
+const SIMPLE_STAGE_CLASS = 'damage-roller__dice-stage--simple';
+const SIMPLE_CONTAINER_CLASS = 'damage-roller__simple-container';
+const SIMPLE_DIE_CLASS = 'damage-roller__simple-die';
 
 const normalizeDiceColor = (value) => {
   if (typeof value !== 'string') {
@@ -50,6 +54,165 @@ const mapDiceToEntries = (diceDetails = []) => {
 };
 
 const scriptLoaders = new Map();
+
+const parseNotationToEntries = (notation) => {
+  if (typeof notation !== 'string') {
+    return [];
+  }
+
+  const entries = [];
+  const pattern = /(\d*)d(\d+)/gi;
+  let match = pattern.exec(notation);
+
+  while (match) {
+    const qty = match[1] ? Number(match[1]) : 1;
+    const sides = Number(match[2]);
+    if (Number.isFinite(qty) && qty > 0 && Number.isFinite(sides) && sides > 1) {
+      entries.push({ type: `d${Math.round(sides)}`, qty: Math.round(qty) });
+    }
+    match = pattern.exec(notation);
+  }
+
+  return entries;
+};
+
+const expandEntriesToResults = (entries = [], forcedResults = null) => {
+  const results = [];
+  let forcedIndex = 0;
+  const normalizedForced = Array.isArray(forcedResults)
+    ? forcedResults.map((value) => Number(value)).filter((value) => Number.isFinite(value))
+    : null;
+
+  entries.forEach((entry) => {
+    const qty = Number.isFinite(entry?.qty) ? Math.max(0, Math.round(entry.qty)) : 0;
+    const typeMatch = typeof entry?.type === 'string' ? /d(\d+)/i.exec(entry.type) : null;
+    const sides = typeMatch ? Number(typeMatch[1]) : Number(entry?.sides);
+    if (!Number.isFinite(sides) || sides <= 1 || qty === 0) {
+      return;
+    }
+
+    for (let index = 0; index < qty; index += 1) {
+      let value = Array.isArray(entry?.values) ? Number(entry.values[index]) : null;
+      if (!Number.isFinite(value) && normalizedForced && forcedIndex < normalizedForced.length) {
+        value = normalizedForced[forcedIndex];
+        forcedIndex += 1;
+      }
+      if (!Number.isFinite(value)) {
+        value = Math.floor(Math.random() * sides) + 1;
+      }
+      if (Number.isFinite(value)) {
+        results.push({ value, sides });
+      }
+    }
+  });
+
+  return results;
+};
+
+const createSimpleDiceBox = (target) => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const stageElement =
+    typeof Element !== 'undefined' && target instanceof Element
+      ? target
+      : typeof target === 'object' && target !== null && 'current' in target
+      ? target.current
+      : null;
+
+  if (!stageElement || !(stageElement instanceof Element)) {
+    return null;
+  }
+
+  const container = document.createElement('div');
+  container.className = SIMPLE_CONTAINER_CLASS;
+  stageElement.appendChild(container);
+  stageElement.classList.add(SIMPLE_STAGE_CLASS);
+  stageElement.dataset.simpleDiceBox = 'true';
+
+  let currentColor = DEFAULT_FALLBACK_COLOR;
+  const preferences = { theme: { primary: currentColor, foreground: currentColor } };
+  const config = { theme: { primary: currentColor, foreground: currentColor } };
+
+  const applyColor = (color) => {
+    const normalized = typeof color === 'string' && color.trim() !== '' ? color.trim() : null;
+    currentColor = normalized || DEFAULT_FALLBACK_COLOR;
+    stageElement.style.setProperty('--dice-box-primary-color', currentColor);
+    container.style.setProperty('--simple-dice-box-color', currentColor);
+    preferences.theme = {
+      ...(preferences.theme || {}),
+      primary: currentColor,
+      foreground: currentColor,
+    };
+    config.theme = {
+      ...(config.theme || {}),
+      primary: currentColor,
+      foreground: currentColor,
+    };
+  };
+
+  applyColor(DEFAULT_FALLBACK_COLOR);
+
+  const clear = () => {
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+  };
+
+  const roll = async (input, options = {}) => {
+    const entries = Array.isArray(input) ? input : parseNotationToEntries(input);
+    const results = expandEntriesToResults(entries, options?.result);
+
+    clear();
+
+    if (results.length === 0) {
+      return undefined;
+    }
+
+    results.forEach(({ value, sides }) => {
+      const die = document.createElement('div');
+      die.className = SIMPLE_DIE_CLASS;
+      die.textContent = Number(value).toString();
+      die.dataset.sides = `d${Number(sides)}`;
+      container.appendChild(die);
+    });
+
+    return { values: results.map((result) => result.value), entries: results };
+  };
+
+  const destroy = () => {
+    clear();
+    if (container.parentNode === stageElement) {
+      stageElement.removeChild(container);
+    }
+    stageElement.classList.remove(SIMPLE_STAGE_CLASS);
+    stageElement.style.removeProperty('--dice-box-primary-color');
+    container.style.removeProperty('--simple-dice-box-color');
+    delete stageElement.dataset.simpleDiceBox;
+  };
+
+  const updateTheme = (theme = {}) => {
+    if (typeof theme?.primary === 'string') {
+      applyColor(theme.primary);
+    } else if (typeof theme?.foreground === 'string') {
+      applyColor(theme.foreground);
+    }
+  };
+
+  return {
+    init: async () => {},
+    show: () => {},
+    clear,
+    roll,
+    resize: () => {},
+    destroy,
+    updateConfig: ({ theme } = {}) => updateTheme(theme),
+    setDiceColor: (color) => applyColor(color),
+    preferences,
+    config,
+  };
+};
 
 function loadScriptOnce(url) {
   if (scriptLoaders.has(url)) {
@@ -302,6 +465,14 @@ const useDiceBox = ({ color } = {}) => {
         setIsReady(true);
       } catch (error) {
         console.error('Failed to initialize 3D dice roller', error);
+        if (!cancelled) {
+          diceBoxInstance = createSimpleDiceBox(target);
+          if (diceBoxInstance) {
+            diceBoxRef.current = diceBoxInstance;
+            setIsReady(true);
+            return;
+          }
+        }
       }
     };
 
