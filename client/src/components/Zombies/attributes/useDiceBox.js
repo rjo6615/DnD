@@ -4,6 +4,10 @@ const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 const CDN_BASE_URL = 'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist';
 const CDN_ASSET_PATHS = [`${CDN_BASE_URL}/assets/`, `${CDN_BASE_URL}/`];
 const CDN_SCRIPT_URL = `${CDN_BASE_URL}/dice-box.min.js`;
+const CDN_MODULE_CANDIDATES = [
+  `${CDN_BASE_URL}/dice-box.es.min.js`,
+  `${CDN_BASE_URL}/dice-box.es.js`,
+];
 const DEFAULT_THROW_FORCE = 2.6;
 
 const normalizeDiceColor = (value) => {
@@ -124,19 +128,46 @@ async function loadDiceBoxFromCdnScript() {
 
 let diceBoxModulePromise = null;
 
+async function importDiceBoxFromCdnModule() {
+  let lastError;
+  for (const url of CDN_MODULE_CANDIDATES) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const module = await import(/* webpackIgnore: true */ url);
+      if (module?.DiceBox || module?.default) {
+        return module;
+      }
+      lastError = new Error('DiceBox CDN module did not provide an export.');
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error('Unable to import DiceBox from CDN module candidates.');
+}
+
 async function loadDiceBoxModule() {
   if (!diceBoxModulePromise) {
     diceBoxModulePromise = (async () => {
       try {
         return await import('@3d-dice/dice-box');
       } catch (localError) {
-        console.warn('Failed to load local DiceBox bundle, falling back to CDN', localError);
+        console.warn('Failed to load local DiceBox bundle, attempting CDN module', localError);
         try {
-          return await loadDiceBoxFromCdnScript();
+          return await importDiceBoxFromCdnModule();
         } catch (cdnError) {
-          const error = new Error('Unable to load DiceBox from both local package and CDN.');
-          error.cause = cdnError;
-          throw error;
+          console.warn('DiceBox CDN module import failed, attempting script fallback', cdnError);
+          try {
+            return await loadDiceBoxFromCdnScript();
+          } catch (cdnScriptError) {
+            const error = new Error('Unable to load DiceBox from local package, CDN module, or CDN script.');
+            error.cause = cdnScriptError;
+            throw error;
+          }
         }
       }
     })();
@@ -169,6 +200,13 @@ async function createDiceBoxInstance(DiceBoxCtor, target, assetPath) {
   });
   if (typeof instance?.init === 'function') {
     await instance.init();
+  }
+  if (typeof instance?.show === 'function') {
+    try {
+      instance.show();
+    } catch (error) {
+      console.warn('DiceBox show call failed', error);
+    }
   }
   return instance;
 }
