@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const CDN_ASSET_PATHS = [
-  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/assets/',
-  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/',
-];
+const CDN_BASE_URL = 'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist';
+const CDN_ASSET_PATHS = [`${CDN_BASE_URL}/assets/`, `${CDN_BASE_URL}/`];
+const CDN_SCRIPT_URL = `${CDN_BASE_URL}/dice-box.min.js`;
 const DEFAULT_THROW_FORCE = 2.6;
 
 const normalizeDiceColor = (value) => {
@@ -46,22 +45,104 @@ const mapDiceToEntries = (diceDetails = []) => {
   return entries;
 };
 
-async function loadDiceBoxModule() {
-  try {
-    return await import('@3d-dice/dice-box');
-  } catch (localError) {
-    console.warn('Failed to load local DiceBox bundle, falling back to CDN', localError);
-    try {
-      return await import(
-        /* webpackIgnore: true */
-        'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.1.4/dist/dice-box.es.js'
-      );
-    } catch (cdnError) {
-      const error = new Error('Unable to load DiceBox from both local package and CDN.');
-      error.cause = cdnError;
-      throw error;
-    }
+const scriptLoaders = new Map();
+
+function loadScriptOnce(url) {
+  if (scriptLoaders.has(url)) {
+    return scriptLoaders.get(url);
   }
+
+  const loader = new Promise((resolve, reject) => {
+    if (typeof document === 'undefined') {
+      reject(new Error('Document unavailable when attempting to load script.'));
+      return;
+    }
+
+    const existing = Array.from(document.querySelectorAll('script')).find(
+      (script) => script.src === url
+    );
+
+    if (existing) {
+      if (existing.dataset.loaded === 'true') {
+        resolve();
+        return;
+      }
+
+      const handleLoad = () => resolve();
+      const handleError = () => reject(new Error(`Failed to load script: ${url}`));
+
+      existing.addEventListener('load', handleLoad, { once: true });
+      existing.addEventListener('error', handleError, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = url;
+    script.async = true;
+    script.dataset.loaded = 'false';
+    const handleLoad = () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    };
+    const handleError = () => {
+      reject(new Error(`Failed to load script: ${url}`));
+    };
+    script.addEventListener('load', handleLoad, { once: true });
+    script.addEventListener('error', handleError, { once: true });
+    document.head.appendChild(script);
+  }).catch((error) => {
+    scriptLoaders.delete(url);
+    throw error;
+  });
+
+  scriptLoaders.set(url, loader);
+  return loader;
+}
+
+async function loadDiceBoxFromCdnScript() {
+  if (typeof window === 'undefined') {
+    throw new Error('Window unavailable when attempting to load DiceBox from CDN script.');
+  }
+
+  await loadScriptOnce(CDN_SCRIPT_URL);
+
+  const DiceBoxGlobal =
+    typeof window.DiceBox === 'function'
+      ? window.DiceBox
+      : typeof window.DiceBox?.DiceBox === 'function'
+      ? window.DiceBox.DiceBox
+      : typeof window.DiceBox?.default === 'function'
+      ? window.DiceBox.default
+      : null;
+
+  if (typeof DiceBoxGlobal !== 'function') {
+    throw new Error('DiceBox global constructor not found after loading CDN script.');
+  }
+
+  return { DiceBox: DiceBoxGlobal, default: DiceBoxGlobal };
+}
+
+let diceBoxModulePromise = null;
+
+async function loadDiceBoxModule() {
+  if (!diceBoxModulePromise) {
+    diceBoxModulePromise = (async () => {
+      try {
+        return await import('@3d-dice/dice-box');
+      } catch (localError) {
+        console.warn('Failed to load local DiceBox bundle, falling back to CDN', localError);
+        try {
+          return await loadDiceBoxFromCdnScript();
+        } catch (cdnError) {
+          const error = new Error('Unable to load DiceBox from both local package and CDN.');
+          error.cause = cdnError;
+          throw error;
+        }
+      }
+    })();
+  }
+
+  return diceBoxModulePromise;
 }
 
 async function createDiceBoxInstance(DiceBoxCtor, target, assetPath) {
