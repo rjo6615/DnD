@@ -1854,42 +1854,9 @@ $rotateX: -$angle;
 .damage-dice-canvas {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
   pointer-events: none;
-}
-
-.damage-dice-canvas__surface {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: transparent;
-  mix-blend-mode: normal;
-}
-
-.damage-dice-canvas__labels {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  font-family: 'Courier New', monospace;
-}
-
-.damage-dice-label {
-  position: absolute;
-  min-width: 24px;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 4px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #ffffff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
-  transform: translate(-9999px, -9999px);
-  transition: opacity 0.18s ease;
-  pointer-events: none;
+  transform-style: preserve-3d;
+  overflow: visible;
 }
 
 .damage-roller__total {
