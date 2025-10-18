@@ -7,12 +7,108 @@ import React, {
   useState,
 } from 'react';
 
-const DICE_BOX_ASSET_PATH =
+const DEFAULT_DICE_BOX_MODULE_URL =
+  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1/dist/dice-box.esm.min.js';
+const DEFAULT_DICE_BOX_ASSET_PATH =
   'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1/dist/assets/';
 const DEFAULT_DICE_COLOR = '#3366ff';
 
 const diceBoxModuleCache = {
   promise: null,
+};
+
+const readRuntimeString = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : '';
+};
+
+const sanitizeAssetPath = (value) => {
+  const runtimeValue = readRuntimeString(value);
+  if (!runtimeValue) {
+    return '';
+  }
+
+  return runtimeValue.endsWith('/') ? runtimeValue : `${runtimeValue}/`;
+};
+
+const resolveDefaultAssetPath = () => {
+  const envValue = sanitizeAssetPath(process.env.REACT_APP_DICE_BOX_ASSET_PATH);
+  if (envValue) {
+    return envValue;
+  }
+
+  if (typeof window !== 'undefined') {
+    const windowValue = sanitizeAssetPath(window.__DICE_BOX_ASSET_PATH__);
+    if (windowValue) {
+      return windowValue;
+    }
+  }
+
+  return DEFAULT_DICE_BOX_ASSET_PATH;
+};
+
+const resolveConfiguredModuleUrls = () => {
+  const urls = [];
+  const envValue = readRuntimeString(process.env.REACT_APP_DICE_BOX_MODULE_URL);
+  if (envValue) {
+    urls.push(envValue);
+  }
+
+  if (typeof window !== 'undefined') {
+    const windowValue = readRuntimeString(window.__DICE_BOX_MODULE_URL__);
+    if (windowValue) {
+      urls.push(windowValue);
+    }
+  }
+
+  return urls;
+};
+
+const resolveGlobalDiceBoxCtor = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const ctor = window.DiceBox || window.diceBox || null;
+  return typeof ctor === 'function' ? ctor : null;
+};
+
+const loadExternalModule = async (url) =>
+  import(/* webpackIgnore: true */ url);
+
+const loadDiceBoxModuleFromSources = async () => {
+  const globalCtor = resolveGlobalDiceBoxCtor();
+  if (globalCtor) {
+    return { DiceBox: globalCtor, default: globalCtor };
+  }
+
+  const urls = [
+    ...new Set([...resolveConfiguredModuleUrls(), DEFAULT_DICE_BOX_MODULE_URL]),
+  ];
+
+  for (const url of urls) {
+    try {
+      const module = await loadExternalModule(url);
+      if (module) {
+        return module;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to load DiceBox module from ${url}`, error);
+    }
+  }
+
+  const attemptedSources = urls
+    .map((url) => `- ${url}`)
+    .join('\n');
+
+  throw new Error(
+    `Unable to load DiceBox module from the available sources.\nAttempted sources:\n${attemptedSources}`
+  );
 };
 
 const normalizeColor = (value) => {
@@ -76,8 +172,11 @@ const loadDiceBoxModule = async () => {
     return diceBoxModuleCache.promise;
   }
 
-  diceBoxModuleCache.promise = import(
-    /* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1/dist/dice-box.esm.min.js'
+  diceBoxModuleCache.promise = loadDiceBoxModuleFromSources().catch(
+    (error) => {
+      diceBoxModuleCache.promise = null;
+      throw error;
+    }
   );
 
   return diceBoxModuleCache.promise;
@@ -90,7 +189,7 @@ const DiceBoxCanvas = forwardRef(
       style = {},
       diceColor,
       onReadyChange = () => {},
-      assetPath = DICE_BOX_ASSET_PATH,
+      assetPath,
       onRollComplete,
     },
     ref
@@ -107,6 +206,15 @@ const DiceBoxCanvas = forwardRef(
       () => normalizeColor(diceColor),
       [diceColor]
     );
+
+    const resolvedAssetPath = useMemo(() => {
+      const sanitizedPropPath = sanitizeAssetPath(assetPath);
+      if (sanitizedPropPath) {
+        return sanitizedPropPath;
+      }
+
+      return resolveDefaultAssetPath();
+    }, [assetPath]);
 
     useEffect(() => {
       if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -139,7 +247,7 @@ const DiceBoxCanvas = forwardRef(
 
           const selector = `#${elementId}`;
           const baseOptions = {
-            assetPath,
+            assetPath: resolvedAssetPath,
             theme: 'default',
             scale: 9,
             throwForce: 6,
@@ -226,7 +334,7 @@ const DiceBoxCanvas = forwardRef(
           diceBoxRef.current = null;
         }
       };
-    }, [assetPath, elementId, onReadyChange]);
+    }, [elementId, onReadyChange, resolvedAssetPath]);
 
     useEffect(() => {
       if (!containerRef.current) {

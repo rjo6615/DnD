@@ -1344,7 +1344,12 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
               diceColor={form?.diceColor}
               onReadyChange={handleDiceBoxReadyChange}
             />
-            <div className="damage-roller__dice-fallback">
+            <div
+              className={`damage-roller__dice-fallback ${
+                isDiceBoxReady ? 'damage-roller__dice-fallback--hidden' : ''
+              }`.trim()}
+              aria-hidden={isDiceBoxReady}
+            >
               {activeDice.map((die) => {
                 const normalizedType = normalizeDamageTypeForClass(die.type);
                 const typeClass = normalizedType
