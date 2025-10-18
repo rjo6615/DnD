@@ -23,7 +23,29 @@ jest.mock('react-router-dom', () => ({
 const mockCharacterInfoProps = { current: null };
 jest.mock('../attributes/CharacterInfo', () => (props) => {
   mockCharacterInfoProps.current = props;
-  return null;
+
+  const hasSelection = Boolean(
+    props?.characterFigurine?.figurineImageUrl || props?.characterFigurine?.figurineImagePublicId
+  );
+  const buttonLabel = props?.tokenPickerSaving
+    ? 'Updating Figurine...'
+    : hasSelection
+      ? 'Change Figurine'
+      : 'Choose Figurine';
+
+  return (
+    <div data-testid="character-info-mock">
+      {hasSelection ? (
+        <img
+          src={props?.characterFigurine?.figurineImageUrl}
+          alt="Current figurine token"
+        />
+      ) : null}
+      <button type="button" onClick={props?.handleOpenTokenPicker}>
+        {buttonLabel}
+      </button>
+    </div>
+  );
 });
 jest.mock('../attributes/Stats', () => () => null);
 const mockSkillsModalProps = { current: null };
@@ -334,6 +356,104 @@ test('reapplies Large Form bonuses after persisted effects and refetch', async (
     expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
   );
   expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  window.localStorage.removeItem('zombiesActiveEffects:1');
+  window.localStorage.clear();
+});
+
+test('enlarge status effect increases size without adding speed bonus', async () => {
+  window.localStorage.clear();
+  window.localStorage.setItem(
+    'zombiesActiveEffects:1',
+    JSON.stringify([{ name: 'Enlarge' }])
+  );
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    campaign: null,
+    size: 'Medium',
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBeUndefined();
+
+  window.localStorage.removeItem('zombiesActiveEffects:1');
+  window.localStorage.clear();
+});
+
+test('enlarge increases already large creatures to huge without speed bonus', async () => {
+  window.localStorage.clear();
+  window.localStorage.setItem(
+    'zombiesActiveEffects:1',
+    JSON.stringify([{ name: 'Enlarge' }])
+  );
+
+  const baseCharacter = {
+    _id: 'character-1',
+    occupation: [],
+    spells: [],
+    str: 10,
+    dex: 10,
+    con: 10,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    startStatTotal: 60,
+    proficiencyPoints: 0,
+    skills: {},
+    item: [],
+    feat: [],
+    weapon: [],
+    armor: [],
+    campaign: null,
+    size: 'Large',
+  };
+
+  apiFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => baseCharacter,
+    });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Huge')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBeUndefined();
 
   window.localStorage.removeItem('zombiesActiveEffects:1');
   window.localStorage.clear();
@@ -2688,7 +2808,7 @@ test('allows selecting a figurine token through the token picker modal', async (
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2715,7 +2835,9 @@ test('allows selecting a figurine token through the token picker modal', async (
   await userEvent.click(openPickerButton);
 
   await waitFor(() => {
-    expect(apiFetch).toHaveBeenCalledWith(`/campaigns/${campaignId}/token-manifest`);
+    expect(apiFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/token-manifest`)
+    );
   });
 
   const heroTokenButton = await screen.findByRole('button', { name: /hero token/i });
@@ -2804,7 +2926,7 @@ test('allows clearing an existing figurine selection from the token picker modal
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
