@@ -1939,6 +1939,10 @@ $rotateX: -$angle;
   z-index: 2;
 }
 
+.damage-roller__dice-fallback--hidden {
+  display: none;
+}
+
 .damage-roller__total {
   position: relative;
   z-index: 2;
