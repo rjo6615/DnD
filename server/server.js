@@ -54,6 +54,9 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'blob:'],
+        workerSrc: ["'self'", 'blob:'],
+        childSrc: ["'self'", 'blob:'],
         connectSrc,
         imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
         mediaSrc: ["'self'", 'https:', 'data:', 'blob:'],
