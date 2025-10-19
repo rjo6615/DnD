@@ -944,6 +944,16 @@ const manualCriticalRef = useRef(false);
     return 'Attack';
   };
 
+  const diceFaceColor = useMemo(
+    () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
+    [form?.diceColor],
+  );
+
+  useEffect(() => {
+    applyDiceFaceColor(diceFaceColor);
+    setDiceBoxThemeColor(diceFaceColor);
+  }, [diceFaceColor]);
+
   const rollDamageExpression = useCallback(
     async ({
       damageString,
@@ -1321,20 +1331,10 @@ const sortedSpells = useMemo(() => {
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const [damageValue, setDamageValue] = useState(0);
-const [damageLog, setDamageLog] = useState([]);
-const [showLog, setShowLog] = useState(false);
-const [activeDice, setActiveDice] = useState([]);
-const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
-
-const diceFaceColor = useMemo(
-  () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
-  [form?.diceColor],
-);
-
-useEffect(() => {
-  applyDiceFaceColor(diceFaceColor);
-  setDiceBoxThemeColor(diceFaceColor);
-}, [diceFaceColor]);
+  const [damageLog, setDamageLog] = useState([]);
+  const [showLog, setShowLog] = useState(false);
+  const [activeDice, setActiveDice] = useState([]);
+  const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
