@@ -15,6 +15,8 @@ let diceBoxInstance = null;
 let diceBoxReady = false;
 let diceBoxFailed = false;
 let diceBoxDisabled = false;
+let workerSupportState = 'unknown';
+let workerSupportLogged = false;
 let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
@@ -118,6 +120,91 @@ const markDiceBoxFailure = ({ fatal = false } = {}) => {
   if (!fatal) {
     scheduleRetry();
   }
+};
+
+const assessWorkerSupport = () => {
+  if (workerSupportState !== 'unknown') {
+    return workerSupportState;
+  }
+
+  if (typeof window === 'undefined') {
+    workerSupportState = 'unsupported';
+    return workerSupportState;
+  }
+
+  if (typeof Worker !== 'function') {
+    workerSupportState = 'unsupported';
+    return workerSupportState;
+  }
+
+  if (typeof Blob !== 'function') {
+    workerSupportState = 'unsupported';
+    return workerSupportState;
+  }
+
+  if (typeof URL !== 'function' && (typeof URL !== 'object' || URL === null)) {
+    workerSupportState = 'unsupported';
+    return workerSupportState;
+  }
+
+  if (typeof URL.createObjectURL !== 'function' || typeof URL.revokeObjectURL !== 'function') {
+    workerSupportState = 'unsupported';
+    return workerSupportState;
+  }
+
+  try {
+    const blob = new Blob(['self.onmessage = function () {}']);
+    const url = URL.createObjectURL(blob);
+    try {
+      const testWorker = new Worker(url);
+      testWorker.terminate();
+      workerSupportState = 'available';
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    workerSupportState = isSecurityPolicyViolation(error) ? 'blocked' : 'unsupported';
+  }
+
+  if (!workerSupportLogged && workerSupportState !== 'available') {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      const message =
+        workerSupportState === 'blocked'
+          ? 'Dice box disabled: Web Worker creation is blocked by the current Content Security Policy.'
+          : 'Dice box disabled: Web Workers are not supported in this environment.';
+      console.warn(message);
+    }
+    workerSupportLogged = true;
+  }
+
+  return workerSupportState;
+};
+
+const isSecurityPolicyViolation = (error) => {
+  if (!error) {
+    return false;
+  }
+
+  const { name, message } =
+    typeof error === 'object' && error !== null
+      ? { name: error.name, message: error.message }
+      : { name: null, message: String(error) };
+
+  if (name && typeof name === 'string' && name.toLowerCase().includes('security')) {
+    return true;
+  }
+
+  if (typeof message !== 'string') {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes('content security policy') ||
+    normalized.includes('refused to create a worker') ||
+    normalized.includes('blocked a frame with origin')
+  );
 };
 
 const resolveHostReference = () => {
@@ -443,6 +530,17 @@ async function ensureDiceBox() {
     scheduleRetry();
     return null;
   }
+
+  const workerState = assessWorkerSupport();
+  if (workerState === 'blocked') {
+    markDiceBoxFailure({ fatal: true });
+    return null;
+  }
+
+  if (workerState === 'unsupported') {
+    markDiceBoxFailure({ fatal: true });
+    return null;
+  }
   if (!diceBoxPromise) {
     const initGeneration = diceBoxGeneration;
     const pending = (async () => {
@@ -493,7 +591,13 @@ async function ensureDiceBox() {
         // eslint-disable-next-line no-console
         if (diceBoxGeneration === initGeneration) {
           console.error('Dice box initialization failed', error);
-          markDiceBoxFailure();
+          const fatal =
+            isSecurityPolicyViolation(error) ||
+            (workerSupportState === 'blocked' &&
+              typeof error?.message === 'string' &&
+              error.message.toLowerCase().includes('timed out')) ||
+            workerSupportState === 'unsupported';
+          markDiceBoxFailure({ fatal });
         }
         return null;
       }
