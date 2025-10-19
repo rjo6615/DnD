@@ -77,6 +77,34 @@ const CATEGORY_COLOR_RULES = {
   },
 };
 
+const DAMAGE_TYPE_COLOR_MAP = {
+  acid: '#09ff09',
+  cold: '#00bfff',
+  fire: '#ff4500',
+  lightning: '#0026ff',
+  poison: '#c4f74e',
+  thunder: '#8a2be2',
+  force: '#ff1493',
+  necrotic: '#90cf80',
+  radiant: '#ffff99',
+  psychic: '#ba55d3',
+};
+
+export const resolveDamageTypeColor = (normalizedType) => {
+  if (typeof normalizedType !== 'string') {
+    return null;
+  }
+  const trimmed = normalizedType.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+  const hex = DAMAGE_TYPE_COLOR_MAP[trimmed];
+  if (!hex) {
+    return null;
+  }
+  return normalizeDiceColor(hex);
+};
+
 export const createDiceCategoryStyles = (color, category = 'base') => {
   const normalized = normalizeDiceColor(color) || DEFAULT_DICE_COLOR;
   const rule = CATEGORY_COLOR_RULES[category] || CATEGORY_COLOR_RULES.base;
@@ -108,5 +136,6 @@ export default {
   normalizeDiceColor,
   hexToRgba,
   createDiceCategoryStyles,
+  resolveDamageTypeColor,
   applyDiceFaceColor,
 };
