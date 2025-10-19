@@ -12,6 +12,7 @@ const weapons = {
     properties: ["light"],
     weight: 2,
     cost: "1 sp",
+    mastery: "slow",
     proficient: false,
   },
   dagger: {
@@ -21,6 +22,7 @@ const weapons = {
     properties: ["finesse", "light", "thrown (20/60)"],
     weight: 1,
     cost: "2 gp",
+    mastery: "vex",
     proficient: false,
   },
   greatclub: {
@@ -30,6 +32,7 @@ const weapons = {
     properties: ["two-handed"],
     weight: 10,
     cost: "2 sp",
+    mastery: "topple",
     proficient: false,
   },
   handaxe: {
@@ -39,6 +42,7 @@ const weapons = {
     properties: ["light", "thrown (20/60)"],
     weight: 2,
     cost: "5 gp",
+    mastery: "vex",
     proficient: false,
   },
   javelin: {
@@ -48,6 +52,7 @@ const weapons = {
     properties: ["thrown (30/120)"],
     weight: 2,
     cost: "5 sp",
+    mastery: "nick",
     proficient: false,
   },
   "light-hammer": {
@@ -57,6 +62,7 @@ const weapons = {
     properties: ["light", "thrown (20/60)"],
     weight: 2,
     cost: "2 gp",
+    mastery: "nick",
     proficient: false,
   },
   mace: {
@@ -66,6 +72,7 @@ const weapons = {
     properties: [],
     weight: 4,
     cost: "5 gp",
+    mastery: "sap",
     proficient: false,
   },
   quarterstaff: {
@@ -75,6 +82,7 @@ const weapons = {
     properties: ["versatile (1d8)"],
     weight: 4,
     cost: "2 sp",
+    mastery: "topple",
     proficient: false,
   },
   sickle: {
@@ -84,6 +92,7 @@ const weapons = {
     properties: ["light"],
     weight: 2,
     cost: "1 gp",
+    mastery: "graze",
     proficient: false,
   },
   spear: {
@@ -93,6 +102,7 @@ const weapons = {
     properties: ["thrown (20/60)", "versatile (1d8)"],
     weight: 3,
     cost: "1 gp",
+    mastery: "nick",
     proficient: false,
   },
   "light-crossbow": {
@@ -102,6 +112,7 @@ const weapons = {
     properties: ["ammunition (80/320)", "loading", "two-handed"],
     weight: 5,
     cost: "25 gp",
+    mastery: "slow",
     proficient: false,
   },
   dart: {
@@ -111,6 +122,7 @@ const weapons = {
     properties: ["finesse", "thrown (20/60)"],
     weight: 0.25,
     cost: "5 cp",
+    mastery: "vex",
     proficient: false,
   },
   shortbow: {
@@ -120,6 +132,7 @@ const weapons = {
     properties: ["ammunition (80/320)", "two-handed"],
     weight: 2,
     cost: "25 gp",
+    mastery: "vex",
     proficient: false,
   },
   sling: {
@@ -129,6 +142,7 @@ const weapons = {
     properties: ["ammunition (30/120)"],
     weight: 0,
     cost: "1 sp",
+    mastery: "vex",
     proficient: false,
   },
   battleaxe: {
@@ -138,6 +152,7 @@ const weapons = {
     properties: ["versatile (1d10)"],
     weight: 4,
     cost: "10 gp",
+    mastery: "cleave",
     proficient: false,
   },
   flail: {
@@ -147,6 +162,7 @@ const weapons = {
     properties: [],
     weight: 2,
     cost: "10 gp",
+    mastery: "topple",
     proficient: false,
   },
   glaive: {
@@ -156,6 +172,7 @@ const weapons = {
     properties: ["heavy", "reach", "two-handed"],
     weight: 6,
     cost: "20 gp",
+    mastery: "cleave",
     proficient: false,
   },
   greataxe: {
@@ -165,6 +182,7 @@ const weapons = {
     properties: ["heavy", "two-handed"],
     weight: 7,
     cost: "30 gp",
+    mastery: "cleave",
     proficient: false,
   },
   greatsword: {
@@ -174,6 +192,7 @@ const weapons = {
     properties: ["heavy", "two-handed"],
     weight: 6,
     cost: "50 gp",
+    mastery: "cleave",
     proficient: false,
   },
   halberd: {
@@ -183,6 +202,7 @@ const weapons = {
     properties: ["heavy", "reach", "two-handed"],
     weight: 6,
     cost: "20 gp",
+    mastery: "cleave",
     proficient: false,
   },
   lance: {
@@ -192,6 +212,7 @@ const weapons = {
     properties: ["reach", "special"],
     weight: 6,
     cost: "10 gp",
+    mastery: "topple",
     proficient: false,
   },
   longsword: {
@@ -201,6 +222,7 @@ const weapons = {
     properties: ["versatile (1d10)"],
     weight: 3,
     cost: "15 gp",
+    mastery: "push",
     proficient: false,
   },
   maul: {
@@ -210,6 +232,7 @@ const weapons = {
     properties: ["heavy", "two-handed"],
     weight: 10,
     cost: "10 gp",
+    mastery: "cleave",
     proficient: false,
   },
   morningstar: {
@@ -219,6 +242,7 @@ const weapons = {
     properties: [],
     weight: 4,
     cost: "15 gp",
+    mastery: "sap",
     proficient: false,
   },
   pike: {
@@ -228,6 +252,7 @@ const weapons = {
     properties: ["heavy", "reach", "two-handed"],
     weight: 18,
     cost: "5 gp",
+    mastery: "push",
     proficient: false,
   },
   rapier: {
@@ -237,6 +262,7 @@ const weapons = {
     properties: ["finesse"],
     weight: 2,
     cost: "25 gp",
+    mastery: "vex",
     proficient: false,
   },
   scimitar: {
@@ -246,6 +272,7 @@ const weapons = {
     properties: ["finesse", "light"],
     weight: 3,
     cost: "25 gp",
+    mastery: "vex",
     proficient: false,
   },
   shortsword: {
@@ -255,6 +282,7 @@ const weapons = {
     properties: ["finesse", "light"],
     weight: 2,
     cost: "10 gp",
+    mastery: "vex",
     proficient: false,
   },
   trident: {
@@ -264,6 +292,7 @@ const weapons = {
     properties: ["thrown (20/60)", "versatile (1d8)"],
     weight: 4,
     cost: "5 gp",
+    mastery: "nick",
     proficient: false,
   },
   "war-pick": {
@@ -273,6 +302,7 @@ const weapons = {
     properties: [],
     weight: 2,
     cost: "5 gp",
+    mastery: "push",
     proficient: false,
   },
   warhammer: {
@@ -282,6 +312,7 @@ const weapons = {
     properties: ["versatile (1d10)"],
     weight: 2,
     cost: "15 gp",
+    mastery: "push",
     proficient: false,
   },
   whip: {
@@ -291,6 +322,7 @@ const weapons = {
     properties: ["finesse", "reach"],
     weight: 3,
     cost: "2 gp",
+    mastery: "vex",
     proficient: false,
   },
   blowgun: {
@@ -300,6 +332,7 @@ const weapons = {
     properties: ["ammunition (25/100)", "loading"],
     weight: 1,
     cost: "10 gp",
+    mastery: "slow",
     proficient: false,
   },
   "hand-crossbow": {
@@ -309,6 +342,7 @@ const weapons = {
     properties: ["ammunition (30/120)", "light", "loading"],
     weight: 3,
     cost: "75 gp",
+    mastery: "vex",
     proficient: false,
   },
   "heavy-crossbow": {
@@ -318,6 +352,7 @@ const weapons = {
     properties: ["ammunition (100/400)", "heavy", "loading", "two-handed"],
     weight: 18,
     cost: "50 gp",
+    mastery: "slow",
     proficient: false,
   },
   longbow: {
@@ -327,6 +362,7 @@ const weapons = {
     properties: ["ammunition (150/600)", "heavy", "two-handed"],
     weight: 2,
     cost: "50 gp",
+    mastery: "vex",
     proficient: false,
   },
   net: {
@@ -336,6 +372,7 @@ const weapons = {
     properties: ["thrown (5/15)", "special"],
     weight: 3,
     cost: "1 gp",
+    mastery: "slow",
     proficient: false,
   },
 };
