@@ -22,6 +22,7 @@ let pendingThemeColor = null;
 let activeThemeColor = null;
 let warmupPromise = null;
 let retryTimeoutId = null;
+let diceBoxGeneration = 0;
 
 const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
@@ -247,6 +248,7 @@ const clearCurrentHostContainer = () => {
 };
 
 const resetInstance = () => {
+  diceBoxGeneration += 1;
   if (diceBoxInstance) {
     destroyInstance(diceBoxInstance);
   }
@@ -334,9 +336,13 @@ async function ensureDiceBox() {
     return null;
   }
   if (!diceBoxPromise) {
-    diceBoxPromise = (async () => {
+    const initGeneration = diceBoxGeneration;
+    const pending = (async () => {
       try {
         const DiceBox = await getDiceBoxConstructor();
+        if (diceBoxGeneration !== initGeneration) {
+          return null;
+        }
         const target = targetElement || selector;
         if (!target) {
           throw new Error('Dice box target was not available');
@@ -363,6 +369,10 @@ async function ensureDiceBox() {
           DICEBOX_INIT_TIMEOUT_MS,
           () => new Error('Dice box initialization timed out'),
         );
+        if (diceBoxGeneration !== initGeneration) {
+          destroyInstance(instance);
+          return null;
+        }
         diceBoxInstance = instance;
         diceBoxFailed = false;
         diceBoxDisabled = false;
@@ -372,11 +382,19 @@ async function ensureDiceBox() {
         return instance;
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('Dice box initialization failed', error);
-        markDiceBoxFailure();
+        if (diceBoxGeneration === initGeneration) {
+          console.error('Dice box initialization failed', error);
+          markDiceBoxFailure();
+        }
         return null;
       }
     })();
+    diceBoxPromise = pending;
+    pending.finally(() => {
+      if (diceBoxPromise === pending && diceBoxGeneration !== initGeneration) {
+        diceBoxPromise = null;
+      }
+    });
   }
   return diceBoxPromise;
 }
