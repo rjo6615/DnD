@@ -13,6 +13,10 @@ import {
 } from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
 import { rollDiceWithBox } from '../../utils/diceBoxManager';
+import {
+  applyDiceFaceColor,
+  normalizeDiceColor,
+} from '../../utils/diceColors';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
 
@@ -193,35 +197,6 @@ const buildItemOwnershipMap = (initialItems) => {
 
 const HEALING_DICE_REGEX = /(\d+)d(\d+)/gi;
 const HEALING_MODIFIER_REGEX = /([+-]\s*\d+)/gi;
-const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const DEFAULT_DICE_COLOR = '#000000';
-const DICE_FACE_OPACITY = 0.85;
-
-const normalizeDiceColor = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return HEX_COLOR_PATTERN.test(trimmed) ? trimmed : null;
-};
-
-const hexToRgba = (hex, opacity = DICE_FACE_OPACITY) => {
-  const normalized = normalizeDiceColor(hex) || DEFAULT_DICE_COLOR;
-  const r = parseInt(normalized.slice(1, 3), 16);
-  const g = parseInt(normalized.slice(3, 5), 16);
-  const b = parseInt(normalized.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
-
-const applyDiceFaceColor = (color) => {
-  if (typeof document === 'undefined') {
-    return;
-  }
-
-  const rgbaColor = hexToRgba(color);
-  document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-};
 
 const sanitizeHealingString = (healing) => {
   if (typeof healing !== 'string') {

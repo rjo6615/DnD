@@ -15,6 +15,11 @@ import PlayerTurnActions, {
   calculateDamage,
 } from "../attributes/PlayerTurnActions";
 import { rollDiceWithBox } from '../../../utils/diceBoxManager';
+import {
+  collectRollValues,
+  normalizeRollValue,
+  sanitizeRollGroup,
+} from '../../../utils/diceResults';
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import {
@@ -2889,18 +2894,30 @@ export default function ZombiesCharacterSheet() {
       try {
         const { rolls } = await rollDiceWithBox(requests);
         let requestIndex = 0;
+        const appliedRollGroups = [];
         const applyRolls = (count, sides) => {
           const current = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
           requestIndex += 1;
-          if (Array.isArray(current) && current.length === count) {
-            return current.map((value) => {
-              const parsed = Number(value);
-              return Number.isFinite(parsed) ? parsed : 0;
-            });
+          const normalizedGroup = sanitizeRollGroup(current, count, sides);
+          if (normalizedGroup) {
+            appliedRollGroups.push(normalizedGroup);
+            return normalizedGroup;
           }
-          return Array.from({ length: count }, () =>
-            Math.max(1, Math.floor(Math.random() * sides) + 1)
+          const resolvedSides =
+            Number.isFinite(sides) && sides > 1 ? Math.floor(sides) : 6;
+          const fallbackRolls = Array.from({ length: count }, () =>
+            Math.max(1, Math.floor(Math.random() * resolvedSides) + 1)
           );
+          const normalizedFallback = fallbackRolls
+            .map((value) => normalizeRollValue(value))
+            .filter((value) => value !== null);
+          while (normalizedFallback.length < count) {
+            normalizedFallback.push(
+              Math.max(1, Math.floor(Math.random() * resolvedSides) + 1),
+            );
+          }
+          appliedRollGroups.push(normalizedFallback);
+          return normalizedFallback;
         };
 
         const finalResult = calculateDamage(
@@ -2912,14 +2929,8 @@ export default function ZombiesCharacterSheet() {
           levelsAbove,
         );
 
-        const rollValues = Array.isArray(rolls)
-          ? rolls
-              .flat()
-              .map((value) => {
-                const parsed = Number(value);
-                return Number.isFinite(parsed) ? parsed : 0;
-              })
-          : undefined;
+        const appliedValues = collectRollValues(appliedRollGroups);
+        const rollValues = appliedValues.length > 0 ? appliedValues : undefined;
 
         return finalResult ? { ...finalResult, rollValues } : null;
       } catch (error) {
