@@ -501,6 +501,8 @@ export const subscribeToDiceBoxAvailability = (listener) => {
 
 export const isDiceBoxReady = () => diceBoxReady;
 
+export const hasDiceBoxFailed = () => diceBoxFailed;
+
 export const warmupDiceBox = () => {
   if (diceBoxInstance) {
     return Promise.resolve(diceBoxInstance);
@@ -627,6 +629,7 @@ export default {
   registerDiceBoxContainer,
   subscribeToDiceBoxAvailability,
   isDiceBoxReady,
+  hasDiceBoxFailed,
   rollDiceWithBox,
   setDiceBoxThemeColor,
 };
