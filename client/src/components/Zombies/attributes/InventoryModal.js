@@ -145,6 +145,7 @@ export default function InventoryModal({
               ownedOnly
               onChange={onItemsChange}
               onClose={handleItemListClose}
+              diceColor={form?.diceColor}
             />
           ),
       },
