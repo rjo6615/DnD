@@ -342,17 +342,22 @@ export default function Skills({
     const skillLabel = skill?.label || skill?.name || skillKey;
     const armorPenalty = skill?.armorPenalty || 0;
     const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
+    const proficiencyValue = profBonus * (expertise ? 2 : proficient ? 1 : 0);
     const bonus =
       modMap[ability] +
-      profBonus * (expertise ? 2 : proficient ? 1 : 0) +
+      proficiencyValue +
       penalty +
       itemTotals[skillKey] +
       featTotals[skillKey] +
       raceTotals[skillKey];
-    const { result, d20 } = await rollSkillWithDiceBox(bonus);
     const abilityLabel =
       ABILITY_LABELS[ability] || ability?.toUpperCase?.() || ability || 'Ability';
-    const proficiencyValue = profBonus * (expertise ? 2 : proficient ? 1 : 0);
+
+    if (!isDocked) {
+      handleCloseSkill?.();
+    }
+
+    const { result, d20 } = await rollSkillWithDiceBox(bonus);
     const breakdownParts = [`${d20} (d20)`];
 
     const segments = [
@@ -393,10 +398,6 @@ export default function Skills({
         },
       })
     );
-
-    if (!isDocked) {
-      handleCloseSkill?.();
-    }
   };
 
   const handleView = (skill) => {
