@@ -701,7 +701,9 @@ function bigMaff() {
   );
 
   if (startingHealth !== null) {
-    updateForm({ health: startingHealth, tempHealth: startingHealth });
+    const baseHitDie = Number(normalizedOcc.Health);
+    const baseHealth = Number.isFinite(baseHitDie) ? baseHitDie : startingHealth;
+    updateForm({ health: baseHealth, tempHealth: startingHealth });
   } else {
     const conModValue = Math.floor(((Number(randomCon) || 0) - 10) / 2);
     const baseHitDie = Number(normalizedOcc.Health) || 0;
@@ -722,7 +724,8 @@ function bigMaff() {
     );
 
     if (startingHealth !== null) {
-      baseCharacter.health = startingHealth;
+      const baseHitDie = Number(primaryOccupation?.Health);
+      baseCharacter.health = Number.isFinite(baseHitDie) ? baseHitDie : startingHealth;
       baseCharacter.tempHealth = startingHealth;
     }
 
