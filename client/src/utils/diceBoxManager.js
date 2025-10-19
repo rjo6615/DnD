@@ -120,6 +120,33 @@ const markDiceBoxFailure = ({ fatal = false } = {}) => {
   }
 };
 
+const isSecurityPolicyViolation = (error) => {
+  if (!error) {
+    return false;
+  }
+
+  const { name, message } =
+    typeof error === 'object' && error !== null
+      ? { name: error.name, message: error.message }
+      : { name: null, message: String(error) };
+
+  if (name && typeof name === 'string' && name.toLowerCase().includes('security')) {
+    return true;
+  }
+
+  if (typeof message !== 'string') {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes('content security policy') ||
+    normalized.includes('refused to create a worker') ||
+    normalized.includes('blocked a frame with origin')
+  );
+};
+
 const resolveHostReference = () => {
   if (!hostElement) {
     return null;
@@ -493,7 +520,7 @@ async function ensureDiceBox() {
         // eslint-disable-next-line no-console
         if (diceBoxGeneration === initGeneration) {
           console.error('Dice box initialization failed', error);
-          markDiceBoxFailure();
+          markDiceBoxFailure({ fatal: isSecurityPolicyViolation(error) });
         }
         return null;
       }
