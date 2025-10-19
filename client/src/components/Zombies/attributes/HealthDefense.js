@@ -314,7 +314,7 @@ return (
     >
       <input
         type="range"
-        min="-10"
+        min="0"
         max={sliderMax}
         value={healthValue}
         onChange={handleBarChange}
