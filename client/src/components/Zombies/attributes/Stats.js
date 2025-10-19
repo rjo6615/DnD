@@ -93,16 +93,12 @@ export default function Stats({
   );
 
   const breakdowns = Object.keys(stats).reduce((acc, key) => {
-    const statValueRaw = Number(stats[key]);
-    const statValue = Number.isNaN(statValueRaw) ? 0 : statValueRaw;
-    const cls = Number(classBonus[key] || 0);
+    const base = stats[key] - classBonus[key];
     const race = Number(raceBonus[key] || 0);
-    const feat = Number(totalFeatBonus[key] || 0);
-    const item = Number(totalItemBonus[key] || 0);
-    const baseValue = statValue - (cls + race + feat + item);
-    const sanitizedBase = Number.isFinite(baseValue) ? baseValue : 0;
-    const base = Object.is(sanitizedBase, -0) ? 0 : sanitizedBase;
-    const totalWithoutOverride = statValue;
+    const feat = totalFeatBonus[key];
+    const item = totalItemBonus[key];
+    const cls = classBonus[key];
+    const totalWithoutOverride = base + cls + race + feat + item;
     const overrideValue = itemOverrides[key];
     const breakdown = {
       base,
