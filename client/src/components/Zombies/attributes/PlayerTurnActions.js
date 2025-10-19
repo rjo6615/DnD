@@ -16,6 +16,7 @@ import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkill } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
+import { rollDiceWithBox } from '../../../utils/diceBoxManager';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -799,19 +800,116 @@ const manualCriticalRef = useRef(false);
     return 'Attack';
   };
 
-  const handleWeaponAttack = (slot, weapon) => {
-    const ability = abilityForWeapon(weapon, slot);
-    const damageString = getDamageStringForHandSelection(slot, weapon);
-    if (typeof damageString !== 'string' || !damageString.trim()) return;
-    const result = calculateDamage(damageString, ability, isCritical);
-    if (!result) return;
-    updateDamageValueWithAnimation(
-      result.total,
-      result.breakdown,
-      weapon.name,
-      { diceRolls: result.diceRolls }
-    );
-  };
+  const rollDamageExpression = useCallback(
+    async ({
+      damageString,
+      ability = 0,
+      crit = false,
+      extraDice,
+      levelsAbove = 0,
+    }) => {
+      if (typeof damageString !== 'string') return null;
+      const trimmed = damageString.trim();
+      if (!trimmed) return null;
+
+      const requests = [];
+      const validation = calculateDamage(
+        trimmed,
+        ability,
+        crit,
+        (count, sides) => {
+          requests.push({ count, sides });
+          return Array(count).fill(1);
+        },
+        extraDice,
+        levelsAbove,
+      );
+
+      if (!validation) {
+        return null;
+      }
+
+      if (requests.length === 0) {
+        const staticResult = calculateDamage(
+          trimmed,
+          ability,
+          crit,
+          rollDice,
+          extraDice,
+          levelsAbove,
+        );
+        return staticResult ? { ...staticResult, rollValues: undefined } : null;
+      }
+
+      try {
+        const { rolls } = await rollDiceWithBox(requests);
+        let requestIndex = 0;
+        const applyRolls = (count, sides) => {
+          const current = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
+          requestIndex += 1;
+          if (Array.isArray(current) && current.length === count) {
+            return current.map((value) => {
+              const parsed = Number(value);
+              return Number.isFinite(parsed) ? parsed : 0;
+            });
+          }
+          return rollDice(count, sides);
+        };
+
+        const finalResult = calculateDamage(
+          trimmed,
+          ability,
+          crit,
+          applyRolls,
+          extraDice,
+          levelsAbove,
+        );
+
+        const rollValues = Array.isArray(rolls)
+          ? rolls
+              .flat()
+              .map((value) => {
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+              })
+          : undefined;
+
+        return finalResult ? { ...finalResult, rollValues } : null;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Damage roll failed', error);
+        const fallbackResult = calculateDamage(
+          trimmed,
+          ability,
+          crit,
+          rollDice,
+          extraDice,
+          levelsAbove,
+        );
+        return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
+      }
+    },
+    [rollDiceWithBox],
+  );
+
+  const handleWeaponAttack = useCallback(
+    async (slot, weapon) => {
+      const ability = abilityForWeapon(weapon, slot);
+      const damageString = getDamageStringForHandSelection(slot, weapon);
+      if (typeof damageString !== 'string' || !damageString.trim()) return;
+      const result = await rollDamageExpression({
+        damageString,
+        ability,
+        crit: isCritical,
+      });
+      if (!result) return;
+      updateDamageValueWithAnimation(result.total, result.breakdown, weapon.name, {
+        diceRolls: result.diceRolls,
+        rollValues: result.rollValues,
+      });
+    },
+    [abilityForWeapon, getDamageStringForHandSelection, isCritical, rollDamageExpression],
+  );
 
   const handleWeaponAttackRoll = (slot, weapon) => {
     const rawBonus = Number(getAttackBonus(slot, weapon));
@@ -845,27 +943,30 @@ const manualCriticalRef = useRef(false);
     );
   };
 
-  const handleBreathWeaponAttack = () => {
+  const handleBreathWeaponAttack = useCallback(async () => {
     if (!breathWeaponDetails) return;
-    const result = calculateDamage(breathWeaponDetails.damageString, 0, false);
+    const result = await rollDamageExpression({
+      damageString: breathWeaponDetails.damageString,
+      ability: 0,
+      crit: false,
+    });
     if (!result) return;
-    updateDamageValueWithAnimation(
-      result.total,
-      result.breakdown,
-      'Breath Weapon',
-      { diceRolls: result.diceRolls }
-    );
-  };
+    updateDamageValueWithAnimation(result.total, result.breakdown, 'Breath Weapon', {
+      diceRolls: result.diceRolls,
+      rollValues: result.rollValues,
+    });
+  }, [breathWeaponDetails, rollDamageExpression]);
 
 const [showUpcast, setShowUpcast] = useState(false);
 const [pendingSpell, setPendingSpell] = useState(null);
 
-  const applyUpcast = (spell, level, crit, slotType) => {
-    const diff = level - (spell.level || 0);
-    let extra;
-    if (diff > 0 && spell.higherLevels) {
-      const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
-      if (incMatch) {
+  const applyUpcast = useCallback(
+    async (spell, level, crit, slotType) => {
+      const diff = level - (spell.level || 0);
+      let extra;
+      if (diff > 0 && spell.higherLevels) {
+        const incMatch = spell.higherLevels.match(/(\d+)d(\d+)/);
+        if (incMatch) {
         extra = {
           count: parseInt(incMatch[1], 10),
           sides: parseInt(incMatch[2], 10),
@@ -877,14 +978,25 @@ const [pendingSpell, setPendingSpell] = useState(null);
       else if (totalLevel >= 11 && spell.scaling[11]) spell.damage = spell.scaling[11];
       else if (totalLevel >= 5 && spell.scaling[5]) spell.damage = spell.scaling[5];
     }
-    const value = calculateDamage(
-      spell.damage,
-      0,
-      crit || isCritical,
-      rollDice,
-      extra,
-      diff > 0 ? diff : 0
-    );
+    const rollParams = {
+      damageString: spell.damage,
+      ability: 0,
+      crit: crit || isCritical,
+      extraDice: extra,
+      levelsAbove: diff > 0 ? diff : 0,
+    };
+
+    const value = onCastSpell
+      ? calculateDamage(
+          rollParams.damageString,
+          rollParams.ability,
+          rollParams.crit,
+          rollDice,
+          rollParams.extraDice,
+          rollParams.levelsAbove,
+        )
+      : await rollDamageExpression(rollParams);
+
     if (!value) return;
     if (onCastSpell) {
       onCastSpell({
@@ -899,8 +1011,9 @@ const [pendingSpell, setPendingSpell] = useState(null);
     }
     updateDamageValueWithAnimation(value.total, value.breakdown, spell.name, {
       diceRolls: value.diceRolls,
+      rollValues: value.rollValues,
     });
-  };
+  }, [isCritical, onCastSpell, rollDamageExpression, totalLevel]);
 
   const handleSpellsButtonClick = (spell, crit = false) => {
     if (!spell?.damage) return;
@@ -1658,9 +1771,9 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
         onHide={() => setShowUpcast(false)}
         baseLevel={pendingSpell?.spell?.level}
         slots={availableSlots}
-        onSelect={(lvl, type) => {
+        onSelect={async (lvl, type) => {
           if (pendingSpell) {
-            applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit, type);
+            await applyUpcast(pendingSpell.spell, lvl, pendingSpell.crit, type);
             setPendingSpell(null);
           }
           setShowUpcast(false);

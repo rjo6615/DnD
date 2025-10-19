@@ -1,4 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  registerDiceBoxContainer,
+  subscribeToDiceBoxAvailability,
+} from '../../../utils/diceBoxManager';
 
 const DIE_SIZE_BY_SIDES = new Map([
   [4, 44],
@@ -153,6 +157,23 @@ const createDieStyle = (die, index, reduceMotion) => {
 
 const DamageDiceCanvas = ({ dice = [] }) => {
   const reduceMotion = usePrefersReducedMotion();
+  const diceBoxRef = useRef(null);
+  const [diceBoxReady, setDiceBoxReady] = useState(false);
+
+  useEffect(() => {
+    const element = diceBoxRef.current;
+    if (!element) return () => {};
+
+    const unregister = registerDiceBoxContainer(element);
+    const unsubscribe = subscribeToDiceBoxAvailability((ready) => {
+      setDiceBoxReady(Boolean(ready));
+    });
+
+    return () => {
+      unregister?.();
+      unsubscribe?.();
+    };
+  }, []);
 
   const diceElements = useMemo(() => {
     if (!Array.isArray(dice) || dice.length === 0) {
@@ -201,7 +222,13 @@ const DamageDiceCanvas = ({ dice = [] }) => {
 
   return (
     <div className="damage-dice-canvas" aria-hidden="true">
-      {diceElements}
+      <div
+        ref={diceBoxRef}
+        className={`damage-dice-canvas__box ${
+          diceBoxReady ? 'damage-dice-canvas__box--ready' : ''
+        }`}
+      />
+      {!diceBoxReady && diceElements}
     </div>
   );
 };
