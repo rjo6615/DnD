@@ -236,6 +236,7 @@ const resetInstance = () => {
   diceBoxInstance = null;
   diceBoxPromise = null;
   diceBoxReady = false;
+  usingDiceBoxStub = false;
 };
 
 const ensureDiceBox = async () => {
@@ -287,7 +288,7 @@ const ensureDiceBox = async () => {
         await instance.init();
         diceBoxInstance = instance;
         diceBoxFailed = false;
-        setAvailability(true);
+        setAvailability(!usingDiceBoxStub);
         return instance;
       } catch (error) {
         // eslint-disable-next-line no-console
