@@ -666,6 +666,20 @@ body.docked-modal--resizing {
   margin-bottom: 0.25rem;
 }
 
+.weapon-mastery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.weapon-mastery__name {
+  font-weight: 600;
+}
+
+.weapon-mastery__description {
+  font-size: 0.95rem;
+}
+
 .attack-card__actions {
   margin-top: auto;
   display: flex;
@@ -676,6 +690,15 @@ body.docked-modal--resizing {
 .attack-card__roll {
   font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.85);
+}
+
+.attack-card__mastery {
+  color: #f4d35e;
+}
+
+.attack-card__mastery:hover,
+.attack-card__mastery:focus {
+  color: #ffd86b;
 }
 
 .attack-card__roll:hover,

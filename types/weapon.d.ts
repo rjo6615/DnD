@@ -28,6 +28,10 @@ export interface Weapon {
    */
   cost: number;
   /**
+   * Weapon mastery key, such as "cleave" or "vex".
+   */
+  mastery?: string;
+  /**
    * Additional attack bonus provided by the weapon.
    */
   attackBonus?: number;
