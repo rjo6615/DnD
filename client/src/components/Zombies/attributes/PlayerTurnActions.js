@@ -1442,54 +1442,14 @@ const damageAmountStyle = {
             isFumble ? 'critical-failure' : ''
           }`}
         >
-          <div className="damage-roller__total">
-            <span className="damage-roller__total-label">Total</span>
-            <span
-              id="damageValue"
-              className={`damage-roller__total-value ${
-                typeof damageValue === 'string' ? 'spell-cast-label' : ''
-              }`}
-              role="button"
-              tabIndex={0}
-              aria-pressed={isCritical}
-              aria-label={
-                isCritical
-                  ? 'Critical damage roll enabled. Click to roll normally.'
-                  : 'Click to enable a critical damage roll on your next roll.'
-              }
-              title={
-                isCritical
-                  ? 'Critical roll ready. Click to roll normally.'
-                  : 'Click to make your next damage roll critical.'
-              }
-              onClick={handleDamageClick}
-              onKeyDown={handleDamageKeyDown}
-            >
-              {damageValue}
-            </span>
-          </div>
           <div className="attack-roll-controls damage-roller__controls">
-            <div className="attack-roll-controls__button">
-              {/* Attack Button */}
-              <button
-                onClick={handleShowAttack}
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  backgroundImage: `url(${sword})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  border: 'none',
-                  transition: 'transform 0.2s ease',
-                  cursor: 'pointer',
-                  backgroundColor: 'transparent',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                title="Attack"
-              />
-            </div>
-            <div className="attack-roll-controls__die">
+            <div
+              className="damage-roller__dice-wrapper"
+              style={{
+                width: `${resolvedDiceSize}px`,
+                height: `${resolvedDiceSize}px`,
+              }}
+            >
               <div
                 className="damage-roller__dice-area"
                 aria-hidden="true"
@@ -1499,6 +1459,54 @@ const damageAmountStyle = {
                 }}
               >
                 <DamageDiceCanvas dice={preparedDice} />
+              </div>
+              <div className="damage-roller__overlay">
+                <div className="damage-roller__total">
+                  <span className="damage-roller__total-label">Total</span>
+                  <span
+                    id="damageValue"
+                    className={`damage-roller__total-value ${
+                      typeof damageValue === 'string' ? 'spell-cast-label' : ''
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isCritical}
+                    aria-label={
+                      isCritical
+                        ? 'Critical damage roll enabled. Click to roll normally.'
+                        : 'Click to enable a critical damage roll on your next roll.'
+                    }
+                    title={
+                      isCritical
+                        ? 'Critical roll ready. Click to roll normally.'
+                        : 'Click to make your next damage roll critical.'
+                    }
+                    onClick={handleDamageClick}
+                    onKeyDown={handleDamageKeyDown}
+                  >
+                    {damageValue}
+                  </span>
+                </div>
+                <div className="damage-roller__overlay-button">
+                  {/* Attack Button */}
+                  <button
+                    onClick={handleShowAttack}
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      backgroundImage: `url(${sword})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      border: 'none',
+                      transition: 'transform 0.2s ease',
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                    title="Attack"
+                  />
+                </div>
               </div>
             </div>
           </div>
