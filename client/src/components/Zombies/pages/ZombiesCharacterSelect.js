@@ -221,6 +221,26 @@ function updateForm(value) {
   });
 }
 
+const calculateStartingHealth = (conScore, hitDie, level = 1) => {
+  const numericLevel = Number(level) || 1;
+  if (numericLevel !== 1) {
+    return null;
+  }
+
+  const con = Number(conScore);
+  const die = Number(hitDie);
+
+  if (!Number.isFinite(con) || !Number.isFinite(die)) {
+    return null;
+  }
+
+  const baseHealth = Math.max(Math.floor(die), 1);
+  const conMod = Math.floor((con - 10) / 2);
+  const totalHealth = Math.max(baseHealth + conMod, 1);
+
+  return { baseHealth, totalHealth };
+};
+
 const attachSelectedAncestryToRace = useCallback((race, {
   dragonAncestryKey,
   dragonAncestry,
@@ -677,42 +697,41 @@ function bigMaff() {
   const startStatTotal = stats.reduce((sum, stat) => sum + (Number(stat) || 0), 0);
   updateForm({ startStatTotal });
 
-  const conModValue = Math.floor((randomCon - 10) / 2);
-  const newHealth = Number(normalizedOcc.Health);
-  const tempHealth = newHealth + conModValue * Number(normalizedOcc.Level);
-  updateForm({ health: newHealth, tempHealth });
+  const startingHealth = calculateStartingHealth(
+    randomCon,
+    normalizedOcc.Health,
+    normalizedOcc.Level
+  );
+
+  if (startingHealth) {
+    updateForm({
+      health: startingHealth.baseHealth,
+      tempHealth: startingHealth.totalHealth,
+    });
+  } else {
+    const conModValue = Math.floor(((Number(randomCon) || 0) - 10) / 2);
+    const baseHitDie = Math.max(Number(normalizedOcc.Health) || 0, 1);
+    const level = Math.max(Number(normalizedOcc.Level) || 1, 1);
+    const fallbackTempHealth = Math.max(baseHitDie + conModValue * level, 1);
+    updateForm({ health: baseHitDie, tempHealth: fallbackTempHealth });
+  }
 }
 
-// Health Randomizer
-let conMod = Math.floor((form.con - 10) / 2);
-const [healthArray, setHealthArray] = useState([]);
-const normalizedOccState = form.occupation?.[0] || {};
-let newHealth = (healthArray[0] || 0) + Number(normalizedOccState.Health || 0);
-let tempHealth = newHealth + Number(conMod) * Number(normalizedOccState.Level || 0);
-useEffect(() => {
-  updateForm({ health: newHealth });
-  updateForm({ tempHealth });
-}, [newHealth, tempHealth]);
-
-  useEffect(() => {
-  const lvl = (normalizedOccState.Level || 1) - 1;
-  const diceValue = normalizedOccState.Health || 0;
-  const rollHealthDice = () => {
-    const newHealthArray = [];
-    for (let i = 0; i < 1; i++) { //array amount
-      const rolls = Array.from({ length: lvl }, () => Math.floor(Math.random() * diceValue) + 1);
-      const totalSum = rolls.reduce((acc, value) => acc + value, 0);
-      newHealthArray.push(totalSum);
-    }
-    setHealthArray(newHealthArray);  
-  };
-  rollHealthDice();
-  return;
-}, [normalizedOccState.Health, normalizedOccState.Level]);
-
- // Sends form data to database
+// Sends form data to database
    const sendToDb = useCallback(async (characterData) => {
-    const baseCharacter = characterData ?? form;
+    const baseCharacter = { ...(characterData ?? form) };
+    const primaryOccupation = baseCharacter.occupation?.[0];
+    const startingHealth = calculateStartingHealth(
+      baseCharacter.con,
+      primaryOccupation?.Health,
+      primaryOccupation?.Level
+    );
+
+    if (startingHealth) {
+      baseCharacter.health = startingHealth.baseHealth;
+      baseCharacter.tempHealth = startingHealth.totalHealth;
+    }
+
     const newCharacter = {
       ...baseCharacter,
       feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
@@ -1677,7 +1696,19 @@ const handleConfirmOccupation = useCallback(() => {
 }, [selectedOccupation, isOccupationConfirmed, form, getOccupation, selectedAddOccupationRef, setForm]);
 
 const sendManualToDb = useCallback(async (characterData) => {
-  const baseCharacter = characterData ?? form;
+  const baseCharacter = { ...(characterData ?? form) };
+  const primaryOccupation = baseCharacter.occupation?.[0];
+  const startingHealth = calculateStartingHealth(
+    baseCharacter.con,
+    primaryOccupation?.Health,
+    primaryOccupation?.Level
+  );
+
+  if (startingHealth) {
+    baseCharacter.health = startingHealth.baseHealth;
+    baseCharacter.tempHealth = startingHealth.totalHealth;
+  }
+
   const newCharacter = {
     ...baseCharacter,
     feat: (baseCharacter.feat || []).filter((feat) => feat?.featName && feat.featName.trim() !== ""),
@@ -2124,9 +2155,6 @@ const getAvailableSkillOptions = (index) => {
             />
           </React.Fragment>
         ))}
-        <Form.Label className="text-light">Health</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
-        type="number" placeholder="Enter health" pattern="[0-9]*" />
      </Form.Group>
      <div className="text-center">
      <Button variant="primary" type="submit">
