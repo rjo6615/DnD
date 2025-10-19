@@ -223,6 +223,7 @@ const DamageDiceCanvas = ({ dice = [] }) => {
   return (
     <div className="damage-dice-canvas" aria-hidden="true">
       <div
+        id="damage-dice-box"
         ref={diceBoxRef}
         className={`damage-dice-canvas__box ${
           diceBoxReady ? 'damage-dice-canvas__box--ready' : ''
