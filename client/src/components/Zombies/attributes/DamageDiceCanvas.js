@@ -3,6 +3,11 @@ import {
   registerDiceBoxContainer,
   subscribeToDiceBoxAvailability,
 } from '../../../utils/diceBoxManager';
+import {
+  createDiceCategoryStyles,
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+} from '../../../utils/diceColors';
 
 const DIE_SIZE_BY_SIDES = new Map([
   [4, 44],
@@ -155,7 +160,11 @@ const createDieStyle = (die, index, reduceMotion) => {
   };
 };
 
-const DamageDiceCanvas = ({ dice = [] }) => {
+const DamageDiceCanvas = ({ dice = [], diceColor }) => {
+  const resolvedColor = useMemo(
+    () => normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR,
+    [diceColor],
+  );
   const reduceMotion = usePrefersReducedMotion();
   const diceBoxRef = useRef(null);
   const [diceBoxReady, setDiceBoxReady] = useState(false);
@@ -183,7 +192,10 @@ const DamageDiceCanvas = ({ dice = [] }) => {
       .map((die, index) => {
         const sides = toFiniteSides(die.sides);
         const value = toNumericValue(die.value);
-        const style = createDieStyle({ ...die, sides }, index, reduceMotion);
+        const style = {
+          ...createDieStyle({ ...die, sides }, index, reduceMotion),
+          ...createDiceCategoryStyles(resolvedColor, die.category),
+        };
         const classes = [
           'damage-die',
           getDieShapeClass(sides),
@@ -216,7 +228,7 @@ const DamageDiceCanvas = ({ dice = [] }) => {
           </div>
         );
       });
-  }, [dice, reduceMotion]);
+  }, [dice, reduceMotion, resolvedColor]);
 
   return (
     <div className="damage-dice-canvas" aria-hidden="true">

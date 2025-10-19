@@ -1113,14 +1113,14 @@ const [showLog, setShowLog] = useState(false);
 const [activeDice, setActiveDice] = useState([]);
 const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 
+const diceFaceColor = useMemo(
+  () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
+  [form?.diceColor],
+);
+
 useEffect(() => {
-  const normalized = normalizeDiceColor(form?.diceColor);
-  if (normalized) {
-    applyDiceFaceColor(normalized);
-    return;
-  }
-  applyDiceFaceColor(DEFAULT_DICE_COLOR);
-}, [form?.diceColor]);
+  applyDiceFaceColor(diceFaceColor);
+}, [diceFaceColor]);
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
@@ -1510,7 +1510,7 @@ const damageAmountStyle = {
                   height: `${resolvedDiceSize}px`,
                 }}
               >
-                <DamageDiceCanvas dice={preparedDice} />
+                <DamageDiceCanvas dice={preparedDice} diceColor={diceFaceColor} />
               </div>
               <div className="damage-roller__overlay">
                 <div className="damage-roller__total">

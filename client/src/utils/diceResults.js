@@ -29,28 +29,63 @@ export const sanitizeRollGroup = (values, count, sides) => {
     return null;
   }
 
-  const selected = [];
+  const clampToBounds = (value) => {
+    const normalized = Math.max(MIN_ROLL_VALUE, Math.round(value));
+    if (upperBound !== null) {
+      return Math.min(upperBound, normalized);
+    }
+    return normalized;
+  };
+
   if (upperBound !== null) {
+    const forward = [];
     numericValues.forEach((value) => {
-      if (selected.length >= totalDice) {
+      if (forward.length >= totalDice) {
         return;
       }
       if (value >= MIN_ROLL_VALUE && value <= upperBound) {
-        selected.push(value);
+        forward.push(value);
       }
     });
-  }
+    if (forward.length >= totalDice) {
+      return forward.slice(0, totalDice);
+    }
 
-  if (selected.length < totalDice) {
-    numericValues.forEach((value) => {
-      if (selected.length >= totalDice) {
-        return;
+    const reverse = [];
+    for (let index = numericValues.length - 1; index >= 0; index -= 1) {
+      if (reverse.length >= totalDice) {
+        break;
       }
-      selected.push(value);
-    });
+      const value = numericValues[index];
+      if (value >= MIN_ROLL_VALUE && value <= upperBound) {
+        reverse.push(value);
+      }
+    }
+    if (reverse.length >= totalDice) {
+      return reverse.reverse().slice(0, totalDice);
+    }
   }
 
-  return selected.length >= totalDice ? selected.slice(0, totalDice) : null;
+  const fallback = [];
+  numericValues.forEach((value) => {
+    if (fallback.length >= totalDice) {
+      return;
+    }
+    fallback.push(clampToBounds(value));
+  });
+
+  if (fallback.length === 0) {
+    return null;
+  }
+
+  if (fallback.length < totalDice) {
+    const lastValue = fallback[fallback.length - 1] || clampToBounds(upperBound);
+    while (fallback.length < totalDice) {
+      fallback.push(lastValue);
+    }
+  }
+
+  return fallback.slice(0, totalDice);
 };
 
 export const collectRollValues = (groups) => {
