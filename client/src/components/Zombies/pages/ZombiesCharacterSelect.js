@@ -660,17 +660,17 @@ function bigMaff() {
 
   // Stat Randomizer
     const raceAbilities = (chosenRace && chosenRace.abilities) || {};
-    let randomStr = sumArray[0] + Number(newOccupation.str || 0) + (raceAbilities.str || 0);
+    let randomStr = sumArray[0];
     updateForm({ str: randomStr });
-    let randomDex = sumArray[1] + Number(newOccupation.dex || 0) + (raceAbilities.dex || 0);
+    let randomDex = sumArray[1];
     updateForm({ dex: randomDex });
-    let randomCon = sumArray[2] + Number(newOccupation.con || 0) + (raceAbilities.con || 0);
+    let randomCon = sumArray[2];
     updateForm({ con: randomCon });
-    let randomInt = sumArray[3] + Number(newOccupation.int || 0) + (raceAbilities.int || 0);
+    let randomInt = sumArray[3];
     updateForm({ int: randomInt });
-    let randomWis = sumArray[4] + Number(newOccupation.wis || 0) + (raceAbilities.wis || 0);
+    let randomWis = sumArray[4];
     updateForm({ wis: randomWis });
-    let randomCha = sumArray[5] + Number(newOccupation.cha || 0) + (raceAbilities.cha || 0);
+    let randomCha = sumArray[5];
     updateForm({ cha: randomCha });
 
   const stats = [randomStr, randomDex, randomCon, randomInt, randomWis, randomCha];
