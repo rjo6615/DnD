@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within, act } from '@testing-library/react';
+import { render, screen, within, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Stats from './Stats';
 
@@ -174,6 +174,10 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
       );
     });
 
+    await waitFor(() => {
+      expect(handleCloseStats).toHaveBeenCalled();
+    });
+
     const rollEventCall = dispatchSpy.mock.calls.find(
       ([event]) => event?.type === 'damage-roll'
     );
@@ -182,10 +186,18 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
     expect(rollEvent.detail).toMatchObject({
       value: 18,
       source: 'Strength',
+      breakdown: '16 (d20) + 2 Strength Modifier',
       critical: false,
       fumble: false,
+      diceRolls: [
+        expect.objectContaining({
+          sides: 20,
+          value: 16,
+          type: 'Strength Check',
+          category: 'base',
+        }),
+      ],
     });
-    expect(handleCloseStats).toHaveBeenCalled();
   } finally {
     randomSpy.mockRestore();
     dispatchSpy.mockRestore();

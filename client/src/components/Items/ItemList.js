@@ -12,6 +12,11 @@ import {
   GiTreasureMap,
 } from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
+import { rollDiceWithBox, setDiceBoxThemeColor } from '../../utils/diceBoxManager';
+import {
+  applyDiceFaceColor,
+  normalizeDiceColor,
+} from '../../utils/diceColors';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
 
@@ -206,7 +211,7 @@ const sanitizeHealingString = (healing) => {
   return withoutHpText.replace(/\s+/g, ' ').trim();
 };
 
-const rollHealingValue = (healing) => {
+const rollHealingValue = async (healing) => {
   const sanitized = sanitizeHealingString(healing);
   if (!sanitized) {
     return null;
@@ -218,8 +223,7 @@ const rollHealingValue = (healing) => {
     return null;
   }
 
-  let total = 0;
-  const diceSections = diceMatches
+  const diceRequests = diceMatches
     .map((match) => {
       const count = parseInt(match[1], 10);
       const sides = parseInt(match[2], 10);
@@ -227,14 +231,61 @@ const rollHealingValue = (healing) => {
         return null;
       }
 
-      const rolls = Array.from({ length: count }, () =>
-        Math.floor(Math.random() * sides) + 1
-      );
-      const subtotal = rolls.reduce((sum, value) => sum + value, 0);
-      total += subtotal;
-      return { label: match[0], rolls };
+      return {
+        label: match[0],
+        count: Math.max(1, count),
+        sides: Math.max(2, sides),
+      };
     })
     .filter(Boolean);
+
+  if (diceRequests.length === 0) {
+    return null;
+  }
+
+  let rolledGroups = [];
+  try {
+    const response = await rollDiceWithBox(
+      diceRequests.map(({ count, sides }) => ({ count, sides }))
+    );
+    if (response && Array.isArray(response.rolls)) {
+      rolledGroups = response.rolls;
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Potion healing roll failed', error);
+  }
+
+  if (!Array.isArray(rolledGroups) || rolledGroups.length === 0) {
+    rolledGroups = diceRequests.map(({ count, sides }) =>
+      Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1)
+    );
+  }
+
+  let total = 0;
+  const diceRolls = [];
+  const diceSections = diceRequests.map(({ label, count, sides }, index) => {
+    const group = Array.isArray(rolledGroups[index]) ? rolledGroups[index] : [];
+    const rolls = [];
+
+    for (let i = 0; i < count; i += 1) {
+      const rawValue = group[i];
+      const parsed = Number(rawValue);
+      const value = Number.isFinite(parsed) ? Math.max(1, Math.round(parsed)) : null;
+      const resolvedValue = value ?? Math.floor(Math.random() * sides) + 1;
+      rolls.push(resolvedValue);
+      diceRolls.push({
+        sides,
+        value: resolvedValue,
+        type: 'Healing',
+        category: 'base',
+      });
+    }
+
+    const subtotal = rolls.reduce((sum, value) => sum + value, 0);
+    total += subtotal;
+    return { label, rolls, sides };
+  });
 
   HEALING_MODIFIER_REGEX.lastIndex = 0;
   const modifierMatches = Array.from(
@@ -278,15 +329,21 @@ const rollHealingValue = (healing) => {
     expression: sanitized,
     diceSections,
     modifierValues,
+    diceRolls,
   };
 };
 
-const triggerHealingRoll = (item) => {
+const triggerHealingRoll = async (item, { diceColor } = {}) => {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
     return;
   }
 
-  const result = rollHealingValue(item?.healing);
+  if (diceColor) {
+    applyDiceFaceColor(diceColor);
+    setDiceBoxThemeColor(diceColor);
+  }
+
+  const result = await rollHealingValue(item?.healing);
   if (!result) {
     return;
   }
@@ -313,6 +370,7 @@ const triggerHealingRoll = (item) => {
     expression,
     rollValues,
     modifierValues: modifierLabels,
+    diceRolls: result.diceRolls,
   };
 
   window.dispatchEvent(new CustomEvent('damage-roll', { detail }));
@@ -329,6 +387,7 @@ function ItemList({
   onAddToCart = () => {},
   ownedOnly = false,
   cartCounts = null,
+  diceColor,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
@@ -359,6 +418,20 @@ function ItemList({
       .sort(([, aLabel], [, bLabel]) => aLabel.localeCompare(bLabel))
       .map(([value, label]) => ({ value, label }));
   }, [items]);
+
+  useEffect(() => {
+    if (!diceColor) {
+      return;
+    }
+
+    const normalized = normalizeDiceColor(diceColor);
+    if (!normalized) {
+      return;
+    }
+
+    applyDiceFaceColor(normalized);
+    setDiceBoxThemeColor(normalized);
+  }, [diceColor]);
 
   useEffect(() => {
     if (Array.isArray(initialItems)) {
@@ -521,7 +594,7 @@ function ItemList({
     setOwnedEntries(nextEntries);
 
     if (item?.healing) {
-      triggerHealingRoll(item);
+      void triggerHealingRoll(item, { diceColor: normalizeDiceColor(diceColor) });
     }
 
     if (isConsumablePotion(item)) {

@@ -14,6 +14,12 @@ import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import PlayerTurnActions, {
   calculateDamage,
 } from "../attributes/PlayerTurnActions";
+import { rollDiceWithBox } from '../../../utils/diceBoxManager';
+import {
+  collectRollValues,
+  normalizeRollValue,
+  sanitizeRollGroup,
+} from '../../../utils/diceResults';
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import {
@@ -791,7 +797,7 @@ function CombatTurnHeader({ participants, tokenLookup = {} }) {
         className={headerClassName}
         role="group"
         aria-label="Combat turn order"
-        touchAction={participantsCount ? 'pan-x' : 'auto'}
+        style={{ touchAction: participantsCount ? 'pan-x' : 'auto' }}
         onPointerDown={participantsCount ? handlePointerDown : undefined}
         onPointerMove={participantsCount ? handlePointerMove : undefined}
         onPointerUp={participantsCount ? handlePointerUp : undefined}
@@ -2880,8 +2886,107 @@ export default function ZombiesCharacterSheet() {
     setShortRestCount((c) => c + 1);
   }, []);
 
+  const rollSpellDamage = useCallback(
+    async (damageString, extraDice, levelsAbove = 0) => {
+      if (typeof damageString !== 'string') {
+        return null;
+      }
+
+      const trimmed = damageString.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const requests = [];
+      const validation = calculateDamage(
+        trimmed,
+        0,
+        false,
+        (count, sides) => {
+          requests.push({ count, sides });
+          return Array(count).fill(1);
+        },
+        extraDice,
+        levelsAbove,
+      );
+
+      if (!validation) {
+        return null;
+      }
+
+      if (requests.length === 0) {
+        const staticResult = calculateDamage(
+          trimmed,
+          0,
+          false,
+          undefined,
+          extraDice,
+          levelsAbove,
+        );
+        return staticResult ? { ...staticResult, rollValues: undefined } : null;
+      }
+
+      try {
+        const { rolls } = await rollDiceWithBox(requests);
+        let requestIndex = 0;
+        const appliedRollGroups = [];
+        const applyRolls = (count, sides) => {
+          const current = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
+          requestIndex += 1;
+          const normalizedGroup = sanitizeRollGroup(current, count, sides);
+          if (normalizedGroup) {
+            appliedRollGroups.push(normalizedGroup);
+            return normalizedGroup;
+          }
+          const resolvedSides =
+            Number.isFinite(sides) && sides > 1 ? Math.floor(sides) : 6;
+          const fallbackRolls = Array.from({ length: count }, () =>
+            Math.max(1, Math.floor(Math.random() * resolvedSides) + 1)
+          );
+          const normalizedFallback = fallbackRolls
+            .map((value) => normalizeRollValue(value))
+            .filter((value) => value !== null);
+          while (normalizedFallback.length < count) {
+            normalizedFallback.push(
+              Math.max(1, Math.floor(Math.random() * resolvedSides) + 1),
+            );
+          }
+          appliedRollGroups.push(normalizedFallback);
+          return normalizedFallback;
+        };
+
+        const finalResult = calculateDamage(
+          trimmed,
+          0,
+          false,
+          applyRolls,
+          extraDice,
+          levelsAbove,
+        );
+
+        const appliedValues = collectRollValues(appliedRollGroups);
+        const rollValues = appliedValues.length > 0 ? appliedValues : undefined;
+
+        return finalResult ? { ...finalResult, rollValues } : null;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Spell damage roll failed', error);
+        const fallbackResult = calculateDamage(
+          trimmed,
+          0,
+          false,
+          undefined,
+          extraDice,
+          levelsAbove,
+        );
+        return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
+      }
+    },
+    [rollDiceWithBox],
+  );
+
   const handleCastSpell = useCallback(
-    (arg, lvl, idx) => {
+    async (arg, lvl, idx) => {
       if (arg === 'action' || arg === 'bonus') {
         consumeCircle(arg, lvl);
         if (arg === 'action' && speakWithAnimalsPendingRef.current) {
@@ -2963,6 +3068,8 @@ export default function ZombiesCharacterSheet() {
           name,
           spellName: altName,
           pendingEffectOnly,
+          diceRolls: providedDiceRolls,
+          rollValues: providedRollValues,
         } = arg;
         const spellLabel = name || altName;
         if (pendingEffectOnly) {
@@ -2976,21 +3083,46 @@ export default function ZombiesCharacterSheet() {
         if (castingTime?.includes('1 action')) consumeCircle('action');
         else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
+        let diceRollDetails = Array.isArray(providedDiceRolls)
+          ? providedDiceRolls
+          : undefined;
+        let rollValueDetails = Array.isArray(providedRollValues)
+          ? providedRollValues
+          : undefined;
         if (typeof damage === 'number') {
           result = { total: damage, breakdown };
         } else if (damage) {
-          const calc = calculateDamage(
-            damage,
-            0,
-            false,
-            undefined,
-            extraDice,
-            levelsAbove
-          );
-          result =
-            calc && typeof calc === 'object'
-              ? calc
-              : { total: calc };
+          if (!diceRollDetails && !rollValueDetails) {
+            const rolled = await rollSpellDamage(
+              damage,
+              extraDice,
+              levelsAbove,
+            );
+            if (rolled) {
+              result = rolled;
+              diceRollDetails = Array.isArray(rolled.diceRolls)
+                ? rolled.diceRolls
+                : undefined;
+              rollValueDetails = Array.isArray(rolled.rollValues)
+                ? rolled.rollValues
+                : undefined;
+            }
+          }
+
+          if (!result) {
+            const calc = calculateDamage(
+              damage,
+              0,
+              false,
+              undefined,
+              extraDice,
+              levelsAbove,
+            );
+            result =
+              calc && typeof calc === 'object'
+                ? calc
+                : { total: calc };
+          }
           if (!result?.breakdown && breakdown) {
             result = { ...result, breakdown };
           }
@@ -2998,11 +3130,33 @@ export default function ZombiesCharacterSheet() {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };
         }
-        playerTurnActionsRef.current?.updateDamageValueWithAnimation(
-          result?.total,
-          result?.breakdown,
-          typeof result?.total === 'number' ? spellLabel : undefined
-        );
+        const hasDiceDetails =
+          (Array.isArray(diceRollDetails) && diceRollDetails.length > 0) ||
+          (Array.isArray(rollValueDetails) && rollValueDetails.length > 0);
+        const extraDetails = hasDiceDetails
+          ? {
+              ...(Array.isArray(diceRollDetails) && diceRollDetails.length > 0
+                ? { diceRolls: diceRollDetails }
+                : {}),
+              ...(Array.isArray(rollValueDetails) && rollValueDetails.length > 0
+                ? { rollValues: rollValueDetails }
+                : {}),
+            }
+          : undefined;
+        if (extraDetails) {
+          playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+            result?.total,
+            result?.breakdown,
+            typeof result?.total === 'number' ? spellLabel : undefined,
+            extraDetails,
+          );
+        } else {
+          playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+            result?.total,
+            result?.breakdown,
+            typeof result?.total === 'number' ? spellLabel : undefined,
+          );
+        }
         if (name === 'Haste') {
           setActiveEffects((prev) => [
             ...prev,
@@ -3041,7 +3195,7 @@ export default function ZombiesCharacterSheet() {
         return { ...prev, [key]: levelState };
       });
     },
-    [form, consumeCircle]
+    [consumeCircle, form, rollSpellDamage]
   );
 
   const availableSlots = useMemo(() => {

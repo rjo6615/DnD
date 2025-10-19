@@ -1,0 +1,19 @@
+.damage-dice-canvas__box {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.damage-dice-canvas__box canvas,
+.damage-dice-canvas__box > div {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

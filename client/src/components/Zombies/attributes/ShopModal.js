@@ -606,6 +606,7 @@ export default function ShopModal({
               embedded
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
+              diceColor={form?.diceColor}
             />
           ) : null,
       },

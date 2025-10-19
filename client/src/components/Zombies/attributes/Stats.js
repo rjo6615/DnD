@@ -4,9 +4,15 @@ import DockControls from '../components/DockControls';
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
-import { rollSkill } from './Skills';
+import { rollSkillWithDiceBox } from './Skills';
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const formatAdjustmentSegment = (value, label) => {
+  if (!value) return null;
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign} ${Math.abs(value)} ${label}`;
+};
 
 const createEmptyStatMap = () => ({
   str: 0,
@@ -138,26 +144,47 @@ export default function Stats({
   };
 
   const handleRoll = useCallback(
-    (statKey) => {
+    async (statKey) => {
       const statMod = statMods[statKey] ?? 0;
-      const { result, d20 } = rollSkill(statMod);
       const statInfo = STATS.find((stat) => stat.key === statKey);
       const statLabel = statInfo?.label || statKey.toUpperCase();
+
+      if (!isDocked) {
+        handleCloseStats?.();
+      }
+
+      const { result, d20 } = await rollSkillWithDiceBox(statMod);
+      const breakdownParts = [`${d20} (d20)`];
+      const modifierSegment = formatAdjustmentSegment(
+        statMod,
+        `${statLabel} Modifier`
+      );
+      if (modifierSegment) {
+        breakdownParts.push(modifierSegment);
+      }
+
+      const diceRolls = [
+        {
+          sides: 20,
+          value: d20,
+          type: `${statLabel} Check`,
+          category: 'base',
+        },
+      ];
 
       window.dispatchEvent(
         new CustomEvent('damage-roll', {
           detail: {
             value: result,
+            breakdown: breakdownParts.join(' '),
             source: statLabel,
             critical: d20 === 20,
             fumble: d20 === 1,
+            diceRolls,
           },
         })
       );
 
-      if (!isDocked) {
-        handleCloseStats?.();
-      }
     },
     [handleCloseStats, isDocked, statMods]
   );

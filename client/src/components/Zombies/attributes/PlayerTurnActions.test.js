@@ -1,9 +1,32 @@
 import React from 'react';
 import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+
+jest.mock('../../../utils/diceBoxManager', () => {
+  const actual = jest.requireActual('../../../utils/diceBoxManager');
+  return {
+    ...actual,
+    registerDiceBoxContainer: jest.fn(() => () => {}),
+    subscribeToDiceBoxAvailability: jest.fn(() => () => {}),
+    isDiceBoxReady: jest.fn(() => false),
+    rollDiceWithBox: jest.fn(),
+  };
+});
+const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
 import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
+
+beforeEach(() => {
+  rollDiceWithBox.mockClear();
+  rollDiceWithBox.mockImplementation((requests = []) =>
+    Promise.resolve({
+      rolls: Array.isArray(requests)
+        ? requests.map(({ count }) => Array(count).fill(1))
+        : [],
+    })
+  );
+});
 
 describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
@@ -55,7 +78,14 @@ describe('calculateDamage parser', () => {
   test('handles multi-type damage and returns breakdown string', () => {
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
+    ).toMatchObject({
+      total: 4,
+      breakdown: '3 cold + 1 slashing',
+      diceRolls: [
+        { sides: 4, value: 1, type: 'cold', category: 'base' },
+        { sides: 6, value: 1, type: 'slashing', category: 'base' },
+      ],
+    });
   });
 });
 
@@ -283,7 +313,15 @@ describe('PlayerTurnActions weapon damage display', () => {
     const deterministicRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage(weapon.damage, 3, false, deterministicRoll)
-    ).toEqual({ total: 6, breakdown: '5 slashing + 1 lightning' });
+    ).toMatchObject({
+      total: 6,
+      breakdown: '5 slashing + 1 lightning',
+      diceRolls: [
+        { sides: 8, value: 1, type: 'slashing', category: 'base' },
+        { sides: 8, value: 1, type: 'slashing', category: 'base' },
+        { sides: 6, value: 1, type: 'lightning', category: 'base' },
+      ],
+    });
   });
 
   test('spell damage segments include type classes', () => {
@@ -435,11 +473,15 @@ describe('PlayerTurnActions weapon damage display', () => {
       expect(card).not.toBeNull();
       if (!card) throw new Error('missing Longsword card');
 
-      const toHitButton = within(card).getByLabelText(/Roll to hit/i);
+    const toHitButton = within(card).getByLabelText(/Roll to hit/i);
 
-      await act(async () => {
-        fireEvent.click(toHitButton);
-      });
+    rollDiceWithBox.mockImplementationOnce(() =>
+      Promise.resolve({ rolls: [[9]] })
+    );
+
+    await act(async () => {
+      fireEvent.click(toHitButton);
+    });
 
       await waitFor(() => {
         const valueNode = document.getElementById('damageValue');
@@ -803,7 +845,14 @@ describe('PlayerTurnActions damage log', () => {
     const fixedRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
+    ).toMatchObject({
+      total: 4,
+      breakdown: '3 cold + 1 slashing',
+      diceRolls: [
+        { sides: 4, value: 1, type: 'cold', category: 'base' },
+        { sides: 6, value: 1, type: 'slashing', category: 'base' },
+      ],
+    });
   });
 });
 
@@ -932,20 +981,56 @@ describe('PlayerTurnActions critical events', () => {
     );
 
     const damage = document.getElementById('damageAmount');
+    const toggle = document.getElementById('damageValue');
 
     expect(damage.classList.contains('critical-active')).toBe(false);
 
     act(() => {
-      fireEvent.click(damage);
+      fireEvent.click(toggle);
     });
 
     expect(damage.classList.contains('critical-active')).toBe(true);
 
     act(() => {
-      fireEvent.click(damage);
+      fireEvent.click(toggle);
     });
 
     expect(damage.classList.contains('critical-active')).toBe(false);
+  });
+
+  test('manual critical toggle persists after automatic reset timer', () => {
+    jest.useFakeTimers();
+
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+
+    const damage = document.getElementById('damageAmount');
+    const toggle = document.getElementById('damageValue');
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', { detail: { value: 7 } })
+      );
+    });
+
+    act(() => {
+      fireEvent.click(toggle);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
+
+    jest.useRealTimers();
   });
 });
 
@@ -975,19 +1060,21 @@ describe('PlayerTurnActions spell casting', () => {
     });
 
     const rollButton = await screen.findByLabelText(/Roll damage/i);
-    act(() => {
+    await act(async () => {
       fireEvent.click(rollButton);
     });
 
-    expect(onCastSpell).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: spell.level,
-        slotType: undefined,
-        damage: expect.any(Number),
-        breakdown: expect.any(String),
-        castingTime: spell.castingTime,
-        name: spell.name,
-      })
+    await waitFor(() =>
+      expect(onCastSpell).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: spell.level,
+          slotType: undefined,
+          damage: expect.any(Number),
+          breakdown: expect.any(String),
+          castingTime: spell.castingTime,
+          name: spell.name,
+        })
+      )
     );
   });
 
@@ -1065,10 +1152,10 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
     const rollButton = await screen.findByLabelText(/Roll damage/i);
-    act(() => {
+    await act(async () => {
       fireEvent.click(rollButton);
     });
-    expect(state.action[0]).toBe('used');
+    await waitFor(() => expect(state.action[0]).toBe('used'));
     expect(state.bonus[0]).toBe('active');
   });
 
@@ -1106,10 +1193,10 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
     const rollButton = await screen.findByLabelText(/Roll damage/i);
-    act(() => {
+    await act(async () => {
       fireEvent.click(rollButton);
     });
-    expect(state.bonus[0]).toBe('used');
+    await waitFor(() => expect(state.bonus[0]).toBe('used'));
     expect(state.action[0]).toBe('active');
   });
 
