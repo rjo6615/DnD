@@ -3335,6 +3335,24 @@ h1 {
   margin: 0.25rem 0;
 }
 
+.damage-log__segment {
+  margin-bottom: 0.35rem;
+}
+
+.damage-log__segment:last-child {
+  margin-bottom: 0;
+}
+
+.damage-log__segment-details {
+  margin-left: 1.5rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.damage-log__segment-detail {
+  color: inherit;
+}
+
 .campaign-map-board {
   --map-square-size: var(--campaign-map-square-size, clamp(48px, 10vw, 80px));
   --figurine-size-scale: 1;

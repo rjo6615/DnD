@@ -53,6 +53,71 @@ function formatDamageRolls(rolls) {
 }
 
 
+const DEFAULT_DAMAGE_TYPE_KEY = '__default__';
+
+const parseDamageBreakdownSegments = (breakdown, normalizer) => {
+  if (typeof breakdown !== 'string' || !breakdown.trim()) {
+    return [];
+  }
+
+  const safeNormalizer =
+    typeof normalizer === 'function'
+      ? normalizer
+      : (value = '') => value.trim().toLowerCase().replace(/\s+/g, '-');
+
+  return breakdown
+    .split(';')
+    .map((section) => section.trim())
+    .filter(Boolean)
+    .flatMap((section) =>
+      section
+        .split(/\s+\+\s+/)
+        .map((segment) => segment.trim())
+        .filter(Boolean),
+    )
+    .map((segment) => {
+      const [valueToken, ...typeParts] = segment.split(/\s+/);
+      const value = valueToken || segment;
+      const type = typeParts.join(' ');
+      const normalizedType = safeNormalizer(type);
+
+      return {
+        value,
+        type,
+        normalizedType,
+        text: type ? `${value} ${type}` : value,
+        className: normalizedType ? `damage-${normalizedType}` : '',
+      };
+    });
+};
+
+const groupDiceRollsByType = (diceRolls, normalizer) => {
+  const results = new Map();
+  if (!Array.isArray(diceRolls)) {
+    return results;
+  }
+
+  const safeNormalizer =
+    typeof normalizer === 'function'
+      ? normalizer
+      : (value = '') => value.trim().toLowerCase().replace(/\s+/g, '-');
+
+  diceRolls.forEach((detail) => {
+    if (!detail) {
+      return;
+    }
+
+    const normalizedType = safeNormalizer(detail.type || '');
+    const key = normalizedType || DEFAULT_DAMAGE_TYPE_KEY;
+    if (!results.has(key)) {
+      results.set(key, []);
+    }
+    results.get(key).push(detail);
+  });
+
+  return results;
+};
+
 const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
 const HAND_SELECTIONS = {
   ONE_HANDED: 'one-handed',
@@ -1271,6 +1336,22 @@ const updateDamageValueWithAnimation = (
         modifierValues: Array.isArray(extra.modifierValues)
           ? extra.modifierValues
           : undefined,
+        diceRollDetails: Array.isArray(extra.diceRolls)
+          ? extra.diceRolls.map((detail) => ({
+              value:
+                typeof detail?.value === 'number'
+                  ? detail.value
+                  : Number(detail?.value) || 0,
+              sides: Number.isFinite(detail?.sides)
+                ? Math.max(2, Math.round(detail.sides))
+                : undefined,
+              type: typeof detail?.type === 'string' ? detail.type : '',
+              category:
+                typeof detail?.category === 'string' && detail.category.trim()
+                  ? detail.category
+                  : 'base',
+            }))
+          : undefined,
       };
       return [entry, { divider: true }, ...prev].slice(0, 10);
     });
@@ -1685,47 +1766,116 @@ const damageAmountStyle = {
                       {entry.actionLabel && entry.expression && (
                         <div>{`${entry.actionLabel} - (${entry.expression})`}</div>
                       )}
-                      {entry.breakdown && (
-                        entry.breakdown
-                          .split(';')
-                          .map((section) => section.trim())
-                          .filter(Boolean)
-                          .flatMap((section) =>
-                            section
-                              .split(' + ')
-                              .map((segment) => segment.trim())
-                              .filter(Boolean)
-                          )
-                          .map((segment, i) => {
-                            const [valueToken, ...typeParts] = segment
-                              .trim()
-                              .split(/\s+/);
-                            const value = valueToken || segment;
-                            const type = typeParts.join(' ');
-                            const normalizedType = normalizeDamageTypeForClass(type);
-                            return (
-                              <div key={`breakdown-${i}`}>
-                                -{' '}
-                                <span
-                                  className={
-                                    normalizedType ? `damage-${normalizedType}` : ''
-                                  }
+                      {(() => {
+                        const breakdownSegments = parseDamageBreakdownSegments(
+                          entry.breakdown,
+                          normalizeDamageTypeForClass,
+                        );
+                        const modifierValues = Array.isArray(entry.modifierValues)
+                          ? entry.modifierValues.filter(
+                              (value) => typeof value === 'string' && value.trim(),
+                            )
+                          : [];
+                        const diceRollDetails = Array.isArray(entry.diceRollDetails)
+                          ? entry.diceRollDetails
+                          : [];
+
+                        const shouldShowGroupedSegments =
+                          breakdownSegments.length > 0 &&
+                          (diceRollDetails.length > 0 || modifierValues.length > 0);
+
+                        if (shouldShowGroupedSegments) {
+                          const diceGroups = groupDiceRollsByType(
+                            diceRollDetails,
+                            normalizeDamageTypeForClass,
+                          );
+                          let remainingModifiers = [...modifierValues];
+
+                          return breakdownSegments.map((segment, segmentIdx) => {
+                            const key = segment.normalizedType || DEFAULT_DAMAGE_TYPE_KEY;
+                            const diceForType = diceGroups.get(key) || [];
+                            const assignedDice = diceForType.splice(0, diceForType.length);
+
+                            const detailItems = [];
+
+                            assignedDice.forEach((detail, dieIdx) => {
+                              const numericValue = Number(detail?.value);
+                              if (!Number.isFinite(numericValue)) {
+                                return;
+                              }
+
+                              detailItems.push(
+                                <div
+                                  key={`segment-${segmentIdx}-die-${dieIdx}`}
+                                  className="damage-log__segment-detail"
                                 >
-                                  {value}
-                                  {type ? ` ${type}` : ''}
-                                </span>
+                                  - {numericValue}
+                                </div>
+                              );
+                            });
+
+                            if (segmentIdx === 0 && remainingModifiers.length > 0) {
+                              const appliedModifiers = remainingModifiers.splice(
+                                0,
+                                remainingModifiers.length,
+                              );
+                              appliedModifiers.forEach((modifier, modIdx) => {
+                                detailItems.push(
+                                  <div
+                                    key={`segment-${segmentIdx}-modifier-${modIdx}`}
+                                    className="damage-log__segment-detail"
+                                  >
+                                    - {modifier}
+                                  </div>
+                                );
+                              });
+                            }
+
+                            return (
+                              <div
+                                key={`breakdown-${segmentIdx}`}
+                                className="damage-log__segment"
+                              >
+                                <div>
+                                  -{' '}
+                                  <span className={segment.className}>{segment.text}</span>
+                                </div>
+                                {detailItems.length > 0 && (
+                                  <div className="damage-log__segment-details">
+                                    {detailItems}
+                                  </div>
+                                )}
                               </div>
                             );
-                          })
-                      )}
-                      {Array.isArray(entry.rollValues) &&
-                        entry.rollValues.map((value, rollIdx) => (
-                          <div key={`roll-${rollIdx}`}>- {value}</div>
-                        ))}
-                      {Array.isArray(entry.modifierValues) &&
-                        entry.modifierValues.map((value, modIdx) => (
-                          <div key={`mod-${modIdx}`}>- {value}</div>
-                        ))}
+                          });
+                        }
+
+                        const fallbackSegments = breakdownSegments.length
+                          ? breakdownSegments
+                          : parseDamageBreakdownSegments(
+                              entry.breakdown,
+                              normalizeDamageTypeForClass,
+                            );
+
+                        return (
+                          <>
+                            {fallbackSegments.map((segment, i) => (
+                              <div key={`breakdown-${i}`}>
+                                -{' '}
+                                <span className={segment.className}>{segment.text}</span>
+                              </div>
+                            ))}
+                            {Array.isArray(entry.rollValues) &&
+                              entry.rollValues.map((value, rollIdx) => (
+                                <div key={`roll-${rollIdx}`}>- {value}</div>
+                              ))}
+                            {Array.isArray(entry.modifierValues) &&
+                              entry.modifierValues.map((value, modIdx) => (
+                                <div key={`mod-${modIdx}`}>- {value}</div>
+                              ))}
+                          </>
+                        );
+                      })()}
                     </div>
                   ) : null}
                 </li>
