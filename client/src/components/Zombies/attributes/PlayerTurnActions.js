@@ -986,33 +986,47 @@ const [pendingSpell, setPendingSpell] = useState(null);
       levelsAbove: diff > 0 ? diff : 0,
     };
 
-    const value = onCastSpell
-      ? calculateDamage(
-          rollParams.damageString,
-          rollParams.ability,
-          rollParams.crit,
-          rollDice,
-          rollParams.extraDice,
-          rollParams.levelsAbove,
-        )
-      : await rollDamageExpression(rollParams);
+    const value = await rollDamageExpression(rollParams);
 
     if (!value) return;
+
     if (onCastSpell) {
-      onCastSpell({
+      const payload = {
         level,
         slotType,
         damage: value.total,
         breakdown: value.breakdown,
         castingTime: spell.castingTime,
         name: spell.name,
-      });
+      };
+      if (Array.isArray(value.diceRolls) && value.diceRolls.length > 0) {
+        payload.diceRolls = value.diceRolls;
+      }
+      if (Array.isArray(value.rollValues) && value.rollValues.length > 0) {
+        payload.rollValues = value.rollValues;
+      }
+      onCastSpell(payload);
       return;
     }
-    updateDamageValueWithAnimation(value.total, value.breakdown, spell.name, {
-      diceRolls: value.diceRolls,
-      rollValues: value.rollValues,
-    });
+
+    const extraDetails = {};
+    if (Array.isArray(value.diceRolls) && value.diceRolls.length > 0) {
+      extraDetails.diceRolls = value.diceRolls;
+    }
+    if (Array.isArray(value.rollValues) && value.rollValues.length > 0) {
+      extraDetails.rollValues = value.rollValues;
+    }
+
+    if (Object.keys(extraDetails).length > 0) {
+      updateDamageValueWithAnimation(
+        value.total,
+        value.breakdown,
+        spell.name,
+        extraDetails,
+      );
+    } else {
+      updateDamageValueWithAnimation(value.total, value.breakdown, spell.name);
+    }
   }, [isCritical, onCastSpell, rollDamageExpression, totalLevel]);
 
   const handleSpellsButtonClick = (spell, crit = false) => {

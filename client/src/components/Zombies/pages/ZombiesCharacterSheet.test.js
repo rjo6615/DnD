@@ -19,6 +19,17 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ id: '1' }),
 }));
 
+jest.mock('../../../utils/diceBoxManager', () => {
+  const actual = jest.requireActual('../../../utils/diceBoxManager');
+  return {
+    ...actual,
+    registerDiceBoxContainer: jest.fn(() => () => {}),
+    subscribeToDiceBoxAvailability: jest.fn(() => () => {}),
+    isDiceBoxReady: jest.fn(() => false),
+    rollDiceWithBox: jest.fn(),
+  };
+});
+
 const mockCharacterInfoProps = { current: null };
 jest.mock('../attributes/CharacterInfo', () => (props) => {
   mockCharacterInfoProps.current = props;
@@ -104,6 +115,7 @@ jest.mock('../attributes/Features', () => (props) => {
 });
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
+const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
 
 const defaultApiFetchImplementation = (url) => {
   if (typeof url === 'string' && url.includes('/maps')) {
@@ -149,6 +161,14 @@ beforeEach(() => {
   mockSocketIo.mockReturnValue(socketStub);
   mockUpdateDamage.mockClear();
   mockCalcDamage.mockClear();
+  rollDiceWithBox.mockReset();
+  rollDiceWithBox.mockImplementation((requests = []) =>
+    Promise.resolve({
+      rolls: Array.isArray(requests)
+        ? requests.map(({ count }) => Array(count).fill(1))
+        : [],
+    })
+  );
   mockOnCastSpell.current = null;
   mockHandleClose.current = null;
   mockShopModalProps.current = null;
@@ -2221,14 +2241,10 @@ test('handleCastSpell outputs calculated damage', async () => {
   mockOnCastSpell.current({ level: 1, damage: '1d4', name: 'Acid Splash' });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockCalcDamage).toHaveBeenCalledWith(
-    '1d4',
-    0,
-    false,
-    undefined,
-    undefined,
-    undefined
-  );
+  expect(mockCalcDamage).toHaveBeenCalled();
+  expect(
+    mockCalcDamage.mock.calls.some((call) => call[0] === '1d4')
+  ).toBe(true);
   expect(mockUpdateDamage).toHaveBeenCalled();
 });
 

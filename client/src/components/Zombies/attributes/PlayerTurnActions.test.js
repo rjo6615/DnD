@@ -1,9 +1,32 @@
 import React from 'react';
 import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+
+jest.mock('../../../utils/diceBoxManager', () => {
+  const actual = jest.requireActual('../../../utils/diceBoxManager');
+  return {
+    ...actual,
+    registerDiceBoxContainer: jest.fn(() => () => {}),
+    subscribeToDiceBoxAvailability: jest.fn(() => () => {}),
+    isDiceBoxReady: jest.fn(() => false),
+    rollDiceWithBox: jest.fn(),
+  };
+});
+const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
 import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
+
+beforeEach(() => {
+  rollDiceWithBox.mockClear();
+  rollDiceWithBox.mockImplementation((requests = []) =>
+    Promise.resolve({
+      rolls: Array.isArray(requests)
+        ? requests.map(({ count }) => Array(count).fill(1))
+        : [],
+    })
+  );
+});
 
 describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
@@ -400,11 +423,15 @@ describe('PlayerTurnActions weapon damage display', () => {
       expect(card).not.toBeNull();
       if (!card) throw new Error('missing Longsword card');
 
-      const toHitButton = within(card).getByLabelText(/Roll to hit/i);
+    const toHitButton = within(card).getByLabelText(/Roll to hit/i);
 
-      await act(async () => {
-        fireEvent.click(toHitButton);
-      });
+    rollDiceWithBox.mockImplementationOnce(() =>
+      Promise.resolve({ rolls: [[9]] })
+    );
+
+    await act(async () => {
+      fireEvent.click(toHitButton);
+    });
 
       await waitFor(() => {
         const valueNode = document.getElementById('damageValue');
@@ -983,19 +1010,21 @@ describe('PlayerTurnActions spell casting', () => {
     });
 
     const rollButton = await screen.findByLabelText(/Roll damage/i);
-    act(() => {
+    await act(async () => {
       fireEvent.click(rollButton);
     });
 
-    expect(onCastSpell).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: spell.level,
-        slotType: undefined,
-        damage: expect.any(Number),
-        breakdown: expect.any(String),
-        castingTime: spell.castingTime,
-        name: spell.name,
-      })
+    await waitFor(() =>
+      expect(onCastSpell).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: spell.level,
+          slotType: undefined,
+          damage: expect.any(Number),
+          breakdown: expect.any(String),
+          castingTime: spell.castingTime,
+          name: spell.name,
+        })
+      )
     );
   });
 
@@ -1073,10 +1102,10 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
     const rollButton = await screen.findByLabelText(/Roll damage/i);
-    act(() => {
+    await act(async () => {
       fireEvent.click(rollButton);
     });
-    expect(state.action[0]).toBe('used');
+    await waitFor(() => expect(state.action[0]).toBe('used'));
     expect(state.bonus[0]).toBe('active');
   });
 
@@ -1114,10 +1143,10 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
     const rollButton = await screen.findByLabelText(/Roll damage/i);
-    act(() => {
+    await act(async () => {
       fireEvent.click(rollButton);
     });
-    expect(state.bonus[0]).toBe('used');
+    await waitFor(() => expect(state.bonus[0]).toBe('used'));
     expect(state.action[0]).toBe('active');
   });
 
