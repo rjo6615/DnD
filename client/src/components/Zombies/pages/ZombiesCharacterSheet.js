@@ -5325,6 +5325,7 @@ export default function ZombiesCharacterSheet() {
               dexMod={statMods.dex}
               strMod={statMods.str}
               conMod={statMods.con}
+              characterId={characterId}
               ref={playerTurnActionsRef}
               onCastSpell={handleCastSpell}
               availableSlots={availableSlots}
