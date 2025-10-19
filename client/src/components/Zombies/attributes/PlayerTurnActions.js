@@ -1184,9 +1184,175 @@ useEffect(() => {
 }, []);
 
 const passDisabled = !canPassTurn || isPassTurnInProgress;
+const passLogRef = useRef(null);
+const damageWrapperRef = useRef(null);
+const damageAmountRef = useRef(null);
+const [damageLayout, setDamageLayout] = useState({
+  maxWidth: 360,
+  diceSize: 220,
+});
+
+const updateDamageLayout = useCallback(() => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const passLogEl = passLogRef.current;
+  const wrapperEl = damageWrapperRef.current;
+
+  if (!passLogEl || !wrapperEl) {
+    return;
+  }
+
+  const wrapperWidth = wrapperEl.clientWidth || window.innerWidth;
+  const spellSlotsEl = document.querySelector('.spell-slot-container');
+  const footerButtonsContainer = document.querySelector('.footer-btn')?.parentElement;
+
+  const widthCandidates = [wrapperWidth];
+
+  if (spellSlotsEl) {
+    const { width } = spellSlotsEl.getBoundingClientRect();
+    if (Number.isFinite(width) && width > 0) {
+      widthCandidates.push(width);
+    }
+  }
+
+  if (footerButtonsContainer) {
+    const { width } = footerButtonsContainer.getBoundingClientRect();
+    if (Number.isFinite(width) && width > 0) {
+      widthCandidates.push(width);
+    }
+  }
+
+  const positiveWidths = widthCandidates.filter((value) => Number.isFinite(value) && value > 0);
+  const maxAllowedWidth = positiveWidths.length > 0 ? Math.min(...positiveWidths) : wrapperWidth;
+
+  const passLogRect = passLogEl.getBoundingClientRect();
+  const boundaries = [];
+
+  if (spellSlotsEl) {
+    const { top } = spellSlotsEl.getBoundingClientRect();
+    if (Number.isFinite(top)) {
+      boundaries.push(top);
+    }
+  }
+
+  const navbarEl = document.querySelector('nav.navbar.fixed-bottom');
+  if (navbarEl) {
+    const { top } = navbarEl.getBoundingClientRect();
+    if (Number.isFinite(top)) {
+      boundaries.push(top);
+    }
+  }
+
+  const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
+  if (viewportHeight) {
+    boundaries.push(viewportHeight - 24);
+  }
+
+  const bottomBoundary = boundaries.length > 0 ? Math.min(...boundaries) : viewportHeight;
+  const verticalGap = bottomBoundary ? bottomBoundary - passLogRect.bottom - 16 : maxAllowedWidth;
+  const maxAllowedHeight = Math.max(140, verticalGap);
+  const diceSize = Math.max(140, Math.min(maxAllowedWidth, maxAllowedHeight));
+
+  setDamageLayout((prev) => {
+    const next = {
+      maxWidth: Number.isFinite(maxAllowedWidth) && maxAllowedWidth > 0 ? maxAllowedWidth : prev.maxWidth,
+      diceSize: Number.isFinite(diceSize) && diceSize > 0 ? diceSize : prev.diceSize,
+    };
+
+    if (
+      Math.abs(next.maxWidth - prev.maxWidth) < 0.5 &&
+      Math.abs(next.diceSize - prev.diceSize) < 0.5
+    ) {
+      return prev;
+    }
+
+    return next;
+  });
+}, []);
+
+useEffect(() => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  updateDamageLayout();
+
+  const handleResize = () => {
+    updateDamageLayout();
+  };
+
+  window.addEventListener('resize', handleResize);
+
+  let mutationObserver;
+  if (typeof MutationObserver !== 'undefined') {
+    mutationObserver = new MutationObserver(() => updateDamageLayout());
+
+    const registerTargets = () => {
+      const targets = [
+        document.querySelector('.spell-slot-container'),
+        document.querySelector('.footer-btn')?.parentElement,
+        document.querySelector('nav.navbar.fixed-bottom'),
+      ].filter(Boolean);
+
+      if (targets.length === 0) {
+        return false;
+      }
+
+      targets.forEach((target) => {
+        mutationObserver.observe(target, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+      });
+
+      return true;
+    };
+
+    if (!registerTargets()) {
+      const bodyTarget = document.body;
+      if (bodyTarget) {
+        mutationObserver.observe(bodyTarget, {
+          childList: true,
+          subtree: true,
+        });
+      }
+    }
+  }
+
+  const timeoutId = window.setTimeout(() => updateDamageLayout(), 150);
+
+  return () => {
+    window.removeEventListener('resize', handleResize);
+    window.clearTimeout(timeoutId);
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+    }
+  };
+}, [updateDamageLayout]);
+
+useEffect(() => {
+  updateDamageLayout();
+}, [updateDamageLayout, passDisabled, showLog, showAttack, activeDice.length]);
+
+const resolvedMaxWidth = Number.isFinite(damageLayout.maxWidth)
+  ? damageLayout.maxWidth
+  : 360;
+const resolvedDiceSize = Number.isFinite(damageLayout.diceSize)
+  ? damageLayout.diceSize
+  : 220;
+const damageContainerMinHeight = Math.max(240, resolvedDiceSize + 160);
+const damageAmountStyle = {
+  '--damage-roller-max-width': `${resolvedMaxWidth}px`,
+  '--damage-roller-min-height': `${damageContainerMinHeight}px`,
+  '--damage-dice-area-size': `${resolvedDiceSize}px`,
+};
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
+        ref={passLogRef}
         style={{
           display: 'flex',
           justifyContent: 'center',
@@ -1260,6 +1426,7 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
         </Button>
       </div>
       <div
+        ref={damageWrapperRef}
         style={{
           display: 'flex',
           justifyContent: 'center',
@@ -1269,6 +1436,8 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
       >
         <div
           id="damageAmount"
+          ref={damageAmountRef}
+          style={damageAmountStyle}
           className={`${pulseClass} ${isCritical ? 'critical-active' : ''} ${
             isFumble ? 'critical-failure' : ''
           }`}
@@ -1321,7 +1490,14 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
               />
             </div>
             <div className="attack-roll-controls__die">
-              <div className="damage-roller__dice-area" aria-hidden="true">
+              <div
+                className="damage-roller__dice-area"
+                aria-hidden="true"
+                style={{
+                  width: `${resolvedDiceSize}px`,
+                  height: `${resolvedDiceSize}px`,
+                }}
+              >
                 <DamageDiceCanvas dice={preparedDice} />
               </div>
             </div>
