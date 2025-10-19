@@ -1,3 +1,5 @@
+import damageTypeColors from './damageTypeColors';
+
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 export const DEFAULT_DICE_COLOR = '#000000';
 export const DICE_FACE_OPACITY = 0.85;
@@ -77,6 +79,90 @@ const CATEGORY_COLOR_RULES = {
   },
 };
 
+const DAMAGE_TYPE_LOOKUP = Object.entries(damageTypeColors || {}).reduce(
+  (acc, [key, value]) => {
+    if (!key) {
+      return acc;
+    }
+
+    const normalizedKey = String(key).trim().toLowerCase();
+    if (!normalizedKey) {
+      return acc;
+    }
+
+    const normalizedColor = normalizeDiceColor(value);
+    if (!normalizedColor) {
+      return acc;
+    }
+
+    acc[normalizedKey] = normalizedColor;
+    return acc;
+  },
+  {},
+);
+
+const DAMAGE_TYPE_TOKEN_IGNORE_LIST = new Set([
+  'and',
+  'bonus',
+  'damage',
+  'damages',
+  'extra',
+  'plus',
+]);
+
+const DAMAGE_TYPE_ALIASES = {
+  acid: 'acid',
+  acidic: 'acid',
+  chill: 'cold',
+  cold: 'cold',
+  fire: 'fire',
+  flaming: 'fire',
+  force: 'force',
+  lightning: 'lightning',
+  necrotic: 'necrotic',
+  poison: 'poison',
+  poisonous: 'poison',
+  psychic: 'psychic',
+  radiant: 'radiant',
+  thunder: 'thunder',
+};
+
+export const resolveDamageTypeColor = (normalizedType) => {
+  if (typeof normalizedType !== 'string') {
+    return null;
+  }
+  const trimmed = normalizedType.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  const directMatch = DAMAGE_TYPE_LOOKUP[trimmed];
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const hyphenated = trimmed.replace(/\s+/g, '-');
+  const hyphenMatch = DAMAGE_TYPE_LOOKUP[hyphenated];
+  if (hyphenMatch) {
+    return hyphenMatch;
+  }
+
+  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
+  for (const token of tokens) {
+    if (DAMAGE_TYPE_TOKEN_IGNORE_LIST.has(token)) {
+      continue;
+    }
+
+    const alias = DAMAGE_TYPE_ALIASES[token] || token;
+    const color = DAMAGE_TYPE_LOOKUP[alias];
+    if (color) {
+      return color;
+    }
+  }
+
+  return null;
+};
+
 export const createDiceCategoryStyles = (color, category = 'base') => {
   const normalized = normalizeDiceColor(color) || DEFAULT_DICE_COLOR;
   const rule = CATEGORY_COLOR_RULES[category] || CATEGORY_COLOR_RULES.base;
@@ -108,5 +194,6 @@ export default {
   normalizeDiceColor,
   hexToRgba,
   createDiceCategoryStyles,
+  resolveDamageTypeColor,
   applyDiceFaceColor,
 };

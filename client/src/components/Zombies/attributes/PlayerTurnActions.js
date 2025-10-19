@@ -28,6 +28,7 @@ import {
   applyDiceFaceColor,
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
+  resolveDamageTypeColor,
 } from '../../../utils/diceColors';
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -54,6 +55,16 @@ function formatDamageRolls(rolls) {
 
 
 const DEFAULT_DAMAGE_TYPE_KEY = '__default__';
+
+const DAMAGE_TYPE_CLASS_TOKEN_IGNORE = new Set([
+  '',
+  'and',
+  'bonus',
+  'damage',
+  'damages',
+  'extra',
+  'plus',
+]);
 
 const parseDamageBreakdownSegments = (breakdown, normalizer) => {
   if (typeof breakdown !== 'string' || !breakdown.trim()) {
@@ -867,7 +878,21 @@ const manualCriticalRef = useRef(false);
     
   const normalizeDamageTypeForClass = (type) => {
     const trimmed = (type || '').trim();
-    return trimmed ? trimmed.toLowerCase().replace(/\s+/g, '-') : '';
+    if (!trimmed) {
+      return '';
+    }
+
+    const tokens = trimmed
+      .toLowerCase()
+      .split(/[^a-z]+/)
+      .map((token) => token.trim())
+      .filter((token) => !DAMAGE_TYPE_CLASS_TOKEN_IGNORE.has(token));
+
+    if (tokens.length === 0) {
+      return '';
+    }
+
+    return tokens.join('-');
   };
 
   const formatDamageSegments = (damage, ability) =>
@@ -948,6 +973,38 @@ const manualCriticalRef = useRef(false);
         return null;
       }
 
+      const diceRolls = Array.isArray(validation?.diceRolls)
+        ? validation.diceRolls
+        : [];
+      let selectedColor = null;
+      let hasColorlessDice = false;
+      let hasConflictingColor = false;
+      diceRolls.forEach((detail) => {
+        const normalizedType = normalizeDamageTypeForClass(detail?.type || '');
+        if (!normalizedType) {
+          hasColorlessDice = true;
+          return;
+        }
+        const color = resolveDamageTypeColor(normalizedType);
+        if (!color) {
+          hasColorlessDice = true;
+          return;
+        }
+        if (!selectedColor) {
+          selectedColor = color;
+          return;
+        }
+        if (selectedColor !== color) {
+          hasConflictingColor = true;
+        }
+      });
+
+      const rollThemeColor =
+        selectedColor && !hasColorlessDice && !hasConflictingColor
+          ? selectedColor
+          : null;
+      setDiceBoxThemeColor(rollThemeColor || diceFaceColor);
+
       if (requests.length === 0) {
         const staticResult = calculateDamage(
           trimmed,
@@ -1027,7 +1084,13 @@ const manualCriticalRef = useRef(false);
         return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
       }
     },
-    [rollDiceWithBox],
+    [
+      diceFaceColor,
+      normalizeDamageTypeForClass,
+      resolveDamageTypeColor,
+      rollDiceWithBox,
+      setDiceBoxThemeColor,
+    ],
   );
 
   const handleWeaponAttack = useCallback(
@@ -1298,9 +1361,11 @@ const preparedDice = useMemo(
   () =>
     activeDice.map((die) => {
       const normalizedType = normalizeDamageTypeForClass(die.type);
+      const typeColor = resolveDamageTypeColor(normalizedType);
       return {
         ...die,
         typeClass: normalizedType ? `damage-${normalizedType}` : '',
+        typeColor,
       };
     }),
   [activeDice],
