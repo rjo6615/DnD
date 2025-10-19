@@ -143,6 +143,22 @@ const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
 
+const waitForNextAnimationFrame = () => {
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    return new Promise((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  }
+
+  if (typeof setTimeout === 'function') {
+    return new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  }
+
+  return Promise.resolve();
+};
+
 function extractDiceExpression(description = '') {
   diceExpressionPattern.lastIndex = 0;
   let match;
@@ -1013,7 +1029,11 @@ const manualCriticalRef = useRef(false);
         selectedColor && !hasColorlessDice && !hasConflictingColor
           ? selectedColor
           : null;
-      setDiceBoxThemeColor(rollThemeColor || diceFaceColor);
+      const resolvedThemeColor = rollThemeColor || diceFaceColor;
+      setDiceBoxThemeColor(resolvedThemeColor);
+      if (rollThemeColor && rollThemeColor !== diceFaceColor) {
+        await waitForNextAnimationFrame();
+      }
 
       if (requests.length === 0) {
         const staticResult = calculateDamage(
