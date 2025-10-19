@@ -153,7 +153,7 @@ export default function HealthDefense({
   };
 
   const decreaseHealth = () => {
-    if (Number.isFinite(health) && health <= -10) {
+    if (Number.isFinite(health) && health <= 0) {
       return;
     }
     const current = Number.isFinite(health) ? health : 0;
