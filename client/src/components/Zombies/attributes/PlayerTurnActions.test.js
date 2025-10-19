@@ -693,7 +693,14 @@ describe('PlayerTurnActions damage log', () => {
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
-    expect(breakdownLines).toEqual(['- 3 cold', '- 1 slashing']);
+    expect(breakdownLines).toEqual([
+      'Damage - (1d4 cold + 1d6 slashing)',
+      '- 3 cold',
+      '- 1 slashing',
+      '- 1',
+      '- 1',
+      '- +2 STR modifier',
+    ]);
     Math.random = orig;
   });
 
