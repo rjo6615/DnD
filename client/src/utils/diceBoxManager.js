@@ -18,6 +18,7 @@ let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
 let pendingThemeColor = null;
+let activeThemeColor = null;
 
 const availabilityListeners = new Set();
 
@@ -136,6 +137,7 @@ const resetInstance = () => {
   diceBoxInstance = null;
   diceBoxPromise = null;
   diceBoxReady = false;
+  activeThemeColor = null;
 };
 
 const normalizeThemeColor = (value) => {
@@ -164,8 +166,13 @@ const applyThemeColorToInstance = (instance, color) => {
     return false;
   }
 
+  if (color === activeThemeColor) {
+    return true;
+  }
+
   try {
     instance.updateConfig(buildThemeConfig(color));
+    activeThemeColor = color || null;
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -545,6 +552,12 @@ export const rollDiceWithBox = (requests) => {
 export const setDiceBoxThemeColor = (color) => {
   const normalized = normalizeThemeColor(color);
   if (!normalized) {
+    pendingThemeColor = null;
+    activeThemeColor = null;
+    return;
+  }
+
+  if (normalized === activeThemeColor) {
     pendingThemeColor = null;
     return;
   }
