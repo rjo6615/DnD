@@ -12,6 +12,7 @@ import {
   GiTreasureMap,
 } from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
+import { rollDiceWithBox } from '../../utils/diceBoxManager';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
 
@@ -192,6 +193,35 @@ const buildItemOwnershipMap = (initialItems) => {
 
 const HEALING_DICE_REGEX = /(\d+)d(\d+)/gi;
 const HEALING_MODIFIER_REGEX = /([+-]\s*\d+)/gi;
+const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+const DEFAULT_DICE_COLOR = '#000000';
+const DICE_FACE_OPACITY = 0.85;
+
+const normalizeDiceColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return HEX_COLOR_PATTERN.test(trimmed) ? trimmed : null;
+};
+
+const hexToRgba = (hex, opacity = DICE_FACE_OPACITY) => {
+  const normalized = normalizeDiceColor(hex) || DEFAULT_DICE_COLOR;
+  const r = parseInt(normalized.slice(1, 3), 16);
+  const g = parseInt(normalized.slice(3, 5), 16);
+  const b = parseInt(normalized.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
+const applyDiceFaceColor = (color) => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const rgbaColor = hexToRgba(color);
+  document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
+};
 
 const sanitizeHealingString = (healing) => {
   if (typeof healing !== 'string') {
@@ -206,7 +236,7 @@ const sanitizeHealingString = (healing) => {
   return withoutHpText.replace(/\s+/g, ' ').trim();
 };
 
-const rollHealingValue = (healing) => {
+const rollHealingValue = async (healing) => {
   const sanitized = sanitizeHealingString(healing);
   if (!sanitized) {
     return null;
@@ -218,9 +248,7 @@ const rollHealingValue = (healing) => {
     return null;
   }
 
-  let total = 0;
-  const diceRolls = [];
-  const diceSections = diceMatches
+  const diceRequests = diceMatches
     .map((match) => {
       const count = parseInt(match[1], 10);
       const sides = parseInt(match[2], 10);
@@ -228,21 +256,61 @@ const rollHealingValue = (healing) => {
         return null;
       }
 
-      const rolls = Array.from({ length: count }, () => {
-        const value = Math.floor(Math.random() * sides) + 1;
-        diceRolls.push({
-          sides,
-          value,
-          type: 'Healing',
-          category: 'base',
-        });
-        return value;
-      });
-      const subtotal = rolls.reduce((sum, value) => sum + value, 0);
-      total += subtotal;
-      return { label: match[0], rolls, sides };
+      return {
+        label: match[0],
+        count: Math.max(1, count),
+        sides: Math.max(2, sides),
+      };
     })
     .filter(Boolean);
+
+  if (diceRequests.length === 0) {
+    return null;
+  }
+
+  let rolledGroups = [];
+  try {
+    const response = await rollDiceWithBox(
+      diceRequests.map(({ count, sides }) => ({ count, sides }))
+    );
+    if (response && Array.isArray(response.rolls)) {
+      rolledGroups = response.rolls;
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Potion healing roll failed', error);
+  }
+
+  if (!Array.isArray(rolledGroups) || rolledGroups.length === 0) {
+    rolledGroups = diceRequests.map(({ count, sides }) =>
+      Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1)
+    );
+  }
+
+  let total = 0;
+  const diceRolls = [];
+  const diceSections = diceRequests.map(({ label, count, sides }, index) => {
+    const group = Array.isArray(rolledGroups[index]) ? rolledGroups[index] : [];
+    const rolls = [];
+
+    for (let i = 0; i < count; i += 1) {
+      const rawValue = group[i];
+      const parsed = Number(rawValue);
+      const value = Number.isFinite(parsed) ? Math.max(1, Math.round(parsed)) : null;
+      const resolvedValue = value ?? Math.floor(Math.random() * sides) + 1;
+      rolls.push(resolvedValue);
+      diceRolls.push({
+        sides,
+        value: resolvedValue,
+        type: 'Healing',
+        category: 'base',
+      });
+    }
+
+    const subtotal = rolls.reduce((sum, value) => sum + value, 0);
+    total += subtotal;
+    return { label, rolls, sides };
+  });
 
   HEALING_MODIFIER_REGEX.lastIndex = 0;
   const modifierMatches = Array.from(
@@ -290,12 +358,16 @@ const rollHealingValue = (healing) => {
   };
 };
 
-const triggerHealingRoll = (item) => {
+const triggerHealingRoll = async (item, { diceColor } = {}) => {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
     return;
   }
 
-  const result = rollHealingValue(item?.healing);
+  if (diceColor) {
+    applyDiceFaceColor(diceColor);
+  }
+
+  const result = await rollHealingValue(item?.healing);
   if (!result) {
     return;
   }
@@ -339,6 +411,7 @@ function ItemList({
   onAddToCart = () => {},
   ownedOnly = false,
   cartCounts = null,
+  diceColor,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
@@ -369,6 +442,19 @@ function ItemList({
       .sort(([, aLabel], [, bLabel]) => aLabel.localeCompare(bLabel))
       .map(([value, label]) => ({ value, label }));
   }, [items]);
+
+  useEffect(() => {
+    if (!diceColor) {
+      return;
+    }
+
+    const normalized = normalizeDiceColor(diceColor);
+    if (!normalized) {
+      return;
+    }
+
+    applyDiceFaceColor(normalized);
+  }, [diceColor]);
 
   useEffect(() => {
     if (Array.isArray(initialItems)) {
@@ -531,7 +617,7 @@ function ItemList({
     setOwnedEntries(nextEntries);
 
     if (item?.healing) {
-      triggerHealingRoll(item);
+      void triggerHealingRoll(item, { diceColor: normalizeDiceColor(diceColor) });
     }
 
     if (isConsumablePotion(item)) {
