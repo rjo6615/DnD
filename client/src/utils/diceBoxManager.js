@@ -157,13 +157,16 @@ const createDiceBoxConfig = (overrides = null) => ({
   ...(overrides && typeof overrides === 'object' ? overrides : {}),
 });
 
+const buildThemeConfig = (color) =>
+  createDiceBoxConfig(color ? { themeColor: color } : null);
+
 const applyThemeColorToInstance = (instance, color) => {
   if (!instance || typeof instance.updateConfig !== 'function') {
     return false;
   }
 
   try {
-    instance.updateConfig(createDiceBoxConfig({ themeColor: color }));
+    instance.updateConfig(buildThemeConfig(color));
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
