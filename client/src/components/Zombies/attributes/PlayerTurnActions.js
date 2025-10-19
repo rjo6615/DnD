@@ -970,18 +970,59 @@ const manualCriticalRef = useRef(false);
       const ability = abilityForWeapon(weapon, slot);
       const damageString = getDamageStringForHandSelection(slot, weapon);
       if (typeof damageString !== 'string' || !damageString.trim()) return;
+
       const result = await rollDamageExpression({
         damageString,
         ability,
         crit: isCritical,
       });
       if (!result) return;
-      updateDamageValueWithAnimation(result.total, result.breakdown, weapon.name, {
+
+      const weaponLabel = getWeaponDisplayName(slot, weapon);
+      const expression = damageString
+        .replace(/([+-])/g, ' $1 ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      let modifierValues;
+      if (Number.isFinite(ability) && ability !== 0) {
+        const abilityKey = getAbilityKeyForWeapon(slot, weapon);
+        const abilityName =
+          abilityKey === 'dex'
+            ? 'DEX'
+            : abilityKey === 'str'
+            ? 'STR'
+            : abilityKey
+            ? abilityKey.toUpperCase()
+            : 'Ability';
+        const sign = ability >= 0 ? '+' : '-';
+        modifierValues = [`${sign}${Math.abs(ability)} ${abilityName} modifier`];
+      }
+
+      const extraDetails = {
         diceRolls: result.diceRolls,
         rollValues: result.rollValues,
-      });
+        sourceLabel: weaponLabel,
+        actionLabel: 'Damage',
+        expression: expression || undefined,
+        modifierValues,
+      };
+
+      updateDamageValueWithAnimation(
+        result.total,
+        result.breakdown,
+        weapon.name,
+        extraDetails,
+      );
     },
-    [abilityForWeapon, getDamageStringForHandSelection, isCritical, rollDamageExpression],
+    [
+      abilityForWeapon,
+      getAbilityKeyForWeapon,
+      getDamageStringForHandSelection,
+      getWeaponDisplayName,
+      isCritical,
+      rollDamageExpression,
+    ],
   );
 
   const handleWeaponAttackRoll = async (slot, weapon) => {
@@ -1636,22 +1677,16 @@ const damageAmountStyle = {
                       entry.total
                     )}
                   </div>
-                  {entry.actionLabel && entry.expression ? (
+                  {(entry.actionLabel && entry.expression) ||
+                  entry.breakdown ||
+                  (Array.isArray(entry.rollValues) && entry.rollValues.length > 0) ||
+                  (Array.isArray(entry.modifierValues) && entry.modifierValues.length > 0) ? (
                     <div>
-                      <div>{`${entry.actionLabel} - (${entry.expression})`}</div>
-                      {Array.isArray(entry.rollValues) &&
-                        entry.rollValues.map((value, rollIdx) => (
-                          <div key={`roll-${rollIdx}`}>- {value}</div>
-                        ))}
-                      {Array.isArray(entry.modifierValues) &&
-                        entry.modifierValues.map((value, modIdx) => (
-                          <div key={`mod-${modIdx}`}>- {value}</div>
-                        ))}
-                    </div>
-                  ) : (
-                    entry.breakdown && (
-                      <div>
-                        {entry.breakdown
+                      {entry.actionLabel && entry.expression && (
+                        <div>{`${entry.actionLabel} - (${entry.expression})`}</div>
+                      )}
+                      {entry.breakdown && (
+                        entry.breakdown
                           .split(';')
                           .map((section) => section.trim())
                           .filter(Boolean)
@@ -1669,7 +1704,7 @@ const damageAmountStyle = {
                             const type = typeParts.join(' ');
                             const normalizedType = normalizeDamageTypeForClass(type);
                             return (
-                              <div key={i}>
+                              <div key={`breakdown-${i}`}>
                                 -{' '}
                                 <span
                                   className={
@@ -1681,10 +1716,18 @@ const damageAmountStyle = {
                                 </span>
                               </div>
                             );
-                          })}
-                      </div>
-                    )
-                  )}
+                          })
+                      )}
+                      {Array.isArray(entry.rollValues) &&
+                        entry.rollValues.map((value, rollIdx) => (
+                          <div key={`roll-${rollIdx}`}>- {value}</div>
+                        ))}
+                      {Array.isArray(entry.modifierValues) &&
+                        entry.modifierValues.map((value, modIdx) => (
+                          <div key={`mod-${modIdx}`}>- {value}</div>
+                        ))}
+                    </div>
+                  ) : null}
                 </li>
               )
             )}
