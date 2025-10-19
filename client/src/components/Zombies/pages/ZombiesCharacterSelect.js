@@ -223,7 +223,7 @@ function updateForm(value) {
 
 const calculateStartingHealth = (conScore, hitDie, level = 1) => {
   const numericLevel = Number(level) || 1;
-  if (numericLevel !== 1) {
+  if (numericLevel > 1) {
     return null;
   }
 
@@ -234,11 +234,8 @@ const calculateStartingHealth = (conScore, hitDie, level = 1) => {
     return null;
   }
 
-  const baseHealth = Math.max(Math.floor(die), 1);
   const conMod = Math.floor((con - 10) / 2);
-  const totalHealth = Math.max(baseHealth + conMod, 1);
-
-  return { baseHealth, totalHealth };
+  return Math.max(die + conMod, 1);
 };
 
 const attachSelectedAncestryToRace = useCallback((race, {
@@ -703,16 +700,13 @@ function bigMaff() {
     normalizedOcc.Level
   );
 
-  if (startingHealth) {
-    updateForm({
-      health: startingHealth.baseHealth,
-      tempHealth: startingHealth.totalHealth,
-    });
+  if (startingHealth !== null) {
+    updateForm({ health: startingHealth, tempHealth: startingHealth });
   } else {
     const conModValue = Math.floor(((Number(randomCon) || 0) - 10) / 2);
-    const baseHitDie = Math.max(Number(normalizedOcc.Health) || 0, 1);
-    const level = Math.max(Number(normalizedOcc.Level) || 1, 1);
-    const fallbackTempHealth = Math.max(baseHitDie + conModValue * level, 1);
+    const baseHitDie = Number(normalizedOcc.Health) || 0;
+    const level = Number(normalizedOcc.Level) || 1;
+    const fallbackTempHealth = baseHitDie + conModValue * level;
     updateForm({ health: baseHitDie, tempHealth: fallbackTempHealth });
   }
 }
@@ -727,9 +721,9 @@ function bigMaff() {
       primaryOccupation?.Level
     );
 
-    if (startingHealth) {
-      baseCharacter.health = startingHealth.baseHealth;
-      baseCharacter.tempHealth = startingHealth.totalHealth;
+    if (startingHealth !== null) {
+      baseCharacter.health = startingHealth;
+      baseCharacter.tempHealth = startingHealth;
     }
 
     const newCharacter = {
@@ -1704,9 +1698,9 @@ const sendManualToDb = useCallback(async (characterData) => {
     primaryOccupation?.Level
   );
 
-  if (startingHealth) {
-    baseCharacter.health = startingHealth.baseHealth;
-    baseCharacter.tempHealth = startingHealth.totalHealth;
+  if (startingHealth !== null) {
+    baseCharacter.health = startingHealth;
+    baseCharacter.tempHealth = startingHealth;
   }
 
   const newCharacter = {
