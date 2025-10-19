@@ -10,6 +10,7 @@ let diceBoxFailed = false;
 let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
+let usingDiceBoxStub = false;
 
 const availabilityListeners = new Set();
 
@@ -101,23 +102,38 @@ const resolveDiceBoxTarget = () => {
   return { element: reference, selector };
 };
 
+const loadDiceBoxStub = () =>
+  import(/* webpackChunkName: "dice-box-stub" */ './diceBoxStub').then(
+    (module) => module?.default || module,
+  );
+
 const getDiceBoxConstructor = () => {
   if (modulePromise) {
     return modulePromise;
   }
 
-  modulePromise = import(/* webpackChunkName: "dice-box" */ '@3d-dice/dice-box')
-    .then((module) => {
-      const DiceBoxCtor = module?.default || module?.DiceBox || module;
-      if (typeof DiceBoxCtor !== 'function') {
-        throw new Error('Dice Box module did not export a constructor');
-      }
-      return DiceBoxCtor;
-    })
-    .catch((error) => {
-      modulePromise = null;
-      throw error;
-    });
+  const loadModule = async () => {
+    const globalDiceBox =
+      typeof window !== 'undefined' && window
+        ? window.DiceBox || window.__DiceBox
+        : null;
+
+    if (typeof globalDiceBox === 'function') {
+      usingDiceBoxStub = false;
+      return globalDiceBox;
+    }
+
+    // eslint-disable-next-line no-console
+    console.warn('Dice box module unavailable, using stub implementation.');
+    const StubCtor = await loadDiceBoxStub();
+    usingDiceBoxStub = true;
+    return StubCtor;
+  };
+
+  modulePromise = loadModule().catch((error) => {
+    modulePromise = null;
+    throw error;
+  });
 
   return modulePromise;
 };
@@ -126,6 +142,7 @@ const resetInstance = () => {
   diceBoxInstance = null;
   diceBoxPromise = null;
   diceBoxReady = false;
+  usingDiceBoxStub = false;
 };
 
 const ensureDiceBox = async () => {
@@ -177,7 +194,7 @@ const ensureDiceBox = async () => {
         await instance.init();
         diceBoxInstance = instance;
         diceBoxFailed = false;
-        setAvailability(true);
+        setAvailability(!usingDiceBoxStub);
         return instance;
       } catch (error) {
         // eslint-disable-next-line no-console
