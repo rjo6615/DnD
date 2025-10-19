@@ -1,3 +1,5 @@
+import damageTypeColors from './damageTypeColors';
+
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 export const DEFAULT_DICE_COLOR = '#000000';
 export const DICE_FACE_OPACITY = 0.85;
@@ -77,17 +79,52 @@ const CATEGORY_COLOR_RULES = {
   },
 };
 
-const DAMAGE_TYPE_COLOR_MAP = {
-  acid: '#09ff09',
-  cold: '#00bfff',
-  fire: '#ff4500',
-  lightning: '#0026ff',
-  poison: '#c4f74e',
-  thunder: '#8a2be2',
-  force: '#ff1493',
-  necrotic: '#90cf80',
-  radiant: '#ffff99',
-  psychic: '#ba55d3',
+const DAMAGE_TYPE_LOOKUP = Object.entries(damageTypeColors || {}).reduce(
+  (acc, [key, value]) => {
+    if (!key) {
+      return acc;
+    }
+
+    const normalizedKey = String(key).trim().toLowerCase();
+    if (!normalizedKey) {
+      return acc;
+    }
+
+    const normalizedColor = normalizeDiceColor(value);
+    if (!normalizedColor) {
+      return acc;
+    }
+
+    acc[normalizedKey] = normalizedColor;
+    return acc;
+  },
+  {},
+);
+
+const DAMAGE_TYPE_TOKEN_IGNORE_LIST = new Set([
+  'and',
+  'bonus',
+  'damage',
+  'damages',
+  'extra',
+  'plus',
+]);
+
+const DAMAGE_TYPE_ALIASES = {
+  acid: 'acid',
+  acidic: 'acid',
+  chill: 'cold',
+  cold: 'cold',
+  fire: 'fire',
+  flaming: 'fire',
+  force: 'force',
+  lightning: 'lightning',
+  necrotic: 'necrotic',
+  poison: 'poison',
+  poisonous: 'poison',
+  psychic: 'psychic',
+  radiant: 'radiant',
+  thunder: 'thunder',
 };
 
 export const resolveDamageTypeColor = (normalizedType) => {
@@ -98,11 +135,32 @@ export const resolveDamageTypeColor = (normalizedType) => {
   if (!trimmed) {
     return null;
   }
-  const hex = DAMAGE_TYPE_COLOR_MAP[trimmed];
-  if (!hex) {
-    return null;
+
+  const directMatch = DAMAGE_TYPE_LOOKUP[trimmed];
+  if (directMatch) {
+    return directMatch;
   }
-  return normalizeDiceColor(hex);
+
+  const hyphenated = trimmed.replace(/\s+/g, '-');
+  const hyphenMatch = DAMAGE_TYPE_LOOKUP[hyphenated];
+  if (hyphenMatch) {
+    return hyphenMatch;
+  }
+
+  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
+  for (const token of tokens) {
+    if (DAMAGE_TYPE_TOKEN_IGNORE_LIST.has(token)) {
+      continue;
+    }
+
+    const alias = DAMAGE_TYPE_ALIASES[token] || token;
+    const color = DAMAGE_TYPE_LOOKUP[alias];
+    if (color) {
+      return color;
+    }
+  }
+
+  return null;
 };
 
 export const createDiceCategoryStyles = (color, category = 'base') => {
