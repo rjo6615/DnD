@@ -110,6 +110,8 @@ export default function HealthDefense({
   const safeInitialHealth = Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0;
   const [health, setHealth] = useState(safeInitialHealth);
   const [error, setError] = useState(null); // Error message state
+  const [deathSaveFailures, setDeathSaveFailures] = useState([false, false, false]);
+  const [deathSaveSuccesses, setDeathSaveSuccesses] = useState([false, false, false]);
 
   useEffect(() => {
     setHealth(Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0);
@@ -189,6 +191,30 @@ export default function HealthDefense({
       : healthValue >= 0
         ? "#2ecc71"
         : "#c0392b";
+  const showDeathSaveTrackers = Number.isFinite(healthValue) && healthValue <= 0;
+
+  useEffect(() => {
+    if (!showDeathSaveTrackers) {
+      setDeathSaveFailures([false, false, false]);
+      setDeathSaveSuccesses([false, false, false]);
+    }
+  }, [showDeathSaveTrackers]);
+
+  const toggleDeathSaveFailure = (index) => {
+    setDeathSaveFailures((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+
+  const toggleDeathSaveSuccess = (index) => {
+    setDeathSaveSuccesses((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
   const numericSpeedMultiplier = Number(speedMultiplier);
   const safeSpeedMultiplier =
     Number.isFinite(numericSpeedMultiplier) && numericSpeedMultiplier > 0
@@ -226,26 +252,52 @@ return (
     }}
   >
     {/* Decrease Button */}
-    <Button
+    <div
       style={{
-        color: "#e74c3c",
-        backgroundColor: 'transparent',
-        border: "none",
-        fontSize: "20px",
-        width: "44px",
-        height: "44px",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "50%",
-        transition: "transform 0.2s ease",
-        flexShrink: 0
+        gap: "8px",
+        flexShrink: 0,
       }}
-      className="fa-solid fa-minus"
-      onClick={decreaseHealth}
-      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
-    />
+    >
+      <Button
+        style={{
+          color: "#e74c3c",
+          backgroundColor: 'transparent',
+          border: "none",
+          fontSize: "20px",
+          width: "44px",
+          height: "44px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          transition: "transform 0.2s ease",
+          flexShrink: 0
+        }}
+        className="fa-solid fa-minus"
+        onClick={decreaseHealth}
+        onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
+        onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+      />
+      {showDeathSaveTrackers && (
+        <div className="death-save-circles" aria-label="Death save failures">
+          {deathSaveFailures.map((active, index) => (
+            <button
+              key={`death-fail-${index}`}
+              type="button"
+              className={`death-save-circle ${
+                active ? 'death-save-circle--fail-active' : 'death-save-circle--inactive'
+              }`}
+              onClick={() => toggleDeathSaveFailure(index)}
+              aria-pressed={active}
+              aria-label={`Mark death save failure ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
 
     {/* Health Bar */}
     <div
@@ -305,26 +357,52 @@ return (
     </div>
 
     {/* Increase Button */}
-    <Button
+    <div
       style={{
-        color: "#27ae60",
-        backgroundColor: "transparent",
-        border: "none",
-        fontSize: "20px",
-        width: "44px",
-        height: "44px",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "50%",
-        transition: "transform 0.2s ease",
-        flexShrink: 0
+        gap: "8px",
+        flexShrink: 0,
       }}
-      className="fa-solid fa-plus"
-      onClick={increaseHealth}
-      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
-    />
+    >
+      <Button
+        style={{
+          color: "#27ae60",
+          backgroundColor: "transparent",
+          border: "none",
+          fontSize: "20px",
+          width: "44px",
+          height: "44px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          transition: "transform 0.2s ease",
+          flexShrink: 0
+        }}
+        className="fa-solid fa-plus"
+        onClick={increaseHealth}
+        onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
+        onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+      />
+      {showDeathSaveTrackers && (
+        <div className="death-save-circles" aria-label="Death save successes">
+          {deathSaveSuccesses.map((active, index) => (
+            <button
+              key={`death-success-${index}`}
+              type="button"
+              className={`death-save-circle ${
+                active ? 'death-save-circle--success-active' : 'death-save-circle--inactive'
+              }`}
+              onClick={() => toggleDeathSaveSuccess(index)}
+              aria-pressed={active}
+              aria-label={`Mark death save success ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   </div>
   {error && (
     <div className="text-danger" style={{ marginTop: "8px" }}>
