@@ -5,6 +5,7 @@ import hasteIcon from '../../../images/spell-haste-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
 import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalsIcon from '../../../images/speak-with-animal.png';
+import largeFormIcon from '../../../images/large-form-icon.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
@@ -1292,6 +1293,97 @@ test('casting Haste adds status icon and extra action circle', async () => {
   );
   const icon = screen.getByAltText('Haste');
   expect(icon).toHaveAttribute('src', hasteIcon);
+});
+
+test('using Potion of Speed grants Haste effect and extra action circle', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  expect(container.querySelectorAll('.action-circle').length).toBe(1);
+
+  await act(async () => {
+    window.dispatchEvent(
+      new CustomEvent('inventory:consumable-used', {
+        detail: {
+          type: 'potion',
+          item: { name: 'potion-speed', displayName: 'Potion of Speed' },
+        },
+      })
+    );
+  });
+
+  await waitFor(() =>
+    expect(container.querySelectorAll('.action-circle').length).toBe(2)
+  );
+  const icon = screen.getByAltText('Haste');
+  expect(icon).toHaveAttribute('src', hasteIcon);
+});
+
+test('using Potion of Growth grants Large Form effect and bonuses', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockEquipmentModalProps.current).not.toBeNull());
+  expect(mockEquipmentModalProps.current?.form?.temporarySize).toBeUndefined();
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBeUndefined();
+
+  await act(async () => {
+    window.dispatchEvent(
+      new CustomEvent('inventory:consumable-used', {
+        detail: {
+          type: 'potion',
+          item: { name: 'potion-growth', displayName: 'Potion of Growth' },
+        },
+      })
+    );
+  });
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  const icon = await screen.findByAltText('Large Form');
+  expect(icon).toHaveAttribute('src', largeFormIcon);
 });
 
 test('casting Speak with Animals adds status icon for free and slot casts', async () => {

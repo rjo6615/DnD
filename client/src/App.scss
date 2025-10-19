@@ -666,6 +666,20 @@ body.docked-modal--resizing {
   margin-bottom: 0.25rem;
 }
 
+.weapon-mastery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.weapon-mastery__name {
+  font-weight: 600;
+}
+
+.weapon-mastery__description {
+  font-size: 0.95rem;
+}
+
 .attack-card__actions {
   margin-top: auto;
   display: flex;
@@ -676,6 +690,15 @@ body.docked-modal--resizing {
 .attack-card__roll {
   font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.85);
+}
+
+.attack-card__mastery {
+  color: #f4d35e;
+}
+
+.attack-card__mastery:hover,
+.attack-card__mastery:focus {
+  color: #ffd86b;
 }
 
 .attack-card__roll:hover,
@@ -1475,6 +1498,43 @@ body.docked-modal--resizing {
 }
 
 .bonus-circle.slot-used {
+  background: transparent;
+  box-shadow: none;
+}
+
+.death-save-circles {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.death-save-circle {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.death-save-circle:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.death-save-circle--fail-active {
+  background: #ff4d4f;
+  box-shadow: 0 0 5px #ff4d4f, 0 0 10px rgba(255, 77, 79, 0.75);
+}
+
+.death-save-circle--success-active {
+  background: #ffc107;
+  box-shadow: 0 0 5px #ffc107, 0 0 10px rgba(255, 193, 7, 0.75);
+}
+
+.death-save-circle--inactive {
   background: transparent;
   box-shadow: none;
 }

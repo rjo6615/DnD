@@ -176,6 +176,56 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('infers weapon mastery from weapon type when not provided', async () => {
+    const weapon = {
+      name: 'Custom Warhammer',
+      damage: '1d8 bludgeoning',
+      category: 'martial melee weapon',
+      source: 'weapon',
+      type: 'warhammer',
+    };
+
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Custom Warhammer').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('missing Custom Warhammer card');
+
+    const masteryButton = within(card).getByLabelText(
+      /View Push mastery description/i
+    );
+    expect(masteryButton).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(masteryButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeInTheDocument();
+      expect(
+        screen.getByText(/If you hit a creature with this weapon, you can push/i)
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(document.body);
+    });
+  });
+
   test('finesse ability selection updates attack bonus and damage modifier', async () => {
     const weapon = {
       name: 'Rapier',

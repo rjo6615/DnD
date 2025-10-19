@@ -118,6 +118,28 @@ const items = {
       "You regain hit points when you drink this potion. Whatever its potency, the potion's red liquid glimmers when agitated.",
     owned: false,
   },
+  "potion-speed": {
+    name: "Potion of speed",
+    category: "consumable",
+    weight: 0.5,
+    cost: "3000 gp",
+    properties: ["consumable"],
+    rarity: "Very Rare",
+    notes:
+      "When you drink this potion, you gain the effect of the Haste spell for 1 minute (no concentration required) without suffering the wave of lethargy typically caused when the effect ends.",
+    owned: false,
+  },
+  "potion-growth": {
+    name: "Potion of growth",
+    category: "consumable",
+    weight: 0.5,
+    cost: "270 gp",
+    properties: ["consumable"],
+    rarity: "Uncommon",
+    notes:
+      'When you drink this potion, you gain the "enlarge" effect of the Enlarge/Reduce spell for 10 minutes (no concentration required). The red in the potion\'s liquid continuously expands from a tiny bead to color the clear liquid around it and then contracts.',
+    owned: false,
+  },
   pouch: { name: "Pouch", category: "adventuring gear", weight: 1, cost: "5 sp", owned: false },
   quiver: { name: "Quiver", category: "adventuring gear", weight: 1, cost: "1 gp", owned: false },
   "ram-portable": { name: "Ram, portable", category: "adventuring gear", weight: 35, cost: "4 gp", owned: false },
