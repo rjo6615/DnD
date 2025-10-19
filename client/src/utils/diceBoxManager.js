@@ -14,6 +14,7 @@ let diceBoxPromise = null;
 let diceBoxInstance = null;
 let diceBoxReady = false;
 let diceBoxFailed = false;
+let diceBoxDisabled = false;
 let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
@@ -48,6 +49,16 @@ const notifyAvailability = (ready) => {
 const setAvailability = (ready) => {
   diceBoxReady = ready;
   notifyAvailability(ready);
+};
+
+const markDiceBoxFailure = ({ fatal = false } = {}) => {
+  diceBoxFailed = true;
+  if (fatal) {
+    diceBoxDisabled = true;
+  }
+
+  resetInstance();
+  setAvailability(false);
 };
 
 const resolveHostReference = () => {
@@ -219,11 +230,13 @@ const ensureDiceBox = async () => {
   if (diceBoxInstance) {
     return diceBoxInstance;
   }
-  if (diceBoxFailed) {
+
+  if (diceBoxDisabled) {
     return null;
   }
+
   if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
-    diceBoxFailed = true;
+    markDiceBoxFailure({ fatal: true });
     return null;
   }
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -261,14 +274,14 @@ const ensureDiceBox = async () => {
         await instance.init();
         diceBoxInstance = instance;
         diceBoxFailed = false;
+        diceBoxDisabled = false;
         applyPendingThemeColor(instance);
         setAvailability(true);
         return instance;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Dice box initialization failed', error);
-        diceBoxFailed = true;
-        setAvailability(false);
+        markDiceBoxFailure();
         return null;
       }
     })();
@@ -471,6 +484,7 @@ export const registerDiceBoxContainer = (element) => {
   hostElement = element || null;
   resetInstance();
   diceBoxFailed = false;
+  diceBoxDisabled = false;
   const { element: resolvedElement, selector } = resolveDiceBoxTarget();
   if (!resolvedElement && !selector) {
     setAvailability(false);
@@ -567,7 +581,11 @@ export const rollDiceWithBox = (requests) => {
         console.warn('Dice box clear failed', error);
       }
 
-      const finalize = (rawResults, usedFallback = false) => {
+      const finalize = (rawResults, usedFallback = false, { failure = false } = {}) => {
+        if (failure) {
+          markDiceBoxFailure();
+        }
+
         resolve({
           rolls: usedFallback ? fallback : rawResults,
           rawResults: usedFallback ? null : rawResults,
@@ -583,10 +601,10 @@ export const rollDiceWithBox = (requests) => {
             resolve({ rolls: parsed, rawResults, usedFallback: false });
             return;
           }
-          resolve({ rolls: fallback, rawResults, usedFallback: true });
+          finalize(fallback, true, { failure: true });
         },
         () => {
-          finalize(fallback, true);
+          finalize(fallback, true, { failure: true });
         }
       );
 
@@ -596,7 +614,7 @@ export const rollDiceWithBox = (requests) => {
         cleanup();
         // eslint-disable-next-line no-console
         console.error('Dice box roll failed', error);
-        finalize(fallback, true);
+        finalize(fallback, true, { failure: true });
       }
     });
   };
