@@ -14,7 +14,6 @@ let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
 let diceBoxScriptPromise = null;
-let usingDiceBoxStub = false;
 
 const availabilityListeners = new Set();
 
