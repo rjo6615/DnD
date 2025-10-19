@@ -5,7 +5,7 @@ import Stats from './Stats';
 
 test('clicking view shows description and breakdown', async () => {
   const form = {
-    str: 10,
+    str: 14,
     dex: 0,
     con: 0,
     int: 0,
