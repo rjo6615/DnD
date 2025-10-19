@@ -161,7 +161,7 @@ const createDieStyle = (die, index, reduceMotion) => {
   };
 };
 
-const DamageDiceCanvas = ({ dice = [], diceColor }) => {
+const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
   const resolvedColor = useMemo(
     () => normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR,
     [diceColor],
@@ -169,6 +169,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor }) => {
   const reduceMotion = usePrefersReducedMotion();
   const diceBoxRef = useRef(null);
   const [diceBoxReady, setDiceBoxReady] = useState(false);
+  const registrationKey = instanceKey ?? '__default__';
 
   useEffect(() => {
     const reference = diceBoxRef.current || '#damage-dice-box';
@@ -181,7 +182,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor }) => {
       unregister?.();
       unsubscribe?.();
     };
-  }, []);
+  }, [registrationKey]);
 
   useEffect(() => {
     setDiceBoxThemeColor(resolvedColor);
