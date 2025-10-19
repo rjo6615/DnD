@@ -1273,9 +1273,6 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
             isFumble ? 'critical-failure' : ''
           }`}
         >
-          <div className="damage-roller__dice-area" aria-hidden="true">
-            <DamageDiceCanvas dice={preparedDice} />
-          </div>
           <div className="damage-roller__total">
             <span className="damage-roller__total-label">Total</span>
             <span
@@ -1301,6 +1298,33 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
             >
               {damageValue}
             </span>
+          </div>
+          <div className="attack-roll-controls damage-roller__controls">
+            <div className="attack-roll-controls__button">
+              {/* Attack Button */}
+              <button
+                onClick={handleShowAttack}
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  backgroundImage: `url(${sword})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  border: 'none',
+                  transition: 'transform 0.2s ease',
+                  cursor: 'pointer',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                title="Attack"
+              />
+            </div>
+            <div className="attack-roll-controls__die">
+              <div className="damage-roller__dice-area" aria-hidden="true">
+                <DamageDiceCanvas dice={preparedDice} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1382,38 +1406,6 @@ const passDisabled = !canPassTurn || isPassTurnInProgress;
           </ul>
         </Modal.Body>
       </Modal>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          overflowY: 'auto',
-          paddingBottom: `${footerHeight}px`,
-        }}
-      >
-        <div className="attack-roll-controls">
-          <div className="attack-roll-controls__button">
-            {/* Attack Button */}
-            <button
-              onClick={handleShowAttack}
-              style={{
-                width: '64px',
-                height: '64px',
-                backgroundImage: `url(${sword})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                border: 'none',
-                transition: 'transform 0.2s ease',
-                cursor: 'pointer',
-                backgroundColor: 'transparent',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-              title="Attack"
-            />
-          </div>
-        </div>
-      </div>
 {/* Attack Modal */}
 
       <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
