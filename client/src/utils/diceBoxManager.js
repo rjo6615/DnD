@@ -1,8 +1,6 @@
-const DICE_BOX_SCRIPT_ID = 'dice-box-library-script';
-const DICE_BOX_SCRIPT_URL = '/assets/dice-box/dice-box.umd.js';
-const ASSET_PATH = '/assets/dice-box/public/assets/dice-box/';
+const ASSET_PATH = '/assets/dice-box/';
 
-let scriptPromise = null;
+let modulePromise = null;
 let diceBoxPromise = null;
 let diceBoxInstance = null;
 let diceBoxReady = false;
@@ -37,46 +35,25 @@ const setAvailability = (ready) => {
   notifyAvailability(ready);
 };
 
-const loadScript = () => {
-  if (scriptPromise) {
-    return scriptPromise;
+const getDiceBoxConstructor = () => {
+  if (modulePromise) {
+    return modulePromise;
   }
 
-  if (typeof document === 'undefined') {
-    scriptPromise = Promise.resolve();
-    return scriptPromise;
-  }
+  modulePromise = import(/* webpackChunkName: "dice-box" */ '@3d-dice/dice-box')
+    .then((module) => {
+      const DiceBoxCtor = module?.default || module?.DiceBox || module;
+      if (typeof DiceBoxCtor !== 'function') {
+        throw new Error('Dice Box module did not export a constructor');
+      }
+      return DiceBoxCtor;
+    })
+    .catch((error) => {
+      modulePromise = null;
+      throw error;
+    });
 
-  const existing = document.getElementById(DICE_BOX_SCRIPT_ID);
-  if (existing) {
-    scriptPromise = existing.getAttribute('data-loaded') === 'true'
-      ? Promise.resolve()
-      : new Promise((resolve, reject) => {
-          existing.addEventListener('load', resolve, { once: true });
-          existing.addEventListener('error', reject, { once: true });
-        });
-    return scriptPromise;
-  }
-
-  scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.id = DICE_BOX_SCRIPT_ID;
-    script.async = true;
-    script.src = DICE_BOX_SCRIPT_URL;
-    script.onload = () => {
-      script.setAttribute('data-loaded', 'true');
-      resolve();
-    };
-    script.onerror = (event) => {
-      reject(new Error(`Failed to load dice box script: ${event?.message || 'unknown error'}`));
-    };
-    document.head.appendChild(script);
-  }).catch((error) => {
-    scriptPromise = null;
-    throw error;
-  });
-
-  return scriptPromise;
+  return modulePromise;
 };
 
 const resetInstance = () => {
@@ -105,14 +82,12 @@ const ensureDiceBox = async () => {
   if (!diceBoxPromise) {
     diceBoxPromise = (async () => {
       try {
-        await loadScript();
-        const { DiceBox } = window;
-        if (typeof DiceBox !== 'function') {
-          diceBoxFailed = true;
-          setAvailability(false);
-          return null;
-        }
-        const instance = new DiceBox(hostElement, {
+        const DiceBox = await getDiceBoxConstructor();
+        const target =
+          hostElement && typeof hostElement === 'object' && 'current' in hostElement
+            ? hostElement.current
+            : hostElement;
+        const instance = new DiceBox(target || hostElement, {
           assetPath: ASSET_PATH,
           theme: 'default',
           scale: 6,
