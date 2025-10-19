@@ -213,10 +213,45 @@ const destroyInstance = (instance) => {
   }
 };
 
+const purgeContainerChildren = (element) => {
+  if (!element || typeof element !== 'object') {
+    return;
+  }
+
+  try {
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
+  } catch (error) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('Failed to clear dice box container', error);
+    }
+  }
+};
+
+const clearCurrentHostContainer = () => {
+  const { element, selector } = resolveDiceBoxTarget();
+  if (element) {
+    purgeContainerChildren(element);
+    return;
+  }
+
+  if (!selector || typeof document === 'undefined') {
+    return;
+  }
+
+  const resolved = document.querySelector(selector);
+  if (resolved) {
+    purgeContainerChildren(resolved);
+  }
+};
+
 const resetInstance = () => {
   if (diceBoxInstance) {
     destroyInstance(diceBoxInstance);
   }
+
+  clearCurrentHostContainer();
 
   diceBoxInstance = null;
   diceBoxPromise = null;
