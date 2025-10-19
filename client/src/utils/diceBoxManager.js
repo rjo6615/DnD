@@ -21,6 +21,30 @@ let generatedHostId = 0;
 let pendingThemeColor = null;
 let activeThemeColor = null;
 let warmupPromise = null;
+let retryTimeoutId = null;
+
+const DICEBOX_INIT_TIMEOUT_MS = 10000;
+const RETRY_DELAY_MS = 4000;
+
+const clearScheduledRetry = () => {
+  if (retryTimeoutId) {
+    clearTimeout(retryTimeoutId);
+    retryTimeoutId = null;
+  }
+};
+
+const scheduleRetry = () => {
+  if (retryTimeoutId || diceBoxDisabled) {
+    return;
+  }
+
+  retryTimeoutId = setTimeout(() => {
+    retryTimeoutId = null;
+    if (!diceBoxReady && !diceBoxDisabled) {
+      ensureDiceBox();
+    }
+  }, RETRY_DELAY_MS);
+};
 
 const availabilityListeners = new Set();
 
@@ -51,6 +75,29 @@ const setAvailability = (ready) => {
   notifyAvailability(ready);
 };
 
+const withTimeout = (promise, timeoutMs, errorFactory) =>
+  new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(errorFactory?.() || new Error('Operation timed out'));
+    }, timeoutMs);
+
+    const finalize = (callback) => (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      callback(value);
+    };
+
+    promise.then(finalize(resolve), finalize(reject));
+  });
+
 const markDiceBoxFailure = ({ fatal = false } = {}) => {
   diceBoxFailed = true;
   if (fatal) {
@@ -59,6 +106,9 @@ const markDiceBoxFailure = ({ fatal = false } = {}) => {
 
   resetInstance();
   setAvailability(false);
+  if (!fatal) {
+    scheduleRetry();
+  }
 };
 
 const resolveHostReference = () => {
@@ -172,6 +222,7 @@ const resetInstance = () => {
   diceBoxPromise = null;
   diceBoxReady = false;
   activeThemeColor = null;
+  clearScheduledRetry();
 };
 
 const normalizeThemeColor = (value) => {
@@ -226,7 +277,7 @@ const applyPendingThemeColor = (instance) => {
   }
 };
 
-const ensureDiceBox = async () => {
+async function ensureDiceBox() {
   if (diceBoxInstance) {
     return diceBoxInstance;
   }
@@ -244,6 +295,7 @@ const ensureDiceBox = async () => {
   }
   const { element: targetElement, selector } = resolveDiceBoxTarget();
   if (!targetElement && !selector) {
+    scheduleRetry();
     return null;
   }
   if (!diceBoxPromise) {
@@ -271,11 +323,16 @@ const ensureDiceBox = async () => {
           }
         }
 
-        await instance.init();
+        await withTimeout(
+          instance.init(),
+          DICEBOX_INIT_TIMEOUT_MS,
+          () => new Error('Dice box initialization timed out'),
+        );
         diceBoxInstance = instance;
         diceBoxFailed = false;
         diceBoxDisabled = false;
         applyPendingThemeColor(instance);
+        clearScheduledRetry();
         setAvailability(true);
         return instance;
       } catch (error) {
@@ -287,7 +344,7 @@ const ensureDiceBox = async () => {
     })();
   }
   return diceBoxPromise;
-};
+}
 
 const collectNumericLeaves = (node, target) => {
   if (!node) return;
