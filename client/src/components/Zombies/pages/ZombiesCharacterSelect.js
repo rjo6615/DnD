@@ -1616,9 +1616,10 @@ const handleConfirmOccupation = useCallback(() => {
     );
 
     if (!occupationExists && selectedAddOccupationObject) {
+      const hitDieValue = Number(selectedAddOccupationObject.hitDie || 0);
       const normalizedOcc = {
         Occupation: selectedAddOccupationObject.name,
-        Health: selectedAddOccupationObject.hitDie,
+        Health: hitDieValue,
         Level: 1,
         proficiencyPoints: selectedAddOccupationObject.proficiencies?.skills?.count || 0,
         armor: selectedAddOccupationObject.proficiencies?.armor || [],
@@ -1656,6 +1657,13 @@ const handleConfirmOccupation = useCallback(() => {
         addOccupationWis +
         addOccupationCha;
 
+      const conModValue = Math.floor((addOccupationCon - 10) / 2);
+      const calculatedTempHealth = hitDieValue +
+        conModValue * Number(normalizedOcc.Level || 1);
+      const normalizedTempHealth = Number.isFinite(calculatedTempHealth)
+        ? calculatedTempHealth
+        : hitDieValue;
+
       const updatedForm = {
         ...form,
         occupation: [normalizedOcc],
@@ -1666,6 +1674,8 @@ const handleConfirmOccupation = useCallback(() => {
         wis: addOccupationWis,
         cha: addOccupationCha,
         startStatTotal: totalNewStats,
+        health: hitDieValue,
+        tempHealth: normalizedTempHealth,
       };
 
       setForm(updatedForm);
@@ -2124,9 +2134,6 @@ const getAvailableSkillOptions = (index) => {
             />
           </React.Fragment>
         ))}
-        <Form.Label className="text-light">Health</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
-        type="number" placeholder="Enter health" pattern="[0-9]*" />
      </Form.Group>
      <div className="text-center">
      <Button variant="primary" type="submit">
