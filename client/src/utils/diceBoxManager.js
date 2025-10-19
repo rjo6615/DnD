@@ -134,7 +134,29 @@ const getDiceBoxConstructor = () => {
   return modulePromise;
 };
 
+const destroyInstance = (instance) => {
+  if (!instance) {
+    return;
+  }
+
+  try {
+    if (typeof instance.destroy === 'function') {
+      instance.destroy();
+    } else if (typeof instance.dispose === 'function') {
+      instance.dispose();
+    }
+  } catch (error) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('Dice box destroy failed', error);
+    }
+  }
+};
+
 const resetInstance = () => {
+  if (diceBoxInstance) {
+    destroyInstance(diceBoxInstance);
+  }
+
   diceBoxInstance = null;
   diceBoxPromise = null;
   diceBoxReady = false;
