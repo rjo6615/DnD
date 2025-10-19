@@ -2,6 +2,13 @@ const ASSET_PATH = `${
   (typeof process !== 'undefined' && process.env && process.env.PUBLIC_URL) || ''
 }/assets/dice-box/`;
 
+const BASE_CONFIG = Object.freeze({
+  assetPath: ASSET_PATH,
+  theme: 'default',
+  scale: 6,
+  offscreen: false,
+});
+
 let modulePromise = null;
 let diceBoxPromise = null;
 let diceBoxInstance = null;
@@ -145,13 +152,21 @@ const normalizeThemeColor = (value) => {
   return `#${match[1].toLowerCase()}`;
 };
 
+const createDiceBoxConfig = (overrides = null) => ({
+  ...BASE_CONFIG,
+  ...(overrides && typeof overrides === 'object' ? overrides : {}),
+});
+
+const buildThemeConfig = (color) =>
+  createDiceBoxConfig(color ? { themeColor: color } : null);
+
 const applyThemeColorToInstance = (instance, color) => {
   if (!instance || typeof instance.updateConfig !== 'function') {
     return false;
   }
 
   try {
-    instance.updateConfig({ themeColor: color });
+    instance.updateConfig(buildThemeConfig(color));
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -198,12 +213,9 @@ const ensureDiceBox = async () => {
           throw new Error('Dice box target was not available');
         }
 
-        const options = {
-          assetPath: ASSET_PATH,
-          theme: 'default',
-          scale: 6,
-          offscreen: false,
-        };
+        const options = createDiceBoxConfig(
+          pendingThemeColor ? { themeColor: pendingThemeColor } : null,
+        );
 
         let instance = null;
 
