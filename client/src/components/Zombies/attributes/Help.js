@@ -5,18 +5,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import CampaignModals from "../components/CampaignModals";
 import useCampaignActions from "../hooks/useCampaignActions";
 import DockControls from '../components/DockControls';
-
-const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const DEFAULT_DICE_COLOR = '#000000';
-
-const normalizeDiceColor = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return HEX_COLOR_PATTERN.test(trimmed) ? trimmed : null;
-};
+import {
+  applyDiceFaceColor,
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+} from '../../../utils/diceColors';
 
 export default function Help({
   form,
@@ -68,23 +61,9 @@ export default function Help({
   const initialColor = normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR;
   const [newColor, setNewColor] = useState(initialColor);
 
-  const applyDiceFaceColor = useCallback((color) => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    const normalized = normalizeDiceColor(color) || DEFAULT_DICE_COLOR;
-    const r = parseInt(normalized.slice(1, 3), 16);
-    const g = parseInt(normalized.slice(3, 5), 16);
-    const b = parseInt(normalized.slice(5, 7), 16);
-    const opacity = 0.85;
-    const rgbaColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-  }, []);
-
   useEffect(() => {
     applyDiceFaceColor(newColor);
-  }, [applyDiceFaceColor, newColor]);
+  }, [newColor]);
 
   useEffect(() => {
     const normalized = normalizeDiceColor(form?.diceColor);

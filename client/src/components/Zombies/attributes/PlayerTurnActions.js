@@ -17,6 +17,16 @@ import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkillWithDiceBox } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
 import { rollDiceWithBox } from '../../../utils/diceBoxManager';
+import {
+  collectRollValues,
+  normalizeRollValue,
+  sanitizeRollGroup,
+} from '../../../utils/diceResults';
+import {
+  applyDiceFaceColor,
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+} from '../../../utils/diceColors';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -844,16 +854,41 @@ const manualCriticalRef = useRef(false);
       try {
         const { rolls } = await rollDiceWithBox(requests);
         let requestIndex = 0;
+        const appliedRollGroups = [];
         const applyRolls = (count, sides) => {
           const current = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
           requestIndex += 1;
-          if (Array.isArray(current) && current.length === count) {
-            return current.map((value) => {
-              const parsed = Number(value);
-              return Number.isFinite(parsed) ? parsed : 0;
-            });
+          const normalizedGroup = sanitizeRollGroup(current, count, sides);
+          if (normalizedGroup) {
+            appliedRollGroups.push(normalizedGroup);
+            return normalizedGroup;
           }
-          return rollDice(count, sides);
+          const fallbackRolls = rollDice(count, sides);
+          const resolvedSides =
+            Number.isFinite(sides) && sides > 1 ? Math.floor(sides) : 6;
+          let numericFallback;
+          if (Array.isArray(fallbackRolls)) {
+            numericFallback = fallbackRolls
+              .map((value) => normalizeRollValue(value))
+              .filter((value) => value !== null);
+            if (numericFallback.length > count) {
+              numericFallback = numericFallback.slice(0, count);
+            }
+            while (numericFallback.length < count) {
+              numericFallback.push(
+                Math.max(
+                  1,
+                  Math.floor(Math.random() * resolvedSides) + 1,
+                ),
+              );
+            }
+          } else {
+            numericFallback = Array.from({ length: count }, () =>
+              Math.max(1, Math.floor(Math.random() * resolvedSides) + 1),
+            );
+          }
+          appliedRollGroups.push(numericFallback);
+          return numericFallback;
         };
 
         const finalResult = calculateDamage(
@@ -865,14 +900,8 @@ const manualCriticalRef = useRef(false);
           levelsAbove,
         );
 
-        const rollValues = Array.isArray(rolls)
-          ? rolls
-              .flat()
-              .map((value) => {
-                const parsed = Number(value);
-                return Number.isFinite(parsed) ? parsed : 0;
-              })
-          : undefined;
+        const appliedValues = collectRollValues(appliedRollGroups);
+        const rollValues = appliedValues.length > 0 ? appliedValues : undefined;
 
         return finalResult ? { ...finalResult, rollValues } : null;
       } catch (error) {
@@ -1083,6 +1112,15 @@ const [damageLog, setDamageLog] = useState([]);
 const [showLog, setShowLog] = useState(false);
 const [activeDice, setActiveDice] = useState([]);
 const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
+
+useEffect(() => {
+  const normalized = normalizeDiceColor(form?.diceColor);
+  if (normalized) {
+    applyDiceFaceColor(normalized);
+    return;
+  }
+  applyDiceFaceColor(DEFAULT_DICE_COLOR);
+}, [form?.diceColor]);
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
