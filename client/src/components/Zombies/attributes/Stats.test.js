@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within, act } from '@testing-library/react';
+import { render, screen, within, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Stats from './Stats';
 
@@ -174,6 +174,10 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
       );
     });
 
+    await waitFor(() => {
+      expect(handleCloseStats).toHaveBeenCalled();
+    });
+
     const rollEventCall = dispatchSpy.mock.calls.find(
       ([event]) => event?.type === 'damage-roll'
     );
@@ -194,7 +198,6 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
         }),
       ],
     });
-    expect(handleCloseStats).toHaveBeenCalled();
   } finally {
     randomSpy.mockRestore();
     dispatchSpy.mockRestore();

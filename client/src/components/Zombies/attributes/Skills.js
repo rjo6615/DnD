@@ -8,6 +8,7 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import DockControls from '../components/DockControls';
+import { rollDiceWithBox } from '../../../utils/diceBoxManager';
 
 const EMPTY_OBJECT = Object.freeze({});
 
@@ -26,8 +27,21 @@ const formatAdjustmentSegment = (value, label) => {
   return `${sign} ${Math.abs(value)} ${label}`;
 };
 
-export function rollSkill(bonus = 0) {
-  const d20 = Math.floor(Math.random() * 20) + 1;
+const normalizeD20Value = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  const rounded = Math.round(parsed);
+  if (rounded < 1) return 1;
+  if (rounded > 20) return 20;
+  return rounded;
+};
+
+export function rollSkill(bonus = 0, d20Override = null) {
+  const normalizedOverride = normalizeD20Value(d20Override);
+  const d20 =
+    normalizedOverride !== null
+      ? normalizedOverride
+      : Math.floor(Math.random() * 20) + 1;
   if (d20 === 20) {
     window.dispatchEvent(new CustomEvent('critical-hit', { detail: 'critical' }));
   } else if (d20 === 1) {
@@ -35,6 +49,23 @@ export function rollSkill(bonus = 0) {
   }
   const result = d20 + bonus;
   return { result, d20 };
+}
+
+export async function rollSkillWithDiceBox(bonus = 0) {
+  try {
+    const { rolls } = await rollDiceWithBox([{ count: 1, sides: 20 }]);
+    const firstGroup = Array.isArray(rolls) ? rolls[0] : undefined;
+    const firstValue = Array.isArray(firstGroup) ? firstGroup[0] : firstGroup;
+    const override = normalizeD20Value(firstValue);
+    if (override !== null) {
+      return { ...rollSkill(bonus, override), usedDiceBox: true };
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Skill roll using dice box failed', error);
+  }
+
+  return { ...rollSkill(bonus), usedDiceBox: false };
 }
 
 export default function Skills({
@@ -306,7 +337,7 @@ export default function Skills({
     updateSkill(skill, updated);
   };
 
-  const handleRoll = (skillKey, ability, proficient, expertise) => {
+  const handleRoll = async (skillKey, ability, proficient, expertise) => {
     const skill = SKILLS.find((s) => s.key === skillKey);
     const skillLabel = skill?.label || skill?.name || skillKey;
     const armorPenalty = skill?.armorPenalty || 0;
@@ -318,7 +349,7 @@ export default function Skills({
       itemTotals[skillKey] +
       featTotals[skillKey] +
       raceTotals[skillKey];
-    const { result, d20 } = rollSkill(bonus);
+    const { result, d20 } = await rollSkillWithDiceBox(bonus);
     const abilityLabel =
       ABILITY_LABELS[ability] || ability?.toUpperCase?.() || ability || 'Ability';
     const proficiencyValue = profBonus * (expertise ? 2 : proficient ? 1 : 0);
