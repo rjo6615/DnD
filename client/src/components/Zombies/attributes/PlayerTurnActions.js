@@ -28,6 +28,7 @@ import {
   applyDiceFaceColor,
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
+  resolveDamageTypeColor,
 } from '../../../utils/diceColors';
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -1298,9 +1299,11 @@ const preparedDice = useMemo(
   () =>
     activeDice.map((die) => {
       const normalizedType = normalizeDamageTypeForClass(die.type);
+      const typeColor = resolveDamageTypeColor(normalizedType);
       return {
         ...die,
         typeClass: normalizedType ? `damage-${normalizedType}` : '',
+        typeColor,
       };
     }),
   [activeDice],
