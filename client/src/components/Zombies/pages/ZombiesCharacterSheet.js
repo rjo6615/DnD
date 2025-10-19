@@ -14,7 +14,12 @@ import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import PlayerTurnActions, {
   calculateDamage,
 } from "../attributes/PlayerTurnActions";
-import { rollDiceWithBox } from '../../../utils/diceBoxManager';
+import {
+  rollDiceWithBox,
+  subscribeToDiceBoxAvailability,
+  isDiceBoxReady as checkDiceBoxReady,
+  hasDiceBoxFailed as checkDiceBoxFailed,
+} from '../../../utils/diceBoxManager';
 import {
   collectRollValues,
   normalizeRollValue,
@@ -974,6 +979,8 @@ const SPELLCASTING_CLASSES = {
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id;
+  const isTestEnvironment =
+    typeof process !== 'undefined' && process?.env?.NODE_ENV === 'test';
   const [form, setForm] = useState(null);
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
@@ -1004,6 +1011,32 @@ export default function ZombiesCharacterSheet() {
   const [showTokenPicker, setShowTokenPicker] = useState(false);
   const [tokenPickerSaving, setTokenPickerSaving] = useState(false);
   const [tokenPickerError, setTokenPickerError] = useState(null);
+  const [diceBoxStatus, setDiceBoxStatus] = useState(() => ({
+    ready: isTestEnvironment ? true : checkDiceBoxReady(),
+    failed: isTestEnvironment ? false : checkDiceBoxFailed(),
+  }));
+
+  useEffect(() => {
+    if (isTestEnvironment) {
+      return undefined;
+    }
+
+    const unsubscribe = subscribeToDiceBoxAvailability((ready) => {
+      setDiceBoxStatus({
+        ready: Boolean(ready),
+        failed: !ready && checkDiceBoxFailed(),
+      });
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [
+    setDiceBoxStatus,
+    checkDiceBoxFailed,
+    subscribeToDiceBoxAvailability,
+    isTestEnvironment,
+  ]);
 
   const getStoredActiveEffects = useCallback((id) => {
     if (typeof window === 'undefined' || !id) {
@@ -4909,6 +4942,10 @@ export default function ZombiesCharacterSheet() {
     hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
 
   const isFormReady = Boolean(form);
+  const diceBoxReady = diceBoxStatus.ready;
+  const diceBoxFailed = diceBoxStatus.failed;
+  const shouldShowDiceLoadingOverlay =
+    isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
 
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
@@ -5199,10 +5236,28 @@ export default function ZombiesCharacterSheet() {
           flexDirection: 'column',
           flex: '1 1 auto',
           minHeight: 0,
+          position: 'relative',
         }}
       >
-      {isFormReady ? (
+        {shouldShowDiceLoadingOverlay && (
+          <div
+            className="zombies-character-sheet__dice-overlay"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="zombies-character-sheet__dice-overlay-content">
+              Preparing the dice roller...
+            </div>
+          </div>
+        )}
+        {isFormReady ? (
         <>
+          {diceBoxFailed && (
+            <div className="zombies-character-sheet__dice-warning" role="alert">
+              The 3D dice roller failed to load. Rolls will use fallback values until it
+              reconnects.
+            </div>
+          )}
           <div ref={headerRef}>
             <div ref={combatHeaderRef}>
               <CombatTurnHeader
@@ -5270,6 +5325,7 @@ export default function ZombiesCharacterSheet() {
               dexMod={statMods.dex}
               strMod={statMods.str}
               conMod={statMods.con}
+              characterId={characterId}
               ref={playerTurnActionsRef}
               onCastSpell={handleCastSpell}
               availableSlots={availableSlots}

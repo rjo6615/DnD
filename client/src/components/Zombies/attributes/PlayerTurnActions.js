@@ -280,6 +280,7 @@ const PlayerTurnActions = React.forwardRef(
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
+      characterId = null,
     },
     ref
   ) => {
@@ -1554,7 +1555,11 @@ const damageAmountStyle = {
                   height: `${resolvedDiceSize}px`,
                 }}
               >
-                <DamageDiceCanvas dice={preparedDice} diceColor={diceFaceColor} />
+                <DamageDiceCanvas
+                  dice={preparedDice}
+                  diceColor={diceFaceColor}
+                  instanceKey={characterId}
+                />
               </div>
               <div className="damage-roller__overlay">
                 <div className="damage-roller__total">
