@@ -23,6 +23,7 @@ let activeThemeColor = null;
 let warmupPromise = null;
 let retryTimeoutId = null;
 let diceBoxGeneration = 0;
+let pendingResolutionFrame = null;
 
 const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
@@ -45,6 +46,13 @@ const scheduleRetry = () => {
       ensureDiceBox();
     }
   }, RETRY_DELAY_MS);
+};
+
+const clearScheduledResolution = () => {
+  if (pendingResolutionFrame !== null && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(pendingResolutionFrame);
+  }
+  pendingResolutionFrame = null;
 };
 
 const availabilityListeners = new Set();
@@ -260,6 +268,7 @@ const resetInstance = () => {
   diceBoxReady = false;
   activeThemeColor = null;
   clearScheduledRetry();
+  clearScheduledResolution();
 };
 
 const normalizeThemeColor = (value) => {
@@ -311,6 +320,105 @@ const applyPendingThemeColor = (instance) => {
 
   if (applyThemeColorToInstance(instance, pendingThemeColor)) {
     pendingThemeColor = null;
+  }
+};
+
+const getRendererCanvas = (renderer) => {
+  if (!renderer) {
+    return null;
+  }
+
+  if (renderer.domElement && typeof renderer.domElement === 'object') {
+    return renderer.domElement;
+  }
+
+  if (renderer.canvas && typeof renderer.canvas === 'object') {
+    return renderer.canvas;
+  }
+
+  return null;
+};
+
+const updateRendererResolution = (renderer, canvas, pixelRatio) => {
+  if (!renderer || typeof renderer.setPixelRatio !== 'function') {
+    return false;
+  }
+
+  try {
+    renderer.setPixelRatio(pixelRatio);
+    if (typeof renderer.setSize === 'function' && canvas) {
+      const { clientWidth, clientHeight } = canvas;
+      if (clientWidth && clientHeight) {
+        renderer.setSize(clientWidth, clientHeight, false);
+      }
+    }
+    return true;
+  } catch (error) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('Dice box renderer resolution update failed', error);
+    }
+  }
+
+  return false;
+};
+
+const updateCanvasResolution = (canvas, pixelRatio) => {
+  if (!canvas || typeof canvas !== 'object') {
+    return;
+  }
+
+  const { clientWidth, clientHeight } = canvas;
+  if (!clientWidth || !clientHeight) {
+    return;
+  }
+
+  try {
+    canvas.width = Math.round(clientWidth * pixelRatio);
+    canvas.height = Math.round(clientHeight * pixelRatio);
+  } catch (error) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('Dice box canvas resolution update failed', error);
+    }
+  }
+};
+
+const refreshDiceBoxResolution = (instance) => {
+  if (!instance || typeof window === 'undefined') {
+    return;
+  }
+
+  const pixelRatio = Number(window.devicePixelRatio) > 0 ? window.devicePixelRatio : 1;
+  const renderer = instance.renderer || instance._renderer || null;
+  const canvas = getRendererCanvas(renderer) || instance.canvas || null;
+
+  const performUpdate = () => {
+    pendingResolutionFrame = null;
+    if (diceBoxInstance !== instance) {
+      return;
+    }
+
+    const rendererUpdated = updateRendererResolution(renderer, canvas, pixelRatio);
+    if (!rendererUpdated && canvas) {
+      updateCanvasResolution(canvas, pixelRatio);
+    }
+
+    if (typeof instance.resize === 'function') {
+      try {
+        instance.resize();
+      } catch (error) {
+        if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+          console.warn('Dice box resize failed', error);
+        }
+      }
+    }
+  };
+
+  clearScheduledResolution();
+
+  if (typeof window.requestAnimationFrame === 'function') {
+    pendingResolutionFrame = window.requestAnimationFrame(performUpdate);
+  } else {
+    performUpdate();
   }
 };
 
@@ -377,6 +485,7 @@ async function ensureDiceBox() {
         diceBoxFailed = false;
         diceBoxDisabled = false;
         applyPendingThemeColor(instance);
+        refreshDiceBoxResolution(instance);
         clearScheduledRetry();
         setAvailability(true);
         return instance;
