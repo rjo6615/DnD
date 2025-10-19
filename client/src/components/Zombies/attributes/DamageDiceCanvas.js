@@ -198,9 +198,10 @@ const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
       .map((die, index) => {
         const sides = toFiniteSides(die.sides);
         const value = toNumericValue(die.value);
+        const color = die.typeColor || resolvedColor;
         const style = {
           ...createDieStyle({ ...die, sides }, index, reduceMotion),
-          ...createDiceCategoryStyles(resolvedColor, die.category),
+          ...createDiceCategoryStyles(color, die.category),
         };
         const classes = [
           'damage-die',
