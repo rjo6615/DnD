@@ -1815,8 +1815,9 @@ $rotateX: -$angle;
   align-items: center;
   justify-content: flex-start;
   gap: 18px;
-  width: min(90vw, 520px);
-  min-height: clamp(240px, 48vh, 380px);
+  width: min(90vw, var(--damage-roller-max-width, 520px));
+  max-width: min(90vw, var(--damage-roller-max-width, 520px));
+  min-height: max(240px, min(48vh, var(--damage-roller-min-height, 380px)));
   margin: 0 auto;
   padding: 32px 24px 48px;
   color: #ffffff;
@@ -1844,8 +1845,8 @@ $rotateX: -$angle;
 
 .damage-roller__dice-area {
   position: relative;
-  width: clamp(140px, 36vw, 220px);
-  height: clamp(140px, 36vw, 220px);
+  width: clamp(140px, 36vw, var(--damage-dice-area-size, 320px));
+  height: clamp(140px, 36vw, var(--damage-dice-area-size, 320px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1855,6 +1856,8 @@ $rotateX: -$angle;
   z-index: 1;
   perspective: 1400px;
   transform-style: preserve-3d;
+  max-width: 100%;
+  max-height: var(--damage-dice-area-size, 320px);
 }
 
 .damage-dice-canvas {
@@ -1922,7 +1925,7 @@ $rotateX: -$angle;
 
 .damage-roller__controls {
   width: 100%;
-  max-width: min(70vw, 360px);
+  max-width: min(70vw, var(--damage-roller-max-width, 360px));
   margin: 0 auto;
   gap: calc(var(--attack-die-size) * 0.2);
 }
