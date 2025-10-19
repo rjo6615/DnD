@@ -157,8 +157,7 @@ const createDiceBoxConfig = (overrides = null) => ({
   ...(overrides && typeof overrides === 'object' ? overrides : {}),
 });
 
-const buildThemeConfig = (color) =>
-  createDiceBoxConfig(color ? { themeColor: color } : null);
+const buildThemeConfig = (color) => (color ? { themeColor: color } : {});
 
 const applyThemeColorToInstance = (instance, color) => {
   if (!instance || typeof instance.updateConfig !== 'function') {
