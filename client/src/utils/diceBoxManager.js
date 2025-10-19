@@ -2,9 +2,6 @@ const ASSET_PATH = `${
   (typeof process !== 'undefined' && process.env && process.env.PUBLIC_URL) || ''
 }/assets/dice-box/`;
 
-const DEFAULT_DICE_BOX_SRC =
-  'https://cdn.jsdelivr.net/npm/@3d-dice/dice-box@1.0.5/dist/dice-box.min.js';
-
 let modulePromise = null;
 let diceBoxPromise = null;
 let diceBoxInstance = null;
@@ -13,7 +10,7 @@ let diceBoxFailed = false;
 let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
-let diceBoxScriptPromise = null;
+let usingDiceBoxStub = false;
 
 const availabilityListeners = new Set();
 
@@ -105,126 +102,35 @@ const resolveDiceBoxTarget = () => {
   return { element: reference, selector };
 };
 
-const resolveGlobalDiceBox = () => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const globalDiceBox = window.DiceBox || window.__DiceBox;
-  return typeof globalDiceBox === 'function' ? globalDiceBox : null;
-};
-
-const getDiceBoxScriptSource = () => {
-  const envSource =
-    typeof process !== 'undefined' && process.env && process.env.REACT_APP_DICE_BOX_SRC;
-  if (typeof envSource === 'string' && envSource.trim()) {
-    return envSource.trim();
-  }
-
-  if (typeof window !== 'undefined') {
-    const globalSource =
-      (typeof window.__DICE_BOX_SRC === 'string' && window.__DICE_BOX_SRC.trim()) ||
-      (typeof window.__DiceBoxSource === 'string' && window.__DiceBoxSource.trim());
-    if (globalSource) {
-      return globalSource;
-    }
-  }
-
-  return DEFAULT_DICE_BOX_SRC;
-};
-
-const loadDiceBoxScript = () => {
-  if (diceBoxScriptPromise) {
-    return diceBoxScriptPromise;
-  }
-
-  diceBoxScriptPromise = new Promise((resolve, reject) => {
-    const existingCtor = resolveGlobalDiceBox();
-    if (existingCtor) {
-      resolve(existingCtor);
-      return;
-    }
-
-    if (typeof document === 'undefined') {
-      reject(new Error('Dice box script requires a browser environment'));
-      return;
-    }
-
-    const scriptSrc = getDiceBoxScriptSource();
-    const selector = `script[data-dice-box-src="${scriptSrc}"]`;
-    const root = document.head || document.body || document.documentElement;
-
-    if (!root) {
-      reject(new Error('Dice box script could not be injected into the document'));
-      return;
-    }
-
-    const attachListeners = (script, removeOnError) => {
-      const cleanup = () => {
-        script.removeEventListener('load', handleLoad);
-        script.removeEventListener('error', handleError);
-      };
-
-      function handleLoad() {
-        cleanup();
-        const ctor = resolveGlobalDiceBox();
-        if (ctor) {
-          resolve(ctor);
-          return;
-        }
-        reject(new Error('Dice box script loaded without exposing DiceBox'));
-      }
-
-      function handleError() {
-        cleanup();
-        if (removeOnError && typeof script.remove === 'function') {
-          script.remove();
-        }
-        reject(new Error('Failed to load dice box script'));
-      }
-
-      script.addEventListener('load', handleLoad);
-      script.addEventListener('error', handleError);
-    };
-
-    const existingScript = document.querySelector(selector);
-    if (existingScript) {
-      attachListeners(existingScript, false);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = scriptSrc;
-    script.dataset.diceBoxSrc = scriptSrc;
-    attachListeners(script, true);
-    root.appendChild(script);
-  }).catch((error) => {
-    diceBoxScriptPromise = null;
-    throw error;
-  });
-
-  return diceBoxScriptPromise;
-};
+const loadDiceBoxStub = () =>
+  import(/* webpackChunkName: "dice-box-stub" */ './diceBoxStub').then(
+    (module) => module?.default || module,
+  );
 
 const getDiceBoxConstructor = () => {
   if (modulePromise) {
     return modulePromise;
   }
 
-  modulePromise = (async () => {
-    const existingCtor = resolveGlobalDiceBox();
-    if (existingCtor) {
-      return existingCtor;
+  const loadModule = async () => {
+    const globalDiceBox =
+      typeof window !== 'undefined' && window
+        ? window.DiceBox || window.__DiceBox
+        : null;
+
+    if (typeof globalDiceBox === 'function') {
+      usingDiceBoxStub = false;
+      return globalDiceBox;
     }
 
-    const loadedCtor = await loadDiceBoxScript();
-    if (typeof loadedCtor !== 'function') {
-      throw new Error('Dice box constructor was not available after loading script');
-    }
+    // eslint-disable-next-line no-console
+    console.warn('Dice box module unavailable, using stub implementation.');
+    const StubCtor = await loadDiceBoxStub();
+    usingDiceBoxStub = true;
+    return StubCtor;
+  };
 
-    return loadedCtor;
-  })().catch((error) => {
+  modulePromise = loadModule().catch((error) => {
     modulePromise = null;
     throw error;
   });
