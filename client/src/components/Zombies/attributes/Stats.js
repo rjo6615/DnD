@@ -146,9 +146,14 @@ export default function Stats({
   const handleRoll = useCallback(
     async (statKey) => {
       const statMod = statMods[statKey] ?? 0;
-      const { result, d20 } = await rollSkillWithDiceBox(statMod);
       const statInfo = STATS.find((stat) => stat.key === statKey);
       const statLabel = statInfo?.label || statKey.toUpperCase();
+
+      if (!isDocked) {
+        handleCloseStats?.();
+      }
+
+      const { result, d20 } = await rollSkillWithDiceBox(statMod);
       const breakdownParts = [`${d20} (d20)`];
       const modifierSegment = formatAdjustmentSegment(
         statMod,
@@ -180,9 +185,6 @@ export default function Stats({
         })
       );
 
-      if (!isDocked) {
-        handleCloseStats?.();
-      }
     },
     [handleCloseStats, isDocked, statMods]
   );
