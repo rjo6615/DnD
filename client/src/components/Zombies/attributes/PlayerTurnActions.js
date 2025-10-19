@@ -973,6 +973,38 @@ const manualCriticalRef = useRef(false);
         return null;
       }
 
+      const diceRolls = Array.isArray(validation?.diceRolls)
+        ? validation.diceRolls
+        : [];
+      let selectedColor = null;
+      let hasColorlessDice = false;
+      let hasConflictingColor = false;
+      diceRolls.forEach((detail) => {
+        const normalizedType = normalizeDamageTypeForClass(detail?.type || '');
+        if (!normalizedType) {
+          hasColorlessDice = true;
+          return;
+        }
+        const color = resolveDamageTypeColor(normalizedType);
+        if (!color) {
+          hasColorlessDice = true;
+          return;
+        }
+        if (!selectedColor) {
+          selectedColor = color;
+          return;
+        }
+        if (selectedColor !== color) {
+          hasConflictingColor = true;
+        }
+      });
+
+      const rollThemeColor =
+        selectedColor && !hasColorlessDice && !hasConflictingColor
+          ? selectedColor
+          : null;
+      setDiceBoxThemeColor(rollThemeColor || diceFaceColor);
+
       if (requests.length === 0) {
         const staticResult = calculateDamage(
           trimmed,
@@ -1052,7 +1084,13 @@ const manualCriticalRef = useRef(false);
         return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
       }
     },
-    [rollDiceWithBox],
+    [
+      diceFaceColor,
+      normalizeDamageTypeForClass,
+      resolveDamageTypeColor,
+      rollDiceWithBox,
+      setDiceBoxThemeColor,
+    ],
   );
 
   const handleWeaponAttack = useCallback(
