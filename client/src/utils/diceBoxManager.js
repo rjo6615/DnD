@@ -9,6 +9,7 @@ let diceBoxReady = false;
 let diceBoxFailed = false;
 let hostElement = null;
 let rollQueue = Promise.resolve();
+let generatedHostId = 0;
 
 const availabilityListeners = new Set();
 
@@ -35,6 +36,69 @@ const notifyAvailability = (ready) => {
 const setAvailability = (ready) => {
   diceBoxReady = ready;
   notifyAvailability(ready);
+};
+
+const resolveHostReference = () => {
+  if (!hostElement) {
+    return null;
+  }
+
+  if (typeof hostElement === 'string') {
+    return hostElement;
+  }
+
+  if (typeof hostElement === 'object') {
+    if ('current' in hostElement) {
+      return hostElement.current || null;
+    }
+
+    if (typeof hostElement.nodeType === 'number') {
+      return hostElement;
+    }
+  }
+
+  return null;
+};
+
+const ensureElementSelector = (element) => {
+  if (!element || typeof element !== 'object') {
+    return null;
+  }
+
+  const existingId =
+    typeof element.id === 'string' && element.id.trim() ? element.id.trim() : null;
+  if (existingId) {
+    return `#${existingId}`;
+  }
+
+  generatedHostId += 1;
+  const generatedId = `damage-dice-box-${generatedHostId}`;
+
+  try {
+    element.id = generatedId;
+  } catch (error) {
+    return null;
+  }
+
+  return `#${generatedId}`;
+};
+
+const resolveDiceBoxTarget = () => {
+  const reference = resolveHostReference();
+  if (!reference) {
+    return { element: null, selector: null };
+  }
+
+  if (typeof reference === 'string') {
+    const element =
+      typeof document !== 'undefined' && document
+        ? document.querySelector(reference)
+        : null;
+    return { element, selector: reference };
+  }
+
+  const selector = ensureElementSelector(reference);
+  return { element: reference, selector };
 };
 
 const getDiceBoxConstructor = () => {
@@ -78,23 +142,38 @@ const ensureDiceBox = async () => {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return null;
   }
-  if (!hostElement) {
+  const { element: targetElement, selector } = resolveDiceBoxTarget();
+  if (!targetElement && !selector) {
     return null;
   }
   if (!diceBoxPromise) {
     diceBoxPromise = (async () => {
       try {
         const DiceBox = await getDiceBoxConstructor();
-        const target =
-          hostElement && typeof hostElement === 'object' && 'current' in hostElement
-            ? hostElement.current
-            : hostElement;
-        const instance = new DiceBox(target || hostElement, {
+        const target = targetElement || selector;
+        if (!target) {
+          throw new Error('Dice box target was not available');
+        }
+
+        const options = {
           assetPath: ASSET_PATH,
           theme: 'default',
           scale: 6,
           offscreen: false,
-        });
+        };
+
+        let instance = null;
+
+        try {
+          instance = new DiceBox(target, options);
+        } catch (error) {
+          if (selector && target !== selector) {
+            instance = new DiceBox(selector, options);
+          } else {
+            throw error;
+          }
+        }
+
         await instance.init();
         diceBoxInstance = instance;
         diceBoxFailed = false;
@@ -281,7 +360,8 @@ export const registerDiceBoxContainer = (element) => {
   hostElement = element || null;
   resetInstance();
   diceBoxFailed = false;
-  if (!hostElement) {
+  const { element: resolvedElement, selector } = resolveDiceBoxTarget();
+  if (!resolvedElement && !selector) {
     setAvailability(false);
     return () => {};
   }

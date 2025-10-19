@@ -161,10 +161,8 @@ const DamageDiceCanvas = ({ dice = [] }) => {
   const [diceBoxReady, setDiceBoxReady] = useState(false);
 
   useEffect(() => {
-    const element = diceBoxRef.current;
-    if (!element) return () => {};
-
-    const unregister = registerDiceBoxContainer(element);
+    const reference = diceBoxRef.current || '#damage-dice-box';
+    const unregister = registerDiceBoxContainer(reference);
     const unsubscribe = subscribeToDiceBoxAvailability((ready) => {
       setDiceBoxReady(Boolean(ready));
     });
