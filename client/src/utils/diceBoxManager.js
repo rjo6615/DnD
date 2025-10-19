@@ -1,4 +1,6 @@
-const ASSET_PATH = '/assets/dice-box/';
+const ASSET_PATH = `${
+  (typeof process !== 'undefined' && process.env && process.env.PUBLIC_URL) || ''
+}/assets/dice-box/`;
 
 let modulePromise = null;
 let diceBoxPromise = null;
@@ -110,78 +112,144 @@ const ensureDiceBox = async () => {
   return diceBoxPromise;
 };
 
+const collectNumericLeaves = (node, target) => {
+  if (!node) return;
+
+  const addNumber = (value) => {
+    const num = safeNumber(value);
+    if (num !== null) {
+      target.push(num);
+    }
+  };
+
+  if (Array.isArray(node)) {
+    node.forEach((entry) => collectNumericLeaves(entry, target));
+    return;
+  }
+
+  if (typeof node !== 'object') {
+    addNumber(node);
+    return;
+  }
+
+  const {
+    results,
+    values,
+    rolls,
+    dice,
+    value,
+    result,
+    total,
+  } = node;
+
+  let traversed = false;
+
+  if (Array.isArray(results) && results.length > 0) {
+    traversed = true;
+    collectNumericLeaves(results, target);
+  }
+
+  if (Array.isArray(values) && values.length > 0) {
+    traversed = true;
+    collectNumericLeaves(values, target);
+  }
+
+  if (Array.isArray(rolls) && rolls.length > 0) {
+    traversed = true;
+    rolls.forEach((roll) => collectNumericLeaves(roll, target));
+  }
+
+  if (Array.isArray(dice) && dice.length > 0) {
+    traversed = true;
+    dice.forEach((die) => collectNumericLeaves(die, target));
+  }
+
+  if (!traversed) {
+    addNumber(value);
+    addNumber(result);
+    addNumber(total);
+  }
+};
+
+const extractRollValues = (roll) => {
+  const numbers = [];
+  collectNumericLeaves(roll, numbers);
+  return numbers;
+};
+
+const normalizeResultGroups = (rawResults) => {
+  if (!rawResults) return [];
+  if (Array.isArray(rawResults)) {
+    return rawResults;
+  }
+  if (Array.isArray(rawResults.groups)) {
+    return rawResults.groups;
+  }
+  return [rawResults];
+};
+
 const parseDiceBoxResults = (rawResults, requests) => {
-  if (!Array.isArray(rawResults) || rawResults.length === 0) {
+  const groups = normalizeResultGroups(rawResults);
+  if (!Array.isArray(groups) || groups.length === 0) {
     return null;
   }
 
   const extracted = [];
 
-  const pushValues = (values) => {
-    if (!Array.isArray(values) || values.length === 0) {
-      return;
-    }
-    const numbers = values
-      .map((value) => {
-        if (Array.isArray(value)) {
-          return value
-            .map((nested) => safeNumber(nested?.value ?? nested?.result ?? nested))
-            .filter((num) => num !== null);
-        }
-        if (value && typeof value === 'object') {
-          const num =
-            safeNumber(value.value) ?? safeNumber(value.result) ?? safeNumber(value.total);
-          return num !== null ? [num] : [];
-        }
-        const num = safeNumber(value);
-        return num !== null ? [num] : [];
-      })
-      .flat();
-    if (numbers.length > 0) {
-      extracted.push(numbers);
-    }
-  };
-
-  const traverse = (node) => {
-    if (!node) return;
-    if (Array.isArray(node)) {
-      node.forEach(traverse);
-      return;
-    }
-    if (typeof node !== 'object') return;
-
-    if (Array.isArray(node.results)) {
-      pushValues(node.results);
-    }
-    if (Array.isArray(node.rolls)) {
-      node.rolls.forEach((roll) => {
-        if (Array.isArray(roll.results)) {
-          pushValues(roll.results);
-        } else if (Array.isArray(roll.values)) {
-          pushValues(roll.values);
-        } else if (typeof roll.value === 'number') {
-          pushValues([roll.value]);
+  groups.forEach((group) => {
+    if (!group) return;
+    if (Array.isArray(group.rolls) && group.rolls.length > 0) {
+      group.rolls.forEach((roll) => {
+        const values = extractRollValues(roll);
+        if (values.length > 0) {
+          extracted.push(values);
         }
       });
+      return;
     }
-    if (Array.isArray(node.values)) {
-      pushValues(node.values);
+
+    const values = extractRollValues(group);
+    if (values.length > 0) {
+      extracted.push(values);
     }
-  };
+  });
 
-  rawResults.forEach(traverse);
+  if (extracted.length === 0) {
+    return null;
+  }
 
-  if (extracted.length === requests.length) {
-    return extracted.map((values, index) => {
-      const expected = requests[index]?.count;
-      if (typeof expected === 'number' && expected > 0 && values.length !== expected) {
-        return values.slice(0, expected);
+  if (extracted.length !== requests.length) {
+    // Attempt to coerce the extracted values into the expected request shape.
+    let index = 0;
+    const coerced = requests.map(({ count }) => {
+      const values = extracted[index] || [];
+      index += 1;
+      if (typeof count === 'number' && count > 0) {
+        if (values.length > count) {
+          return values.slice(0, count);
+        }
+        if (values.length < count) {
+          return values.concat(Array(count - values.length).fill(0)).slice(0, count);
+        }
       }
       return values;
     });
+
+    return coerced;
   }
 
-  return null;
+  return extracted.map((values, index) => {
+    const expected = requests[index]?.count;
+    if (typeof expected === 'number' && expected > 0 && values.length !== expected) {
+      if (values.length > expected) {
+        return values.slice(0, expected);
+      }
+      if (values.length < expected) {
+        return values.concat(Array(expected - values.length).fill(0)).slice(0, expected);
+      }
+    }
+    return values;
+  });
 };
 
 const setRollHandlers = (instance, onComplete, onError) => {
