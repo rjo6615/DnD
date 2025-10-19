@@ -12,7 +12,7 @@ import {
   GiTreasureMap,
 } from 'react-icons/gi';
 import apiFetch from '../../utils/apiFetch';
-import { rollDiceWithBox } from '../../utils/diceBoxManager';
+import { rollDiceWithBox, setDiceBoxThemeColor } from '../../utils/diceBoxManager';
 import {
   applyDiceFaceColor,
   normalizeDiceColor,
@@ -340,6 +340,7 @@ const triggerHealingRoll = async (item, { diceColor } = {}) => {
 
   if (diceColor) {
     applyDiceFaceColor(diceColor);
+    setDiceBoxThemeColor(diceColor);
   }
 
   const result = await rollHealingValue(item?.healing);
@@ -429,6 +430,7 @@ function ItemList({
     }
 
     applyDiceFaceColor(normalized);
+    setDiceBoxThemeColor(normalized);
   }, [diceColor]);
 
   useEffect(() => {
