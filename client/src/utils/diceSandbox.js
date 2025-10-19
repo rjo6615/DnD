@@ -260,7 +260,16 @@ function createEllipsePath(cx, cy, rx, ry) {
 export class DiceSandboxRenderer {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
-    this.ctx = canvas?.getContext('2d', { alpha: true });
+    this.ctx = null;
+    const isJsDom =
+      typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '');
+    if (!isJsDom && canvas && typeof canvas.getContext === 'function') {
+      try {
+        this.ctx = canvas.getContext('2d', { alpha: true });
+      } catch (error) {
+        this.ctx = null;
+      }
+    }
     this.dice = [];
     this.pixelRatio = window.devicePixelRatio || 1;
     this.frameRequest = null;
@@ -271,12 +280,19 @@ export class DiceSandboxRenderer {
     this.camera = computeCamera({ width: canvas?.clientWidth || 300, height: canvas?.clientHeight || 300 });
 
     this.handleResize = this.handleResize.bind(this);
-    window.addEventListener('resize', this.handleResize);
-    this.handleResize();
+    if (this.ctx) {
+      window.addEventListener('resize', this.handleResize);
+      this.handleResize();
+    } else {
+      this.viewport = {
+        width: canvas?.clientWidth || 0,
+        height: canvas?.clientHeight || 0,
+      };
+    }
   }
 
   handleResize() {
-    if (!this.canvas) return;
+    if (!this.canvas || !this.ctx) return;
     const { clientWidth, clientHeight } = this.canvas;
     const width = Math.max(10, clientWidth);
     const height = Math.max(10, clientHeight);
@@ -292,7 +308,9 @@ export class DiceSandboxRenderer {
   }
 
   dispose() {
-    window.removeEventListener('resize', this.handleResize);
+    if (this.ctx) {
+      window.removeEventListener('resize', this.handleResize);
+    }
     if (this.frameRequest) cancelAnimationFrame(this.frameRequest);
     this.frameRequest = null;
     this.active = false;
@@ -303,6 +321,10 @@ export class DiceSandboxRenderer {
   }
 
   setDice(dice) {
+    if (!this.ctx) {
+      this.dice = [];
+      return;
+    }
     if (!Array.isArray(dice) || !dice.length) {
       this.dice = [];
       this.clear();
@@ -314,7 +336,7 @@ export class DiceSandboxRenderer {
   }
 
   start() {
-    if (this.active) {
+    if (!this.ctx || this.active) {
       return;
     }
     this.active = true;
