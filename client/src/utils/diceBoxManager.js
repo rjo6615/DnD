@@ -10,11 +10,14 @@ let diceBoxFailed = false;
 let hostElement = null;
 let rollQueue = Promise.resolve();
 let generatedHostId = 0;
+let pendingThemeColor = null;
 
 const availabilityListeners = new Set();
 
+const MIN_ROLL_VALUE = 1;
+
 const fallbackRoll = (count, sides) =>
-  Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
+  Array.from({ length: count }, () => Math.floor(Math.random() * sides) + MIN_ROLL_VALUE);
 
 const safeNumber = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -128,6 +131,46 @@ const resetInstance = () => {
   diceBoxReady = false;
 };
 
+const normalizeThemeColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  const match = trimmed.match(/^#?([0-9a-fA-F]{6})$/);
+  if (!match) {
+    return null;
+  }
+
+  return `#${match[1].toLowerCase()}`;
+};
+
+const applyThemeColorToInstance = (instance, color) => {
+  if (!instance || typeof instance.updateConfig !== 'function') {
+    return false;
+  }
+
+  try {
+    instance.updateConfig({ themeColor: color });
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Dice box theme color update failed', error);
+  }
+
+  return false;
+};
+
+const applyPendingThemeColor = (instance) => {
+  if (!instance || !pendingThemeColor) {
+    return;
+  }
+
+  if (applyThemeColorToInstance(instance, pendingThemeColor)) {
+    pendingThemeColor = null;
+  }
+};
+
 const ensureDiceBox = async () => {
   if (diceBoxInstance) {
     return diceBoxInstance;
@@ -177,6 +220,7 @@ const ensureDiceBox = async () => {
         await instance.init();
         diceBoxInstance = instance;
         diceBoxFailed = false;
+        applyPendingThemeColor(instance);
         setAvailability(true);
         return instance;
       } catch (error) {
@@ -297,38 +341,64 @@ const parseDiceBoxResults = (rawResults, requests) => {
     return null;
   }
 
-  if (extracted.length !== requests.length) {
-    // Attempt to coerce the extracted values into the expected request shape.
-    let index = 0;
-    const coerced = requests.map(({ count }) => {
-      const values = extracted[index] || [];
-      index += 1;
-      if (typeof count === 'number' && count > 0) {
-        if (values.length > count) {
-          return values.slice(0, count);
-        }
-        if (values.length < count) {
-          return values.concat(Array(count - values.length).fill(0)).slice(0, count);
-        }
-      }
-      return values;
-    });
-
-    return coerced;
+  if (!Array.isArray(requests) || requests.length === 0) {
+    return extracted;
   }
 
-  return extracted.map((values, index) => {
-    const expected = requests[index]?.count;
-    if (typeof expected === 'number' && expected > 0 && values.length !== expected) {
-      if (values.length > expected) {
-        return values.slice(0, expected);
-      }
-      if (values.length < expected) {
-        return values.concat(Array(expected - values.length).fill(0)).slice(0, expected);
-      }
-    }
-    return values;
+  const normalizedRequests = requests.map((request) => {
+    const count = Math.max(0, Math.floor(Number(request?.count) || 0));
+    const rawSides = Number(request?.sides);
+    const sides = Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
+    return { count, sides };
   });
+
+  const valueQueue = [];
+  extracted.forEach((values) => {
+    if (Array.isArray(values)) {
+      values.forEach((value) => {
+        const numeric = safeNumber(value);
+        if (numeric !== null) {
+          valueQueue.push(numeric);
+        }
+      });
+    }
+  });
+
+  if (valueQueue.length === 0) {
+    return null;
+  }
+
+  let queueIndex = 0;
+  const parsedGroups = normalizedRequests.map(({ count, sides }) => {
+    if (!count) {
+      return [];
+    }
+
+    const upperBound = Number.isInteger(sides) ? sides : null;
+    const group = [];
+
+    while (queueIndex < valueQueue.length && group.length < count) {
+      const candidate = valueQueue[queueIndex];
+      queueIndex += 1;
+
+      if (
+        upperBound !== null &&
+        (candidate < MIN_ROLL_VALUE || candidate > upperBound)
+      ) {
+        continue;
+      }
+
+      group.push(candidate);
+    }
+
+    return group.length === count ? group : null;
+  });
+
+  const hasValidGroup = parsedGroups.some(
+    (group) => Array.isArray(group) && group.length > 0
+  );
+
+  return hasValidGroup ? parsedGroups : null;
 };
 
 const setRollHandlers = (instance, onComplete, onError) => {
@@ -461,9 +531,24 @@ export const rollDiceWithBox = (requests) => {
   return rollQueue;
 };
 
+export const setDiceBoxThemeColor = (color) => {
+  const normalized = normalizeThemeColor(color);
+  if (!normalized) {
+    pendingThemeColor = null;
+    return;
+  }
+
+  pendingThemeColor = normalized;
+
+  if (diceBoxInstance) {
+    applyPendingThemeColor(diceBoxInstance);
+  }
+};
+
 export default {
   registerDiceBoxContainer,
   subscribeToDiceBoxAvailability,
   isDiceBoxReady,
   rollDiceWithBox,
+  setDiceBoxThemeColor,
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   registerDiceBoxContainer,
+  setDiceBoxThemeColor,
   subscribeToDiceBoxAvailability,
 } from '../../../utils/diceBoxManager';
 import {
@@ -181,6 +182,10 @@ const DamageDiceCanvas = ({ dice = [], diceColor }) => {
       unsubscribe?.();
     };
   }, []);
+
+  useEffect(() => {
+    setDiceBoxThemeColor(resolvedColor);
+  }, [resolvedColor]);
 
   const diceElements = useMemo(() => {
     if (!Array.isArray(dice) || dice.length === 0) {

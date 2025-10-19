@@ -10,6 +10,7 @@ import {
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
 } from '../../../utils/diceColors';
+import { setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 
 export default function Help({
   form,
@@ -63,6 +64,7 @@ export default function Help({
 
   useEffect(() => {
     applyDiceFaceColor(newColor);
+    setDiceBoxThemeColor(newColor);
   }, [newColor]);
 
   useEffect(() => {

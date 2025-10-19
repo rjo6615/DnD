@@ -23,6 +23,7 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../utils/diceBoxManager', () => ({
   rollDiceWithBox: jest.fn().mockResolvedValue({ rolls: [[12]] }),
+  setDiceBoxThemeColor: jest.fn(),
 }));
 
 const { rollDiceWithBox } = require('../../../utils/diceBoxManager');

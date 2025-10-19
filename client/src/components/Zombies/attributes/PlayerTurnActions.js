@@ -16,7 +16,7 @@ import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import { rollSkillWithDiceBox } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
-import { rollDiceWithBox } from '../../../utils/diceBoxManager';
+import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import {
   collectRollValues,
   normalizeRollValue,
@@ -1120,6 +1120,7 @@ const diceFaceColor = useMemo(
 
 useEffect(() => {
   applyDiceFaceColor(diceFaceColor);
+  setDiceBoxThemeColor(diceFaceColor);
 }, [diceFaceColor]);
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
