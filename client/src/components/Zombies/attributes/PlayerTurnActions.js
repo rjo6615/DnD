@@ -14,7 +14,7 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
-import { rollSkill } from './Skills';
+import { rollSkillWithDiceBox } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
 import { rollDiceWithBox } from '../../../utils/diceBoxManager';
 
@@ -911,10 +911,10 @@ const manualCriticalRef = useRef(false);
     [abilityForWeapon, getDamageStringForHandSelection, isCritical, rollDamageExpression],
   );
 
-  const handleWeaponAttackRoll = (slot, weapon) => {
+  const handleWeaponAttackRoll = async (slot, weapon) => {
     const rawBonus = Number(getAttackBonus(slot, weapon));
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
-    const { result, d20 } = rollSkill(bonus);
+    const { result, d20 } = await rollSkillWithDiceBox(bonus);
     const weaponLabel = getWeaponDisplayName(slot, weapon);
     const segments = [`${d20} (d20)`];
     if (bonus) {

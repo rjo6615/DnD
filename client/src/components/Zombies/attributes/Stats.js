@@ -4,7 +4,7 @@ import DockControls from '../components/DockControls';
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
-import { rollSkill } from './Skills';
+import { rollSkillWithDiceBox } from './Skills';
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
@@ -144,9 +144,9 @@ export default function Stats({
   };
 
   const handleRoll = useCallback(
-    (statKey) => {
+    async (statKey) => {
       const statMod = statMods[statKey] ?? 0;
-      const { result, d20 } = rollSkill(statMod);
+      const { result, d20 } = await rollSkillWithDiceBox(statMod);
       const statInfo = STATS.find((stat) => stat.key === statKey);
       const statLabel = statInfo?.label || statKey.toUpperCase();
       const breakdownParts = [`${d20} (d20)`];
