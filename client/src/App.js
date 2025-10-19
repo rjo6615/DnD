@@ -15,6 +15,7 @@ import WeaponDetail from "./components/Weapons/WeaponDetail";
 import ArmorList from "./components/Armor/ArmorList";
 import ArmorDetail from "./components/Armor/ArmorDetail";
 import ItemList from "./components/Items/ItemList";
+import { warmupDiceBox } from './utils/diceBoxManager';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.scss";
@@ -23,6 +24,10 @@ import "./App.scss";
 function App() {
   const [user, setUser] = useState(null);
   const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    warmupDiceBox();
+  }, []);
 
   useEffect(() => {
     apiFetch('/me')

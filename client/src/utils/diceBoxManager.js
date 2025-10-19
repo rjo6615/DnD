@@ -19,6 +19,7 @@ let rollQueue = Promise.resolve();
 let generatedHostId = 0;
 let pendingThemeColor = null;
 let activeThemeColor = null;
+let warmupPromise = null;
 
 const availabilityListeners = new Set();
 
@@ -477,6 +478,37 @@ export const subscribeToDiceBoxAvailability = (listener) => {
 };
 
 export const isDiceBoxReady = () => diceBoxReady;
+
+export const warmupDiceBox = () => {
+  if (diceBoxInstance) {
+    return Promise.resolve(diceBoxInstance);
+  }
+
+  if (diceBoxPromise) {
+    return diceBoxPromise.catch(() => null);
+  }
+
+  if (warmupPromise) {
+    return warmupPromise;
+  }
+
+  const pending = getDiceBoxConstructor()
+    .then(() => null)
+    .catch((error) => {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('Dice box warmup failed', error);
+      }
+      return null;
+    });
+
+  warmupPromise = pending;
+
+  return pending.finally(() => {
+    if (warmupPromise === pending) {
+      warmupPromise = null;
+    }
+  });
+};
 
 export const rollDiceWithBox = (requests) => {
   if (!Array.isArray(requests) || requests.length === 0) {
