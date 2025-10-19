@@ -15,6 +15,7 @@ import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
 import weaponPropertyDefinitions from '../../../data/weaponProperties';
 import weaponMasteryDefinitions from '../../../data/weaponMasteries';
+import weaponTypeMasteries from '../../../data/weaponTypeMasteries';
 import { rollSkill } from './Skills';
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -555,17 +556,43 @@ const [isFumble, setIsFumble] = useState(false);
 
   const getWeaponMasteryDetails = (weapon) => {
     if (!weapon || typeof weapon !== 'object') return null;
-    const rawMastery = typeof weapon.mastery === 'string' ? weapon.mastery.trim() : '';
-    if (!rawMastery) return null;
-    const key = rawMastery.toLowerCase();
-    const detail = weaponMasteryDefinitions[key];
-    if (detail) {
-      return { ...detail };
+
+    const rawMastery =
+      typeof weapon.mastery === 'string' ? weapon.mastery.trim() : '';
+    const masteryKey = rawMastery.toLowerCase();
+
+    if (masteryKey) {
+      const explicit = weaponMasteryDefinitions[masteryKey];
+      if (explicit) {
+        return { ...explicit };
+      }
     }
-    return {
-      label: formatWeaponLabel(rawMastery),
-      description: 'Definition not available.',
-    };
+
+    const typeCandidates = [weapon.type, weapon.weaponType, weapon.itemType];
+    for (const typeCandidate of typeCandidates) {
+      if (typeof typeCandidate !== 'string') continue;
+      const normalizedType = typeCandidate.trim().toLowerCase();
+      if (!normalizedType) continue;
+      const inferredKey = weaponTypeMasteries[normalizedType];
+      if (!inferredKey) continue;
+      const inferredDetail = weaponMasteryDefinitions[inferredKey];
+      if (inferredDetail) {
+        return { ...inferredDetail };
+      }
+      return {
+        label: formatWeaponLabel(inferredKey),
+        description: 'Definition not available.',
+      };
+    }
+
+    if (masteryKey) {
+      return {
+        label: formatWeaponLabel(rawMastery),
+        description: 'Definition not available.',
+      };
+    }
+
+    return null;
   };
 
   const totalLevel = useMemo(
