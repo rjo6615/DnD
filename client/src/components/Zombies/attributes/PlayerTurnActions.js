@@ -28,6 +28,7 @@ import {
   applyDiceFaceColor,
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
+  resolveDamageTypeColor,
 } from '../../../utils/diceColors';
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -54,6 +55,16 @@ function formatDamageRolls(rolls) {
 
 
 const DEFAULT_DAMAGE_TYPE_KEY = '__default__';
+
+const DAMAGE_TYPE_CLASS_TOKEN_IGNORE = new Set([
+  '',
+  'and',
+  'bonus',
+  'damage',
+  'damages',
+  'extra',
+  'plus',
+]);
 
 const parseDamageBreakdownSegments = (breakdown, normalizer) => {
   if (typeof breakdown !== 'string' || !breakdown.trim()) {
@@ -131,6 +142,22 @@ const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
 const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
+
+const waitForNextAnimationFrame = () => {
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    return new Promise((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  }
+
+  if (typeof setTimeout === 'function') {
+    return new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  }
+
+  return Promise.resolve();
+};
 
 function extractDiceExpression(description = '') {
   diceExpressionPattern.lastIndex = 0;
@@ -867,7 +894,21 @@ const manualCriticalRef = useRef(false);
     
   const normalizeDamageTypeForClass = (type) => {
     const trimmed = (type || '').trim();
-    return trimmed ? trimmed.toLowerCase().replace(/\s+/g, '-') : '';
+    if (!trimmed) {
+      return '';
+    }
+
+    const tokens = trimmed
+      .toLowerCase()
+      .split(/[^a-z]+/)
+      .map((token) => token.trim())
+      .filter((token) => !DAMAGE_TYPE_CLASS_TOKEN_IGNORE.has(token));
+
+    if (tokens.length === 0) {
+      return '';
+    }
+
+    return tokens.join('-');
   };
 
   const formatDamageSegments = (damage, ability) =>
@@ -919,6 +960,19 @@ const manualCriticalRef = useRef(false);
     return 'Attack';
   };
 
+  const diceFaceColor = useMemo(
+    () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
+    [form?.diceColor],
+  );
+
+  const diceBoxThemeRef = useRef(null);
+
+  useEffect(() => {
+    applyDiceFaceColor(diceFaceColor);
+    setDiceBoxThemeColor(diceFaceColor);
+    diceBoxThemeRef.current = diceFaceColor;
+  }, [diceFaceColor]);
+
   const rollDamageExpression = useCallback(
     async ({
       damageString,
@@ -946,6 +1000,44 @@ const manualCriticalRef = useRef(false);
 
       if (!validation) {
         return null;
+      }
+
+      const diceRolls = Array.isArray(validation?.diceRolls)
+        ? validation.diceRolls
+        : [];
+      let selectedColor = null;
+      let hasColorlessDice = false;
+      let hasConflictingColor = false;
+      diceRolls.forEach((detail) => {
+        const normalizedType = normalizeDamageTypeForClass(detail?.type || '');
+        if (!normalizedType) {
+          hasColorlessDice = true;
+          return;
+        }
+        const color = resolveDamageTypeColor(normalizedType);
+        if (!color) {
+          hasColorlessDice = true;
+          return;
+        }
+        if (!selectedColor) {
+          selectedColor = color;
+          return;
+        }
+        if (selectedColor !== color) {
+          hasConflictingColor = true;
+        }
+      });
+
+      const rollThemeColor =
+        selectedColor && !hasColorlessDice && !hasConflictingColor
+          ? selectedColor
+          : null;
+      const resolvedThemeColor = rollThemeColor || diceFaceColor;
+      const themeHasChanged = resolvedThemeColor !== diceBoxThemeRef.current;
+      if (themeHasChanged) {
+        setDiceBoxThemeColor(resolvedThemeColor);
+        diceBoxThemeRef.current = resolvedThemeColor;
+        await waitForNextAnimationFrame();
       }
 
       if (requests.length === 0) {
@@ -1027,7 +1119,13 @@ const manualCriticalRef = useRef(false);
         return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
       }
     },
-    [rollDiceWithBox],
+    [
+      diceFaceColor,
+      normalizeDamageTypeForClass,
+      resolveDamageTypeColor,
+      rollDiceWithBox,
+      setDiceBoxThemeColor,
+    ],
   );
 
   const handleWeaponAttack = useCallback(
@@ -1258,20 +1356,10 @@ const sortedSpells = useMemo(() => {
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const [damageValue, setDamageValue] = useState(0);
-const [damageLog, setDamageLog] = useState([]);
-const [showLog, setShowLog] = useState(false);
-const [activeDice, setActiveDice] = useState([]);
-const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
-
-const diceFaceColor = useMemo(
-  () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
-  [form?.diceColor],
-);
-
-useEffect(() => {
-  applyDiceFaceColor(diceFaceColor);
-  setDiceBoxThemeColor(diceFaceColor);
-}, [diceFaceColor]);
+  const [damageLog, setDamageLog] = useState([]);
+  const [showLog, setShowLog] = useState(false);
+  const [activeDice, setActiveDice] = useState([]);
+  const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
@@ -1298,9 +1386,11 @@ const preparedDice = useMemo(
   () =>
     activeDice.map((die) => {
       const normalizedType = normalizeDamageTypeForClass(die.type);
+      const typeColor = resolveDamageTypeColor(normalizedType);
       return {
         ...die,
         typeClass: normalizedType ? `damage-${normalizedType}` : '',
+        typeColor,
       };
     }),
   [activeDice],
