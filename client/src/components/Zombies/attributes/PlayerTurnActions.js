@@ -28,6 +28,7 @@ import {
   applyDiceFaceColor,
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
+  resolveDamageTypeKey,
   resolveDamageTypeColor,
 } from '../../../utils/diceColors';
 
@@ -64,6 +65,18 @@ const DAMAGE_TYPE_CLASS_TOKEN_IGNORE = new Set([
   'damages',
   'extra',
   'plus',
+  'attack',
+  'attacks',
+  'die',
+  'dice',
+  'magic',
+  'magical',
+  'melee',
+  'nonmagical',
+  'ranged',
+  'silvered',
+  'versatile',
+  'weapon',
 ]);
 
 const parseDamageBreakdownSegments = (breakdown, normalizer) => {
@@ -139,13 +152,27 @@ const normalizeDamageTypeForClass = (type) => {
     .toLowerCase()
     .split(/[^a-z]+/)
     .map((token) => token.trim())
-    .filter((token) => !DAMAGE_TYPE_CLASS_TOKEN_IGNORE.has(token));
+    .filter(Boolean);
 
-  if (tokens.length === 0) {
-    return '';
+  const recognized = [];
+
+  tokens.forEach((token) => {
+    if (DAMAGE_TYPE_CLASS_TOKEN_IGNORE.has(token)) {
+      return;
+    }
+
+    const key = resolveDamageTypeKey(token);
+    if (key) {
+      recognized.push(key);
+    }
+  });
+
+  if (recognized.length === 0) {
+    const fallbackKey = resolveDamageTypeKey(trimmed);
+    return fallbackKey || '';
   }
 
-  return tokens.join('-');
+  return Array.from(new Set(recognized)).join('-');
 };
 
 const classifyDamageTypeColor = (typeValue) => {
@@ -165,7 +192,7 @@ const classifyDamageTypeColor = (typeValue) => {
     };
   }
 
-  const color = resolveDamageTypeColor(normalizedType) || null;
+  const color = resolveDamageTypeColor(tokens[0]) || null;
   return {
     normalizedType,
     color,
@@ -1657,27 +1684,6 @@ const sortedSpells = useMemo(() => {
     [activeDice, overlayColorlessColor],
   );
 
-  const showOverlayDice = useMemo(() => {
-    if (hasMixedDamageColors) {
-      return false;
-    }
-
-    if (!Array.isArray(preparedDice) || preparedDice.length === 0) {
-      return false;
-    }
-
-    const uniqueColors = new Set();
-
-    preparedDice.forEach((die) => {
-      const normalizedColor = normalizeDiceColor(die?.typeColor);
-      if (normalizedColor) {
-        uniqueColors.add(normalizedColor);
-      }
-    });
-
-    return uniqueColors.size > 1;
-  }, [preparedDice, hasMixedDamageColors]);
-
 const updateDamageValueWithAnimation = (
   newValue,
   breakdown,
@@ -2053,7 +2059,6 @@ const damageAmountStyle = {
                   dice={preparedDice}
                   diceColor={diceFaceColor}
                   instanceKey={characterId}
-                  showOverlayDice={showOverlayDice}
                 />
               </div>
               <div className="damage-roller__overlay">

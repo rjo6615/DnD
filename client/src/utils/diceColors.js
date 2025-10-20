@@ -108,6 +108,18 @@ const DAMAGE_TYPE_TOKEN_IGNORE_LIST = new Set([
   'damages',
   'extra',
   'plus',
+  'versatile',
+  'magical',
+  'magic',
+  'nonmagical',
+  'silvered',
+  'weapon',
+  'melee',
+  'ranged',
+  'attack',
+  'attacks',
+  'die',
+  'dice',
 ]);
 
 const DAMAGE_TYPE_ALIASES = {
@@ -127,24 +139,23 @@ const DAMAGE_TYPE_ALIASES = {
   thunder: 'thunder',
 };
 
-export const resolveDamageTypeColor = (normalizedType) => {
-  if (typeof normalizedType !== 'string') {
+export const resolveDamageTypeKey = (value) => {
+  if (typeof value !== 'string') {
     return null;
   }
-  const trimmed = normalizedType.trim().toLowerCase();
+
+  const trimmed = value.trim().toLowerCase();
   if (!trimmed) {
     return null;
   }
 
-  const directMatch = DAMAGE_TYPE_LOOKUP[trimmed];
-  if (directMatch) {
-    return directMatch;
+  if (DAMAGE_TYPE_LOOKUP[trimmed]) {
+    return trimmed;
   }
 
   const hyphenated = trimmed.replace(/\s+/g, '-');
-  const hyphenMatch = DAMAGE_TYPE_LOOKUP[hyphenated];
-  if (hyphenMatch) {
-    return hyphenMatch;
+  if (DAMAGE_TYPE_LOOKUP[hyphenated]) {
+    return hyphenated;
   }
 
   const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
@@ -154,13 +165,21 @@ export const resolveDamageTypeColor = (normalizedType) => {
     }
 
     const alias = DAMAGE_TYPE_ALIASES[token] || token;
-    const color = DAMAGE_TYPE_LOOKUP[alias];
-    if (color) {
-      return color;
+    if (DAMAGE_TYPE_LOOKUP[alias]) {
+      return alias;
     }
   }
 
   return null;
+};
+
+export const resolveDamageTypeColor = (value) => {
+  const key = resolveDamageTypeKey(value);
+  if (!key) {
+    return null;
+  }
+
+  return DAMAGE_TYPE_LOOKUP[key] || null;
 };
 
 export const createDiceCategoryStyles = (color, category = 'base') => {
@@ -194,6 +213,7 @@ export default {
   normalizeDiceColor,
   hexToRgba,
   createDiceCategoryStyles,
+  resolveDamageTypeKey,
   resolveDamageTypeColor,
   applyDiceFaceColor,
 };
