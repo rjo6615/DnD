@@ -965,9 +965,12 @@ const manualCriticalRef = useRef(false);
     [form?.diceColor],
   );
 
+  const diceBoxThemeRef = useRef(null);
+
   useEffect(() => {
     applyDiceFaceColor(diceFaceColor);
     setDiceBoxThemeColor(diceFaceColor);
+    diceBoxThemeRef.current = diceFaceColor;
   }, [diceFaceColor]);
 
   const rollDamageExpression = useCallback(
@@ -1030,8 +1033,10 @@ const manualCriticalRef = useRef(false);
           ? selectedColor
           : null;
       const resolvedThemeColor = rollThemeColor || diceFaceColor;
-      setDiceBoxThemeColor(resolvedThemeColor);
-      if (rollThemeColor && rollThemeColor !== diceFaceColor) {
+      const themeHasChanged = resolvedThemeColor !== diceBoxThemeRef.current;
+      if (themeHasChanged) {
+        setDiceBoxThemeColor(resolvedThemeColor);
+        diceBoxThemeRef.current = resolvedThemeColor;
         await waitForNextAnimationFrame();
       }
 
