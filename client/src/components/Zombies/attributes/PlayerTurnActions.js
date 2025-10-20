@@ -1611,15 +1611,22 @@ const showOverlayDice = useMemo(() => {
   }
 
   const uniqueColors = new Set();
+  let hasColorless = false;
 
   preparedDice.forEach((die) => {
     const normalizedColor = normalizeDiceColor(die?.typeColor);
     if (normalizedColor) {
       uniqueColors.add(normalizedColor);
+    } else {
+      hasColorless = true;
     }
   });
 
-  return uniqueColors.size > 1;
+  if (uniqueColors.size > 1) {
+    return true;
+  }
+
+  return uniqueColors.size === 1 && hasColorless;
 }, [preparedDice]);
 
 const updateDamageValueWithAnimation = (
