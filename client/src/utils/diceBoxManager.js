@@ -871,7 +871,7 @@ export const warmupDiceBox = () => {
   });
 };
 
-export const rollDiceWithBox = (requests, options = {}) => {
+export const rollDiceWithBox = (requests) => {
   if (!Array.isArray(requests) || requests.length === 0) {
     return Promise.resolve({
       rolls: [],
@@ -882,28 +882,7 @@ export const rollDiceWithBox = (requests, options = {}) => {
 
   const executeRoll = async () => {
     const instance = await ensureDiceBox();
-    const normalizedRequests = requests.map((request = {}) => {
-      const rawCount = Number(request?.count);
-      const count = Number.isFinite(rawCount) ? Math.max(0, Math.floor(rawCount)) : 0;
-      const rawSides = Number(request?.sides);
-      const sides = Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
-      const color = normalizeThemeColor(request?.color) || null;
-      return { count, sides, color };
-    });
-
-    const filteredRequests = normalizedRequests.filter(
-      ({ count, sides }) => count > 0 && Number.isInteger(count) && sides,
-    );
-
-    const fallback = filteredRequests.map(({ count, sides }) => fallbackRoll(count, sides));
-
-    if (filteredRequests.length === 0) {
-      return {
-        rolls: fallback,
-        rawResults: null,
-        usedFallback: true,
-      };
-    }
+    const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
     if (!instance) {
       return {
@@ -914,11 +893,7 @@ export const rollDiceWithBox = (requests, options = {}) => {
     }
 
     return new Promise((resolve) => {
-      const baseThemeColor = normalizeThemeColor(options?.baseColor) || null;
-      const notations = filteredRequests.map(({ count, sides }) => `${count}d${sides}`);
-      const supportsAdd = typeof instance.add === 'function' && typeof instance.roll === 'function';
-      const useColorOverrides =
-        supportsAdd && filteredRequests.some(({ color }) => typeof color === 'string' && color);
+      const notations = requests.map(({ count, sides }) => `${count}d${sides}`);
 
       try {
         if (typeof instance.clear === 'function') {
@@ -944,7 +919,7 @@ export const rollDiceWithBox = (requests, options = {}) => {
       const cleanup = setRollHandlers(
         instance,
         (rawResults) => {
-          const parsed = parseDiceBoxResults(rawResults, filteredRequests);
+          const parsed = parseDiceBoxResults(rawResults, requests);
           if (parsed) {
             resolve({ rolls: parsed, rawResults, usedFallback: false });
             return;
@@ -953,45 +928,11 @@ export const rollDiceWithBox = (requests, options = {}) => {
         },
         () => {
           finalize(fallback, true, { failure: true });
-        },
+        }
       );
 
       try {
-        let restoreColor = baseThemeColor || null;
-
-        if (useColorOverrides) {
-          if (restoreColor) {
-            applyThemeColorToInstance(instance, restoreColor);
-          } else {
-            const applied = applyThemeColorToInstance(instance, baseThemeColor)
-              ? baseThemeColor
-              : activeThemeColor;
-            restoreColor = applied || null;
-          }
-
-          filteredRequests.forEach(({ count, sides, color }) => {
-            const notation = `${count}d${sides}`;
-            if (color) {
-              applyThemeColorToInstance(instance, color);
-            } else if (restoreColor) {
-              applyThemeColorToInstance(instance, restoreColor);
-            }
-
-            try {
-              instance.add(notation);
-            } catch (error) {
-              throw error;
-            }
-          });
-
-        }
-
-        if (useColorOverrides) {
-          applyThemeColorToInstance(instance, restoreColor || baseThemeColor || null);
-          instance.roll();
-        } else {
-          instance.roll(notations);
-        }
+        instance.roll(notations);
       } catch (error) {
         cleanup();
         // eslint-disable-next-line no-console
