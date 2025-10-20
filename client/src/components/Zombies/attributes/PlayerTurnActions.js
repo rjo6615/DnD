@@ -1191,6 +1191,52 @@ const manualCriticalRef = useRef(false);
           });
         }
 
+        return collected;
+      };
+
+      try {
+        const themeHasChanged = rollThemeColor !== diceBoxThemeRef.current;
+        if (themeHasChanged) {
+          setDiceBoxThemeColor(rollThemeColor);
+          diceBoxThemeRef.current = rollThemeColor;
+          await waitForNextAnimationFrame();
+        }
+
+        let collected;
+        if (Array.isArray(rollPlan) && rollPlan.length > 0) {
+          collected = await executeRollPlan();
+        } else {
+          const fallbackCollected = Array.from({ length: requests.length }, () => null);
+          const rollRequests = [];
+          const rollIndexMap = [];
+
+          requests.forEach((request, index) => {
+            const rawCount = Number(request?.count);
+            const rawSides = Number(request?.sides);
+            const count = Number.isFinite(rawCount) ? Math.max(0, Math.floor(rawCount)) : 0;
+            const sides =
+              Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
+
+            if (!count || !sides) {
+              fallbackCollected[index] = null;
+              return;
+            }
+
+            rollRequests.push({ count, sides });
+            rollIndexMap.push(index);
+          });
+
+          if (rollRequests.length > 0) {
+            const { rolls } = await rollDiceWithBox(rollRequests);
+            rollIndexMap.forEach((originalIndex, idx) => {
+              const raw = Array.isArray(rolls) ? rolls[idx] : undefined;
+              fallbackCollected[originalIndex] = raw;
+            });
+          }
+
+          collected = fallbackCollected;
+        }
+
         if (!Array.isArray(collected)) {
           collected = Array.from({ length: requests.length }, () => null);
         }
