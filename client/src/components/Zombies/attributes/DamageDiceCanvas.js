@@ -161,7 +161,12 @@ const createDieStyle = (die, index, reduceMotion) => {
   };
 };
 
-const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
+const DamageDiceCanvas = ({
+  dice = [],
+  diceColor,
+  instanceKey = null,
+  forceOverlay = false,
+}) => {
   const resolvedColor = useMemo(
     () => normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR,
     [diceColor],
@@ -170,7 +175,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
   const diceBoxRef = useRef(null);
   const [diceBoxReady, setDiceBoxReady] = useState(false);
   const registrationKey = instanceKey ?? '__default__';
-  const overlayEnabled = !diceBoxReady;
+  const overlayEnabled = forceOverlay || !diceBoxReady;
 
   useEffect(() => {
     const reference = diceBoxRef.current || '#damage-dice-box';
@@ -246,7 +251,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
         ref={diceBoxRef}
         className={`damage-dice-canvas__box ${
           diceBoxReady ? 'damage-dice-canvas__box--ready' : ''
-        }`}
+        } ${forceOverlay ? 'damage-dice-canvas__box--hidden' : ''}`.trim()}
       />
       {overlayEnabled ? diceElements : null}
     </div>
