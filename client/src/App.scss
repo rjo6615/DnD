@@ -2151,6 +2151,10 @@ $rotateX: -$angle;
   will-change: transform, opacity;
 }
 
+.damage-die--overlay {
+  mix-blend-mode: normal;
+}
+
 .damage-die__icon {
   position: relative;
   width: 100%;

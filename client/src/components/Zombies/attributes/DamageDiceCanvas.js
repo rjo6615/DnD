@@ -161,7 +161,12 @@ const createDieStyle = (die, index, reduceMotion) => {
   };
 };
 
-const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
+const DamageDiceCanvas = ({
+  dice = [],
+  diceColor,
+  instanceKey = null,
+  showOverlayDice = false,
+}) => {
   const resolvedColor = useMemo(
     () => normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR,
     [diceColor],
@@ -208,6 +213,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
           getDieShapeClass(sides),
           getCategoryClass(die.category),
           resolveDamageTypeClass(die.typeClass),
+          showOverlayDice ? 'damage-die--overlay' : '',
         ]
           .filter(Boolean)
           .join(' ');
@@ -235,7 +241,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
           </div>
         );
       });
-  }, [dice, reduceMotion, resolvedColor]);
+  }, [dice, reduceMotion, resolvedColor, showOverlayDice]);
 
   return (
     <div className="damage-dice-canvas" aria-hidden="true">
@@ -246,7 +252,7 @@ const DamageDiceCanvas = ({ dice = [], diceColor, instanceKey = null }) => {
           diceBoxReady ? 'damage-dice-canvas__box--ready' : ''
         }`}
       />
-      {!diceBoxReady && diceElements}
+      {(showOverlayDice || !diceBoxReady) && diceElements}
     </div>
   );
 };
