@@ -9,6 +9,9 @@ const damageTypeColors = {
   necrotic: '#90cf80',
   radiant: '#FFFF99',
   psychic: '#BA55D3',
+  slashing: '#000000',
+  piercing: '#000000',
+  bludgeoning: '#000000',
 };
 
 export default damageTypeColors;
