@@ -9,6 +9,7 @@ const BASE_CONFIG = Object.freeze({
   offscreen: false,
   spinForce: 24,
   throwForce: 10,
+  gravity: .7,
 });
 
 let modulePromise = null;
