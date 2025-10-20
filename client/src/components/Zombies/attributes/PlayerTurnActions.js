@@ -1006,6 +1006,32 @@ const manualCriticalRef = useRef(false);
         ? validation.diceRolls
         : [];
 
+      const classifyTypeColor = (typeValue) => {
+        const normalizedType = normalizeDamageTypeForClass(typeValue || '');
+        if (!normalizedType) {
+          return { normalizedType: '', color: null, isColorless: true, isMixed: false };
+        }
+
+        const tokens = normalizedType.split('-').filter(Boolean);
+        const isMixed = tokens.length > 1;
+        if (isMixed) {
+          return {
+            normalizedType,
+            color: null,
+            isColorless: true,
+            isMixed: true,
+          };
+        }
+
+        const color = resolveDamageTypeColor(normalizedType) || null;
+        return {
+          normalizedType,
+          color,
+          isColorless: !color,
+          isMixed: false,
+        };
+      };
+
       const requestDetails = (() => {
         if (!Array.isArray(requests) || requests.length === 0) {
           return [];
@@ -1027,28 +1053,56 @@ const manualCriticalRef = useRef(false);
             return { count, sides, color: null };
           }
 
-          const normalizedTypes = subset.map((detail) =>
-            normalizeDamageTypeForClass(detail?.type || ''),
+          const analysis = subset.reduce(
+            (acc, detail) => {
+              const classification = classifyTypeColor(detail?.type);
+              if (classification.color && !classification.isMixed) {
+                acc.colors.add(classification.color);
+              } else {
+                acc.hasColorless = true;
+              }
+              return acc;
+            },
+            { colors: new Set(), hasColorless: false },
           );
-          const colorCandidates = normalizedTypes
-            .map((type) => (type ? resolveDamageTypeColor(type) : null))
-            .filter(Boolean);
-          const uniqueColors = Array.from(new Set(colorCandidates));
-          const hasColorless = normalizedTypes.some((type) => {
-            if (!type) {
-              return true;
-            }
-            return !resolveDamageTypeColor(type);
-          });
 
+          const uniqueColors = Array.from(analysis.colors);
           const color =
-            uniqueColors.length === 1 && !hasColorless ? uniqueColors[0] : null;
+            uniqueColors.length === 1 && !analysis.hasColorless ? uniqueColors[0] : null;
 
           return { count, sides, color };
         });
       })();
 
       const resolveRollThemeColor = () => {
+        const diceTheme = (() => {
+          if (!Array.isArray(diceRolls) || diceRolls.length === 0) {
+            return null;
+          }
+
+          const uniqueColors = new Set();
+          let hasColorless = false;
+
+          diceRolls.forEach((die) => {
+            const classification = classifyTypeColor(die?.type);
+            if (classification.color && !classification.isMixed) {
+              uniqueColors.add(classification.color);
+            } else {
+              hasColorless = true;
+            }
+          });
+
+          if (uniqueColors.size === 1 && !hasColorless) {
+            return Array.from(uniqueColors)[0];
+          }
+
+          return null;
+        })();
+
+        if (diceTheme) {
+          return diceTheme;
+        }
+
         if (!Array.isArray(requestDetails) || requestDetails.length === 0) {
           return diceFaceColor;
         }
