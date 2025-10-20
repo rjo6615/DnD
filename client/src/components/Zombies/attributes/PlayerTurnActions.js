@@ -1005,42 +1005,94 @@ const manualCriticalRef = useRef(false);
       const diceRolls = Array.isArray(validation?.diceRolls)
         ? validation.diceRolls
         : [];
-      let selectedColor = null;
-      let hasColorlessDice = false;
-      let hasConflictingColor = false;
-      diceRolls.forEach((detail) => {
-        const normalizedType = normalizeDamageTypeForClass(detail?.type || '');
-        if (!normalizedType) {
-          hasColorlessDice = true;
-          return;
-        }
-        const color = resolveDamageTypeColor(normalizedType);
-        if (!color) {
-          hasColorlessDice = true;
-          return;
-        }
-        if (!selectedColor) {
-          selectedColor = color;
-          return;
-        }
-        if (selectedColor !== color) {
-          hasConflictingColor = true;
-        }
-      });
 
-      const rollThemeColor =
-        selectedColor && !hasColorlessDice && !hasConflictingColor
-          ? selectedColor
-          : null;
-      const resolvedThemeColor = rollThemeColor || diceFaceColor;
-      const themeHasChanged = resolvedThemeColor !== diceBoxThemeRef.current;
-      if (themeHasChanged) {
-        setDiceBoxThemeColor(resolvedThemeColor);
-        diceBoxThemeRef.current = resolvedThemeColor;
-        await waitForNextAnimationFrame();
-      }
+      const requestDetails = (() => {
+        if (!Array.isArray(requests) || requests.length === 0) {
+          return [];
+        }
+
+        let placeholderIndex = 0;
+        return requests.map((request = {}) => {
+          const rawCount = Number(request?.count);
+          const rawSides = Number(request?.sides);
+          const count = Number.isFinite(rawCount) ? Math.max(0, Math.floor(rawCount)) : 0;
+          const sides =
+            Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
+
+          const sliceEnd = placeholderIndex + count;
+          const subset = diceRolls.slice(placeholderIndex, sliceEnd);
+          placeholderIndex = sliceEnd;
+
+          if (!Array.isArray(subset) || subset.length === 0) {
+            return { count, sides, color: null };
+          }
+
+          const normalizedTypes = subset.map((detail) =>
+            normalizeDamageTypeForClass(detail?.type || ''),
+          );
+          const colorCandidates = normalizedTypes
+            .map((type) => (type ? resolveDamageTypeColor(type) : null))
+            .filter(Boolean);
+          const uniqueColors = Array.from(new Set(colorCandidates));
+          const hasColorless = normalizedTypes.some((type) => {
+            if (!type) {
+              return true;
+            }
+            return !resolveDamageTypeColor(type);
+          });
+
+          const color =
+            uniqueColors.length === 1 && !hasColorless ? uniqueColors[0] : null;
+
+          return { count, sides, color };
+        });
+      })();
+
+      const rollPlan = (() => {
+        if (!Array.isArray(requestDetails) || requestDetails.length === 0) {
+          return [];
+        }
+
+        const plan = [];
+        requestDetails.forEach((detail, index) => {
+          if (!detail || detail.count <= 0) {
+            return;
+          }
+
+          const sanitizedSides =
+            Number.isFinite(detail.sides) && detail.sides > 0
+              ? Math.round(detail.sides)
+              : null;
+          if (!sanitizedSides) {
+            return;
+          }
+
+          const sanitizedCount = Math.max(1, Math.round(detail.count));
+          const targetColor = detail.color || diceFaceColor;
+          const payload = {
+            requestIndex: index,
+            count: sanitizedCount,
+            sides: sanitizedSides,
+          };
+
+          const lastGroup = plan[plan.length - 1];
+          if (lastGroup && lastGroup.color === targetColor) {
+            lastGroup.items.push(payload);
+          } else {
+            plan.push({ color: targetColor, items: [payload] });
+          }
+        });
+
+        return plan;
+      })();
 
       if (requests.length === 0) {
+        const themeHasChanged = diceFaceColor !== diceBoxThemeRef.current;
+        if (themeHasChanged) {
+          setDiceBoxThemeColor(diceFaceColor);
+          diceBoxThemeRef.current = diceFaceColor;
+          await waitForNextAnimationFrame();
+        }
         const staticResult = calculateDamage(
           trimmed,
           ability,
@@ -1052,8 +1104,52 @@ const manualCriticalRef = useRef(false);
         return staticResult ? { ...staticResult, rollValues: undefined } : null;
       }
 
+      const executeRollPlan = async () => {
+        const collected = Array.from({ length: requests.length }, () => null);
+
+        if (!Array.isArray(rollPlan) || rollPlan.length === 0) {
+          const themeHasChanged = diceFaceColor !== diceBoxThemeRef.current;
+          if (themeHasChanged) {
+            setDiceBoxThemeColor(diceFaceColor);
+            diceBoxThemeRef.current = diceFaceColor;
+            await waitForNextAnimationFrame();
+          }
+          return collected;
+        }
+
+        // eslint-disable-next-line no-await-in-loop
+        for (const group of rollPlan) {
+          if (!group || !Array.isArray(group.items) || group.items.length === 0) {
+            continue;
+          }
+
+          const targetColor = group.color || diceFaceColor;
+          if (targetColor !== diceBoxThemeRef.current) {
+            setDiceBoxThemeColor(targetColor);
+            diceBoxThemeRef.current = targetColor;
+            await waitForNextAnimationFrame();
+          }
+
+          const groupRequests = group.items.map(({ count, sides }) => ({
+            count: Math.max(1, Math.round(count || 0)),
+            sides: Math.max(1, Math.round(sides || 0)),
+          }));
+
+          const { rolls } = await rollDiceWithBox(groupRequests);
+          group.items.forEach(({ requestIndex }, idx) => {
+            if (typeof requestIndex !== 'number' || requestIndex < 0) {
+              return;
+            }
+            const raw = Array.isArray(rolls) ? rolls[idx] : undefined;
+            collected[requestIndex] = raw;
+          });
+        }
+
+        return collected;
+      };
+
       try {
-        const { rolls } = await rollDiceWithBox(requests);
+        const rolls = await executeRollPlan();
         let requestIndex = 0;
         const appliedRollGroups = [];
         const applyRolls = (count, sides) => {
