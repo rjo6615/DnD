@@ -1054,7 +1054,6 @@ const manualCriticalRef = useRef(false);
         }
 
         const uniqueColors = new Set();
-        let hasColorless = false;
 
         requestDetails.forEach((detail) => {
           if (!detail || detail.count <= 0) {
@@ -1063,12 +1062,10 @@ const manualCriticalRef = useRef(false);
 
           if (detail.color) {
             uniqueColors.add(detail.color);
-          } else {
-            hasColorless = true;
           }
         });
 
-        if (uniqueColors.size === 1 && !hasColorless) {
+        if (uniqueColors.size === 1) {
           return Array.from(uniqueColors)[0];
         }
 
@@ -1559,22 +1556,15 @@ const showOverlayDice = useMemo(() => {
   }
 
   const uniqueColors = new Set();
-  let hasColorless = false;
 
   preparedDice.forEach((die) => {
-    const color = die?.typeColor;
-    if (color) {
-      uniqueColors.add(color);
-    } else {
-      hasColorless = true;
+    const normalizedColor = normalizeDiceColor(die?.typeColor);
+    if (normalizedColor) {
+      uniqueColors.add(normalizedColor);
     }
   });
 
-  if (uniqueColors.size === 0) {
-    return false;
-  }
-
-  return uniqueColors.size > 1 || hasColorless;
+  return uniqueColors.size > 1;
 }, [preparedDice]);
 
 const updateDamageValueWithAnimation = (
