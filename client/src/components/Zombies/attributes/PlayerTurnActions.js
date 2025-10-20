@@ -1146,13 +1146,16 @@ const manualCriticalRef = useRef(false);
         return staticResult ? { ...staticResult, rollValues: undefined } : null;
       }
 
-      const rollPlan = (() => {
-        if (!Array.isArray(requests) || requests.length === 0) {
-          return [];
+      try {
+        const themeHasChanged = rollThemeColor !== diceBoxThemeRef.current;
+        if (themeHasChanged) {
+          setDiceBoxThemeColor(rollThemeColor);
+          diceBoxThemeRef.current = rollThemeColor;
+          await waitForNextAnimationFrame();
         }
 
-        const groups = [];
-        let currentGroup = null;
+        const collected = Array.from({ length: requests.length }, () => null);
+        const colorAwareRequests = [];
 
         requests.forEach((request, index) => {
           const rawCount = Number(request?.count);
@@ -1162,60 +1165,27 @@ const manualCriticalRef = useRef(false);
             Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
 
           if (!count || !sides) {
-            currentGroup = null;
+            collected[index] = null;
             return;
           }
 
           const detail = Array.isArray(requestDetails) ? requestDetails[index] : null;
           const color = detail?.color || null;
 
-          if (!currentGroup || currentGroup.color !== color) {
-            currentGroup = { color, items: [] };
-            groups.push(currentGroup);
-          }
-
-          currentGroup.items.push({ count, sides, requestIndex: index });
+          colorAwareRequests.push({ count, sides, color, requestIndex: index });
         });
 
-        return groups.filter((group) => group.items.length > 0);
-      })();
+        if (colorAwareRequests.length > 0) {
+          const { rolls } = await rollDiceWithBox(
+            colorAwareRequests.map(({ count, sides, color }) => ({ count, sides, color })),
+            { baseColor: rollThemeColor },
+          );
 
-      const executeRollPlan = async () => {
-        const collected = Array.from({ length: requests.length }, () => null);
-
-        if (!Array.isArray(rollPlan) || rollPlan.length === 0) {
-          const themeHasChanged = diceFaceColor !== diceBoxThemeRef.current;
-          if (themeHasChanged) {
-            setDiceBoxThemeColor(diceFaceColor);
-            diceBoxThemeRef.current = diceFaceColor;
-            await waitForNextAnimationFrame();
-          }
-          return collected;
-        }
-
-        // eslint-disable-next-line no-await-in-loop
-        for (const group of rollPlan) {
-          if (!group || !Array.isArray(group.items) || group.items.length === 0) {
-            continue;
-          }
-
-          const targetColor = group.color || diceFaceColor;
-          if (targetColor !== diceBoxThemeRef.current) {
-            setDiceBoxThemeColor(targetColor);
-            diceBoxThemeRef.current = targetColor;
-            await waitForNextAnimationFrame();
-          }
-
-          const groupRequests = group.items.map(({ count, sides }) => ({
-            count: Math.max(1, Math.round(count || 0)),
-            sides: Math.max(1, Math.round(sides || 0)),
-          }));
-
-          const { rolls } = await rollDiceWithBox(groupRequests);
-          group.items.forEach(({ requestIndex }, idx) => {
+          colorAwareRequests.forEach(({ requestIndex }, idx) => {
             if (typeof requestIndex !== 'number' || requestIndex < 0) {
               return;
             }
+
             const raw = Array.isArray(rolls) ? rolls[idx] : undefined;
             collected[requestIndex] = raw;
           });
