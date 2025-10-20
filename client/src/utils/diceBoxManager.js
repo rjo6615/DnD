@@ -2,9 +2,22 @@ const ASSET_PATH = `${
   (typeof process !== 'undefined' && process.env && process.env.PUBLIC_URL) || ''
 }/assets/dice-box/`;
 
+export const DICE_BOX_THEMES = Object.freeze([
+  'default',
+  'rust',
+  'diceOfRolling',
+  'gemstone',
+  'wooden',
+  'smooth',
+  'rock',
+  'blueGreenMetal',
+]);
+
+export const DEFAULT_DICE_THEME = DICE_BOX_THEMES[0];
+
 const BASE_CONFIG = Object.freeze({
   assetPath: ASSET_PATH,
-  theme: 'default',
+  theme: DEFAULT_DICE_THEME,
   scale: 6,
   offscreen: false,
   spinForce: 24,
@@ -24,6 +37,8 @@ let rollQueue = Promise.resolve();
 let generatedHostId = 0;
 let pendingThemeColor = null;
 let activeThemeColor = null;
+let pendingThemeName = null;
+let activeThemeName = DEFAULT_DICE_THEME;
 let warmupPromise = null;
 let retryTimeoutId = null;
 let diceBoxGeneration = 0;
@@ -356,6 +371,7 @@ const resetInstance = () => {
   diceBoxPromise = null;
   diceBoxReady = false;
   activeThemeColor = null;
+  activeThemeName = DEFAULT_DICE_THEME;
   clearScheduledRetry();
   clearScheduledResolution();
 };
@@ -372,6 +388,21 @@ const normalizeThemeColor = (value) => {
   }
 
   return `#${match[1].toLowerCase()}`;
+};
+
+const normalizeThemeName = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const lower = trimmed.toLowerCase();
+  const match = DICE_BOX_THEMES.find((theme) => theme.toLowerCase() === lower);
+  return match || null;
 };
 
 const createDiceBoxConfig = (overrides = null) => ({
@@ -409,6 +440,38 @@ const applyPendingThemeColor = (instance) => {
 
   if (applyThemeColorToInstance(instance, pendingThemeColor)) {
     pendingThemeColor = null;
+  }
+};
+
+const applyThemeNameToInstance = (instance, themeName) => {
+  if (!instance || typeof instance.updateConfig !== 'function') {
+    return false;
+  }
+
+  if (themeName === activeThemeName) {
+    return true;
+  }
+
+  try {
+    instance.updateConfig({ theme: themeName });
+    activeThemeName = themeName || DEFAULT_DICE_THEME;
+    return true;
+  } catch (error) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('Dice box theme update failed', error);
+    }
+  }
+
+  return false;
+};
+
+const applyPendingThemeName = (instance) => {
+  if (!instance || !pendingThemeName) {
+    return;
+  }
+
+  if (applyThemeNameToInstance(instance, pendingThemeName)) {
+    pendingThemeName = null;
   }
 };
 
@@ -556,8 +619,20 @@ async function ensureDiceBox() {
           throw new Error('Dice box target was not available');
         }
 
+        const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
+        const normalizedActiveTheme = normalizeThemeName(activeThemeName);
+        const resolvedThemeName = normalizedPendingTheme || normalizedActiveTheme || DEFAULT_DICE_THEME;
+
+        const overrides = {};
+        if (pendingThemeColor) {
+          overrides.themeColor = pendingThemeColor;
+        }
+        if (resolvedThemeName) {
+          overrides.theme = resolvedThemeName;
+        }
+
         const options = createDiceBoxConfig(
-          pendingThemeColor ? { themeColor: pendingThemeColor } : null,
+          Object.keys(overrides).length > 0 ? overrides : null,
         );
 
         let instance = null;
@@ -584,6 +659,8 @@ async function ensureDiceBox() {
         diceBoxInstance = instance;
         diceBoxFailed = false;
         diceBoxDisabled = false;
+        activeThemeName = resolvedThemeName || DEFAULT_DICE_THEME;
+        applyPendingThemeName(instance);
         applyPendingThemeColor(instance);
         refreshDiceBoxResolution(instance);
         clearScheduledRetry();
@@ -968,6 +1045,29 @@ export const setDiceBoxThemeColor = (color) => {
   }
 };
 
+export const setDiceBoxTheme = (themeName) => {
+  const normalized =
+    themeName === null || themeName === undefined
+      ? DEFAULT_DICE_THEME
+      : normalizeThemeName(themeName);
+
+  if (!normalized) {
+    pendingThemeName = null;
+    return;
+  }
+
+  if (normalized === activeThemeName) {
+    pendingThemeName = null;
+    return;
+  }
+
+  pendingThemeName = normalized;
+
+  if (diceBoxInstance) {
+    applyPendingThemeName(diceBoxInstance);
+  }
+};
+
 export default {
   registerDiceBoxContainer,
   subscribeToDiceBoxAvailability,
@@ -975,4 +1075,5 @@ export default {
   hasDiceBoxFailed,
   rollDiceWithBox,
   setDiceBoxThemeColor,
+  setDiceBoxTheme,
 };
