@@ -1,0 +1,12 @@
+{
+  "name": "Wooden",
+  "systemName": "wooden",
+  "author": "DnD Dice Roller",
+  "version": 0.1,
+  "material": {
+    "type": "standard",
+    "diffuseLevel": 1,
+    "specularPower": 0.9
+  },
+  "themeColor": "#a07743"
+}

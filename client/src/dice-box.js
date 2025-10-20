@@ -16,7 +16,16 @@ Box.init().then(async (world) => {
   // console.log("Box is ready");
 
   const Controls = new BoxControls({
-    themes: ["default", "rust", "diceOfRolling", "gemstone"],
+    themes: [
+      "default",
+      "rust",
+      "diceOfRolling",
+      "gemstone",
+      "wooden",
+      "smooth",
+      "rock",
+      "blueGreenMetal"
+    ],
     themeColor: world.config.themeColor,
     onUpdate: (updates) => {
       Box.updateConfig(updates);
