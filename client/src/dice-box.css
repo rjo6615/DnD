@@ -11,6 +11,10 @@
   pointer-events: none;
 }
 
+.damage-dice-canvas__box--hidden {
+  opacity: 0;
+}
+
 .damage-dice-canvas__box canvas,
 .damage-dice-canvas__box > div {
   width: 100%;
