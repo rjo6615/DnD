@@ -1294,32 +1294,49 @@ const manualCriticalRef = useRef(false);
           await waitForNextAnimationFrame();
         }
 
-        const collected = Array.from({ length: requests.length }, () => null);
-        const rollRequests = [];
-        const rollIndexMap = [];
-
-        requests.forEach((request, index) => {
-          const rawCount = Number(request?.count);
-          const rawSides = Number(request?.sides);
-          const count = Number.isFinite(rawCount) ? Math.max(0, Math.floor(rawCount)) : 0;
-          const sides =
-            Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
-
-          if (!count || !sides) {
-            collected[index] = null;
-            return;
+        let collected = Array.from({ length: requests.length }, () => null);
+        if (Array.isArray(rollPlan) && rollPlan.length > 0) {
+          const planned = await executeRollPlan();
+          if (Array.isArray(planned)) {
+            if (planned.length === collected.length) {
+              collected = planned.slice();
+            } else {
+              planned.forEach((group, index) => {
+                if (index >= 0 && index < collected.length) {
+                  collected[index] = group;
+                }
+              });
+            }
           }
+        } else {
+          const rollRequests = [];
+          const rollIndexMap = [];
 
-          rollRequests.push({ count, sides });
-          rollIndexMap.push(index);
-        });
+          requests.forEach((request, index) => {
+            const rawCount = Number(request?.count);
+            const rawSides = Number(request?.sides);
+            const count = Number.isFinite(rawCount)
+              ? Math.max(0, Math.floor(rawCount))
+              : 0;
+            const sides =
+              Number.isFinite(rawSides) && rawSides > 0 ? Math.round(rawSides) : null;
 
-        if (rollRequests.length > 0) {
-          const { rolls } = await rollDiceWithBox(rollRequests);
-          rollIndexMap.forEach((originalIndex, idx) => {
-            const raw = Array.isArray(rolls) ? rolls[idx] : undefined;
-            collected[originalIndex] = raw;
+            if (!count || !sides) {
+              collected[index] = null;
+              return;
+            }
+
+            rollRequests.push({ count, sides });
+            rollIndexMap.push(index);
           });
+
+          if (rollRequests.length > 0) {
+            const { rolls } = await rollDiceWithBox(rollRequests);
+            rollIndexMap.forEach((originalIndex, idx) => {
+              const raw = Array.isArray(rolls) ? rolls[idx] : undefined;
+              collected[originalIndex] = raw;
+            });
+          }
         }
 
         let requestIndex = 0;
