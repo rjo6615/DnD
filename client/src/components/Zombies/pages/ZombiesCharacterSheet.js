@@ -3648,15 +3648,17 @@ export default function ZombiesCharacterSheet() {
   }, [form?.occupation, form?.race?.name]);
 
   const updateLocalDiceColor = useCallback(
-    (incomingCharacterId, nextColor) => {
+    (incomingCharacterId, nextColor, nextTheme = null) => {
       const normalizedCharacterId =
         typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
           ? incomingCharacterId.trim()
           : null;
       const normalizedColor =
         typeof nextColor === 'string' && nextColor.trim() !== '' ? nextColor.trim() : null;
+      const normalizedTheme =
+        typeof nextTheme === 'string' && nextTheme.trim() !== '' ? nextTheme.trim() : null;
 
-      if (!normalizedCharacterId || !normalizedColor) {
+      if (!normalizedCharacterId || (!normalizedColor && !normalizedTheme)) {
         return;
       }
 
@@ -3692,12 +3694,27 @@ export default function ZombiesCharacterSheet() {
             typeof value.diceColor === 'string' && value.diceColor.trim() !== ''
               ? value.diceColor.trim()
               : null;
+          const existingTheme =
+            typeof value.diceTheme === 'string' && value.diceTheme.trim() !== ''
+              ? value.diceTheme.trim()
+              : null;
 
-          if (existingColor === normalizedColor) {
+          const colorChanged = Boolean(normalizedColor) && existingColor !== normalizedColor;
+          const themeChanged = Boolean(normalizedTheme) && existingTheme !== normalizedTheme;
+
+          if (!colorChanged && !themeChanged) {
             return;
           }
 
-          next[key] = { ...value, diceColor: normalizedColor };
+          const nextEntry = { ...value };
+          if (colorChanged && normalizedColor) {
+            nextEntry.diceColor = normalizedColor;
+          }
+          if (themeChanged && normalizedTheme) {
+            nextEntry.diceTheme = normalizedTheme;
+          }
+
+          next[key] = nextEntry;
           didUpdate = true;
         });
 
@@ -3725,11 +3742,26 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        if (typeof prev.diceColor === 'string' && prev.diceColor.trim() === normalizedColor) {
+        const colorMatches =
+          !normalizedColor ||
+          (typeof prev.diceColor === 'string' && prev.diceColor.trim() === normalizedColor);
+        const themeMatches =
+          !normalizedTheme ||
+          (typeof prev.diceTheme === 'string' && prev.diceTheme.trim() === normalizedTheme);
+
+        if (colorMatches && themeMatches) {
           return prev;
         }
 
-        return { ...prev, diceColor: normalizedColor };
+        const nextForm = { ...prev };
+        if (!colorMatches && normalizedColor) {
+          nextForm.diceColor = normalizedColor;
+        }
+        if (!themeMatches && normalizedTheme) {
+          nextForm.diceTheme = normalizedTheme;
+        }
+
+        return nextForm;
       });
     },
     [setCampaignCharacters, setForm]
@@ -4181,6 +4213,7 @@ export default function ZombiesCharacterSheet() {
       }
 
       const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(update, 'diceColor');
+      const hasDiceThemeUpdate = Object.prototype.hasOwnProperty.call(update, 'diceTheme');
       const hasFigurineUrlUpdate = Object.prototype.hasOwnProperty.call(
         update,
         'figurineImageUrl'
@@ -4190,18 +4223,33 @@ export default function ZombiesCharacterSheet() {
         'figurineImagePublicId'
       );
 
-      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
+      if (
+        !hasDiceColorUpdate &&
+        !hasDiceThemeUpdate &&
+        !hasFigurineUrlUpdate &&
+        !hasFigurineIdUpdate
+      ) {
         return;
       }
 
+      let normalizedDiceColor = null;
       if (hasDiceColorUpdate) {
-        const normalizedDiceColor =
+        normalizedDiceColor =
           typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
             ? update.diceColor.trim()
             : null;
-        if (normalizedDiceColor) {
-          updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
-        }
+      }
+
+      let normalizedDiceTheme = null;
+      if (hasDiceThemeUpdate) {
+        normalizedDiceTheme =
+          typeof update.diceTheme === 'string' && update.diceTheme.trim() !== ''
+            ? update.diceTheme.trim()
+            : null;
+      }
+
+      if (normalizedDiceColor || normalizedDiceTheme) {
+        updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor, normalizedDiceTheme);
       }
 
       if (hasFigurineUrlUpdate || hasFigurineIdUpdate) {
@@ -4238,12 +4286,12 @@ export default function ZombiesCharacterSheet() {
   }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
 
   const handleDiceColorChange = useCallback(
-    (nextColor) => {
+    (nextColor, nextTheme = null) => {
       const currentId = resolvedCharacterIdRef.current;
       if (!currentId) {
         return;
       }
-      updateLocalDiceColor(currentId, nextColor);
+      updateLocalDiceColor(currentId, nextColor, nextTheme);
     },
     [updateLocalDiceColor]
   );

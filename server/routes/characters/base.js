@@ -24,6 +24,17 @@ const {
   normalizeCampaignMapState,
 } = require('../../utils/campaignMaps');
 
+const SUPPORTED_DICE_THEMES = new Set([
+  'default',
+  'rust',
+  'diceOfRolling',
+  'gemstone',
+  'wooden',
+  'smooth',
+  'rock',
+  'blueGreenMetal',
+]);
+
 const countFeatProficiencies = (feat = []) => {
   const profs = new Set();
   if (Array.isArray(feat)) {
@@ -575,7 +586,22 @@ module.exports = (router) => {
 
   // This section will update dice color.
   characterRouter.route('/update-dice-color/:id').put(
-    [body('diceColor').isString().withMessage('diceColor must be a string').trim()],
+    [
+      body('diceColor').isString().withMessage('diceColor must be a string').trim(),
+      body('diceTheme')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('diceTheme must be a string')
+        .bail()
+        .trim()
+        .custom((value) => {
+          if (value === '') {
+            return true;
+          }
+          return SUPPORTED_DICE_THEMES.has(value);
+        })
+        .withMessage('diceTheme must be one of the supported dice themes'),
+    ],
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
@@ -583,13 +609,23 @@ module.exports = (router) => {
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
-      const { diceColor } = matchedData(req, { locations: ['body'] });
+      const { diceColor, diceTheme } = matchedData(req, { locations: ['body'] });
       try {
+        const updateOperation = {
+          $set: { diceColor },
+        };
+
+        if (typeof diceTheme === 'string') {
+          if (diceTheme === '') {
+            updateOperation.$unset = { diceTheme: '' };
+          } else {
+            updateOperation.$set.diceTheme = diceTheme;
+          }
+        }
+
         const updateResult = await db_connect.collection('Characters').findOneAndUpdate(
           id,
-          {
-            $set: { diceColor },
-          },
+          updateOperation,
           { returnDocument: 'after' }
         );
 
@@ -608,14 +644,24 @@ module.exports = (router) => {
         const characterId =
           updatedCharacter._id && typeof updatedCharacter._id.toString === 'function'
             ? updatedCharacter._id.toString()
-            : typeof updatedCharacter.characterId === 'string'
+          : typeof updatedCharacter.characterId === 'string'
               ? updatedCharacter.characterId
               : null;
+
+        const storedDiceColor =
+          typeof updatedCharacter.diceColor === 'string' && updatedCharacter.diceColor.trim() !== ''
+            ? updatedCharacter.diceColor.trim()
+            : diceColor;
+        const storedDiceTheme =
+          typeof updatedCharacter.diceTheme === 'string' && updatedCharacter.diceTheme.trim() !== ''
+            ? updatedCharacter.diceTheme.trim()
+            : null;
 
         const payload = {
           campaignId,
           characterId,
-          diceColor,
+          diceColor: storedDiceColor,
+          diceTheme: storedDiceTheme,
         };
 
         if (campaignId && characterId) {
