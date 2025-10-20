@@ -129,6 +129,51 @@ const groupDiceRollsByType = (diceRolls, normalizer) => {
   return results;
 };
 
+const normalizeDamageTypeForClass = (type) => {
+  const trimmed = (type || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const tokens = trimmed
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .map((token) => token.trim())
+    .filter((token) => !DAMAGE_TYPE_CLASS_TOKEN_IGNORE.has(token));
+
+  if (tokens.length === 0) {
+    return '';
+  }
+
+  return tokens.join('-');
+};
+
+const classifyDamageTypeColor = (typeValue) => {
+  const normalizedType = normalizeDamageTypeForClass(typeValue || '');
+  if (!normalizedType) {
+    return { normalizedType: '', color: null, isColorless: true, isMixed: false };
+  }
+
+  const tokens = normalizedType.split('-').filter(Boolean);
+  const isMixed = tokens.length > 1;
+  if (isMixed) {
+    return {
+      normalizedType,
+      color: null,
+      isColorless: true,
+      isMixed: true,
+    };
+  }
+
+  const color = resolveDamageTypeColor(normalizedType) || null;
+  return {
+    normalizedType,
+    color,
+    isColorless: !color,
+    isMixed: false,
+  };
+};
+
 const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
 const HAND_SELECTIONS = {
   ONE_HANDED: 'one-handed',
@@ -892,25 +937,6 @@ const manualCriticalRef = useRef(false);
     abilityForWeapon(weapon, slot) +
     Number(weapon?.attackBonus ?? weapon?.bonus ?? 0);
     
-  const normalizeDamageTypeForClass = (type) => {
-    const trimmed = (type || '').trim();
-    if (!trimmed) {
-      return '';
-    }
-
-    const tokens = trimmed
-      .toLowerCase()
-      .split(/[^a-z]+/)
-      .map((token) => token.trim())
-      .filter((token) => !DAMAGE_TYPE_CLASS_TOKEN_IGNORE.has(token));
-
-    if (tokens.length === 0) {
-      return '';
-    }
-
-    return tokens.join('-');
-  };
-
   const formatDamageSegments = (damage, ability) =>
     damage
       .split(/\s+\+\s+/)
@@ -1006,31 +1032,7 @@ const manualCriticalRef = useRef(false);
         ? validation.diceRolls
         : [];
 
-      const classifyTypeColor = (typeValue) => {
-        const normalizedType = normalizeDamageTypeForClass(typeValue || '');
-        if (!normalizedType) {
-          return { normalizedType: '', color: null, isColorless: true, isMixed: false };
-        }
-
-        const tokens = normalizedType.split('-').filter(Boolean);
-        const isMixed = tokens.length > 1;
-        if (isMixed) {
-          return {
-            normalizedType,
-            color: null,
-            isColorless: true,
-            isMixed: true,
-          };
-        }
-
-        const color = resolveDamageTypeColor(normalizedType) || null;
-        return {
-          normalizedType,
-          color,
-          isColorless: !color,
-          isMixed: false,
-        };
-      };
+      const classifyTypeColor = classifyDamageTypeColor;
 
       const requestDetails = (() => {
         if (!Array.isArray(requests) || requests.length === 0) {
@@ -1593,12 +1595,11 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
 const preparedDice = useMemo(
   () =>
     activeDice.map((die) => {
-      const normalizedType = normalizeDamageTypeForClass(die.type);
-      const typeColor = resolveDamageTypeColor(normalizedType);
+      const { normalizedType, color } = classifyDamageTypeColor(die.type);
       return {
         ...die,
         typeClass: normalizedType ? `damage-${normalizedType}` : '',
-        typeColor,
+        typeColor: color,
       };
     }),
   [activeDice],
@@ -1610,15 +1611,22 @@ const showOverlayDice = useMemo(() => {
   }
 
   const uniqueColors = new Set();
+  let hasColorless = false;
 
   preparedDice.forEach((die) => {
     const normalizedColor = normalizeDiceColor(die?.typeColor);
     if (normalizedColor) {
       uniqueColors.add(normalizedColor);
+    } else {
+      hasColorless = true;
     }
   });
 
-  return uniqueColors.size > 1;
+  if (uniqueColors.size > 1) {
+    return true;
+  }
+
+  return uniqueColors.size === 1 && hasColorless;
 }, [preparedDice]);
 
 const updateDamageValueWithAnimation = (
