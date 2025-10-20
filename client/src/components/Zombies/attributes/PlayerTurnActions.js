@@ -1034,6 +1034,34 @@ const manualCriticalRef = useRef(false);
 
       const classifyTypeColor = classifyDamageTypeColor;
 
+      const dicePaletteAnalysis = (() => {
+        if (!Array.isArray(diceRolls) || diceRolls.length === 0) {
+          return {
+            colors: new Set(),
+            hasColorless: false,
+            useDefaultForColorless: false,
+          };
+        }
+
+        const colors = new Set();
+        let hasColorless = false;
+
+        diceRolls.forEach((die) => {
+          const classification = classifyTypeColor(die?.type);
+          if (classification.color && !classification.isMixed) {
+            colors.add(classification.color);
+          } else {
+            hasColorless = true;
+          }
+        });
+
+        return {
+          colors,
+          hasColorless,
+          useDefaultForColorless: colors.size > 0 && hasColorless,
+        };
+      })();
+
       const requestDetails = (() => {
         if (!Array.isArray(requests) || requests.length === 0) {
           return [];
@@ -1069,8 +1097,17 @@ const manualCriticalRef = useRef(false);
           );
 
           const uniqueColors = Array.from(analysis.colors);
-          const color =
-            uniqueColors.length === 1 && !analysis.hasColorless ? uniqueColors[0] : null;
+          const color = (() => {
+            if (uniqueColors.length === 1 && !analysis.hasColorless) {
+              return uniqueColors[0];
+            }
+
+            if (dicePaletteAnalysis.useDefaultForColorless && analysis.hasColorless) {
+              return DEFAULT_DICE_COLOR;
+            }
+
+            return null;
+          })();
 
           return { count, sides, color };
         });
@@ -1082,20 +1119,12 @@ const manualCriticalRef = useRef(false);
             return null;
           }
 
-          const uniqueColors = new Set();
-          let hasColorless = false;
+          if (dicePaletteAnalysis.colors.size === 1 && !dicePaletteAnalysis.hasColorless) {
+            return Array.from(dicePaletteAnalysis.colors)[0];
+          }
 
-          diceRolls.forEach((die) => {
-            const classification = classifyTypeColor(die?.type);
-            if (classification.color && !classification.isMixed) {
-              uniqueColors.add(classification.color);
-            } else {
-              hasColorless = true;
-            }
-          });
-
-          if (uniqueColors.size === 1 && !hasColorless) {
-            return Array.from(uniqueColors)[0];
+          if (dicePaletteAnalysis.useDefaultForColorless) {
+            return DEFAULT_DICE_COLOR;
           }
 
           return null;
@@ -1106,7 +1135,9 @@ const manualCriticalRef = useRef(false);
         }
 
         if (!Array.isArray(requestDetails) || requestDetails.length === 0) {
-          return diceFaceColor;
+          return dicePaletteAnalysis.useDefaultForColorless
+            ? DEFAULT_DICE_COLOR
+            : diceFaceColor;
         }
 
         const uniqueColors = new Set();
@@ -1125,7 +1156,9 @@ const manualCriticalRef = useRef(false);
           return Array.from(uniqueColors)[0];
         }
 
-        return diceFaceColor;
+        return dicePaletteAnalysis.useDefaultForColorless
+          ? DEFAULT_DICE_COLOR
+          : diceFaceColor;
       };
 
       const rollThemeColor = resolveRollThemeColor();
@@ -1564,70 +1597,86 @@ const sortedSpells = useMemo(() => {
     );
 }, [form.spells]);
 
-// -----------------------------------------Dice roller for damage-------------------------------------------------------------------
-const [damageValue, setDamageValue] = useState(0);
+  // -----------------------------------------Dice roller for damage--------------------------------------------------------------
+  const [damageValue, setDamageValue] = useState(0);
   const [damageLog, setDamageLog] = useState([]);
   const [showLog, setShowLog] = useState(false);
   const [activeDice, setActiveDice] = useState([]);
+  const [overlayColorlessColor, setOverlayColorlessColor] = useState(null);
+  const [hasMixedDamageColors, setHasMixedDamageColors] = useState(false);
   const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 
-const triggerDiceAnimation = useCallback((diceDetails = []) => {
-  if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
-    setActiveDice([]);
-    return;
-  }
-
-  const timestamp = Date.now();
-  const nextDice = diceDetails.map((detail, index) => ({
-    id: `${timestamp}-${index}`,
-    value:
-      typeof detail?.value === 'number'
-        ? detail.value
-        : Number(detail?.value) || 0,
-    sides: Number.isFinite(detail?.sides) ? Math.max(2, Math.round(detail.sides)) : 20,
-    type: detail?.type || '',
-    category: detail?.category || 'base',
-  }));
-
-  setActiveDice(nextDice);
-}, []);
-
-const preparedDice = useMemo(
-  () =>
-    activeDice.map((die) => {
-      const { normalizedType, color } = classifyDamageTypeColor(die.type);
-      return {
-        ...die,
-        typeClass: normalizedType ? `damage-${normalizedType}` : '',
-        typeColor: color,
-      };
-    }),
-  [activeDice],
-);
-
-const showOverlayDice = useMemo(() => {
-  if (!Array.isArray(preparedDice) || preparedDice.length === 0) {
-    return false;
-  }
-
-  const uniqueColors = new Set();
-  let hasColorless = false;
-
-  preparedDice.forEach((die) => {
-    const normalizedColor = normalizeDiceColor(die?.typeColor);
-    if (normalizedColor) {
-      uniqueColors.add(normalizedColor);
-    } else {
-      hasColorless = true;
+  const triggerDiceAnimation = useCallback((diceDetails = []) => {
+    if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
+      setActiveDice([]);
+      setHasMixedDamageColors(false);
+      setOverlayColorlessColor(null);
+      return;
     }
-  });
 
-  if (uniqueColors.size > 1) {
-    return true;
-  }
+    const classifications = diceDetails.map((detail) =>
+      classifyDamageTypeColor(detail?.type),
+    );
+    const hasColoredDice = classifications.some(
+      (classification) => classification?.color && !classification.isMixed,
+    );
+    const hasColorlessDice = classifications.some(
+      (classification) => !classification?.color || classification.isMixed,
+    );
+    const useDefaultForColorless = hasColoredDice && hasColorlessDice;
 
-  return uniqueColors.size === 1 && hasColorless;
-}, [preparedDice]);
+    setHasMixedDamageColors(useDefaultForColorless);
+    setOverlayColorlessColor(useDefaultForColorless ? DEFAULT_DICE_COLOR : null);
+
+    const timestamp = Date.now();
+    const nextDice = diceDetails.map((detail, index) => ({
+      id: `${timestamp}-${index}`,
+      value:
+        typeof detail?.value === 'number'
+          ? detail.value
+          : Number(detail?.value) || 0,
+      sides: Number.isFinite(detail?.sides) ? Math.max(2, Math.round(detail.sides)) : 20,
+      type: detail?.type || '',
+      category: detail?.category || 'base',
+    }));
+
+    setActiveDice(nextDice);
+  }, []);
+
+  const preparedDice = useMemo(
+    () =>
+      activeDice.map((die) => {
+        const { normalizedType, color } = classifyDamageTypeColor(die.type);
+        const resolvedColor = color || overlayColorlessColor || null;
+        return {
+          ...die,
+          typeClass: normalizedType ? `damage-${normalizedType}` : '',
+          typeColor: resolvedColor,
+        };
+      }),
+    [activeDice, overlayColorlessColor],
+  );
+
+  const showOverlayDice = useMemo(() => {
+    if (hasMixedDamageColors) {
+      return false;
+    }
+
+    if (!Array.isArray(preparedDice) || preparedDice.length === 0) {
+      return false;
+    }
+
+    const uniqueColors = new Set();
+
+    preparedDice.forEach((die) => {
+      const normalizedColor = normalizeDiceColor(die?.typeColor);
+      if (normalizedColor) {
+        uniqueColors.add(normalizedColor);
+      }
+    });
+
+    return uniqueColors.size > 1;
+  }, [preparedDice, hasMixedDamageColors]);
 
 const updateDamageValueWithAnimation = (
   newValue,
