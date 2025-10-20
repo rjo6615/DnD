@@ -7,6 +7,8 @@ const BASE_CONFIG = Object.freeze({
   theme: 'default',
   scale: 6,
   offscreen: false,
+  spinForce: 24,
+  throwForce: 10,
 });
 
 let modulePromise = null;
