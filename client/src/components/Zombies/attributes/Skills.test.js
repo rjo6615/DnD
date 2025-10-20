@@ -26,10 +26,13 @@ jest.mock('../../../utils/diceBoxManager', () => ({
   setDiceBoxThemeColor: jest.fn(),
 }));
 
-const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
+const { rollDiceWithBox, setDiceBoxThemeColor } = require(
+  '../../../utils/diceBoxManager'
+);
 
 const createProps = (overrides = {}) => ({
   form: {
+    diceColor: '#123456',
     skills: {},
     race: {},
     background: {},
@@ -59,6 +62,7 @@ describe('Skills modal docking props', () => {
   beforeEach(() => {
     capturedModalProps = null;
     rollDiceWithBox.mockClear();
+    setDiceBoxThemeColor.mockClear();
   });
 
   it('applies docked layout when docked', () => {
@@ -86,6 +90,7 @@ describe('Skills modal docking props', () => {
 describe('skill rolling behavior', () => {
   beforeEach(() => {
     rollDiceWithBox.mockClear();
+    setDiceBoxThemeColor.mockClear();
   });
 
   it('closes the modal after rolling when undocked', async () => {
@@ -138,5 +143,17 @@ describe('skill rolling behavior', () => {
     } finally {
       dispatchSpy.mockRestore();
     }
+  });
+  it('applies the player dice color before rolling', async () => {
+    rollDiceWithBox.mockResolvedValueOnce({ rolls: [[8]] });
+
+    render(<Skills {...createProps()} />);
+
+    const rollButton = await screen.findByRole('button', { name: /roll acrobatics/i });
+    await userEvent.click(rollButton);
+
+    await waitFor(() => {
+      expect(setDiceBoxThemeColor).toHaveBeenCalledWith('#123456');
+    });
   });
 });

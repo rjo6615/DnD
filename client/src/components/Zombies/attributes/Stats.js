@@ -5,6 +5,10 @@ import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { rollSkillWithDiceBox } from './Skills';
+import {
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+} from '../../../utils/diceColors';
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
@@ -40,6 +44,11 @@ export default function Stats({
     wis: form.wis || 0,
     cha: form.cha || 0,
   });
+
+  const diceFaceColor = useMemo(
+    () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
+    [form?.diceColor],
+  );
 
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedStat, setSelectedStat] = useState(null);
@@ -153,7 +162,9 @@ export default function Stats({
         handleCloseStats?.();
       }
 
-      const { result, d20 } = await rollSkillWithDiceBox(statMod);
+      const { result, d20 } = await rollSkillWithDiceBox(statMod, {
+        diceColor: diceFaceColor,
+      });
       const breakdownParts = [`${d20} (d20)`];
       const modifierSegment = formatAdjustmentSegment(
         statMod,
@@ -186,7 +197,7 @@ export default function Stats({
       );
 
     },
-    [handleCloseStats, isDocked, statMods]
+    [diceFaceColor, handleCloseStats, isDocked, statMods]
   );
 
   const dialogClassName = useMemo(() => {

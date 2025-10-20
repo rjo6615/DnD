@@ -1,7 +1,22 @@
 import React from 'react';
 import { render, screen, within, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+jest.mock('../../../utils/diceBoxManager', () => ({
+  rollDiceWithBox: jest.fn(() => Promise.resolve({ rolls: [[16]] })),
+  setDiceBoxThemeColor: jest.fn(),
+}));
+
 import Stats from './Stats';
+
+const { rollDiceWithBox, setDiceBoxThemeColor } = require(
+  '../../../utils/diceBoxManager'
+);
+
+beforeEach(() => {
+  rollDiceWithBox.mockReset();
+  rollDiceWithBox.mockImplementation(() => Promise.resolve({ rolls: [[16]] }));
+  setDiceBoxThemeColor.mockReset();
+});
 
 test('clicking view shows description and breakdown', async () => {
   const form = {
@@ -172,6 +187,10 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
       await userEvent.click(
         within(strengthCard).getByRole('button', { name: /Roll Strength check/i })
       );
+    });
+
+    await waitFor(() => {
+      expect(rollDiceWithBox).toHaveBeenCalled();
     });
 
     await waitFor(() => {

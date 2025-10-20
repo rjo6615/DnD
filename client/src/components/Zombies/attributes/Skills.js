@@ -8,7 +8,15 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import DockControls from '../components/DockControls';
-import { rollDiceWithBox } from '../../../utils/diceBoxManager';
+import {
+  rollDiceWithBox,
+  setDiceBoxThemeColor,
+} from '../../../utils/diceBoxManager';
+import {
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+  applyDiceFaceColor,
+} from '../../../utils/diceColors';
 
 const EMPTY_OBJECT = Object.freeze({});
 
@@ -36,6 +44,19 @@ const normalizeD20Value = (value) => {
   return rounded;
 };
 
+const waitForNextAnimationFrame = () =>
+  new Promise((resolve) => {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.requestAnimationFrame !== 'function'
+    ) {
+      resolve();
+      return;
+    }
+
+    window.requestAnimationFrame(() => resolve());
+  });
+
 export function rollSkill(bonus = 0, d20Override = null) {
   const normalizedOverride = normalizeD20Value(d20Override);
   const d20 =
@@ -51,7 +72,14 @@ export function rollSkill(bonus = 0, d20Override = null) {
   return { result, d20 };
 }
 
-export async function rollSkillWithDiceBox(bonus = 0) {
+export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
+  const { diceColor = null } = options || {};
+  const normalizedColor = normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR;
+
+  applyDiceFaceColor(normalizedColor);
+  setDiceBoxThemeColor(normalizedColor);
+  await waitForNextAnimationFrame();
+
   try {
     const { rolls } = await rollDiceWithBox([{ count: 1, sides: 20 }]);
     const firstGroup = Array.isArray(rolls) ? rolls[0] : undefined;
@@ -88,6 +116,10 @@ export default function Skills({
 }) {
   const params = useParams();
   const safeForm = form ?? {};
+  const diceFaceColor = useMemo(
+    () => normalizeDiceColor(safeForm?.diceColor) || DEFAULT_DICE_COLOR,
+    [safeForm?.diceColor],
+  );
   const formSkills = safeForm.skills ?? EMPTY_OBJECT;
   const formProficiencyPoints = safeForm.proficiencyPoints || 0;
   const formExpertisePoints = safeForm.expertisePoints || 0;
@@ -357,7 +389,9 @@ export default function Skills({
       handleCloseSkill?.();
     }
 
-    const { result, d20 } = await rollSkillWithDiceBox(bonus);
+    const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+      diceColor: diceFaceColor,
+    });
     const breakdownParts = [`${d20} (d20)`];
 
     const segments = [

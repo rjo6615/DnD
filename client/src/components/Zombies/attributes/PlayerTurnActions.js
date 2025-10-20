@@ -1410,7 +1410,9 @@ const manualCriticalRef = useRef(false);
   const handleWeaponAttackRoll = async (slot, weapon) => {
     const rawBonus = Number(getAttackBonus(slot, weapon));
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
-    const { result, d20 } = await rollSkillWithDiceBox(bonus);
+    const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+      diceColor: diceFaceColor,
+    });
     const weaponLabel = getWeaponDisplayName(slot, weapon);
     const segments = [`${d20} (d20)`];
     if (bonus) {
