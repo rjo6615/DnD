@@ -696,9 +696,9 @@
       "url": "/api/monsters/gladiator"
     },
     {
-      "index": "gnoll-warrior",
-      "name": "Gnoll Warrior",
-      "url": "/api/monsters/gnoll-warrior"
+      "index": "gnoll",
+      "name": "Gnoll",
+      "url": "/api/monsters/gnoll"
     },
     {
       "index": "goat",
@@ -9824,9 +9824,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "gnoll-warrior": {
-      "index": "gnoll-warrior",
-      "name": "Gnoll Warrior",
+    "gnoll": {
+      "index": "gnoll",
+      "name": "Gnoll",
       "size": "Medium",
       "type": "fiend",
       "alignment": "Chaotic Evil",
