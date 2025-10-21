@@ -1291,6 +1291,132 @@ body.docked-modal--resizing {
   line-height: 1.2;
 }
 
+.enemy-card__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.enemy-card__summary-line,
+.enemy-card__detail-line {
+  display: flex;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.enemy-card__summary-line span:last-child,
+.enemy-card__detail-line span:last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.enemy-card__summary-label {
+  color: rgba(33, 37, 41, 0.6);
+  letter-spacing: 0.04em;
+}
+
+.enemy-card__health {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.enemy-card__health-bar {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+  background-color: rgba(108, 117, 125, 0.2);
+  overflow: hidden;
+}
+
+.enemy-card__health-bar-fill {
+  height: 100%;
+  background: var(--bs-success);
+  transition: width 0.2s ease-in-out;
+}
+
+.enemy-card__health-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: right;
+  color: var(--bs-body-color);
+}
+
+.enemy-card__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.enemy-card__section {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.enemy-card__section-title,
+.enemy-card__section-subtitle {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: rgba(33, 37, 41, 0.6);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.enemy-card__section-subtitle {
+  margin-top: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.enemy-card__detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.enemy-card__detail-line--wrap {
+  flex-wrap: wrap;
+}
+
+.enemy-card__attack {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background-color: rgba(108, 117, 125, 0.1);
+}
+
+.enemy-card__attack-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.enemy-card__attack-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 576px) {
+  .enemy-card__attack {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .enemy-card__attack-header {
+    flex: 1 1 auto;
+  }
+
+  .enemy-card__attack-actions {
+    margin-top: 0;
+    justify-content: flex-end;
+  }
+}
+
 @media (max-width: 576px) {
   .weapon-card,
   .armor-card,
