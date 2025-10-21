@@ -11,11 +11,6 @@ const ACTION_TYPE_TO_CASTING_TIME = {
   reaction: '1 reaction',
 };
 
-const DAMAGE_OVERRIDES = new Map([
-  ['healing word', '1d4'],
-  ['cure wounds', '1d8'],
-]);
-
 function toTitleCase(value = '') {
   if (typeof value !== 'string') return value;
   return value
@@ -64,11 +59,6 @@ function normalizeSpell(spell) {
 
   delete normalized.actionType;
   delete normalized.higherLevelSlot;
-
-  const overrideDamage = DAMAGE_OVERRIDES.get(lookupName);
-  if (overrideDamage) {
-    normalized.damage = overrideDamage;
-  }
 
   return normalized;
 }
