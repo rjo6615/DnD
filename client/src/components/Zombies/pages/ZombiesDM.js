@@ -238,6 +238,46 @@ function EnemyCard({
           </div>
           <div className="enemy-card__health-text">{healthText}</div>
         </div>
+        <div className="enemy-card__health-controls" role="group" aria-label="Enemy health controls">
+          <Button
+            variant="outline-danger"
+            size="sm"
+            className="enemy-card__health-button"
+            onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
+            disabled={isSavingHealth}
+          >
+            Damage
+          </Button>
+          <Form.Control
+            value={adjustmentValue}
+            onChange={(e) => onEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)}
+            placeholder="Amount"
+            type="number"
+            min="0"
+            aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
+            disabled={isSavingHealth}
+            size="sm"
+            className="enemy-card__health-input"
+          />
+          <Button
+            variant="outline-success"
+            size="sm"
+            className="enemy-card__health-button"
+            onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
+            disabled={isSavingHealth}
+          >
+            Heal
+          </Button>
+          <Button
+            variant="outline-light"
+            size="sm"
+            className="enemy-card__health-button enemy-card__health-button--reset"
+            onClick={() => onResetEnemyHealth(enemy.enemyId)}
+            disabled={isSavingHealth || maxHpValue === null}
+          >
+            Reset
+          </Button>
+        </div>
         <div className="enemy-card__controls">
           {hasActions && (
             <Button
@@ -312,54 +352,6 @@ function EnemyCard({
               <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Languages:</span>
                 <span aria-hidden="true">{languagesDisplay}</span>
-              </div>
-            </div>
-            <div className="enemy-card__section-subtitle">Health</div>
-            <div className="d-flex flex-column gap-2">
-              <div className="d-flex justify-content-between small text-body fw-semibold">
-                <span>Current:</span>
-                <span>{healthSummary}</span>
-              </div>
-              <div className="health-adjustment-group d-flex flex-column flex-sm-row gap-2 gap-sm-0 w-100">
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  className="health-adjustment-button"
-                  onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
-                  disabled={isSavingHealth}
-                >
-                  Damage
-                </Button>
-                <Form.Control
-                  value={adjustmentValue}
-                  onChange={(e) => onEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)}
-                  placeholder="Amount"
-                  type="number"
-                  min="0"
-                  aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
-                  disabled={isSavingHealth}
-                  size="sm"
-                  className="health-adjustment-input flex-sm-grow-1"
-                />
-                <Button
-                  variant="outline-success"
-                  size="sm"
-                  className="health-adjustment-button"
-                  onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
-                  disabled={isSavingHealth}
-                >
-                  Heal
-                </Button>
-              </div>
-              <div className="d-flex justify-content-end">
-                <Button
-                  variant="outline-light"
-                  size="sm"
-                  onClick={() => onResetEnemyHealth(enemy.enemyId)}
-                  disabled={isSavingHealth || maxHpValue === null}
-                >
-                  Reset to Max
-                </Button>
               </div>
             </div>
             <div className="enemy-card__section-subtitle">Abilities</div>
