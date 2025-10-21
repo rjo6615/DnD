@@ -1245,6 +1245,11 @@
       "name": "Seahorse",
       "url": "/api/monsters/seahorse"
     },
+        {
+      "index": "sea-serpent",
+      "name": "Sea Serpent",
+      "url": "/api/monsters/sea-serpent"
+    },
     {
       "index": "shadow",
       "name": "Shadow",
@@ -29088,6 +29093,85 @@
         {
           "name": "Bubble Dash",
           "desc": "While underwater, the seahorse moves up to its Swim Speed without provoking Opportunity Attacks."
+        }
+      ],
+      "bonus_actions": null,
+      "reactions": null,
+      "legendary_actions": null,
+      "lair_actions": null,
+      "regional_effects": null
+    },
+        "sea-serpent": {
+      "index": "sea-serpent",
+      "name": "Sea Serpent",
+      "size": "Gargantuan",
+      "type": "monstrosity",
+      "alignment": "Neutral",
+      "armor_class": 17,
+      "hit_points": 313,
+      "hit_dice": "9d20 + 114",
+      "speed": {
+        "walk": "30 ft.",
+        "swim": "80 ft."
+      },
+      "strength": 26,
+      "dexterity": 13,
+      "constitution": 22,
+      "intelligence": 10,
+      "wisdom": 14,
+      "charisma": 10,
+      "saving_throws": [
+              {
+          "name": "STR",
+          "value": 14
+        },
+        {
+          "name": "CON",
+          "value": 12
+        }
+      ],
+      "skills": {
+        "perception": 8
+      },
+      "senses": {
+        "passive_perception": 18,
+        "darkvision": "60 ft.",
+        "blindsight": "30 ft."
+      },
+      "languages": "Understand Aquan but can't speak it",
+      "challenge_rating": 18,
+      "xp": 20000,
+      "proficiency_bonus": 6,
+      "damage_vulnerabilities": null,
+      "damage_resistances": null,
+      "damage_immunities": null,
+      "condition_immunities": null,
+      "special_abilities": [
+        {
+          "name": "Hold Breath",
+          "desc": "The serpent can hold its beath for 1 hour"
+        },
+          {
+          "name": "Siege Monster",
+          "desc": "The serpent deals double damage to objects and structures"
+        }
+      ],
+      "actions": [
+        {
+          "name": "Multiattack",
+          "desc": "The serpent makes two attacks: one with its bite and one with its Constrict. It can't make both attacks against the same target. Instead of making a bite attack, it can use its  Swallow."
+        },
+          {
+          "name": "Bite",
+          "desc": "Melee Weapon Attack: +14 to hit, reach 15 ft., one target. Hit: 34 (4d12 + 8) piercing damage."
+        },
+          {
+          "name": "Constrict",
+          "desc": "Melee Weapon Attack: +14 to hit, reach 10 ft., one target. Hit: 26 (4d8 + 8) bludgeoning damage, and the target is grappled (escape DC 16). Until this grapple ends, the creature is restrained, and the serpent can’t constrict another target."
+        },
+          {
+          "name": "Swallow",
+          "desc": "The serpent makes one bite attack against a Large or smaller creature it is grappling. If the attack hits, that creature takes the bite’s damage and is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, it has total cover against attacks and other effects outside the serpent, and it takes 21 (6d6) acid damage at the start of each of the serpent’s turns. If the serpent takes 30 damage or more on a single turn from a creature inside it, the serpent must succeed on a DC 21 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the serpent. If the serpent dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 20 feet of movement, exiting prone."
         }
       ],
       "bonus_actions": null,
