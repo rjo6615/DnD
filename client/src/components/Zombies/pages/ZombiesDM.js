@@ -153,6 +153,262 @@ const sanitizeTestIdValue = (value, fallback = 'item') => {
   return trimmed.replace(/[^0-9A-Za-z_-]/g, '-').toLowerCase();
 };
 
+function EnemyCard({
+  enemy,
+  inCombat,
+  challengeText,
+  sizeDisplay,
+  armorClassDisplay,
+  maxHpValue,
+  resolvedCurrentHp,
+  healthSummary,
+  languagesDisplay,
+  alignmentDisplay,
+  speedDisplay,
+  abilityScoreBadges,
+  damagingActions,
+  latestEnemyRoll,
+  onEnemyDamageRoll,
+  onEnemyAdjustmentInputChange,
+  onApplyEnemyHealthAdjustment,
+  onResetEnemyHealth,
+  enemyHealthAdjustments,
+  enemyHealthSaving,
+  onToggleParticipant,
+  onOpenMapPlacement,
+  onRemoveEnemy,
+  removingEnemyId,
+  formatAttackBonus,
+  getEnemyActionDamageString,
+}) {
+  const [showAttacks, setShowAttacks] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  if (!enemy) {
+    return null;
+  }
+
+  const adjustmentValue = enemy.enemyId ? enemyHealthAdjustments[enemy.enemyId] ?? '' : '';
+  const isSavingHealth = enemy.enemyId ? Boolean(enemyHealthSaving[enemy.enemyId]) : false;
+  const hasActions = Array.isArray(damagingActions) && damagingActions.length > 0;
+
+  let healthPercent = null;
+  if (
+    maxHpValue !== null &&
+    maxHpValue > 0 &&
+    resolvedCurrentHp !== null &&
+    Number.isFinite(resolvedCurrentHp)
+  ) {
+    healthPercent = Math.max(0, Math.min(100, Math.round((resolvedCurrentHp / maxHpValue) * 100)));
+  }
+
+  const healthText = healthSummary;
+
+  return (
+    <Card className="resource-card h-100 w-100 text-start enemy-card d-flex flex-column">
+      <Card.Body className="d-flex flex-column gap-2">
+        <div>
+          <Card.Title className="mb-1">{enemy.name || 'Unnamed Enemy'}</Card.Title>
+          <Card.Subtitle className="text-muted small mb-2">
+            {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
+          </Card.Subtitle>
+          <div className="enemy-card__summary">
+            <div className="enemy-card__summary-line">
+              <span className="enemy-card__summary-label">SIZE:</span>
+              <span aria-hidden="true">{sizeDisplay}</span>
+            </div>
+            <div className="enemy-card__summary-line">
+              <span className="enemy-card__summary-label">AC:</span>
+              <span aria-hidden="true">{armorClassDisplay}</span>
+            </div>
+          </div>
+        </div>
+        <div className="enemy-card__health">
+          <div
+            className="enemy-card__health-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={maxHpValue ?? undefined}
+            aria-valuenow={resolvedCurrentHp ?? undefined}
+          >
+            <div
+              className="enemy-card__health-bar-fill"
+              style={{ width: `${healthPercent !== null ? healthPercent : resolvedCurrentHp !== null ? 100 : 0}%` }}
+            />
+          </div>
+          <div className="enemy-card__health-text">{healthText}</div>
+        </div>
+        <div className="enemy-card__health-controls" role="group" aria-label="Enemy health controls">
+          <Button
+            variant="outline-danger"
+            size="sm"
+            className="enemy-card__health-button"
+            onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
+            disabled={isSavingHealth}
+          >
+            Damage
+          </Button>
+          <Form.Control
+            value={adjustmentValue}
+            onChange={(e) => onEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)}
+            placeholder="Amount"
+            type="number"
+            min="0"
+            aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
+            disabled={isSavingHealth}
+            size="sm"
+            className="enemy-card__health-input"
+          />
+          <Button
+            variant="outline-success"
+            size="sm"
+            className="enemy-card__health-button"
+            onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
+            disabled={isSavingHealth}
+          >
+            Heal
+          </Button>
+          <Button
+            variant="outline-light"
+            size="sm"
+            className="enemy-card__health-button enemy-card__health-button--reset"
+            onClick={() => onResetEnemyHealth(enemy.enemyId)}
+            disabled={isSavingHealth || maxHpValue === null}
+          >
+            Reset
+          </Button>
+        </div>
+        <div className="enemy-card__controls">
+          {hasActions && (
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={() => setShowAttacks((prev) => !prev)}
+            >
+              {showAttacks ? 'Hide Attacks' : 'Attacks'}
+            </Button>
+          )}
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={() => setShowDetails((prev) => !prev)}
+          >
+            {showDetails ? 'Hide Info' : 'More Info'}
+          </Button>
+        </div>
+        {hasActions && showAttacks && (
+          <div className="enemy-card__section">
+            <h6 className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
+              Attacks
+            </h6>
+            <div className="d-flex flex-column gap-2">
+              {damagingActions.map((action, actionIndex) => {
+                const actionLabel = action?.name || 'Action';
+                const attackBonusDisplay = formatAttackBonus(action?.attack_bonus);
+                const damageLine = getEnemyActionDamageString(action);
+                const actionKey = `${enemy.enemyId || 'enemy'}-${actionLabel}-${actionIndex}`;
+                const isLatestRoll =
+                  latestEnemyRoll?.enemyId === enemy.enemyId &&
+                  latestEnemyRoll?.actionName === actionLabel;
+
+                return (
+                  <div key={actionKey} className="enemy-card__attack">
+                    <div className="enemy-card__attack-header">
+                      <div className="fw-semibold small text-body">{actionLabel}</div>
+                      <div className="small text-muted">Attack Bonus: {attackBonusDisplay ?? '—'}</div>
+                      <div className="small text-muted">Damage: {damageLine || '—'}</div>
+                    </div>
+                    <div className="enemy-card__attack-actions">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={() => onEnemyDamageRoll(enemy, action)}
+                      >
+                        Roll
+                      </Button>
+                    </div>
+                    {isLatestRoll && latestEnemyRoll?.breakdown && (
+                      <div className="mt-2 small fw-semibold text-primary">
+                        {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {showDetails && (
+          <div className="enemy-card__section">
+            <div className="enemy-card__detail-grid">
+              <div className="enemy-card__detail-line">
+                <span className="enemy-card__summary-label">Speed:</span>
+                <span aria-hidden="true">{speedDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line">
+                <span className="enemy-card__summary-label">Alignment:</span>
+                <span aria-hidden="true">{alignmentDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Languages:</span>
+                <span aria-hidden="true">{languagesDisplay}</span>
+              </div>
+            </div>
+            <div className="enemy-card__section-subtitle">Abilities</div>
+            <div className="d-flex flex-wrap gap-2">
+              {abilityScoreBadges.map(({ key, value }) => (
+                <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
+                  {value}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card.Body>
+      <Card.Footer className="resource-card-footer-safe-area d-flex flex-wrap gap-2 justify-content-end mt-auto">
+        <Button
+          variant={inCombat ? 'success' : 'outline-primary'}
+          size="sm"
+          onClick={() => onToggleParticipant(enemy.enemyId)}
+        >
+          {inCombat ? 'Remove from Combat' : 'Add to Combat'}
+        </Button>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={() =>
+            onOpenMapPlacement(enemy.enemyId, enemy.name || enemy.displayType || enemy.enemyId)
+          }
+        >
+          Place on Map
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => onRemoveEnemy(enemy.enemyId)}
+          disabled={removingEnemyId === enemy.enemyId}
+        >
+          {removingEnemyId === enemy.enemyId ? (
+            <>
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+                className="me-2"
+              />
+              Removing…
+            </>
+          ) : (
+            'Remove'
+          )}
+        </Button>
+      </Card.Footer>
+    </Card>
+  );
+}
+
 const sortParticipantsDescending = (participantsWithMeta) =>
   participantsWithMeta
     .slice()
@@ -6393,216 +6649,46 @@ const resolveIcon = (category, iconMap, fallback) => {
                       : resolvedCurrentHp !== null
                         ? `${resolvedCurrentHp}`
                         : '—';
-                  const adjustmentValue = enemyHealthAdjustments[enemy.enemyId] ?? '';
-                  const isSavingHealth = Boolean(enemyHealthSaving[enemy.enemyId]);
                   const damagingActions = Array.isArray(enemy.actions)
                     ? enemy.actions.filter((action) => Boolean(getEnemyActionDamageString(action)))
                     : [];
+                  const armorClassDisplay = formatArmorClass(enemy.armorClass);
+                  const speedDisplay = formatSpeed(enemy.speed);
+                  const alignmentDisplay = enemy.alignment || '—';
+                  const abilityScoreBadges = STAT_KEYS_ORDER.map((key) => ({
+                    key,
+                    value: formatAbilityScore(key, enemy?.abilityScores?.[key]),
+                  }));
 
                   return (
-                    <Card className="resource-card h-100 w-100 text-start">
-                      <Card.Body className="d-flex flex-column">
-                        <Card.Title className="mb-1">{enemy.name || 'Unnamed Enemy'}</Card.Title>
-                        <Card.Subtitle className="text-muted small mb-2">
-                          {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
-                        </Card.Subtitle>
-                        <div className="d-grid gap-1">
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Size:
-                            </span>
-                            <span aria-hidden="true">{sizeDisplay}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              AC:
-                            </span>
-                            <span aria-hidden="true">{formatArmorClass(enemy.armorClass)}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Max HP:
-                            </span>
-                            <span aria-hidden="true">{maxHpValue !== null ? maxHpValue : '—'}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Current HP:
-                            </span>
-                            <span aria-hidden="true">{healthSummary}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Speed:
-                            </span>
-                            <span aria-hidden="true">{formatSpeed(enemy.speed)}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Alignment:
-                            </span>
-                            <span aria-hidden="true">{enemy.alignment || '—'}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Languages:
-                            </span>
-                            <span aria-hidden="true">{languagesDisplay}</span>
-                          </Card.Text>
-                        </div>
-                        {damagingActions.length > 0 && (
-                          <div className="mt-2">
-                            <h6 className="text-uppercase text-muted small fw-semibold mb-1">Actions</h6>
-                            <div className="d-flex flex-column gap-2">
-                              {damagingActions.map((action, actionIndex) => {
-                                const attackBonusDisplay = formatAttackBonus(action?.attack_bonus);
-                                const damageLine = getEnemyActionDamageString(action);
-                                const actionLabel = action?.name || 'Action';
-                                const actionKey = `${enemy.enemyId || 'enemy'}-${actionLabel}-${actionIndex}`;
-                                const isLatestRoll =
-                                  latestEnemyRoll?.enemyId === enemy.enemyId &&
-                                  latestEnemyRoll?.actionName === actionLabel;
-
-                                return (
-                                  <div
-                                    key={actionKey}
-                                    className="border rounded p-2 bg-dark bg-opacity-10 text-body"
-                                  >
-                                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
-                                      <div className="flex-grow-1">
-                                        <div className="fw-semibold small text-body">{actionLabel}</div>
-                                        <div className="small text-muted">
-                                          Attack Bonus: {attackBonusDisplay ?? '—'}
-                                        </div>
-                                        <div className="small text-muted">Damage: {damageLine || '—'}</div>
-                                      </div>
-                                      <div className="d-flex justify-content-start justify-content-sm-end">
-                                        <Button
-                                          variant="outline-primary"
-                                          size="sm"
-                                          onClick={() => handleEnemyDamageRoll(enemy, action)}
-                                        >
-                                          Roll
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    {isLatestRoll && latestEnemyRoll?.breakdown && (
-                                      <div className="mt-2 small fw-semibold text-primary">
-                                        {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        <div className="mt-2">
-                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Health</h6>
-                          <div className="d-flex flex-column gap-2">
-                            <div className="d-flex justify-content-between small text-body fw-semibold">
-                              <span>Current:</span>
-                              <span>{healthSummary}</span>
-                            </div>
-                            <div className="health-adjustment-group d-flex flex-column flex-sm-row gap-2 gap-sm-0 w-100">
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                className="health-adjustment-button"
-                                onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
-                                disabled={isSavingHealth}
-                              >
-                                Damage
-                              </Button>
-                              <Form.Control
-                                value={adjustmentValue}
-                                onChange={(e) =>
-                                  handleEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)
-                                }
-                                placeholder="Amount"
-                                type="number"
-                                min="0"
-                                aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
-                                disabled={isSavingHealth}
-                                size="sm"
-                                className="health-adjustment-input flex-sm-grow-1"
-                              />
-                              <Button
-                                variant="outline-success"
-                                size="sm"
-                                className="health-adjustment-button"
-                                onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
-                                disabled={isSavingHealth}
-                              >
-                                Heal
-                              </Button>
-                            </div>
-                            <div className="d-flex justify-content-end">
-                              <Button
-                                variant="outline-light"
-                                size="sm"
-                                onClick={() => handleResetEnemyHealth(enemy.enemyId)}
-                                disabled={isSavingHealth || maxHpValue === null}
-                              >
-                                Reset to Max
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-2">
-                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Abilities</h6>
-                          <div className="d-flex flex-wrap gap-2">
-                            {STAT_KEYS_ORDER.map((key) => (
-                              <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
-                                {formatAbilityScore(key, enemy?.abilityScores?.[key])}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </Card.Body>
-                      <Card.Footer className="resource-card-footer-safe-area d-flex flex-wrap gap-2 justify-content-end">
-                        <Button
-                          variant={inCombat ? 'success' : 'outline-primary'}
-                          size="sm"
-                          onClick={() => handleToggleParticipant(enemy.enemyId)}
-                        >
-                          {inCombat ? 'Remove from Combat' : 'Add to Combat'}
-                        </Button>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() =>
-                            handleOpenMapPlacement(
-                              enemy.enemyId,
-                              enemy.name || enemy.displayType || enemy.enemyId
-                            )
-                          }
-                        >
-                          Place on Map
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleRemoveEnemy(enemy.enemyId)}
-                          disabled={removingEnemyId === enemy.enemyId}
-                        >
-                          {removingEnemyId === enemy.enemyId ? (
-                            <>
-                              <Spinner
-                                animation="border"
-                                size="sm"
-                                role="status"
-                                aria-hidden="true"
-                                className="me-2"
-                              />
-                              Removing
-                            </>
-                          ) : (
-                            'Remove'
-                          )}
-                        </Button>
-                      </Card.Footer>
-                    </Card>
+                    <EnemyCard
+                      enemy={enemy}
+                      inCombat={inCombat}
+                      challengeText={challengeText}
+                      sizeDisplay={sizeDisplay}
+                      armorClassDisplay={armorClassDisplay}
+                      maxHpValue={maxHpValue}
+                      resolvedCurrentHp={resolvedCurrentHp}
+                      healthSummary={healthSummary}
+                      languagesDisplay={languagesDisplay}
+                      alignmentDisplay={alignmentDisplay}
+                      speedDisplay={speedDisplay}
+                      abilityScoreBadges={abilityScoreBadges}
+                      damagingActions={damagingActions}
+                      latestEnemyRoll={latestEnemyRoll}
+                      onEnemyDamageRoll={handleEnemyDamageRoll}
+                      onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
+                      onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
+                      onResetEnemyHealth={handleResetEnemyHealth}
+                      enemyHealthAdjustments={enemyHealthAdjustments}
+                      enemyHealthSaving={enemyHealthSaving}
+                      onToggleParticipant={handleToggleParticipant}
+                      onOpenMapPlacement={handleOpenMapPlacement}
+                      onRemoveEnemy={handleRemoveEnemy}
+                      removingEnemyId={removingEnemyId}
+                      formatAttackBonus={formatAttackBonus}
+                      getEnemyActionDamageString={getEnemyActionDamageString}
+                    />
                   );
                 }}
               />
