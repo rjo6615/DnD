@@ -4,15 +4,6 @@ const localMonsterData = require('../data/monsters.json');
 
 const API_BASE = 'https://www.dnd5eapi.co';
 
-const localMonsterList =
-  localMonsterData && Array.isArray(localMonsterData.results)
-    ? localMonsterData.results.map((monster) => ({
-        index: monster.index,
-        name: monster.name,
-        url: monster.url,
-      }))
-    : [];
-
 const localMonsterMap = new Map();
 if (localMonsterData && localMonsterData.monsters && typeof localMonsterData.monsters === 'object') {
   Object.entries(localMonsterData.monsters).forEach(([index, monster]) => {
@@ -31,6 +22,49 @@ if (localMonsterData && localMonsterData.monsters && typeof localMonsterData.mon
     });
   });
 }
+
+const getChallengeRatingFromLocal = (index) => {
+  if (!index || typeof index !== 'string') {
+    return null;
+  }
+
+  const normalized = index.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  const monster = localMonsterMap.get(normalized);
+  if (!monster) {
+    return null;
+  }
+
+  const raw =
+    monster.challenge_rating !== undefined && monster.challenge_rating !== null
+      ? monster.challenge_rating
+      : monster.challengeRating !== undefined && monster.challengeRating !== null
+      ? monster.challengeRating
+      : null;
+
+  if (raw === null) {
+    return null;
+  }
+
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const localMonsterList =
+  localMonsterData && Array.isArray(localMonsterData.results)
+    ? localMonsterData.results.map((monster) => ({
+        index: monster.index,
+        name: monster.name,
+        url: monster.url,
+        challenge_rating:
+          monster.challenge_rating !== undefined && monster.challenge_rating !== null
+            ? monster.challenge_rating
+            : getChallengeRatingFromLocal(monster.index),
+      }))
+    : [];
 
 function fetchJson(path) {
   return new Promise((resolve, reject) => {
@@ -83,7 +117,21 @@ async function getMonsterList() {
   }
 
   try {
-    monsterListCache = await fetchJson('/api/monsters');
+    const list = await fetchJson('/api/monsters');
+    if (list && Array.isArray(list.results)) {
+      monsterListCache = {
+        ...list,
+        results: list.results.map((monster) => ({
+          ...monster,
+          challenge_rating:
+            monster.challenge_rating !== undefined && monster.challenge_rating !== null
+              ? monster.challenge_rating
+              : getChallengeRatingFromLocal(monster.index),
+        })),
+      };
+    } else {
+      monsterListCache = list;
+    }
   } catch (err) {
     if (localMonsterList.length) {
       logger.warn('Falling back to bundled 5e SRD monster list', { error: err.message });

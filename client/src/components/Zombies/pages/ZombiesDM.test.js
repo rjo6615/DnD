@@ -2051,5 +2051,82 @@ describe('ZombiesDM AI generation', () => {
     ).toBeInTheDocument();
   });
 
+  test('filters monsters by challenge rating range', async () => {
+    const characters = [];
+    const monsters = [
+      { index: 'goblin', name: 'Goblin', challengeRating: 0.25 },
+      { index: 'ogre', name: 'Ogre', challengeRating: 2 },
+      { index: 'adult-red-dragon', name: 'Adult Red Dragon', challengeRating: 17 },
+    ];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [],
+              activeMapId: null,
+              map: null,
+              tokensByMapId: {},
+              activeMapTokens: {},
+            }),
+          });
+        case '/monsters':
+          return Promise.resolve({ ok: true, json: async () => monsters });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const enemiesTab = await screen.findByRole('tab', { name: 'Enemies' });
+    await userEvent.click(enemiesTab);
+
+    const monsterSelect = await screen.findByLabelText('Select Monster');
+    await waitFor(() => {
+      expect(within(monsterSelect).getByRole('option', { name: 'Goblin' })).toBeInTheDocument();
+      expect(within(monsterSelect).getByRole('option', { name: 'Ogre' })).toBeInTheDocument();
+      expect(
+        within(monsterSelect).getByRole('option', { name: 'Adult Red Dragon' })
+      ).toBeInTheDocument();
+    });
+
+    const minSelect = await screen.findByLabelText('Minimum challenge rating');
+    const maxSelect = await screen.findByLabelText('Maximum challenge rating');
+
+    await userEvent.selectOptions(minSelect, '2');
+    await waitFor(() => {
+      expect(
+        within(monsterSelect).queryByRole('option', { name: 'Goblin' })
+      ).not.toBeInTheDocument();
+      expect(
+        within(monsterSelect).getByRole('option', { name: 'Adult Red Dragon' })
+      ).toBeInTheDocument();
+    });
+
+    await userEvent.selectOptions(maxSelect, '2');
+    await waitFor(() => {
+      expect(within(monsterSelect).getByRole('option', { name: 'Ogre' })).toBeInTheDocument();
+      expect(
+        within(monsterSelect).queryByRole('option', { name: 'Adult Red Dragon' })
+      ).not.toBeInTheDocument();
+    });
+  });
+
 
 });

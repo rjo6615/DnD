@@ -675,6 +675,8 @@ export default function ZombiesDM() {
     const [monsterCatalogLoading, setMonsterCatalogLoading] = useState(false);
     const [monsterCatalogLoaded, setMonsterCatalogLoaded] = useState(false);
     const [monsterCatalogError, setMonsterCatalogError] = useState(null);
+    const [monsterMinChallengeRating, setMonsterMinChallengeRating] = useState('');
+    const [monsterMaxChallengeRating, setMonsterMaxChallengeRating] = useState('');
     const [monsterSearch, setMonsterSearch] = useState('');
     const [selectedMonsterIndex, setSelectedMonsterIndex] = useState('');
     const [selectedMonster, setSelectedMonster] = useState(null);
@@ -1762,6 +1764,34 @@ export default function ZombiesDM() {
       return null;
     }, []);
 
+    const formatChallengeRatingValue = useCallback((value) => {
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
+
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return String(value);
+      }
+
+      const fractionMap = {
+        '0.125': '1/8',
+        '0.25': '1/4',
+        '0.5': '1/2',
+      };
+
+      const fractionKey = numeric.toString();
+      if (Object.prototype.hasOwnProperty.call(fractionMap, fractionKey)) {
+        return fractionMap[fractionKey];
+      }
+
+      if (Number.isInteger(numeric)) {
+        return numeric.toString();
+      }
+
+      return numeric.toString();
+    }, []);
+
     const handleEnemyDamageRoll = useCallback(
       (enemy, action) => {
         if (!enemy || !action) {
@@ -1804,16 +1834,121 @@ export default function ZombiesDM() {
       [getEnemyActionDamageString, setStatus]
     );
 
+    const challengeRatingOptions = useMemo(() => {
+      if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
+        return [];
+      }
+
+      const values = new Set();
+      monsterCatalog.forEach((monster) => {
+        const rating =
+          monster?.challengeRating !== undefined && monster?.challengeRating !== null
+            ? monster.challengeRating
+            : monster?.challenge_rating !== undefined && monster?.challenge_rating !== null
+            ? monster.challenge_rating
+            : null;
+        const numeric = Number(rating);
+        if (Number.isFinite(numeric)) {
+          values.add(numeric);
+        }
+      });
+
+      return Array.from(values)
+        .sort((a, b) => a - b)
+        .map((value) => ({
+          value: value.toString(),
+          label: formatChallengeRatingValue(value),
+        }));
+    }, [monsterCatalog, formatChallengeRatingValue]);
+
+    useEffect(() => {
+      if (monsterMinChallengeRating) {
+        const hasOption = challengeRatingOptions.some(
+          (option) => option.value === monsterMinChallengeRating
+        );
+        if (!hasOption) {
+          setMonsterMinChallengeRating('');
+        }
+      }
+
+      if (monsterMaxChallengeRating) {
+        const hasOption = challengeRatingOptions.some(
+          (option) => option.value === monsterMaxChallengeRating
+        );
+        if (!hasOption) {
+          setMonsterMaxChallengeRating('');
+        }
+      }
+    }, [challengeRatingOptions, monsterMinChallengeRating, monsterMaxChallengeRating]);
+
     const filteredMonsterCatalog = useMemo(() => {
       if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
         return [];
       }
+
       const query = monsterSearch.trim().toLowerCase();
-      if (!query) {
-        return monsterCatalog;
+      const minValue =
+        monsterMinChallengeRating !== '' ? Number(monsterMinChallengeRating) : null;
+      const maxValue =
+        monsterMaxChallengeRating !== '' ? Number(monsterMaxChallengeRating) : null;
+
+      let effectiveMin = minValue;
+      let effectiveMax = maxValue;
+      if (effectiveMin !== null && effectiveMax !== null && effectiveMin > effectiveMax) {
+        [effectiveMin, effectiveMax] = [effectiveMax, effectiveMin];
       }
-      return monsterCatalog.filter((monster) => monster?.name?.toLowerCase().includes(query));
-    }, [monsterCatalog, monsterSearch]);
+
+      return monsterCatalog.filter((monster) => {
+        const nameMatches =
+          !query || monster?.name?.toLowerCase().includes(query);
+        if (!nameMatches) {
+          return false;
+        }
+
+        const ratingRaw =
+          monster?.challengeRating !== undefined && monster?.challengeRating !== null
+            ? monster.challengeRating
+            : monster?.challenge_rating !== undefined && monster?.challenge_rating !== null
+            ? monster.challenge_rating
+            : null;
+        const ratingNumeric = Number(ratingRaw);
+        const hasNumericRating = Number.isFinite(ratingNumeric);
+
+        if (effectiveMin !== null || effectiveMax !== null) {
+          if (!hasNumericRating) {
+            return false;
+          }
+          if (effectiveMin !== null && ratingNumeric < effectiveMin) {
+            return false;
+          }
+          if (effectiveMax !== null && ratingNumeric > effectiveMax) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }, [
+      monsterCatalog,
+      monsterSearch,
+      monsterMinChallengeRating,
+      monsterMaxChallengeRating,
+    ]);
+
+    useEffect(() => {
+      if (!selectedMonsterIndex) {
+        return;
+      }
+
+      const existsInFiltered = filteredMonsterCatalog.some(
+        (monster) => monster?.index === selectedMonsterIndex
+      );
+
+      if (!existsInFiltered) {
+        setSelectedMonsterIndex('');
+        setSelectedMonster(null);
+      }
+    }, [filteredMonsterCatalog, selectedMonsterIndex, setSelectedMonster]);
 
 
     useEffect(() => {
@@ -5990,7 +6125,7 @@ const resolveIcon = (category, iconMap, fallback) => {
               <Container className="mt-3">
                 <Form onSubmit={handleAddEnemy}>
                   <Row className="g-3 align-items-end">
-                    <Col md={6}>
+                    <Col md={6} lg={4}>
                       <Form.Group className="mb-3 mb-md-0">
                         <Form.Label className="text-light">Search Monsters</Form.Label>
                         <Form.Control
@@ -6002,7 +6137,40 @@ const resolveIcon = (category, iconMap, fallback) => {
                         />
                       </Form.Group>
                     </Col>
-                    <Col md={6}>
+                    <Col md={6} lg={4}>
+                      <Form.Group className="mb-3 mb-md-0">
+                        <Form.Label className="text-light">Challenge Rating</Form.Label>
+                        <div className="d-flex flex-column flex-lg-row gap-2">
+                          <Form.Select
+                            value={monsterMinChallengeRating}
+                            onChange={(event) => setMonsterMinChallengeRating(event.target.value)}
+                            disabled={monsterCatalogLoading && !monsterCatalogLoaded}
+                            aria-label="Minimum challenge rating"
+                          >
+                            <option value="">No minimum</option>
+                            {challengeRatingOptions.map((option) => (
+                              <option key={`min-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </Form.Select>
+                          <Form.Select
+                            value={monsterMaxChallengeRating}
+                            onChange={(event) => setMonsterMaxChallengeRating(event.target.value)}
+                            disabled={monsterCatalogLoading && !monsterCatalogLoaded}
+                            aria-label="Maximum challenge rating"
+                          >
+                            <option value="">No maximum</option>
+                            {challengeRatingOptions.map((option) => (
+                              <option key={`max-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </div>
+                      </Form.Group>
+                    </Col>
+                    <Col md={12} lg={4}>
                       <Form.Group>
                         <Form.Label className="text-light">Select Monster</Form.Label>
                         <Form.Select
@@ -6024,7 +6192,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           ) : (
                             monsterCatalogLoaded && (
                               <option value="" disabled>
-                                No monsters match your search
+                                No monsters match your filters
                               </option>
                             )
                           )}
@@ -6121,7 +6289,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                         <Card.Subtitle className="text-white-50 small mb-3">
                           {[selectedMonster.size, selectedMonster.type].filter(Boolean).join(' ') || '—'}
                           {selectedMonster.challengeRating !== null && selectedMonster.challengeRating !== undefined
-                            ? ` • CR ${selectedMonster.challengeRating}`
+                            ? ` • CR ${formatChallengeRatingValue(selectedMonster.challengeRating)}`
                             : ''}
                         </Card.Subtitle>
                         <div className="d-grid gap-1">
@@ -6202,7 +6370,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                   const inCombat = Boolean(participantInfo);
                   const challengeText =
                     enemy.challengeRating !== null && enemy.challengeRating !== undefined
-                      ? `CR ${enemy.challengeRating}`
+                      ? `CR ${formatChallengeRatingValue(enemy.challengeRating)}`
                       : null;
                   const languagesDisplay = Array.isArray(enemy.languages)
                     ? enemy.languages.join(', ')
