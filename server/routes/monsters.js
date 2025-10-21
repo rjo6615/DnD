@@ -16,11 +16,26 @@ module.exports = (router) => {
         filtered = results.filter((monster) => monster?.name?.toLowerCase().includes(search));
       }
 
-      res.json(filtered.map((monster) => ({
-        index: monster.index,
-        name: monster.name,
-        url: monster.url,
-      })));
+      res.json(
+        filtered.map((monster) => {
+          const rawChallengeRating =
+            monster.challenge_rating !== undefined && monster.challenge_rating !== null
+              ? monster.challenge_rating
+              : monster.challengeRating !== undefined && monster.challengeRating !== null
+              ? monster.challengeRating
+              : null;
+          const numericChallengeRating = Number(rawChallengeRating);
+
+          return {
+            index: monster.index,
+            name: monster.name,
+            url: monster.url,
+            challengeRating: Number.isFinite(numericChallengeRating)
+              ? numericChallengeRating
+              : null,
+          };
+        })
+      );
     } catch (err) {
       next(err);
     }
