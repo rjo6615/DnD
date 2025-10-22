@@ -422,7 +422,21 @@ class CloudinaryUsageError extends Error {
 }
 
 const fetchUsage = async () => {
-  configure();
+  try {
+    configure();
+  } catch (error) {
+    const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 503;
+
+    throw new CloudinaryUsageError('Failed to fetch Cloudinary usage', {
+      cause: error,
+      statusCode,
+      details:
+        error?.message && typeof error.message === 'string'
+          ? { reason: error.message }
+          : undefined,
+    });
+  }
+
   const sdk = resolveCloudinary();
 
   if (!sdk?.api || typeof sdk.api.usage !== 'function') {
