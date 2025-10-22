@@ -624,6 +624,10 @@ function EnemyCard({
                 <span className="enemy-card__summary-label">Senses:</span>
                 <span aria-hidden="true">{sensesDisplay}</span>
               </div>
+              <div className="enemy-card__detail-line">
+                <span className="enemy-card__summary-label">Xp:</span>
+                <span aria-hidden="true">{xpDisplay}</span>
+              </div>
               <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Damage Vulnerabilities:</span>
                 <span aria-hidden="true">{damageVulnerabilitiesDisplay}</span>
@@ -653,10 +657,6 @@ function EnemyCard({
               <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Languages:</span>
                 <span aria-hidden="true">{languagesDisplay}</span>
-              </div>
-              <div className="enemy-card__detail-line">
-                <span className="enemy-card__summary-label">Xp:</span>
-                <span aria-hidden="true">{xpDisplay}</span>
               </div>
             </div>
           </div>
