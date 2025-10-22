@@ -5,11 +5,13 @@ const DEFAULT_TOKEN_ROOT_FOLDER = 'Tokens';
 const TOKEN_FALLBACK_MAX_RESULTS = 200;
 const DEFAULT_TOKEN_CACHE_TTL_MS = 60_000;
 const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 120_000;
+const DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS = 3_600_000;
 const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
 const MAX_FOLDER_TREE_CONCURRENCY = 12;
 
 const tokenListCache = new Map();
 const folderTreeCache = new Map();
+const figurineSuggestionCache = new Map();
 
 const parseCacheTtl = (value, fallback) => {
   const numericValue = Number(value);
@@ -26,6 +28,12 @@ const getFolderTreeCacheTtlMs = () =>
   parseCacheTtl(
     process.env.CLOUDINARY_FOLDER_TREE_CACHE_TTL_MS,
     DEFAULT_FOLDER_TREE_CACHE_TTL_MS
+  );
+
+const getFigurineSuggestionCacheTtlMs = () =>
+  parseCacheTtl(
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS,
+    DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS
   );
 
 const parsePositiveInteger = (value, fallback, max) => {
@@ -116,6 +124,23 @@ const clearCacheWhenDisabled = (cache, ttlMs) => {
   }
 };
 
+const getFigurineSuggestionCacheEntry = (key) => {
+  const entry = getCacheEntry(figurineSuggestionCache, key);
+  if (!entry || typeof entry !== 'object' || entry.__figurineSuggestionCache !== true) {
+    return undefined;
+  }
+
+  return entry.value;
+};
+
+const setFigurineSuggestionCacheEntry = (key, value, ttlMs) => {
+  if (!key) {
+    return;
+  }
+
+  setCacheEntry(figurineSuggestionCache, key, { __figurineSuggestionCache: true, value }, ttlMs);
+};
+
 const buildTokenListCacheKey = ({ rootFolder, folders, nextCursor, maxResults }) => {
   const normalizedFolders = Array.isArray(folders) ? folders.slice().sort() : [];
   const serializedFolders = normalizedFolders.length > 0 ? normalizedFolders.join('|') : '__ALL__';
@@ -131,6 +156,22 @@ const buildFolderTreeCacheKey = ({ rootFolder, folders }) => {
   const normalizedFolders = Array.isArray(folders) ? folders.slice().sort() : [];
   const serializedFolders = normalizedFolders.length > 0 ? normalizedFolders.join('|') : '__ROOT__';
   return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders].join('::');
+};
+
+const buildFigurineSuggestionCacheKey = ({ keys, includeGeneralSearch, rootFolder }) => {
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return null;
+  }
+
+  const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
+  const normalizedKeys = Array.from(new Set(keys.filter(Boolean))).sort();
+  const scope = includeGeneralSearch ? 'general' : 'restricted';
+
+  if (normalizedKeys.length === 0) {
+    return null;
+  }
+
+  return [normalizedRoot, scope, normalizedKeys.join('|')].join('::');
 };
 
 const resolveCloudinary = () => {
@@ -936,36 +977,64 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
     return null;
   }
 
+  const includeGeneral = Boolean(includeGeneralSearch);
+  const rootFolder = getTokenRootFolder();
+  const cacheTtlMs = getFigurineSuggestionCacheTtlMs();
+
+  clearCacheWhenDisabled(figurineSuggestionCache, cacheTtlMs);
+
+  const cacheKey =
+    cacheTtlMs > 0
+      ? buildFigurineSuggestionCacheKey({
+          keys,
+          includeGeneralSearch: includeGeneral,
+          rootFolder,
+        })
+      : null;
+
+  if (cacheTtlMs > 0 && cacheKey) {
+    const cachedSuggestion = getFigurineSuggestionCacheEntry(cacheKey);
+    if (cachedSuggestion !== undefined) {
+      return cachedSuggestion;
+    }
+  }
+
   try {
     configure();
   } catch (error) {
+    if (cacheTtlMs > 0 && cacheKey) {
+      setFigurineSuggestionCacheEntry(cacheKey, null, cacheTtlMs);
+    }
     return null;
   }
 
   const sdk = resolveCloudinary();
-  const rootFolder = getTokenRootFolder();
 
-  const searchScenarios = [
-    { folderHints: DM_FOLDER_HINTS },
-  ];
+  const searchScenarios = [{ folderHints: DM_FOLDER_HINTS }];
 
-  if (includeGeneralSearch) {
+  if (includeGeneral) {
     searchScenarios.push({ folderHints: [] });
   }
 
+  let suggestion = null;
+
   for (const scenario of searchScenarios) {
-    const suggestion = await executeFigurineSearch(sdk, {
+    suggestion = await executeFigurineSearch(sdk, {
       rootFolder,
       keys,
       folderHints: scenario.folderHints,
     });
 
     if (suggestion) {
-      return suggestion;
+      break;
     }
   }
 
-  return null;
+  if (cacheTtlMs > 0 && cacheKey) {
+    setFigurineSuggestionCacheEntry(cacheKey, suggestion || null, cacheTtlMs);
+  }
+
+  return suggestion;
 };
 
 module.exports = {
