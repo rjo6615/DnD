@@ -13,6 +13,23 @@ const tokenListCache = new Map();
 const folderTreeCache = new Map();
 const figurineSuggestionCache = new Map();
 
+const logCloudinaryApiCall = (action, details = {}) => {
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  const payload = {
+    action,
+    ...details,
+  };
+
+  try {
+    console.info('[Cloudinary]', JSON.stringify(payload));
+  } catch (error) {
+    console.info('[Cloudinary]', payload);
+  }
+};
+
 const parseCacheTtl = (value, fallback) => {
   const numericValue = Number(value);
   if (Number.isFinite(numericValue) && numericValue >= 0) {
@@ -634,6 +651,14 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
     search = search.next_cursor(sanitizedNextCursor);
   }
 
+  logCloudinaryApiCall('search.execute', {
+    context: 'listTokenAssets',
+    expression,
+    maxResults: resolvedMaxResults,
+    nextCursor: sanitizedNextCursor,
+    folders: sanitizedFolders,
+  });
+
   const result = await search.execute();
   const resources = Array.isArray(result?.resources) ? result.resources : [];
   const assets = resources
@@ -961,6 +986,14 @@ const executeFigurineSearch = async (sdk, { rootFolder, keys, folderHints }) => 
       .max_results(maxResults)
       .with_field('context')
       .with_field('metadata');
+
+    logCloudinaryApiCall('search.execute', {
+      context: 'suggestEnemyFigurine',
+      expression,
+      maxResults,
+      folderHints: folderHints || [],
+      keys,
+    });
 
     const result = await search.execute();
     const resources = Array.isArray(result?.resources) ? result.resources : [];
