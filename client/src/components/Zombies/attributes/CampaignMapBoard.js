@@ -387,9 +387,27 @@ const resolveFigurineSquaresFromImageSize = (metrics, metadataSquareSize) => {
   }
 
   const maxDimension = Math.max(numericWidth, numericHeight);
-  const squareSize = Number.isFinite(metadataSquareSize) && metadataSquareSize > 0
-    ? metadataSquareSize
-    : FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE;
+  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+    return null;
+  }
+
+  if (maxDimension < FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE) {
+    return 1;
+  }
+
+  const squareSize = (() => {
+    if (Number.isFinite(metadataSquareSize) && metadataSquareSize > 0) {
+      if (metadataSquareSize >= FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE) {
+        return metadataSquareSize;
+      }
+
+      if (maxDimension >= FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE) {
+        return metadataSquareSize;
+      }
+    }
+
+    return FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE;
+  })();
 
   if (!Number.isFinite(squareSize) || squareSize <= 0) {
     return null;
