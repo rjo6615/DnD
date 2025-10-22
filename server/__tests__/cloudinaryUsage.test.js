@@ -7,7 +7,7 @@ const express = require('express');
 
 const originalEnv = { ...process.env };
 
-const buildApp = (usageImpl) => {
+const buildApp = (usageImpl, { envOverrides } = {}) => {
   jest.resetModules();
 
   process.env = {
@@ -15,6 +15,7 @@ const buildApp = (usageImpl) => {
     CLOUDINARY_CLOUD_NAME: 'demo',
     CLOUDINARY_API_KEY: 'key',
     CLOUDINARY_API_SECRET: 'secret',
+    ...envOverrides,
   };
 
   jest.doMock('../db/conn', () => jest.fn().mockResolvedValue({}));
@@ -85,6 +86,27 @@ describe('Cloudinary usage route', () => {
       reason: 'usage unavailable',
     });
     expect(usageImpl).toHaveBeenCalledTimes(1);
+  });
+
+  test('returns 503 when Cloudinary is not configured', async () => {
+    const usageImpl = jest.fn();
+
+    const { app } = buildApp(usageImpl, {
+      envOverrides: {
+        CLOUDINARY_CLOUD_NAME: undefined,
+        CLOUDINARY_API_KEY: undefined,
+        CLOUDINARY_API_SECRET: undefined,
+      },
+    });
+
+    const res = await request(app).get('/usage');
+
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      message: 'Failed to retrieve Cloudinary usage',
+      reason: 'Cloudinary environment variables are not configured',
+    });
+    expect(usageImpl).not.toHaveBeenCalled();
   });
 
   test('uses Cloudinary http_code when available', async () => {

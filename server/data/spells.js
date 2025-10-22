@@ -1262,8 +1262,8 @@ const RAW_SPELLS = [
 "v"
 ],
 "duration": "Instantaneous",
-"description": "A creature of your choice that you can see within range regains Hit Points equal to 2d4 plus your spellcasting ability modifier.",
-"higherLevelSlot": "The healing increases by 2d4 for each spell slot level above 1."
+"description": "A creature of your choice that you can see within range regains Hit Points equal to 1d4 plus your spellcasting ability modifier.",
+"higherLevelSlot": "The healing increases by 1d4 for each spell slot level above 1."
 },
 {
 "name": "Hellish Rebuke",
