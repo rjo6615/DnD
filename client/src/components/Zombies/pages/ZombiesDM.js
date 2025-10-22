@@ -598,6 +598,15 @@ function EnemyCard({
         )}
         {showDetails && (
           <div className="enemy-card__section">
+            <div className="enemy-card__section-subtitle">Ability Scores</div>
+            <div className="d-flex flex-wrap gap-2">
+              {abilityScoreBadges.map(({ key, value }) => (
+                <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
+                  {value}
+                </span>
+              ))}
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
             <div className="enemy-card__detail-grid">
               <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Speed:</span>
@@ -649,14 +658,6 @@ function EnemyCard({
                 <span className="enemy-card__summary-label">Languages:</span>
                 <span aria-hidden="true">{languagesDisplay}</span>
               </div>
-            </div>
-            <div className="enemy-card__section-subtitle">Abilities</div>
-            <div className="d-flex flex-wrap gap-2">
-              {abilityScoreBadges.map(({ key, value }) => (
-                <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
-                  {value}
-                </span>
-              ))}
             </div>
           </div>
         )}
