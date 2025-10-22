@@ -1306,8 +1306,8 @@ body.docked-modal--resizing {
   color: var(--bs-body-color);
 }
 
-.enemy-card__summary-line span:last-child,
-.enemy-card__detail-line span:last-child {
+.enemy-card__summary-line > :last-child,
+.enemy-card__detail-line > :last-child {
   flex: 1 1 auto;
   min-width: 0;
 }
