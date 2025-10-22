@@ -400,6 +400,21 @@ const sanitizeTokenResource = (resource = {}, rootFolder = DEFAULT_TOKEN_ROOT_FO
   };
 };
 
+const fetchUsage = async () => {
+  configure();
+  const sdk = resolveCloudinary();
+
+  if (!sdk?.api || typeof sdk.api.usage !== 'function') {
+    throw new Error('Cloudinary usage API is unavailable');
+  }
+
+  logCloudinaryApiCall('api.usage', { context: 'fetchUsage' });
+
+  const usage = await sdk.api.usage();
+
+  return usage && typeof usage === 'object' ? usage : null;
+};
+
 const uploadMapImage = async (image, options = {}) => {
   configure();
   const sdk = resolveCloudinary();
@@ -1113,6 +1128,7 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
 };
 
 module.exports = {
+  fetchUsage,
   uploadMapImage,
   deleteMapImage,
   getMapFolder,
