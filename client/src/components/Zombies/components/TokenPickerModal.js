@@ -75,6 +75,93 @@ const buildScopeVariantSet = (values) => {
   }, new Set());
 };
 
+const FOLDER_SCOPE_PREFIX = 'folder:';
+
+const normalizeFolderHint = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.replace(/\u00A0/g, ' ').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const withoutPrefix = trimmed.toLowerCase().startsWith(FOLDER_SCOPE_PREFIX)
+    ? trimmed.slice(FOLDER_SCOPE_PREFIX.length)
+    : trimmed;
+
+  const segments = withoutPrefix
+    .split(/[\\/]+/g)
+    .map((segment) => segment.replace(/\u00A0/g, ' ').trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  if (segments[0].toLowerCase() !== 'tokens') {
+    segments.unshift('Tokens');
+  } else {
+    segments[0] = 'Tokens';
+  }
+
+  if (segments.length > 1 && segments[1].toLowerCase() === 'dm') {
+    segments[1] = 'DM';
+  }
+
+  const hasAdversaries = segments.some((segment) => segment.toLowerCase() === 'adversaries');
+  const hasAdventurers = segments.some((segment) => segment.toLowerCase() === 'adventurers');
+
+  if (!hasAdversaries && !hasAdventurers) {
+    const insertIndex = segments.length > 1 && segments[1] === 'DM' ? 2 : 1;
+    segments.splice(insertIndex, 0, 'Adventurers');
+  }
+
+  for (let i = 0; i < segments.length; i += 1) {
+    if (segments[i].toLowerCase() === 'adversaries') {
+      segments[i] = 'Adversaries';
+    } else if (segments[i].toLowerCase() === 'adventurers') {
+      segments[i] = 'Adventurers';
+    }
+  }
+
+  return segments.join('/');
+};
+
+const buildFolderHintsFromScope = (scopeValues) => {
+  if (!scopeValues) {
+    return [];
+  }
+
+  const rawValues =
+    scopeValues instanceof Set
+      ? Array.from(scopeValues)
+      : Array.isArray(scopeValues)
+        ? scopeValues
+        : [scopeValues];
+
+  const seen = new Set();
+  const hints = [];
+
+  rawValues.forEach((value) => {
+    const normalized = normalizeFolderHint(value);
+    if (!normalized) {
+      return;
+    }
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    hints.push(normalized);
+  });
+
+  return hints;
+};
+
 const normalizeVariantData = (value, cache) => {
   if (!cache.has(value)) {
     if (typeof value !== 'string') {
@@ -474,6 +561,7 @@ const TokenPickerModal = ({
   }, [isDm, dmFolderOptions, playerFolderOptions]);
 
   const filterScopeSet = useMemo(() => buildScopeVariantSet(filterScope), [filterScope]);
+  const scopeFolderHints = useMemo(() => buildFolderHintsFromScope(filterScope), [filterScope]);
 
   const availableFilters = useMemo(() => {
     if (!Array.isArray(baseFilters)) {
@@ -582,8 +670,62 @@ const TokenPickerModal = ({
     return filterMatchesScope(activeFilter, filterScopeSet);
   }, [activeFilter, filterScopeSet]);
 
+  const resolvedFolders = useMemo(() => {
+    if (activeFilter && Array.isArray(activeFilter.folders)) {
+      const sanitized = activeFilter.folders
+        .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
+        .filter(Boolean);
+
+      if (sanitized.length > 0) {
+        const normalized = sanitized
+          .map((folder) => {
+            if (typeof folder !== 'string') {
+              return '';
+            }
+
+            const trimmed = folder.trim();
+            if (!trimmed) {
+              return '';
+            }
+
+            if (/^tokens\//i.test(trimmed)) {
+              return trimmed.replace(/^tokens\//i, 'Tokens/');
+            }
+
+            if (trimmed.includes('/')) {
+              return `Tokens/${trimmed.replace(/^\/+/, '').replace(/\\+/g, '/')}`;
+            }
+
+            return trimmed;
+          })
+          .filter(Boolean);
+
+        const hasTokenPrefix = normalized.some((folder) => /^Tokens\//.test(folder));
+        if (hasTokenPrefix) {
+          return normalized;
+        }
+
+        if (scopeFolderHints.length > 0) {
+          return scopeFolderHints;
+        }
+
+        return normalized;
+      }
+    }
+
+    if (scopeFolderHints.length > 0) {
+      return scopeFolderHints;
+    }
+
+    return null;
+  }, [activeFilter, scopeFolderHints]);
+
   const manifestFilterKey = useMemo(() => {
     if (!activeFilter) {
+      if (resolvedFolders && resolvedFolders.length > 0) {
+        return `scope::${resolvedFolders.join(',')}`;
+      }
+
       return 'none';
     }
 
@@ -591,23 +733,32 @@ const TokenPickerModal = ({
       ? activeFilter.folders
           .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
           .filter(Boolean)
-          .join(',')
-      : '';
+      : [];
 
-    return `${activeFilter.key || 'unknown'}::${folders}`;
-  }, [activeFilter]);
+    const folderKey = folders.length > 0 ? folders.join(',') : '';
+    const resolvedKey =
+      !folderKey && resolvedFolders && resolvedFolders.length > 0
+        ? resolvedFolders.join(',')
+        : folderKey;
+
+    return `${activeFilter.key || 'unknown'}::${resolvedKey}`;
+  }, [activeFilter, resolvedFolders]);
 
   const shouldDeferManifest = useMemo(() => {
     if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
       return false;
     }
 
-    return !activeFilterMatchesScope;
-  }, [activeFilterMatchesScope, filterScopeSet]);
+    if (activeFilterMatchesScope) {
+      return false;
+    }
+
+    return !resolvedFolders || resolvedFolders.length === 0;
+  }, [activeFilterMatchesScope, filterScopeSet, resolvedFolders]);
 
   const fetchManifest = useCallback(
     async ({ cursor = null, append = false } = {}) => {
-      if (!campaignId || !activeFilter) {
+      if (!campaignId || (!activeFilter && (!resolvedFolders || resolvedFolders.length === 0))) {
         return;
       }
 
@@ -618,14 +769,9 @@ const TokenPickerModal = ({
         params.set('nextCursor', cursor);
       }
 
-      const folders = Array.isArray(activeFilter.folders) ? activeFilter.folders : null;
+      const folders = resolvedFolders;
       if (folders && folders.length > 0) {
-        const sanitized = folders
-          .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
-          .filter(Boolean);
-        if (sanitized.length > 0) {
-          params.set('folders', sanitized.join(','));
-        }
+        params.set('folders', folders.join(','));
       }
 
       const queryString = params.toString();
@@ -680,7 +826,7 @@ const TokenPickerModal = ({
         setLoadingMore(false);
       }
     },
-    [campaignId, activeFilter, isDm]
+    [campaignId, activeFilter, isDm, resolvedFolders]
   );
 
   const fetchManifestRef = useRef(fetchManifest);
