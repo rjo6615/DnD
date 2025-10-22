@@ -13,13 +13,55 @@ const tokenListCache = new Map();
 const folderTreeCache = new Map();
 const figurineSuggestionCache = new Map();
 
+const cloudinaryApiCallCounters = {
+  total: 0,
+  byAction: new Map(),
+};
+
+const normalizeCloudinaryApiAction = (action) => {
+  if (typeof action === 'string') {
+    const trimmed = action.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return 'unknown';
+};
+
+const recordCloudinaryApiCall = (action) => {
+  const normalizedAction = normalizeCloudinaryApiAction(action);
+  const currentCount = cloudinaryApiCallCounters.byAction.get(normalizedAction) || 0;
+
+  cloudinaryApiCallCounters.total += 1;
+  cloudinaryApiCallCounters.byAction.set(normalizedAction, currentCount + 1);
+
+  return normalizedAction;
+};
+
+const getCloudinaryApiCallCounts = () => ({
+  total: cloudinaryApiCallCounters.total,
+  byAction: Object.fromEntries(cloudinaryApiCallCounters.byAction),
+});
+
+const resetCloudinaryApiCallCounts = () => {
+  cloudinaryApiCallCounters.total = 0;
+  cloudinaryApiCallCounters.byAction.clear();
+};
+
 const logCloudinaryApiCall = (action, details = {}) => {
+  const normalizedAction = recordCloudinaryApiCall(action);
+  const { total, byAction } = getCloudinaryApiCallCounts();
+  const actionCallCount = byAction[normalizedAction] || 0;
+
   if (process.env.NODE_ENV === 'test') {
     return;
   }
 
   const payload = {
-    action,
+    action: normalizedAction,
+    totalCallCount: total,
+    actionCallCount,
     ...details,
   };
 
@@ -1078,4 +1120,6 @@ module.exports = {
   listTokenAssets,
   listTokenFolderTree,
   suggestEnemyFigurine,
+  getCloudinaryApiCallCounts,
+  resetCloudinaryApiCallCounts,
 };

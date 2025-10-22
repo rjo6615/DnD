@@ -163,6 +163,67 @@ describe('suggestEnemyFigurine helper', () => {
     expect(mockExpression).toHaveBeenCalledTimes(2);
     expect(mockExecute).toHaveBeenCalledTimes(2);
   });
+
+  test('tracks Cloudinary API call counts across figurine search scenarios', async () => {
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
+
+    const mockExecute = jest
+      .fn()
+      .mockResolvedValueOnce({ resources: [] })
+      .mockResolvedValueOnce({
+        resources: [
+          {
+            public_id: 'Tokens/DM/ogre_token',
+            secure_url:
+              'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/ogre_token.png',
+            folder: 'Tokens/DM',
+            filename: 'ogre_token',
+          },
+        ],
+      });
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const {
+      suggestEnemyFigurine: actualSuggestEnemyFigurine,
+      getCloudinaryApiCallCounts,
+      resetCloudinaryApiCallCounts,
+    } = jest.requireActual('../utils/cloudinary');
+
+    const result = await actualSuggestEnemyFigurine({ index: 'ogre', name: 'Ogre' });
+
+    expect(result).toEqual({
+      figurineImagePublicId: 'Tokens/DM/ogre_token',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/ogre_token.png',
+    });
+
+    expect(mockExpression).toHaveBeenCalledTimes(2);
+    expect(mockExecute).toHaveBeenCalledTimes(2);
+
+    const counts = getCloudinaryApiCallCounts();
+    expect(counts.total).toBe(2);
+    expect(counts.byAction).toEqual({ 'search.execute': 2 });
+
+    resetCloudinaryApiCallCounts();
+    expect(getCloudinaryApiCallCounts()).toEqual({ total: 0, byAction: {} });
+  });
 });
 
 describe('Cloudinary caching helpers', () => {
