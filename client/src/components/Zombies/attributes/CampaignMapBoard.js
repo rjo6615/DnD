@@ -83,6 +83,31 @@ const MAX_FIGURINE_GRID_SQUARES = FIGURINE_SIZE_MULTIPLIERS.gargantuan;
 const DEFAULT_FIGURINE_GRID_SQUARES = FIGURINE_SIZE_MULTIPLIERS.medium;
 const FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE = 512;
 
+const ROTATION_HANDLE_DISTANCE_BASE_SCALE = 1.35;
+const ROTATION_HANDLE_DISTANCE_MIN_SCALE = 1.05;
+const ROTATION_HANDLE_DISTANCE_REDUCTION_PER_EXTRA_SCALE = 0.15;
+
+const resolveRotationHandleDistanceScale = (figurineScale) => {
+  if (!Number.isFinite(figurineScale) || figurineScale <= 0) {
+    return ROTATION_HANDLE_DISTANCE_BASE_SCALE;
+  }
+
+  const extraScale = Math.max(0, figurineScale - 1);
+  const reducedScale =
+    ROTATION_HANDLE_DISTANCE_BASE_SCALE -
+    ROTATION_HANDLE_DISTANCE_REDUCTION_PER_EXTRA_SCALE * extraScale;
+
+  if (reducedScale < ROTATION_HANDLE_DISTANCE_MIN_SCALE) {
+    return ROTATION_HANDLE_DISTANCE_MIN_SCALE;
+  }
+
+  if (reducedScale > ROTATION_HANDLE_DISTANCE_BASE_SCALE) {
+    return ROTATION_HANDLE_DISTANCE_BASE_SCALE;
+  }
+
+  return reducedScale;
+};
+
 const DEFAULT_GRID_DIMENSION = 24;
 
 const parsePositiveNumber = (value) => {
@@ -362,9 +387,27 @@ const resolveFigurineSquaresFromImageSize = (metrics, metadataSquareSize) => {
   }
 
   const maxDimension = Math.max(numericWidth, numericHeight);
-  const squareSize = Number.isFinite(metadataSquareSize) && metadataSquareSize > 0
-    ? metadataSquareSize
-    : FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE;
+  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+    return null;
+  }
+
+  if (maxDimension < FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE) {
+    return 1;
+  }
+
+  const squareSize = (() => {
+    if (Number.isFinite(metadataSquareSize) && metadataSquareSize > 0) {
+      if (metadataSquareSize >= FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE) {
+        return metadataSquareSize;
+      }
+
+      if (maxDimension >= FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE) {
+        return metadataSquareSize;
+      }
+    }
+
+    return FALLBACK_FIGURINE_PIXEL_SQUARE_SIZE;
+  })();
 
   if (!Number.isFinite(squareSize) || squareSize <= 0) {
     return null;
@@ -1389,14 +1432,23 @@ const CampaignMapBoard = ({
                 const sizeKey = resolveFigurineSizeKey(size);
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
-                const figurineScale =
-                  sizeKey === 'medium'
-                    ? 1
-                    : Number.isFinite(imageFootprint)
-                      ? imageFootprint
-                      : Number.isFinite(baseFigurineScale)
-                        ? baseFigurineScale
-                        : DEFAULT_FIGURINE_GRID_SQUARES;
+                const figurineScale = (() => {
+                  if (Number.isFinite(imageFootprint) && imageFootprint > 0) {
+                    return imageFootprint;
+                  }
+
+                  if (Number.isFinite(baseFigurineScale) && baseFigurineScale > 0) {
+                    return baseFigurineScale;
+                  }
+
+                  if (sizeKey === 'medium') {
+                    return 1;
+                  }
+
+                  return DEFAULT_FIGURINE_GRID_SQUARES;
+                })();
+                const rotationHandleDistanceScale =
+                  resolveRotationHandleDistanceScale(figurineScale);
 
                 const figurineColor =
                   normalizedVariant === 'enemy'
@@ -1439,6 +1491,7 @@ const CampaignMapBoard = ({
                       top: `${(position?.y ?? 0) * 100}%`,
                       '--figurine-size-scale': figurineScale,
                       '--figurine-rotation': rotationStyleValue,
+                      '--rotation-handle-distance-scale': rotationHandleDistanceScale,
                       '--rotation-handle-angle': rotationHandleStyleValue,
                     }}
                     title={displayLabel || undefined}
