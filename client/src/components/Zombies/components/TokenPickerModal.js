@@ -543,6 +543,8 @@ const TokenPickerModal = ({
     cloneFilters(DEFAULT_PLAYER_FILTERS)
   );
   const [fetchingFolders, setFetchingFolders] = useState(false);
+  const hasLoadedDmFoldersRef = useRef(false);
+  const hasLoadedPlayerFoldersRef = useRef(false);
 
   const baseFilters = useMemo(() => {
     if (isDm) {
@@ -634,13 +636,25 @@ const TokenPickerModal = ({
   const [manifestMeta, setManifestMeta] = useState(null);
 
   const resetState = useCallback((options = {}) => {
-    const { resetFolderLoading = true } = options;
-    setAssets([]);
+    const {
+      resetFolderLoading = true,
+      preserveAssets = false,
+      preserveManifest = false,
+    } = options;
+
+    if (!preserveAssets) {
+      setAssets([]);
+    }
+
     setLoading(false);
     setLoadingMore(false);
     setError(null);
-    setNextCursor(null);
-    setManifestMeta(null);
+
+    if (!preserveManifest) {
+      setNextCursor(null);
+      setManifestMeta(null);
+    }
+
     if (resetFolderLoading) {
       setFetchingFolders(false);
     }
@@ -837,14 +851,21 @@ const TokenPickerModal = ({
   }, [fetchManifest]);
 
   useEffect(() => {
+    lastFetchKeyRef.current = null;
+
+    if (isDm) {
+      setDmFolderOptions(null);
+      hasLoadedDmFoldersRef.current = false;
+    } else {
+      hasLoadedPlayerFoldersRef.current = false;
+      setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
+    }
+    resetState();
+  }, [campaignId, isDm, resetState]);
+
+  useEffect(() => {
     if (!show) {
-      lastFetchKeyRef.current = null;
-      resetState();
-      if (isDm) {
-        setDmFolderOptions(null);
-      } else {
-        setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
-      }
+      resetState({ preserveAssets: true, preserveManifest: true, resetFolderLoading: false });
       return;
     }
 
@@ -889,6 +910,11 @@ const TokenPickerModal = ({
 
     if (!campaignId) {
       setDmFolderOptions(fallbackFilters);
+      hasLoadedDmFoldersRef.current = false;
+      return;
+    }
+
+    if (hasLoadedDmFoldersRef.current && Array.isArray(dmFolderOptions) && dmFolderOptions.length > 0) {
       return;
     }
 
@@ -910,10 +936,12 @@ const TokenPickerModal = ({
         }
 
         setDmFolderOptions(buildDynamicDmFilters(data, fallbackFilters));
+        hasLoadedDmFoldersRef.current = true;
       } catch (err) {
         console.error(err);
         if (!isCancelled) {
           setDmFolderOptions(fallbackFilters);
+          hasLoadedDmFoldersRef.current = false;
         }
       } finally {
         if (!isCancelled) {
@@ -942,6 +970,11 @@ const TokenPickerModal = ({
 
     if (!campaignId) {
       setPlayerFolderOptions(fallbackFilters);
+      hasLoadedPlayerFoldersRef.current = false;
+      return;
+    }
+
+    if (hasLoadedPlayerFoldersRef.current && Array.isArray(playerFolderOptions) && playerFolderOptions.length > 0) {
       return;
     }
 
@@ -963,10 +996,12 @@ const TokenPickerModal = ({
         }
 
         setPlayerFolderOptions(buildPlayerFolderFilters(data, fallbackFilters));
+        hasLoadedPlayerFoldersRef.current = true;
       } catch (err) {
         console.error(err);
         if (!isCancelled) {
           setPlayerFolderOptions(fallbackFilters);
+          hasLoadedPlayerFoldersRef.current = false;
         }
       } finally {
         if (!isCancelled) {
