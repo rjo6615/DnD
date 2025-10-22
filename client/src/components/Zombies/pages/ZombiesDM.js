@@ -94,6 +94,223 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
+const toTitleCase = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replace(/[_-]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+const formatSignedModifier = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return numeric >= 0 ? `+${numeric}` : `${numeric}`;
+};
+
+const getStatLabel = (rawKey) => {
+  if (!rawKey) {
+    return '';
+  }
+
+  const normalized = String(rawKey).toLowerCase();
+  const statKey = STAT_LOOKUP[normalized];
+  if (statKey && STAT_LABELS[statKey]) {
+    return STAT_LABELS[statKey];
+  }
+
+  return toTitleCase(String(rawKey));
+};
+
+const getSkillLabel = (rawKey) => {
+  if (!rawKey) {
+    return '';
+  }
+
+  const normalized = String(rawKey).toLowerCase();
+  const skillKey = SKILL_LOOKUP[normalized];
+  if (skillKey && SKILL_LABELS[skillKey]) {
+    return SKILL_LABELS[skillKey];
+  }
+
+  return toTitleCase(String(rawKey));
+};
+
+const formatSavingThrowsDisplay = (savingThrows) => {
+  if (!savingThrows) {
+    return '—';
+  }
+
+  const entries = [];
+
+  const pushEntry = (rawKey, rawValue) => {
+    if (!rawKey) {
+      return;
+    }
+
+    const label = getStatLabel(rawKey);
+    const modifier = formatSignedModifier(rawValue);
+    if (label && modifier) {
+      entries.push(`${label} ${modifier}`);
+    } else if (label) {
+      entries.push(label);
+    }
+  };
+
+  if (Array.isArray(savingThrows)) {
+    savingThrows.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+
+      if (typeof entry === 'string') {
+        entries.push(entry);
+        return;
+      }
+
+      if (typeof entry === 'object') {
+        if (entry.name !== undefined) {
+          pushEntry(entry.name, entry.value);
+          return;
+        }
+
+        const [firstKey] = Object.keys(entry);
+        if (firstKey) {
+          pushEntry(firstKey, entry[firstKey]);
+        }
+      }
+    });
+  } else if (typeof savingThrows === 'object') {
+    Object.entries(savingThrows).forEach(([key, value]) => pushEntry(key, value));
+  }
+
+  return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const formatSkillsDisplay = (skills) => {
+  if (!skills) {
+    return '—';
+  }
+
+  const entries = [];
+
+  const appendEntry = (rawKey, rawValue) => {
+    if (!rawKey) {
+      return;
+    }
+
+    const label = getSkillLabel(rawKey);
+    const modifier = formatSignedModifier(rawValue);
+    if (label && modifier) {
+      entries.push(`${label} ${modifier}`);
+    } else if (label) {
+      entries.push(label);
+    }
+  };
+
+  if (Array.isArray(skills)) {
+    skills.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+
+      if (typeof entry === 'string') {
+        entries.push(entry);
+        return;
+      }
+
+      if (typeof entry === 'object') {
+        if (entry.name !== undefined) {
+          appendEntry(entry.name, entry.value);
+          return;
+        }
+
+        const [firstKey] = Object.keys(entry);
+        if (firstKey) {
+          appendEntry(firstKey, entry[firstKey]);
+        }
+      }
+    });
+  } else if (typeof skills === 'object') {
+    Object.entries(skills).forEach(([key, value]) => appendEntry(key, value));
+  }
+
+  return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const formatSensesDisplay = (senses) => {
+  if (!senses) {
+    return '—';
+  }
+
+  if (typeof senses === 'string') {
+    const trimmed = senses.trim();
+    return trimmed || '—';
+  }
+
+  if (typeof senses !== 'object') {
+    return '—';
+  }
+
+  const entries = [];
+
+  if (typeof senses.summary === 'string' && senses.summary.trim()) {
+    entries.push(senses.summary.trim());
+  }
+
+  Object.entries(senses).forEach(([key, value]) => {
+    if (key === 'summary' || value === null || value === undefined || value === '') {
+      return;
+    }
+
+    if (key === 'passive_perception') {
+      entries.push(`Passive Perception ${value}`);
+      return;
+    }
+
+    entries.push(`${toTitleCase(key)} ${value}`);
+  });
+
+  return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const formatDamageTraitsDisplay = (traits) => {
+  if (!traits) {
+    return '—';
+  }
+
+  if (Array.isArray(traits)) {
+    const values = traits
+      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .filter(Boolean);
+    return values.length > 0 ? values.join(', ') : '—';
+  }
+
+  if (typeof traits === 'string') {
+    const trimmed = traits.trim();
+    return trimmed || '—';
+  }
+
+  return '—';
+};
+
+const formatXpDisplay = (xp) => {
+  const numeric = Number(xp);
+  if (!Number.isFinite(numeric)) {
+    return '—';
+  }
+
+  return numeric.toLocaleString();
+};
+
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
 const toFiniteNumberOrNull = (value) => {
@@ -165,8 +382,19 @@ function EnemyCard({
   languagesDisplay,
   alignmentDisplay,
   speedDisplay,
+  savingThrowsDisplay,
+  skillsDisplay,
+  sensesDisplay,
+  xpDisplay,
+  damageVulnerabilitiesDisplay,
+  damageResistancesDisplay,
+  damageImmunitiesDisplay,
   abilityScoreBadges,
   damagingActions,
+  actionsList,
+  bonusActionsList,
+  reactionsList,
+  legendaryActionsList,
   latestEnemyRoll,
   onEnemyDamageRoll,
   onEnemyAdjustmentInputChange,
@@ -191,6 +419,36 @@ function EnemyCard({
   const adjustmentValue = enemy.enemyId ? enemyHealthAdjustments[enemy.enemyId] ?? '' : '';
   const isSavingHealth = enemy.enemyId ? Boolean(enemyHealthSaving[enemy.enemyId]) : false;
   const hasActions = Array.isArray(damagingActions) && damagingActions.length > 0;
+
+  const renderActionSection = (label, actions, keyPrefix) => (
+    <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+      <span className="enemy-card__summary-label">{label}</span>
+      {Array.isArray(actions) && actions.length > 0 ? (
+        <div className="flex-grow-1 d-flex flex-column gap-2" style={{ minWidth: 0 }}>
+          {actions.map((action, index) => {
+            const actionKey = `${enemy.enemyId || 'enemy'}-${keyPrefix}-${index}`;
+            const actionName = action?.name || label.replace(/:$/, '');
+            const actionDesc = action?.desc;
+
+            return (
+              <div key={actionKey} className="d-flex flex-column gap-1">
+                <div className="fw-semibold small text-body">{actionName}</div>
+                {actionDesc ? (
+                  <div className="small text-muted" style={{ whiteSpace: 'pre-line' }}>
+                    {actionDesc}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <span className="flex-grow-1" aria-hidden="true">
+          —
+        </span>
+      )}
+    </div>
+  );
 
   let healthPercent = null;
   if (
@@ -340,12 +598,59 @@ function EnemyCard({
         )}
         {showDetails && (
           <div className="enemy-card__section">
+            <div className="enemy-card__section-subtitle">Ability Scores</div>
+            <div className="d-flex flex-wrap gap-2">
+              {abilityScoreBadges.map(({ key, value }) => (
+                <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
+                  {value}
+                </span>
+              ))}
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
             <div className="enemy-card__detail-grid">
-              <div className="enemy-card__detail-line">
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Speed:</span>
                 <span aria-hidden="true">{speedDisplay}</span>
               </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Saving Throws:</span>
+                <span aria-hidden="true">{savingThrowsDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Skills:</span>
+                <span aria-hidden="true">{skillsDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Senses:</span>
+                <span aria-hidden="true">{sensesDisplay}</span>
+              </div>
               <div className="enemy-card__detail-line">
+                <span className="enemy-card__summary-label">Xp:</span>
+                <span aria-hidden="true">{xpDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Damage Vulnerabilities:</span>
+                <span aria-hidden="true">{damageVulnerabilitiesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Damage Resistances:</span>
+                <span aria-hidden="true">{damageResistancesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Damage Immunities:</span>
+                <span aria-hidden="true">{damageImmunitiesDisplay}</span>
+              </div>
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+            <div className="enemy-card__detail-grid">
+              {renderActionSection('Actions:', actionsList, 'actions')}
+              {renderActionSection('Bonus Actions:', bonusActionsList, 'bonus-actions')}
+              {renderActionSection('Reactions:', reactionsList, 'reactions')}
+              {renderActionSection('Legendary Actions:', legendaryActionsList, 'legendary-actions')}
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+            <div className="enemy-card__detail-grid">
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Alignment:</span>
                 <span aria-hidden="true">{alignmentDisplay}</span>
               </div>
@@ -353,14 +658,6 @@ function EnemyCard({
                 <span className="enemy-card__summary-label">Languages:</span>
                 <span aria-hidden="true">{languagesDisplay}</span>
               </div>
-            </div>
-            <div className="enemy-card__section-subtitle">Abilities</div>
-            <div className="d-flex flex-wrap gap-2">
-              {abilityScoreBadges.map(({ key, value }) => (
-                <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
-                  {value}
-                </span>
-              ))}
             </div>
           </div>
         )}
@@ -6655,10 +6952,27 @@ const resolveIcon = (category, iconMap, fallback) => {
                   const armorClassDisplay = formatArmorClass(enemy.armorClass);
                   const speedDisplay = formatSpeed(enemy.speed);
                   const alignmentDisplay = enemy.alignment || '—';
+                  const savingThrowsDisplay = formatSavingThrowsDisplay(enemy.savingThrows);
+                  const skillsDisplay = formatSkillsDisplay(enemy.skills);
+                  const sensesDisplay = formatSensesDisplay(enemy.senses);
+                  const xpDisplay = formatXpDisplay(enemy.xp);
+                  const damageVulnerabilitiesDisplay = formatDamageTraitsDisplay(
+                    enemy.damageVulnerabilities
+                  );
+                  const damageResistancesDisplay = formatDamageTraitsDisplay(enemy.damageResistances);
+                  const damageImmunitiesDisplay = formatDamageTraitsDisplay(enemy.damageImmunities);
                   const abilityScoreBadges = STAT_KEYS_ORDER.map((key) => ({
                     key,
                     value: formatAbilityScore(key, enemy?.abilityScores?.[key]),
                   }));
+                  const actionsList = Array.isArray(enemy.actions) ? enemy.actions : [];
+                  const bonusActionsList = Array.isArray(enemy.bonusActions)
+                    ? enemy.bonusActions
+                    : [];
+                  const reactionsList = Array.isArray(enemy.reactions) ? enemy.reactions : [];
+                  const legendaryActionsList = Array.isArray(enemy.legendaryActions)
+                    ? enemy.legendaryActions
+                    : [];
 
                   return (
                     <EnemyCard
@@ -6673,8 +6987,19 @@ const resolveIcon = (category, iconMap, fallback) => {
                       languagesDisplay={languagesDisplay}
                       alignmentDisplay={alignmentDisplay}
                       speedDisplay={speedDisplay}
+                      savingThrowsDisplay={savingThrowsDisplay}
+                      skillsDisplay={skillsDisplay}
+                      sensesDisplay={sensesDisplay}
+                      xpDisplay={xpDisplay}
+                      damageVulnerabilitiesDisplay={damageVulnerabilitiesDisplay}
+                      damageResistancesDisplay={damageResistancesDisplay}
+                      damageImmunitiesDisplay={damageImmunitiesDisplay}
                       abilityScoreBadges={abilityScoreBadges}
                       damagingActions={damagingActions}
+                      actionsList={actionsList}
+                      bonusActionsList={bonusActionsList}
+                      reactionsList={reactionsList}
+                      legendaryActionsList={legendaryActionsList}
                       latestEnemyRoll={latestEnemyRoll}
                       onEnemyDamageRoll={handleEnemyDamageRoll}
                       onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
