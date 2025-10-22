@@ -71,8 +71,8 @@ const normalizeText = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
 const FIGURINE_SIZE_MULTIPLIERS = {
-  tiny: 0.5,
-  small: 1,
+  tiny: 0.25,
+  small: 0.5,
   medium: 1,
   large: 2,
   huge: 3,
@@ -1430,10 +1430,11 @@ const CampaignMapBoard = ({
                   ? resolveFigurineSquaresFromImageSize(metrics, metadataSquareSize)
                   : null;
                 const sizeKey = resolveFigurineSizeKey(size);
+                const hasExplicitSize = typeof size === 'string' && size.trim() !== '';
                 const baseFigurineScale =
                   FIGURINE_SIZE_MULTIPLIERS[sizeKey] ?? DEFAULT_FIGURINE_GRID_SQUARES;
                 const figurineScale = (() => {
-                  if (Number.isFinite(imageFootprint) && imageFootprint > 0) {
+                  if (!hasExplicitSize && Number.isFinite(imageFootprint) && imageFootprint > 0) {
                     return imageFootprint;
                   }
 
