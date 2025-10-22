@@ -26,6 +26,7 @@ const monsters = require('./monsters');
 const weaponProficiency = require('./weaponProficiency');
 const armorProficiency = require('./armorProficiency');
 const ai = require('./ai');
+const cloudinary = require('./cloudinary');
 
 routes.use(async (req, res, next) => {
   try {
@@ -61,5 +62,6 @@ feats(routes);
 equipment(routes);
 weaponProficiency(routes);
 armorProficiency(routes);
+cloudinary(routes);
 
 module.exports = routes;
