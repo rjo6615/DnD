@@ -428,7 +428,7 @@ describe('CampaignMapBoard pointer interactions', () => {
         tokens={[
           {
             ...baseToken,
-            size: 'medium',
+            size: undefined,
             figurineImageUrl: 'https://example.com/figurines/large.png',
           },
         ]}
@@ -466,7 +466,7 @@ describe('CampaignMapBoard pointer interactions', () => {
         tokens={[
           {
             ...baseToken,
-            size: 'medium',
+            size: undefined,
             figurineImageUrl: 'https://example.com/figurines/colossal.png',
           },
         ]}
@@ -493,6 +493,44 @@ describe('CampaignMapBoard pointer interactions', () => {
 
       await waitFor(() => {
         expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('2');
+      });
+    }
+  });
+
+  it('keeps explicit figurine sizes even when image footprint is larger', async () => {
+    const { container } = render(
+      <CampaignMapBoard
+        map={{ ...baseMap, pixelsPerSquare: 256 }}
+        tokens={[
+          {
+            ...baseToken,
+            size: 'medium',
+            figurineImageUrl: 'https://example.com/figurines/oversized.png',
+          },
+        ]}
+      />
+    );
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    if (figurineImage) {
+      Object.defineProperty(figurineImage, 'naturalWidth', {
+        configurable: true,
+        value: 512,
+      });
+      Object.defineProperty(figurineImage, 'naturalHeight', {
+        configurable: true,
+        value: 512,
+      });
+
+      fireEvent.load(figurineImage);
+
+      await waitFor(() => {
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('1');
       });
     }
   });
