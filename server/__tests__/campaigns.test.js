@@ -77,6 +77,153 @@ describe('suggestEnemyFigurine helper', () => {
         'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
     });
   });
+
+  test('reuses cached figurine suggestions for the same monster keys', async () => {
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
+
+    const mockExecute = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/DM/skeleton_token',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/skeleton_token.png',
+          folder: 'Tokens/DM',
+          filename: 'skeleton_token',
+        },
+      ],
+    });
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    const first = await actualSuggestEnemyFigurine({ index: 'skeleton', name: 'Skeleton' });
+    const second = await actualSuggestEnemyFigurine({ index: 'skeleton', name: 'Skeleton' });
+
+    expect(first).toEqual({
+      figurineImagePublicId: 'Tokens/DM/skeleton_token',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/skeleton_token.png',
+    });
+    expect(second).toEqual(first);
+    expect(mockExpression).toHaveBeenCalledTimes(1);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  test('caches null figurine suggestions to avoid repeated searches', async () => {
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
+
+    const mockExecute = jest.fn().mockResolvedValue({ resources: [] });
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    const first = await actualSuggestEnemyFigurine({ index: 'wight', name: 'Wight' });
+    const second = await actualSuggestEnemyFigurine({ index: 'wight', name: 'Wight' });
+
+    expect(first).toBeNull();
+    expect(second).toBeNull();
+    expect(mockExpression).toHaveBeenCalledTimes(2);
+    expect(mockExecute).toHaveBeenCalledTimes(2);
+  });
+
+  test('tracks Cloudinary API call counts across figurine search scenarios', async () => {
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
+
+    const mockExecute = jest
+      .fn()
+      .mockResolvedValueOnce({ resources: [] })
+      .mockResolvedValueOnce({
+        resources: [
+          {
+            public_id: 'Tokens/DM/ogre_token',
+            secure_url:
+              'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/ogre_token.png',
+            folder: 'Tokens/DM',
+            filename: 'ogre_token',
+          },
+        ],
+      });
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const {
+      suggestEnemyFigurine: actualSuggestEnemyFigurine,
+      getCloudinaryApiCallCounts,
+      resetCloudinaryApiCallCounts,
+    } = jest.requireActual('../utils/cloudinary');
+
+    const result = await actualSuggestEnemyFigurine({ index: 'ogre', name: 'Ogre' });
+
+    expect(result).toEqual({
+      figurineImagePublicId: 'Tokens/DM/ogre_token',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/ogre_token.png',
+    });
+
+    expect(mockExpression).toHaveBeenCalledTimes(2);
+    expect(mockExecute).toHaveBeenCalledTimes(2);
+
+    const counts = getCloudinaryApiCallCounts();
+    expect(counts.total).toBe(2);
+    expect(counts.byAction).toEqual({ 'search.execute': 2 });
+
+    resetCloudinaryApiCallCounts();
+    expect(getCloudinaryApiCallCounts()).toEqual({ total: 0, byAction: {} });
+  });
 });
 
 describe('Cloudinary caching helpers', () => {
