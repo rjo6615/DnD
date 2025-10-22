@@ -643,6 +643,8 @@ function EnemyCard({
               {renderActionSection('Bonus Actions:', bonusActionsList, 'bonus-actions')}
               {renderActionSection('Reactions:', reactionsList, 'reactions')}
               {renderActionSection('Legendary Actions:', legendaryActionsList, 'legendary-actions')}
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+              {renderActionSection('Special Abilities:', enemy.specialAbilities, 'special-abilities')}
             </div>
             <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
             <div className="enemy-card__detail-grid">
