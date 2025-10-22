@@ -80,7 +80,27 @@ describe('Cloudinary usage route', () => {
     const res = await request(app).get('/usage');
 
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({ message: 'Failed to retrieve Cloudinary usage' });
+    expect(res.body).toEqual({
+      message: 'Failed to retrieve Cloudinary usage',
+      reason: 'usage unavailable',
+    });
+    expect(usageImpl).toHaveBeenCalledTimes(1);
+  });
+
+  test('uses Cloudinary http_code when available', async () => {
+    const error = new Error('Not allowed in current plan');
+    error.http_code = 403;
+    const usageImpl = jest.fn().mockRejectedValue(error);
+
+    const { app } = buildApp(usageImpl);
+
+    const res = await request(app).get('/usage');
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({
+      message: 'Failed to retrieve Cloudinary usage',
+      reason: 'Not allowed in current plan',
+    });
     expect(usageImpl).toHaveBeenCalledTimes(1);
   });
 });

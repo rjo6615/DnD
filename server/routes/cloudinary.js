@@ -13,12 +13,29 @@ module.exports = (router) => {
 
       res.json({ usage });
     } catch (error) {
+      const statusCode =
+        Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode < 600
+          ? error.statusCode
+          : 500;
+
+      const reason =
+        error?.details?.reason && typeof error.details.reason === 'string'
+          ? error.details.reason
+          : null;
+
       logger.warn('Failed to fetch Cloudinary usage data', {
         source: 'cloudinaryUsageRoute',
         error: error.message,
+        statusCode,
+        reason,
       });
 
-      res.status(500).json({ message: 'Failed to retrieve Cloudinary usage' });
+      const payload = { message: 'Failed to retrieve Cloudinary usage' };
+      if (reason) {
+        payload.reason = reason;
+      }
+
+      res.status(statusCode).json(payload);
     }
   });
 };

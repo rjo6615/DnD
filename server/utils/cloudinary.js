@@ -400,19 +400,65 @@ const sanitizeTokenResource = (resource = {}, rootFolder = DEFAULT_TOKEN_ROOT_FO
   };
 };
 
+class CloudinaryUsageError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+    this.name = 'CloudinaryUsageError';
+
+    const { statusCode, details, cause } = options;
+
+    if (Number.isInteger(statusCode)) {
+      this.statusCode = statusCode;
+    }
+
+    if (details && typeof details === 'object') {
+      this.details = details;
+    }
+
+    if (cause) {
+      this.cause = cause;
+    }
+  }
+}
+
 const fetchUsage = async () => {
   configure();
   const sdk = resolveCloudinary();
 
   if (!sdk?.api || typeof sdk.api.usage !== 'function') {
-    throw new Error('Cloudinary usage API is unavailable');
+    throw new CloudinaryUsageError('Cloudinary usage API is unavailable', {
+      statusCode: 503,
+    });
   }
 
   logCloudinaryApiCall('api.usage', { context: 'fetchUsage' });
 
-  const usage = await sdk.api.usage();
+  try {
+    const usage = await sdk.api.usage();
+    if (!usage || typeof usage !== 'object') {
+      throw new CloudinaryUsageError('Cloudinary usage response was empty', {
+        statusCode: 502,
+      });
+    }
 
-  return usage && typeof usage === 'object' ? usage : null;
+    return usage;
+  } catch (error) {
+    const httpCode =
+      typeof error?.http_code === 'number' && error.http_code >= 400 && error.http_code < 600
+        ? error.http_code
+        : undefined;
+
+    const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : httpCode;
+
+    throw new CloudinaryUsageError('Failed to fetch Cloudinary usage', {
+      cause: error,
+      statusCode,
+      details:
+        error?.message && typeof error.message === 'string'
+          ? { reason: error.message }
+          : undefined,
+    });
+  }
 };
 
 const uploadMapImage = async (image, options = {}) => {
@@ -1128,6 +1174,7 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
 };
 
 module.exports = {
+  CloudinaryUsageError,
   fetchUsage,
   uploadMapImage,
   deleteMapImage,
