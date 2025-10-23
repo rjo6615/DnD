@@ -203,6 +203,16 @@ const addEnemyFolderVariantsToScope = (set, folderPath) => {
 
   const variants = new Set([pathWithTokens, pathWithTokens.replace(/^Tokens\//i, '')]);
 
+  const segments = pathWithTokens.split('/');
+  if (segments.length >= 3 && segments[0] === 'Tokens' && segments[1] === 'Adversaries') {
+    const dmSegments = [...segments];
+    dmSegments.splice(1, 0, 'DM');
+    const dmPath = dmSegments.join('/');
+
+    variants.add(dmPath);
+    variants.add(dmPath.replace(/^Tokens\//i, ''));
+  }
+
   variants.forEach((variant) => {
     addEnemyScopeValue(set, variant);
     addEnemyScopeValue(set, `folder:${variant}`);
@@ -219,11 +229,11 @@ const buildOrderedNameVariants = (words) => {
 
   const candidates = [
     titleWords.join('_'),
-    titleWords.join('-'),
-    titleWords.join(' '),
     lowerWords.join('_'),
-    lowerWords.join('-'),
+    titleWords.join(' '),
     lowerWords.join(' '),
+    titleWords.join('-'),
+    lowerWords.join('-'),
     titleWords.join(''),
     lowerWords.join(''),
   ];
@@ -244,6 +254,44 @@ const buildOrderedNameVariants = (words) => {
   return unique;
 };
 
+const extractNormalizedWords = (value) => {
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  return value
+    .split(/[\\/]+/g)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join(' ')
+    .split(/[^A-Za-z0-9]+/g)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+};
+
+const derivePreferredAdversaryFolderName = (folderPath) => {
+  const normalized = normalizeAdversaryFolderPath(folderPath);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const withoutPrefix = normalized.replace(/^Tokens\/Adversaries\/?/i, '');
+
+  if (!withoutPrefix) {
+    return null;
+  }
+
+  const normalizedWords = extractNormalizedWords(withoutPrefix);
+  const ordered = buildOrderedNameVariants(normalizedWords);
+
+  if (ordered.length > 0) {
+    return ordered[0];
+  }
+
+  return withoutPrefix;
+};
+
 export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) => {
   const scopeSet = new Set();
   let primaryFolderVariant = null;
@@ -253,8 +301,28 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
     (monsterDetail && ENEMY_ADVERSARY_TOKEN_CONFIG[monsterDetail?.index]);
 
   if (config) {
-    const folders = Array.isArray(config.folders) ? config.folders : config.folder ? [config.folder] : [];
-    folders.forEach((folder) => addEnemyFolderVariantsToScope(scopeSet, folder));
+    const folders = Array.isArray(config.folders)
+      ? config.folders
+      : config.folder
+        ? [config.folder]
+        : [];
+
+    folders.forEach((folder) => {
+      addEnemyFolderVariantsToScope(scopeSet, folder);
+
+      const preferredFolderName = derivePreferredAdversaryFolderName(folder);
+
+      if (preferredFolderName) {
+        addEnemyFolderVariantsToScope(
+          scopeSet,
+          `Tokens/Adversaries/${preferredFolderName}`
+        );
+
+        if (primaryFolderVariant === null) {
+          primaryFolderVariant = preferredFolderName;
+        }
+      }
+    });
   }
 
   const folderNameCandidates = new Set();
@@ -284,20 +352,7 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
       return;
     }
 
-    const baseSegments = trimmed
-      .split(/[\\/]+/g)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
-
-    if (baseSegments.length === 0) {
-      return;
-    }
-
-    const normalizedWords = baseSegments
-      .join(' ')
-      .split(/[^A-Za-z0-9]+/g)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
+    const normalizedWords = extractNormalizedWords(trimmed);
 
     if (normalizedWords.length === 0) {
       return;
