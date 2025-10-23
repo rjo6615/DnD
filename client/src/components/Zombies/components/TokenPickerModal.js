@@ -159,7 +159,35 @@ const buildFolderHintsFromScope = (scopeValues) => {
     hints.push(normalized);
   });
 
-  return hints;
+  const getSegments = (value) =>
+    typeof value === 'string'
+      ? value
+          .split('/')
+          .map((segment) => segment.trim())
+          .filter(Boolean)
+      : [];
+
+  return hints.sort((a, b) => {
+    const aSegments = getSegments(a);
+    const bSegments = getSegments(b);
+
+    const aIsDm = aSegments.length > 1 && aSegments[1].toLowerCase() === 'dm';
+    const bIsDm = bSegments.length > 1 && bSegments[1].toLowerCase() === 'dm';
+
+    if (aIsDm !== bIsDm) {
+      return aIsDm ? -1 : 1;
+    }
+
+    if (aSegments.length !== bSegments.length) {
+      return bSegments.length - aSegments.length;
+    }
+
+    if (a.length !== b.length) {
+      return b.length - a.length;
+    }
+
+    return a.localeCompare(b);
+  });
 };
 
 const normalizeVariantData = (value, cache) => {
