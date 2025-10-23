@@ -24048,29 +24048,79 @@
       "size": "Large",
       "type": "beast",
       "alignment": "Unaligned",
-      "armor_class": null,
-      "hit_points": null,
-      "hit_dice": null,
-      "speed": {},
-      "strength": null,
-      "dexterity": null,
-      "constitution": null,
-      "intelligence": null,
-      "wisdom": null,
-      "charisma": null,
+      "armor_class": 13,
+      "hit_points": 51,
+      "hit_dice": "6d10 + 18",
+      "speed": {
+        "walk": "60 ft."
+      },
+      "strength": 19,
+      "dexterity": 13,
+      "constitution": 17,
+      "intelligence": 2,
+      "wisdom": 12,
+      "charisma": 5,
       "saving_throws": [],
-      "skills": null,
-      "senses": null,
+      "skills": {
+        "perception": 5
+      },
+      "senses": {
+        "passive_perception": 15
+      },
       "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "challenge_rating": 2.0,
+      "xp": 450,
+      "proficiency_bonus": 2,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": null,
       "condition_immunities": null,
-      "special_abilities": null,
-      "actions": null,
+      "special_abilities": [
+        {
+          "name": "Pounce",
+          "desc": "If the allosaurus moves at least 30 feet straight toward a creature and then hits it with a Claws attack on the same turn, that target must succeed on a DC 13 Strength saving throw or have the Prone condition. If the target is prone, the allosaurus can make one Bite attack against it as a bonus action."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Multiattack",
+          "desc": "The allosaurus makes one Bite attack and one Claws attack."
+        },
+        {
+          "name": "Bite",
+          "desc": "Melee Attack Roll: +6, reach 5 ft. Hit: 15 (2d10 + 4) Piercing damage.",
+          "attack_bonus": 6,
+          "damage": [
+            {
+              "damage_dice": "2d10+4",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "2d10+4",
+          "damage_type": {
+            "name": "piercing"
+          }
+        },
+        {
+          "name": "Claws",
+          "desc": "Melee Attack Roll: +6, reach 5 ft. Hit: 11 (2d6 + 4) Slashing damage. If the target is a Large or smaller creature and the allosaurus moved 30 or more feet straight toward it immediately before the hit, the target has the Prone condition, and the allosaurus can make one Bite attack against it.",
+          "attack_bonus": 6,
+          "damage": [
+            {
+              "damage_dice": "2d6+4",
+              "damage_type": {
+                "name": "slashing"
+              }
+            }
+          ],
+          "damage_dice": "2d6+4",
+          "damage_type": {
+            "name": "slashing"
+          }
+        }
+      ],
       "bonus_actions": null,
       "reactions": null,
       "legendary_actions": null,
