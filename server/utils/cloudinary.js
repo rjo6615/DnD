@@ -11,6 +11,7 @@ const MAX_FOLDER_TREE_CONCURRENCY = 12;
 const MAX_ADVERSARY_FOLDER_RESULTS = 60;
 
 const tokenListCache = new Map();
+const tokenListInFlight = new Map();
 const folderTreeCache = new Map();
 const figurineSuggestionCache = new Map();
 
@@ -877,41 +878,70 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
     }
   }
 
-  let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
-
-  search = search.max_results(resolvedMaxResults).with_field('context').with_field('metadata');
-
-  if (sanitizedNextCursor) {
-    search = search.next_cursor(sanitizedNextCursor);
+  const existingInFlight = tokenListInFlight.get(cacheKey);
+  if (existingInFlight) {
+    return existingInFlight;
   }
 
-  logCloudinaryApiCall('search.execute', {
-    context: 'listTokenAssets',
-    expression,
-    maxResults: resolvedMaxResults,
-    nextCursor: sanitizedNextCursor,
-    folders: sanitizedFolders,
-  });
+  const runSearch = async () => {
+    let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
 
-  const result = await search.execute();
-  const resources = Array.isArray(result?.resources) ? result.resources : [];
-  const assets = resources
-    .map((resource) => sanitizeTokenResource(resource, rootFolder))
-    .filter(Boolean);
+    search = search.max_results(resolvedMaxResults).with_field('context').with_field('metadata');
 
-  const response = {
-    assets,
-    nextCursor: typeof result?.next_cursor === 'string' ? result.next_cursor : null,
-    totalCount: typeof result?.total_count === 'number' ? result.total_count : null,
-    appliedFolders: sanitizedFolders,
-    rootFolder,
+    if (sanitizedNextCursor) {
+      search = search.next_cursor(sanitizedNextCursor);
+    }
+
+    logCloudinaryApiCall('search.execute', {
+      context: 'listTokenAssets',
+      expression,
+      maxResults: resolvedMaxResults,
+      nextCursor: sanitizedNextCursor,
+      folders: sanitizedFolders,
+    });
+
+    const result = await search.execute();
+    const resources = Array.isArray(result?.resources) ? result.resources : [];
+    const assets = resources
+      .map((resource) => sanitizeTokenResource(resource, rootFolder))
+      .filter(Boolean);
+
+    const response = {
+      assets,
+      nextCursor: typeof result?.next_cursor === 'string' ? result.next_cursor : null,
+      totalCount: typeof result?.total_count === 'number' ? result.total_count : null,
+      appliedFolders: sanitizedFolders,
+      rootFolder,
+    };
+
+    if (cacheTtlMs > 0) {
+      setCacheEntry(tokenListCache, cacheKey, response, cacheTtlMs);
+    }
+
+    return response;
   };
 
-  if (cacheTtlMs > 0) {
-    setCacheEntry(tokenListCache, cacheKey, response, cacheTtlMs);
-  }
+  let resolveInFlight;
+  let rejectInFlight;
+  const inFlightPromise = new Promise((resolve, reject) => {
+    resolveInFlight = resolve;
+    rejectInFlight = reject;
+  });
 
-  return response;
+  tokenListInFlight.set(cacheKey, inFlightPromise);
+
+  (async () => {
+    try {
+      const response = await runSearch();
+      resolveInFlight(response);
+    } catch (error) {
+      rejectInFlight(error);
+    } finally {
+      tokenListInFlight.delete(cacheKey);
+    }
+  })();
+
+  return inFlightPromise;
 };
 
 const DM_FOLDER_PATTERN = /(^|\/)dm([ -]?only)?(\/|$)/i;
