@@ -5929,16 +5929,17 @@
       "charisma": 1,
       "saving_throws": [],
       "skills": null,
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "senses": {
+        "passive_perception": 9,
+        "darkvision": "60 ft."
+      },
+      "languages": "Understands the languages of its creator but can't speak",
+      "challenge_rating": 9.0,
+      "xp": 5000,
+      "proficiency_bonus": 4,
       "damage_vulnerabilities": null,
       "damage_resistances": [
-        "Bludgeoning",
-        "Piercing",
-        "Slashing"
+        "Bludgeoning, Piercing, and Slashing from nonmagical Attacks"
       ],
       "damage_immunities": [
         "Acid",
@@ -5947,7 +5948,11 @@
       ],
       "condition_immunities": [
         "Charmed",
-        "Exhaustion"
+        "Exhaustion",
+        "Frightened",
+        "Paralyzed",
+        "Petrified",
+        "Poisoned"
       ],
       "special_abilities": [
         {
@@ -5981,6 +5986,12 @@
               "damage_dice": "1d10+5",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "1d12",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
