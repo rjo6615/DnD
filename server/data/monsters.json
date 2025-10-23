@@ -1665,8 +1665,7 @@
       },
       "senses": {
         "passive_perception": 20,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Deep Speech; telepathy 120 ft.",
       "challenge_rating": 10.0,
@@ -1795,8 +1794,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Primordial (Auran)",
       "challenge_rating": 5.0,
@@ -2091,8 +2089,7 @@
       "senses": {
         "passive_perception": 11,
         "darkvision": "60 ft.",
-        "tremorsense": "60 ft.",
-        "summary": "Darkvision 60 ft., Tremorsense 60 ft."
+        "tremorsense": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -2183,14 +2180,11 @@
         "stealth": 10
       },
       "senses": {
-        "passive_perception": 16,
-        "cant_cr": "8",
-        "xp": "3",
-        "summary": "Languages Common, Thieves’ Cant CR 8 (XP 3,900; PB +3)"
+        "passive_perception": 16
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Languages Common, Thieves’ Cant ",
+      "challenge_rating": 8,
+      "xp": 3900,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -2529,7 +2523,9 @@
       "skills": {
         "perception": 9
       },
-      "senses": null,
+      "senses": {
+        "truesight": "120 ft."
+      },
       "languages": "",
       "challenge_rating": 19.0,
       "xp": 22000,
@@ -2546,7 +2542,7 @@
       "condition_immunities": [
         "Charmed",
         "Frightened",
-        "Poisoned Senses Truesight 120 ft."
+        "Poisoned"
       ],
       "special_abilities": [
         {
@@ -2651,14 +2647,11 @@
       "saving_throws": [],
       "skills": null,
       "senses": {
-        "passive_perception": 10,
-        "cant_cr": "1",
-        "xp": "25",
-        "summary": "Languages Common, Thieves’ Cant CR 1/8 (XP 25; PB +2)"
+        "passive_perception": 10
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Languages Common, Thieves’ Cant",
+      "challenge_rating": 0.125,
+      "xp": 25,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -2744,14 +2737,11 @@
         "deception": 4
       },
       "senses": {
-        "passive_perception": 10,
-        "cant_cr": "2",
-        "xp": "450",
-        "summary": "Languages Common, Thieves’ Cant CR 2 (XP 450; PB +2)"
+        "passive_perception": 10
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Languages Common, Thieves’ Cant",
+      "challenge_rating": 2,
+      "xp": 450,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -2853,7 +2843,7 @@
       },
       "senses": {
         "passive_perception": 18,
-        "darkvision": "120 ft.",
+        "NOTINUSEdarkvision": "120 ft.",
         "summary": "Darkvision 120 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Infernal; telepathy 120 ft.",
@@ -2971,8 +2961,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 3.0,
@@ -3048,7 +3037,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "120 ft.",
+        "NOTINUSEdarkvision": "120 ft.",
         "summary": "Darkvision 120 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Infernal; telepathy 120 ft.",
@@ -3146,8 +3135,7 @@
       },
       "senses": {
         "passive_perception": 16,
-        "darkvision": "90 ft.",
-        "summary": "Darkvision 90 ft."
+        "darkvision": "90 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 11.0,
@@ -3335,8 +3323,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 2.0,
@@ -3437,8 +3424,7 @@
       "senses": {
         "passive_perception": 16,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 7.0,
@@ -3539,8 +3525,7 @@
       "senses": {
         "passive_perception": 21,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 14.0,
@@ -3674,8 +3659,7 @@
       "senses": {
         "passive_perception": 26,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 21.0,
@@ -3795,8 +3779,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 4.0,
@@ -3888,8 +3871,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Blink Dog; understands Elvish and Sylvan but can’t speak them",
       "challenge_rating": 0.25,
@@ -3967,8 +3949,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 3.0,
@@ -4064,8 +4045,7 @@
       "senses": {
         "passive_perception": 19,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 9.0,
@@ -4170,7 +4150,7 @@
       "senses": {
         "passive_perception": 12,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
+        "NOTINUSEdarkvision": "120 ft.",
         "summary": "Darkvision 120 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Infernal; telepathy 120 ft.",
@@ -4301,8 +4281,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 1.0,
@@ -4399,8 +4378,7 @@
       "senses": {
         "passive_perception": 16,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 6.0,
@@ -4502,8 +4480,7 @@
       "senses": {
         "passive_perception": 21,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 13.0,
@@ -4646,8 +4623,7 @@
       "senses": {
         "passive_perception": 24,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 20.0,
@@ -4789,8 +4765,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 2.0,
@@ -4896,8 +4871,7 @@
       "senses": {
         "passive_perception": 17,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 8.0,
@@ -5003,8 +4977,7 @@
       "senses": {
         "passive_perception": 22,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 15.0,
@@ -5151,8 +5124,7 @@
       "senses": {
         "passive_perception": 27,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 22.0,
@@ -5385,8 +5357,7 @@
       },
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common, Goblin",
       "challenge_rating": 1.0,
@@ -5471,8 +5442,7 @@
       "senses": {
         "passive_perception": 16,
         "darkvision": "60 ft.",
-        "tremorsense": "120 ft.",
-        "summary": "Darkvision 60 ft., Tremorsense 120 ft."
+        "tremorsense": "120 ft."
       },
       "languages": "",
       "challenge_rating": 5.0,
@@ -5660,7 +5630,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "120 ft.",
+        "NOTINUSEdarkvision": "120 ft.",
         "summary": "Darkvision 120 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Infernal; telepathy 120 ft.",
@@ -5767,14 +5737,11 @@
       },
       "senses": {
         "passive_perception": 18,
-        "darkvision": "60 ft.",
-        "t_speak_cr": "6",
-        "xp": "2",
-        "summary": "Darkvision 60 ft.; Languages Understands Draconic but can’t speak CR 6 (XP 2,300; PB +3)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Understands Draconic but can't speak",
+      "challenge_rating": 6,
+      "xp": 2300,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -5885,14 +5852,11 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "t_speak_cr": "4",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Understands Deep Speech but can’t speak CR 4 (XP 1,100; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Understands Deep Speech but can't speak",
+      "challenge_rating": 4,
+      "xp": 1100,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -6062,8 +6026,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Deep Speech, Undercommon",
       "challenge_rating": 8.0,
@@ -6257,8 +6220,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -6395,8 +6357,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 1.0,
@@ -6493,8 +6454,7 @@
       "senses": {
         "passive_perception": 17,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 7.0,
@@ -6595,8 +6555,7 @@
       "senses": {
         "passive_perception": 22,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 14.0,
@@ -6735,8 +6694,7 @@
       "senses": {
         "passive_perception": 27,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 21.0,
@@ -6869,8 +6827,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 15,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "All; telepathy 120 ft.",
       "challenge_rating": 4.0,
@@ -6966,14 +6923,11 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "blindsight": "30 ft.",
-        "t_speak_cr": "3",
-        "xp": "700",
-        "summary": "Blindsight 30 ft.; Languages Understands Common but can’t speak CR 3 (XP 700; PB +2)"
+        "blindsight": "30 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Understands Common but can't speak",
+      "challenge_rating": 3,
+      "xp": 700,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -7172,8 +7126,7 @@
       },
       "senses": {
         "passive_perception": 10,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -7238,8 +7191,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -7417,8 +7369,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 13,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Primordial (Auran)",
       "challenge_rating": 11.0,
@@ -7537,14 +7488,11 @@
       },
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "languages_common_plus_three_other_languages_cr": "3",
-        "xp": "700",
-        "summary": "Darkvision 60 ft.; Languages Common plus three other languages CR 3 (XP 700; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Languages Common plus three other languages",
+      "challenge_rating": 3,
+      "xp": 700,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -7627,8 +7575,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Draconic, Primordial (Aquan)",
       "challenge_rating": 17.0,
@@ -7730,8 +7677,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Abyssal; telepathy 60 ft. (works only with creatures that understand Abyssal)",
       "challenge_rating": 0.25,
@@ -7806,8 +7752,7 @@
       },
       "senses": {
         "passive_perception": 16,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Elvish, Undercommon",
       "challenge_rating": 6.0,
@@ -7902,14 +7847,11 @@
         "perception": 5
       },
       "senses": {
-        "passive_perception": 15,
-        "sylvan_cr": "2",
-        "xp": "450",
-        "summary": "Languages Common, Druidic, Sylvan CR 2 (XP 450; PB +2)"
+        "passive_perception": 15
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common, Druidic, Sylvan",
+      "challenge_rating": 2,
+      "xp": 450,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -7992,8 +7934,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Elvish, Sylvan",
       "challenge_rating": 1.0,
@@ -8088,8 +8029,7 @@
       "senses": {
         "passive_perception": 10,
         "darkvision": "60 ft.",
-        "tremorsense": "60 ft.",
-        "summary": "Darkvision 60 ft., Tremorsense 60 ft."
+        "tremorsense": "60 ft."
       },
       "languages": "Primordial (Terran)",
       "challenge_rating": 5.0,
@@ -8195,8 +8135,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 12,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Primordial (Ignan)",
       "challenge_rating": 11.0,
@@ -8312,8 +8251,7 @@
       },
       "senses": {
         "passive_perception": 16,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "Infernal; telepathy 120 ft.",
       "challenge_rating": 12.0,
@@ -8518,8 +8456,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Giant",
       "challenge_rating": 4.0,
@@ -8788,8 +8725,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common plus one other language but can’t speak",
       "challenge_rating": 5.0,
@@ -9163,8 +9099,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -9347,14 +9282,11 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "languages_common_plus_one_other_language_cr": "4",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Common plus one other language CR 4 (XP 1,100; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus one other language",
+      "challenge_rating": 4,
+      "xp": 1100,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -9550,8 +9482,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -9656,8 +9587,7 @@
       },
       "senses": {
         "passive_perception": 17,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "Abyssal; telepathy 120 ft.",
       "challenge_rating": 9.0,
@@ -9851,8 +9781,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Gnoll",
       "challenge_rating": 0.5,
@@ -9934,8 +9863,7 @@
       },
       "senses": {
         "passive_perception": 9,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common, Goblin",
       "challenge_rating": 0.125,
@@ -10183,8 +10111,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 3.0,
@@ -10303,8 +10230,7 @@
       "senses": {
         "passive_perception": 19,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 10.0,
@@ -10422,8 +10348,7 @@
       "senses": {
         "passive_perception": 24,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 17.0,
@@ -10582,8 +10507,7 @@
       "senses": {
         "passive_perception": 27,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 24.0,
@@ -10728,8 +10652,7 @@
       },
       "senses": {
         "passive_perception": 17,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 5.0,
@@ -10814,8 +10737,7 @@
       },
       "senses": {
         "passive_perception": 8,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -10910,8 +10832,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 2.0,
@@ -11015,8 +10936,7 @@
       "senses": {
         "passive_perception": 17,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 8.0,
@@ -11120,8 +11040,7 @@
       "senses": {
         "passive_perception": 22,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 15.0,
@@ -11266,8 +11185,7 @@
       "senses": {
         "passive_perception": 27,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 22.0,
@@ -11477,8 +11395,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -11560,8 +11477,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -11710,8 +11626,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Celestial, Common",
       "challenge_rating": 10.0,
@@ -11957,8 +11872,7 @@
       "senses": {
         "passive_perception": 15,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 5.0,
@@ -12112,14 +12026,11 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "t_speak_cr": "3",
-        "xp": "700",
-        "summary": "Darkvision 60 ft.; Languages Understands Infernal but can’t speak CR 3 (XP 700; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Understands Infernal but can’t speak",
+      "challenge_rating": 3,
+      "xp": 700,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -12213,8 +12124,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Abyssal; telepathy 120 ft.",
       "challenge_rating": 8.0,
@@ -12617,8 +12527,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common plus one other language but can’t speak",
       "challenge_rating": 0.0,
@@ -12692,7 +12601,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 13,
-        "darkvision": "150 ft.",
+        "NOTINUSEdarkvision": "150 ft.",
         "summary": "Darkvision 150 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Infernal; telepathy 120 ft.",
@@ -12808,8 +12717,7 @@
       },
       "senses": {
         "passive_perception": 16,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 8.0,
@@ -13007,7 +12915,7 @@
       },
       "senses": {
         "passive_perception": 11,
-        "darkvision": "120 ft.",
+        "NOTINUSEdarkvision": "120 ft.",
         "summary": "Darkvision 120 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Common, Infernal",
@@ -13093,14 +13001,11 @@
       "senses": {
         "passive_perception": 15,
         "darkvision": "60 ft.",
-        "telepathy": "60 ft.",
-        "cr": "4",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Abyssal, Common, Infernal; telepathy 60 ft. CR 4 (XP 1,100; PB +2)"
+        "telepathy": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "anguages Abyssal, Common, Infernal",
+      "challenge_rating": 4,
+      "xp": 1100,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -13493,8 +13398,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 0.125,
@@ -13582,8 +13486,7 @@
       },
       "senses": {
         "passive_perception": 21,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "Understands Abyssal, Celestial, Infernal, and Primordial but can’t speak; telepathy 120 ft.",
       "challenge_rating": 23.0,
@@ -13816,7 +13719,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "120 ft.",
+        "NOTINUSEdarkvision": "120 ft.",
         "summary": "Darkvision 120 ft. (unimpeded by magical Darkness)"
       },
       "languages": "Understands Infernal but can’t speak",
@@ -13912,8 +13815,7 @@
       },
       "senses": {
         "passive_perception": 19,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "All",
       "challenge_rating": 21.0,
@@ -14235,8 +14137,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Primordial (Ignan)",
       "challenge_rating": 0.5,
@@ -14319,8 +14220,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common",
       "challenge_rating": 3.0,
@@ -14419,8 +14319,7 @@
       },
       "senses": {
         "passive_perception": 18,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "Abyssal; telepathy 120 ft.",
       "challenge_rating": 16.0,
@@ -15097,8 +14996,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Abyssal, Primordial (Aquan)",
       "challenge_rating": 2.0,
@@ -15201,8 +15099,7 @@
       },
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -15294,8 +15191,7 @@
       },
       "senses": {
         "passive_perception": 17,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Abyssal",
       "challenge_rating": 3.0,
@@ -15375,14 +15271,11 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "languages_common_plus_two_other_languages_cr": "3",
-        "xp": "700",
-        "summary": "Darkvision 60 ft.; Languages Common plus two other languages CR 3 (XP 700; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus two other languages",
+      "challenge_rating": 3,
+      "xp": 700,
       "proficiency_bonus": null,
       "damage_vulnerabilities": [
         "Fire"
@@ -15468,15 +15361,11 @@
       },
       "senses": {
         "passive_perception": 19,
-        "truesight": "60 ft.",
-        "languages_common_plus_three_other_languages_cr": "15",
-        "xp": "13",
-        "or": "15",
-        "summary": "Truesight 60 ft.; Languages Common plus three other languages CR 15 (XP 13,000, or 15,000 in lair; PB +5)"
+        "truesight": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus three other languages",
+      "challenge_rating": 15,
+      "xp": 13000,
       "proficiency_bonus": null,
       "damage_vulnerabilities": [
         "Fire"
@@ -15740,14 +15629,11 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "120 ft.",
-        "primordial_cr": "5",
-        "xp": "1",
-        "summary": "Darkvision 120 ft.; Languages Abyssal, Common, Infernal, Primordial CR 5 (XP 1,800; PB +3)"
+        "darkvision": "120 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Abyssal, Common, Infernal, Primordial",
+      "challenge_rating": 5,
+      "xp": 1800,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -15968,8 +15854,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -16054,8 +15939,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common, Giant",
       "challenge_rating": 2.0,
@@ -16152,8 +16036,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Common, Giant",
       "challenge_rating": 7.0,
@@ -16257,8 +16140,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Otyugh; telepathy 120 ft. (doesn’t allow the receiving creature to respond telepathically)",
       "challenge_rating": 5.0,
@@ -16356,8 +16238,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 3.0,
@@ -16499,8 +16380,7 @@
       },
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 3.0,
@@ -16775,8 +16655,7 @@
       },
       "senses": {
         "passive_perception": 20,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "Infernal; telepathy 120 ft.",
       "challenge_rating": 20.0,
@@ -17211,8 +17090,7 @@
       "senses": {
         "passive_perception": 15,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common and Draconic but can’t speak",
       "challenge_rating": 0.25,
@@ -17306,8 +17184,7 @@
       "senses": {
         "passive_perception": 9,
         "blindsight": "30 ft.",
-        "tremorsense": "60 ft.",
-        "summary": "Blindsight 30 ft., Tremorsense 60 ft."
+        "tremorsense": "60 ft."
       },
       "languages": "",
       "challenge_rating": 15.0,
@@ -17410,8 +17287,7 @@
       },
       "senses": {
         "passive_perception": 10,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Abyssal, Common",
       "challenge_rating": 1.0,
@@ -17499,8 +17375,7 @@
       },
       "senses": {
         "passive_perception": 18,
-        "truesight": "60 ft.",
-        "summary": "Truesight 60 ft."
+        "truesight": "60 ft."
       },
       "languages": "Common, Infernal",
       "challenge_rating": 13.0,
@@ -17611,8 +17486,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 4.0,
@@ -17708,8 +17582,7 @@
       "senses": {
         "passive_perception": 18,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 10.0,
@@ -17805,8 +17678,7 @@
       "senses": {
         "passive_perception": 23,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 17.0,
@@ -17928,8 +17800,7 @@
       "senses": {
         "passive_perception": 26,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 24.0,
@@ -18038,8 +17909,7 @@
       "senses": {
         "passive_perception": 10,
         "darkvision": "60 ft.",
-        "tremorsense": "60 ft.",
-        "summary": "Darkvision 60 ft., Tremorsense 60 ft."
+        "tremorsense": "60 ft."
       },
       "languages": "",
       "challenge_rating": 11.0,
@@ -18221,8 +18091,7 @@
       },
       "senses": {
         "passive_perception": 16,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 5.0,
@@ -18298,8 +18167,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -18382,8 +18250,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Sahuagin",
       "challenge_rating": 0.5,
@@ -18467,8 +18334,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Primordial (Ignan)",
       "challenge_rating": 5.0,
@@ -18558,14 +18424,11 @@
         "stealth": 5
       },
       "senses": {
-        "passive_perception": 12,
-        "sylvan_cr": "1",
-        "xp": "100",
-        "summary": "Languages Common, Elvish, Sylvan CR 1/2 (XP 100; PB +2)"
+        "passive_perception": 12
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common, Elvish, Sylvan",
+      "challenge_rating": 0.5,
+      "xp": 100,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -18724,14 +18587,11 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "cr": "2",
-        "xp": "450",
-        "summary": "Darkvision 60 ft.; Languages Common, Giant, Primordial (Aquan) CR 2 (XP 450; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common, Giant, Primordial (Aquan)",
+      "challenge_rating": 2,
+      "xp": 450,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -18816,8 +18676,7 @@
       },
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -18990,8 +18849,7 @@
       "senses": {
         "passive_perception": 10,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands commands given in any language but can’t speak",
       "challenge_rating": 7.0,
@@ -19091,8 +18949,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 2.0,
@@ -19192,8 +19049,7 @@
       "senses": {
         "passive_perception": 18,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 9.0,
@@ -19293,8 +19149,7 @@
       "senses": {
         "passive_perception": 21,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 16.0,
@@ -19432,8 +19287,7 @@
       "senses": {
         "passive_perception": 26,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 23.0,
@@ -19556,8 +19410,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common plus one other language but can’t speak",
       "challenge_rating": 0.25,
@@ -19783,8 +19636,7 @@
       },
       "senses": {
         "passive_perception": 24,
-        "truesight": "120 ft.",
-        "summary": "Truesight 120 ft."
+        "truesight": "120 ft."
       },
       "languages": "All; telepathy 120 ft.",
       "challenge_rating": 21.0,
@@ -19923,8 +19775,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common plus one other language but can’t speak",
       "challenge_rating": 1.0,
@@ -20018,8 +19869,7 @@
       },
       "senses": {
         "passive_perception": 11,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Celestial, Common",
       "challenge_rating": 1.0,
@@ -20598,8 +20448,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.125,
@@ -20888,8 +20737,7 @@
       "senses": {
         "passive_perception": 20,
         "darkvision": "120 ft.",
-        "truesight": "30 ft.",
-        "summary": "Darkvision 120 ft., Truesight 30 ft."
+        "truesight": "30 ft."
       },
       "languages": "Common, Giant",
       "challenge_rating": 13.0,
@@ -21004,14 +20852,11 @@
       "senses": {
         "passive_perception": 15,
         "darkvision": "60 ft.",
-        "telepathy": "60 ft.",
-        "cr": "4",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Abyssal, Common, Infernal; telepathy 60 ft. CR 4 (XP 1,100; PB +2)"
+        "telepathy": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Abyssal, Common, Infernal",
+      "challenge_rating": 4,
+      "xp": 1100,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -21125,8 +20970,7 @@
       },
       "senses": {
         "passive_perception": 19,
-        "blindsight": "120 ft.",
-        "summary": "Blindsight 120 ft."
+        "blindsight": "120 ft."
       },
       "languages": "—",
       "challenge_rating": 30.0,
@@ -21534,8 +21378,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Giant",
       "challenge_rating": 5.0,
@@ -21611,8 +21454,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -21806,14 +21648,11 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "languages_common_plus_one_other_language_cr": "3",
-        "xp": "700",
-        "summary": "Darkvision 60 ft.; Languages Common plus one other language CR 3 (XP 700; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus one other language",
+      "challenge_rating": 3,
+      "xp": 700,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -21897,14 +21736,11 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "languages_common_plus_one_other_language_cr": "5",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Common plus one other language CR 5 (XP 1,800; PB +3)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus one other language",
+      "challenge_rating": 5,
+      "xp": 1800,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -22027,15 +21863,11 @@
       },
       "senses": {
         "passive_perception": 17,
-        "darkvision": "120 ft.",
-        "languages_common_plus_two_other_languages_cr": "13",
-        "xp": "10",
-        "or": "11",
-        "summary": "Darkvision 120 ft.; Languages Common plus two other languages CR 13 (XP 10,000, or 11,500 in lair; PB +5)"
+        "darkvision": "120 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus two other languages",
+      "challenge_rating": 13,
+      "xp": 10000,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -22176,8 +22008,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Abyssal; telepathy 120 ft.",
       "challenge_rating": 6.0,
@@ -22532,14 +22363,11 @@
       },
       "senses": {
         "passive_perception": 17,
-        "darkvision": "60 ft.",
-        "cr": "5",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Common (can’t speak in bear form) CR 5 (XP 1,800; PB +3)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common (can’t speak in bear form)",
+      "challenge_rating": 5,
+      "xp": 1800,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -22744,14 +22572,11 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "cr": "2",
-        "xp": "450",
-        "summary": "Darkvision 60 ft.; Languages Common (can’t speak in rat form) CR 2 (XP 450; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common (can’t speak in rat form)",
+      "challenge_rating": 2,
+      "xp": 450,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -22852,14 +22677,11 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "cr": "4",
-        "xp": "1",
-        "summary": "Darkvision 60 ft.; Languages Common (can’t speak in tiger form) CR 4 (XP 1,100; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common (can’t speak in tiger form)",
+      "challenge_rating": 4,
+      "xp": 1100,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
@@ -23016,8 +22838,7 @@
       "senses": {
         "passive_perception": 14,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Draconic",
       "challenge_rating": 2.0,
@@ -23123,8 +22944,7 @@
       "senses": {
         "passive_perception": 16,
         "blindsight": "30 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 30 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 6.0,
@@ -23222,8 +23042,7 @@
       "senses": {
         "passive_perception": 21,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 13.0,
@@ -23358,8 +23177,7 @@
       "senses": {
         "passive_perception": 23,
         "blindsight": "60 ft.",
-        "darkvision": "120 ft.",
-        "summary": "Blindsight 60 ft., Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Common, Draconic",
       "challenge_rating": 20.0,
@@ -23481,14 +23299,11 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "languages_common_plus_one_other_language_cr": "3",
-        "xp": "700",
-        "summary": "Darkvision 60 ft.; Languages Common plus one other language CR 3 (XP 700; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus one other language",
+      "challenge_rating": 3,
+      "xp": 700,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -23592,14 +23407,11 @@
       "skills": null,
       "senses": {
         "passive_perception": 12,
-        "darkvision": "120 ft.",
-        "languages_common_plus_one_other_language_cr": "2",
-        "xp": "450",
-        "summary": "Darkvision 120 ft.; Languages Common plus one other language CR 2 (XP 450; PB +2)"
+        "darkvision": "120 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Common plus one other language",
+      "challenge_rating": 2,
+      "xp": 450,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -23707,11 +23519,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft.; Languages Common plus two other languages CR 5 (XP 1,800; PB +3)",
-        "giant_cr": "3",
-        "xp": "1",
-        "languages_common_plus_two_other_languages_cr": "5"
+        "darkvision": "60 ft."
       },
       "languages": "Goblin, Worg",
       "challenge_rating": 0.5,
@@ -23806,8 +23614,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "",
       "challenge_rating": 6.0,
@@ -23891,8 +23698,7 @@
       "senses": {
         "passive_perception": 16,
         "darkvision": "60 ft.",
-        "tremorsense": "60 ft.",
-        "summary": "Darkvision 60 ft., Tremorsense 60 ft."
+        "tremorsense": "60 ft."
       },
       "languages": "Primordial (Terran)",
       "challenge_rating": 5.0,
@@ -23996,8 +23802,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common plus one other language but can’t speak",
       "challenge_rating": 0.25,
@@ -24070,8 +23875,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "Understands Common and Giant but can’t speak",
       "challenge_rating": 2.0,
@@ -24460,8 +24264,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -24510,8 +24313,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -24561,8 +24363,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -24750,8 +24551,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -24835,8 +24635,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.125,
@@ -24903,8 +24702,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -24959,8 +24757,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -25037,8 +24834,7 @@
       },
       "senses": {
         "passive_perception": 9,
-        "blindsight": "30 ft.",
-        "summary": "Blindsight 30 ft."
+        "blindsight": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -25161,8 +24957,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -25228,8 +25023,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -25489,8 +25283,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -25550,8 +25343,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 0.125,
@@ -25618,8 +25410,7 @@
       },
       "senses": {
         "passive_perception": 11,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -25764,8 +25555,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -25826,8 +25616,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "blindsight": "120 ft.",
-        "summary": "Blindsight 120 ft."
+        "blindsight": "120 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -25953,8 +25742,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "blindsight": "30 ft.",
-        "summary": "Blindsight 30 ft."
+        "blindsight": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -26015,8 +25803,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -26078,8 +25865,7 @@
       },
       "senses": {
         "passive_perception": 9,
-        "blindsight": "30 ft.",
-        "summary": "Blindsight 30 ft."
+        "blindsight": "30 ft."
       },
       "languages": "Celestial; understands Common and Primordial (Auran) but can’t speak them",
       "challenge_rating": 1.0,
@@ -26157,8 +25943,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "90 ft.",
-        "summary": "Darkvision 90 ft."
+        "darkvision": "90 ft."
       },
       "languages": "Celestial; understands Common, Elvish, and Sylvan but can’t speak them",
       "challenge_rating": 2.0,
@@ -26220,8 +26005,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "blindsight": "30 ft.",
-        "summary": "Blindsight 30 ft."
+        "blindsight": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -26278,8 +26062,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -26358,8 +26141,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -26419,8 +26201,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -26489,8 +26270,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -26557,8 +26337,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -26635,8 +26414,7 @@
       },
       "senses": {
         "passive_perception": 16,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "Celestial; understands Common, Elvish, and Sylvan but can’t speak them",
       "challenge_rating": 0.25,
@@ -26714,8 +26492,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.125,
@@ -26778,8 +26555,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 3.0,
@@ -26929,8 +26705,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 5.0,
@@ -27001,8 +26776,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -27074,8 +26848,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -27149,8 +26922,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -27211,14 +26983,11 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "t_speak_cr": "1",
-        "xp": "200",
-        "summary": "Darkvision 60 ft.; Languages Understands Common but can’t speak CR 1 (XP 200; PB +2)"
+        "darkvision": "60 ft."
       },
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
+      "languages": "Understands Common but can’t speak",
+      "challenge_rating": 1,
+      "xp": 200,
       "proficiency_bonus": null,
       "damage_vulnerabilities": null,
       "damage_resistances": [
@@ -27407,8 +27176,7 @@
       "senses": {
         "passive_perception": 13,
         "blindsight": "10 ft.",
-        "darkvision": "60 ft.",
-        "summary": "Blindsight 10 ft., Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -27479,8 +27247,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -27663,8 +27430,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -27729,8 +27495,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -27796,8 +27561,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "90 ft.",
-        "summary": "Darkvision 90 ft."
+        "darkvision": "90 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -27859,7 +27623,6 @@
       "senses": {
         "passive_perception": 13,
         "blindsight": "120 ft.",
-        "summary": "Darkvision 60 ft.",
         "darkvision": "60 ft."
       },
       "languages": "",
@@ -27936,8 +27699,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -28082,8 +27844,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.125,
@@ -28207,8 +27968,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -28272,8 +28032,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "120 ft.",
-        "summary": "Darkvision 120 ft."
+        "darkvision": "120 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -28328,8 +28087,7 @@
       },
       "senses": {
         "passive_perception": 14,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -28393,8 +28151,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -28514,8 +28271,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -28710,8 +28466,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -28818,8 +28573,7 @@
       },
       "senses": {
         "passive_perception": 12,
-        "blindsight": "30 ft.",
-        "summary": "Blindsight 30 ft."
+        "blindsight": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.5,
@@ -29012,8 +28766,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -29085,8 +28838,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 9,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -29277,8 +29029,7 @@
       },
       "senses": {
         "passive_perception": 10,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.0,
@@ -29346,8 +29097,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 11,
-        "blindsight": "60 ft.",
-        "summary": "Blindsight 60 ft."
+        "blindsight": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -29494,8 +29244,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 8,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -29577,8 +29326,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "darkvision": "30 ft.",
-        "summary": "Darkvision 30 ft."
+        "darkvision": "30 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
@@ -29727,8 +29475,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 2.0,
@@ -29803,8 +29550,7 @@
       },
       "senses": {
         "passive_perception": 13,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 1.0,
@@ -30020,8 +29766,7 @@
       "skills": null,
       "senses": {
         "passive_perception": 10,
-        "blindsight": "10 ft.",
-        "summary": "Blindsight 10 ft."
+        "blindsight": "10 ft."
       },
       "languages": "",
       "challenge_rating": 0.125,
@@ -30209,8 +29954,7 @@
       },
       "senses": {
         "passive_perception": 15,
-        "darkvision": "60 ft.",
-        "summary": "Darkvision 60 ft."
+        "darkvision": "60 ft."
       },
       "languages": "",
       "challenge_rating": 0.25,
