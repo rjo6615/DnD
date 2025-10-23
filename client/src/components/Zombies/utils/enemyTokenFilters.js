@@ -253,8 +253,27 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
     (monsterDetail && ENEMY_ADVERSARY_TOKEN_CONFIG[monsterDetail?.index]);
 
   if (config) {
-    const folders = Array.isArray(config.folders) ? config.folders : config.folder ? [config.folder] : [];
-    folders.forEach((folder) => addEnemyFolderVariantsToScope(scopeSet, folder));
+    const folders = Array.isArray(config.folders)
+      ? config.folders
+      : config.folder
+        ? [config.folder]
+        : [];
+
+    folders.forEach((folder) => {
+      addEnemyFolderVariantsToScope(scopeSet, folder);
+
+      if (primaryFolderVariant === null) {
+        const normalized = normalizeAdversaryFolderPath(folder);
+
+        if (normalized) {
+          const withoutPrefix = normalized.replace(/^Tokens\/Adversaries\/?/i, '');
+
+          if (withoutPrefix) {
+            primaryFolderVariant = withoutPrefix;
+          }
+        }
+      }
+    });
   }
 
   const folderNameCandidates = new Set();
