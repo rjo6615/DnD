@@ -218,20 +218,19 @@ const buildFolderTreeCacheKey = ({ rootFolder, folders }) => {
   return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders].join('::');
 };
 
-const buildFigurineSuggestionCacheKey = ({ keys, includeGeneralSearch, rootFolder }) => {
+const buildFigurineSuggestionCacheKey = ({ keys, rootFolder }) => {
   if (!Array.isArray(keys) || keys.length === 0) {
     return null;
   }
 
   const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
   const normalizedKeys = Array.from(new Set(keys.filter(Boolean))).sort();
-  const scope = includeGeneralSearch ? 'general' : 'restricted';
 
   if (normalizedKeys.length === 0) {
     return null;
   }
 
-  return [normalizedRoot, scope, normalizedKeys.join('|')].join('::');
+  return [normalizedRoot, normalizedKeys.join('|')].join('::');
 };
 
 const resolveCloudinary = () => {
@@ -915,7 +914,6 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
   return response;
 };
 
-const DM_FOLDER_HINTS = ['DM', 'DM Only', 'DM-Only', 'DMOnly', '_DM'];
 const DM_FOLDER_PATTERN = /(^|\/)dm([ -]?only)?(\/|$)/i;
 const CONFIDENT_SUGGESTION_SCORE = 5;
 
@@ -989,136 +987,59 @@ const collectMonsterKeys = (monsterDetail = {}) => {
   return Array.from(sanitized).filter(Boolean);
 };
 
-const capitalizeWord = (word) => {
-  if (typeof word !== 'string' || word.length === 0) {
-    return '';
+const getMonsterNameForFolder = (monsterDetail = {}) => {
+  if (!monsterDetail || typeof monsterDetail !== 'object') {
+    return null;
   }
 
-  const lower = word.toLowerCase();
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
+  const candidateKeys = [
+    'name',
+    'monster_name',
+    'monsterName',
+    'displayName',
+    'index',
+    'monster_index',
+    'slug',
+    'monster_slug',
+  ];
+
+  for (const key of candidateKeys) {
+    const value = monsterDetail[key];
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
 };
 
-const pluralizeSegments = (segments) => {
-  if (!Array.isArray(segments) || segments.length === 0) {
-    return null;
-  }
-
-  const normalized = segments.map((segment) => (typeof segment === 'string' ? segment.trim() : '')).filter(Boolean);
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  const lastIndex = normalized.length - 1;
-  const last = normalized[lastIndex];
-  if (!last) {
-    return null;
-  }
-
-  const lower = last.toLowerCase();
-  let pluralLower;
-
-  if (lower.endsWith('man')) {
-    pluralLower = `${lower.slice(0, -3)}men`;
-  } else if (lower.endsWith('lf')) {
-    pluralLower = `${lower.slice(0, -1)}lves`;
-  } else if (lower.endsWith('fe')) {
-    pluralLower = `${lower.slice(0, -2)}ves`;
-  } else if (lower.endsWith('f')) {
-    pluralLower = `${lower.slice(0, -1)}ves`;
-  } else if (lower.endsWith('y') && lower.length > 1 && !/[aeiou]y$/.test(lower)) {
-    pluralLower = `${lower.slice(0, -1)}ies`;
-  } else if (
-    lower.endsWith('s') ||
-    lower.endsWith('x') ||
-    lower.endsWith('z') ||
-    lower.endsWith('ch') ||
-    lower.endsWith('sh')
-  ) {
-    pluralLower = `${lower}es`;
-  } else {
-    pluralLower = `${lower}s`;
-  }
-
-  const plural = normalized.slice();
-  plural[lastIndex] = capitalizeWord(pluralLower);
-
-  return plural;
-};
-
-const buildAdversaryFolderCandidates = (monsterDetail = {}, rootFolder = DEFAULT_TOKEN_ROOT_FOLDER) => {
+const buildAdversaryFolderPath = (monsterDetail = {}, rootFolder = DEFAULT_TOKEN_ROOT_FOLDER) => {
   const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
-  const adversaryBase = `${normalizedRoot}/Adversaries`;
+  const monsterName = getMonsterNameForFolder(monsterDetail);
 
-  const candidateNames = [];
-  const seenNames = new Set();
+  if (!monsterName) {
+    return null;
+  }
 
-  const addName = (value) => {
-    if (typeof value !== 'string') {
-      return;
-    }
+  const normalizedName = monsterName.replace(/[\\/]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!normalizedName) {
+    return null;
+  }
 
-    const normalized = value.replace(/\s+/g, ' ').trim();
-    if (!normalized || seenNames.has(normalized)) {
-      return;
-    }
+  const folderSegment = normalizedName
+    .replace(/[^0-9A-Za-z\s_-]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '');
 
-    seenNames.add(normalized);
-    candidateNames.push(normalized);
-  };
+  if (!folderSegment) {
+    return null;
+  }
 
-  const addFromValue = (value) => {
-    if (value === null || value === undefined) {
-      return;
-    }
-
-    const stringValue = typeof value === 'string' ? value : String(value);
-    const trimmed = stringValue.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    addName(trimmed);
-
-    const segments = trimmed
-      .replace(/[\\/]+/g, ' ')
-      .split(/[-_\s]+/g)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
-
-    if (segments.length === 0) {
-      return;
-    }
-
-    const capitalizedSegments = segments.map(capitalizeWord);
-    addName(capitalizedSegments.join(' '));
-    addName(capitalizedSegments.join('-'));
-    addName(capitalizedSegments.join('_'));
-
-    const pluralSegments = pluralizeSegments(capitalizedSegments);
-    if (pluralSegments) {
-      addName(pluralSegments.join(' '));
-      addName(pluralSegments.join('-'));
-      addName(pluralSegments.join('_'));
-    }
-  };
-
-  addFromValue(monsterDetail.name);
-  addFromValue(monsterDetail.index);
-  addFromValue(monsterDetail.slug);
-  addFromValue(monsterDetail.subtype);
-  addFromValue(monsterDetail.type);
-  addFromValue(monsterDetail.monster_index);
-  addFromValue(monsterDetail.monster_slug);
-  addFromValue(monsterDetail.monster_type);
-  addFromValue(monsterDetail.monster_subtype);
-  addFromValue(monsterDetail.creature_type);
-  addFromValue(monsterDetail.creature_subtype);
-
-  return candidateNames
-    .map((name) => `${adversaryBase}/${name}`)
-    .map(sanitizeFolderSegment)
-    .filter(Boolean)
-    .slice(0, 15);
+  return sanitizeFolderSegment(`${normalizedRoot}/Adversaries/${folderSegment}`);
 };
 
 const fetchAdversaryFolderResources = async (sdk, folderPath) => {
@@ -1156,34 +1077,17 @@ const fetchAdversaryFolderResources = async (sdk, folderPath) => {
 };
 
 const suggestFromAdversaryFolders = async (sdk, { rootFolder, keys, monsterDetail }) => {
-  const folderCandidates = buildAdversaryFolderCandidates(monsterDetail, rootFolder);
-
-  if (folderCandidates.length === 0) {
+  const folderPath = buildAdversaryFolderPath(monsterDetail, rootFolder);
+  if (!folderPath) {
     return null;
   }
 
-  const attempted = new Set();
-
-  for (const candidate of folderCandidates) {
-    const normalized = sanitizeFolderSegment(candidate);
-    if (!normalized || attempted.has(normalized)) {
-      continue;
-    }
-
-    attempted.add(normalized);
-
-    const resources = await fetchAdversaryFolderResources(sdk, normalized);
-    if (!resources || resources.length === 0) {
-      continue;
-    }
-
-    const suggestion = selectBestSuggestion(resources, keys, rootFolder);
-    if (suggestion) {
-      return suggestion;
-    }
+  const resources = await fetchAdversaryFolderResources(sdk, folderPath);
+  if (!resources || resources.length === 0) {
+    return null;
   }
 
-  return null;
+  return selectBestSuggestion(resources, keys, rootFolder);
 };
 
 const collectCandidateTokens = (resource) => {
@@ -1350,99 +1254,12 @@ const selectBestSuggestion = (resources, keys, rootFolder) => {
   };
 };
 
-const buildMatchExpressions = (keys) => {
-  if (!Array.isArray(keys) || keys.length === 0) {
-    return [];
-  }
-
-  const metaKeys = [
-    'monsterIndex',
-    'monster_index',
-    'monsterSlug',
-    'monster_slug',
-    'slug',
-    'name',
-    'type',
-    'subtype',
-    'creatureType',
-    'creature_type',
-    'creatureSubtype',
-    'creature_subtype',
-  ];
-
-  const expressions = new Set();
-
-  keys.forEach((key) => {
-    const variants = expandKeyVariants(key);
-    variants.forEach((variant) => {
-      const escaped = escapeExpressionValue(variant);
-      expressions.add(`public_id="${escaped}"`);
-      expressions.add(`public_id="${escapeExpressionValue(`*${variant}*`)}"`);
-      expressions.add(`filename="${escaped}"`);
-      expressions.add(`filename="${escapeExpressionValue(`*${variant}*`)}"`);
-      metaKeys.forEach((metaKey) => {
-        expressions.add(`metadata.${metaKey}="${escaped}"`);
-      });
-    });
-  });
-
-  return Array.from(expressions);
-};
-
-const executeFigurineSearch = async (sdk, { rootFolder, keys, folderHints }) => {
-  if (!sdk?.search || typeof sdk.search.expression !== 'function') {
-    return null;
-  }
-
-  const matchExpressions = buildMatchExpressions(keys);
-  if (matchExpressions.length === 0) {
-    return null;
-  }
-
-  const expressionSegments = ['resource_type:image'];
-  const folderExpressions = buildFolderExpressions(rootFolder, folderHints || []);
-
-  if (folderExpressions.length > 0) {
-    expressionSegments.push(`(${folderExpressions.join(' OR ')})`);
-  }
-
-  expressionSegments.push(`(${matchExpressions.join(' OR ')})`);
-
-  const expression = expressionSegments.join(' AND ');
-
-  const maxResults = Math.min(Math.max(keys.length * 20, 50), TOKEN_FALLBACK_MAX_RESULTS);
-
-  try {
-    let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
-    search = search
-      .max_results(maxResults)
-      .with_field('context')
-      .with_field('metadata');
-
-    logCloudinaryApiCall('search.execute', {
-      context: 'suggestEnemyFigurine',
-      expression,
-      maxResults,
-      folderHints: folderHints || [],
-      keys,
-    });
-
-    const result = await search.execute();
-    const resources = Array.isArray(result?.resources) ? result.resources : [];
-
-    return selectBestSuggestion(resources, keys, rootFolder);
-  } catch (error) {
-    return null;
-  }
-};
-
-const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true } = {}) => {
+const suggestEnemyFigurine = async (monsterDetail) => {
   const keys = collectMonsterKeys(monsterDetail);
   if (keys.length === 0) {
     return null;
   }
 
-  const includeGeneral = Boolean(includeGeneralSearch);
   const rootFolder = getTokenRootFolder();
   const cacheTtlMs = getFigurineSuggestionCacheTtlMs();
 
@@ -1452,7 +1269,6 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
     cacheTtlMs > 0
       ? buildFigurineSuggestionCacheKey({
           keys,
-          includeGeneralSearch: includeGeneral,
           rootFolder,
         })
       : null;
@@ -1480,26 +1296,6 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
     keys,
     monsterDetail,
   });
-
-  if (!suggestion) {
-    const searchScenarios = [{ folderHints: DM_FOLDER_HINTS }];
-
-    if (includeGeneral) {
-      searchScenarios.push({ folderHints: [] });
-    }
-
-    for (const scenario of searchScenarios) {
-      suggestion = await executeFigurineSearch(sdk, {
-        rootFolder,
-        keys,
-        folderHints: scenario.folderHints,
-      });
-
-      if (suggestion) {
-        break;
-      }
-    }
-  }
 
   if (cacheTtlMs > 0 && cacheKey) {
     setFigurineSuggestionCacheEntry(cacheKey, suggestion || null, cacheTtlMs);
