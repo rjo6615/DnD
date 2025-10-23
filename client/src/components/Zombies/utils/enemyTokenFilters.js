@@ -220,9 +220,10 @@ const buildOrderedNameVariants = (words) => {
   const candidates = [
     titleWords.join(' '),
     titleWords.join('_'),
-    titleWords.join('-'),
-    lowerWords.join(' '),
     lowerWords.join('_'),
+    titleWords.join(' '),
+    lowerWords.join(' '),
+    titleWords.join('-'),
     lowerWords.join('-'),
     titleWords.join(''),
     lowerWords.join(''),
@@ -244,6 +245,44 @@ const buildOrderedNameVariants = (words) => {
   return unique;
 };
 
+const extractNormalizedWords = (value) => {
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  return value
+    .split(/[\\/]+/g)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join(' ')
+    .split(/[^A-Za-z0-9]+/g)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+};
+
+const derivePreferredAdversaryFolderName = (folderPath) => {
+  const normalized = normalizeAdversaryFolderPath(folderPath);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const withoutPrefix = normalized.replace(/^Tokens\/Adversaries\/?/i, '');
+
+  if (!withoutPrefix) {
+    return null;
+  }
+
+  const normalizedWords = extractNormalizedWords(withoutPrefix);
+  const ordered = buildOrderedNameVariants(normalizedWords);
+
+  if (ordered.length > 0) {
+    return ordered[0];
+  }
+
+  return withoutPrefix;
+};
+
 export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) => {
   const scopeSet = new Set();
   let primaryFolderVariant = null;
@@ -262,15 +301,16 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
     folders.forEach((folder) => {
       addEnemyFolderVariantsToScope(scopeSet, folder);
 
-      if (primaryFolderVariant === null) {
-        const normalized = normalizeAdversaryFolderPath(folder);
+      const preferredFolderName = derivePreferredAdversaryFolderName(folder);
 
-        if (normalized) {
-          const withoutPrefix = normalized.replace(/^Tokens\/Adversaries\/?/i, '');
+      if (preferredFolderName) {
+        addEnemyFolderVariantsToScope(
+          scopeSet,
+          `Tokens/Adversaries/${preferredFolderName}`
+        );
 
-          if (withoutPrefix) {
-            primaryFolderVariant = withoutPrefix;
-          }
+        if (primaryFolderVariant === null) {
+          primaryFolderVariant = preferredFolderName;
         }
       }
     });
@@ -303,20 +343,7 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
       return;
     }
 
-    const baseSegments = trimmed
-      .split(/[\\/]+/g)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
-
-    if (baseSegments.length === 0) {
-      return;
-    }
-
-    const normalizedWords = baseSegments
-      .join(' ')
-      .split(/[^A-Za-z0-9]+/g)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
+    const normalizedWords = extractNormalizedWords(trimmed);
 
     if (normalizedWords.length === 0) {
       return;
