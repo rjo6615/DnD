@@ -30223,18 +30223,36 @@
       "wisdom": 12,
       "charisma": 3,
       "saving_throws": [],
-      "skills": null,
-      "senses": null,
+      "skills": {
+        "acrobatics": 5,
+        "perception": 3,
+        "stealth": 5
+      },
+      "senses": {
+        "passive_perception": 13,
+        "darkvision": "60 ft."
+      },
       "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "challenge_rating": 0.0,
+      "xp": 10,
+      "proficiency_bonus": 2,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": null,
       "condition_immunities": null,
-      "special_abilities": null,
-      "actions": null,
+      "special_abilities": [
+        {
+          "name": "Keen Hearing and Smell",
+          "desc": "The weasel has advantage on Wisdom (Perception) checks that rely on hearing or smell."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Bite",
+          "desc": "Melee Attack Roll: +5, reach 5 ft. Hit: 1 Piercing damage.",
+          "attack_bonus": 5
+        }
+      ],
       "bonus_actions": null,
       "reactions": null,
       "legendary_actions": null,
