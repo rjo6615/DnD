@@ -888,7 +888,27 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
           return true;
         }
 
-        return effectiveFolders.some((folder) => asset.folder === folder);
+        const assetFolder =
+          typeof asset.folder === 'string' && asset.folder.trim() !== ''
+            ? asset.folder.trim()
+            : '';
+
+        if (!assetFolder) {
+          return false;
+        }
+
+        return effectiveFolders.some((folder) => {
+          if (typeof folder !== 'string') {
+            return false;
+          }
+
+          const trimmed = folder.trim();
+          if (!trimmed) {
+            return false;
+          }
+
+          return assetFolder === trimmed || assetFolder.startsWith(`${trimmed}/`);
+        });
       });
 
     const response = {
