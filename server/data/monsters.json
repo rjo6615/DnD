@@ -20456,6 +20456,10 @@
           "value": 3
         },
         {
+          "name": "CON", 
+          "value": 4
+        },
+        {
           "name": "WIS",
           "value": 4
         }
