@@ -218,6 +218,7 @@ const buildOrderedNameVariants = (words) => {
   const lowerWords = words.map((word) => word.toLowerCase());
 
   const candidates = [
+    titleWords.join(' '),
     titleWords.join('_'),
     lowerWords.join('_'),
     titleWords.join(' '),
