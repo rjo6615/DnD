@@ -77,8 +77,6 @@ const registerConnectionHandlers = (socket) => {
     });
   });
 
-  
-
   socket.on('campaign:leave', (campaignId) => {
     if (typeof campaignId !== 'string' || campaignId.trim() === '') {
       return;
