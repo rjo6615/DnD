@@ -21089,8 +21089,8 @@
       "type": "monstrosity",
       "alignment": "Unaligned",
       "armor_class": 25,
-      "hit_points": 697,
-      "hit_dice": "34d20 + 340",
+      "hit_points": 347,
+      "hit_dice": "13d20 + 182",
       "speed": {
         "walk": "60 ft.",
         "burrow": "40 ft.",
@@ -21128,7 +21128,7 @@
         "blindsight": "120 ft.",
         "summary": "Blindsight 120 ft."
       },
-      "languages": "",
+      "languages": "—",
       "challenge_rating": 30.0,
       "xp": 155000,
       "proficiency_bonus": 9,
@@ -21151,50 +21151,122 @@
       ],
       "special_abilities": [
         {
-          "name": "Pack Tactics",
-          "desc": "The tough has Advantage on an attack roll against a creature if at least one of the tough’s allies is within 5 feet of the creature and the ally doesn’t have the Incapacitated condition."
+          "name": "Legendary Resistance (6/Day)",
+          "desc": "If the tarrasque fails a saving throw, it can choose to succeed instead."
+        },
+        {
+          "name": "Magic Resistance",
+          "desc": "The tarrasque has Advantage on saving throws against spells and other magical effects."
+        },
+        {
+          "name": "Reflective Carapace",
+          "desc": "If the tarrasque is targeted by a Magic Missile spell or a spell that requires a ranged attack roll, roll a d6. On a 1-5, the tarrasque is unaffected. On a 6, the tarrasque is unaffected, and the spell is reflected back at the caster, turning the caster into the target."
+        },
+        {
+          "name": "Siege Monster",
+          "desc": "The tarrasque deals double damage to objects and structures."
         }
       ],
       "actions": [
         {
-          "name": "Mace",
-          "desc": "Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Bludgeoning damage.",
-          "attack_bonus": 4,
+          "name": "Multiattack",
+          "desc": "The tarrasque makes one Bite attack and two of the following attacks, using Claw or Tail in any combination."
+        },
+        {
+          "name": "Bite",
+          "desc": "Melee Attack Roll: +19, reach 15 ft. Hit: 36 (4d12 + 10) Piercing damage, and the target has the Grappled condition (escape DC 20). Until this grapple ends, the target has the Restrained condition and can’t teleport, and the tarrasque can’t bite another target. In addition, the target takes 28 (4d8 + 10) Slashing damage.",
+          "attack_bonus": 19,
           "damage": [
             {
-              "damage_dice": "1d6+2",
+              "damage_dice": "4d12+10",
               "damage_type": {
-                "name": "bludgeoning"
+                "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "4d8+10",
+              "damage_type": {
+                "name": "slashing"
               }
             }
           ],
-          "damage_dice": "1d6+2",
+          "damage_dice": "4d12+10",
           "damage_type": {
-            "name": "bludgeoning"
+            "name": "piercing"
           }
         },
         {
-          "name": "Heavy Crossbow",
-          "desc": "Ranged Attack Roll: +3, range 100/400 ft. Hit: 6 (1d10 + 1) Piercing damage.",
-          "attack_bonus": 3,
+          "name": "Claw",
+          "desc": "Melee Attack Roll: +19, reach 10 ft. Hit: 30 (4d8 + 10) Slashing damage.",
+          "attack_bonus": 19,
           "damage": [
             {
-              "damage_dice": "1d10+1",
+              "damage_dice": "4d8+10",
+              "damage_type": {
+                "name": "slashing"
+              }
+            }
+          ],
+          "damage_dice": "4d8+10",
+          "damage_type": {
+            "name": "slashing"
+          }
+        },
+        {
+          "name": "Horn",
+          "desc": "Melee Attack Roll: +19, reach 10 ft. Hit: 32 (4d10 + 10) Piercing damage.",
+          "attack_bonus": 19,
+          "damage": [
+            {
+              "damage_dice": "4d10+10",
               "damage_type": {
                 "name": "piercing"
               }
             }
           ],
-          "damage_dice": "1d10+1",
+          "damage_dice": "4d10+10",
           "damage_type": {
             "name": "piercing"
+          }
+        },
+        {
+          "name": "Tail",
+          "desc": "Melee Attack Roll: +19, reach 20 ft. Hit: 24 (4d6 + 10) Bludgeoning damage. If the target is Large or smaller, it must succeed on a DC 20 Strength saving throw or have the Prone condition.",
+          "attack_bonus": 19,
+          "damage": [
+            {
+              "damage_dice": "4d6+10",
+              "damage_type": {
+                "name": "bludgeoning"
+              }
+            }
+          ],
+          "damage_dice": "4d6+10",
+          "damage_type": {
+            "name": "bludgeoning"
+          }
+        },
+        {
+          "name": "Thunderous Bellow (Recharge 5-6)",
+          "desc": "Constitution Saving Throw: DC 27, each creature of the tarrasque’s choice within 120 feet of it that can hear it must succeed on a saving throw or take 78 (12d12) Thunder damage and have the Prone condition. Success: The creature takes half as much damage and doesn’t have the Prone condition.",
+          "damage": [
+            {
+              "damage_dice": "12d12",
+              "damage_type": {
+                "name": "thunder"
+              }
+            }
+          ],
+          "damage_dice": "12d12",
+          "damage_type": {
+            "name": "thunder"
           }
         }
       ],
       "bonus_actions": [
         {
           "name": "Swallow",
-          "desc": "Strength Saving Throw: DC 27, one Large or smaller creature Grappled by the tarrasque (it can have up to six creatures swallowed at a time). Failure: The target is swallowed, and the Grappled condition ends. A swallowed creature has the Blinded and Restrained conditions and can’t teleport, it has Total Cover against attacks and other effects outside the tarrasque, and it takes 56 (16d6) Acid damage at the start of each of the tarrasque’s turns. If the tarrasque takes 60 damage or more on a single turn from a creature inside it, the tarrasque must succeed on a DC 20 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, each of which falls in a space within 10 feet of the tarrasque and has the Prone condition. If the tarrasque dies, any swallowed creature no longer has the Restrained condition and can escape from the corpse using 20 feet of movement, exiting Prone.",
+          "desc": "Strength Saving Throw: DC 27, one Large or smaller creature Grappled by the tarrasque (it can have up to six creatures swallowed at a time). Failure: The target is swallowed, and the Grappled condition ends. A swallowed creature has the Blinded and Restrained conditions, can’t teleport, has Total Cover against attacks and other effects outside the tarrasque, and takes 56 (16d6) Acid damage at the start of each of the tarrasque’s turns. If the tarrasque takes 60 damage or more on a single turn from a creature inside it, the tarrasque must succeed on a DC 20 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, each of which falls in a space within 10 feet of the tarrasque and has the Prone condition. If the tarrasque dies, any swallowed creature no longer has the Restrained condition and can escape from the corpse using 20 feet of movement, exiting Prone.",
           "damage": [
             {
               "damage_dice": "16d6",
