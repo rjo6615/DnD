@@ -828,6 +828,9 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
         .filter(Boolean)
     : [];
 
+  const selectedFolder = sanitizedFolders.length > 0 ? sanitizedFolders[0] : null;
+  const effectiveFolders = selectedFolder ? [selectedFolder] : [];
+
   const sanitizedNextCursor =
     typeof nextCursor === 'string' && nextCursor.trim() !== '' ? nextCursor.trim() : null;
 
@@ -836,7 +839,7 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
 
   const cacheKey = buildTokenListCacheKey({
     rootFolder,
-    folders: sanitizedFolders,
+    folders: effectiveFolders,
     nextCursor: sanitizedNextCursor,
     maxResults: resolvedMaxResults,
   });
@@ -855,14 +858,15 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
 
   const runSearch = async () => {
     const targetFolder =
-      sanitizedFolders.length === 1 ? sanitizedFolders[0] : normalizedRoot;
+      selectedFolder || normalizedRoot;
 
     logCloudinaryApiCall('api.resources', {
       context: 'listTokenAssets',
       prefix: targetFolder,
       maxResults: resolvedMaxResults,
       nextCursor: sanitizedNextCursor,
-      folders: sanitizedFolders,
+      folders: effectiveFolders,
+      requestedFolders: sanitizedFolders,
     });
 
     const result = await sdk.api.resources({
@@ -880,18 +884,18 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
       .map((resource) => sanitizeTokenResource(resource, rootFolder))
       .filter(Boolean)
       .filter((asset) => {
-        if (sanitizedFolders.length === 0) {
+        if (effectiveFolders.length === 0) {
           return true;
         }
 
-        return sanitizedFolders.some((folder) => asset.folder === folder);
+        return effectiveFolders.some((folder) => asset.folder === folder);
       });
 
     const response = {
       assets,
       nextCursor: typeof result?.next_cursor === 'string' ? result.next_cursor : null,
       totalCount: typeof result?.total_count === 'number' ? result.total_count : null,
-      appliedFolders: sanitizedFolders,
+      appliedFolders: effectiveFolders,
       rootFolder,
     };
 

@@ -537,6 +537,65 @@ describe('Cloudinary caching helpers', () => {
     });
   });
 
+  test('listTokenAssets only queries the first sanitized folder when multiple are provided', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+    };
+
+    const mockResources = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/ape/token-1',
+          secure_url: 'https://res.cloudinary.com/demo/image/upload/Tokens/Adversaries/ape/token-1.png',
+          folder: 'Tokens/Adversaries/ape',
+          filename: 'token-1',
+        },
+        {
+          public_id: 'Tokens/Adversaries/apes/token-2',
+          secure_url: 'https://res.cloudinary.com/demo/image/upload/Tokens/Adversaries/apes/token-2.png',
+          folder: 'Tokens/Adversaries/apes',
+          filename: 'token-2',
+        },
+      ],
+      next_cursor: 'cursor-2',
+      total_count: 2,
+    });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
+      },
+    }));
+
+    const { listTokenAssets: actualListTokenAssets } = jest.requireActual('../utils/cloudinary');
+
+    const result = await actualListTokenAssets({
+      folders: ['Adversaries/ape', 'Adversaries/apes'],
+    });
+
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(mockResources.mock.calls[0][0]).toMatchObject({
+      prefix: 'Tokens/Adversaries/ape',
+    });
+    expect(result.assets).toEqual([
+      expect.objectContaining({
+        publicId: 'Tokens/Adversaries/ape/token-1',
+        folder: 'Tokens/Adversaries/ape',
+        filename: 'token-1',
+      }),
+    ]);
+    expect(result.appliedFolders).toEqual(['Tokens/Adversaries/ape']);
+    expect(result.nextCursor).toBe('cursor-2');
+    expect(result.totalCount).toBe(2);
+  });
+
   test('listTokenFolderTree reuses cached results when inputs repeat', async () => {
     jest.resetModules();
     process.env = {
