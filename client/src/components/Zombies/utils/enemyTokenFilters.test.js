@@ -80,6 +80,22 @@ describe('buildEnemyTokenFilterScopeValues', () => {
     });
   });
 
+  it('prefers monster name folders when no config is provided', () => {
+    const scope = buildEnemyTokenFilterScopeValues('giant-badger', {
+      index: 'giant-badger',
+      name: 'Giant Badger',
+    });
+
+    expect(scope[0]).toBe('folder:Tokens/Adversaries/Giant Badger');
+    expect(scope[1]).toBe('Tokens/Adversaries/Giant Badger');
+    expect(scope).toEqual(
+      expect.arrayContaining([
+        'folder:Tokens/Adversaries/Giant Badger',
+        'Tokens/Adversaries/Giant Badger',
+      ])
+    );
+  });
+
   it('returns null when no identifying information is provided', () => {
     expect(buildEnemyTokenFilterScopeValues(null, null)).toBeNull();
     expect(buildEnemyTokenFilterScopeValues('', {})).toBeNull();
