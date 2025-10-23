@@ -3,8 +3,8 @@ let isConfigured = false;
 
 const DEFAULT_TOKEN_ROOT_FOLDER = 'Tokens';
 const TOKEN_FALLBACK_MAX_RESULTS = 200;
-const DEFAULT_TOKEN_CACHE_TTL_MS = 60_000;
-const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 120_000;
+const DEFAULT_TOKEN_CACHE_TTL_MS = 600_000; // 10 minutes
+const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 1_800_000; // 30 minutes
 const DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS = 3_600_000;
 const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
 const MAX_FOLDER_TREE_CONCURRENCY = 12;
@@ -533,6 +533,9 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
     rootFolder: normalizedRoot,
     folders: normalizedTargets,
   });
+  const canonicalCacheKey = buildFolderTreeCacheKey({ rootFolder: normalizedRoot, folders: [] });
+  const isFullTreeRequest =
+    normalizedTargets.length === 1 && normalizedTargets[0] === normalizedRoot;
 
   if (cacheTtlMs > 0) {
     const cached = getCacheEntry(folderTreeCache, cacheKey);
@@ -631,6 +634,135 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
     };
   };
 
+  const flattenNodes = (nodes, depth = 0, acc = []) => {
+    nodes.forEach((node) => {
+      if (!node) {
+        return;
+      }
+
+      acc.push({
+        name: node.name,
+        path: node.path,
+        relativePath: node.relativePath,
+        depth,
+        displayPath: node.relativePath || node.name,
+      });
+
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        flattenNodes(node.children, depth + 1, acc);
+      }
+    });
+
+    return acc;
+  };
+
+  const cloneFolderNode = (node) => {
+    if (!node) {
+      return null;
+    }
+
+    return {
+      name: node.name,
+      path: node.path,
+      relativePath: node.relativePath,
+      children: Array.isArray(node.children)
+        ? node.children.map((child) => cloneFolderNode(child)).filter(Boolean)
+        : [],
+    };
+  };
+
+  const cloneFolderTreeResult = (treeResult) => {
+    if (!treeResult) {
+      return null;
+    }
+
+    return {
+      rootFolder: treeResult.rootFolder,
+      folders: Array.isArray(treeResult.folders)
+        ? treeResult.folders.map((folder) => cloneFolderNode(folder)).filter(Boolean)
+        : [],
+      flatFolders: Array.isArray(treeResult.flatFolders)
+        ? treeResult.flatFolders.map((folder) => ({ ...folder }))
+        : [],
+    };
+  };
+
+  const deriveResultFromCanonical = (canonicalResult) => {
+    if (!canonicalResult) {
+      return null;
+    }
+
+    if (canonicalResult.rootFolder !== normalizedRoot) {
+      return null;
+    }
+
+    const normalizedCanonical = cloneFolderTreeResult(canonicalResult);
+    const canonicalFolders = Array.isArray(normalizedCanonical?.folders)
+      ? normalizedCanonical.folders
+      : [];
+
+    if (normalizedTargets.length === 0 || normalizedTargets.includes(normalizedRoot)) {
+      return normalizedCanonical;
+    }
+
+    const targetSet = new Set(normalizedTargets);
+
+    const collectMatches = (nodes) => {
+      const matches = [];
+
+      nodes.forEach((node) => {
+        if (!node || typeof node.path !== 'string') {
+          return;
+        }
+
+        if (targetSet.has(node.path)) {
+          matches.push(cloneFolderNode(node));
+          return;
+        }
+
+        const childMatches = collectMatches(Array.isArray(node.children) ? node.children : []);
+        if (childMatches.length > 0) {
+          matches.push(...childMatches);
+        }
+      });
+
+      return matches;
+    };
+
+    const matchedNodes = collectMatches(canonicalFolders);
+
+    if (matchedNodes.length === 0) {
+      return null;
+    }
+
+    return {
+      rootFolder: normalizedRoot,
+      folders: matchedNodes,
+      flatFolders: flattenNodes(matchedNodes),
+    };
+  };
+
+  const attemptReuseCanonical = () => {
+    if (cacheTtlMs <= 0) {
+      return null;
+    }
+
+    const canonicalCandidate = getCacheEntry(folderTreeCache, canonicalCacheKey);
+    if (!canonicalCandidate || canonicalCandidate.__canonicalFolderTree !== true) {
+      return null;
+    }
+
+    return deriveResultFromCanonical(canonicalCandidate);
+  };
+
+  const canonicalReuse = attemptReuseCanonical();
+  if (canonicalReuse) {
+    if (cacheTtlMs > 0) {
+      setCacheEntry(folderTreeCache, cacheKey, canonicalReuse, cacheTtlMs);
+    }
+    return canonicalReuse;
+  }
+
   const collectNodes = async () => {
     const nodes = [];
 
@@ -674,28 +806,6 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
     return Array.from(uniqueByPath.values()).sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const flattenNodes = (nodes, depth = 0, acc = []) => {
-    nodes.forEach((node) => {
-      if (!node) {
-        return;
-      }
-
-      acc.push({
-        name: node.name,
-        path: node.path,
-        relativePath: node.relativePath,
-        depth,
-        displayPath: node.relativePath || node.name,
-      });
-
-      if (Array.isArray(node.children) && node.children.length > 0) {
-        flattenNodes(node.children, depth + 1, acc);
-      }
-    });
-
-    return acc;
-  };
-
   const foldersTree = await collectNodes();
   const flatFolders = flattenNodes(foldersTree);
 
@@ -707,6 +817,13 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
 
   if (cacheTtlMs > 0) {
     setCacheEntry(folderTreeCache, cacheKey, result, cacheTtlMs);
+    if (isFullTreeRequest) {
+      const canonicalToStore = cloneFolderTreeResult(result);
+      if (canonicalToStore) {
+        canonicalToStore.__canonicalFolderTree = true;
+        setCacheEntry(folderTreeCache, canonicalCacheKey, canonicalToStore, cacheTtlMs);
+      }
+    }
   }
 
   return result;
