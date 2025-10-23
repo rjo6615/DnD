@@ -19566,11 +19566,14 @@
       "charisma": 5,
       "saving_throws": [],
       "skills": null,
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "senses": {
+        "passive_perception": 9,
+        "darkvision": "60 ft."
+      },
+      "languages": "Understands Abyssal but can't speak",
+      "challenge_rating": 2.0,
+      "xp": 450,
+      "proficiency_bonus": 2,
       "damage_vulnerabilities": [
         "Bludgeoning"
       ],
@@ -19580,7 +19583,7 @@
       ],
       "condition_immunities": [
         "Exhaustion",
-        "Poisoned Senses Darkvision 60 ft."
+        "Poisoned"
       ],
       "special_abilities": null,
       "actions": [
