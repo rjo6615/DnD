@@ -828,8 +828,17 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
         .filter(Boolean)
     : [];
 
-  const selectedFolder = sanitizedFolders.length > 0 ? sanitizedFolders[0] : null;
-  const effectiveFolders = selectedFolder ? [selectedFolder] : [];
+  const uniqueFolders = [];
+  const seenFolders = new Set();
+  sanitizedFolders.forEach((folder) => {
+    if (!seenFolders.has(folder)) {
+      seenFolders.add(folder);
+      uniqueFolders.push(folder);
+    }
+  });
+
+  const primaryFolder = uniqueFolders.length > 0 ? uniqueFolders[0] : null;
+  const effectiveFolders = primaryFolder ? [primaryFolder] : [];
 
   const sanitizedNextCursor =
     typeof nextCursor === 'string' && nextCursor.trim() !== '' ? nextCursor.trim() : null;
@@ -857,12 +866,12 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
   }
 
   const runSearch = async () => {
-    const targetFolder =
-      selectedFolder || normalizedRoot;
+    const candidate = effectiveFolders.length > 0 ? effectiveFolders[0] : normalizedRoot;
+    const foldersToMatch = effectiveFolders.length > 0 ? effectiveFolders : [];
 
     logCloudinaryApiCall('api.resources', {
       context: 'listTokenAssets',
-      prefix: targetFolder,
+      prefix: candidate,
       maxResults: resolvedMaxResults,
       nextCursor: sanitizedNextCursor,
       folders: effectiveFolders,
@@ -872,7 +881,7 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
     const result = await sdk.api.resources({
       type: 'upload',
       resource_type: 'image',
-      prefix: targetFolder,
+      prefix: candidate,
       max_results: resolvedMaxResults,
       next_cursor: sanitizedNextCursor || undefined,
       context: true,
@@ -884,18 +893,38 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
       .map((resource) => sanitizeTokenResource(resource, rootFolder))
       .filter(Boolean)
       .filter((asset) => {
-        if (effectiveFolders.length === 0) {
+        if (foldersToMatch.length === 0) {
           return true;
         }
 
-        return effectiveFolders.some((folder) => asset.folder === folder);
+        const assetFolder =
+          typeof asset.folder === 'string' && asset.folder.trim() !== ''
+            ? asset.folder.trim()
+            : '';
+
+        if (!assetFolder) {
+          return false;
+        }
+
+        return foldersToMatch.some((folder) => {
+          if (typeof folder !== 'string') {
+            return false;
+          }
+
+          const trimmed = folder.trim();
+          if (!trimmed) {
+            return false;
+          }
+
+          return assetFolder === trimmed || assetFolder.startsWith(`${trimmed}/`);
+        });
       });
 
     const response = {
       assets,
       nextCursor: typeof result?.next_cursor === 'string' ? result.next_cursor : null,
       totalCount: typeof result?.total_count === 'number' ? result.total_count : null,
-      appliedFolders: effectiveFolders,
+      appliedFolders: foldersToMatch,
       rootFolder,
     };
 
