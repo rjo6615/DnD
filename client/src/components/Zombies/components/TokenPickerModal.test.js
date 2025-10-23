@@ -200,16 +200,16 @@ describe('TokenPickerModal', () => {
     );
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/token-folders');
-    });
-
-    await waitFor(() => {
       expect(manifestCalls.length).toBeGreaterThan(0);
       const lastCall = manifestCalls[manifestCalls.length - 1];
       expect(lastCall).toContain('folders=');
       expect(lastCall).toContain('Tokens%2FAdversaries%2F');
       expect(lastCall).not.toContain('Tokens%2FAdventurers');
     });
+
+    expect(
+      apiFetch.mock.calls.some(([url]) => url === '/campaigns/Camp1/token-folders')
+    ).toBe(false);
   });
 
   test('players see Adventurers folders and scope manifest requests to selections', async () => {
