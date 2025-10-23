@@ -986,6 +986,11 @@
       "url": "/api/monsters/mimic"
     },
     {
+      "index": "mind-flayer",
+      "name": "Mind Flayer",
+      "url": "/api/monsters/mind-flayer"
+    },
+    {
       "index": "minotaur-skeleton",
       "name": "Minotaur Skeleton",
       "url": "/api/monsters/minotaur-skeleton"
@@ -15319,6 +15324,127 @@
           "desc": "The mimic shape-shifts to resemble a Medium or Small object while retaining its game statistics, or it returns to its true blob form. Any equipment it is wearing or carrying isn’t transformed."
         }
       ],
+      "reactions": null,
+      "legendary_actions": null,
+      "lair_actions": null,
+      "regional_effects": null
+    },
+    "mind-flayer": {
+      "index": "mind-flayer",
+      "name": "Mind Flayer",
+      "size": "Medium",
+      "type": "aberration",
+      "alignment": "Lawful Evil",
+      "armor_class": 15,
+      "hit_points": 71,
+      "hit_dice": "13d8 + 13",
+      "speed": {
+        "walk": "30 ft."
+      },
+      "strength": 11,
+      "dexterity": 12,
+      "constitution": 12,
+      "intelligence": 19,
+      "wisdom": 17,
+      "charisma": 17,
+      "saving_throws": [
+        {
+          "name": "INT",
+          "value": 7
+        },
+        {
+          "name": "WIS",
+          "value": 6
+        },
+        {
+          "name": "CHA",
+          "value": 6
+        }
+      ],
+      "skills": {
+        "arcana": 7,
+        "deception": 6,
+        "insight": 6,
+        "perception": 6,
+        "persuasion": 6,
+        "stealth": 4
+      },
+      "senses": {
+        "passive_perception": 16,
+        "darkvision": "120 ft."
+      },
+      "languages": "Deep Speech, Undercommon; telepathy 120 ft.",
+      "challenge_rating": 7.0,
+      "xp": 2900,
+      "proficiency_bonus": 3,
+      "damage_vulnerabilities": null,
+      "damage_resistances": null,
+      "damage_immunities": null,
+      "condition_immunities": null,
+      "special_abilities": [
+        {
+          "name": "Magic Resistance",
+          "desc": "The mind flayer has Advantage on saving throws against spells and other magical effects."
+        },
+        {
+          "name": "Innate Spellcasting (Psionics)",
+          "desc": "The mind flayer's spellcasting ability is Intelligence (spell save DC 15). It can innately cast the following spells, requiring no components: At Will: Detect Thoughts, Levitate 1/Day Each: Dominate Monster, Plane Shift (self only)."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Tentacles",
+          "desc": "Melee Attack Roll: +7, reach 5 ft. Hit: 15 (2d10 + 4) Psychic damage, and if the target is Medium or smaller, it is Grappled (escape DC 15). Until this grapple ends, the target is Restrained and must succeed on a DC 15 Intelligence saving throw or have the Stunned condition until the grapple ends.",
+          "attack_bonus": 7,
+          "damage": [
+            {
+              "damage_dice": "2d10+4",
+              "damage_type": {
+                "name": "psychic"
+              }
+            }
+          ],
+          "damage_dice": "2d10+4",
+          "damage_type": {
+            "name": "psychic"
+          }
+        },
+        {
+          "name": "Extract Brain",
+          "desc": "Melee Attack Roll: +7, reach 5 ft., one incapacitated Humanoid grappled by the mind flayer. Hit: 55 (10d10) Piercing damage. If this damage reduces the target to 0 Hit Points, the mind flayer kills it by extracting and devouring its brain.",
+          "attack_bonus": 7,
+          "damage": [
+            {
+              "damage_dice": "10d10",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "10d10",
+          "damage_type": {
+            "name": "piercing"
+          }
+        },
+        {
+          "name": "Mind Blast (Recharge 5-6)",
+          "desc": "The mind flayer magically emits psychic energy in a 60-foot Cone. Intelligence Saving Throw: DC 15. Failure: The target takes 27 (5d8 + 5) Psychic damage and has the Stunned condition for 1 minute. Success: The target takes half as much damage. A target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "attack_bonus": null,
+          "damage": [
+            {
+              "damage_dice": "5d8+5",
+              "damage_type": {
+                "name": "psychic"
+              }
+            }
+          ],
+          "damage_dice": "5d8+5",
+          "damage_type": {
+            "name": "psychic"
+          }
+        }
+      ],
+      "bonus_actions": null,
       "reactions": null,
       "legendary_actions": null,
       "lair_actions": null,
