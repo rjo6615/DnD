@@ -219,7 +219,13 @@ const buildFolderHintsFromScope = (scopeValues) => {
 
   if (dmHints.length > 0) {
     const sortedDmHints = [...dmHints].sort(compareFolderSpecificity);
-    return [sortedDmHints[0]];
+    const mostSpecificHint = sortedDmHints[sortedDmHints.length - 1];
+
+    if (mostSpecificHint) {
+      return [mostSpecificHint];
+    }
+
+    return sortedDmHints;
   }
 
   return sortedHints;

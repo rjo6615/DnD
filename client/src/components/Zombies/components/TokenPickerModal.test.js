@@ -215,6 +215,50 @@ describe('TokenPickerModal', () => {
     ).toBe(false);
   });
 
+  test('prefers the most specific DM scope folder when requesting manifest', async () => {
+    const scope = [
+      'folder:Tokens/DM/Adversaries',
+      'Tokens/DM/Adversaries',
+      'folder:Tokens/DM/Adversaries/Cultists',
+      'Tokens/DM/Adversaries/Cultists',
+    ];
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        isDm
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={scope}
+      />
+    );
+
+    await waitFor(() => {
+      expect(manifestCalls.length).toBeGreaterThan(0);
+      const lastCall = manifestCalls[manifestCalls.length - 1];
+      expect(lastCall).toContain('folders=Tokens%2FDM%2FAdversaries%2FCultists');
+    });
+  });
+
   test('players see Adventurers folders and scope manifest requests to selections', async () => {
     const user = setupUser();
     const folderTree = {
