@@ -389,6 +389,7 @@ function EnemyCard({
   damageVulnerabilitiesDisplay,
   damageResistancesDisplay,
   damageImmunitiesDisplay,
+  conditionImmunitiesDisplay,
   abilityScoreBadges,
   damagingActions,
   actionsList,
@@ -635,6 +636,10 @@ function EnemyCard({
               <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
                 <span className="enemy-card__summary-label">Damage Immunities:</span>
                 <span aria-hidden="true">{damageImmunitiesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Condition Immunities:</span>
+                <span aria-hidden="true">{conditionImmunitiesDisplay}</span>
               </div>
             </div>
             <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
@@ -6963,6 +6968,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                   );
                   const damageResistancesDisplay = formatDamageTraitsDisplay(enemy.damageResistances);
                   const damageImmunitiesDisplay = formatDamageTraitsDisplay(enemy.damageImmunities);
+                  const conditionImmunitiesDisplay = formatDamageTraitsDisplay(enemy.conditionImmunities);
                   const abilityScoreBadges = STAT_KEYS_ORDER.map((key) => ({
                     key,
                     value: formatAbilityScore(key, enemy?.abilityScores?.[key]),
@@ -6996,6 +7002,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                       damageVulnerabilitiesDisplay={damageVulnerabilitiesDisplay}
                       damageResistancesDisplay={damageResistancesDisplay}
                       damageImmunitiesDisplay={damageImmunitiesDisplay}
+                      conditionImmunitiesDisplay={conditionImmunitiesDisplay}
                       abilityScoreBadges={abilityScoreBadges}
                       damagingActions={damagingActions}
                       actionsList={actionsList}
