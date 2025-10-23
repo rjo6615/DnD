@@ -22927,92 +22927,125 @@
     "werewolf": {
       "index": "werewolf",
       "name": "Werewolf",
-      "size": "Medium",
-      "type": "or small monstrosity",
+      "size": "Medium or Small",
+      "type": "monstrosity",
       "alignment": "Chaotic Evil",
       "armor_class": 15,
       "hit_points": 71,
       "hit_dice": "11d8 + 22",
       "speed": {
-        "walk": "40 ft. (wolf form only)"
+        "walk": "30 ft., 40 ft. (wolf form only)"
       },
-      "strength": 14,
-      "dexterity": 10,
+      "strength": 16,
+      "dexterity": 13,
       "constitution": 14,
-      "intelligence": 5,
-      "wisdom": 10,
-      "charisma": 11,
-      "saving_throws": [
-        {
-          "name": "DEX",
-          "value": 2
-        },
-        {
-          "name": "WIS",
-          "value": 2
-        }
-      ],
+      "intelligence": 10,
+      "wisdom": 11,
+      "charisma": 10,
+      "saving_throws": null,
       "skills": {
         "perception": 4,
-        "stealth": 2
+        "stealth": 4
       },
       "senses": {
         "passive_perception": 14,
-        "blindsight": "10 ft.",
         "darkvision": "60 ft."
       },
-      "languages": "Draconic",
-      "challenge_rating": 2.0,
-      "xp": null,
+      "languages": "Common (can't speak in wolf form)",
+      "challenge_rating": 3.0,
+      "xp": 700,
       "proficiency_bonus": 2,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": [
-        "Cold"
+        "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
       ],
       "condition_immunities": null,
       "special_abilities": [
         {
-          "name": "Ice Walk",
-          "desc": "The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, Difficult Terrain composed of ice or snow doesn’t cost it extra movement."
+          "name": "Pack Tactics",
+          "desc": "The werewolf has advantage on an attack roll against a creature if at least one of the werewolf's allies is within 5 feet of the creature and the ally doesn't have the incapacitated condition."
+        },
+        {
+          "name": "Keen Hearing and Smell",
+          "desc": "The werewolf has advantage on Wisdom (Perception) checks that rely on hearing or smell."
+        },
+        {
+          "name": "Shapechanger",
+          "desc": "The werewolf can use its action to polymorph into a Large wolf-humanoid hybrid or into a Large wolf, or back into its true form, which is a Medium or Small humanoid. Its statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies."
         }
       ],
       "actions": [
         {
           "name": "Multiattack",
-          "desc": "The dragon makes two Rend attacks."
+          "desc": "The werewolf makes two attacks, using Scratch or Longsword in any combination. It can replace one attack with a Bite."
         },
         {
-          "name": "Rend",
-          "desc": "Melee Attack Roll: +4, reach 5 ft. Hit: 6 (1d8 + 2) Slashing damage plus 2 (1d4) Cold damage.",
-          "attack_bonus": 4,
+          "name": "Bite (Wolf or Hybrid Form Only)",
+          "desc": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (2d4 + 3) piercing damage. If the target is a humanoid, it must succeed on a DC 12 Constitution saving throw or be cursed with werewolf lycanthropy.",
+          "attack_bonus": 5,
           "damage": [
             {
-              "damage_dice": "1d8+2",
+              "damage_dice": "2d4+3",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "2d4+3",
+          "damage_type": {
+            "name": "piercing"
+          }
+        },
+        {
+          "name": "Scratch (Hybrid Form Only)",
+          "desc": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.",
+          "attack_bonus": 5,
+          "damage": [
+            {
+              "damage_dice": "2d6+3",
               "damage_type": {
                 "name": "slashing"
               }
             }
           ],
-          "damage_dice": "1d8+2",
+          "damage_dice": "2d6+3",
           "damage_type": {
             "name": "slashing"
           }
         },
         {
-          "name": "Cold Breath (Recharge 5-6)",
-          "desc": "Constitution Saving Throw: DC 12, each creature in a 15-foot Cone. Failure: 22 (5d8) Cold damage. Success: Half damage.",
+          "name": "Longsword (Humanoid or Hybrid Form Only)",
+          "desc": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 3) slashing damage, or 9 (1d10 + 3) slashing damage if used with two hands.",
+          "attack_bonus": 5,
           "damage": [
             {
-              "damage_dice": "5d8",
+              "damage_dice": "1d8+3",
               "damage_type": {
-                "name": "cold"
+                "name": "slashing"
               }
             }
           ],
-          "damage_dice": "5d8",
+          "damage_dice": "1d8+3",
           "damage_type": {
-            "name": "cold"
+            "name": "slashing"
+          }
+        },
+        {
+          "name": "Longbow (Humanoid Form Only)",
+          "desc": "Ranged Weapon Attack: +3 to hit, range 150/600 ft., one target. Hit: 5 (1d8 + 1) piercing damage.",
+          "attack_bonus": 3,
+          "damage": [
+            {
+              "damage_dice": "1d8+1",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "1d8+1",
+          "damage_type": {
+            "name": "piercing"
           }
         }
       ],
