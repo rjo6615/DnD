@@ -218,12 +218,12 @@ const buildOrderedNameVariants = (words) => {
   const lowerWords = words.map((word) => word.toLowerCase());
 
   const candidates = [
+    titleWords.join(' '),
     titleWords.join('_'),
     titleWords.join('-'),
-    titleWords.join(' '),
+    lowerWords.join(' '),
     lowerWords.join('_'),
     lowerWords.join('-'),
-    lowerWords.join(' '),
     titleWords.join(''),
     lowerWords.join(''),
   ];
@@ -253,8 +253,27 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
     (monsterDetail && ENEMY_ADVERSARY_TOKEN_CONFIG[monsterDetail?.index]);
 
   if (config) {
-    const folders = Array.isArray(config.folders) ? config.folders : config.folder ? [config.folder] : [];
-    folders.forEach((folder) => addEnemyFolderVariantsToScope(scopeSet, folder));
+    const folders = Array.isArray(config.folders)
+      ? config.folders
+      : config.folder
+        ? [config.folder]
+        : [];
+
+    folders.forEach((folder) => {
+      addEnemyFolderVariantsToScope(scopeSet, folder);
+
+      if (primaryFolderVariant === null) {
+        const normalized = normalizeAdversaryFolderPath(folder);
+
+        if (normalized) {
+          const withoutPrefix = normalized.replace(/^Tokens\/Adversaries\/?/i, '');
+
+          if (withoutPrefix) {
+            primaryFolderVariant = withoutPrefix;
+          }
+        }
+      }
+    });
   }
 
   const folderNameCandidates = new Set();
