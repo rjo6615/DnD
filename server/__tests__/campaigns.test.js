@@ -32,18 +32,9 @@ describe('suggestEnemyFigurine helper', () => {
     process.env = { ...originalEnv };
   });
 
-  test('returns DM folder substring matches as confident suggestions', async () => {
-    const mockExecute = jest.fn().mockResolvedValue({
-      resources: [
-        {
-          public_id: 'Tokens/DM/goblin_token',
-          secure_url:
-            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
-          folder: 'Tokens/DM',
-          filename: 'goblin_token',
-        },
-      ],
-    });
+  test('returns null when adversary folder has no matching assets', async () => {
+    const mockResources = jest.fn().mockResolvedValue({ resources: [] });
+    const mockExecute = jest.fn();
 
     const searchInstance = {};
     searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
@@ -57,6 +48,9 @@ describe('suggestEnemyFigurine helper', () => {
     jest.doMock('cloudinary', () => ({
       v2: {
         config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
         search: {
           expression: mockExpression,
         },
@@ -69,29 +63,20 @@ describe('suggestEnemyFigurine helper', () => {
 
     const result = await actualSuggestEnemyFigurine({ index: 'goblin', name: 'Goblin' });
 
-    expect(mockExpression).toHaveBeenCalled();
-    expect(mockExecute).toHaveBeenCalled();
-    expect(result).toEqual({
-      figurineImagePublicId: 'Tokens/DM/goblin_token',
-      figurineImageUrl:
-        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/goblin_token.png',
+    expect(mockResources).toHaveBeenCalled();
+    expect(mockResources.mock.calls[0][0]).toMatchObject({
+      prefix: 'Tokens/Adversaries/Goblin',
     });
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(result).toBeNull();
   });
 
   test('reuses cached figurine suggestions for the same monster keys', async () => {
     process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
 
-    const mockExecute = jest.fn().mockResolvedValue({
-      resources: [
-        {
-          public_id: 'Tokens/DM/skeleton_token',
-          secure_url:
-            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/skeleton_token.png',
-          folder: 'Tokens/DM',
-          filename: 'skeleton_token',
-        },
-      ],
-    });
+    const mockResources = jest.fn().mockResolvedValue({ resources: [] });
+    const mockExecute = jest.fn();
 
     const searchInstance = {};
     searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
@@ -105,6 +90,9 @@ describe('suggestEnemyFigurine helper', () => {
     jest.doMock('cloudinary', () => ({
       v2: {
         config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
         search: {
           expression: mockExpression,
         },
@@ -115,23 +103,38 @@ describe('suggestEnemyFigurine helper', () => {
       '../utils/cloudinary'
     );
 
+    mockResources.mockResolvedValueOnce({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/Skeleton/token-1',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Skeleton/token-1.png',
+          folder: 'Tokens/Adversaries/Skeleton',
+          filename: 'token-1',
+        },
+      ],
+    });
+
     const first = await actualSuggestEnemyFigurine({ index: 'skeleton', name: 'Skeleton' });
+    const resourceCallsAfterFirst = mockResources.mock.calls.length;
     const second = await actualSuggestEnemyFigurine({ index: 'skeleton', name: 'Skeleton' });
 
     expect(first).toEqual({
-      figurineImagePublicId: 'Tokens/DM/skeleton_token',
+      figurineImagePublicId: 'Tokens/Adversaries/Skeleton/token-1',
       figurineImageUrl:
-        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/skeleton_token.png',
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Skeleton/token-1.png',
     });
     expect(second).toEqual(first);
-    expect(mockExpression).toHaveBeenCalledTimes(1);
-    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(mockResources.mock.calls.length).toBe(resourceCallsAfterFirst);
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
   });
 
   test('caches null figurine suggestions to avoid repeated searches', async () => {
     process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
 
-    const mockExecute = jest.fn().mockResolvedValue({ resources: [] });
+    const mockResources = jest.fn().mockResolvedValue({ resources: [] });
+    const mockExecute = jest.fn();
 
     const searchInstance = {};
     searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
@@ -145,6 +148,9 @@ describe('suggestEnemyFigurine helper', () => {
     jest.doMock('cloudinary', () => ({
       v2: {
         config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
         search: {
           expression: mockExpression,
         },
@@ -156,31 +162,30 @@ describe('suggestEnemyFigurine helper', () => {
     );
 
     const first = await actualSuggestEnemyFigurine({ index: 'wight', name: 'Wight' });
+    const resourceCallsAfterFirst = mockResources.mock.calls.length;
     const second = await actualSuggestEnemyFigurine({ index: 'wight', name: 'Wight' });
 
     expect(first).toBeNull();
     expect(second).toBeNull();
-    expect(mockExpression).toHaveBeenCalledTimes(2);
-    expect(mockExecute).toHaveBeenCalledTimes(2);
+    expect(mockResources.mock.calls.length).toBe(resourceCallsAfterFirst);
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
   });
 
-  test('tracks Cloudinary API call counts across figurine search scenarios', async () => {
-    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
+  test('returns adversary folder assets without using Cloudinary search', async () => {
+    const mockResources = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/Goblin/token-1',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Goblin/token-1.png',
+          folder: 'Tokens/Adversaries/Goblin',
+          filename: 'token-1',
+        },
+      ],
+    });
 
-    const mockExecute = jest
-      .fn()
-      .mockResolvedValueOnce({ resources: [] })
-      .mockResolvedValueOnce({
-        resources: [
-          {
-            public_id: 'Tokens/DM/ogre_token',
-            secure_url:
-              'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/ogre_token.png',
-            folder: 'Tokens/DM',
-            filename: 'ogre_token',
-          },
-        ],
-      });
+    const mockExecute = jest.fn();
 
     const searchInstance = {};
     searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
@@ -194,6 +199,120 @@ describe('suggestEnemyFigurine helper', () => {
     jest.doMock('cloudinary', () => ({
       v2: {
         config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    const result = await actualSuggestEnemyFigurine({ index: 'goblin', name: 'Goblin' });
+
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      figurineImagePublicId: 'Tokens/Adversaries/Goblin/token-1',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Goblin/token-1.png',
+    });
+  });
+
+  test('requests adversary folders using underscores for monster names with spaces', async () => {
+    const mockResources = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/Adult_Blue_Dragon/token-2',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Adult_Blue_Dragon/token-2.png',
+          folder: 'Tokens/Adversaries/Adult_Blue_Dragon',
+          filename: 'token-2',
+        },
+      ],
+    });
+
+    const mockExecute = jest.fn();
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    const result = await actualSuggestEnemyFigurine({
+      index: 'adult-blue-dragon',
+      name: 'Adult Blue Dragon',
+    });
+
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(mockResources.mock.calls[0][0]).toMatchObject({
+      prefix: 'Tokens/Adversaries/Adult_Blue_Dragon',
+    });
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      figurineImagePublicId: 'Tokens/Adversaries/Adult_Blue_Dragon/token-2',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Adult_Blue_Dragon/token-2.png',
+    });
+  });
+
+  test('tracks Cloudinary API call counts across figurine search scenarios', async () => {
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
+
+    const mockResources = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/Ogre/token-3',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Ogre/token-3.png',
+          folder: 'Tokens/Adversaries/Ogre',
+          filename: 'token-3',
+        },
+      ],
+    });
+    const mockExecute = jest.fn();
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
         search: {
           expression: mockExpression,
         },
@@ -209,17 +328,19 @@ describe('suggestEnemyFigurine helper', () => {
     const result = await actualSuggestEnemyFigurine({ index: 'ogre', name: 'Ogre' });
 
     expect(result).toEqual({
-      figurineImagePublicId: 'Tokens/DM/ogre_token',
+      figurineImagePublicId: 'Tokens/Adversaries/Ogre/token-3',
       figurineImageUrl:
-        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/DM/ogre_token.png',
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Ogre/token-3.png',
     });
 
-    expect(mockExpression).toHaveBeenCalledTimes(2);
-    expect(mockExecute).toHaveBeenCalledTimes(2);
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockResources).toHaveBeenCalledTimes(1);
 
     const counts = getCloudinaryApiCallCounts();
-    expect(counts.total).toBe(2);
-    expect(counts.byAction).toEqual({ 'search.execute': 2 });
+    const resourceCalls = mockResources.mock.calls.length;
+    expect(counts.total).toBe(resourceCalls);
+    expect(counts.byAction).toEqual({ 'api.resources': resourceCalls });
 
     resetCloudinaryApiCallCounts();
     expect(getCloudinaryApiCallCounts()).toEqual({ total: 0, byAction: {} });

@@ -8,6 +8,7 @@ const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 1_800_000; // 30 minutes
 const DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS = 3_600_000;
 const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
 const MAX_FOLDER_TREE_CONCURRENCY = 12;
+const MAX_ADVERSARY_FOLDER_RESULTS = 60;
 
 const tokenListCache = new Map();
 const folderTreeCache = new Map();
@@ -217,20 +218,19 @@ const buildFolderTreeCacheKey = ({ rootFolder, folders }) => {
   return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders].join('::');
 };
 
-const buildFigurineSuggestionCacheKey = ({ keys, includeGeneralSearch, rootFolder }) => {
+const buildFigurineSuggestionCacheKey = ({ keys, rootFolder }) => {
   if (!Array.isArray(keys) || keys.length === 0) {
     return null;
   }
 
   const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
   const normalizedKeys = Array.from(new Set(keys.filter(Boolean))).sort();
-  const scope = includeGeneralSearch ? 'general' : 'restricted';
 
   if (normalizedKeys.length === 0) {
     return null;
   }
 
-  return [normalizedRoot, scope, normalizedKeys.join('|')].join('::');
+  return [normalizedRoot, normalizedKeys.join('|')].join('::');
 };
 
 const resolveCloudinary = () => {
@@ -914,7 +914,6 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
   return response;
 };
 
-const DM_FOLDER_HINTS = ['DM', 'DM Only', 'DM-Only', 'DMOnly', '_DM'];
 const DM_FOLDER_PATTERN = /(^|\/)dm([ -]?only)?(\/|$)/i;
 const CONFIDENT_SUGGESTION_SCORE = 5;
 
@@ -986,6 +985,109 @@ const collectMonsterKeys = (monsterDetail = {}) => {
   });
 
   return Array.from(sanitized).filter(Boolean);
+};
+
+const getMonsterNameForFolder = (monsterDetail = {}) => {
+  if (!monsterDetail || typeof monsterDetail !== 'object') {
+    return null;
+  }
+
+  const candidateKeys = [
+    'name',
+    'monster_name',
+    'monsterName',
+    'displayName',
+    'index',
+    'monster_index',
+    'slug',
+    'monster_slug',
+  ];
+
+  for (const key of candidateKeys) {
+    const value = monsterDetail[key];
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const buildAdversaryFolderPath = (monsterDetail = {}, rootFolder = DEFAULT_TOKEN_ROOT_FOLDER) => {
+  const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
+  const monsterName = getMonsterNameForFolder(monsterDetail);
+
+  if (!monsterName) {
+    return null;
+  }
+
+  const normalizedName = monsterName.replace(/[\\/]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!normalizedName) {
+    return null;
+  }
+
+  const folderSegment = normalizedName
+    .replace(/[^0-9A-Za-z\s_-]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (!folderSegment) {
+    return null;
+  }
+
+  return sanitizeFolderSegment(`${normalizedRoot}/Adversaries/${folderSegment}`);
+};
+
+const fetchAdversaryFolderResources = async (sdk, folderPath) => {
+  if (!sdk?.api || typeof sdk.api.resources !== 'function') {
+    return null;
+  }
+
+  const sanitizedFolder = sanitizeFolderSegment(folderPath);
+  if (!sanitizedFolder) {
+    return null;
+  }
+
+  const maxResults = MAX_ADVERSARY_FOLDER_RESULTS;
+
+  try {
+    logCloudinaryApiCall('api.resources', {
+      context: 'suggestEnemyFigurine.adversaryFolder',
+      prefix: sanitizedFolder,
+      maxResults,
+    });
+
+    const response = await sdk.api.resources({
+      type: 'upload',
+      resource_type: 'image',
+      prefix: sanitizedFolder,
+      max_results: maxResults,
+      context: true,
+      metadata: true,
+    });
+
+    return Array.isArray(response?.resources) ? response.resources : [];
+  } catch (error) {
+    return null;
+  }
+};
+
+const suggestFromAdversaryFolders = async (sdk, { rootFolder, keys, monsterDetail }) => {
+  const folderPath = buildAdversaryFolderPath(monsterDetail, rootFolder);
+  if (!folderPath) {
+    return null;
+  }
+
+  const resources = await fetchAdversaryFolderResources(sdk, folderPath);
+  if (!resources || resources.length === 0) {
+    return null;
+  }
+
+  return selectBestSuggestion(resources, keys, rootFolder);
 };
 
 const collectCandidateTokens = (resource) => {
@@ -1152,99 +1254,12 @@ const selectBestSuggestion = (resources, keys, rootFolder) => {
   };
 };
 
-const buildMatchExpressions = (keys) => {
-  if (!Array.isArray(keys) || keys.length === 0) {
-    return [];
-  }
-
-  const metaKeys = [
-    'monsterIndex',
-    'monster_index',
-    'monsterSlug',
-    'monster_slug',
-    'slug',
-    'name',
-    'type',
-    'subtype',
-    'creatureType',
-    'creature_type',
-    'creatureSubtype',
-    'creature_subtype',
-  ];
-
-  const expressions = new Set();
-
-  keys.forEach((key) => {
-    const variants = expandKeyVariants(key);
-    variants.forEach((variant) => {
-      const escaped = escapeExpressionValue(variant);
-      expressions.add(`public_id="${escaped}"`);
-      expressions.add(`public_id="${escapeExpressionValue(`*${variant}*`)}"`);
-      expressions.add(`filename="${escaped}"`);
-      expressions.add(`filename="${escapeExpressionValue(`*${variant}*`)}"`);
-      metaKeys.forEach((metaKey) => {
-        expressions.add(`metadata.${metaKey}="${escaped}"`);
-      });
-    });
-  });
-
-  return Array.from(expressions);
-};
-
-const executeFigurineSearch = async (sdk, { rootFolder, keys, folderHints }) => {
-  if (!sdk?.search || typeof sdk.search.expression !== 'function') {
-    return null;
-  }
-
-  const matchExpressions = buildMatchExpressions(keys);
-  if (matchExpressions.length === 0) {
-    return null;
-  }
-
-  const expressionSegments = ['resource_type:image'];
-  const folderExpressions = buildFolderExpressions(rootFolder, folderHints || []);
-
-  if (folderExpressions.length > 0) {
-    expressionSegments.push(`(${folderExpressions.join(' OR ')})`);
-  }
-
-  expressionSegments.push(`(${matchExpressions.join(' OR ')})`);
-
-  const expression = expressionSegments.join(' AND ');
-
-  const maxResults = Math.min(Math.max(keys.length * 20, 50), TOKEN_FALLBACK_MAX_RESULTS);
-
-  try {
-    let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
-    search = search
-      .max_results(maxResults)
-      .with_field('context')
-      .with_field('metadata');
-
-    logCloudinaryApiCall('search.execute', {
-      context: 'suggestEnemyFigurine',
-      expression,
-      maxResults,
-      folderHints: folderHints || [],
-      keys,
-    });
-
-    const result = await search.execute();
-    const resources = Array.isArray(result?.resources) ? result.resources : [];
-
-    return selectBestSuggestion(resources, keys, rootFolder);
-  } catch (error) {
-    return null;
-  }
-};
-
-const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true } = {}) => {
+const suggestEnemyFigurine = async (monsterDetail) => {
   const keys = collectMonsterKeys(monsterDetail);
   if (keys.length === 0) {
     return null;
   }
 
-  const includeGeneral = Boolean(includeGeneralSearch);
   const rootFolder = getTokenRootFolder();
   const cacheTtlMs = getFigurineSuggestionCacheTtlMs();
 
@@ -1254,7 +1269,6 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
     cacheTtlMs > 0
       ? buildFigurineSuggestionCacheKey({
           keys,
-          includeGeneralSearch: includeGeneral,
           rootFolder,
         })
       : null;
@@ -1277,25 +1291,11 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
 
   const sdk = resolveCloudinary();
 
-  const searchScenarios = [{ folderHints: DM_FOLDER_HINTS }];
-
-  if (includeGeneral) {
-    searchScenarios.push({ folderHints: [] });
-  }
-
-  let suggestion = null;
-
-  for (const scenario of searchScenarios) {
-    suggestion = await executeFigurineSearch(sdk, {
-      rootFolder,
-      keys,
-      folderHints: scenario.folderHints,
-    });
-
-    if (suggestion) {
-      break;
-    }
-  }
+  let suggestion = await suggestFromAdversaryFolders(sdk, {
+    rootFolder,
+    keys,
+    monsterDetail,
+  });
 
   if (cacheTtlMs > 0 && cacheKey) {
     setFigurineSuggestionCacheEntry(cacheKey, suggestion || null, cacheTtlMs);
