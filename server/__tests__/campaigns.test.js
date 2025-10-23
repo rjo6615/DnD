@@ -12,6 +12,13 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
   req.user = mockUser;
   next();
 });
+jest.mock('../utils/cloudinaryCache', () => ({
+  buildTokenFolderCacheKey: jest.fn(() => 'tokenFolders::dm'),
+  getCachedTokenFolderTree: jest.fn(),
+  setCachedTokenFolderTree: jest.fn(),
+  getPersistentFolderTreeCacheTtlMs: jest.fn(() => 0),
+}));
+const cloudinaryCache = require('../utils/cloudinaryCache');
 
 describe('suggestEnemyFigurine helper', () => {
   const originalEnv = { ...process.env };
@@ -834,6 +841,13 @@ describe('Campaign routes', () => {
     listTokenFolderTree.mockReset();
     getTokenRootFolder.mockReset();
     suggestEnemyFigurine.mockReset();
+    cloudinaryCache.buildTokenFolderCacheKey.mockReset();
+    cloudinaryCache.buildTokenFolderCacheKey.mockReturnValue('tokenFolders::dm');
+    cloudinaryCache.getCachedTokenFolderTree.mockReset();
+    cloudinaryCache.getCachedTokenFolderTree.mockResolvedValue(undefined);
+    cloudinaryCache.setCachedTokenFolderTree.mockReset();
+    cloudinaryCache.getPersistentFolderTreeCacheTtlMs.mockReset();
+    cloudinaryCache.getPersistentFolderTreeCacheTtlMs.mockReturnValue(0);
     uploadMapImage.mockResolvedValue({
       secure_url:
         'https://res.cloudinary.com/demo/image/upload/v1729012354/maps/default.png',
@@ -2321,6 +2335,69 @@ describe('Campaign routes', () => {
     expect(listTokenFolderTree).toHaveBeenCalledWith({
       folders: ['Tokens/Adventurers/Heroes'],
     });
+  });
+
+  test('reuses cached DM token folder tree when available', async () => {
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [],
+      flatFolders: [],
+    };
+
+    cloudinaryCache.getPersistentFolderTreeCacheTtlMs.mockReturnValueOnce(3600000);
+    cloudinaryCache.getCachedTokenFolderTree.mockResolvedValueOnce(folderTree);
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    const res = await request(app).get('/campaigns/Test/token-folders');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(folderTree);
+    expect(listTokenFolderTree).not.toHaveBeenCalled();
+    expect(cloudinaryCache.setCachedTokenFolderTree).not.toHaveBeenCalled();
+  });
+
+  test('stores DM token folder tree in persistent cache when fetched', async () => {
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [],
+      flatFolders: [],
+    };
+
+    cloudinaryCache.getPersistentFolderTreeCacheTtlMs.mockReturnValueOnce(7200000);
+    cloudinaryCache.getCachedTokenFolderTree.mockResolvedValueOnce(null);
+
+    const findOne = jest.fn().mockResolvedValue({ campaignName: 'Test', dm: 'DM' });
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return { findOne };
+        }
+        throw new Error(`Unexpected collection ${name}`);
+      },
+    });
+
+    listTokenFolderTree.mockResolvedValue(folderTree);
+
+    const res = await request(app).get('/campaigns/Test/token-folders');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(folderTree);
+    expect(listTokenFolderTree).toHaveBeenCalledWith({ folders: [] });
+    expect(cloudinaryCache.setCachedTokenFolderTree).toHaveBeenCalledWith(
+      expect.anything(),
+      'tokenFolders::dm',
+      folderTree,
+      7200000
+    );
   });
 
   test('player token manifest is limited to Adventurers folders', async () => {

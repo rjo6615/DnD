@@ -23,6 +23,12 @@ const {
   listTokenFolderTree,
   suggestEnemyFigurine,
 } = require('../utils/cloudinary');
+const {
+  buildTokenFolderCacheKey,
+  getCachedTokenFolderTree,
+  setCachedTokenFolderTree,
+  getPersistentFolderTreeCacheTtlMs,
+} = require('../utils/cloudinaryCache');
 
 const deriveCloudinaryPublicIdFromUrl = (url) => {
   if (typeof url !== 'string' || url.trim() === '') {
@@ -1824,8 +1830,41 @@ module.exports = (router) => {
           if (isDm) {
             const requestedFolders = parseFolderFilters(req.query.folders);
 
+            const persistentCacheTtlMs = getPersistentFolderTreeCacheTtlMs();
+            const cacheKey = buildTokenFolderCacheKey({
+              role: 'dm',
+              rootFolder: tokenRootFolder,
+              folders: requestedFolders,
+            });
+
+            if (persistentCacheTtlMs > 0) {
+              try {
+                const cached = await getCachedTokenFolderTree(req.db, cacheKey);
+                if (cached) {
+                  return res.json(cached);
+                }
+              } catch (cacheError) {
+                logger.warn('Failed to read token folder cache', {
+                  error: cacheError.message,
+                  context: 'dmTokenFolders',
+                });
+              }
+            }
+
             try {
               const folderTree = await listTokenFolderTree({ folders: requestedFolders });
+
+              if (persistentCacheTtlMs > 0 && folderTree) {
+                try {
+                  await setCachedTokenFolderTree(req.db, cacheKey, folderTree, persistentCacheTtlMs);
+                } catch (cacheError) {
+                  logger.warn('Failed to store token folder cache', {
+                    error: cacheError.message,
+                    context: 'dmTokenFolders',
+                  });
+                }
+              }
+
               return res.json(folderTree);
             } catch (error) {
               logger.warn('Failed to load token folder tree from Cloudinary', {
@@ -1854,8 +1893,42 @@ module.exports = (router) => {
           const folderTargets =
             allowedFolders.length > 0 ? allowedFolders : [playerRootFolder];
 
+          const persistentCacheTtlMs = getPersistentFolderTreeCacheTtlMs();
+          const cacheKey = buildTokenFolderCacheKey({
+            role: 'player',
+            rootFolder: tokenRootFolder,
+            playerRootFolder,
+            folders: folderTargets,
+          });
+
+          if (persistentCacheTtlMs > 0) {
+            try {
+              const cached = await getCachedTokenFolderTree(req.db, cacheKey);
+              if (cached) {
+                return res.json(cached);
+              }
+            } catch (cacheError) {
+              logger.warn('Failed to read token folder cache', {
+                error: cacheError.message,
+                context: 'playerTokenFolders',
+              });
+            }
+          }
+
           try {
             const folderTree = await listTokenFolderTree({ folders: folderTargets });
+
+            if (persistentCacheTtlMs > 0 && folderTree) {
+              try {
+                await setCachedTokenFolderTree(req.db, cacheKey, folderTree, persistentCacheTtlMs);
+              } catch (cacheError) {
+                logger.warn('Failed to store token folder cache', {
+                  error: cacheError.message,
+                  context: 'playerTokenFolders',
+                });
+              }
+            }
+
             return res.json(folderTree);
           } catch (error) {
             logger.warn('Failed to load token folder tree from Cloudinary', {
