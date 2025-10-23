@@ -282,6 +282,58 @@ describe('suggestEnemyFigurine helper', () => {
     });
   });
 
+  test('prefers adversary folders before falling back to Cloudinary search', async () => {
+    const mockResources = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/Goblin/token-1',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Goblin/token-1.png',
+          folder: 'Tokens/Adversaries/Goblin',
+          filename: 'token-1',
+        },
+      ],
+    });
+
+    const mockExecute = jest.fn();
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.max_results = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.with_field = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.next_cursor = jest.fn().mockImplementation(() => searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockImplementation(() => searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { suggestEnemyFigurine: actualSuggestEnemyFigurine } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    const result = await actualSuggestEnemyFigurine({ index: 'goblin', name: 'Goblin' });
+
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(mockExpression).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      figurineImagePublicId: 'Tokens/Adversaries/Goblin/token-1',
+      figurineImageUrl:
+        'https://res.cloudinary.com/demo/image/upload/v1/Tokens/Adversaries/Goblin/token-1.png',
+    });
+  });
+
   test('tracks Cloudinary API call counts across figurine search scenarios', async () => {
     process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS = '1000';
 
