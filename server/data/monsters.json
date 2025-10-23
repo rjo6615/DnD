@@ -20306,11 +20306,13 @@
         "stealth": 8,
         "pb": 2
       },
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "senses": {
+        "passive_perception": 13
+      },
+      "languages": "Common, Elvish, Sylvan",
+      "challenge_rating": 0.25,
+      "xp": 50,
+      "proficiency_bonus": 2,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": null,
@@ -20341,7 +20343,7 @@
         },
         {
           "name": "Heart Sight",
-          "desc": "Charisma Saving Throw: DC 10, one creature within 5 feet the sprite can see (Celestials, Fiends, and Undead automatically fail the save). Failure: The sprite knows the target’s emotions and alignment."
+          "desc": "Charisma Saving Throw: DC 10, one creature within 5 feet of the sprite that the sprite can see (Celestials, Fiends, and Undead automatically fail the save). Failure: The sprite knows the target’s emotions and alignment."
         },
         {
           "name": "Invisibility",
