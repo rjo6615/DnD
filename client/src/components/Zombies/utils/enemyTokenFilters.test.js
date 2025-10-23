@@ -5,6 +5,8 @@ describe('buildEnemyTokenFilterScopeValues', () => {
     const scope = buildEnemyTokenFilterScopeValues('cultist', { index: 'cultist', name: 'Cultist' });
 
     expect(scope).toBeInstanceOf(Array);
+    expect(scope[0]).toBe('folder:Tokens/Adversaries/Cultist');
+    expect(scope[1]).toBe('Tokens/Adversaries/Cultist');
     expect(scope).toEqual(
       expect.arrayContaining([
         'folder:Tokens/Adversaries/Cultist',
@@ -34,6 +36,8 @@ describe('buildEnemyTokenFilterScopeValues', () => {
       name: 'Giant Wolf Spider',
     });
 
+    expect(scope[0]).toBe('folder:Tokens/Adversaries/Giant_Wolf_Spider');
+    expect(scope[1]).toBe('Tokens/Adversaries/Giant_Wolf_Spider');
     expect(scope).toEqual(
       expect.arrayContaining([
         'folder:Tokens/Adversaries/Giant Wolf Spider',

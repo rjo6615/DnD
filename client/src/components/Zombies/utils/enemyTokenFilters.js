@@ -209,8 +209,44 @@ const addEnemyFolderVariantsToScope = (set, folderPath) => {
   });
 };
 
+const buildOrderedNameVariants = (words) => {
+  if (!Array.isArray(words) || words.length === 0) {
+    return [];
+  }
+
+  const titleWords = words.map(capitalizeWord);
+  const lowerWords = words.map((word) => word.toLowerCase());
+
+  const candidates = [
+    titleWords.join('_'),
+    titleWords.join('-'),
+    titleWords.join(' '),
+    lowerWords.join('_'),
+    lowerWords.join('-'),
+    lowerWords.join(' '),
+    titleWords.join(''),
+    lowerWords.join(''),
+  ];
+
+  const unique = [];
+  const seen = new Set();
+
+  candidates
+    .map((candidate) => (typeof candidate === 'string' ? candidate.trim() : ''))
+    .filter(Boolean)
+    .forEach((candidate) => {
+      if (!seen.has(candidate)) {
+        seen.add(candidate);
+        unique.push(candidate);
+      }
+    });
+
+  return unique;
+};
+
 export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) => {
   const scopeSet = new Set();
+  let primaryFolderVariant = null;
 
   const config =
     (monsterIndex && ENEMY_ADVERSARY_TOKEN_CONFIG[monsterIndex]) ||
@@ -259,7 +295,7 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
 
     const normalizedWords = baseSegments
       .join(' ')
-      .split(/\s+/g)
+      .split(/[^A-Za-z0-9]+/g)
       .map((segment) => segment.trim())
       .filter(Boolean);
 
@@ -267,27 +303,51 @@ export const buildEnemyTokenFilterScopeValues = (monsterIndex, monsterDetail) =>
       return;
     }
 
-    const titleCase = normalizedWords.map(capitalizeWord).join(' ');
-    const baseNameVariants = new Set([
-      normalizedWords.join(' '),
-      normalizedWords.join('-'),
-      normalizedWords.join('_'),
-      normalizedWords.join(''),
-      titleCase,
-      titleCase.replace(/\s+/g, '-'),
-      titleCase.replace(/\s+/g, ''),
-    ]);
+    const orderedVariants = buildOrderedNameVariants(normalizedWords);
 
-    baseNameVariants.forEach((variantName) => {
+    orderedVariants.forEach((variantName, index) => {
       if (!variantName) {
         return;
       }
 
       addEnemyFolderVariantsToScope(scopeSet, `Tokens/Adversaries/${variantName}`);
+      if (primaryFolderVariant === null && index === 0) {
+        primaryFolderVariant = variantName;
+      }
     });
   });
 
-  return scopeSet.size > 0 ? Array.from(scopeSet) : null;
+  if (scopeSet.size === 0) {
+    return null;
+  }
+
+  const orderedScope = [];
+  const seenValues = new Set();
+  const pushValue = (value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed || seenValues.has(trimmed)) {
+      return;
+    }
+
+    seenValues.add(trimmed);
+    orderedScope.push(trimmed);
+  };
+
+  if (primaryFolderVariant) {
+    const primaryPath = normalizeAdversaryFolderPath(`Tokens/Adversaries/${primaryFolderVariant}`);
+    if (primaryPath) {
+      pushValue(`folder:${primaryPath}`);
+      pushValue(primaryPath);
+    }
+  }
+
+  Array.from(scopeSet).forEach(pushValue);
+
+  return orderedScope;
 };
 
 export default buildEnemyTokenFilterScopeValues;
