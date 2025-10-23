@@ -908,6 +908,12 @@ const TokenPickerModal = ({
         ? cloneFilters(dmFilters)
         : cloneFilters(DEFAULT_DM_FILTERS);
 
+    if (scopeFolderHints.length > 0) {
+      setDmFolderOptions(fallbackFilters);
+      hasLoadedDmFoldersRef.current = true;
+      return;
+    }
+
     if (!campaignId) {
       setDmFolderOptions(fallbackFilters);
       hasLoadedDmFoldersRef.current = false;
@@ -955,7 +961,7 @@ const TokenPickerModal = ({
     return () => {
       isCancelled = true;
     };
-  }, [show, isDm, campaignId, dmFilters]);
+  }, [show, isDm, campaignId, dmFilters, scopeFolderHints]);
 
   useEffect(() => {
     if (isDm) {
