@@ -67,8 +67,21 @@ describe('buildEnemyTokenFilterScopeValues', () => {
       .map((value) => value.toLowerCase())
       .forEach((value) => {
         expect(value).toContain('adversaries');
-        expect(value).not.toContain('adventurers');
-      });
+      expect(value).not.toContain('adventurers');
+    });
+  });
+
+  it('adds dm folder variants so the dungeon master filter matches', () => {
+    const scope = buildEnemyTokenFilterScopeValues('orc', { index: 'orc', name: 'Orc' });
+
+    expect(scope).toEqual(
+      expect.arrayContaining([
+        'folder:Tokens/DM/Adversaries/Orc',
+        'Tokens/DM/Adversaries/Orc',
+        'folder:DM/Adversaries/Orc',
+        'DM/Adversaries/Orc',
+      ])
+    );
   });
 
   it('does not include unrelated wolf spider folders when selecting wolf', () => {

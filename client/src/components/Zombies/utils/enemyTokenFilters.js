@@ -203,6 +203,16 @@ const addEnemyFolderVariantsToScope = (set, folderPath) => {
 
   const variants = new Set([pathWithTokens, pathWithTokens.replace(/^Tokens\//i, '')]);
 
+  const segments = pathWithTokens.split('/');
+  if (segments.length >= 3 && segments[0] === 'Tokens' && segments[1] === 'Adversaries') {
+    const dmSegments = [...segments];
+    dmSegments.splice(1, 0, 'DM');
+    const dmPath = dmSegments.join('/');
+
+    variants.add(dmPath);
+    variants.add(dmPath.replace(/^Tokens\//i, ''));
+  }
+
   variants.forEach((variant) => {
     addEnemyScopeValue(set, variant);
     addEnemyScopeValue(set, `folder:${variant}`);
@@ -218,7 +228,6 @@ const buildOrderedNameVariants = (words) => {
   const lowerWords = words.map((word) => word.toLowerCase());
 
   const candidates = [
-    titleWords.join(' '),
     titleWords.join('_'),
     lowerWords.join('_'),
     titleWords.join(' '),
