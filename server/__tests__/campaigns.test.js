@@ -418,7 +418,7 @@ describe('Cloudinary caching helpers', () => {
       CLOUDINARY_TOKEN_CACHE_TTL_MS: '1000',
     };
 
-    const mockExecute = jest.fn().mockResolvedValue({
+    const mockResources = jest.fn().mockResolvedValue({
       resources: [
         {
           public_id: 'Tokens/DM/goblin_token',
@@ -431,20 +431,11 @@ describe('Cloudinary caching helpers', () => {
       total_count: 1,
     });
 
-    const searchInstance = {};
-    searchInstance.sort_by = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.max_results = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.with_field = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.next_cursor = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.execute = mockExecute;
-
-    const mockExpression = jest.fn().mockReturnValue(searchInstance);
-
     jest.doMock('cloudinary', () => ({
       v2: {
         config: jest.fn(),
-        search: {
-          expression: mockExpression,
+        api: {
+          resources: mockResources,
         },
       },
     }));
@@ -454,8 +445,11 @@ describe('Cloudinary caching helpers', () => {
     await actualListTokenAssets({ folders: ['DM'], nextCursor: null });
     await actualListTokenAssets({ folders: ['DM'], nextCursor: null });
 
-    expect(mockExpression).toHaveBeenCalledTimes(1);
-    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(mockResources.mock.calls[0][0]).toMatchObject({
+      prefix: 'Tokens/DM',
+      max_results: 200,
+    });
   });
 
   test('listTokenAssets deduplicates concurrent identical requests', async () => {
@@ -473,22 +467,13 @@ describe('Cloudinary caching helpers', () => {
       resolveExecute = resolve;
     });
 
-    const mockExecute = jest.fn().mockReturnValue(executePromise);
-
-    const searchInstance = {};
-    searchInstance.sort_by = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.max_results = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.with_field = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.next_cursor = jest.fn().mockReturnValue(searchInstance);
-    searchInstance.execute = mockExecute;
-
-    const mockExpression = jest.fn().mockReturnValue(searchInstance);
+    const mockResources = jest.fn().mockReturnValue(executePromise);
 
     jest.doMock('cloudinary', () => ({
       v2: {
         config: jest.fn(),
-        search: {
-          expression: mockExpression,
+        api: {
+          resources: mockResources,
         },
       },
     }));
@@ -498,8 +483,7 @@ describe('Cloudinary caching helpers', () => {
     const firstCall = actualListTokenAssets({ folders: ['DM'], nextCursor: null });
     const secondCall = actualListTokenAssets({ folders: ['DM'], nextCursor: null });
 
-    expect(mockExpression).toHaveBeenCalledTimes(1);
-    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(mockResources).toHaveBeenCalledTimes(1);
 
     resolveExecute({
       resources: [
@@ -517,8 +501,40 @@ describe('Cloudinary caching helpers', () => {
     const [firstResult, secondResult] = await Promise.all([firstCall, secondCall]);
 
     expect(firstResult).toEqual(secondResult);
-    expect(mockExpression).toHaveBeenCalledTimes(1);
-    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(mockResources).toHaveBeenCalledTimes(1);
+  });
+
+  test('listTokenAssets requests Cloudinary resources with normalized folder prefix', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+    };
+
+    const mockResources = jest.fn().mockResolvedValue({ resources: [] });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
+      },
+    }));
+
+    const { listTokenAssets: actualListTokenAssets } = jest.requireActual('../utils/cloudinary');
+
+    await actualListTokenAssets({ folders: ['Adversaries/ape'] });
+
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(mockResources.mock.calls[0][0]).toMatchObject({
+      prefix: 'Tokens/Adversaries/ape',
+      max_results: 200,
+      context: true,
+      metadata: true,
+    });
   });
 
   test('listTokenFolderTree reuses cached results when inputs repeat', async () => {

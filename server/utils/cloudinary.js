@@ -272,8 +272,6 @@ const getMapFolder = () => process.env.CLOUDINARY_MAP_FOLDER || 'Realm Tracker M
 const getTokenRootFolder = () =>
   process.env.CLOUDINARY_TOKEN_ROOT_FOLDER || DEFAULT_TOKEN_ROOT_FOLDER;
 
-const escapeExpressionValue = (value) => value.replace(/(["\\])/g, '\\$1');
-
 const sanitizeFolderSegment = (value) => {
   if (typeof value !== 'string') {
     return null;
@@ -294,42 +292,6 @@ const sanitizeFolderSegment = (value) => {
   }
 
   return segments.join('/');
-};
-
-const buildFolderExpressions = (rootFolder, folders = []) => {
-  const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
-  const expressions = [];
-
-  const normalizedFilters = Array.isArray(folders)
-    ? folders
-        .map((folder) => {
-          const sanitized = sanitizeFolderSegment(folder);
-          if (!sanitized) {
-            return null;
-          }
-
-          if (sanitized === normalizedRoot) {
-            return sanitized;
-          }
-
-          if (sanitized.startsWith(`${normalizedRoot}/`)) {
-            return sanitized;
-          }
-
-          return `${normalizedRoot}/${sanitized}`;
-        })
-        .filter(Boolean)
-    : [];
-
-  const targets = normalizedFilters.length > 0 ? normalizedFilters : [normalizedRoot];
-
-  targets.forEach((folderPath) => {
-    const escaped = escapeExpressionValue(folderPath);
-    expressions.push(`folder="${escaped}"`);
-    expressions.push(`folder="${escaped}/*"`);
-  });
-
-  return expressions;
 };
 
 const sanitizeTokenResource = (resource = {}, rootFolder = DEFAULT_TOKEN_ROOT_FOLDER) => {
@@ -834,27 +796,35 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
   configure();
   const sdk = resolveCloudinary();
 
-  if (!sdk?.search || typeof sdk.search.expression !== 'function') {
-    throw new Error('Cloudinary search API is unavailable');
+  if (!sdk?.api || typeof sdk.api.resources !== 'function') {
+    throw new Error('Cloudinary resources API is unavailable');
   }
 
   const rootFolder = getTokenRootFolder();
-  const expressionSegments = ['resource_type:image'];
-  const folderExpressions = buildFolderExpressions(rootFolder, folders || []);
-
-  if (folderExpressions.length > 0) {
-    expressionSegments.push(`(${folderExpressions.join(' OR ')})`);
-  }
-
-  const expression = expressionSegments.join(' AND ');
 
   const resolvedMaxResults = Number.isInteger(maxResults)
     ? Math.max(1, Math.min(maxResults, 500))
     : TOKEN_FALLBACK_MAX_RESULTS;
 
+  const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
   const sanitizedFolders = Array.isArray(folders)
     ? folders
-        .map((folder) => sanitizeFolderSegment(folder))
+        .map((folder) => {
+          const sanitized = sanitizeFolderSegment(folder);
+          if (!sanitized) {
+            return null;
+          }
+
+          if (sanitized === normalizedRoot) {
+            return sanitized;
+          }
+
+          if (sanitized.startsWith(`${normalizedRoot}/`)) {
+            return sanitized;
+          }
+
+          return `${normalizedRoot}/${sanitized}`;
+        })
         .filter(Boolean)
     : [];
 
@@ -884,27 +854,38 @@ const listTokenAssets = async ({ folders = null, nextCursor = null, maxResults }
   }
 
   const runSearch = async () => {
-    let search = sdk.search.expression(expression).sort_by('public_id', 'asc');
+    const targetFolder =
+      sanitizedFolders.length === 1 ? sanitizedFolders[0] : normalizedRoot;
 
-    search = search.max_results(resolvedMaxResults).with_field('context').with_field('metadata');
-
-    if (sanitizedNextCursor) {
-      search = search.next_cursor(sanitizedNextCursor);
-    }
-
-    logCloudinaryApiCall('search.execute', {
+    logCloudinaryApiCall('api.resources', {
       context: 'listTokenAssets',
-      expression,
+      prefix: targetFolder,
       maxResults: resolvedMaxResults,
       nextCursor: sanitizedNextCursor,
       folders: sanitizedFolders,
     });
 
-    const result = await search.execute();
+    const result = await sdk.api.resources({
+      type: 'upload',
+      resource_type: 'image',
+      prefix: targetFolder,
+      max_results: resolvedMaxResults,
+      next_cursor: sanitizedNextCursor || undefined,
+      context: true,
+      metadata: true,
+    });
+
     const resources = Array.isArray(result?.resources) ? result.resources : [];
     const assets = resources
       .map((resource) => sanitizeTokenResource(resource, rootFolder))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter((asset) => {
+        if (sanitizedFolders.length === 0) {
+          return true;
+        }
+
+        return sanitizedFolders.some((folder) => asset.folder === folder);
+      });
 
     const response = {
       assets,
