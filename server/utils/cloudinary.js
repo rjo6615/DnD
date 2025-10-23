@@ -8,6 +8,7 @@ const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 1_800_000; // 30 minutes
 const DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS = 3_600_000;
 const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
 const MAX_FOLDER_TREE_CONCURRENCY = 12;
+const MAX_ADVERSARY_FOLDER_RESULTS = 60;
 
 const tokenListCache = new Map();
 const folderTreeCache = new Map();
@@ -988,6 +989,203 @@ const collectMonsterKeys = (monsterDetail = {}) => {
   return Array.from(sanitized).filter(Boolean);
 };
 
+const capitalizeWord = (word) => {
+  if (typeof word !== 'string' || word.length === 0) {
+    return '';
+  }
+
+  const lower = word.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+};
+
+const pluralizeSegments = (segments) => {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return null;
+  }
+
+  const normalized = segments.map((segment) => (typeof segment === 'string' ? segment.trim() : '')).filter(Boolean);
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const lastIndex = normalized.length - 1;
+  const last = normalized[lastIndex];
+  if (!last) {
+    return null;
+  }
+
+  const lower = last.toLowerCase();
+  let pluralLower;
+
+  if (lower.endsWith('man')) {
+    pluralLower = `${lower.slice(0, -3)}men`;
+  } else if (lower.endsWith('lf')) {
+    pluralLower = `${lower.slice(0, -1)}lves`;
+  } else if (lower.endsWith('fe')) {
+    pluralLower = `${lower.slice(0, -2)}ves`;
+  } else if (lower.endsWith('f')) {
+    pluralLower = `${lower.slice(0, -1)}ves`;
+  } else if (lower.endsWith('y') && lower.length > 1 && !/[aeiou]y$/.test(lower)) {
+    pluralLower = `${lower.slice(0, -1)}ies`;
+  } else if (
+    lower.endsWith('s') ||
+    lower.endsWith('x') ||
+    lower.endsWith('z') ||
+    lower.endsWith('ch') ||
+    lower.endsWith('sh')
+  ) {
+    pluralLower = `${lower}es`;
+  } else {
+    pluralLower = `${lower}s`;
+  }
+
+  const plural = normalized.slice();
+  plural[lastIndex] = capitalizeWord(pluralLower);
+
+  return plural;
+};
+
+const buildAdversaryFolderCandidates = (monsterDetail = {}, rootFolder = DEFAULT_TOKEN_ROOT_FOLDER) => {
+  const normalizedRoot = sanitizeFolderSegment(rootFolder) || DEFAULT_TOKEN_ROOT_FOLDER;
+  const adversaryBase = `${normalizedRoot}/Adversaries`;
+
+  const candidateNames = [];
+  const seenNames = new Set();
+
+  const addName = (value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (!normalized || seenNames.has(normalized)) {
+      return;
+    }
+
+    seenNames.add(normalized);
+    candidateNames.push(normalized);
+  };
+
+  const addFromValue = (value) => {
+    if (value === null || value === undefined) {
+      return;
+    }
+
+    const stringValue = typeof value === 'string' ? value : String(value);
+    const trimmed = stringValue.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    addName(trimmed);
+
+    const segments = trimmed
+      .replace(/[\\/]+/g, ' ')
+      .split(/[-_\s]+/g)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+    if (segments.length === 0) {
+      return;
+    }
+
+    const capitalizedSegments = segments.map(capitalizeWord);
+    addName(capitalizedSegments.join(' '));
+    addName(capitalizedSegments.join('-'));
+    addName(capitalizedSegments.join('_'));
+
+    const pluralSegments = pluralizeSegments(capitalizedSegments);
+    if (pluralSegments) {
+      addName(pluralSegments.join(' '));
+      addName(pluralSegments.join('-'));
+      addName(pluralSegments.join('_'));
+    }
+  };
+
+  addFromValue(monsterDetail.name);
+  addFromValue(monsterDetail.index);
+  addFromValue(monsterDetail.slug);
+  addFromValue(monsterDetail.subtype);
+  addFromValue(monsterDetail.type);
+  addFromValue(monsterDetail.monster_index);
+  addFromValue(monsterDetail.monster_slug);
+  addFromValue(monsterDetail.monster_type);
+  addFromValue(monsterDetail.monster_subtype);
+  addFromValue(monsterDetail.creature_type);
+  addFromValue(monsterDetail.creature_subtype);
+
+  return candidateNames
+    .map((name) => `${adversaryBase}/${name}`)
+    .map(sanitizeFolderSegment)
+    .filter(Boolean)
+    .slice(0, 15);
+};
+
+const fetchAdversaryFolderResources = async (sdk, folderPath) => {
+  if (!sdk?.api || typeof sdk.api.resources !== 'function') {
+    return null;
+  }
+
+  const sanitizedFolder = sanitizeFolderSegment(folderPath);
+  if (!sanitizedFolder) {
+    return null;
+  }
+
+  const maxResults = MAX_ADVERSARY_FOLDER_RESULTS;
+
+  try {
+    logCloudinaryApiCall('api.resources', {
+      context: 'suggestEnemyFigurine.adversaryFolder',
+      prefix: sanitizedFolder,
+      maxResults,
+    });
+
+    const response = await sdk.api.resources({
+      type: 'upload',
+      resource_type: 'image',
+      prefix: sanitizedFolder,
+      max_results: maxResults,
+      context: true,
+      metadata: true,
+    });
+
+    return Array.isArray(response?.resources) ? response.resources : [];
+  } catch (error) {
+    return null;
+  }
+};
+
+const suggestFromAdversaryFolders = async (sdk, { rootFolder, keys, monsterDetail }) => {
+  const folderCandidates = buildAdversaryFolderCandidates(monsterDetail, rootFolder);
+
+  if (folderCandidates.length === 0) {
+    return null;
+  }
+
+  const attempted = new Set();
+
+  for (const candidate of folderCandidates) {
+    const normalized = sanitizeFolderSegment(candidate);
+    if (!normalized || attempted.has(normalized)) {
+      continue;
+    }
+
+    attempted.add(normalized);
+
+    const resources = await fetchAdversaryFolderResources(sdk, normalized);
+    if (!resources || resources.length === 0) {
+      continue;
+    }
+
+    const suggestion = selectBestSuggestion(resources, keys, rootFolder);
+    if (suggestion) {
+      return suggestion;
+    }
+  }
+
+  return null;
+};
+
 const collectCandidateTokens = (resource) => {
   const tokens = new Set();
 
@@ -1277,23 +1475,29 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
 
   const sdk = resolveCloudinary();
 
-  const searchScenarios = [{ folderHints: DM_FOLDER_HINTS }];
+  let suggestion = await suggestFromAdversaryFolders(sdk, {
+    rootFolder,
+    keys,
+    monsterDetail,
+  });
 
-  if (includeGeneral) {
-    searchScenarios.push({ folderHints: [] });
-  }
+  if (!suggestion) {
+    const searchScenarios = [{ folderHints: DM_FOLDER_HINTS }];
 
-  let suggestion = null;
+    if (includeGeneral) {
+      searchScenarios.push({ folderHints: [] });
+    }
 
-  for (const scenario of searchScenarios) {
-    suggestion = await executeFigurineSearch(sdk, {
-      rootFolder,
-      keys,
-      folderHints: scenario.folderHints,
-    });
+    for (const scenario of searchScenarios) {
+      suggestion = await executeFigurineSearch(sdk, {
+        rootFolder,
+        keys,
+        folderHints: scenario.folderHints,
+      });
 
-    if (suggestion) {
-      break;
+      if (suggestion) {
+        break;
+      }
     }
   }
 
