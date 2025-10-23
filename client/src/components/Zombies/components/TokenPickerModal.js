@@ -159,7 +159,70 @@ const buildFolderHintsFromScope = (scopeValues) => {
     hints.push(normalized);
   });
 
-  return hints;
+  const getSegments = (value) =>
+    typeof value === 'string'
+      ? value
+          .split('/')
+          .map((segment) => segment.trim())
+          .filter(Boolean)
+      : [];
+
+  const sortedHints = hints.sort((a, b) => {
+    const aSegments = getSegments(a);
+    const bSegments = getSegments(b);
+
+    const aIsDm = aSegments.length > 1 && aSegments[1].toLowerCase() === 'dm';
+    const bIsDm = bSegments.length > 1 && bSegments[1].toLowerCase() === 'dm';
+
+    if (aIsDm !== bIsDm) {
+      return aIsDm ? -1 : 1;
+    }
+
+    if (aSegments.length !== bSegments.length) {
+      return bSegments.length - aSegments.length;
+    }
+
+    if (a.length !== b.length) {
+      return b.length - a.length;
+    }
+
+    return a.localeCompare(b);
+  });
+
+  const compareFolderSpecificity = (a, b) => {
+    const aSegments = getSegments(a);
+    const bSegments = getSegments(b);
+
+    if (aSegments.length !== bSegments.length) {
+      return aSegments.length - bSegments.length;
+    }
+
+    if (a.length !== b.length) {
+      return a.length - b.length;
+    }
+
+    return a.localeCompare(b);
+  };
+
+  const dmHints = sortedHints.filter((value) => {
+    if (typeof value !== 'string') {
+      return false;
+    }
+
+    const segments = value
+      .split('/')
+      .map((segment) => segment.trim().toLowerCase())
+      .filter(Boolean);
+
+    return segments.length > 1 && segments[1] === 'dm';
+  });
+
+  if (dmHints.length > 0) {
+    const sortedDmHints = [...dmHints].sort(compareFolderSpecificity);
+    return [sortedDmHints[0]];
+  }
+
+  return sortedHints;
 };
 
 const normalizeVariantData = (value, cache) => {
