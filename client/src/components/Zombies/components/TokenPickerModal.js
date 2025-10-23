@@ -167,7 +167,7 @@ const buildFolderHintsFromScope = (scopeValues) => {
           .filter(Boolean)
       : [];
 
-  return hints.sort((a, b) => {
+  const sortedHints = hints.sort((a, b) => {
     const aSegments = getSegments(a);
     const bSegments = getSegments(b);
 
@@ -188,6 +188,25 @@ const buildFolderHintsFromScope = (scopeValues) => {
 
     return a.localeCompare(b);
   });
+
+  const dmHints = sortedHints.filter((value) => {
+    if (typeof value !== 'string') {
+      return false;
+    }
+
+    const segments = value
+      .split('/')
+      .map((segment) => segment.trim().toLowerCase())
+      .filter(Boolean);
+
+    return segments.length > 1 && segments[1] === 'dm';
+  });
+
+  if (dmHints.length > 0) {
+    return [dmHints[0]];
+  }
+
+  return sortedHints;
 };
 
 const normalizeVariantData = (value, cache) => {
