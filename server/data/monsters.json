@@ -22838,25 +22838,83 @@
         "fly": "60 ft.",
         "swim": "30 ft."
       },
-      "strength": null,
-      "dexterity": null,
-      "constitution": null,
-      "intelligence": null,
-      "wisdom": null,
-      "charisma": null,
+      "strength": 14,
+      "dexterity": 10,
+      "constitution": 14,
+      "intelligence": 5,
+      "wisdom": 10,
+      "charisma": 11,
       "saving_throws": [],
-      "skills": null,
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "skills": {
+        "perception": 4,
+        "stealth": 2
+      },
+      "senses": {
+        "passive_perception": 14,
+        "blindsight": "10 ft.",
+        "darkvision": "60 ft."
+      },
+      "languages": "Draconic",
+      "challenge_rating": 2.0,
+      "xp": 450,
+      "proficiency_bonus": 2,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
-      "damage_immunities": null,
+      "damage_immunities": [
+        "Cold"
+      ],
       "condition_immunities": null,
-      "special_abilities": null,
-      "actions": null,
+      "special_abilities": [
+        {
+          "name": "Ice Walk",
+          "desc": "The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, Difficult Terrain composed of ice or snow doesn’t cost it extra movement."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Multiattack",
+          "desc": "The dragon makes two Rend attacks."
+        },
+        {
+          "name": "Rend",
+          "desc": "Melee Attack Roll: +4, reach 5 ft. Hit: 6 (1d8 + 2) Slashing damage plus 2 (1d4) Cold damage.",
+          "attack_bonus": 4,
+          "damage": [
+            {
+              "damage_dice": "1d8+2",
+              "damage_type": {
+                "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "cold"
+              }
+            }
+          ],
+          "damage_dice": "1d8+2",
+          "damage_type": {
+            "name": "slashing"
+          }
+        },
+        {
+          "name": "Cold Breath (Recharge 5-6)",
+          "desc": "Constitution Saving Throw: DC 12, each creature in a 15-foot Cone. Failure: 22 (5d8) Cold damage. Success: Half damage.",
+          "damage": [
+            {
+              "damage_dice": "5d8",
+              "damage_type": {
+                "name": "cold"
+              }
+            }
+          ],
+          "damage_dice": "5d8",
+          "damage_type": {
+            "name": "cold"
+          }
+        }
+      ],
       "bonus_actions": null,
       "reactions": null,
       "legendary_actions": null,
