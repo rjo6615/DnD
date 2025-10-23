@@ -71,6 +71,11 @@
       "url": "/api/monsters/ancient-black-dragon"
     },
     {
+      "index": "ancient-blue-dragon",
+      "name": "Ancient Blue Dragon",
+      "url": "/api/monsters/ancient-blue-dragon"
+    },
+    {
       "index": "ancient-brass-dragon",
       "name": "Ancient Brass Dragon",
       "url": "/api/monsters/ancient-brass-dragon"
