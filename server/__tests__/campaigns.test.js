@@ -603,6 +603,69 @@ describe('Cloudinary caching helpers', () => {
     expect(result.totalCount).toBe(2);
   });
 
+  test('listTokenAssets includes assets from nested subfolders of the selected folder', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+    };
+
+    const mockResources = jest.fn().mockResolvedValue({
+      resources: [
+        {
+          public_id: 'Tokens/Adversaries/ape/token-1',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/Tokens/Adversaries/ape/token-1.png',
+          folder: 'Tokens/Adversaries/ape',
+          filename: 'token-1',
+        },
+        {
+          public_id: 'Tokens/Adversaries/ape/variants/token-2',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/Tokens/Adversaries/ape/variants/token-2.png',
+          folder: 'Tokens/Adversaries/ape/variants',
+          filename: 'token-2',
+        },
+        {
+          public_id: 'Tokens/Adversaries/apes/token-3',
+          secure_url:
+            'https://res.cloudinary.com/demo/image/upload/Tokens/Adversaries/apes/token-3.png',
+          folder: 'Tokens/Adversaries/apes',
+          filename: 'token-3',
+        },
+      ],
+      next_cursor: null,
+      total_count: 3,
+    });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          resources: mockResources,
+        },
+      },
+    }));
+
+    const { listTokenAssets: actualListTokenAssets } = jest.requireActual('../utils/cloudinary');
+
+    const result = await actualListTokenAssets({ folders: ['Adversaries/ape'] });
+
+    expect(mockResources).toHaveBeenCalledTimes(1);
+    expect(result.assets).toEqual([
+      expect.objectContaining({
+        publicId: 'Tokens/Adversaries/ape/token-1',
+        folder: 'Tokens/Adversaries/ape',
+      }),
+      expect.objectContaining({
+        publicId: 'Tokens/Adversaries/ape/variants/token-2',
+        folder: 'Tokens/Adversaries/ape/variants',
+      }),
+    ]);
+  });
+
   test('listTokenFolderTree reuses cached results when inputs repeat', async () => {
     jest.resetModules();
     process.env = {
