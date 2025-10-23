@@ -202,9 +202,12 @@ describe('TokenPickerModal', () => {
     await waitFor(() => {
       expect(manifestCalls.length).toBeGreaterThan(0);
       const lastCall = manifestCalls[manifestCalls.length - 1];
-      expect(lastCall).toContain('folders=');
-      expect(lastCall).toContain('Tokens%2FAdversaries%2F');
-      expect(lastCall).not.toContain('Tokens%2FAdventurers');
+      const [, foldersParam = ''] = /folders=([^&]+)/.exec(lastCall) || [];
+      const decodedFolders = decodeURIComponent(foldersParam).split(',');
+
+      expect(decodedFolders).toHaveLength(1);
+      expect(decodedFolders[0]).toMatch(/^Tokens\/DM\/Adversaries\//);
+      expect(decodedFolders[0]).not.toContain('Adventurers');
     });
 
     expect(
