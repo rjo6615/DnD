@@ -21260,8 +21260,8 @@
     "tough": {
       "index": "tough",
       "name": "Tough",
-      "size": "Medium",
-      "type": "or small humanoid",
+      "size": "Medium or Small",
+      "type": "humanoid",
       "alignment": "Neutral",
       "armor_class": 12,
       "hit_points": 32,
@@ -21269,25 +21269,67 @@
       "speed": {
         "walk": "30 ft."
       },
-      "strength": null,
-      "dexterity": null,
-      "constitution": null,
-      "intelligence": null,
-      "wisdom": null,
-      "charisma": null,
+      "strength": 15,
+      "dexterity": 12,
+      "constitution": 14,
+      "intelligence": 10,
+      "wisdom": 10,
+      "charisma": 11,
       "saving_throws": [],
       "skills": null,
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "senses": {
+        "passive_perception": 10
+      },
+      "languages": "Common",
+      "challenge_rating": 0.5,
+      "xp": 100,
+      "proficiency_bonus": 2,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": null,
       "condition_immunities": null,
-      "special_abilities": null,
-      "actions": null,
+      "special_abilities": [
+        {
+          "name": "Pack Tactics",
+          "desc": "The tough has Advantage on an attack roll against a creature if at least one of the tough’s allies is within 5 feet of the creature and the ally doesn’t have the Incapacitated condition."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Mace",
+          "desc": "Melee Attack Roll: +4, reach 5 ft. Hit: 6 (1d6 + 3) Bludgeoning damage.",
+          "attack_bonus": 4,
+          "damage": [
+            {
+              "damage_dice": "1d6+3",
+              "damage_type": {
+                "name": "bludgeoning"
+              }
+            }
+          ],
+          "damage_dice": "1d6+3",
+          "damage_type": {
+            "name": "bludgeoning"
+          }
+        },
+        {
+          "name": "Heavy Crossbow",
+          "desc": "Ranged Attack Roll: +3, range 100/400 ft. Hit: 7 (1d10 + 2) Piercing damage.",
+          "attack_bonus": 3,
+          "damage": [
+            {
+              "damage_dice": "1d10+2",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "1d10+2",
+          "damage_type": {
+            "name": "piercing"
+          }
+        }
+      ],
       "bonus_actions": null,
       "reactions": null,
       "legendary_actions": null,
