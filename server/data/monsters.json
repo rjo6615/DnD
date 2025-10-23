@@ -1051,6 +1051,11 @@
       "url": "/api/monsters/ogre-zombie"
     },
     {
+      "index": "orc",
+      "name": "Orc",
+      "url": "/api/monsters/orc"
+    },
+    {
       "index": "oni",
       "name": "Oni",
       "url": "/api/monsters/oni"
@@ -16000,6 +16005,88 @@
             }
           ],
           "damage_dice": "2d6+4",
+          "damage_type": {
+            "name": "piercing"
+          }
+        }
+      ],
+      "bonus_actions": null,
+      "reactions": null,
+      "legendary_actions": null,
+      "lair_actions": null,
+      "regional_effects": null
+    },
+    "orc": {
+      "index": "orc",
+      "name": "Orc",
+      "size": "Medium",
+      "type": "humanoid",
+      "alignment": "Chaotic Evil",
+      "armor_class": 13,
+      "hit_points": 15,
+      "hit_dice": "2d8 + 6",
+      "speed": {
+        "walk": "30 ft."
+      },
+      "strength": 16,
+      "dexterity": 12,
+      "constitution": 16,
+      "intelligence": 7,
+      "wisdom": 11,
+      "charisma": 10,
+      "saving_throws": [],
+      "skills": {
+        "intimidation": 2
+      },
+      "senses": {
+        "passive_perception": 10,
+        "darkvision": "60 ft."
+      },
+      "languages": "Common, Orc",
+      "challenge_rating": 0.5,
+      "xp": 100,
+      "proficiency_bonus": 2,
+      "damage_vulnerabilities": null,
+      "damage_resistances": null,
+      "damage_immunities": null,
+      "condition_immunities": null,
+      "special_abilities": [
+        {
+          "name": "Aggressive",
+          "desc": "As a bonus action, the orc can move up to its speed toward a hostile creature it can see."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Greataxe",
+          "desc": "Melee Attack Roll: +5, reach 5 ft. Hit: 9 (1d12 + 3) Slashing damage.",
+          "attack_bonus": 5,
+          "damage": [
+            {
+              "damage_dice": "1d12+3",
+              "damage_type": {
+                "name": "slashing"
+              }
+            }
+          ],
+          "damage_dice": "1d12+3",
+          "damage_type": {
+            "name": "slashing"
+          }
+        },
+        {
+          "name": "Javelin",
+          "desc": "Melee or Ranged Attack Roll: +5, reach 5 ft. or range 30/120 ft. Hit: 6 (1d6 + 3) Piercing damage.",
+          "attack_bonus": 5,
+          "damage": [
+            {
+              "damage_dice": "1d6+3",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "1d6+3",
           "damage_type": {
             "name": "piercing"
           }
