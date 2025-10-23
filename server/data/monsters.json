@@ -21578,13 +21578,36 @@
       "intelligence": 11,
       "wisdom": 17,
       "charisma": 16,
-      "saving_throws": [],
-      "skills": null,
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "saving_throws": [
+        {
+          "name": "DEX",
+          "value": 5
+        },
+        {
+          "name": "CON",
+          "value": 6
+        },
+        {
+          "name": "WIS",
+          "value": 7
+        },
+        {
+          "name": "CHA",
+          "value": 7
+        }
+      ],
+      "skills": {
+        "insight": 7,
+        "perception": 7
+      },
+      "senses": {
+        "passive_perception": 17,
+        "darkvision": "60 ft."
+      },
+      "languages": "Celestial, Elvish, Sylvan; telepathy 120 ft.",
+      "challenge_rating": 7.0,
+      "xp": 2900,
+      "proficiency_bonus": 3,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": [
@@ -21593,7 +21616,7 @@
       "condition_immunities": [
         "Charmed",
         "Paralyzed",
-        "Poisoned Senses Darkvision 60 ft."
+        "Poisoned"
       ],
       "special_abilities": [
         {
@@ -21602,7 +21625,11 @@
         },
         {
           "name": "Magic Resistance",
-          "desc": "The unicorn has Advantage on saving throws against spells and other magical effects."
+          "desc": "The unicorn has advantage on saving throws against spells and other magical effects."
+        },
+        {
+          "name": "Magic Weapons",
+          "desc": "The unicorn’s attacks are magical."
         }
       ],
       "actions": [
@@ -21612,7 +21639,7 @@
         },
         {
           "name": "Hooves",
-          "desc": "Melee Attack Roll: +7, reach 5 ft. Hit: 11 (2d6 + 4) Bludgeoning damage.",
+          "desc": "Melee Attack Roll: +7, reach 5 ft. Hit: 11 (2d6 + 4) bludgeoning damage.",
           "attack_bonus": 7,
           "damage": [
             {
@@ -21629,7 +21656,7 @@
         },
         {
           "name": "Radiant Horn",
-          "desc": "Melee Attack Roll: +7, reach 5 ft. Hit: 9 (1d10 + 4) Radiant damage.",
+          "desc": "Melee Attack Roll: +7, reach 5 ft. Hit: 9 (1d10 + 4) radiant damage.",
           "attack_bonus": 7,
           "damage": [
             {
@@ -21646,13 +21673,13 @@
         },
         {
           "name": "Spellcasting",
-          "desc": "The unicorn casts one of the following spells, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 14): At Will: Detect Evil and Good, Druidcraft 1/Day Each: Calm Emotions, Dispel Evil and Good, Entangle, Pass without Trace, Word of Recall"
+          "desc": "The unicorn casts one of the following spells, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 14): At will: detect evil and good, druidcraft; 1/day each: calm emotions, dispel evil and good, entangle, pass without trace, word of recall."
         }
       ],
       "bonus_actions": [
         {
           "name": "Unicorn’s Blessing (3/Day)",
-          "desc": "The unicorn touches another creature with its horn and casts Cure Wounds or Lesser Restoration on that creature, using the same spellcasting ability as Spellcasting."
+          "desc": "The unicorn touches another creature with its horn and casts cure wounds or lesser restoration on that creature, using the same spellcasting ability as Spellcasting."
         }
       ],
       "reactions": null,
@@ -21663,11 +21690,11 @@
         },
         {
           "name": "Charging Horn",
-          "desc": "The unicorn moves up to half its Speed without provoking Opportunity Attacks, and it makes one Radiant Horn attack."
+          "desc": "The unicorn moves up to half its Speed without provoking opportunity attacks, and it makes one Radiant Horn attack."
         },
         {
           "name": "Shimmering Shield",
-          "desc": "The unicorn targets itself or one creature it can see within 60 feet of itself. The target gains 10 (3d6) Temporary Hit Points, and its AC increases by 2 until the end of the unicorn’s next turn. The unicorn can’t take this action again until the start of its next turn."
+          "desc": "The unicorn targets itself or one creature it can see within 60 feet of itself. The target gains 10 (3d6) temporary hit points, and its AC increases by 2 until the end of the unicorn’s next turn. The unicorn can’t take this action again until the start of its next turn."
         }
       ],
       "lair_actions": null,
