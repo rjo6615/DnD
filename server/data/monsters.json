@@ -451,6 +451,11 @@
       "url": "/api/monsters/drider"
     },
     {
+      "index": "drow",
+      "name": "Drow",
+      "url": "/api/monsters/drow"
+    },
+    {
       "index": "druid",
       "name": "Druid",
       "url": "/api/monsters/druid"
@@ -8092,6 +8097,97 @@
           "damage_dice": "3d6+3",
           "damage_type": {
             "name": "poison"
+          }
+        }
+      ],
+      "bonus_actions": null,
+      "reactions": null,
+      "legendary_actions": null,
+      "lair_actions": null,
+      "regional_effects": null
+    },
+    "drow": {
+      "index": "drow",
+      "name": "Drow",
+      "size": "Medium",
+      "type": "humanoid",
+      "alignment": "Neutral Evil",
+      "armor_class": 15,
+      "hit_points": 13,
+      "hit_dice": "3d8",
+      "speed": {
+        "walk": "30 ft."
+      },
+      "strength": 10,
+      "dexterity": 14,
+      "constitution": 10,
+      "intelligence": 11,
+      "wisdom": 11,
+      "charisma": 12,
+      "saving_throws": [],
+      "skills": {
+        "perception": 2,
+        "stealth": 4
+      },
+      "senses": {
+        "passive_perception": 12,
+        "darkvision": "120 ft."
+      },
+      "languages": "Elvish, Undercommon",
+      "challenge_rating": 0.25,
+      "xp": 50,
+      "proficiency_bonus": 2,
+      "damage_vulnerabilities": null,
+      "damage_resistances": null,
+      "damage_immunities": null,
+      "condition_immunities": null,
+      "special_abilities": [
+        {
+          "name": "Fey Ancestry",
+          "desc": "The drow has Advantage on saving throws against being Charmed, and magic can’t put the drow to sleep."
+        },
+        {
+          "name": "Innate Spellcasting",
+          "desc": "The drow’s spellcasting ability is Charisma (spell save DC 11). It can innately cast the following spells, requiring no material components: At Will: Dancing Lights 1/Day Each: Darkness, Faerie Fire"
+        },
+        {
+          "name": "Sunlight Sensitivity",
+          "desc": "While in sunlight, the drow has Disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Shortsword",
+          "desc": "Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Piercing damage.",
+          "attack_bonus": 4,
+          "damage": [
+            {
+              "damage_dice": "1d6+2",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "1d6+2",
+          "damage_type": {
+            "name": "piercing"
+          }
+        },
+        {
+          "name": "Hand Crossbow",
+          "desc": "Ranged Attack Roll: +4, range 30/120 ft. Hit: 5 (1d6 + 2) Piercing damage, and the target must succeed on a DC 13 Constitution saving throw or has the Poisoned condition for 1 hour. If the saving throw fails by 5 or more, the target also falls Unconscious for the same duration. The target wakes up if it takes damage or if another creature takes an action to shake it awake.",
+          "attack_bonus": 4,
+          "damage": [
+            {
+              "damage_dice": "1d6+2",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "1d6+2",
+          "damage_type": {
+            "name": "piercing"
           }
         }
       ],
