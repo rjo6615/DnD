@@ -458,6 +458,69 @@ describe('Cloudinary caching helpers', () => {
     expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 
+  test('listTokenAssets deduplicates concurrent identical requests', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_TOKEN_CACHE_TTL_MS: '1000',
+    };
+
+    let resolveExecute;
+    const executePromise = new Promise((resolve) => {
+      resolveExecute = resolve;
+    });
+
+    const mockExecute = jest.fn().mockReturnValue(executePromise);
+
+    const searchInstance = {};
+    searchInstance.sort_by = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.max_results = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.with_field = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.next_cursor = jest.fn().mockReturnValue(searchInstance);
+    searchInstance.execute = mockExecute;
+
+    const mockExpression = jest.fn().mockReturnValue(searchInstance);
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        search: {
+          expression: mockExpression,
+        },
+      },
+    }));
+
+    const { listTokenAssets: actualListTokenAssets } = jest.requireActual('../utils/cloudinary');
+
+    const firstCall = actualListTokenAssets({ folders: ['DM'], nextCursor: null });
+    const secondCall = actualListTokenAssets({ folders: ['DM'], nextCursor: null });
+
+    expect(mockExpression).toHaveBeenCalledTimes(1);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+
+    resolveExecute({
+      resources: [
+        {
+          public_id: 'Tokens/DM/goblin_token',
+          secure_url: 'https://res.cloudinary.com/demo/image/upload/Tokens/DM/goblin_token.png',
+          folder: 'Tokens/DM',
+          filename: 'goblin_token',
+        },
+      ],
+      next_cursor: null,
+      total_count: 1,
+    });
+
+    const [firstResult, secondResult] = await Promise.all([firstCall, secondCall]);
+
+    expect(firstResult).toEqual(secondResult);
+    expect(mockExpression).toHaveBeenCalledTimes(1);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
   test('listTokenFolderTree reuses cached results when inputs repeat', async () => {
     jest.resetModules();
     process.env = {
