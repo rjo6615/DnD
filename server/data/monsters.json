@@ -14448,11 +14448,14 @@
         "stealth": 6,
         "pb": 3
       },
-      "senses": null,
-      "languages": "",
-      "challenge_rating": null,
-      "xp": null,
-      "proficiency_bonus": null,
+      "senses": {
+        "darkvision": "60 ft.",
+        "passive_perception": 14
+      },
+      "languages": "Common plus one other language",
+      "challenge_rating": 6.0,
+      "xp": 2300,
+      "proficiency_bonus": 3,
       "damage_vulnerabilities": null,
       "damage_resistances": null,
       "damage_immunities": null,
