@@ -544,7 +544,7 @@ describe('Cloudinary caching helpers', () => {
     });
   });
 
-  test('listTokenAssets only queries the first sanitized folder when multiple are provided', async () => {
+test('listTokenAssets ignores additional folder hints beyond the first', async () => {
     jest.resetModules();
     process.env = {
       ...originalEnv,
