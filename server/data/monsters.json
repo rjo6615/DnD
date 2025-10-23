@@ -231,6 +231,11 @@
       "url": "/api/monsters/behir"
     },
     {
+      "index": "beholder",
+      "name": "Beholder",
+      "url": "/api/monsters/beholder"
+    },
+    {
       "index": "berserker",
       "name": "Berserker",
       "url": "/api/monsters/berserker"
@@ -3238,6 +3243,120 @@
       ],
       "reactions": null,
       "legendary_actions": null,
+      "lair_actions": null,
+      "regional_effects": null
+    },
+    "beholder": {
+      "index": "beholder",
+      "name": "Beholder",
+      "size": "Large",
+      "type": "aberration",
+      "alignment": "Lawful Evil",
+      "armor_class": 18,
+      "hit_points": 180,
+      "hit_dice": "19d10 + 76",
+      "speed": {
+        "walk": "0 ft.",
+        "fly": "20 ft. (hover)"
+      },
+      "strength": 10,
+      "dexterity": 14,
+      "constitution": 18,
+      "intelligence": 17,
+      "wisdom": 15,
+      "charisma": 17,
+      "saving_throws": [
+        {
+          "name": "INT",
+          "value": 8
+        },
+        {
+          "name": "WIS",
+          "value": 7
+        },
+        {
+          "name": "CHA",
+          "value": 8
+        }
+      ],
+      "skills": {
+        "perception": 12
+      },
+      "senses": {
+        "passive_perception": 22,
+        "darkvision": "120 ft."
+      },
+      "languages": "Deep Speech, Undercommon",
+      "challenge_rating": 13.0,
+      "xp": 10000,
+      "proficiency_bonus": 5,
+      "damage_vulnerabilities": null,
+      "damage_resistances": null,
+      "damage_immunities": null,
+      "condition_immunities": [
+        "Prone"
+      ],
+      "special_abilities": [
+        {
+          "name": "Antimagic Cone",
+          "desc": "The beholder's central eye creates an area of antimagic, as in the antimagic field spell, in a 150-foot cone. At the start of each of its turns, the beholder decides which way the cone faces and whether the cone is active. The area works against the beholder's own eye rays."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Bite",
+          "desc": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 14 (4d6) piercing damage.",
+          "attack_bonus": 5,
+          "damage": [
+            {
+              "damage_dice": "4d6",
+              "damage_type": {
+                "name": "piercing"
+              }
+            }
+          ],
+          "damage_dice": "4d6",
+          "damage_type": {
+            "name": "piercing"
+          }
+        },
+        {
+          "name": "Eye Rays",
+          "desc": "The beholder shoots three of the following magical eye rays at random (rerolling duplicates), choosing one to three targets it can see within 120 feet of it. Each ray has a save DC of 16. 1- Charm Ray. Wisdom Saving Throw. Failure: The target has the Charmed condition for 1 hour, or until the beholder is destroyed or the beholder is on a different plane of existence. The target can repeat the save at the end of each of its turns, ending the effect on itself on a success. 2- Paralyzing Ray. Constitution Saving Throw. Failure: The target has the Paralyzed condition for 1 minute. The target repeats the save at the end of each of its turns, ending the effect on itself on a success. 3- Fear Ray. Wisdom Saving Throw. Failure: The target has the Frightened condition for 1 minute. The target repeats the save at the end of each of its turns, ending the effect on itself on a success. 4- Slowing Ray. Dexterity Saving Throw. Failure: The target's speed is halved for 1 minute. In addition, the target can't take Reactions, and on its turn it can take either an action or a bonus action, not both. The target can repeat the save at the end of each of its turns, ending the effect on itself on a success. 5- Enervation Ray. The target takes 36 (8d8) Necrotic damage, and it regains only half the Hit Points it normally would if it regains Hit Points before the start of the beholder's next turn. 6- Telekinetic Ray. Strength Saving Throw. Failure: The beholder moves the target up to 30 feet in any direction. The target is Restrained by the ray's telekinetic grip until the start of the beholder's next turn or until the beholder is Incapacitated. If the target is an object weighing 300 pounds or less that isn't being worn or carried, the beholder moves it up to 30 feet in any direction. The beholder can also exert fine control on objects with this ray, such as manipulating a simple tool or opening a door or container. 7- Sleep Ray. Wisdom Saving Throw. Failure: The target falls Unconscious and remains so for 1 minute. The target wakes if it takes damage or if another creature takes an action to wake it. 8- Petrification Ray. Dexterity Saving Throw. Failure: The target has the Restrained condition. It repeats the save at the end of its next turn. Failure: The target is Petrified until freed by the greater restoration spell or other magic. Success: The effect ends. 9- Disintegration Ray. Dexterity Saving Throw. Failure: The target takes 45 (10d8) Force damage. If this damage reduces the target to 0 Hit Points, its body becomes a pile of fine gray dust. If the target is a Large or smaller nonmagical object or creation of magical force, it is disintegrated without a save. If the target is a Huge or larger object or creation of magical force, this ray disintegrates a 10-foot cube of it. 10- Death Ray. Dexterity Saving Throw. Failure: The target takes 55 (10d10) Necrotic damage. The target dies if the ray reduces it to 0 Hit Points.",
+          "damage": [
+            {
+              "damage_dice": "8d8",
+              "damage_type": {
+                "name": "necrotic"
+              }
+            },
+            {
+              "damage_dice": "10d8",
+              "damage_type": {
+                "name": "force"
+              }
+            },
+            {
+              "damage_dice": "10d10",
+              "damage_type": {
+                "name": "necrotic"
+              }
+            }
+          ]
+        }
+      ],
+      "bonus_actions": null,
+      "reactions": null,
+      "legendary_actions": [
+        {
+          "name": "Legendary Action Uses: 3",
+          "desc": "The beholder can take 3 legendary actions, choosing the Eye Ray option below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The beholder regains spent legendary actions at the start of its turn."
+        },
+        {
+          "name": "Eye Ray",
+          "desc": "The beholder uses one random eye ray."
+        }
+      ],
       "lair_actions": null,
       "regional_effects": null
     },
