@@ -336,6 +336,66 @@ describe('Cloudinary caching helpers', () => {
     expect(mockSubFolders).toHaveBeenCalledTimes(2);
   });
 
+  test('listTokenFolderTree derives descendant results from cached root tree without extra calls', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_FOLDER_TREE_CACHE_TTL_MS: '1000',
+    };
+
+    const mockSubFolders = jest.fn().mockImplementation(async (path) => {
+      if (path === 'Tokens') {
+        return {
+          folders: [
+            { path: 'Tokens/Creatures', name: 'Creatures' },
+            { path: 'Tokens/Items', name: 'Items' },
+          ],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Creatures') {
+        return {
+          folders: [{ path: 'Tokens/Creatures/Cats', name: 'Cats' }],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Items') {
+        return { folders: [], next_cursor: null };
+      }
+
+      if (path === 'Tokens/Creatures/Cats') {
+        return { folders: [], next_cursor: null };
+      }
+
+      throw new Error(`Unexpected folder path: ${path}`);
+    });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          sub_folders: mockSubFolders,
+        },
+      },
+    }));
+
+    const { listTokenFolderTree: actualListTokenFolderTree } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    await actualListTokenFolderTree({});
+    mockSubFolders.mockClear();
+
+    await actualListTokenFolderTree({ folders: ['Tokens/Creatures'] });
+
+    expect(mockSubFolders).not.toHaveBeenCalled();
+  });
+
   test('listTokenFolderTree only fetches each folder path once with concurrency', async () => {
     jest.resetModules();
     process.env = {
