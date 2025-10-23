@@ -189,6 +189,21 @@ const buildFolderHintsFromScope = (scopeValues) => {
     return a.localeCompare(b);
   });
 
+  const compareFolderSpecificity = (a, b) => {
+    const aSegments = getSegments(a);
+    const bSegments = getSegments(b);
+
+    if (aSegments.length !== bSegments.length) {
+      return aSegments.length - bSegments.length;
+    }
+
+    if (a.length !== b.length) {
+      return a.length - b.length;
+    }
+
+    return a.localeCompare(b);
+  };
+
   const dmHints = sortedHints.filter((value) => {
     if (typeof value !== 'string') {
       return false;
@@ -203,7 +218,8 @@ const buildFolderHintsFromScope = (scopeValues) => {
   });
 
   if (dmHints.length > 0) {
-    return [dmHints[0]];
+    const sortedDmHints = [...dmHints].sort(compareFolderSpecificity);
+    return [sortedDmHints[0]];
   }
 
   return sortedHints;

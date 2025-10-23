@@ -206,7 +206,7 @@ describe('TokenPickerModal', () => {
       const decodedFolders = decodeURIComponent(foldersParam).split(',');
 
       expect(decodedFolders).toHaveLength(1);
-      expect(decodedFolders[0]).toMatch(/^Tokens\/DM\/Adversaries\//);
+      expect(decodedFolders[0]).toMatch(/^Tokens\/DM\/Adversaries(?:\/|$)/);
       expect(decodedFolders[0]).not.toContain('Adventurers');
     });
 
