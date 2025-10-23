@@ -36,14 +36,14 @@ describe('buildEnemyTokenFilterScopeValues', () => {
       name: 'Giant Wolf Spider',
     });
 
-    expect(scope[0]).toBe('folder:Tokens/Adversaries/Giant_Wolf_Spiders');
-    expect(scope[1]).toBe('Tokens/Adversaries/Giant_Wolf_Spiders');
+    expect(scope[0]).toBe('folder:Tokens/Adversaries/Giant Wolf Spiders');
+    expect(scope[1]).toBe('Tokens/Adversaries/Giant Wolf Spiders');
     expect(scope).toEqual(
       expect.arrayContaining([
-        'folder:Tokens/Adversaries/Giant_Wolf_Spiders',
-        'Tokens/Adversaries/Giant_Wolf_Spiders',
         'folder:Tokens/Adversaries/Giant Wolf Spiders',
         'Tokens/Adversaries/Giant Wolf Spiders',
+        'folder:Tokens/Adversaries/Giant_Wolf_Spiders',
+        'Tokens/Adversaries/Giant_Wolf_Spiders',
         'folder:Tokens/Adversaries/Giant Wolf Spider',
         'Tokens/Adversaries/Giant Wolf Spider',
       ])
@@ -101,14 +101,14 @@ describe('buildEnemyTokenFilterScopeValues', () => {
       name: 'Giant Badger',
     });
 
-    expect(scope[0]).toBe('folder:Tokens/Adversaries/Giant_Badger');
-    expect(scope[1]).toBe('Tokens/Adversaries/Giant_Badger');
+    expect(scope[0]).toBe('folder:Tokens/Adversaries/Giant Badger');
+    expect(scope[1]).toBe('Tokens/Adversaries/Giant Badger');
     expect(scope).toEqual(
       expect.arrayContaining([
-        'folder:Tokens/Adversaries/Giant_Badger',
-        'Tokens/Adversaries/Giant_Badger',
         'folder:Tokens/Adversaries/Giant Badger',
         'Tokens/Adversaries/Giant Badger',
+        'folder:Tokens/Adversaries/Giant_Badger',
+        'Tokens/Adversaries/Giant_Badger',
       ])
     );
   });
