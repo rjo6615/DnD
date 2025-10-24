@@ -249,7 +249,7 @@ describe('Cloudinary caching helpers', () => {
 
     await actualListTokenFolderTree({});
 
-    expect(mockSubFolders).toHaveBeenCalledTimes(5);
+    expect(mockSubFolders).toHaveBeenCalledTimes(3);
     expect(new Set(callOrder).size).toBe(callOrder.length);
   });
 });

@@ -7,6 +7,8 @@ const DEFAULT_TOKEN_CACHE_TTL_MS = 60_000;
 const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 120_000;
 const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
 const MAX_FOLDER_TREE_CONCURRENCY = 12;
+const DEFAULT_FOLDER_TREE_MAX_DEPTH = 2;
+const MAX_FOLDER_TREE_MAX_DEPTH = 6;
 const DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS = 300_000;
 
 const tokenListCache = new Map();
@@ -54,6 +56,26 @@ const getFolderTreeConcurrency = () =>
     process.env.CLOUDINARY_FOLDER_TREE_CONCURRENCY,
     DEFAULT_FOLDER_TREE_CONCURRENCY,
     MAX_FOLDER_TREE_CONCURRENCY
+  );
+
+const parseNonNegativeInteger = (value, fallback, max) => {
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue >= 0) {
+    const normalized = Math.floor(numericValue);
+    if (Number.isFinite(max) && max >= 0) {
+      return Math.min(normalized, max);
+    }
+    return normalized;
+  }
+
+  return fallback;
+};
+
+const getFolderTreeMaxDepth = () =>
+  parseNonNegativeInteger(
+    process.env.CLOUDINARY_FOLDER_TREE_MAX_DEPTH,
+    DEFAULT_FOLDER_TREE_MAX_DEPTH,
+    MAX_FOLDER_TREE_MAX_DEPTH
   );
 
 const mapWithConcurrency = async (items, mapper, options = {}) => {
@@ -135,10 +157,11 @@ const buildTokenListCacheKey = ({ rootFolder, folders, nextCursor, maxResults })
   );
 };
 
-const buildFolderTreeCacheKey = ({ rootFolder, folders }) => {
+const buildFolderTreeCacheKey = ({ rootFolder, folders, maxDepth }) => {
   const normalizedFolders = Array.isArray(folders) ? folders.slice().sort() : [];
   const serializedFolders = normalizedFolders.length > 0 ? normalizedFolders.join('|') : '__ROOT__';
-  return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders].join('::');
+  const depthSegment = Number.isInteger(maxDepth) && maxDepth >= 0 ? String(maxDepth) : 'ALL';
+  return [rootFolder || DEFAULT_TOKEN_ROOT_FOLDER, serializedFolders, depthSegment].join('::');
 };
 
 const resolveCloudinary = () => {
@@ -352,6 +375,7 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
 
   const normalizedRoot = sanitizeFolderSegment(inputRootFolder) || getTokenRootFolder();
   const rootPrefix = `${normalizedRoot}/`;
+  const maxDepth = getFolderTreeMaxDepth();
 
   const normalizeFolderPath = (folderPath) => {
     const sanitized = sanitizeFolderSegment(folderPath);
@@ -376,6 +400,7 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
   const cacheKey = buildFolderTreeCacheKey({
     rootFolder: normalizedRoot,
     folders: normalizedTargets,
+    maxDepth,
   });
 
   if (cacheTtlMs > 0) {
@@ -430,7 +455,7 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
     return results;
   };
 
-  const buildNode = async (folderPath) => {
+  const buildNode = async (folderPath, depth = 0) => {
     const normalizedPath = normalizeFolderPath(folderPath);
     if (!normalizedPath) {
       return null;
@@ -451,20 +476,23 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
     const name = relativePath ? relativePath.split('/').pop() : normalizedPath.split('/').pop();
 
     const children = [];
-    const subFolders = await fetchSubfolders(normalizedPath);
 
-    if (subFolders.length > 0) {
-      const childNodes = await mapWithConcurrency(
-        subFolders,
-        async (subFolder) => buildNode(subFolder.path),
-        { concurrency: folderFetchConcurrency }
-      );
+    if (depth < maxDepth) {
+      const subFolders = await fetchSubfolders(normalizedPath);
 
-      childNodes.forEach((childNode) => {
-        if (childNode) {
-          children.push(childNode);
-        }
-      });
+      if (subFolders.length > 0) {
+        const childNodes = await mapWithConcurrency(
+          subFolders,
+          async (subFolder) => buildNode(subFolder.path, depth + 1),
+          { concurrency: folderFetchConcurrency }
+        );
+
+        childNodes.forEach((childNode) => {
+          if (childNode) {
+            children.push(childNode);
+          }
+        });
+      }
     }
 
     return {
@@ -476,6 +504,10 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
   };
 
   const collectNodes = async () => {
+    if (maxDepth <= 0) {
+      return [];
+    }
+
     const nodes = [];
 
     const targetResults = await mapWithConcurrency(
@@ -489,14 +521,14 @@ const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder
 
           const childNodes = await mapWithConcurrency(
             rootChildren,
-            async (child) => buildNode(child.path),
+            async (child) => buildNode(child.path, 1),
             { concurrency: folderFetchConcurrency }
           );
 
           return childNodes.filter(Boolean);
         }
 
-        const node = await buildNode(target);
+        const node = await buildNode(target, 0);
         return node ? [node] : [];
       },
       { concurrency: folderFetchConcurrency }
