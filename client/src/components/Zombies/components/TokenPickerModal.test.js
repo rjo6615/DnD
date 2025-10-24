@@ -259,6 +259,69 @@ describe('TokenPickerModal', () => {
     });
   });
 
+  test('falls back to broader DM folders when scoped folder is empty', async () => {
+    const scope = buildEnemyTokenFilterScopeValues('wolf', {
+      index: 'wolf',
+      name: 'Wolf',
+    });
+
+    const emptyPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: ['Tokens/DM/Adversaries/Wolves'],
+      totalCount: 0,
+    };
+
+    const fallbackPayload = {
+      assets: [
+        {
+          publicId: 'Tokens/DM/Adversaries/Wolves/dire-wolf',
+          filename: 'Dire Wolf',
+          secureUrl: 'https://example.com/dire-wolf.png',
+          folder: 'Tokens/DM/Adversaries/Wolves',
+          relativeFolder: 'DM/Adversaries/Wolves',
+        },
+      ],
+      nextCursor: null,
+      appliedFolders: ['Tokens/DM/Adversaries'],
+      totalCount: 1,
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        const payload = manifestCalls.length === 1 ? emptyPayload : fallbackPayload;
+        return Promise.resolve({ ok: true, json: async () => payload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        isDm
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={scope}
+      />
+    );
+
+    await waitFor(() => {
+      expect(manifestCalls.length).toBeGreaterThan(1);
+    });
+
+    expect(manifestCalls[0]).toMatch(/folders=Tokens%2FDM%2FAdversaries%2F[^&]*wolf/i);
+    expect(
+      manifestCalls.some((call) => /folders=Tokens%2FDM%2FAdversaries(?:$|&)/.test(call))
+    ).toBe(true);
+
+    await screen.findByText('Dire Wolf');
+  });
+
   test('players see Adventurers folders and scope manifest requests to selections', async () => {
     const user = setupUser();
     const folderTree = {
@@ -493,7 +556,9 @@ describe('TokenPickerModal', () => {
       expect(manifestCalls.length).toBeGreaterThan(0);
       const firstCall = manifestCalls[0];
       expect(firstCall).toContain('folders=');
-      expect(firstCall).toContain('Tokens%2FAdventurers%2FDragonborn%2FFighter');
+      expect(firstCall).toMatch(
+        /folders=Tokens%2FAdventurers%2F(?:Dragonborn|Core_Class_Tokens)%2FFighter/
+      );
       expect(firstCall).not.toBe(
         '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers'
       );

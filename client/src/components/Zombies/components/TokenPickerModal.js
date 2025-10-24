@@ -77,7 +77,7 @@ const buildScopeVariantSet = (values) => {
 
 const FOLDER_SCOPE_PREFIX = 'folder:';
 
-const normalizeFolderHint = (value) => {
+const normalizeFolderCandidate = (value) => {
   if (typeof value !== 'string') {
     return null;
   }
@@ -109,6 +109,21 @@ const normalizeFolderHint = (value) => {
   if (segments.length > 1 && segments[1].toLowerCase() === 'dm') {
     segments[1] = 'DM';
   }
+
+  return segments.join('/');
+};
+
+const normalizeFolderHint = (value) => {
+  const normalized = normalizeFolderCandidate(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const segments = normalized
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
 
   const hasAdversaries = segments.some((segment) => segment.toLowerCase() === 'adversaries');
   const hasAdventurers = segments.some((segment) => segment.toLowerCase() === 'adventurers');
@@ -167,26 +182,18 @@ const buildFolderHintsFromScope = (scopeValues) => {
           .filter(Boolean)
       : [];
 
-  const sortedHints = hints.sort((a, b) => {
-    const aSegments = getSegments(a);
-    const bSegments = getSegments(b);
+  const dmHints = [];
+  const otherHints = [];
 
-    const aIsDm = aSegments.length > 1 && aSegments[1].toLowerCase() === 'dm';
-    const bIsDm = bSegments.length > 1 && bSegments[1].toLowerCase() === 'dm';
+  hints.forEach((hint) => {
+    const segments = getSegments(hint);
+    const isDm = segments.length > 1 && segments[1].toLowerCase() === 'dm';
 
-    if (aIsDm !== bIsDm) {
-      return aIsDm ? -1 : 1;
+    if (isDm) {
+      dmHints.push(hint);
+    } else {
+      otherHints.push(hint);
     }
-
-    if (aSegments.length !== bSegments.length) {
-      return bSegments.length - aSegments.length;
-    }
-
-    if (a.length !== b.length) {
-      return b.length - a.length;
-    }
-
-    return a.localeCompare(b);
   });
 
   const compareFolderSpecificity = (a, b) => {
@@ -194,7 +201,7 @@ const buildFolderHintsFromScope = (scopeValues) => {
     const bSegments = getSegments(b);
 
     if (aSegments.length !== bSegments.length) {
-      return aSegments.length - bSegments.length;
+      return bSegments.length - aSegments.length;
     }
 
     if (a.length !== b.length) {
@@ -204,22 +211,9 @@ const buildFolderHintsFromScope = (scopeValues) => {
     return a.localeCompare(b);
   };
 
-  const dmHints = sortedHints.filter((value) => {
-    if (typeof value !== 'string') {
-      return false;
-    }
-
-    const segments = value
-      .split('/')
-      .map((segment) => segment.trim().toLowerCase())
-      .filter(Boolean);
-
-    return segments.length > 1 && segments[1] === 'dm';
-  });
-
   if (dmHints.length > 0) {
     const sortedDmHints = [...dmHints].sort(compareFolderSpecificity);
-    const mostSpecificHint = sortedDmHints[sortedDmHints.length - 1];
+    const mostSpecificHint = sortedDmHints[0];
 
     if (mostSpecificHint) {
       return [mostSpecificHint];
@@ -228,7 +222,80 @@ const buildFolderHintsFromScope = (scopeValues) => {
     return sortedDmHints;
   }
 
-  return sortedHints;
+  return [...otherHints].sort(compareFolderSpecificity);
+};
+
+const buildFolderFallbackChain = (folder) => {
+  const normalized = normalizeFolderCandidate(folder);
+
+  if (!normalized) {
+    return [];
+  }
+
+  const segments = normalized.split('/');
+  const variants = [];
+  const seen = new Set();
+
+  const addVariant = (candidate) => {
+    const normalizedCandidate = normalizeFolderCandidate(candidate);
+    if (!normalizedCandidate) {
+      return;
+    }
+
+    const key = normalizedCandidate.toLowerCase();
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    variants.push(normalizedCandidate);
+  };
+
+  const addSegmentVariants = (segmentList) => {
+    if (!Array.isArray(segmentList) || segmentList.length < 2) {
+      return;
+    }
+
+    for (let length = segmentList.length; length >= 2; length -= 1) {
+      addVariant(segmentList.slice(0, length).join('/'));
+    }
+  };
+
+  addSegmentVariants(segments);
+
+  if (segments.length > 2 && segments[0] === 'Tokens' && segments[1] === 'DM') {
+    const withoutDm = [segments[0], ...segments.slice(2)];
+    addSegmentVariants(withoutDm);
+  }
+
+  return variants;
+};
+
+const buildScopeFallbackCandidates = (scopeFolderHints) => {
+  if (!Array.isArray(scopeFolderHints) || scopeFolderHints.length === 0) {
+    return [];
+  }
+
+  const candidates = [];
+  const seen = new Set();
+
+  scopeFolderHints.forEach((hint) => {
+    buildFolderFallbackChain(hint).forEach((candidate) => {
+      if (!candidate) {
+        return;
+      }
+
+      const key = candidate.toLowerCase();
+      if (seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      candidates.push(candidate);
+    });
+  });
+
+  return candidates;
 };
 
 const normalizeVariantData = (value, cache) => {
@@ -592,6 +659,55 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
   return filters.length > 0 ? filters : fallback;
 };
 
+const normalizeFilterFolders = (filter, scopeFolderHints) => {
+  if (!filter || typeof filter !== 'object') {
+    return [];
+  }
+
+  const { folders } = filter;
+
+  if (!Array.isArray(folders) || folders.length === 0) {
+    return [];
+  }
+
+  const sanitized = folders
+    .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
+    .filter(Boolean)
+    .map((folder) => {
+      if (/^tokens\//i.test(folder)) {
+        return folder.replace(/^tokens\//i, 'Tokens/');
+      }
+
+      if (folder.includes('/')) {
+        return `Tokens/${folder.replace(/^\/+/, '').replace(/\\+/g, '/')}`;
+      }
+
+      return folder;
+    })
+    .map(normalizeFolderCandidate)
+    .filter(Boolean);
+
+  if (sanitized.length > 0 && sanitized.some((value) => /^Tokens\//.test(value))) {
+    const segmentCounts = sanitized.map((value) =>
+      value.split('/').map((segment) => segment.trim()).filter(Boolean).length
+    );
+
+    const hasSpecificFolder = segmentCounts.some((count) => count > 2);
+
+    if (!hasSpecificFolder && Array.isArray(scopeFolderHints) && scopeFolderHints.length > 0) {
+      return scopeFolderHints;
+    }
+
+    return sanitized;
+  }
+
+  if (Array.isArray(scopeFolderHints) && scopeFolderHints.length > 0) {
+    return scopeFolderHints;
+  }
+
+  return sanitized;
+};
+
 const TokenPickerModal = ({
   show,
   onHide,
@@ -711,6 +827,7 @@ const TokenPickerModal = ({
   const [error, setError] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [manifestMeta, setManifestMeta] = useState(null);
+  const [folderFallbackIndex, setFolderFallbackIndex] = useState(0);
 
   const resetState = useCallback((options = {}) => {
     const {
@@ -761,47 +878,70 @@ const TokenPickerModal = ({
     return filterMatchesScope(activeFilter, filterScopeSet);
   }, [activeFilter, filterScopeSet]);
 
-  const resolvedFolders = useMemo(() => {
-    if (activeFilter && Array.isArray(activeFilter.folders)) {
-      const sanitized = activeFilter.folders
-        .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
-        .filter(Boolean);
+  const normalizedFilterFolders = useMemo(
+    () => normalizeFilterFolders(activeFilter, scopeFolderHints),
+    [activeFilter, scopeFolderHints]
+  );
 
-      if (sanitized.length > 0) {
-        const normalized = sanitized
-          .map((folder) => {
-            if (typeof folder !== 'string') {
-              return '';
-            }
+  const scopeFallbackCandidates = useMemo(
+    () => buildScopeFallbackCandidates(scopeFolderHints),
+    [scopeFolderHints]
+  );
 
-            const trimmed = folder.trim();
-            if (!trimmed) {
-              return '';
-            }
-
-            if (/^tokens\//i.test(trimmed)) {
-              return trimmed.replace(/^tokens\//i, 'Tokens/');
-            }
-
-            if (trimmed.includes('/')) {
-              return `Tokens/${trimmed.replace(/^\/+/, '').replace(/\\+/g, '/')}`;
-            }
-
-            return trimmed;
-          })
-          .filter(Boolean);
-
-        const hasTokenPrefix = normalized.some((folder) => /^Tokens\//.test(folder));
-        if (hasTokenPrefix) {
-          return normalized;
-        }
-
-        if (scopeFolderHints.length > 0) {
-          return scopeFolderHints;
-        }
-
-        return normalized;
+  const folderCandidates = useMemo(() => {
+    if (normalizedFilterFolders.length > 0) {
+      if (!isDm || scopeFallbackCandidates.length === 0) {
+        return normalizedFilterFolders;
       }
+
+      const merged = [...normalizedFilterFolders];
+      const seen = new Set(
+        normalizedFilterFolders.map((candidate) =>
+          typeof candidate === 'string' ? candidate.toLowerCase() : candidate
+        )
+      );
+
+      scopeFallbackCandidates.forEach((candidate) => {
+        if (typeof candidate !== 'string') {
+          return;
+        }
+
+        const key = candidate.toLowerCase();
+        if (seen.has(key)) {
+          return;
+        }
+
+        seen.add(key);
+        merged.push(candidate);
+      });
+
+      return merged;
+    }
+
+    return scopeFallbackCandidates;
+  }, [normalizedFilterFolders, scopeFallbackCandidates, isDm]);
+
+  const folderCandidatesSignature = useMemo(
+    () => folderCandidates.join('|'),
+    [folderCandidates]
+  );
+
+  useEffect(() => {
+    setFolderFallbackIndex(0);
+  }, [folderCandidatesSignature]);
+
+  const activeFolderCandidate = useMemo(() => {
+    if (folderCandidates.length === 0) {
+      return null;
+    }
+
+    const boundedIndex = Math.min(folderFallbackIndex, folderCandidates.length - 1);
+    return folderCandidates[boundedIndex];
+  }, [folderCandidates, folderFallbackIndex]);
+
+  const resolvedFolders = useMemo(() => {
+    if (activeFolderCandidate) {
+      return [activeFolderCandidate];
     }
 
     if (scopeFolderHints.length > 0) {
@@ -809,7 +949,7 @@ const TokenPickerModal = ({
     }
 
     return null;
-  }, [activeFilter, scopeFolderHints]);
+  }, [activeFolderCandidate, scopeFolderHints]);
 
   const manifestFilterKey = useMemo(() => {
     if (!activeFilter) {
@@ -820,19 +960,10 @@ const TokenPickerModal = ({
       return 'none';
     }
 
-    const folders = Array.isArray(activeFilter.folders)
-      ? activeFilter.folders
-          .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
-          .filter(Boolean)
-      : [];
+    const resolved = resolvedFolders && resolvedFolders.length > 0 ? resolvedFolders : [];
+    const folderKey = resolved.length > 0 ? resolved.join(',') : '';
 
-    const folderKey = folders.length > 0 ? folders.join(',') : '';
-    const resolvedKey =
-      !folderKey && resolvedFolders && resolvedFolders.length > 0
-        ? resolvedFolders.join(',')
-        : folderKey;
-
-    return `${activeFilter.key || 'unknown'}::${resolvedKey}`;
+    return `${activeFilter.key || 'unknown'}::${folderKey}`;
   }, [activeFilter, resolvedFolders]);
 
   const shouldDeferManifest = useMemo(() => {
@@ -848,67 +979,112 @@ const TokenPickerModal = ({
   }, [activeFilterMatchesScope, filterScopeSet, resolvedFolders]);
 
   const fetchManifest = useCallback(
-    async ({ cursor = null, append = false } = {}) => {
+    async ({ cursor = null, append = false, foldersOverride = null } = {}) => {
       if (!campaignId || (!activeFilter && (!resolvedFolders || resolvedFolders.length === 0))) {
         return;
       }
 
       const encodedCampaignId = encodeURIComponent(campaignId);
-      const params = new URLSearchParams();
+      let attemptFolders = foldersOverride || resolvedFolders;
+      let attemptCursor = cursor;
+      let attemptAppend = append;
+      let finalAssets = [];
+      let finalNextCursor = null;
+      let finalMeta = null;
+      let finalAppend = append;
 
-      if (cursor) {
-        params.set('nextCursor', cursor);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError(null);
       }
-
-      const folders = resolvedFolders;
-      if (folders && folders.length > 0) {
-        params.set('folders', folders.join(','));
-      }
-
-      const queryString = params.toString();
-      const endpoint = `/campaigns/${encodedCampaignId}/token-manifest${
-        queryString ? `?${queryString}` : ''
-      }`;
 
       try {
-        if (append) {
-          setLoadingMore(true);
-        } else {
-          setLoading(true);
-          setError(null);
-        }
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const params = new URLSearchParams();
 
-        const response = await apiFetch(endpoint);
-        let parsedBody = null;
-
-        if (typeof response?.json === 'function') {
-          try {
-            parsedBody = await response.json();
-          } catch (parseError) {
-            parsedBody = null;
+          if (attemptCursor) {
+            params.set('nextCursor', attemptCursor);
           }
+
+          if (attemptFolders && attemptFolders.length > 0) {
+            params.set('folders', attemptFolders.join(','));
+          }
+
+          lastRequestedFoldersRef.current =
+            attemptFolders && attemptFolders.length > 0 ? [...attemptFolders] : [];
+
+          const queryString = params.toString();
+          const endpoint = `/campaigns/${encodedCampaignId}/token-manifest${
+            queryString ? `?${queryString}` : ''
+          }`;
+
+          const response = await apiFetch(endpoint);
+          let parsedBody = null;
+
+          if (typeof response?.json === 'function') {
+            try {
+              parsedBody = await response.json();
+            } catch (parseError) {
+              parsedBody = null;
+            }
+          }
+
+          if (!response.ok) {
+            const messageSource = [
+              parsedBody && typeof parsedBody.message === 'string' ? parsedBody.message.trim() : '',
+              parsedBody && typeof parsedBody.details === 'string' ? parsedBody.details.trim() : '',
+              parsedBody && typeof parsedBody.error === 'string' ? parsedBody.error.trim() : '',
+              typeof response.statusText === 'string' ? response.statusText.trim() : '',
+            ].find((value) => value);
+
+            throw new Error(messageSource || 'Failed to load token manifest.');
+          }
+
+          if (parsedBody === null) {
+            throw new Error('Failed to parse token manifest response.');
+          }
+
+          const data = parsedBody;
+          const nextAssets = Array.isArray(data?.assets) ? data.assets.filter(Boolean) : [];
+
+          const canFallback =
+            !attemptAppend && scopeFallbackCandidates.length > 0 && nextAssets.length === 0;
+
+          if (canFallback) {
+            const requestedFolder =
+              attemptFolders && attemptFolders.length > 0 ? attemptFolders[0] : null;
+            const normalizedRequested =
+              typeof requestedFolder === 'string' ? requestedFolder.trim() : '';
+
+            const currentIndex = folderCandidates.findIndex(
+              (candidate) => typeof candidate === 'string' && candidate.trim() === normalizedRequested
+            );
+
+            if (currentIndex !== -1 && currentIndex < folderCandidates.length - 1) {
+              const nextIndex = currentIndex + 1;
+              setFolderFallbackIndex((prev) => (prev >= nextIndex ? prev : nextIndex));
+              lastFetchKeyRef.current = null;
+              attemptFolders = [folderCandidates[nextIndex]];
+              attemptCursor = null;
+              attemptAppend = false;
+              continue;
+            }
+          }
+
+          finalAssets = nextAssets;
+          finalNextCursor =
+            typeof data?.nextCursor === 'string' && data.nextCursor ? data.nextCursor : null;
+          finalMeta = data || null;
+          finalAppend = attemptAppend;
+          break;
         }
 
-        if (!response.ok) {
-          const messageSource = [
-            parsedBody && typeof parsedBody.message === 'string' ? parsedBody.message.trim() : '',
-            parsedBody && typeof parsedBody.details === 'string' ? parsedBody.details.trim() : '',
-            parsedBody && typeof parsedBody.error === 'string' ? parsedBody.error.trim() : '',
-            typeof response.statusText === 'string' ? response.statusText.trim() : '',
-          ].find((value) => value);
-
-          throw new Error(messageSource || 'Failed to load token manifest.');
-        }
-
-        if (parsedBody === null) {
-          throw new Error('Failed to parse token manifest response.');
-        }
-
-        const data = parsedBody;
-        const nextAssets = Array.isArray(data?.assets) ? data.assets.filter(Boolean) : [];
-        setAssets((prev) => (append ? [...prev, ...nextAssets] : nextAssets));
-        setNextCursor(typeof data?.nextCursor === 'string' && data.nextCursor ? data.nextCursor : null);
-        setManifestMeta(data || null);
+        setAssets((prev) => (finalAppend ? [...prev, ...finalAssets] : finalAssets));
+        setNextCursor(finalNextCursor);
+        setManifestMeta(finalMeta);
       } catch (err) {
         console.error(err);
         setError(err?.message || 'Failed to load token manifest.');
@@ -917,10 +1093,18 @@ const TokenPickerModal = ({
         setLoadingMore(false);
       }
     },
-    [campaignId, activeFilter, isDm, resolvedFolders]
+    [
+      campaignId,
+      activeFilter,
+      isDm,
+      resolvedFolders,
+      scopeFallbackCandidates,
+      folderCandidates,
+    ]
   );
 
   const fetchManifestRef = useRef(fetchManifest);
+  const lastRequestedFoldersRef = useRef([]);
   const lastFetchKeyRef = useRef(null);
 
   useEffect(() => {
@@ -969,6 +1153,67 @@ const TokenPickerModal = ({
     isDm,
     resetState,
     shouldDeferManifest,
+  ]);
+
+  useEffect(() => {
+    if (!show) {
+      return;
+    }
+
+    if (loading || loadingMore) {
+      return;
+    }
+
+    if (assets.length > 0) {
+      return;
+    }
+
+    if (!manifestMeta) {
+      return;
+    }
+
+    if (scopeFallbackCandidates.length === 0) {
+      return;
+    }
+
+    if (!activeFolderCandidate) {
+      return;
+    }
+    const lastRequestedFolders = Array.isArray(lastRequestedFoldersRef.current)
+      ? lastRequestedFoldersRef.current
+      : [];
+    const lastRequestedFolder =
+      lastRequestedFolders.length > 0 ? lastRequestedFolders[0] : null;
+
+    if (!lastRequestedFolder) {
+      return;
+    }
+
+    const normalizedCandidate =
+      typeof activeFolderCandidate === 'string' ? activeFolderCandidate.trim() : '';
+
+    if (normalizedCandidate && lastRequestedFolder !== normalizedCandidate) {
+      return;
+    }
+
+    if (folderFallbackIndex >= folderCandidates.length - 1) {
+      return;
+    }
+
+    setFolderFallbackIndex((prev) =>
+      Math.min(prev + 1, folderCandidates.length - 1)
+    );
+    lastFetchKeyRef.current = null;
+  }, [
+    show,
+    loading,
+    loadingMore,
+    assets.length,
+    manifestMeta,
+    scopeFallbackCandidates,
+    activeFolderCandidate,
+    folderFallbackIndex,
+    folderCandidates.length,
   ]);
 
   useEffect(() => {
