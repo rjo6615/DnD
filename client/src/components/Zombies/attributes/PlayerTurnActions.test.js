@@ -493,6 +493,84 @@ describe('PlayerTurnActions weapon damage display', () => {
     }
   });
 
+  test('ranged spell attack roll uses spell ability and proficiency bonus', async () => {
+    const spell = {
+      name: 'Fire Bolt',
+      level: 0,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+
+    const originalRandom = Math.random;
+    Math.random = () => 0.2;
+
+    rollDiceWithBox.mockImplementationOnce(() =>
+      Promise.resolve({ rolls: [[15]] })
+    );
+
+    const events = [];
+    const listener = (event) => {
+      events.push(event);
+    };
+    window.addEventListener('damage-roll', listener);
+
+    try {
+      render(
+        <PlayerTurnActions
+          form={{
+            diceColor: '#000000',
+            weapon: [],
+            spells: [spell],
+            occupation: [{ Name: 'Wizard', Level: 5 }],
+          }}
+          strMod={0}
+          dexMod={0}
+          spellAbilityMod={3}
+          spellAbilityKey="int"
+        />
+      );
+
+      act(() => {
+        fireEvent.click(screen.getByTitle('Attack'));
+      });
+
+      const card = screen.getByText('Fire Bolt').closest('.attack-card');
+      expect(card).not.toBeNull();
+      if (!card) throw new Error('missing Fire Bolt card');
+
+      expect(within(card).getByText('Attack Bonus')).toBeInTheDocument();
+      expect(within(card).getByText('+6')).toBeInTheDocument();
+
+      const attackButton = within(card).getByLabelText(/Roll spell attack/i);
+
+      await act(async () => {
+        fireEvent.click(attackButton);
+      });
+
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value node');
+        expect(valueNode.textContent).toBe('21');
+      });
+
+      const damageEventCall = events.find(
+        (evt) => evt instanceof CustomEvent && evt.type === 'damage-roll'
+      );
+      expect(damageEventCall).toBeTruthy();
+      if (damageEventCall instanceof CustomEvent) {
+        expect(damageEventCall.detail.breakdown).toBe(
+          '15 (d20) +3 Intelligence Modifier +3 Proficiency Bonus'
+        );
+      }
+    } finally {
+      window.removeEventListener('damage-roll', listener);
+      Math.random = originalRandom;
+    }
+  });
+
   test('healing spells roll for numeric totals', async () => {
     const spell = {
       name: 'Healing Word',
