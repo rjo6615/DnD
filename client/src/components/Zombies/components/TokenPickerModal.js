@@ -598,7 +598,7 @@ const TokenPickerModal = ({
   campaignId,
   onSelect,
   isDm = false,
-  defaultFilter = 'adventurers',
+  defaultFilter = null,
   dmFilters = DEFAULT_DM_FILTERS,
   title = 'Choose Figurine Token',
   allowClear = false,
@@ -653,6 +653,14 @@ const TokenPickerModal = ({
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
 
+  const resolvedDefaultFilter = useMemo(() => {
+    if (defaultFilter && typeof defaultFilter === 'string') {
+      return defaultFilter;
+    }
+
+    return isDm ? 'dm' : 'adventurers';
+  }, [defaultFilter, isDm]);
+
   const [selectedFilterKey, setSelectedFilterKey] = useState(null);
 
   useEffect(() => {
@@ -669,16 +677,16 @@ const TokenPickerModal = ({
 
     let nextKey = null;
 
-    if (defaultFilter) {
-      if (filterLookup.has(defaultFilter)) {
-        nextKey = defaultFilter;
+    if (resolvedDefaultFilter) {
+      if (filterLookup.has(resolvedDefaultFilter)) {
+        nextKey = resolvedDefaultFilter;
       } else {
         const aliasMatch = availableFilters.find(
           (filter) =>
             filter &&
             typeof filter === 'object' &&
             Array.isArray(filter.aliases) &&
-            filter.aliases.includes(defaultFilter)
+            filter.aliases.includes(resolvedDefaultFilter)
         );
 
         if (aliasMatch) {
@@ -695,7 +703,7 @@ const TokenPickerModal = ({
     if (nextKey !== selectedFilterKey) {
       setSelectedFilterKey(nextKey);
     }
-  }, [filterLookup, availableFilters, defaultFilter, selectedFilterKey]);
+  }, [filterLookup, availableFilters, resolvedDefaultFilter, selectedFilterKey]);
 
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
