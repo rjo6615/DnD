@@ -3855,8 +3855,62 @@ h1 {
     z-index: 2;
   }
 
-  &__figurine-image__scale-up {
+  &__figurine-image__scale-up-300 {
     scale: 2.7;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  &__figurine-image__scale-up-133 {
+    scale: 1.33;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  &__figurine-image__scale-up-150 {
+    scale: 1.5;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  &__figurine-image__scale-up-166 {
+    scale: 1.66;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  &__figurine-image__scale-up-200 {
+    scale: 2;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  &__figurine-image__scale-up-233 {
+    scale: 2.33;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  &__figurine-image__scale-up-333 {
+    scale: 3.33;
     width: 100%;
     height: 100%;
     max-width: none;

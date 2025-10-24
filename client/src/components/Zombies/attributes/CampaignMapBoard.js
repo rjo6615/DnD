@@ -1606,7 +1606,25 @@ const CampaignMapBoard = ({
                               <img
                                 src={figurineImageUrl}
                                 alt=""
-                                className={figurineImageUrl.includes("Scale300_01") ?"campaign-map-board__figurine-image__scale-up":"campaign-map-board__figurine-image"}
+                                className={
+                                  figurineImageUrl.includes("Scale300")
+                                  || figurineImageUrl.includes("x33_01")
+                                  || figurineImageUrl.includes("x18_01")
+                                  ?"campaign-map-board__figurine-image__scale-up-300"
+                                  :figurineImageUrl.includes("Scale133")
+                                  ?"campaign-map-board__figurine-image__scale-up-133"
+                                  :figurineImageUrl.includes("Scale150")
+                                  ?"campaign-map-board__figurine-image__scale-up-150"
+                                  :figurineImageUrl.includes("Scale166")
+                                  ?"campaign-map-board__figurine-image__scale-up-166"
+                                  :figurineImageUrl.includes("Scale200")
+                                  ?"campaign-map-board__figurine-image__scale-up-200"
+                                  :figurineImageUrl.includes("Scale233")
+                                  ?"campaign-map-board__figurine-image__scale-up-233"
+                                  :figurineImageUrl.includes("Scale333")
+                                  ?"campaign-map-board__figurine-image__scale-up-333"
+                                  :"campaign-map-board__figurine-image"
+                                }
                                 data-figurine-public-id={figurineImagePublicId || undefined}
                                 loading="lazy"
                                 onLoad={(event) =>
