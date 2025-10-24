@@ -128,7 +128,7 @@ describe('TokenPickerModal', () => {
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
-      expect(lastCall).toBe('/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers');
+      expect(lastCall).toBe('/campaigns/Camp1/token-manifest?folders=Tokens%2FDM');
     });
 
     await user.selectOptions(select, options[3]);
