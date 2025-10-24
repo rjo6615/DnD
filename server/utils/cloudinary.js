@@ -7,9 +7,11 @@ const DEFAULT_TOKEN_CACHE_TTL_MS = 60_000;
 const DEFAULT_FOLDER_TREE_CACHE_TTL_MS = 120_000;
 const DEFAULT_FOLDER_TREE_CONCURRENCY = 4;
 const MAX_FOLDER_TREE_CONCURRENCY = 12;
+const DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS = 300_000;
 
 const tokenListCache = new Map();
 const folderTreeCache = new Map();
+const figurineSuggestionCache = new Map();
 
 const parseCacheTtl = (value, fallback) => {
   const numericValue = Number(value);
@@ -26,6 +28,12 @@ const getFolderTreeCacheTtlMs = () =>
   parseCacheTtl(
     process.env.CLOUDINARY_FOLDER_TREE_CACHE_TTL_MS,
     DEFAULT_FOLDER_TREE_CACHE_TTL_MS
+  );
+
+const getFigurineSuggestionCacheTtlMs = () =>
+  parseCacheTtl(
+    process.env.CLOUDINARY_FIGURINE_SUGGESTION_CACHE_TTL_MS,
+    DEFAULT_FIGURINE_SUGGESTION_CACHE_TTL_MS
   );
 
 const parsePositiveInteger = (value, fallback, max) => {
@@ -321,6 +329,17 @@ const deleteMapImage = async (publicId, options = {}) => {
     resource_type: 'image',
     ...options,
   });
+};
+
+const getUsage = async () => {
+  configure();
+  const sdk = resolveCloudinary();
+
+  if (!sdk?.api || typeof sdk.api.usage !== 'function') {
+    throw new Error('Cloudinary usage API is unavailable');
+  }
+
+  return sdk.api.usage();
 };
 
 const listTokenFolderTree = async ({ folders = null, rootFolder: inputRootFolder } = {}) => {
@@ -688,6 +707,20 @@ const collectMonsterKeys = (monsterDetail = {}) => {
   return Array.from(sanitized).filter(Boolean);
 };
 
+const buildFigurineSuggestionCacheKey = ({ keys, includeGeneralSearch }) => {
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return null;
+  }
+
+  const normalizedKeys = Array.from(new Set(keys.filter(Boolean))).sort();
+  if (normalizedKeys.length === 0) {
+    return null;
+  }
+
+  const scope = includeGeneralSearch ? 'general' : 'dm-only';
+  return `${scope}::${normalizedKeys.join('|')}`;
+};
+
 const collectCandidateTokens = (resource) => {
   const tokens = new Set();
 
@@ -936,9 +969,23 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
     return null;
   }
 
+  const cacheTtlMs = getFigurineSuggestionCacheTtlMs();
+  clearCacheWhenDisabled(figurineSuggestionCache, cacheTtlMs);
+  const cacheKey = buildFigurineSuggestionCacheKey({ keys, includeGeneralSearch });
+
+  if (cacheTtlMs > 0 && cacheKey) {
+    const cached = getCacheEntry(figurineSuggestionCache, cacheKey);
+    if (cached !== null || figurineSuggestionCache.has(cacheKey)) {
+      return cached;
+    }
+  }
+
   try {
     configure();
   } catch (error) {
+    if (cacheTtlMs > 0 && cacheKey) {
+      setCacheEntry(figurineSuggestionCache, cacheKey, null, cacheTtlMs);
+    }
     return null;
   }
 
@@ -961,8 +1008,15 @@ const suggestEnemyFigurine = async (monsterDetail, { includeGeneralSearch = true
     });
 
     if (suggestion) {
+      if (cacheTtlMs > 0 && cacheKey) {
+        setCacheEntry(figurineSuggestionCache, cacheKey, suggestion, cacheTtlMs);
+      }
       return suggestion;
     }
+  }
+
+  if (cacheTtlMs > 0 && cacheKey) {
+    setCacheEntry(figurineSuggestionCache, cacheKey, null, cacheTtlMs);
   }
 
   return null;
@@ -976,4 +1030,5 @@ module.exports = {
   listTokenAssets,
   listTokenFolderTree,
   suggestEnemyFigurine,
+  getUsage,
 };
