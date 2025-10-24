@@ -142,6 +142,23 @@ const anyDamageDiceRegex = /\d+d\d+(?:[+-]\d+)?/;
 const spellsCatalog = spellsData || {};
 
 const diceExpressionPattern = /\d+d\d+(?:\s*[+-]\s*\d+)?/gi;
+const rangedSpellAttackPattern = /ranged\s+(?:spell\s+)?attack(?:\s+roll)?/i;
+
+function detectRangedSpellAttack(text = '') {
+  if (typeof text !== 'string') {
+    return false;
+  }
+  return rangedSpellAttackPattern.test(text);
+}
+
+const ABILITY_LABELS = {
+  str: 'Strength',
+  dex: 'Dexterity',
+  con: 'Constitution',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma',
+};
 
 const waitForNextAnimationFrame = () => {
   if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
@@ -209,6 +226,11 @@ function augmentSpell(spell = {}) {
   if (enhanced.level === 0 && !enhanced.scaling) {
     const scaling = extractScaling(enhanced.description);
     if (scaling) enhanced.scaling = scaling;
+  }
+  if (enhanced.rangedSpellAttack === undefined) {
+    enhanced.rangedSpellAttack = detectRangedSpellAttack(enhanced.description);
+  } else {
+    enhanced.rangedSpellAttack = Boolean(enhanced.rangedSpellAttack);
   }
   return enhanced;
 }
@@ -365,6 +387,8 @@ const PlayerTurnActions = React.forwardRef(
       strMod,
       dexMod,
       conMod = 0,
+      spellAbilityMod = null,
+      spellAbilityKey = '',
       onCastSpell,
       onPassTurn = () => {},
       canPassTurn = true,
@@ -534,8 +558,24 @@ const manualCriticalRef = useRef(false);
 
   const numericStrMod = Number(strMod) || 0;
   const numericDexMod = Number(dexMod) || 0;
+  const numericSpellAbilityMod = (() => {
+    const parsed = Number(spellAbilityMod);
+    return Number.isFinite(parsed) ? parsed : null;
+  })();
 
-  const formatModifier = (value) => (value >= 0 ? `+${value}` : `${value}`);
+  const spellAbilityLabel = useMemo(() => {
+    if (!spellAbilityKey) {
+      return 'Spellcasting Ability Modifier';
+    }
+    const normalizedKey = String(spellAbilityKey).toLowerCase();
+    const abilityLabel = ABILITY_LABELS[normalizedKey];
+    return `${abilityLabel || normalizedKey.toUpperCase()} Modifier`;
+  }, [spellAbilityKey]);
+
+  const formatModifier = useCallback(
+    (value) => (value >= 0 ? `+${value}` : `${value}`),
+    [],
+  );
 
   const isRangedWeapon = (weapon) => {
     const category = weapon?.category;
@@ -886,6 +926,67 @@ const manualCriticalRef = useRef(false);
       save: breathWeapon.save,
     };
   }, [dragonbornAncestry, conMod, profBonus, totalLevel]);
+
+  const getCatalogSpell = useCallback((spell) => {
+    const rawName = typeof spell?.name === 'string' ? spell.name : '';
+    const normalized = rawName.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+    return SPELLS_BY_NAME[normalized] || null;
+  }, []);
+
+  const isRangedSpellAttack = useCallback(
+    (spell) => {
+      if (!spell) return false;
+      if (spell.rangedSpellAttack !== undefined) {
+        return Boolean(spell.rangedSpellAttack);
+      }
+      const catalogSpell = getCatalogSpell(spell);
+      if (catalogSpell?.rangedSpellAttack !== undefined) {
+        return Boolean(catalogSpell.rangedSpellAttack);
+      }
+      const description =
+        typeof spell?.description === 'string'
+          ? spell.description
+          : typeof catalogSpell?.description === 'string'
+          ? catalogSpell.description
+          : '';
+      return detectRangedSpellAttack(description);
+    },
+    [getCatalogSpell],
+  );
+
+  const getSpellAttackDetails = useCallback(
+    (spell) => {
+      if (numericSpellAbilityMod === null) {
+        return null;
+      }
+      if (!isRangedSpellAttack(spell)) {
+        return null;
+      }
+      const abilityBonus = numericSpellAbilityMod;
+      const proficiencyBonusValue = Number.isFinite(profBonus)
+        ? profBonus
+        : 0;
+      const catalogSpell = getCatalogSpell(spell);
+      const extraRaw = Number(
+        spell?.attackBonus ??
+          spell?.bonus ??
+          catalogSpell?.attackBonus ??
+          catalogSpell?.bonus ??
+          0,
+      );
+      const extraBonus = Number.isFinite(extraRaw) ? extraRaw : 0;
+      return {
+        total: abilityBonus + proficiencyBonusValue + extraBonus,
+        abilityBonus,
+        proficiencyBonus: proficiencyBonusValue,
+        extraBonus,
+      };
+    },
+    [getCatalogSpell, isRangedSpellAttack, numericSpellAbilityMod, profBonus],
+  );
 
   const getAttackBonus = (slot, weapon) =>
     profBonus +
@@ -1440,6 +1541,55 @@ const manualCriticalRef = useRef(false);
       })
     );
   };
+
+  const handleSpellAttackRoll = useCallback(
+    async (spell) => {
+      const attackDetails = getSpellAttackDetails(spell);
+      if (!attackDetails) {
+        return;
+      }
+
+      const { total, abilityBonus, proficiencyBonus, extraBonus } = attackDetails;
+      const { result, d20 } = await rollSkillWithDiceBox(total, {
+        diceColor: diceFaceColor,
+      });
+      const segments = [`${d20} (d20)`];
+      segments.push(`${formatModifier(abilityBonus)} ${spellAbilityLabel}`);
+      segments.push(
+        `${formatModifier(proficiencyBonus)} Proficiency Bonus`,
+      );
+      if (extraBonus) {
+        segments.push(`${formatModifier(extraBonus)} Spell Attack Bonus`);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', {
+          detail: {
+            value: result,
+            breakdown: segments.join(' '),
+            source: `${spell?.name || 'Spell'} Spell Attack Roll`,
+            critical: d20 === 20,
+            fumble: d20 === 1,
+            diceRolls: [
+              {
+                sides: 20,
+                value: d20,
+                type: 'Attack Roll',
+                category: 'base',
+              },
+            ],
+            modifierValues: segments.slice(1),
+          },
+        }),
+      );
+    },
+    [
+      diceFaceColor,
+      formatModifier,
+      getSpellAttackDetails,
+      spellAbilityLabel,
+    ],
+  );
 
   const handleBreathWeaponAttack = useCallback(async () => {
     if (!breathWeaponDetails) return;
@@ -2498,14 +2648,99 @@ const damageAmountStyle = {
                 <div className="attack-card-grid">
                   {sortedSpells
                     .filter((s) => s && s.damage)
-                    .map((spell, idx) => (
-                      <div className="attack-card" key={idx}>
+                    .map((spell, idx) => {
+                      const details = getSpellAttackDetails(spell);
+                      const showAttack = Boolean(details);
+                      return (
+                        <div className="attack-card" key={idx}>
+                          <div className="attack-card__title">{spell.name}</div>
+                          <div className="attack-card__meta">
+                            <span>{spell.casterType || spell.caster || 'Unknown'}</span>
+                            <span>• Level {spell.level}</span>
+                          </div>
+                          <div className="attack-card__details">
+                            {showAttack && details && (
+                              <div className="attack-card__row">
+                                <span className="attack-card__label">Attack Bonus</span>
+                                <span className="attack-card__value">
+                                  {formatModifier(details.total)}
+                                </span>
+                              </div>
+                            )}
+                            <div className="attack-card__row">
+                              <span className="attack-card__label">Damage</span>
+                              <span className="attack-card__value">
+                                {formatDamageSegments(spell.damage)}
+                              </span>
+                            </div>
+                            <div className="attack-card__row">
+                              <span className="attack-card__label">Casting Time</span>
+                              <span className="attack-card__value">{spell.castingTime}</span>
+                            </div>
+                            <div className="attack-card__row">
+                              <span className="attack-card__label">Range</span>
+                              <span className="attack-card__value">{spell.range}</span>
+                            </div>
+                            <div className="attack-card__row">
+                              <span className="attack-card__label">Duration</span>
+                              <span className="attack-card__value">{spell.duration}</span>
+                            </div>
+                          </div>
+                          <div className="attack-card__actions">
+                            {showAttack && (
+                              <Button
+                                onClick={() => {
+                                  handleSpellAttackRoll(spell);
+                                  handleCloseAttack();
+                                }}
+                                variant="link"
+                                aria-label="Roll spell attack"
+                                className="attack-card__roll"
+                              >
+                                <i className="fa-solid fa-bullseye"></i>
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => {
+                                handleSpellsButtonClick(spell);
+                                handleCloseAttack();
+                              }}
+                              variant="link"
+                              aria-label="Roll damage"
+                              className="attack-card__roll"
+                            >
+                              <i className="fa-solid fa-dice-d20"></i>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </>
+            )}
+            {fiendishLegacySpells.length > 0 && (
+              <>
+                <Card.Title className="modal-title mt-4">Fiendish Legacy</Card.Title>
+                <div className="attack-card-grid">
+                  {fiendishLegacySpells.map((spell, idx) => {
+                    const details = getSpellAttackDetails(spell);
+                    const showAttack = Boolean(details);
+                    return (
+                      <div className="attack-card" key={`fiendish-${idx}`}>
                         <div className="attack-card__title">{spell.name}</div>
                         <div className="attack-card__meta">
-                          <span>{spell.casterType || spell.caster || 'Unknown'}</span>
+                          <span>{spell.casterType || 'Fiendish Legacy'}</span>
                           <span>• Level {spell.level}</span>
                         </div>
                         <div className="attack-card__details">
+                          {showAttack && details && (
+                            <div className="attack-card__row">
+                              <span className="attack-card__label">Attack Bonus</span>
+                              <span className="attack-card__value">
+                                {formatModifier(details.total)}
+                              </span>
+                            </div>
+                          )}
                           <div className="attack-card__row">
                             <span className="attack-card__label">Damage</span>
                             <span className="attack-card__value">
@@ -2526,6 +2761,19 @@ const damageAmountStyle = {
                           </div>
                         </div>
                         <div className="attack-card__actions">
+                          {showAttack && (
+                            <Button
+                              onClick={() => {
+                                handleSpellAttackRoll(spell);
+                                handleCloseAttack();
+                              }}
+                              variant="link"
+                              aria-label="Roll spell attack"
+                              className="attack-card__roll"
+                            >
+                              <i className="fa-solid fa-bullseye"></i>
+                            </Button>
+                          )}
                           <Button
                             onClick={() => {
                               handleSpellsButtonClick(spell);
@@ -2539,56 +2787,8 @@ const damageAmountStyle = {
                           </Button>
                         </div>
                       </div>
-                    ))}
-                </div>
-              </>
-            )}
-            {fiendishLegacySpells.length > 0 && (
-              <>
-                <Card.Title className="modal-title mt-4">Fiendish Legacy</Card.Title>
-                <div className="attack-card-grid">
-                  {fiendishLegacySpells.map((spell, idx) => (
-                    <div className="attack-card" key={`fiendish-${idx}`}>
-                      <div className="attack-card__title">{spell.name}</div>
-                      <div className="attack-card__meta">
-                        <span>{spell.casterType || 'Fiendish Legacy'}</span>
-                        <span>• Level {spell.level}</span>
-                      </div>
-                      <div className="attack-card__details">
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Damage</span>
-                          <span className="attack-card__value">
-                            {formatDamageSegments(spell.damage)}
-                          </span>
-                        </div>
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Casting Time</span>
-                          <span className="attack-card__value">{spell.castingTime}</span>
-                        </div>
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Range</span>
-                          <span className="attack-card__value">{spell.range}</span>
-                        </div>
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Duration</span>
-                          <span className="attack-card__value">{spell.duration}</span>
-                        </div>
-                      </div>
-                      <div className="attack-card__actions">
-                        <Button
-                          onClick={() => {
-                            handleSpellsButtonClick(spell);
-                            handleCloseAttack();
-                          }}
-                          variant="link"
-                          aria-label="Roll damage"
-                          className="attack-card__roll"
-                        >
-                          <i className="fa-solid fa-dice-d20"></i>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
