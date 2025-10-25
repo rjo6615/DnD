@@ -66,9 +66,19 @@ const KNOWN_CLASS_SEGMENTS = [
   'Wizards',
 ];
 
+const normalizeClassSegment = (segment) => {
+  if (typeof segment !== 'string') {
+    return '';
+  }
+
+  return segment.toLowerCase().replace(/[^a-z0-9]+/g, '');
+};
+
 const KNOWN_CLASS_SEGMENT_SET = new Set(
-  KNOWN_CLASS_SEGMENTS.map((segment) => segment.toLowerCase())
+  KNOWN_CLASS_SEGMENTS.map((segment) => normalizeClassSegment(segment)).filter(Boolean)
 );
+
+const KNOWN_CLASS_SEGMENT_SUFFIXES = Array.from(KNOWN_CLASS_SEGMENT_SET);
 
 const cloneFilters = (filters = []) => {
   if (!Array.isArray(filters)) {
@@ -752,14 +762,38 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
 
     for (let index = searchSegments.length - 1; index >= 0; index -= 1) {
       const segment = searchSegments[index];
-      if (KNOWN_CLASS_SEGMENT_SET.has(segment.toLowerCase())) {
+      if (typeof segment !== 'string') {
+        continue;
+      }
+
+      const normalizedSegment = segment.trim();
+      if (!normalizedSegment) {
+        continue;
+      }
+
+      const sanitizedSegment = normalizeClassSegment(normalizedSegment);
+      if (!sanitizedSegment) {
+        continue;
+      }
+    }
+
+      if (KNOWN_CLASS_SEGMENT_SET.has(sanitizedSegment)) {
+        classRelativeIndex = index;
+        break;
+      }
+
+      if (
+        KNOWN_CLASS_SEGMENT_SUFFIXES.some(
+          (suffix) => typeof suffix === 'string' && suffix && sanitizedSegment.endsWith(suffix)
+        )
+      ) {
         classRelativeIndex = index;
         break;
       }
     }
 
     if (classRelativeIndex === -1) {
-      classRelativeIndex = searchSegments.length - 1;
+      return;
     }
 
     const classRelativeSegments = relativeSegments.slice(
