@@ -133,7 +133,13 @@ const DiceRollerModal = ({
   const canRoll = isValidCount && isValidSides && !rolling;
 
   return (
-    <Modal centered show={show} onHide={onHide} aria-label="Dice roller">
+    <Modal
+      centered
+      className="dnd-modal modern-modal"
+      show={show}
+      onHide={onHide}
+      aria-label="Dice roller"
+    >
       <Modal.Header closeButton>
         <Modal.Title>Dice Roller</Modal.Title>
       </Modal.Header>
