@@ -343,19 +343,11 @@ export const buildPlayerTokenFolderScope = (raceName, occupations) => {
     });
   });
 
-  if (classCollector.values.length === 0) {
-    return raceCollector.values.length > 0 ? raceCollector.values : null;
+  if (classCollector.values.length > 0) {
+    return classCollector.values;
   }
 
-  const combinedValues = [...classCollector.values];
-
-  raceCollector.values.forEach((value) => {
-    if (!classCollector.has(value)) {
-      combinedValues.push(value);
-    }
-  });
-
-  return combinedValues.length > 0 ? combinedValues : null;
+  return raceCollector.values.length > 0 ? raceCollector.values : null;
 };
 
 export default buildPlayerTokenFolderScope;
