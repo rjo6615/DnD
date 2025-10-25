@@ -703,12 +703,31 @@ const TokenPickerModal = ({
       return { availableFilters: baseFilters, hasScopedFilterMatch: false };
     }
 
-    const scoped = baseFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
-    if (scoped.length > 0) {
-      return { availableFilters: scoped, hasScopedFilterMatch: true };
+    const matches = baseFilters
+      .map((filter, index) => ({
+        filter,
+        index,
+        ...scoreFilterAgainstScope(filter, filterScopeSet),
+      }))
+      .filter(({ score }) => score > 0);
+
+    if (matches.length === 0) {
+      return { availableFilters: baseFilters, hasScopedFilterMatch: false };
     }
 
-    return { availableFilters: baseFilters, hasScopedFilterMatch: false };
+    let bestScore = 0;
+
+    matches.forEach(({ score }) => {
+      if (score > bestScore) {
+        bestScore = score;
+      }
+    });
+
+    const topMatches = matches
+      .filter(({ score }) => score === bestScore)
+      .map(({ filter }) => filter);
+
+    return { availableFilters: topMatches, hasScopedFilterMatch: true };
   }, [baseFilters, filterScopeSet]);
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);

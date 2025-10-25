@@ -510,13 +510,9 @@ describe('TokenPickerModal', () => {
 
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
-    expect(options).toHaveLength(3);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Humans');
-    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Humans/Barbarian');
-    expect(options[2].textContent.replace(/\u00A0/g, '')).toBe('Humans/Paladin');
-
-    const selectedOption = options.find((option) => option.selected);
-    expect(selectedOption?.textContent.replace(/\u00A0/g, '')).toBe('Humans/Paladin');
+    expect(options).toHaveLength(1);
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Humans/Paladin');
+    expect(options[0].selected).toBe(true);
   });
 
   test('filters manifest assets based on provided scope', async () => {
