@@ -113,7 +113,14 @@ const fetchJsonOrThrow = async (url, defaultMessage) => {
 const fetchJsonWithFallback = async (url, fallbackValue = []) => {
   const response = await apiFetch(url);
   if (response.ok) {
-    return response.json();
+    try {
+      return await response.json();
+    } catch (error) {
+      if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+        return fallbackValue;
+      }
+      throw error;
+    }
   }
   if (response.status === 404) {
     return fallbackValue;
@@ -398,9 +405,9 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
           standardAccessories,
           customAccessories,
         ] = await Promise.all([
-          fetchJsonOrThrow(
+          fetchJsonWithFallback(
             `/campaigns/${encodedCampaign}/shop-visibility`,
-            'Failed to load shop visibility.'
+            createEmptyHiddenState()
           ),
           fetchJsonOrThrow('/weapons', 'Failed to load weapons.'),
           fetchJsonWithFallback(`/equipment/weapons/${encodedCampaign}`),
