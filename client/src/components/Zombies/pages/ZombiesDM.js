@@ -8085,6 +8085,8 @@ const resolveIcon = (category, iconMap, fallback) => {
                 campaign={currentCampaign}
                 active={activeResourceTab === 'shop'}
                 onStatus={setStatus}
+                characters={Array.isArray(records) ? records : []}
+                onInventoryUpdate={fetchRecords}
               />
             </Card.Body>
           </Card>
