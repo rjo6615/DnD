@@ -60,7 +60,7 @@ import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
-import buildRaceTokenScopeData from '../utils/raceTokenFilters';
+import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 
 const HEADER_PADDING = 16;
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -3568,91 +3568,10 @@ export default function ZombiesCharacterSheet() {
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
-  const tokenPickerFilterScope = useMemo(() => {
-    const scopeSet = new Set();
-
-    const addScopeVariants = (rawValue, prefixes = [], options = {}) => {
-      if (typeof rawValue !== 'string') {
-        return;
-      }
-
-      const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
-      if (!normalizedValue) {
-        return;
-      }
-
-      const lowerValue = normalizedValue.toLowerCase();
-      const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
-
-      const normalizedPrefixes = Array.isArray(prefixes)
-        ? prefixes.map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
-        : [];
-
-      const includeStandalone =
-        options.includeStandalone ?? normalizedPrefixes.filter(Boolean).length === 0;
-
-      if (includeStandalone) {
-        [normalizedValue, lowerValue, compactValue]
-          .filter(Boolean)
-          .forEach((entry) => scopeSet.add(entry));
-      }
-
-      normalizedPrefixes
-        .filter(Boolean)
-        .forEach((prefix) => {
-          scopeSet.add(`${prefix}/${normalizedValue}`);
-          scopeSet.add(`${prefix}/${lowerValue}`);
-          if (compactValue) {
-            scopeSet.add(`${prefix}/${compactValue}`);
-          }
-        });
-    };
-
-    const { nameVariants: raceNameVariants, prefixes: racePrefixList } =
-      buildRaceTokenScopeData(form?.race?.name);
-
-    const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
-    const seenClasses = new Set();
-    occupations.forEach((occupation) => {
-      if (!occupation || typeof occupation !== 'object') {
-        return;
-      }
-
-      const rawClassName =
-        typeof occupation.Occupation === 'string' ? occupation.Occupation.replace(/\s+/g, ' ').trim() : '';
-      if (!rawClassName) {
-        return;
-      }
-
-      const classKey = rawClassName.toLowerCase();
-      if (seenClasses.has(classKey)) {
-        return;
-      }
-      seenClasses.add(classKey);
-
-      addScopeVariants(rawClassName, [
-        'Core_Class_Tokens',
-        'Adventurers/Core_Class_Tokens',
-        'Tokens/Adventurers/Core_Class_Tokens',
-      ]);
-
-      if (racePrefixList.length > 0) {
-        addScopeVariants(rawClassName, racePrefixList);
-      }
-    });
-
-    if (scopeSet.size === 0 && raceNameVariants.length > 0) {
-      const fallbackRace = raceNameVariants.find((variant) => typeof variant === 'string' && variant.trim() !== '');
-      if (fallbackRace) {
-        addScopeVariants(fallbackRace, [
-          'Adventurers',
-          'Tokens/Adventurers',
-        ]);
-      }
-    }
-
-    return Array.from(scopeSet);
-  }, [form?.occupation, form?.race?.name]);
+  const tokenPickerFilterScope = useMemo(
+    () => buildPlayerTokenFolderScope(form?.race?.name, form?.occupation),
+    [form?.occupation, form?.race?.name]
+  );
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor, nextTheme = null) => {
