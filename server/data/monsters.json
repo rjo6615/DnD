@@ -3500,6 +3500,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "1d6+2",
@@ -3600,6 +3606,12 @@
               "damage_dice": "2d4+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3705,6 +3717,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3840,6 +3858,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -3969,6 +3993,12 @@
               "damage_dice": "2d10+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4255,6 +4285,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "1d10+3",
@@ -4350,6 +4386,12 @@
               "damage_dice": "2d6+5",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d10",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4791,6 +4833,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d10+6",
@@ -4933,6 +4981,12 @@
               "damage_dice": "2d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -5292,6 +5346,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d10",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "2d8+7",
@@ -5438,6 +5498,12 @@
               "damage_dice": "2d8+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -6877,6 +6943,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d10+6",
@@ -7015,6 +7087,12 @@
               "damage_dice": "2d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -10765,6 +10843,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -10923,6 +11007,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -11247,6 +11337,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d10+2",
@@ -11350,6 +11446,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11458,6 +11560,12 @@
               "damage_dice": "2d8+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11603,6 +11711,12 @@
               "damage_dice": "2d8+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -12550,6 +12664,12 @@
               "damage_dice": "1d4+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -16065,6 +16185,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d10",
+              "damage_type": {
+                "name": "force"
+              }
             }
           ],
           "damage_dice": "2d10+5",
@@ -18100,6 +18226,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "1d10+4",
@@ -18195,6 +18327,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18296,6 +18434,12 @@
               "damage_dice": "1d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18418,6 +18562,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -19768,6 +19918,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -19905,6 +20061,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -20577,6 +20739,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -23819,6 +23987,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d4+4",
@@ -23920,6 +24094,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -24055,6 +24235,12 @@
               "damage_dice": "2d8+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -26791,6 +26977,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
