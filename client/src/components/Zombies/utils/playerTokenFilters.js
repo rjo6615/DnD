@@ -1,5 +1,34 @@
 import { buildRaceTokenNameVariants } from './raceTokenFilters';
 
+const RACE_NAME_KEYS = ['name', 'Name', 'race', 'Race', 'raceName', 'RaceName', 'race_name'];
+const OCCUPATION_NAME_KEYS = [
+  'Occupation',
+  'Name',
+  'occupation',
+  'name',
+  'Class',
+  'class',
+];
+
+const extractRaceName = (input) => {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (!input || typeof input !== 'object') {
+    return '';
+  }
+
+  for (const key of RACE_NAME_KEYS) {
+    const value = input[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+
+  return '';
+};
+
 const capitalizeTokenWord = (word) => {
   if (typeof word !== 'string' || word.length === 0) {
     return '';
@@ -98,29 +127,45 @@ const buildTokenNameVariantSet = (rawValue) => {
 };
 
 const collectOccupationNames = (occupations) => {
-  if (!Array.isArray(occupations)) {
-    return [];
-  }
-
   const names = new Set();
 
-  occupations.forEach((occupation) => {
-    if (!occupation || typeof occupation !== 'object') {
+  const addName = (value) => {
+    if (typeof value !== 'string') {
       return;
     }
 
-    const rawName =
-      typeof occupation.Occupation === 'string'
-        ? occupation.Occupation
-        : typeof occupation.Name === 'string'
-          ? occupation.Name
-          : typeof occupation.occupation === 'string'
-            ? occupation.occupation
-            : '';
+    const trimmedValue = value.replace(/\s+/g, ' ').trim();
+    if (trimmedValue) {
+      names.add(trimmedValue);
+    }
+  };
 
-    const trimmed = rawName.replace(/\s+/g, ' ').trim();
-    if (trimmed) {
-      names.add(trimmed);
+  const entries = Array.isArray(occupations) ? occupations : [occupations];
+
+  entries.forEach((occupation) => {
+    if (!occupation) {
+      return;
+    }
+
+    if (typeof occupation === 'string') {
+      addName(occupation);
+      return;
+    }
+
+    if (typeof occupation !== 'object') {
+      return;
+    }
+
+    for (const key of OCCUPATION_NAME_KEYS) {
+      const candidate = occupation[key];
+      if (typeof candidate === 'string' && candidate.trim()) {
+        addName(candidate);
+        return;
+      }
+    }
+
+    if (typeof occupation.title === 'string') {
+      addName(occupation.title);
     }
   });
 
@@ -141,8 +186,9 @@ const addScopeValue = (set, value) => {
 };
 
 export const buildPlayerTokenFolderScope = (raceName, occupations) => {
+  const normalizedRaceName = extractRaceName(raceName);
   const raceVariantSet = new Set();
-  buildRaceTokenNameVariants(raceName).forEach((variant) => {
+  buildRaceTokenNameVariants(normalizedRaceName).forEach((variant) => {
     if (typeof variant === 'string' && variant.trim()) {
       buildTokenNameVariantSet(variant).forEach((entry) => raceVariantSet.add(entry));
     }

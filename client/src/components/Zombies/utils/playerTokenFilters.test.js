@@ -65,4 +65,28 @@ describe('buildPlayerTokenFolderScope', () => {
       ])
     );
   });
+
+  it('supports race objects and occupation name properties', () => {
+    const scope = buildPlayerTokenFolderScope({ name: 'Goliath' }, [
+      { name: 'Cleric' },
+    ]);
+
+    expect(scope).toEqual(
+      expect.arrayContaining([
+        'Tokens/Adventurers/Goliaths/Cleric',
+        'folder:Tokens/Adventurers/Goliaths/Cleric',
+      ])
+    );
+  });
+
+  it('collects class names from string entries', () => {
+    const scope = buildPlayerTokenFolderScope('Elf', ['Ranger']);
+
+    expect(scope).toEqual(
+      expect.arrayContaining([
+        'Tokens/Adventurers/Elves/Ranger',
+        'folder:Tokens/Adventurers/Elves/Ranger',
+      ])
+    );
+  });
 });

@@ -3568,10 +3568,14 @@ export default function ZombiesCharacterSheet() {
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
-  const tokenPickerFilterScope = useMemo(
-    () => buildPlayerTokenFolderScope(form?.race?.name, form?.occupation),
-    [form?.occupation, form?.race?.name]
-  );
+  const tokenPickerFilterScope = useMemo(() => {
+    const raceValue =
+      form?.race !== undefined && form?.race !== null && form?.race !== ''
+        ? form.race
+        : form?.raceName ?? form?.Race ?? null;
+
+    return buildPlayerTokenFolderScope(raceValue, form?.occupation);
+  }, [form?.occupation, form?.race, form?.raceName, form?.Race, form?.race?.name]);
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor, nextTheme = null) => {
