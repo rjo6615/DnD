@@ -543,11 +543,30 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
         .filter(Boolean)
     : [];
 
-  const inferredRootPath =
-    typeof folderTree?.folders?.[0]?.path === 'string' &&
-    folderTree.folders[0].path.trim() !== ''
-      ? folderTree.folders[0].path.trim()
+  const inferredRootPath = (() => {
+    const flatRoot = Array.isArray(folderTree?.flatFolders)
+      ? folderTree.flatFolders.find(
+          (entry) =>
+            entry &&
+            typeof entry.path === 'string' &&
+            entry.path.trim() !== '' &&
+            (entry.depth === 0 || entry.depth === null || entry.depth === undefined)
+        )
       : null;
+
+    if (flatRoot) {
+      return flatRoot.path.trim();
+    }
+
+    if (
+      typeof folderTree?.folders?.[0]?.path === 'string' &&
+      folderTree.folders[0].path.trim() !== ''
+    ) {
+      return folderTree.folders[0].path.trim();
+    }
+
+    return null;
+  })();
 
   const resolvedRootFolders =
     inferredRootPath && inferredRootPath.trim() !== ''
@@ -572,13 +591,14 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
   });
 
   const playerRootPath = resolvedRootFolders[0] || null;
-  const rootLeaf = playerRootPath
+  const rootSegments = playerRootPath
     ? playerRootPath
         .split('/')
         .map((segment) => segment.trim())
         .filter(Boolean)
-        .pop()
-    : null;
+    : [];
+  const rootLeaf = rootSegments.length > 0 ? rootSegments[rootSegments.length - 1] : null;
+  const rootLeafLower = rootLeaf ? rootLeaf.toLowerCase() : null;
 
   const flatFolders = Array.isArray(folderTree?.flatFolders)
     ? folderTree.flatFolders
@@ -601,19 +621,58 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     const depth = Number.isInteger(entry.depth) ? entry.depth : 0;
     const indent = depth > 0 ? NBSP.repeat(depth * 2) : '';
 
-    const relativePath =
-      typeof entry.relativePath === 'string' && entry.relativePath.trim() !== ''
-        ? entry.relativePath.trim()
-        : '';
+    const normalizedRelativePath = (() => {
+      if (playerRootPath && normalizedPath.startsWith(playerRootPath)) {
+        return normalizedPath
+          .slice(playerRootPath.length)
+          .replace(/^\/+/, '')
+          .trim();
+      }
 
-    const relativeSegments = relativePath
-      ? relativePath.split('/').map((segment) => segment.trim()).filter(Boolean)
-      : [];
+      if (typeof entry.relativePath === 'string' && entry.relativePath.trim() !== '') {
+        return entry.relativePath.trim();
+      }
 
-    const trimmedSegments =
-      rootLeaf && relativeSegments.length > 0 && relativeSegments[0] === rootLeaf
-        ? relativeSegments.slice(1)
-        : relativeSegments;
+      return '';
+    })();
+
+    const pathSegments = normalizedPath
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+    const rootIndex = rootLeafLower
+      ? pathSegments.findIndex((segment) => segment.toLowerCase() === rootLeafLower)
+      : -1;
+
+    if (rootIndex === -1) {
+      return;
+    }
+
+    if (rootSegments.length > 0) {
+      const expectedRootStart = rootIndex - (rootSegments.length - 1);
+      if (expectedRootStart < 0) {
+        return;
+      }
+
+      const matchesRoot = rootSegments.every((segment, segmentIndex) => {
+        const targetSegment = pathSegments[expectedRootStart + segmentIndex];
+        return (
+          typeof targetSegment === 'string' &&
+          targetSegment.trim().toLowerCase() === segment.trim().toLowerCase()
+        );
+      });
+
+      if (!matchesRoot) {
+        return;
+      }
+    }
+
+    const trimmedSegments = pathSegments.slice(rootIndex + 1);
+
+    if (trimmedSegments.length < 2) {
+      return;
+    }
 
     const trimmedRelativePath = trimmedSegments.join('/');
 
@@ -632,9 +691,9 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       aliasSet.add(trimmedRelativePath.toLowerCase());
     }
 
-    if (relativePath) {
-      aliasSet.add(relativePath);
-      aliasSet.add(relativePath.toLowerCase());
+    if (normalizedRelativePath) {
+      aliasSet.add(normalizedRelativePath);
+      aliasSet.add(normalizedRelativePath.toLowerCase());
     }
 
     if (displayCandidate) {
