@@ -775,7 +775,6 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       if (!sanitizedSegment) {
         continue;
       }
-    }
 
       if (KNOWN_CLASS_SEGMENT_SET.has(sanitizedSegment)) {
         classRelativeIndex = index;
