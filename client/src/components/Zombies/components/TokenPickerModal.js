@@ -604,6 +604,30 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     ? folderTree.flatFolders
     : [];
 
+  const descendantLookup = flatFolders.reduce((acc, entry) => {
+    if (!entry || typeof entry.path !== 'string') {
+      return acc;
+    }
+
+    const normalizedPath = entry.path.trim();
+    if (!normalizedPath) {
+      return acc;
+    }
+
+    const segments = normalizedPath.split('/');
+    while (segments.length > 1) {
+      segments.pop();
+      const parentPath = segments.join('/');
+      if (!parentPath) {
+        break;
+      }
+
+      acc.set(parentPath, true);
+    }
+
+    return acc;
+  }, new Map());
+
   flatFolders.forEach((entry) => {
     if (!entry || typeof entry.path !== 'string') {
       return;
@@ -674,7 +698,16 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       return;
     }
 
+    if (trimmedSegments.length <= 1) {
+      return;
+    }
+
     const trimmedRelativePath = trimmedSegments.join('/');
+
+    const hasDescendants = descendantLookup.get(normalizedPath) === true;
+    if (hasDescendants && trimmedSegments.length <= 1) {
+      return;
+    }
 
     const displayCandidate =
       trimmedRelativePath ||
