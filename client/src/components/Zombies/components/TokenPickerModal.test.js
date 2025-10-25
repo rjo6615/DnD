@@ -228,23 +228,23 @@ describe('TokenPickerModal', () => {
 
     const select = await screen.findByLabelText(/Token Library/i);
 
-    let options;
-
     await waitFor(() => {
-      options = within(select).getAllByRole('option');
+      const options = within(select).getAllByRole('option');
 
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveTextContent('Adventurers');
-      expect(options[1].textContent.startsWith('\u00A0\u00A0\u00A0\u00A0')).toBe(true);
-      expect(options[1]).toHaveTextContent('Heroes/Rogues');
+      expect(options).toHaveLength(1);
+      expect(options[0]).toHaveTextContent('Tokens/Adventurers/Heroes/Rogues');
     });
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
-      expect(lastCall).toBe('/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers');
+      expect(lastCall).toBe(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FHeroes%2FRogues'
+      );
     });
 
-    await user.selectOptions(select, options[1]);
+    const options = within(select).getAllByRole('option');
+
+    await user.selectOptions(select, options[0]);
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
@@ -375,15 +375,15 @@ describe('TokenPickerModal', () => {
       );
     });
 
-    expect(
-      manifestCalls.includes('/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers')
-    ).toBe(false);
-
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
     expect(options).toHaveLength(2);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
-    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe(
+      'Tokens/Adventurers/Dragonborn/Fighter'
+    );
+    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe(
+      'Tokens/Adventurers/Core_Class_Tokens/Fighter'
+    );
 
     await user.selectOptions(select, options[1]);
 
@@ -509,7 +509,9 @@ describe('TokenPickerModal', () => {
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
     expect(options).toHaveLength(1);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Humans/Paladin');
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe(
+      'Tokens/Adventurers/Humans/Paladin'
+    );
     expect(options[0].selected).toBe(true);
   });
 
@@ -791,8 +793,8 @@ describe('TokenPickerModal', () => {
       const normalizedOptions = options.map((option) => option.textContent.replace(/\u00A0/g, ''));
 
       expect(normalizedOptions).toEqual([
-        'Dwarves/Druid',
-        'Core_Class_Tokens/Mediumfolk/Druid',
+        'Tokens/Adventurers/Dwarves/Druid',
+        'Tokens/Adventurers/Core_Class_Tokens/Mediumfolk/Druid',
       ]);
     });
   });
