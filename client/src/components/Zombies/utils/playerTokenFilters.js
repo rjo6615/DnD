@@ -37,6 +37,78 @@ const capitalizeTokenWord = (word) => {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 };
 
+const IRREGULAR_PLURALS = new Set([
+  'people',
+  'men',
+  'children',
+  'teeth',
+  'feet',
+  'mice',
+  'geese',
+]);
+
+const pluralizeTokenWord = (word) => {
+  if (typeof word !== 'string' || word.length === 0) {
+    return word;
+  }
+
+  const lower = word.toLowerCase();
+
+  if (lower.endsWith('person')) {
+    return `${lower.slice(0, -6)}people`;
+  }
+
+  if (lower === 'human') {
+    return 'humans';
+  }
+
+  if (lower.endsWith('man')) {
+    return `${lower.slice(0, -3)}men`;
+  }
+
+  if (lower.endsWith('child')) {
+    return `${lower.slice(0, -5)}children`;
+  }
+
+  if (lower.endsWith('tooth')) {
+    return `${lower.slice(0, -5)}teeth`;
+  }
+
+  if (lower.endsWith('foot')) {
+    return `${lower.slice(0, -4)}feet`;
+  }
+
+  if (lower.endsWith('mouse')) {
+    return `${lower.slice(0, -5)}mice`;
+  }
+
+  if (lower.endsWith('goose')) {
+    return `${lower.slice(0, -5)}geese`;
+  }
+
+  if (lower.endsWith('lf')) {
+    return `${lower.slice(0, -1)}ves`;
+  }
+
+  if (lower.endsWith('fe')) {
+    return `${lower.slice(0, -2)}ves`;
+  }
+
+  if (lower.endsWith('f')) {
+    return `${lower.slice(0, -1)}ves`;
+  }
+
+  if (lower.endsWith('y') && !/[aeiou]y$/.test(lower)) {
+    return `${lower.slice(0, -1)}ies`;
+  }
+
+  if (/([sxz]|ch|sh)$/.test(lower)) {
+    return `${lower}es`;
+  }
+
+  return `${lower}s`;
+};
+
 const normalizeTokenWords = (value) => {
   if (typeof value !== 'string') {
     return [];
@@ -121,6 +193,37 @@ const buildTokenNameVariantSet = (rawValue) => {
         }
       });
     });
+
+    const pluralWords = [...words];
+    const lastIndex = pluralWords.length - 1;
+
+    if (lastIndex >= 0) {
+      const baseLower = pluralWords[lastIndex].toLowerCase();
+
+      if (!IRREGULAR_PLURALS.has(baseLower) && !baseLower.endsWith('s')) {
+        const pluralLower = pluralizeTokenWord(pluralWords[lastIndex]);
+
+        if (pluralLower && pluralLower !== baseLower) {
+          pluralWords[lastIndex] = pluralLower;
+
+          const pluralTitleWords = pluralWords.map(capitalizeTokenWord);
+          const pluralLowerWords = pluralWords.map((word) => word.toLowerCase());
+
+          [pluralTitleWords, pluralLowerWords].forEach((wordList) => {
+            const spaceVariant = wordList.join(' ').trim();
+            const hyphenVariant = wordList.join('-').trim();
+            const underscoreVariant = wordList.join('_').trim();
+            const compactVariant = wordList.join('').trim();
+
+            [spaceVariant, hyphenVariant, underscoreVariant, compactVariant].forEach((entry) => {
+              if (entry) {
+                variants.add(entry);
+              }
+            });
+          });
+        }
+      }
+    }
   });
 
   return variants;
@@ -172,17 +275,29 @@ const collectOccupationNames = (occupations) => {
   return Array.from(names);
 };
 
-const addScopeValue = (set, value) => {
-  if (typeof value !== 'string') {
-    return;
-  }
+const createScopeCollector = () => {
+  const seen = new Set();
+  const values = [];
 
-  const trimmed = value.replace(/\s+/g, ' ').trim();
-  if (!trimmed) {
-    return;
-  }
+  const add = (value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
 
-  set.add(trimmed);
+    const trimmed = value.replace(/\s+/g, ' ').trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+
+    seen.add(trimmed);
+    values.push(trimmed);
+  };
+
+  return {
+    add,
+    values,
+    has: (value) => seen.has(value),
+  };
 };
 
 export const buildPlayerTokenFolderScope = (raceName, occupations) => {
@@ -203,35 +318,36 @@ export const buildPlayerTokenFolderScope = (raceName, occupations) => {
     buildTokenNameVariantSet(name).forEach((entry) => classVariantSet.add(entry));
   });
 
-  const scopeSet = new Set();
+  const raceCollector = createScopeCollector();
 
-  const addRaceOnlyScopes = () => {
-    raceVariantSet.forEach((raceVariant) => {
-      addScopeValue(scopeSet, raceVariant);
-      addScopeValue(scopeSet, `Adventurers/${raceVariant}`);
-      addScopeValue(scopeSet, `Tokens/Adventurers/${raceVariant}`);
-      addScopeValue(scopeSet, `folder:Tokens/Adventurers/${raceVariant}`);
-    });
-  };
+  raceVariantSet.forEach((raceVariant) => {
+    raceCollector.add(raceVariant);
+    raceCollector.add(`Adventurers/${raceVariant}`);
+    raceCollector.add(`Tokens/Adventurers/${raceVariant}`);
+    raceCollector.add(`folder:Tokens/Adventurers/${raceVariant}`);
+  });
 
   if (classVariantSet.size === 0) {
-    addRaceOnlyScopes();
-    return scopeSet.size > 0 ? Array.from(scopeSet) : null;
+    return raceCollector.values.length > 0 ? raceCollector.values : null;
   }
 
-  addRaceOnlyScopes();
+  const classCollector = createScopeCollector();
 
   raceVariantSet.forEach((raceVariant) => {
     classVariantSet.forEach((classVariant) => {
       const base = `${raceVariant}/${classVariant}`;
-      addScopeValue(scopeSet, base);
-      addScopeValue(scopeSet, `Adventurers/${base}`);
-      addScopeValue(scopeSet, `Tokens/Adventurers/${base}`);
-      addScopeValue(scopeSet, `folder:Tokens/Adventurers/${base}`);
+      classCollector.add(base);
+      classCollector.add(`Adventurers/${base}`);
+      classCollector.add(`Tokens/Adventurers/${base}`);
+      classCollector.add(`folder:Tokens/Adventurers/${base}`);
     });
   });
 
-  return scopeSet.size > 0 ? Array.from(scopeSet) : null;
+  if (classCollector.values.length > 0) {
+    return classCollector.values;
+  }
+
+  return raceCollector.values.length > 0 ? raceCollector.values : null;
 };
 
 export default buildPlayerTokenFolderScope;
