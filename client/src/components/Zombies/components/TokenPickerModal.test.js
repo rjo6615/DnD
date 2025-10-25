@@ -117,14 +117,18 @@ describe('TokenPickerModal', () => {
     });
 
     const select = await screen.findByLabelText(/Token Library/i);
-    const options = within(select).getAllByRole('option');
+    let options;
 
-    expect(options).toHaveLength(4);
-    expect(options[0]).toHaveTextContent('All Tokens');
-    expect(options[1]).toHaveTextContent('Adventurers');
-    expect(options[2]).toHaveTextContent('DM');
-    expect(options[3].textContent.startsWith('\u00A0\u00A0')).toBe(true);
-    expect(options[3]).toHaveTextContent('DM/Dragons');
+    await waitFor(() => {
+      options = within(select).getAllByRole('option');
+
+      expect(options).toHaveLength(4);
+      expect(options[0]).toHaveTextContent('All Tokens');
+      expect(options[1]).toHaveTextContent('Adventurers');
+      expect(options[2]).toHaveTextContent('DM');
+      expect(options[3].textContent.startsWith('\u00A0\u00A0')).toBe(true);
+      expect(options[3]).toHaveTextContent('DM/Dragons');
+    });
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
@@ -372,7 +376,7 @@ describe('TokenPickerModal', () => {
     await waitFor(() => {
       expect(manifestCalls.length).toBeGreaterThan(0);
       expect(manifestCalls[0]).toBe(
-        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FDragonborn%2FFighter'
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FDragonborn%2FFighter%2CTokens%2FAdventurers%2FCore_Class_Tokens%2FFighter'
       );
     });
 
@@ -380,20 +384,7 @@ describe('TokenPickerModal', () => {
       manifestCalls.includes('/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers')
     ).toBe(false);
 
-    const select = await screen.findByLabelText(/Token Library/i);
-    const options = within(select).getAllByRole('option');
-    expect(options).toHaveLength(2);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
-    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
-
-    await user.selectOptions(select, options[1]);
-
-    await waitFor(() => {
-      const lastCall = manifestCalls[manifestCalls.length - 1];
-      expect(lastCall).toBe(
-        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FCore_Class_Tokens%2FFighter'
-      );
-    });
+    expect(screen.queryByLabelText(/Token Library/i)).not.toBeInTheDocument();
   });
 
   test('player token picker limits folders to scoped race and class combinations', async () => {
@@ -521,12 +512,15 @@ describe('TokenPickerModal', () => {
       totalCount: 0,
     };
 
+    const manifestCalls = [];
+
     apiFetch.mockImplementation((url) => {
       if (url === '/campaigns/Camp1/token-folders') {
         return Promise.resolve({ ok: true, json: async () => folderTree });
       }
 
       if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
         return Promise.resolve({ ok: true, json: async () => manifestPayload });
       }
 
@@ -552,16 +546,14 @@ describe('TokenPickerModal', () => {
       />
     );
 
-    const select = await screen.findByLabelText(/Token Library/i);
+    await waitFor(() => {
+      expect(manifestCalls).toContain(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FDwarves%2FDruid%2CTokens%2FAdventurers%2FCore_Class_Tokens%2FMediumfolk%2FDruid'
+      );
+    });
 
     await waitFor(() => {
-      const options = within(select).getAllByRole('option');
-      const normalizedOptions = options.map((option) => option.textContent.replace(/\u00A0/g, ''));
-
-      expect(normalizedOptions).toEqual([
-        'Dwarves/Druid',
-        'Core_Class_Tokens/Mediumfolk/Druid',
-      ]);
+      expect(screen.queryByLabelText(/Token Library/i)).not.toBeInTheDocument();
     });
   });
 

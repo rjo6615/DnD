@@ -485,12 +485,49 @@ const TokenPickerModal = ({
     }
 
     const scoped = baseFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
-    if (scoped.length > 0) {
+    if (scoped.length === 0) {
+      return baseFilters;
+    }
+
+    if (isDm) {
       return scoped;
     }
 
-    return baseFilters;
-  }, [baseFilters, filterScopeSet]);
+    const combinedFolderSet = new Set();
+    const combinedAliasSet = new Set();
+
+    scoped.forEach((filter) => {
+      if (Array.isArray(filter.folders)) {
+        filter.folders
+          .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
+          .filter(Boolean)
+          .forEach((folder) => combinedFolderSet.add(folder));
+      }
+
+      if (Array.isArray(filter.aliases)) {
+        filter.aliases
+          .map((alias) => (typeof alias === 'string' ? alias.trim() : ''))
+          .filter(Boolean)
+          .forEach((alias) => combinedAliasSet.add(alias));
+      }
+    });
+
+    const combinedFolders = Array.from(combinedFolderSet);
+    if (combinedFolders.length === 0) {
+      return scoped;
+    }
+
+    return [
+      {
+        key: '__player_scoped__',
+        label: 'Recommended Tokens',
+        folders: combinedFolders,
+        aliases: Array.from(combinedAliasSet),
+        depth: 0,
+        isCombined: true,
+      },
+    ];
+  }, [baseFilters, filterScopeSet, isDm]);
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
 
@@ -995,7 +1032,7 @@ const TokenPickerModal = ({
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {availableFilters.length > 0 ? (
+        {isDm || availableFilters.length > 1 || fetchingFolders ? (
           <Form.Group className="mb-3" controlId="tokenPickerFilter">
             <Form.Label>Token Library</Form.Label>
             <Form.Select
