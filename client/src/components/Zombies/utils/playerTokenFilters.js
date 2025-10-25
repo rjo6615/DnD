@@ -37,6 +37,78 @@ const capitalizeTokenWord = (word) => {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 };
 
+const IRREGULAR_PLURALS = new Set([
+  'people',
+  'men',
+  'children',
+  'teeth',
+  'feet',
+  'mice',
+  'geese',
+]);
+
+const pluralizeTokenWord = (word) => {
+  if (typeof word !== 'string' || word.length === 0) {
+    return word;
+  }
+
+  const lower = word.toLowerCase();
+
+  if (lower.endsWith('person')) {
+    return `${lower.slice(0, -6)}people`;
+  }
+
+  if (lower === 'human') {
+    return 'humans';
+  }
+
+  if (lower.endsWith('man')) {
+    return `${lower.slice(0, -3)}men`;
+  }
+
+  if (lower.endsWith('child')) {
+    return `${lower.slice(0, -5)}children`;
+  }
+
+  if (lower.endsWith('tooth')) {
+    return `${lower.slice(0, -5)}teeth`;
+  }
+
+  if (lower.endsWith('foot')) {
+    return `${lower.slice(0, -4)}feet`;
+  }
+
+  if (lower.endsWith('mouse')) {
+    return `${lower.slice(0, -5)}mice`;
+  }
+
+  if (lower.endsWith('goose')) {
+    return `${lower.slice(0, -5)}geese`;
+  }
+
+  if (lower.endsWith('lf')) {
+    return `${lower.slice(0, -1)}ves`;
+  }
+
+  if (lower.endsWith('fe')) {
+    return `${lower.slice(0, -2)}ves`;
+  }
+
+  if (lower.endsWith('f')) {
+    return `${lower.slice(0, -1)}ves`;
+  }
+
+  if (lower.endsWith('y') && !/[aeiou]y$/.test(lower)) {
+    return `${lower.slice(0, -1)}ies`;
+  }
+
+  if (/([sxz]|ch|sh)$/.test(lower)) {
+    return `${lower}es`;
+  }
+
+  return `${lower}s`;
+};
+
 const normalizeTokenWords = (value) => {
   if (typeof value !== 'string') {
     return [];
@@ -121,6 +193,37 @@ const buildTokenNameVariantSet = (rawValue) => {
         }
       });
     });
+
+    const pluralWords = [...words];
+    const lastIndex = pluralWords.length - 1;
+
+    if (lastIndex >= 0) {
+      const baseLower = pluralWords[lastIndex].toLowerCase();
+
+      if (!IRREGULAR_PLURALS.has(baseLower) && !baseLower.endsWith('s')) {
+        const pluralLower = pluralizeTokenWord(pluralWords[lastIndex]);
+
+        if (pluralLower && pluralLower !== baseLower) {
+          pluralWords[lastIndex] = pluralLower;
+
+          const pluralTitleWords = pluralWords.map(capitalizeTokenWord);
+          const pluralLowerWords = pluralWords.map((word) => word.toLowerCase());
+
+          [pluralTitleWords, pluralLowerWords].forEach((wordList) => {
+            const spaceVariant = wordList.join(' ').trim();
+            const hyphenVariant = wordList.join('-').trim();
+            const underscoreVariant = wordList.join('_').trim();
+            const compactVariant = wordList.join('').trim();
+
+            [spaceVariant, hyphenVariant, underscoreVariant, compactVariant].forEach((entry) => {
+              if (entry) {
+                variants.add(entry);
+              }
+            });
+          });
+        }
+      }
+    }
   });
 
   return variants;
@@ -205,21 +308,15 @@ export const buildPlayerTokenFolderScope = (raceName, occupations) => {
 
   const scopeSet = new Set();
 
-  const addRaceOnlyScopes = () => {
+  if (classVariantSet.size === 0) {
     raceVariantSet.forEach((raceVariant) => {
       addScopeValue(scopeSet, raceVariant);
       addScopeValue(scopeSet, `Adventurers/${raceVariant}`);
       addScopeValue(scopeSet, `Tokens/Adventurers/${raceVariant}`);
       addScopeValue(scopeSet, `folder:Tokens/Adventurers/${raceVariant}`);
     });
-  };
-
-  if (classVariantSet.size === 0) {
-    addRaceOnlyScopes();
     return scopeSet.size > 0 ? Array.from(scopeSet) : null;
   }
-
-  addRaceOnlyScopes();
 
   raceVariantSet.forEach((raceVariant) => {
     classVariantSet.forEach((classVariant) => {
