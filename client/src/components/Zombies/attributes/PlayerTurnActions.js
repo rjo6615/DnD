@@ -18,6 +18,7 @@ import weaponMasteryDefinitions from '../../../data/weaponMasteries';
 import weaponTypeMasteries from '../../../data/weaponTypeMasteries';
 import { rollSkillWithDiceBox } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
+import DiceRollerModal from '../common/DiceRollerModal';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import {
   collectRollValues,
@@ -402,8 +403,47 @@ const PlayerTurnActions = React.forwardRef(
   ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
+  const [showDiceRoller, setShowDiceRoller] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
+  const handleCloseDiceRoller = () => setShowDiceRoller(false);
+  const handleShowDiceRoller = () => setShowDiceRoller(true);
+
+  const handleDiceRollComplete = ({ total, count, sides, values, usedFallback } = {}) => {
+    if (!Number.isFinite(total)) {
+      setShowDiceRoller(false);
+      return;
+    }
+
+    const sanitizedCount = Number.isInteger(count) ? count : 0;
+    const sanitizedSides = Number.isInteger(sides) ? sides : 0;
+    const expression =
+      sanitizedCount > 0 && sanitizedSides > 0
+        ? `${sanitizedCount}d${sanitizedSides}`
+        : 'Dice Roll';
+
+    const diceRolls = Array.isArray(values)
+      ? values.map((value) => ({
+          value: Number(value) || 0,
+          sides: sanitizedSides || undefined,
+          type: '',
+          category: 'custom',
+        }))
+      : [];
+
+    updateDamageValueWithAnimation(total, '', 'custom', {
+      sourceLabel: 'Dice Roll',
+      expression,
+      diceRolls,
+      rollValues: Array.isArray(values)
+        ? values.map((value) => `${Number(value) || 0}`)
+        : undefined,
+      modifierValues: undefined,
+      usedFallback,
+    });
+
+    setShowDiceRoller(false);
+  };
 
   const [footerHeight, setFooterHeight] = useState(0);
 
@@ -2191,6 +2231,17 @@ const damageAmountStyle = {
                     {damageValue}
                   </span>
                 </div>
+                <div className="damage-roller__overlay-dice">
+                  <button
+                    type="button"
+                    className="damage-roller__dice-button"
+                    onClick={handleShowDiceRoller}
+                    title="Open dice roller"
+                    aria-label="Open dice roller"
+                  >
+                    <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                  </button>
+                </div>
                 <div className="damage-roller__overlay-button">
                   {/* Attack Button */}
                   <button
@@ -2365,6 +2416,12 @@ const damageAmountStyle = {
           </ul>
         </Modal.Body>
       </Modal>
+      <DiceRollerModal
+        show={showDiceRoller}
+        onHide={handleCloseDiceRoller}
+        onRollComplete={handleDiceRollComplete}
+        diceColor={diceFaceColor}
+      />
 {/* Attack Modal */}
 
       <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
