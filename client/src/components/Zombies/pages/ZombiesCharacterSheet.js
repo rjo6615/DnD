@@ -3611,6 +3611,24 @@ export default function ZombiesCharacterSheet() {
     const { nameVariants: raceNameVariants, prefixes: racePrefixList } =
       buildRaceTokenScopeData(form?.race?.name);
 
+    const sizeCandidates = [form?.temporarySize, form?.size, form?.height];
+    const resolvedSize = sizeCandidates
+      .map((value) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''))
+      .find((value) => value);
+
+    const normalizedSize = resolvedSize ? resolvedSize.toLowerCase() : '';
+    const coreClassSizeFolder = (() => {
+      if (!normalizedSize) {
+        return null;
+      }
+
+      if (normalizedSize.includes('small') || normalizedSize.includes('tiny')) {
+        return 'Smallfolk';
+      }
+
+      return 'Mediumfolk';
+    })();
+
     const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
     const seenClasses = new Set();
     occupations.forEach((occupation) => {
@@ -3630,11 +3648,23 @@ export default function ZombiesCharacterSheet() {
       }
       seenClasses.add(classKey);
 
-      addScopeVariants(rawClassName, [
-        'Core_Class_Tokens',
-        'Adventurers/Core_Class_Tokens',
-        'Tokens/Adventurers/Core_Class_Tokens',
-      ]);
+      const coreClassPrefixes = (() => {
+        if (coreClassSizeFolder) {
+          return [
+            `Core_Class_Tokens/${coreClassSizeFolder}`,
+            `Adventurers/Core_Class_Tokens/${coreClassSizeFolder}`,
+            `Tokens/Adventurers/Core_Class_Tokens/${coreClassSizeFolder}`,
+          ];
+        }
+
+        return [
+          'Core_Class_Tokens',
+          'Adventurers/Core_Class_Tokens',
+          'Tokens/Adventurers/Core_Class_Tokens',
+        ];
+      })();
+
+      addScopeVariants(rawClassName, coreClassPrefixes);
 
       if (racePrefixList.length > 0) {
         addScopeVariants(rawClassName, racePrefixList);
@@ -3652,7 +3682,7 @@ export default function ZombiesCharacterSheet() {
     }
 
     return Array.from(scopeSet);
-  }, [form?.occupation, form?.race?.name]);
+  }, [form?.occupation, form?.race?.name, form?.temporarySize, form?.size, form?.height]);
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor, nextTheme = null) => {
