@@ -395,6 +395,132 @@ describe('TokenPickerModal', () => {
     });
   });
 
+  test('player token picker surfaces Adventurers/Tokens class folders', async () => {
+    const user = setupUser();
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          children: [
+            {
+              name: 'Tokens',
+              path: 'Tokens/Adventurers/Tokens',
+              relativePath: 'Adventurers/Tokens',
+              children: [
+                {
+                  name: 'Dragonborn',
+                  path: 'Tokens/Adventurers/Tokens/Dragonborn',
+                  relativePath: 'Adventurers/Tokens/Dragonborn',
+                  children: [
+                    {
+                      name: 'Fighter',
+                      path: 'Tokens/Adventurers/Tokens/Dragonborn/Fighter',
+                      relativePath: 'Adventurers/Tokens/Dragonborn/Fighter',
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      flatFolders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          depth: 0,
+          displayPath: 'Adventurers',
+        },
+        {
+          name: 'Tokens',
+          path: 'Tokens/Adventurers/Tokens',
+          relativePath: 'Adventurers/Tokens',
+          depth: 1,
+          displayPath: 'Adventurers/Tokens',
+        },
+        {
+          name: 'Dragonborn',
+          path: 'Tokens/Adventurers/Tokens/Dragonborn',
+          relativePath: 'Adventurers/Tokens/Dragonborn',
+          depth: 2,
+          displayPath: 'Adventurers/Tokens/Dragonborn',
+        },
+        {
+          name: 'Fighter',
+          path: 'Tokens/Adventurers/Tokens/Dragonborn/Fighter',
+          relativePath: 'Adventurers/Tokens/Dragonborn/Fighter',
+          depth: 3,
+          displayPath: 'Adventurers/Tokens/Dragonborn/Fighter',
+        },
+      ],
+    };
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/token-folders');
+    });
+
+    await waitFor(() => {
+      expect(manifestCalls).toEqual(
+        expect.arrayContaining([
+          '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FTokens%2FDragonborn%2FFighter',
+        ])
+      );
+    });
+
+    const select = await screen.findByLabelText(/Token Library/i);
+    const options = within(select).getAllByRole('option');
+
+    expect(options).toHaveLength(1);
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe(
+      'Tokens/Adventurers/Tokens/Dragonborn/Fighter'
+    );
+
+    await user.selectOptions(select, options[0]);
+
+    await waitFor(() => {
+      const lastCall = manifestCalls[manifestCalls.length - 1];
+      expect(lastCall).toBe(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FTokens%2FDragonborn%2FFighter'
+      );
+    });
+  });
+
   test('player token picker prefers most specific matching folder from scope', async () => {
     const folderTree = {
       rootFolder: 'Tokens',
