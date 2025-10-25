@@ -530,7 +530,12 @@ describe('TokenPickerModal', () => {
           relativeFolder: 'Adventurers/Dragonborn/Fighter',
         },
         {
-          publicId: 'Tokens/Adventurers/Elf/Wizard/token-2',
+          publicId: 'Tokens/Adventurers/Dragonborn/Wizard/token-2',
+          filename: 'Dragonborn Wizard',
+          relativeFolder: 'Adventurers/Dragonborn/Wizard',
+        },
+        {
+          publicId: 'Tokens/Adventurers/Elf/Wizard/token-3',
           filename: 'Elf Wizard',
           relativeFolder: 'Adventurers/Elf/Wizard',
         },
@@ -568,7 +573,64 @@ describe('TokenPickerModal', () => {
     await screen.findByText('Dragonborn Fighter');
 
     await waitFor(() => {
+      expect(screen.queryByText('Dragonborn Wizard')).not.toBeInTheDocument();
       expect(screen.queryByText('Elf Wizard')).not.toBeInTheDocument();
+    });
+  });
+
+  test('falls back to race tokens when class-specific tokens are unavailable', async () => {
+    const folderTree = { folders: [], flatFolders: [] };
+
+    const manifestPayload = {
+      assets: [
+        {
+          publicId: 'Tokens/Adventurers/Dragonborn/token-1',
+          filename: 'Dragonborn Adventurer',
+          relativeFolder: 'Adventurers/Dragonborn',
+        },
+        {
+          publicId: 'Tokens/Adventurers/Human/Fighter/token-2',
+          filename: 'Human Fighter',
+          relativeFolder: 'Adventurers/Human/Fighter',
+        },
+      ],
+      nextCursor: null,
+      appliedFolders: ['Tokens/Adventurers'],
+    };
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={[
+          'Dragonborn/Warlock',
+          'Adventurers/Dragonborn/Warlock',
+          'folder:Tokens/Adventurers/Dragonborn/Warlock',
+          'Dragonborn',
+          'Adventurers/Dragonborn',
+          'folder:Tokens/Adventurers/Dragonborn',
+        ]}
+      />
+    );
+
+    await screen.findByText('Dragonborn Adventurer');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Human Fighter')).not.toBeInTheDocument();
     });
   });
 

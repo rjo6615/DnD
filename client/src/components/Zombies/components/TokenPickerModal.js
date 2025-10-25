@@ -284,10 +284,13 @@ const findBestScopedFilterKey = (filters, scopeSet) => {
   return bestKey;
 };
 
-const buildNormalizedMatchSet = (values = []) => {
-  const set = new Set();
+const collectAssetScopeCandidates = (asset, manifestMeta) => {
+  if (!asset || typeof asset !== 'object') {
+    return [];
+  }
 
-  values.forEach((value) => {
+  const values = new Set();
+  const addValue = (value) => {
     if (typeof value !== 'string') {
       return;
     }
@@ -297,50 +300,10 @@ const buildNormalizedMatchSet = (values = []) => {
       return;
     }
 
-    const lower = trimmed.toLowerCase();
-    const forms = new Set([
-      lower,
-      lower.replace(/[_-]+/g, ' '),
-      lower.replace(/[\\/]+/g, ' '),
-      lower.replace(/[^a-z0-9/]+/g, ' '),
-      lower.replace(/[^a-z0-9]+/g, ''),
-    ]);
-
-    forms.forEach((form) => {
-      if (typeof form !== 'string') {
-        return;
-      }
-
-      const normalized = form.replace(/\s+/g, ' ').trim();
-      if (normalized) {
-        set.add(normalized);
-      }
-    });
-  });
-
-  return set;
-};
-
-const collectAssetMatchValues = (asset, manifestMeta) => {
-  if (!asset || typeof asset !== 'object') {
-    return new Set();
-  }
-
-  const rawValues = [];
-  const addValue = (value) => {
-    if (typeof value !== 'string') {
-      return;
-    }
-
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    rawValues.push(trimmed);
+    values.add(trimmed);
 
     if (!trimmed.toLowerCase().startsWith('folder:')) {
-      rawValues.push(`folder:${trimmed}`);
+      values.add(`folder:${trimmed}`);
     }
   };
 
@@ -366,62 +329,67 @@ const collectAssetMatchValues = (asset, manifestMeta) => {
     : [];
   appliedFolders.forEach(addValue);
 
-  return buildNormalizedMatchSet(rawValues);
+  return Array.from(values);
 };
 
-const collectScopeMatchValues = (scopeSet) => {
-  if (!(scopeSet instanceof Set)) {
-    return new Set();
+const scoreAssetAgainstScope = (asset, scopeSet, manifestMeta) => {
+  if (!(scopeSet instanceof Set) || scopeSet.size === 0) {
+    return { score: 0, scopeIndex: Number.POSITIVE_INFINITY };
   }
 
-  const rawValues = [];
+  const candidates = collectAssetScopeCandidates(asset, manifestMeta);
+  if (candidates.length === 0) {
+    return { score: 0, scopeIndex: Number.POSITIVE_INFINITY };
+  }
 
-  scopeSet.forEach((value) => {
-    if (typeof value !== 'string') {
+  const scopeVariants = Array.from(scopeSet);
+  const scopeCache = new Map();
+  const candidateCache = new Map();
+
+  let bestScore = 0;
+  let bestScopeIndex = Number.POSITIVE_INFINITY;
+
+  scopeVariants.forEach((scopeVariant, scopeIndex) => {
+    const scopeData = normalizeVariantData(scopeVariant, scopeCache);
+    if (!scopeData) {
       return;
     }
 
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return;
-    }
+    const matchSegments = scopeData.segments.length > 0 ? scopeData.segments.length : 1;
 
-    rawValues.push(trimmed);
+    candidates.forEach((candidate) => {
+      const candidateData = normalizeVariantData(candidate, candidateCache);
+      if (!candidateData) {
+        return;
+      }
 
-    if (trimmed.toLowerCase().startsWith('folder:')) {
-      rawValues.push(trimmed.slice('folder:'.length));
-    } else {
-      rawValues.push(`folder:${trimmed}`);
-    }
+      if (
+        candidateData.lower === scopeData.lower ||
+        candidateData.compact === scopeData.compact
+      ) {
+        if (
+          matchSegments > bestScore ||
+          (matchSegments === bestScore && scopeIndex < bestScopeIndex)
+        ) {
+          bestScore = matchSegments;
+          bestScopeIndex = scopeIndex;
+        }
+        return;
+      }
+
+      if (segmentsContainSubsequence(candidateData.segments, scopeData.segments)) {
+        if (
+          matchSegments > bestScore ||
+          (matchSegments === bestScore && scopeIndex < bestScopeIndex)
+        ) {
+          bestScore = matchSegments;
+          bestScopeIndex = scopeIndex;
+        }
+      }
+    });
   });
 
-  return buildNormalizedMatchSet(rawValues);
-};
-
-const assetMatchesScope = (asset, scopeSet, manifestMeta) => {
-  if (!(scopeSet instanceof Set) || scopeSet.size === 0) {
-    return true;
-  }
-
-  const scopeValues = collectScopeMatchValues(scopeSet);
-  if (scopeValues.size === 0) {
-    return true;
-  }
-
-  const assetValues = collectAssetMatchValues(asset, manifestMeta);
-  if (assetValues.size === 0) {
-    return false;
-  }
-
-  for (const scopeValue of scopeValues) {
-    for (const assetValue of assetValues) {
-      if (assetValue.includes(scopeValue)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  return { score: bestScore, scopeIndex: bestScopeIndex };
 };
 
 const buildDynamicDmFilters = (folderTree, fallbackFilters = DEFAULT_DM_FILTERS) => {
@@ -810,7 +778,43 @@ const TokenPickerModal = ({
       return assets;
     }
 
-    return assets.filter((asset) => assetMatchesScope(asset, filterScopeSet, manifestMeta));
+    const matchDetails = assets.map((asset) => ({
+      asset,
+      ...scoreAssetAgainstScope(asset, filterScopeSet, manifestMeta),
+    }));
+
+    const positiveMatches = matchDetails.filter((entry) => entry.score > 0);
+    if (positiveMatches.length === 0) {
+      return assets;
+    }
+
+    let bestScore = 0;
+    let bestScopeIndex = Number.POSITIVE_INFINITY;
+
+    positiveMatches.forEach(({ score, scopeIndex }) => {
+      const normalizedScopeIndex = Number.isFinite(scopeIndex)
+        ? scopeIndex
+        : Number.POSITIVE_INFINITY;
+
+      if (score > bestScore || (score === bestScore && normalizedScopeIndex < bestScopeIndex)) {
+        bestScore = score;
+        bestScopeIndex = normalizedScopeIndex;
+      }
+    });
+
+    return positiveMatches
+      .filter(({ score, scopeIndex }) => {
+        if (score !== bestScore) {
+          return false;
+        }
+
+        const normalizedScopeIndex = Number.isFinite(scopeIndex)
+          ? scopeIndex
+          : Number.POSITIVE_INFINITY;
+
+        return normalizedScopeIndex === bestScopeIndex;
+      })
+      .map(({ asset }) => asset);
   }, [assets, filterScopeSet, manifestMeta]);
 
   const resetState = useCallback((options = {}) => {
