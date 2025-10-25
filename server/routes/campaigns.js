@@ -209,6 +209,91 @@ const parseFolderFilters = (input) => {
   return Array.from(new Set(sanitized));
 };
 
+const SHOP_VISIBILITY_CATEGORIES = ['weapons', 'armor', 'items', 'accessories'];
+
+const normalizeShopVisibilityValue = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    const normalizedSet = new Set();
+    value.forEach((entry) => {
+      if (typeof entry !== 'string') {
+        return;
+      }
+      const normalized = entry.trim().toLowerCase();
+      if (normalized) {
+        normalizedSet.add(normalized);
+      }
+    });
+    return Array.from(normalizedSet);
+  }
+
+  if (typeof value === 'object') {
+    const normalizedSet = new Set();
+    Object.entries(value).forEach(([key, hidden]) => {
+      if (typeof key !== 'string') {
+        return;
+      }
+      const normalized = key.trim().toLowerCase();
+      if (!normalized) {
+        return;
+      }
+      if (hidden === true) {
+        normalizedSet.add(normalized);
+      }
+    });
+    return Array.from(normalizedSet);
+  }
+
+  return [];
+};
+
+const normalizeShopVisibility = (input) => {
+  const visibility = {};
+  SHOP_VISIBILITY_CATEGORIES.forEach((category) => {
+    visibility[category] = normalizeShopVisibilityValue(input?.[category]);
+  });
+  return visibility;
+};
+
+const validateShopVisibilityPayload = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('visibility must be an object');
+  }
+
+  for (const [category, entries] of Object.entries(value)) {
+    if (!SHOP_VISIBILITY_CATEGORIES.includes(category)) {
+      throw new Error(`invalid category: ${category}`);
+    }
+
+    if (Array.isArray(entries)) {
+      for (const entry of entries) {
+        if (typeof entry !== 'string') {
+          throw new Error(`category ${category} must be an array of strings`);
+        }
+      }
+      continue;
+    }
+
+    if (entries && typeof entries === 'object') {
+      for (const hidden of Object.values(entries)) {
+        if (typeof hidden !== 'boolean') {
+          throw new Error(`category ${category} must map keys to boolean values`);
+        }
+      }
+      continue;
+    }
+
+    if (entries !== undefined && entries !== null) {
+      throw new Error(`category ${category} must be an array or object`);
+    }
+  }
+
+  return true;
+};
+
 const sanitizeSingleFolder = (folder) => {
   const sanitized = parseFolderFilters(
     Array.isArray(folder) ? folder : folder ? [folder] : []
@@ -1366,6 +1451,81 @@ module.exports = (router) => {
           emitMapUpdate(campaignName, tokenPayload);
 
           return res.json(tokenPayload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/shop-visibility')
+    .get(
+      [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const db_connect = req.db;
+          const campaign = await db_connect.collection('Campaigns').findOne(
+            { campaignName },
+            { projection: { dm: 1, players: 1, shopVisibility: 1 } }
+          );
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const username = typeof req.user?.username === 'string' ? req.user.username : null;
+          const isDm = username && campaign.dm === username;
+          const isPlayer =
+            username &&
+            Array.isArray(campaign.players) &&
+            campaign.players.includes(username);
+
+          if (!isDm && !isPlayer) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const visibility = normalizeShopVisibility(campaign.shopVisibility || {});
+          return res.json(visibility);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .put(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        body().custom(validateShopVisibilityPayload),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne(
+            { campaignName },
+            { projection: { dm: 1 } }
+          );
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!req.user || campaign.dm !== req.user.username) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const visibility = normalizeShopVisibility(req.body || {});
+
+          await collection.updateOne(
+            { campaignName },
+            { $set: { shopVisibility: visibility } },
+            { upsert: false }
+          );
+
+          return res.json(visibility);
         } catch (err) {
           next(err);
         }

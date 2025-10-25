@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
@@ -6,8 +6,51 @@ import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
 import AccessoryList from '../../Accessories/AccessoryList';
 import DockControls from '../components/DockControls';
+import apiFetch from '../../../utils/apiFetch';
 
 const DEFAULT_TAB = 'weapons';
+
+const SHOP_VISIBILITY_KEYS = ['weapons', 'armor', 'items', 'accessories'];
+
+const buildHiddenSet = (value) => {
+  const set = new Set();
+  if (Array.isArray(value)) {
+    value.forEach((entry) => {
+      if (typeof entry !== 'string') {
+        return;
+      }
+      const normalized = entry.trim().toLowerCase();
+      if (normalized) {
+        set.add(normalized);
+      }
+    });
+  } else if (value && typeof value === 'object') {
+    Object.entries(value).forEach(([key, hidden]) => {
+      if (!hidden || typeof key !== 'string') {
+        return;
+      }
+      const normalized = key.trim().toLowerCase();
+      if (normalized) {
+        set.add(normalized);
+      }
+    });
+  }
+  return set;
+};
+
+const createEmptyVisibilitySets = () =>
+  SHOP_VISIBILITY_KEYS.reduce((acc, key) => {
+    acc[key] = new Set();
+    return acc;
+  }, {});
+
+const convertVisibilityResponse = (data) => {
+  const result = createEmptyVisibilitySets();
+  SHOP_VISIBILITY_KEYS.forEach((key) => {
+    result[key] = buildHiddenSet(data?.[key]);
+  });
+  return result;
+};
 
 const COIN_VALUES = {
   cp: 1,
@@ -422,6 +465,10 @@ export default function ShopModal({
   onDockClose,
   onDockChange,
 }) {
+  const [shopVisibility, setShopVisibility] = useState(() =>
+    createEmptyVisibilitySets()
+  );
+  const visibilityCampaignRef = useRef(null);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState('');
@@ -518,6 +565,58 @@ export default function ShopModal({
   }, [cart, cp, gp, sp, pp]);
 
   useEffect(() => {
+    const campaignName =
+      typeof form?.campaign === 'string' ? form.campaign.trim() : '';
+    if (!campaignName) {
+      setShopVisibility(createEmptyVisibilitySets());
+      visibilityCampaignRef.current = null;
+    }
+  }, [form?.campaign]);
+
+  useEffect(() => {
+    const campaignName =
+      typeof form?.campaign === 'string' ? form.campaign.trim() : '';
+    if (!show || !campaignName) {
+      return;
+    }
+
+    if (visibilityCampaignRef.current === campaignName) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadVisibility = async () => {
+      try {
+        const response = await apiFetch(
+          `/campaigns/${encodeURIComponent(campaignName)}/shop-visibility`
+        );
+        if (!response.ok) {
+          throw new Error('Failed to load shop visibility');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setShopVisibility(convertVisibilityResponse(data));
+          visibilityCampaignRef.current = campaignName;
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load shop visibility', error);
+        if (isMounted) {
+          setShopVisibility(createEmptyVisibilitySets());
+          visibilityCampaignRef.current = null;
+        }
+      }
+    };
+
+    loadVisibility();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [form?.campaign, show]);
+
+  useEffect(() => {
     if (totalCostCp > availableCp) {
       setInsufficientFunds('Insufficient funds to complete purchase.');
     }
@@ -570,6 +669,7 @@ export default function ShopModal({
               embedded
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
+              hiddenKeys={shopVisibility.weapons}
             />
           ) : null,
       },
@@ -588,6 +688,7 @@ export default function ShopModal({
               embedded
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
+              hiddenKeys={shopVisibility.armor}
             />
           ) : null,
       },
@@ -607,6 +708,7 @@ export default function ShopModal({
               onAddToCart={handleAddToCart}
               cartCounts={cartCounts}
               diceColor={form?.diceColor}
+              hiddenKeys={shopVisibility.items}
             />
           ) : null,
       },
@@ -623,8 +725,9 @@ export default function ShopModal({
               embedded
               onAddToCart={handleAddAccessoryToCart}
               cartCounts={cartCounts}
+              hiddenKeys={shopVisibility.accessories}
             />
-          ) : null,
+        ) : null,
       },
     ],
     [
@@ -643,6 +746,7 @@ export default function ShopModal({
       onAccessoriesChange,
       onWeaponsChange,
       strength,
+      shopVisibility,
     ]
   );
 
