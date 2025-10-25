@@ -37,6 +37,39 @@ const buildFilterMap = (filters = []) => {
 
 const NBSP = '\u00A0';
 
+const KNOWN_CLASS_SEGMENTS = [
+  'Artificer',
+  'Artificers',
+  'Barbarian',
+  'Barbarians',
+  'Bard',
+  'Bards',
+  'Cleric',
+  'Clerics',
+  'Druid',
+  'Druids',
+  'Fighter',
+  'Fighters',
+  'Monk',
+  'Monks',
+  'Paladin',
+  'Paladins',
+  'Ranger',
+  'Rangers',
+  'Rogue',
+  'Rogues',
+  'Sorcerer',
+  'Sorcerers',
+  'Warlock',
+  'Warlocks',
+  'Wizard',
+  'Wizards',
+];
+
+const KNOWN_CLASS_SEGMENT_SET = new Set(
+  KNOWN_CLASS_SEGMENTS.map((segment) => segment.toLowerCase())
+);
+
 const cloneFilters = (filters = []) => {
   if (!Array.isArray(filters)) {
     return [];
@@ -528,63 +561,6 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     seenKeys.add(normalized.key);
   };
 
-  const fallbackRoot =
-    fallback.find((filter) => filter && filter.key === 'adventurers') ||
-    {
-      key: 'adventurers',
-      label: 'Adventurers',
-      folders: ['Adventurers'],
-      aliases: ['Adventurers', 'adventurers'],
-    };
-
-  const fallbackRootFolders = Array.isArray(fallbackRoot.folders)
-    ? fallbackRoot.folders
-        .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
-        .filter(Boolean)
-    : [];
-
-  const inferredRootPath = (() => {
-    const flatRoot = Array.isArray(folderTree?.flatFolders)
-      ? folderTree.flatFolders.find(
-          (entry) =>
-            entry &&
-            typeof entry.path === 'string' &&
-            entry.path.trim() !== '' &&
-            (entry.depth === 0 || entry.depth === null || entry.depth === undefined)
-        )
-      : null;
-
-    if (flatRoot) {
-      return flatRoot.path.trim();
-    }
-
-    if (
-      typeof folderTree?.folders?.[0]?.path === 'string' &&
-      folderTree.folders[0].path.trim() !== ''
-    ) {
-      return folderTree.folders[0].path.trim();
-    }
-
-    return null;
-  })();
-
-  const resolvedRootFolders =
-    inferredRootPath && inferredRootPath.trim() !== ''
-      ? [inferredRootPath.trim()]
-      : fallbackRootFolders.length > 0
-        ? fallbackRootFolders
-        : ['Adventurers'];
-
-  const playerRootPath = resolvedRootFolders[0] || null;
-  const rootSegments = playerRootPath
-    ? playerRootPath
-        .split('/')
-        .map((segment) => segment.trim())
-        .filter(Boolean)
-    : [];
-  const rootLeaf = rootSegments.length > 0 ? rootSegments[rootSegments.length - 1] : null;
-  const rootLeafLower = rootLeaf ? rootLeaf.toLowerCase() : null;
-
   const flatFolders = Array.isArray(folderTree?.flatFolders)
     ? folderTree.flatFolders
     : [];
@@ -613,6 +589,102 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     return acc;
   }, new Map());
 
+  const fallbackRoot =
+    fallback.find((filter) => filter && filter.key === 'adventurers') ||
+    {
+      key: 'adventurers',
+      label: 'Adventurers',
+      folders: ['Adventurers'],
+      aliases: ['Adventurers', 'adventurers'],
+    };
+
+  const fallbackRootFolders = Array.isArray(fallbackRoot.folders)
+    ? fallbackRoot.folders
+        .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
+        .filter(Boolean)
+    : [];
+
+  const normalizedRootFolder =
+    typeof folderTree?.rootFolder === 'string' && folderTree.rootFolder.trim() !== ''
+      ? folderTree.rootFolder.trim()
+      : null;
+
+  const normalizedRootFolderLower = normalizedRootFolder
+    ? normalizedRootFolder.toLowerCase()
+    : null;
+
+  const fallbackRootCandidates = new Set();
+
+  if (normalizedRootFolderLower) {
+    fallbackRootCandidates.add(normalizedRootFolderLower);
+  }
+
+  fallbackRootFolders.forEach((folder) => {
+    const trimmed = typeof folder === 'string' ? folder.trim() : '';
+    if (!trimmed) {
+      return;
+    }
+
+    const lower = trimmed.toLowerCase();
+    fallbackRootCandidates.add(lower);
+
+    if (normalizedRootFolderLower) {
+      const combined = `${normalizedRootFolder.replace(/\/+$/, '')}/${trimmed.replace(/^\/+/, '')}`
+        .replace(/\/{2,}/g, '/');
+      fallbackRootCandidates.add(combined.toLowerCase());
+    }
+  });
+
+  const inferredRootPath = (() => {
+    if (!Array.isArray(folderTree?.folders)) {
+      return null;
+    }
+
+    for (const node of folderTree.folders) {
+      if (!node || typeof node.path !== 'string') {
+        continue;
+      }
+
+      const normalizedPath = node.path.trim();
+      if (!normalizedPath) {
+        continue;
+      }
+
+      if (!descendantLookup.has(normalizedPath)) {
+        continue;
+      }
+
+      if (fallbackRootCandidates.size > 0) {
+        const normalizedLower = normalizedPath.toLowerCase();
+        if (fallbackRootCandidates.has(normalizedLower)) {
+          return normalizedPath;
+        }
+        continue;
+      }
+
+      return normalizedPath;
+    }
+
+    return null;
+  })();
+
+  const resolvedRootFolders =
+    inferredRootPath && inferredRootPath.trim() !== ''
+      ? [inferredRootPath.trim()]
+      : fallbackRootFolders.length > 0
+        ? fallbackRootFolders
+        : ['Adventurers'];
+
+  const playerRootPath = resolvedRootFolders[0] || null;
+  const rootSegments = playerRootPath
+    ? playerRootPath
+        .split('/')
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+    : [];
+  const rootLeaf = rootSegments.length > 0 ? rootSegments[rootSegments.length - 1] : null;
+  const rootLeafLower = rootLeaf ? rootLeaf.toLowerCase() : null;
+
   flatFolders.forEach((entry) => {
     if (!entry || typeof entry.path !== 'string') {
       return;
@@ -626,21 +698,6 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     if (playerRootPath && normalizedPath === playerRootPath) {
       return;
     }
-
-    const normalizedRelativePath = (() => {
-      if (playerRootPath && normalizedPath.startsWith(playerRootPath)) {
-        return normalizedPath
-          .slice(playerRootPath.length)
-          .replace(/^\/+/, '')
-          .trim();
-      }
-
-      if (typeof entry.relativePath === 'string' && entry.relativePath.trim() !== '') {
-        return entry.relativePath.trim();
-      }
-
-      return '';
-    })();
 
     const pathSegments = normalizedPath
       .split('/')
@@ -690,30 +747,47 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       return;
     }
 
-    const hasChildFolder = flatFolders.some((candidate) => {
-      if (!candidate || typeof candidate.path !== 'string') {
-        return false;
+    const searchSegments = relativeSegments.slice(rootSegments.length);
+    let classRelativeIndex = -1;
+
+    for (let index = searchSegments.length - 1; index >= 0; index -= 1) {
+      const segment = searchSegments[index];
+      if (KNOWN_CLASS_SEGMENT_SET.has(segment.toLowerCase())) {
+        classRelativeIndex = index;
+        break;
       }
+    }
 
-      const candidatePath = candidate.path.trim();
-      if (!candidatePath || candidatePath === normalizedPath) {
-        return false;
-      }
+    if (classRelativeIndex === -1) {
+      classRelativeIndex = searchSegments.length - 1;
+    }
 
-      return candidatePath.startsWith(`${normalizedPath}/`);
-    });
+    const classRelativeSegments = relativeSegments.slice(
+      0,
+      rootSegments.length + classRelativeIndex + 1
+    );
 
-    if (hasChildFolder) {
+    const trimmedSegments = classRelativeSegments.slice(rootSegments.length);
+    if (trimmedSegments.length < 2) {
       return;
     }
 
-    const trimmedSegments = relativeSegments.slice(rootSegments.length);
+    const classPathSegments = pathSegments.slice(
+      0,
+      rootStartIndex + classRelativeSegments.length
+    );
+
+    const classPath = classPathSegments.join('/');
+    if (!classPath) {
+      return;
+    }
+
     const trimmedRelativePath = trimmedSegments.join('/');
     if (!trimmedRelativePath) {
       return;
     }
 
-    const displaySegments = relativeSegments;
+    const displaySegments = classRelativeSegments;
     const displayPath = displaySegments.join('/');
 
     const aliasSet = new Set();
@@ -721,18 +795,19 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     aliasSet.add(trimmedRelativePath);
     aliasSet.add(trimmedRelativePath.toLowerCase());
 
-    if (normalizedRelativePath) {
-      aliasSet.add(normalizedRelativePath);
-      aliasSet.add(normalizedRelativePath.toLowerCase());
+    const classRelativePath = classRelativeSegments.join('/');
+    if (classRelativePath) {
+      aliasSet.add(classRelativePath);
+      aliasSet.add(classRelativePath.toLowerCase());
     }
 
-    aliasSet.add(displayPath);
-    aliasSet.add(displayPath.toLowerCase());
+    aliasSet.add(classPath);
+    aliasSet.add(classPath.toLowerCase());
 
     addFilter({
-      key: `folder:${normalizedPath}`,
+      key: `folder:${classPath}`,
       label: displayPath,
-      folders: [normalizedPath],
+      folders: [classPath],
       aliases: Array.from(aliasSet).filter(Boolean),
       depth: 0,
     });
