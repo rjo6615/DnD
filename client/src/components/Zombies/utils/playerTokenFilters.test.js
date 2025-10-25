@@ -34,11 +34,10 @@ describe('buildPlayerTokenFolderScope', () => {
         'folder:Tokens/Adventurers/Dragonborn/Fighters',
       ])
     );
-    expect(scope.some((value) => value === 'Tokens/Adventurers/Dragonborn')).toBe(false);
-    expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
-    expect(scope.some((value) => value === 'Tokens/Adventurers/Dragonborn')).toBe(
-      false
+    expect(scope).toEqual(
+      expect.arrayContaining(['Tokens/Adventurers/Dragonborn', 'Dragonborn'])
     );
+    expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
   });
 
   it('creates class variants when subclasses are provided', () => {
@@ -55,7 +54,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Tokens/Adventurers/Elves',
       ])
     );
-    expect(scope.some((value) => value === 'Tokens/Adventurers/Elves')).toBe(false);
+    expect(scope).toEqual(expect.arrayContaining(['Tokens/Adventurers/Elves', 'Elf']));
   });
 
   it('handles multi-class characters', () => {
@@ -73,8 +72,8 @@ describe('buildPlayerTokenFolderScope', () => {
         'Tokens/Adventurers/Half-Orcs',
       ])
     );
-    expect(scope.some((value) => value === 'Tokens/Adventurers/Half-Orcs')).toBe(
-      false
+    expect(scope).toEqual(
+      expect.arrayContaining(['Tokens/Adventurers/Half-Orcs', 'Half-Orc'])
     );
   });
 
@@ -90,8 +89,8 @@ describe('buildPlayerTokenFolderScope', () => {
         'Tokens/Adventurers/Goliaths',
       ])
     );
-    expect(scope.some((value) => value === 'Tokens/Adventurers/Goliaths')).toBe(
-      false
+    expect(scope).toEqual(
+      expect.arrayContaining(['Tokens/Adventurers/Goliaths', 'Goliath'])
     );
   });
 
@@ -106,7 +105,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'folder:Tokens/Adventurers/Elves/Rangers',
       ])
     );
-    expect(scope.some((value) => value === 'Tokens/Adventurers/Elves')).toBe(false);
+    expect(scope).toEqual(expect.arrayContaining(['Tokens/Adventurers/Elves', 'Elf']));
   });
 
   it('avoids runaway pluralization variants', () => {

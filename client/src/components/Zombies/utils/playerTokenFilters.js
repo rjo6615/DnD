@@ -344,7 +344,10 @@ export const buildPlayerTokenFolderScope = (raceName, occupations) => {
   });
 
   if (classCollector.values.length > 0) {
-    return classCollector.values;
+    raceCollector.values.forEach((raceValue) => {
+      classCollector.add(raceValue);
+    });
+    return classCollector.values.length > 0 ? classCollector.values : null;
   }
 
   return raceCollector.values.length > 0 ? raceCollector.values : null;
