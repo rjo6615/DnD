@@ -409,6 +409,42 @@ const PlayerTurnActions = React.forwardRef(
   const handleCloseDiceRoller = () => setShowDiceRoller(false);
   const handleShowDiceRoller = () => setShowDiceRoller(true);
 
+  const handleDiceRollComplete = ({ total, count, sides, values, usedFallback } = {}) => {
+    if (!Number.isFinite(total)) {
+      setShowDiceRoller(false);
+      return;
+    }
+
+    const sanitizedCount = Number.isInteger(count) ? count : 0;
+    const sanitizedSides = Number.isInteger(sides) ? sides : 0;
+    const expression =
+      sanitizedCount > 0 && sanitizedSides > 0
+        ? `${sanitizedCount}d${sanitizedSides}`
+        : 'Dice Roll';
+
+    const diceRolls = Array.isArray(values)
+      ? values.map((value) => ({
+          value: Number(value) || 0,
+          sides: sanitizedSides || undefined,
+          type: '',
+          category: 'custom',
+        }))
+      : [];
+
+    updateDamageValueWithAnimation(total, '', 'custom', {
+      sourceLabel: 'Dice Roll',
+      expression,
+      diceRolls,
+      rollValues: Array.isArray(values)
+        ? values.map((value) => `${Number(value) || 0}`)
+        : undefined,
+      modifierValues: undefined,
+      usedFallback,
+    });
+
+    setShowDiceRoller(false);
+  };
+
   const [footerHeight, setFooterHeight] = useState(0);
 
   useEffect(() => {
@@ -2383,6 +2419,7 @@ const damageAmountStyle = {
       <DiceRollerModal
         show={showDiceRoller}
         onHide={handleCloseDiceRoller}
+        onRollComplete={handleDiceRollComplete}
         diceColor={diceFaceColor}
       />
 {/* Attack Modal */}

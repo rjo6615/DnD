@@ -2157,34 +2157,8 @@ $rotateX: -$angle;
   overflow: hidden;
 }
 
-.dice-roller-modal__quick-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.dice-roller-modal__quick-button {
-  min-width: 72px;
-}
-
-.dice-roller-modal__result {
-  background: rgba(12, 22, 50, 0.65);
-  border-radius: 12px;
-  padding: 1rem;
-  color: #f8f9ff;
-}
-
-.dice-roller-modal__result-total {
-  color: #ffffff;
-}
-
-.dice-roller-modal__breakdown li {
-  margin-bottom: 0.35rem;
-}
-
-.dice-roller-modal__breakdown li:last-child {
-  margin-bottom: 0;
+.dice-roller-modal__fields {
+  margin-bottom: 0.5rem;
 }
 
 .damage-dice-canvas__box canvas,

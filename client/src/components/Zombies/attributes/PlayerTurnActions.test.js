@@ -107,7 +107,7 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(onPassTurn).not.toHaveBeenCalled();
   });
 
-  test('opens dice roller modal when the dice button is clicked', () => {
+  test('rolls custom dice from the modal and updates the total display', async () => {
     render(
       <PlayerTurnActions
         form={{ diceColor: '#112233', equipment: {}, weapon: [], spells: [] }}
@@ -122,7 +122,31 @@ describe('PlayerTurnActions weapon damage display', () => {
 
     fireEvent.click(diceButton);
 
-    expect(screen.getByRole('dialog', { name: /dice roller/i })).toBeInTheDocument();
+    const modal = screen.getByRole('dialog', { name: /dice roller/i });
+    const countInput = within(modal).getByLabelText(/number of dice/i);
+    const typeSelect = within(modal).getByLabelText(/dice type/i);
+    fireEvent.change(countInput, { target: { value: '2' } });
+    fireEvent.change(typeSelect, { target: { value: '6' } });
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByRole('button', { name: /^roll$/i }));
+    });
+
+    await waitFor(() => {
+      expect(rollDiceWithBox).toHaveBeenCalledWith([{ count: 2, sides: 6 }]);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /dice roller/i })).not.toBeInTheDocument();
+    });
+
+    const damageTotalButton = screen.getByRole('button', {
+      name: /click to enable a critical damage roll on your next roll/i,
+    });
+
+    await waitFor(() => {
+      expect(damageTotalButton).toHaveTextContent('2');
+    });
   });
 
   test('weapon damage segments include ability and type classes', async () => {

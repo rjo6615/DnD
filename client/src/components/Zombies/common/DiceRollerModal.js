@@ -1,101 +1,50 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Button, Form, InputGroup, Modal } from 'react-bootstrap';
+import { Button, Form, Modal, Row, Col } from 'react-bootstrap';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import { DEFAULT_DICE_COLOR, normalizeDiceColor } from '../../../utils/diceColors';
 
-const COMMON_DICE = [4, 6, 8, 10, 12, 20];
 const MAX_DICE_COUNT = 50;
 const MAX_DIE_SIDES = 1000;
+const COMMON_DICE_OPTIONS = [4, 6, 8, 10, 12, 20, 100];
+const DEFAULT_DIE_SIDES = COMMON_DICE_OPTIONS.includes(20)
+  ? 20
+  : COMMON_DICE_OPTIONS[0];
 
-const parseDiceExpression = (expression) => {
-  if (typeof expression !== 'string') {
-    return { error: 'Enter a dice expression such as 2d6 + 1.' };
-  }
-
-  const sanitized = expression.replace(/\s+/g, '').toLowerCase();
-
-  if (!sanitized) {
-    return { error: 'Enter a dice expression such as 2d6 + 1.' };
-  }
-
-  const pattern = /([+-]?)(\d*d\d+|\d+)/g;
-  let match;
-  let lastIndex = 0;
-  const dice = [];
-  const modifiers = [];
-
-  while ((match = pattern.exec(sanitized)) !== null) {
-    if (match.index !== lastIndex) {
-      return { error: 'Invalid characters in dice expression.' };
-    }
-
-    lastIndex = pattern.lastIndex;
-    const token = match[0];
-    const sign = token.startsWith('-') ? -1 : 1;
-    const unsigned = token.replace(/^[-+]/, '');
-
-    if (unsigned.includes('d')) {
-      const [countPart, sidesPart] = unsigned.split('d');
-      const count = countPart ? Number.parseInt(countPart, 10) : 1;
-      const sides = Number.parseInt(sidesPart, 10);
-
-      if (!Number.isFinite(count) || count <= 0 || count > MAX_DICE_COUNT) {
-        return { error: `Dice count must be between 1 and ${MAX_DICE_COUNT}.` };
-      }
-
-      if (!Number.isFinite(sides) || sides <= 1 || sides > MAX_DIE_SIDES) {
-        return { error: `Dice must have between 2 and ${MAX_DIE_SIDES} sides.` };
-      }
-
-      dice.push({
-        count,
-        sides,
-        sign,
-      });
-    } else {
-      const value = Number.parseInt(unsigned, 10);
-      if (!Number.isFinite(value)) {
-        return { error: 'Invalid number in dice expression.' };
-      }
-      modifiers.push(sign * value);
-    }
-  }
-
-  if (lastIndex !== sanitized.length) {
-    return { error: 'Invalid characters in dice expression.' };
-  }
-
-  if (dice.length === 0) {
-    return { error: 'Add at least one dice term such as 1d6.' };
-  }
-
-  const normalizedExpression = [
-    ...dice.map(({ count, sides, sign }, index) => {
-      const prefix = index === 0 && sign === 1 ? '' : sign === 1 ? '+' : '-';
-      return `${prefix}${count}d${sides}`;
-    }),
-    ...modifiers.map((value) => (value >= 0 ? `+${value}` : `${value}`)),
-  ]
-    .join(' ')
-    .trim();
-
-  return { dice, modifiers, normalizedExpression };
-};
-
-const formatDiceValues = (values) =>
-  values.map((value) => Number.isFinite(value) ? value : '?').join(' + ');
-
-const DiceRollerModal = ({ show = false, onHide = () => {}, diceColor }) => {
-  const [expression, setExpression] = useState('1d20');
-  const [error, setError] = useState('');
+const DiceRollerModal = ({
+  show = false,
+  onHide = () => {},
+  onRollComplete = () => {},
+  diceColor,
+}) => {
+  const [diceCount, setDiceCount] = useState('1');
+  const [selectedSides, setSelectedSides] = useState(DEFAULT_DIE_SIDES);
+  const [customSides, setCustomSides] = useState('');
   const [rolling, setRolling] = useState(false);
-  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
   const normalizedColor = useMemo(
     () => normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR,
     [diceColor],
   );
+
+  const parsedCount = useMemo(() => {
+    const parsed = Number.parseInt(diceCount, 10);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }, [diceCount]);
+
+  const resolvedSides = useMemo(() => {
+    if (selectedSides === 'custom') {
+      const parsed = Number.parseInt(customSides, 10);
+      return Number.isFinite(parsed) ? parsed : NaN;
+    }
+    const parsed = Number(selectedSides);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }, [selectedSides, customSides]);
+
+  const isValidCount = Number.isInteger(parsedCount) && parsedCount >= 1 && parsedCount <= MAX_DICE_COUNT;
+  const isValidSides =
+    Number.isInteger(resolvedSides) && resolvedSides >= 2 && resolvedSides <= MAX_DIE_SIDES;
 
   useEffect(() => {
     if (show) {
@@ -105,27 +54,29 @@ const DiceRollerModal = ({ show = false, onHide = () => {}, diceColor }) => {
 
   useEffect(() => {
     if (!show) {
-      setError('');
       setRolling(false);
+      setError('');
     }
   }, [show]);
 
-  const handleExpressionChange = useCallback((event) => {
-    setExpression(event.target.value);
+  const handleCountChange = useCallback((event) => {
+    setDiceCount(event.target.value);
   }, []);
 
-  const handleQuickAdd = useCallback((sides) => {
-    setExpression((prev) => {
-      const trimmed = prev.trim();
-      if (!trimmed) {
-        return `1d${sides}`;
-      }
-      if (/[-+\s]$/.test(trimmed)) {
-        return `${trimmed}1d${sides}`;
-      }
-      return `${trimmed}${trimmed.endsWith('+') || trimmed.endsWith('-') ? '' : ' + '}1d${sides}`;
-    });
+  const handleSidesChange = useCallback((event) => {
+    const value = event.target.value;
+    setSelectedSides(value === 'custom' ? 'custom' : Number.parseInt(value, 10));
   }, []);
+
+  const handleCustomSidesChange = useCallback((event) => {
+    setCustomSides(event.target.value);
+  }, []);
+
+  const resetAndClose = useCallback(() => {
+    setRolling(false);
+    setError('');
+    onHide();
+  }, [onHide]);
 
   const handleRoll = useCallback(
     async (event) => {
@@ -134,9 +85,13 @@ const DiceRollerModal = ({ show = false, onHide = () => {}, diceColor }) => {
         return;
       }
 
-      const parsed = parseDiceExpression(expression);
-      if (parsed.error) {
-        setError(parsed.error);
+      if (!isValidCount) {
+        setError(`Enter a dice count between 1 and ${MAX_DICE_COUNT}.`);
+        return;
+      }
+
+      if (!isValidSides) {
+        setError(`Choose dice with between 2 and ${MAX_DIE_SIDES} sides.`);
         return;
       }
 
@@ -144,144 +99,105 @@ const DiceRollerModal = ({ show = false, onHide = () => {}, diceColor }) => {
       setRolling(true);
 
       try {
-        const { dice, modifiers, normalizedExpression } = parsed;
-        const requests = dice.map(({ count, sides }) => ({ count, sides }));
-        const response = await rollDiceWithBox(requests);
-        const rolls = Array.isArray(response?.rolls) ? response.rolls : [];
+        const response = await rollDiceWithBox([
+          {
+            count: parsedCount,
+            sides: resolvedSides,
+          },
+        ]);
 
-        const diceBreakdown = dice.map((group, index) => {
-          const values = Array.isArray(rolls[index]) ? rolls[index] : [];
-          const subtotal = values.reduce((total, value) => total + (Number(value) || 0), 0);
-          const signedTotal = subtotal * group.sign;
-          return {
-            ...group,
-            values,
-            subtotal,
-            signedTotal,
-          };
-        });
+        const values = Array.isArray(response?.rolls?.[0])
+          ? response.rolls[0].map((value) => Number(value) || 0)
+          : [];
+        const total = values.reduce((sum, value) => sum + value, 0);
 
-        const modifiersTotal = modifiers.reduce((total, value) => total + value, 0);
-        const diceTotal = diceBreakdown.reduce((total, item) => total + item.signedTotal, 0);
-        const total = diceTotal + modifiersTotal;
-
-        setResult({
-          expression: normalizedExpression,
-          diceBreakdown,
-          modifiers,
+        onRollComplete({
           total,
+          count: parsedCount,
+          sides: resolvedSides,
+          values,
           usedFallback: Boolean(response?.usedFallback),
         });
+        resetAndClose();
       } catch (rollError) {
         setError('Rolling the dice failed. Please try again.');
-      } finally {
         setRolling(false);
       }
     },
-    [expression, rolling],
+    [rolling, isValidCount, isValidSides, parsedCount, resolvedSides, onRollComplete, resetAndClose],
   );
 
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        handleRoll(event);
-      }
-    },
-    [handleRoll],
-  );
+  const canRoll = isValidCount && isValidSides && !rolling;
 
   return (
     <Modal centered show={show} onHide={onHide} aria-label="Dice roller">
       <Modal.Header closeButton>
         <Modal.Title>Dice Roller</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={handleRoll}>
-          <Form.Group controlId="custom-dice-expression">
-            <Form.Label>Dice Expression</Form.Label>
-            <InputGroup>
+      <Form onSubmit={handleRoll}>
+        <Modal.Body>
+          <Row className="dice-roller-modal__fields g-3" xs={1} sm={2}>
+            <Col>
+              <Form.Group controlId="dice-roller-count">
+                <Form.Label>Number of Dice</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="1"
+                  max={MAX_DICE_COUNT}
+                  value={diceCount}
+                  onChange={handleCountChange}
+                  disabled={rolling}
+                  autoFocus
+                />
+              </Form.Group>
+            </Col>
+            <Col>
+              <Form.Group controlId="dice-roller-type">
+                <Form.Label>Dice Type</Form.Label>
+                <Form.Select
+                  value={selectedSides === 'custom' ? 'custom' : String(selectedSides)}
+                  onChange={handleSidesChange}
+                  disabled={rolling}
+                >
+                  {COMMON_DICE_OPTIONS.map((sides) => (
+                    <option key={`sides-${sides}`} value={String(sides)}>
+                      d{sides}
+                    </option>
+                  ))}
+                  <option value="custom">Custom…</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+          {selectedSides === 'custom' ? (
+            <Form.Group className="mt-3" controlId="dice-roller-custom-sides">
+              <Form.Label>Custom Dice Sides</Form.Label>
               <Form.Control
-                type="text"
-                value={expression}
-                onChange={handleExpressionChange}
-                onKeyDown={handleKeyDown}
-                placeholder="e.g. 2d6 + 1d8 + 3"
-                aria-describedby="dice-expression-help"
+                type="number"
+                min="2"
+                max={MAX_DIE_SIDES}
+                value={customSides}
+                onChange={handleCustomSidesChange}
                 disabled={rolling}
-                autoFocus
+                placeholder="Enter the number of sides"
               />
-              <Button type="submit" variant="primary" disabled={rolling}>
-                {rolling ? 'Rolling…' : 'Roll'}
-              </Button>
-            </InputGroup>
-            <Form.Text id="dice-expression-help" muted>
-              Use standard dice notation. You can combine multiple dice and modifiers.
-            </Form.Text>
-          </Form.Group>
-        </Form>
-        <div className="dice-roller-modal__quick-buttons" aria-hidden="false">
-          {COMMON_DICE.map((sides) => (
-            <Button
-              key={sides}
-              variant="outline-secondary"
-              size="sm"
-              className="dice-roller-modal__quick-button"
-              onClick={() => handleQuickAdd(sides)}
-              disabled={rolling}
-            >
-              +1d{sides}
-            </Button>
-          ))}
-        </div>
-        {error ? (
-          <div className="text-danger mt-3" role="alert">
-            {error}
-          </div>
-        ) : null}
-        {result ? (
-          <div className="dice-roller-modal__result mt-3">
-            <div className="dice-roller-modal__result-expression text-muted small">
-              Expression: {result.expression || expression}
+            </Form.Group>
+          ) : null}
+          {error ? (
+            <div className="text-danger mt-3" role="alert">
+              {error}
             </div>
-            <div className="dice-roller-modal__result-total display-6 fw-bold">
-              Total: {result.total}
-            </div>
-            <ul className="dice-roller-modal__breakdown list-unstyled mb-2">
-              {result.diceBreakdown.map((group, index) => {
-                const prefix =
-                  index === 0 && group.sign > 0 ? '' : group.sign < 0 ? '-' : '+';
-                return (
-                  <li key={`die-${group.count}d${group.sides}-${index}`}>
-                    <strong>
-                      {prefix}
-                      {group.count}d{group.sides}
-                    </strong>{' '}
-                    ({formatDiceValues(group.values)} = {group.subtotal})
-                  </li>
-                );
-              })}
-              {result.modifiers.map((modifier, index) => (
-                <li key={`modifier-${index}`}>
-                  <strong>{modifier >= 0 ? '+' : ''}{modifier}</strong>
-                </li>
-              ))}
-            </ul>
-            {result.usedFallback ? (
-              <div className="text-warning small" role="status">
-                3D dice are unavailable, so a basic roll was used.
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide} disabled={rolling}>
-          Close
-        </Button>
-        <Button variant="primary" onClick={handleRoll} disabled={rolling}>
-          {rolling ? 'Rolling…' : 'Roll' }
-        </Button>
-      </Modal.Footer>
+          ) : null}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide} disabled={rolling}>
+            Close
+          </Button>
+          <Button type="submit" variant="primary" disabled={!canRoll}>
+            {rolling ? 'Rolling…' : 'Roll'}
+          </Button>
+        </Modal.Footer>
+      </Form>
     </Modal>
   );
 };
@@ -289,6 +205,7 @@ const DiceRollerModal = ({ show = false, onHide = () => {}, diceColor }) => {
 DiceRollerModal.propTypes = {
   show: PropTypes.bool,
   onHide: PropTypes.func,
+  onRollComplete: PropTypes.func,
   diceColor: PropTypes.string,
 };
 
