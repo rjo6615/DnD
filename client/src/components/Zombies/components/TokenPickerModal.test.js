@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import TokenPickerModal from './TokenPickerModal';
 import apiFetch from '../../../utils/apiFetch';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
+import { buildPlayerTokenFolderScope } from '../utils/playerTokenFilters';
 
 jest.mock('../../../utils/apiFetch');
 
@@ -394,6 +395,128 @@ describe('TokenPickerModal', () => {
         '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FCore_Class_Tokens%2FFighter'
       );
     });
+  });
+
+  test('player token picker prefers most specific matching folder from scope', async () => {
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          children: [
+            {
+              name: 'Humans',
+              path: 'Tokens/Adventurers/Humans',
+              relativePath: 'Adventurers/Humans',
+              children: [
+                {
+                  name: 'Barbarian',
+                  path: 'Tokens/Adventurers/Humans/Barbarian',
+                  relativePath: 'Adventurers/Humans/Barbarian',
+                  children: [],
+                },
+                {
+                  name: 'Paladin',
+                  path: 'Tokens/Adventurers/Humans/Paladin',
+                  relativePath: 'Adventurers/Humans/Paladin',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      flatFolders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          depth: 0,
+          displayPath: 'Adventurers',
+        },
+        {
+          name: 'Humans',
+          path: 'Tokens/Adventurers/Humans',
+          relativePath: 'Adventurers/Humans',
+          depth: 1,
+          displayPath: 'Adventurers/Humans',
+        },
+        {
+          name: 'Barbarian',
+          path: 'Tokens/Adventurers/Humans/Barbarian',
+          relativePath: 'Adventurers/Humans/Barbarian',
+          depth: 2,
+          displayPath: 'Adventurers/Humans/Barbarian',
+        },
+        {
+          name: 'Paladin',
+          path: 'Tokens/Adventurers/Humans/Paladin',
+          relativePath: 'Adventurers/Humans/Paladin',
+          depth: 2,
+          displayPath: 'Adventurers/Humans/Paladin',
+        },
+      ],
+    };
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    const scope = buildPlayerTokenFolderScope('Human', [{ Occupation: 'Paladin' }]);
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={scope}
+      />
+    );
+
+    await waitFor(() => {
+      expect(manifestCalls.length).toBeGreaterThan(0);
+      const lastCall = manifestCalls[manifestCalls.length - 1];
+      expect(lastCall).toBe(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FHumans%2FPaladin'
+      );
+    });
+
+    expect(
+      manifestCalls.some((call) =>
+        call.includes('token-manifest?folders=Tokens%2FAdventurers%2FHumans%2FPaladin')
+      )
+    ).toBe(true);
+
+    const select = await screen.findByLabelText(/Token Library/i);
+    const options = within(select).getAllByRole('option');
+    expect(options).toHaveLength(3);
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Humans');
+    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Humans/Barbarian');
+    expect(options[2].textContent.replace(/\u00A0/g, '')).toBe('Humans/Paladin');
+
+    const selectedOption = options.find((option) => option.selected);
+    expect(selectedOption?.textContent.replace(/\u00A0/g, '')).toBe('Humans/Paladin');
   });
 
   test('filters manifest assets based on provided scope', async () => {
