@@ -233,12 +233,10 @@ describe('TokenPickerModal', () => {
     await waitFor(() => {
       options = within(select).getAllByRole('option');
 
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(2);
       expect(options[0]).toHaveTextContent('Adventurers');
-      expect(options[1].textContent.startsWith('\u00A0\u00A0')).toBe(true);
-      expect(options[1]).toHaveTextContent('Heroes');
-      expect(options[2].textContent.startsWith('\u00A0\u00A0\u00A0\u00A0')).toBe(true);
-      expect(options[2]).toHaveTextContent('Heroes/Rogues');
+      expect(options[1].textContent.startsWith('\u00A0\u00A0\u00A0\u00A0')).toBe(true);
+      expect(options[1]).toHaveTextContent('Heroes/Rogues');
     });
 
     await waitFor(() => {
@@ -246,7 +244,7 @@ describe('TokenPickerModal', () => {
       expect(lastCall).toBe('/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers');
     });
 
-    await user.selectOptions(select, options[2]);
+    await user.selectOptions(select, options[1]);
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];

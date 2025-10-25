@@ -543,11 +543,30 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
         .filter(Boolean)
     : [];
 
-  const inferredRootPath =
-    typeof folderTree?.folders?.[0]?.path === 'string' &&
-    folderTree.folders[0].path.trim() !== ''
-      ? folderTree.folders[0].path.trim()
+  const inferredRootPath = (() => {
+    const flatRoot = Array.isArray(folderTree?.flatFolders)
+      ? folderTree.flatFolders.find(
+          (entry) =>
+            entry &&
+            typeof entry.path === 'string' &&
+            entry.path.trim() !== '' &&
+            (entry.depth === 0 || entry.depth === null || entry.depth === undefined)
+        )
       : null;
+
+    if (flatRoot) {
+      return flatRoot.path.trim();
+    }
+
+    if (
+      typeof folderTree?.folders?.[0]?.path === 'string' &&
+      folderTree.folders[0].path.trim() !== ''
+    ) {
+      return folderTree.folders[0].path.trim();
+    }
+
+    return null;
+  })();
 
   const resolvedRootFolders =
     inferredRootPath && inferredRootPath.trim() !== ''
@@ -601,19 +620,33 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
     const depth = Number.isInteger(entry.depth) ? entry.depth : 0;
     const indent = depth > 0 ? NBSP.repeat(depth * 2) : '';
 
-    const relativePath =
-      typeof entry.relativePath === 'string' && entry.relativePath.trim() !== ''
-        ? entry.relativePath.trim()
-        : '';
+    const normalizedRelativePath = (() => {
+      if (playerRootPath && normalizedPath.startsWith(playerRootPath)) {
+        return normalizedPath
+          .slice(playerRootPath.length)
+          .replace(/^\/+/, '')
+          .trim();
+      }
 
-    const relativeSegments = relativePath
-      ? relativePath.split('/').map((segment) => segment.trim()).filter(Boolean)
+      if (typeof entry.relativePath === 'string' && entry.relativePath.trim() !== '') {
+        return entry.relativePath.trim();
+      }
+
+      return '';
+    })();
+
+    const relativeSegments = normalizedRelativePath
+      ? normalizedRelativePath.split('/').map((segment) => segment.trim()).filter(Boolean)
       : [];
 
     const trimmedSegments =
       rootLeaf && relativeSegments.length > 0 && relativeSegments[0] === rootLeaf
         ? relativeSegments.slice(1)
         : relativeSegments;
+
+    if (trimmedSegments.length <= 1) {
+      return;
+    }
 
     const trimmedRelativePath = trimmedSegments.join('/');
 
@@ -632,9 +665,9 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       aliasSet.add(trimmedRelativePath.toLowerCase());
     }
 
-    if (relativePath) {
-      aliasSet.add(relativePath);
-      aliasSet.add(relativePath.toLowerCase());
+    if (normalizedRelativePath) {
+      aliasSet.add(normalizedRelativePath);
+      aliasSet.add(normalizedRelativePath.toLowerCase());
     }
 
     if (displayCandidate) {
