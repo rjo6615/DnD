@@ -18,6 +18,7 @@ import weaponMasteryDefinitions from '../../../data/weaponMasteries';
 import weaponTypeMasteries from '../../../data/weaponTypeMasteries';
 import { rollSkillWithDiceBox } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
+import DiceRollerModal from '../common/DiceRollerModal';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import {
   collectRollValues,
@@ -402,8 +403,11 @@ const PlayerTurnActions = React.forwardRef(
   ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
+  const [showDiceRoller, setShowDiceRoller] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = () => setShowAttack(true);
+  const handleCloseDiceRoller = () => setShowDiceRoller(false);
+  const handleShowDiceRoller = () => setShowDiceRoller(true);
 
   const [footerHeight, setFooterHeight] = useState(0);
 
@@ -2191,6 +2195,17 @@ const damageAmountStyle = {
                     {damageValue}
                   </span>
                 </div>
+                <div className="damage-roller__overlay-dice">
+                  <button
+                    type="button"
+                    className="damage-roller__dice-button"
+                    onClick={handleShowDiceRoller}
+                    title="Open dice roller"
+                    aria-label="Open dice roller"
+                  >
+                    <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                  </button>
+                </div>
                 <div className="damage-roller__overlay-button">
                   {/* Attack Button */}
                   <button
@@ -2365,6 +2380,11 @@ const damageAmountStyle = {
           </ul>
         </Modal.Body>
       </Modal>
+      <DiceRollerModal
+        show={showDiceRoller}
+        onHide={handleCloseDiceRoller}
+        diceColor={diceFaceColor}
+      />
 {/* Attack Modal */}
 
       <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
