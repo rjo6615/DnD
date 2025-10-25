@@ -26,6 +26,10 @@ describe('buildPlayerTokenFolderScope', () => {
 
     expect(scope).toEqual(
       expect.arrayContaining([
+        'Dragonborn',
+        'Adventurers/Dragonborn',
+        'Tokens/Adventurers/Dragonborn',
+        'folder:Tokens/Adventurers/Dragonborn',
         'Dragonborn/Fighter',
         'Adventurers/Dragonborn/Fighter',
         'Tokens/Adventurers/Dragonborn/Fighter',
@@ -42,6 +46,10 @@ describe('buildPlayerTokenFolderScope', () => {
 
     expect(scope).toEqual(
       expect.arrayContaining([
+        'Elf',
+        'Adventurers/Elf',
+        'Tokens/Adventurers/Elf',
+        'folder:Tokens/Adventurers/Elf',
         'Elf/Wizard',
         'Adventurers/Elf/Wizard',
         'Tokens/Adventurers/Elf/Wizard',
