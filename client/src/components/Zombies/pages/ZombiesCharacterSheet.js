@@ -3678,6 +3678,13 @@ export default function ZombiesCharacterSheet() {
       }
     });
 
+    raceNameVariants.forEach((variant) => {
+      addScopeVariants(variant, [
+        'Adventurers',
+        'Tokens/Adventurers',
+      ]);
+    });
+
     if (scopeSet.size === 0 && raceNameVariants.length > 0) {
       const fallbackRace = raceNameVariants.find((variant) => typeof variant === 'string' && variant.trim() !== '');
       if (fallbackRace) {
