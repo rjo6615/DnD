@@ -380,12 +380,13 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
     setHiddenState(createEmptyHiddenState());
     setInitialHiddenState(createEmptyHiddenState());
     setInventory({ weapons: [], armor: [], items: [], accessories: [] });
+    setLoading(false);
     setInitialized(false);
     setError(null);
   }, [campaign]);
 
   useEffect(() => {
-    if (!active || !campaign || initialized || loading) {
+    if (!active || !campaign || initialized) {
       return;
     }
 
@@ -458,7 +459,7 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
     return () => {
       cancelled = true;
     };
-  }, [active, campaign, initialized, loading, onStatus]);
+  }, [active, campaign, initialized, onStatus]);
 
   const hiddenSets = useMemo(() => {
     const sets = {};
