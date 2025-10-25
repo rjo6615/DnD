@@ -157,6 +157,7 @@ const dispatchConsumablePotionUsed = (item) => {
  *   onAddToCart?: (item: Item & { type?: string }) => void,
  *   ownedOnly?: boolean,
  *   cartCounts?: Record<string, number> | null,
+ *   hiddenKeys?: Set<string> | string[] | Record<string, boolean> | null,
  * }} props
  */
 const buildItemOwnershipMap = (initialItems) => {
@@ -388,6 +389,7 @@ function ItemList({
   ownedOnly = false,
   cartCounts = null,
   diceColor,
+  hiddenKeys = null,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
@@ -456,6 +458,26 @@ function ItemList({
     () => buildItemOwnershipMap(ownedEntries),
     [ownedEntries]
   );
+
+  const hiddenSet = useMemo(() => {
+    if (!hiddenKeys) {
+      return null;
+    }
+    if (hiddenKeys instanceof Set) {
+      return new Set(Array.from(hiddenKeys, (value) => String(value).toLowerCase()));
+    }
+    if (Array.isArray(hiddenKeys)) {
+      return new Set(hiddenKeys.map((value) => String(value).toLowerCase()));
+    }
+    if (hiddenKeys && typeof hiddenKeys === 'object') {
+      return new Set(
+        Object.entries(hiddenKeys)
+          .filter(([, hidden]) => Boolean(hidden))
+          .map(([key]) => String(key).toLowerCase())
+      );
+    }
+    return null;
+  }, [hiddenKeys]);
 
   useEffect(() => {
     if (!show) return;
@@ -619,7 +641,14 @@ function ItemList({
   const handleShowNotes = (item) => () => setNotesItem(item);
 
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
-  const filteredEntries = Object.entries(items).filter(([, item]) => {
+  const filteredEntries = Object.entries(items).filter(([key, item]) => {
+    if (hiddenSet) {
+      const normalizedKey = String(key || '').toLowerCase();
+      const displayKey = String(item.displayName || item.name || '').toLowerCase();
+      if (hiddenSet.has(normalizedKey) || (displayKey && hiddenSet.has(displayKey))) {
+        return false;
+      }
+    }
     if (ownedOnly && (item.ownedCount ?? 0) <= 0) {
       return false;
     }

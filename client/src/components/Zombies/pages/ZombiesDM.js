@@ -31,6 +31,7 @@ import MapModal from '../attributes/MapModal';
 import { calculateDamage } from '../attributes/PlayerTurnActions';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
+import ShopVisibilityManager from '../attributes/ShopVisibilityManager';
 import {
   GiCharacter,
   GiStoneAxe,
@@ -3958,6 +3959,7 @@ export default function ZombiesDM() {
         { key: 'armor', title: 'Armor' },
         { key: 'items', title: 'Items' },
         { key: 'accessories', title: 'Accessories' },
+        { key: 'shop', title: 'Shop' },
       ],
       [calculateCharacterInitiative]
     );
@@ -8055,6 +8057,35 @@ const resolveIcon = (category, iconMap, fallback) => {
                   />
                 )}
               </div>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </Tab.Pane>
+    <Tab.Pane eventKey="shop">
+      {activeResourceTab === 'shop' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-shop-card">
+            <Card.Header className="modal-header">
+              <div className="d-flex align-items-center justify-content-center w-100">
+                <div className="flex-grow-1" />
+                <CloseButton
+                  className="ms-auto"
+                  variant="white"
+                  onClick={() => handleCloseResourceTab('shop')}
+                  aria-label="Close shop tab"
+                />
+              </div>
+            </Card.Header>
+            <Card.Body
+              className="resource-tab-safe-area text-start"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
+              <ShopVisibilityManager
+                campaign={currentCampaign}
+                active={activeResourceTab === 'shop'}
+                onStatus={setStatus}
+              />
             </Card.Body>
           </Card>
         </div>

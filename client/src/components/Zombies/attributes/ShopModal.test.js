@@ -9,6 +9,22 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+jest.mock('../../../utils/apiFetch', () =>
+  jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: async () => ({
+        weapons: [],
+        armor: [],
+        items: [],
+        accessories: [],
+      }),
+    })
+  )
+);
+
+const apiFetch = require('../../../utils/apiFetch');
+
 const mockWeaponListFetch = jest.fn();
 const mockArmorListFetch = jest.fn();
 const mockItemListFetch = jest.fn();
@@ -221,6 +237,16 @@ const renderShopModal = (props = {}) =>
   );
 
 beforeEach(() => {
+  apiFetch.mockClear();
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      weapons: [],
+      armor: [],
+      items: [],
+      accessories: [],
+    }),
+  });
   mockWeaponListFetch.mockClear();
   mockArmorListFetch.mockClear();
   mockItemListFetch.mockClear();
