@@ -664,6 +664,29 @@ export default function ShopVisibilityManager({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [addModalState, setAddModalState] = useState(DEFAULT_ADD_MODAL_STATE);
+  const [itemCategoryFilter, setItemCategoryFilter] = useState('all');
+
+  const itemCategoryOptions = useMemo(() => {
+    const entries = Array.isArray(inventory.items) ? inventory.items : [];
+    const categories = new Map();
+
+    entries.forEach((entry) => {
+      const rawCategory =
+        typeof entry?.category === 'string' ? entry.category.trim() : '';
+      if (!rawCategory) {
+        return;
+      }
+
+      const normalized = rawCategory.toLowerCase();
+      if (!categories.has(normalized)) {
+        categories.set(normalized, toTitleCase(rawCategory));
+      }
+    });
+
+    return Array.from(categories.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+  }, [inventory.items]);
 
   useEffect(() => {
     setHiddenState(createEmptyHiddenState());
@@ -672,7 +695,22 @@ export default function ShopVisibilityManager({
     setLoading(false);
     setInitialized(false);
     setError(null);
+    setItemCategoryFilter('all');
   }, [campaign]);
+
+  useEffect(() => {
+    if (itemCategoryFilter === 'all') {
+      return;
+    }
+
+    const hasOption = itemCategoryOptions.some(
+      (option) => option.value === itemCategoryFilter
+    );
+
+    if (!hasOption) {
+      setItemCategoryFilter('all');
+    }
+  }, [itemCategoryFilter, itemCategoryOptions]);
 
   useEffect(() => {
     if (!active || !campaign || initialized) {
@@ -785,6 +823,10 @@ export default function ShopVisibilityManager({
     () => !hiddenStatesEqual(hiddenState, initialHiddenState),
     [hiddenState, initialHiddenState]
   );
+
+  const handleItemCategoryFilterChange = useCallback((event) => {
+    setItemCategoryFilter(event.target.value);
+  }, []);
 
   const openAddInventoryModal = useCallback(
     (category, item) => {
@@ -1019,18 +1061,63 @@ export default function ShopVisibilityManager({
 
   const renderCategory = useCallback(
     (category) => {
-    const entries = Array.isArray(inventory[category]) ? inventory[category] : [];
-    const hiddenSet = hiddenSets[category] || new Set();
-    const total = entries.length;
-    const visibleCount = entries.reduce(
-      (count, entry) => (hiddenSet.has(entry.key) ? count : count + 1),
-      0
-    );
-    const allVisible = total > 0 && visibleCount === total;
-    const noneVisible = total > 0 && visibleCount === 0;
-    const allKeys = entries.map((entry) => entry.key);
+      const allEntries = Array.isArray(inventory[category]) ? inventory[category] : [];
+      const hiddenSet = hiddenSets[category] || new Set();
+      let entries = allEntries;
+      let filterControl = null;
+      let normalizedItemFilter = 'all';
 
-      if (loading && total === 0) {
+      if (category === 'items') {
+        normalizedItemFilter =
+          typeof itemCategoryFilter === 'string' ? itemCategoryFilter : 'all';
+
+        if (itemCategoryOptions.length > 0) {
+          filterControl = (
+            <Form.Group
+              className="d-flex align-items-center gap-2 mb-0"
+              controlId="dm-shop-item-category-filter"
+            >
+              <Form.Label className="mb-0" htmlFor="dm-shop-item-category-filter-select">
+                Category
+              </Form.Label>
+              <Form.Select
+                id="dm-shop-item-category-filter-select"
+                size="sm"
+                value={normalizedItemFilter}
+                onChange={handleItemCategoryFilterChange}
+              >
+                <option value="all">All</option>
+                {itemCategoryOptions.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          );
+        }
+
+        if (normalizedItemFilter !== 'all') {
+          entries = allEntries.filter((entry) => {
+            const entryCategory =
+              typeof entry?.category === 'string'
+                ? entry.category.trim().toLowerCase()
+                : '';
+            return entryCategory === normalizedItemFilter;
+          });
+        }
+      }
+
+      const total = entries.length;
+      const visibleCount = entries.reduce(
+        (count, entry) => (hiddenSet.has(entry.key) ? count : count + 1),
+        0
+      );
+      const allVisible = total > 0 && visibleCount === total;
+      const noneVisible = total > 0 && visibleCount === 0;
+      const allKeys = entries.map((entry) => entry.key);
+
+      if (loading && allEntries.length === 0) {
         return (
           <div className="d-flex justify-content-center py-4">
             <Spinner animation="border" role="status" />
@@ -1039,39 +1126,59 @@ export default function ShopVisibilityManager({
         );
       }
 
-      if (!loading && total === 0) {
+      if (!loading && allEntries.length === 0) {
         return <div className="text-center text-muted py-4">No items available.</div>;
       }
 
-      return (
-        <>
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div className="d-flex align-items-center flex-wrap gap-3">
-              <Form.Check
-                type="checkbox"
-                id={`${category}-select-all`}
-                label="Select All"
-                checked={allVisible}
-                onChange={(event) =>
-                  handleToggleAll(category, event.target.checked, allKeys)
-                }
-                disabled={loading || saving || total === 0}
-              />
-              <Form.Check
-                type="checkbox"
-                id={`${category}-deselect-all`}
-                label="Deselect All"
-                checked={noneVisible}
-                onChange={(event) =>
-                  handleToggleAll(category, !event.target.checked, allKeys)
-                }
-                disabled={loading || saving || total === 0}
-              />
-            </div>
+      const header = (
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div className="d-flex align-items-center flex-wrap gap-3">
+            <Form.Check
+              type="checkbox"
+              id={`${category}-select-all`}
+              label="Select All"
+              checked={allVisible}
+              onChange={(event) =>
+                handleToggleAll(category, event.target.checked, allKeys)
+              }
+              disabled={loading || saving || total === 0}
+            />
+            <Form.Check
+              type="checkbox"
+              id={`${category}-deselect-all`}
+              label="Deselect All"
+              checked={noneVisible}
+              onChange={(event) =>
+                handleToggleAll(category, !event.target.checked, allKeys)
+              }
+              disabled={loading || saving || total === 0}
+            />
+          </div>
+          <div className="d-flex align-items-center flex-wrap gap-3">
+            {filterControl}
             <div className="text-muted small">
               Showing {visibleCount} of {total}
             </div>
           </div>
+        </div>
+      );
+
+      if (total === 0) {
+        return (
+          <>
+            {header}
+            <div className="text-center text-muted py-4">
+              {category === 'items' && normalizedItemFilter !== 'all'
+                ? 'No items match the selected category.'
+                : 'No items available.'}
+            </div>
+          </>
+        );
+      }
+
+      return (
+        <>
+          {header}
           <Row className="row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
             {entries.map((item) => {
               const visible = !hiddenSet.has(item.key);
@@ -1192,10 +1299,13 @@ export default function ShopVisibilityManager({
     [
       addModalState.submitting,
       characterOptions,
+      handleItemCategoryFilterChange,
       handleToggleAll,
       handleToggleItem,
       hiddenSets,
       inventory,
+      itemCategoryFilter,
+      itemCategoryOptions,
       loading,
       openAddInventoryModal,
       saving,
