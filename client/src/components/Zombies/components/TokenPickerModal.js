@@ -174,6 +174,146 @@ const filterMatchesScope = (filter, scopeSet) => {
   return false;
 };
 
+const buildNormalizedMatchSet = (values = []) => {
+  const set = new Set();
+
+  values.forEach((value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    const trimmed = value.replace(/\u00A0/g, ' ').trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const lower = trimmed.toLowerCase();
+    const forms = new Set([
+      lower,
+      lower.replace(/[_-]+/g, ' '),
+      lower.replace(/[\\/]+/g, ' '),
+      lower.replace(/[^a-z0-9/]+/g, ' '),
+      lower.replace(/[^a-z0-9]+/g, ''),
+    ]);
+
+    forms.forEach((form) => {
+      if (typeof form !== 'string') {
+        return;
+      }
+
+      const normalized = form.replace(/\s+/g, ' ').trim();
+      if (normalized) {
+        set.add(normalized);
+      }
+    });
+  });
+
+  return set;
+};
+
+const collectAssetMatchValues = (asset, manifestMeta) => {
+  if (!asset || typeof asset !== 'object') {
+    return new Set();
+  }
+
+  const rawValues = [];
+  const addValue = (value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    rawValues.push(trimmed);
+
+    if (!trimmed.toLowerCase().startsWith('folder:')) {
+      rawValues.push(`folder:${trimmed}`);
+    }
+  };
+
+  addValue(asset.relativeFolder);
+  addValue(asset.folder);
+
+  if (Array.isArray(asset.folders)) {
+    asset.folders.forEach(addValue);
+  }
+
+  addValue(asset.publicId);
+  addValue(asset.path);
+  addValue(asset.displayName);
+  addValue(asset.filename);
+  addValue(asset.name);
+
+  if (Array.isArray(asset.tags)) {
+    asset.tags.forEach(addValue);
+  }
+
+  const appliedFolders = Array.isArray(manifestMeta?.appliedFolders)
+    ? manifestMeta.appliedFolders
+    : [];
+  appliedFolders.forEach(addValue);
+
+  return buildNormalizedMatchSet(rawValues);
+};
+
+const collectScopeMatchValues = (scopeSet) => {
+  if (!(scopeSet instanceof Set)) {
+    return new Set();
+  }
+
+  const rawValues = [];
+
+  scopeSet.forEach((value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    rawValues.push(trimmed);
+
+    if (trimmed.toLowerCase().startsWith('folder:')) {
+      rawValues.push(trimmed.slice('folder:'.length));
+    } else {
+      rawValues.push(`folder:${trimmed}`);
+    }
+  });
+
+  return buildNormalizedMatchSet(rawValues);
+};
+
+const assetMatchesScope = (asset, scopeSet, manifestMeta) => {
+  if (!(scopeSet instanceof Set) || scopeSet.size === 0) {
+    return true;
+  }
+
+  const scopeValues = collectScopeMatchValues(scopeSet);
+  if (scopeValues.size === 0) {
+    return true;
+  }
+
+  const assetValues = collectAssetMatchValues(asset, manifestMeta);
+  if (assetValues.size === 0) {
+    return false;
+  }
+
+  for (const scopeValue of scopeValues) {
+    for (const assetValue of assetValues) {
+      if (assetValue.includes(scopeValue)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 const buildDynamicDmFilters = (folderTree, fallbackFilters = DEFAULT_DM_FILTERS) => {
   const fallback = cloneFilters(fallbackFilters);
 
@@ -546,6 +686,18 @@ const TokenPickerModal = ({
   const [nextCursor, setNextCursor] = useState(null);
   const [manifestMeta, setManifestMeta] = useState(null);
 
+  const scopedAssets = useMemo(() => {
+    if (!Array.isArray(assets)) {
+      return [];
+    }
+
+    if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
+      return assets;
+    }
+
+    return assets.filter((asset) => assetMatchesScope(asset, filterScopeSet, manifestMeta));
+  }, [assets, filterScopeSet, manifestMeta]);
+
   const resetState = useCallback((options = {}) => {
     const { resetFolderLoading = true } = options;
     setAssets([]);
@@ -881,6 +1033,8 @@ const TokenPickerModal = ({
   }, [onClear, onSelect]);
 
   const renderBody = () => {
+    const hasDisplayAssets = scopedAssets.length > 0;
+
     if ((loading || fetchingFolders) && assets.length === 0) {
       return (
         <div className="text-center py-4" role="status" aria-live="polite">
@@ -898,14 +1052,14 @@ const TokenPickerModal = ({
       );
     }
 
-    if (assets.length === 0) {
+    if (!hasDisplayAssets) {
       return <div className="text-center text-muted py-4">No tokens found.</div>;
     }
 
     return (
       <>
         <Row xs={2} sm={3} md={4} className="g-3">
-          {assets.map((asset) => {
+          {scopedAssets.map((asset) => {
             if (!asset || !asset.publicId) {
               return null;
             }
