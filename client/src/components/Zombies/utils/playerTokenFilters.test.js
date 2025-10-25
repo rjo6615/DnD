@@ -34,6 +34,8 @@ describe('buildPlayerTokenFolderScope', () => {
         'Adventurers/Dragonborn/Fighter',
         'Tokens/Adventurers/Dragonborn/Fighter',
         'folder:Tokens/Adventurers/Dragonborn/Fighter',
+        'Tokens/Adventurers/Dragonborn/Fighters',
+        'folder:Tokens/Adventurers/Dragonborn/Fighters',
       ])
     );
     expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
@@ -94,6 +96,8 @@ describe('buildPlayerTokenFolderScope', () => {
       expect.arrayContaining([
         'Tokens/Adventurers/Elves/Ranger',
         'folder:Tokens/Adventurers/Elves/Ranger',
+        'Tokens/Adventurers/Elves/Rangers',
+        'folder:Tokens/Adventurers/Elves/Rangers',
       ])
     );
   });
