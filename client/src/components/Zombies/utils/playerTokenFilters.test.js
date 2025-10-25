@@ -36,6 +36,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'folder:Tokens/Adventurers/Dragonborn',
       ])
     );
+    expect(scope.some((value) => value === 'Tokens/Adventurers/Dragonborn')).toBe(false);
     expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
     expect(
       scope.indexOf('Tokens/Adventurers/Dragonborn/Fighter') <
@@ -57,6 +58,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Tokens/Adventurers/Elves',
       ])
     );
+    expect(scope.some((value) => value === 'Tokens/Adventurers/Elf')).toBe(false);
   });
 
   it('handles multi-class characters', () => {
@@ -74,6 +76,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Tokens/Adventurers/Half-Orcs',
       ])
     );
+    expect(scope.some((value) => value === 'Tokens/Adventurers/Half-Orc')).toBe(false);
   });
 
   it('supports race objects and occupation name properties', () => {
@@ -102,6 +105,19 @@ describe('buildPlayerTokenFolderScope', () => {
         'Tokens/Adventurers/Elves',
       ])
     );
+    expect(scope.some((value) => value === 'Tokens/Adventurers/Elves')).toBe(false);
+  });
+
+  it('avoids runaway pluralization variants', () => {
+    const scope = buildPlayerTokenFolderScope('Elf', ['Fighter', 'Fighters']);
+
+    expect(scope.some((value) => /Elveses|Fighterses/i.test(value))).toBe(false);
+  });
+
+  it('avoids runaway pluralization variants', () => {
+    const scope = buildPlayerTokenFolderScope('Elf', ['Fighter', 'Fighters']);
+
+    expect(scope.some((value) => /Elveses|Fighterses/i.test(value))).toBe(false);
   });
 
   it('avoids runaway pluralization variants', () => {
