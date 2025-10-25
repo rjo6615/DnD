@@ -577,6 +577,76 @@ describe('TokenPickerModal', () => {
     });
   });
 
+  test('falls back to default folders when scoped recommendations are unavailable', async () => {
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const folderTree = {
+      rootFolder: 'Tokens',
+      folders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          children: [],
+        },
+      ],
+      flatFolders: [
+        {
+          name: 'Adventurers',
+          path: 'Tokens/Adventurers',
+          relativePath: 'Adventurers',
+          depth: 0,
+          displayPath: 'Adventurers',
+        },
+      ],
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={[
+          'Tokens/Adventurers/Core_Class_Tokens/Mediumfolk/Fighter',
+          'Adventurers/Core_Class_Tokens/Mediumfolk/Fighter',
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/token-folders');
+    });
+
+    await waitFor(() => {
+      expect(manifestCalls.length).toBeGreaterThan(0);
+    });
+
+    expect(manifestCalls[manifestCalls.length - 1]).toBe(
+      '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers'
+    );
+  });
+
   test('player library dropdown stays disabled until folders finish loading', async () => {
     const folderTree = {
       rootFolder: 'Tokens',

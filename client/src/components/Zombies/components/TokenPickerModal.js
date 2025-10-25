@@ -455,6 +455,7 @@ const TokenPickerModal = ({
   const [playerFolderOptions, setPlayerFolderOptions] = useState(() =>
     cloneFilters(DEFAULT_PLAYER_FILTERS)
   );
+  const [playerFoldersLoaded, setPlayerFoldersLoaded] = useState(false);
   const [fetchingFolders, setFetchingFolders] = useState(false);
 
   const baseFilters = useMemo(() => {
@@ -678,8 +679,19 @@ const TokenPickerModal = ({
       return false;
     }
 
-    return filterMatchesScope(activeFilter, filterScopeSet);
-  }, [activeFilter, filterScopeSet]);
+    const matches = filterMatchesScope(activeFilter, filterScopeSet);
+
+    if (
+      !matches &&
+      !isDm &&
+      playerFoldersLoaded &&
+      (!Array.isArray(playerScopedFilters) || playerScopedFilters.length === 0)
+    ) {
+      return true;
+    }
+
+    return matches;
+  }, [activeFilter, filterScopeSet, isDm, playerFoldersLoaded, playerScopedFilters]);
 
   const manifestFilterKey = useMemo(() => {
     if (!activeFilter) {
@@ -797,6 +809,7 @@ const TokenPickerModal = ({
         setDmFolderOptions(null);
       } else {
         setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
+        setPlayerFoldersLoaded(false);
       }
       return;
     }
@@ -895,6 +908,7 @@ const TokenPickerModal = ({
 
     if (!campaignId) {
       setPlayerFolderOptions(fallbackFilters);
+      setPlayerFoldersLoaded(true);
       return;
     }
 
@@ -902,6 +916,7 @@ const TokenPickerModal = ({
 
     const fetchFolders = async () => {
       setFetchingFolders(true);
+      setPlayerFoldersLoaded(false);
       try {
         const encodedCampaignId = encodeURIComponent(campaignId);
         const response = await apiFetch(`/campaigns/${encodedCampaignId}/token-folders`);
@@ -916,10 +931,12 @@ const TokenPickerModal = ({
         }
 
         setPlayerFolderOptions(buildPlayerFolderFilters(data, fallbackFilters));
+        setPlayerFoldersLoaded(true);
       } catch (err) {
         console.error(err);
         if (!isCancelled) {
           setPlayerFolderOptions(fallbackFilters);
+          setPlayerFoldersLoaded(true);
         }
       } finally {
         if (!isCancelled) {
@@ -929,6 +946,7 @@ const TokenPickerModal = ({
     };
 
     setPlayerFolderOptions(fallbackFilters);
+    setPlayerFoldersLoaded(false);
     fetchFolders();
 
     return () => {
