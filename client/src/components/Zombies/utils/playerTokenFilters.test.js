@@ -26,17 +26,21 @@ describe('buildPlayerTokenFolderScope', () => {
 
     expect(scope).toEqual(
       expect.arrayContaining([
-        'Dragonborn',
-        'Adventurers/Dragonborn',
-        'Tokens/Adventurers/Dragonborn',
-        'folder:Tokens/Adventurers/Dragonborn',
         'Dragonborn/Fighter',
         'Adventurers/Dragonborn/Fighter',
         'Tokens/Adventurers/Dragonborn/Fighter',
         'folder:Tokens/Adventurers/Dragonborn/Fighter',
+        'Tokens/Adventurers/Dragonborn/Fighters',
+        'folder:Tokens/Adventurers/Dragonborn/Fighters',
+        'Tokens/Adventurers/Dragonborn',
+        'folder:Tokens/Adventurers/Dragonborn',
       ])
     );
     expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
+    expect(
+      scope.indexOf('Tokens/Adventurers/Dragonborn/Fighter') <
+        scope.indexOf('Tokens/Adventurers/Dragonborn')
+    ).toBe(true);
   });
 
   it('creates class variants when subclasses are provided', () => {
@@ -46,14 +50,11 @@ describe('buildPlayerTokenFolderScope', () => {
 
     expect(scope).toEqual(
       expect.arrayContaining([
-        'Elf',
-        'Adventurers/Elf',
-        'Tokens/Adventurers/Elf',
-        'folder:Tokens/Adventurers/Elf',
         'Elf/Wizard',
         'Adventurers/Elf/Wizard',
         'Tokens/Adventurers/Elf/Wizard',
         'folder:Tokens/Adventurers/Elf/Wizard',
+        'Tokens/Adventurers/Elves',
       ])
     );
   });
@@ -70,6 +71,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Half-Orc/Cleric',
         'Tokens/Adventurers/Half-Orc/Barbarian',
         'Tokens/Adventurers/Half-Orc/Cleric',
+        'Tokens/Adventurers/Half-Orcs',
       ])
     );
   });
@@ -83,6 +85,7 @@ describe('buildPlayerTokenFolderScope', () => {
       expect.arrayContaining([
         'Tokens/Adventurers/Goliaths/Cleric',
         'folder:Tokens/Adventurers/Goliaths/Cleric',
+        'Tokens/Adventurers/Goliaths',
       ])
     );
   });
@@ -94,7 +97,16 @@ describe('buildPlayerTokenFolderScope', () => {
       expect.arrayContaining([
         'Tokens/Adventurers/Elves/Ranger',
         'folder:Tokens/Adventurers/Elves/Ranger',
+        'Tokens/Adventurers/Elves/Rangers',
+        'folder:Tokens/Adventurers/Elves/Rangers',
+        'Tokens/Adventurers/Elves',
       ])
     );
+  });
+
+  it('avoids runaway pluralization variants', () => {
+    const scope = buildPlayerTokenFolderScope('Elf', ['Fighter', 'Fighters']);
+
+    expect(scope.some((value) => /Elveses|Fighterses/i.test(value))).toBe(false);
   });
 });
