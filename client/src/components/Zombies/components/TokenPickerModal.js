@@ -456,6 +456,7 @@ const TokenPickerModal = ({
     cloneFilters(DEFAULT_PLAYER_FILTERS)
   );
   const [fetchingFolders, setFetchingFolders] = useState(false);
+  const [playerFoldersReady, setPlayerFoldersReady] = useState(() => isDm);
 
   const baseFilters = useMemo(() => {
     if (isDm) {
@@ -475,21 +476,21 @@ const TokenPickerModal = ({
 
   const filterScopeSet = useMemo(() => buildScopeVariantSet(filterScope), [filterScope]);
 
-  const availableFilters = useMemo(() => {
+  const { availableFilters, hasScopedFilterMatch } = useMemo(() => {
     if (!Array.isArray(baseFilters)) {
-      return [];
+      return { availableFilters: [], hasScopedFilterMatch: false };
     }
 
     if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
-      return baseFilters;
+      return { availableFilters: baseFilters, hasScopedFilterMatch: false };
     }
 
     const scoped = baseFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
     if (scoped.length > 0) {
-      return scoped;
+      return { availableFilters: scoped, hasScopedFilterMatch: true };
     }
 
-    return baseFilters;
+    return { availableFilters: baseFilters, hasScopedFilterMatch: false };
   }, [baseFilters, filterScopeSet]);
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
@@ -556,7 +557,8 @@ const TokenPickerModal = ({
     if (resetFolderLoading) {
       setFetchingFolders(false);
     }
-  }, []);
+    setPlayerFoldersReady(isDm);
+  }, [isDm]);
 
   const activeFilter = useMemo(() => {
     if (selectedFilterKey && filterLookup.has(selectedFilterKey)) {
@@ -579,8 +581,12 @@ const TokenPickerModal = ({
       return false;
     }
 
+    if (!hasScopedFilterMatch) {
+      return true;
+    }
+
     return filterMatchesScope(activeFilter, filterScopeSet);
-  }, [activeFilter, filterScopeSet]);
+  }, [activeFilter, filterScopeSet, hasScopedFilterMatch]);
 
   const manifestFilterKey = useMemo(() => {
     if (!activeFilter) {
@@ -602,8 +608,17 @@ const TokenPickerModal = ({
       return false;
     }
 
+    if (!hasScopedFilterMatch) {
+      return !playerFoldersReady;
+    }
+
     return !activeFilterMatchesScope;
-  }, [activeFilterMatchesScope, filterScopeSet]);
+  }, [
+    activeFilterMatchesScope,
+    filterScopeSet,
+    hasScopedFilterMatch,
+    playerFoldersReady,
+  ]);
 
   const fetchManifest = useCallback(
     async ({ cursor = null, append = false } = {}) => {
@@ -796,6 +811,7 @@ const TokenPickerModal = ({
 
     if (!campaignId) {
       setPlayerFolderOptions(fallbackFilters);
+      setPlayerFoldersReady(true);
       return;
     }
 
@@ -825,11 +841,13 @@ const TokenPickerModal = ({
       } finally {
         if (!isCancelled) {
           setFetchingFolders(false);
+          setPlayerFoldersReady(true);
         }
       }
     };
 
     setPlayerFolderOptions(fallbackFilters);
+    setPlayerFoldersReady(false);
     fetchFolders();
 
     return () => {
