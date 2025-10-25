@@ -275,17 +275,29 @@ const collectOccupationNames = (occupations) => {
   return Array.from(names);
 };
 
-const addScopeValue = (set, value) => {
-  if (typeof value !== 'string') {
-    return;
-  }
+const createScopeCollector = () => {
+  const seen = new Set();
+  const values = [];
 
-  const trimmed = value.replace(/\s+/g, ' ').trim();
-  if (!trimmed) {
-    return;
-  }
+  const add = (value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
 
-  set.add(trimmed);
+    const trimmed = value.replace(/\s+/g, ' ').trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+
+    seen.add(trimmed);
+    values.push(trimmed);
+  };
+
+  return {
+    add,
+    values,
+    has: (value) => seen.has(value),
+  };
 };
 
 export const buildPlayerTokenFolderScope = (raceName, occupations) => {
@@ -306,29 +318,44 @@ export const buildPlayerTokenFolderScope = (raceName, occupations) => {
     buildTokenNameVariantSet(name).forEach((entry) => classVariantSet.add(entry));
   });
 
-  const scopeSet = new Set();
+  const raceCollector = createScopeCollector();
+
+  raceVariantSet.forEach((raceVariant) => {
+    raceCollector.add(raceVariant);
+    raceCollector.add(`Adventurers/${raceVariant}`);
+    raceCollector.add(`Tokens/Adventurers/${raceVariant}`);
+    raceCollector.add(`folder:Tokens/Adventurers/${raceVariant}`);
+  });
 
   if (classVariantSet.size === 0) {
-    raceVariantSet.forEach((raceVariant) => {
-      addScopeValue(scopeSet, raceVariant);
-      addScopeValue(scopeSet, `Adventurers/${raceVariant}`);
-      addScopeValue(scopeSet, `Tokens/Adventurers/${raceVariant}`);
-      addScopeValue(scopeSet, `folder:Tokens/Adventurers/${raceVariant}`);
-    });
-    return scopeSet.size > 0 ? Array.from(scopeSet) : null;
+    return raceCollector.values.length > 0 ? raceCollector.values : null;
   }
+
+  const classCollector = createScopeCollector();
 
   raceVariantSet.forEach((raceVariant) => {
     classVariantSet.forEach((classVariant) => {
       const base = `${raceVariant}/${classVariant}`;
-      addScopeValue(scopeSet, base);
-      addScopeValue(scopeSet, `Adventurers/${base}`);
-      addScopeValue(scopeSet, `Tokens/Adventurers/${base}`);
-      addScopeValue(scopeSet, `folder:Tokens/Adventurers/${base}`);
+      classCollector.add(base);
+      classCollector.add(`Adventurers/${base}`);
+      classCollector.add(`Tokens/Adventurers/${base}`);
+      classCollector.add(`folder:Tokens/Adventurers/${base}`);
     });
   });
 
-  return scopeSet.size > 0 ? Array.from(scopeSet) : null;
+  if (classCollector.values.length === 0) {
+    return raceCollector.values.length > 0 ? raceCollector.values : null;
+  }
+
+  const combinedValues = [...classCollector.values];
+
+  raceCollector.values.forEach((value) => {
+    if (!classCollector.has(value)) {
+      combinedValues.push(value);
+    }
+  });
+
+  return combinedValues.length > 0 ? combinedValues : null;
 };
 
 export default buildPlayerTokenFolderScope;

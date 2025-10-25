@@ -32,10 +32,16 @@ describe('buildPlayerTokenFolderScope', () => {
         'folder:Tokens/Adventurers/Dragonborn/Fighter',
         'Tokens/Adventurers/Dragonborn/Fighters',
         'folder:Tokens/Adventurers/Dragonborn/Fighters',
+        'Tokens/Adventurers/Dragonborn',
+        'folder:Tokens/Adventurers/Dragonborn',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Dragonborn')).toBe(false);
     expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
+    expect(
+      scope.indexOf('Tokens/Adventurers/Dragonborn/Fighter') <
+        scope.indexOf('Tokens/Adventurers/Dragonborn')
+    ).toBe(true);
   });
 
   it('creates class variants when subclasses are provided', () => {
@@ -49,6 +55,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Adventurers/Elf/Wizard',
         'Tokens/Adventurers/Elf/Wizard',
         'folder:Tokens/Adventurers/Elf/Wizard',
+        'Tokens/Adventurers/Elves',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Elf')).toBe(false);
@@ -66,6 +73,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Half-Orc/Cleric',
         'Tokens/Adventurers/Half-Orc/Barbarian',
         'Tokens/Adventurers/Half-Orc/Cleric',
+        'Tokens/Adventurers/Half-Orcs',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Half-Orc')).toBe(false);
@@ -80,6 +88,7 @@ describe('buildPlayerTokenFolderScope', () => {
       expect.arrayContaining([
         'Tokens/Adventurers/Goliaths/Cleric',
         'folder:Tokens/Adventurers/Goliaths/Cleric',
+        'Tokens/Adventurers/Goliaths',
       ])
     );
   });
@@ -93,9 +102,16 @@ describe('buildPlayerTokenFolderScope', () => {
         'folder:Tokens/Adventurers/Elves/Ranger',
         'Tokens/Adventurers/Elves/Rangers',
         'folder:Tokens/Adventurers/Elves/Rangers',
+        'Tokens/Adventurers/Elves',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Elves')).toBe(false);
+  });
+
+  it('avoids runaway pluralization variants', () => {
+    const scope = buildPlayerTokenFolderScope('Elf', ['Fighter', 'Fighters']);
+
+    expect(scope.some((value) => /Elveses|Fighterses/i.test(value))).toBe(false);
   });
 
   it('avoids runaway pluralization variants', () => {
