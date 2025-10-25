@@ -543,11 +543,30 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
         .filter(Boolean)
     : [];
 
-  const inferredRootPath =
-    typeof folderTree?.folders?.[0]?.path === 'string' &&
-    folderTree.folders[0].path.trim() !== ''
-      ? folderTree.folders[0].path.trim()
+  const inferredRootPath = (() => {
+    const flatRoot = Array.isArray(folderTree?.flatFolders)
+      ? folderTree.flatFolders.find(
+          (entry) =>
+            entry &&
+            typeof entry.path === 'string' &&
+            entry.path.trim() !== '' &&
+            (entry.depth === 0 || entry.depth === null || entry.depth === undefined)
+        )
       : null;
+
+    if (flatRoot) {
+      return flatRoot.path.trim();
+    }
+
+    if (
+      typeof folderTree?.folders?.[0]?.path === 'string' &&
+      folderTree.folders[0].path.trim() !== ''
+    ) {
+      return folderTree.folders[0].path.trim();
+    }
+
+    return null;
+  })();
 
   const resolvedRootFolders =
     inferredRootPath && inferredRootPath.trim() !== ''
@@ -556,29 +575,15 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
         ? fallbackRootFolders
         : ['Adventurers'];
 
-  addFilter({
-    ...fallbackRoot,
-    folders: resolvedRootFolders,
-    aliases: Array.isArray(fallbackRoot.aliases)
-      ? Array.from(
-          new Set(
-            fallbackRoot.aliases
-              .concat(['Adventurers', 'adventurers'])
-              .filter(Boolean)
-          )
-        )
-      : ['Adventurers', 'adventurers'],
-    depth: 0,
-  });
-
   const playerRootPath = resolvedRootFolders[0] || null;
-  const rootLeaf = playerRootPath
+  const rootSegments = playerRootPath
     ? playerRootPath
         .split('/')
         .map((segment) => segment.trim())
         .filter(Boolean)
-        .pop()
-    : null;
+    : [];
+  const rootLeaf = rootSegments.length > 0 ? rootSegments[rootSegments.length - 1] : null;
+  const rootLeafLower = rootLeaf ? rootLeaf.toLowerCase() : null;
 
   const flatFolders = Array.isArray(folderTree?.flatFolders)
     ? folderTree.flatFolders
@@ -598,60 +603,122 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       return;
     }
 
-    const depth = Number.isInteger(entry.depth) ? entry.depth : 0;
-    const indent = depth > 0 ? NBSP.repeat(depth * 2) : '';
+    const normalizedRelativePath = (() => {
+      if (playerRootPath && normalizedPath.startsWith(playerRootPath)) {
+        return normalizedPath
+          .slice(playerRootPath.length)
+          .replace(/^\/+/, '')
+          .trim();
+      }
 
-    const relativePath =
-      typeof entry.relativePath === 'string' && entry.relativePath.trim() !== ''
-        ? entry.relativePath.trim()
-        : '';
+      if (typeof entry.relativePath === 'string' && entry.relativePath.trim() !== '') {
+        return entry.relativePath.trim();
+      }
 
-    const relativeSegments = relativePath
-      ? relativePath.split('/').map((segment) => segment.trim()).filter(Boolean)
-      : [];
+      return '';
+    })();
 
-    const trimmedSegments =
-      rootLeaf && relativeSegments.length > 0 && relativeSegments[0] === rootLeaf
-        ? relativeSegments.slice(1)
-        : relativeSegments;
+    const pathSegments = normalizedPath
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
 
+    if (pathSegments.length === 0) {
+      return;
+    }
+
+    let rootStartIndex = 0;
+
+    if (rootSegments.length > 0) {
+      const rootIndex = rootLeafLower
+        ? pathSegments.findIndex((segment) => segment.toLowerCase() === rootLeafLower)
+        : -1;
+
+      if (rootIndex === -1) {
+        return;
+      }
+
+      rootStartIndex = rootIndex - (rootSegments.length - 1);
+      if (rootStartIndex < 0) {
+        return;
+      }
+
+      const matchesRoot = rootSegments.every((segment, segmentIndex) => {
+        const targetSegment = pathSegments[rootStartIndex + segmentIndex];
+        return (
+          typeof targetSegment === 'string' &&
+          targetSegment.trim().toLowerCase() === segment.trim().toLowerCase()
+        );
+      });
+
+      if (!matchesRoot) {
+        return;
+      }
+    }
+
+    const relativeSegments = pathSegments.slice(rootStartIndex);
+    if (relativeSegments.length < rootSegments.length + 2) {
+      return;
+    }
+
+    const segmentsBeyondRoot = relativeSegments.length - rootSegments.length;
+    if (segmentsBeyondRoot < 2) {
+      return;
+    }
+
+    const hasChildFolder = flatFolders.some((candidate) => {
+      if (!candidate || typeof candidate.path !== 'string') {
+        return false;
+      }
+
+      const candidatePath = candidate.path.trim();
+      if (!candidatePath || candidatePath === normalizedPath) {
+        return false;
+      }
+
+      return candidatePath.startsWith(`${normalizedPath}/`);
+    });
+
+    if (hasChildFolder) {
+      return;
+    }
+
+    const trimmedSegments = relativeSegments.slice(rootSegments.length);
     const trimmedRelativePath = trimmedSegments.join('/');
+    if (!trimmedRelativePath) {
+      return;
+    }
 
-    const displayCandidate =
-      trimmedRelativePath ||
-      (typeof entry.displayPath === 'string' && entry.displayPath.trim() !== ''
-        ? entry.displayPath.trim()
-        : typeof entry.name === 'string' && entry.name.trim() !== ''
-          ? entry.name.trim()
-          : normalizedPath.split('/').pop());
+    const displaySegments = relativeSegments;
+    const displayPath = displaySegments.join('/');
 
     const aliasSet = new Set();
 
-    if (trimmedRelativePath) {
-      aliasSet.add(trimmedRelativePath);
-      aliasSet.add(trimmedRelativePath.toLowerCase());
+    aliasSet.add(trimmedRelativePath);
+    aliasSet.add(trimmedRelativePath.toLowerCase());
+
+    if (normalizedRelativePath) {
+      aliasSet.add(normalizedRelativePath);
+      aliasSet.add(normalizedRelativePath.toLowerCase());
     }
 
-    if (relativePath) {
-      aliasSet.add(relativePath);
-      aliasSet.add(relativePath.toLowerCase());
-    }
-
-    if (displayCandidate) {
-      aliasSet.add(displayCandidate);
-      aliasSet.add(displayCandidate.toLowerCase());
-    }
+    aliasSet.add(displayPath);
+    aliasSet.add(displayPath.toLowerCase());
 
     addFilter({
       key: `folder:${normalizedPath}`,
-      label: `${indent}${displayCandidate}`,
+      label: displayPath,
       folders: [normalizedPath],
       aliases: Array.from(aliasSet).filter(Boolean),
-      depth,
+      depth: 0,
     });
   });
 
-  return filters.length > 0 ? filters : fallback;
+  if (filters.length > 0) {
+    return filters;
+  }
+
+  return fallback.filter((filter) => filter && filter.key === 'adventurers');
 };
 
 const TokenPickerModal = ({
