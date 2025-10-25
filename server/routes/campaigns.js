@@ -1747,8 +1747,38 @@ module.exports = (router) => {
             return res.status(404).json({ message: 'Campaign not found' });
           }
 
-          if (!req.user || campaign.dm !== req.user.username) {
-            return res.status(403).json({ message: 'Forbidden' });
+          const normalizedCampaign = withDefaultCombat(campaign);
+          const isDm = req.user && campaign.dm === req.user.username;
+          const username =
+            typeof req.user?.username === 'string'
+              ? req.user.username.trim()
+              : null;
+          const normalizedPlayers = Array.isArray(campaign.players)
+            ? campaign.players
+                .map((player) => {
+                  if (typeof player === 'string') {
+                    const trimmed = player.trim();
+                    return trimmed || null;
+                  }
+
+                  if (
+                    player &&
+                    typeof player === 'object' &&
+                    typeof player.username === 'string'
+                  ) {
+                    const trimmed = player.username.trim();
+                    return trimmed || null;
+                  }
+
+                  return null;
+                })
+                .filter(Boolean)
+            : [];
+
+          if (!isDm) {
+            if (!username || !normalizedPlayers.includes(username)) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
           }
 
           const enemyLookup = createEnemyLookup(campaign.enemies);
@@ -1767,6 +1797,84 @@ module.exports = (router) => {
             req.body.activeTurn === null || req.body.activeTurn === undefined
               ? null
               : req.body.activeTurn;
+
+          if (!isDm) {
+            const currentParticipants = Array.isArray(
+              normalizedCampaign?.combat?.participants
+            )
+              ? normalizedCampaign.combat.participants
+              : [];
+
+            const currentTurnIndex = Number.isInteger(
+              normalizedCampaign?.combat?.activeTurn
+            )
+              ? normalizedCampaign.combat.activeTurn
+              : null;
+
+            const participantsMatch =
+              participants.length === currentParticipants.length &&
+              participants.every((participant, index) => {
+                const current = currentParticipants[index];
+                return (
+                  current &&
+                  current.characterId === participant.characterId &&
+                  current.initiative === participant.initiative
+                );
+              });
+
+            if (!participantsMatch) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            if (
+              currentTurnIndex === null ||
+              currentTurnIndex < 0 ||
+              currentTurnIndex >= currentParticipants.length ||
+              currentParticipants.length === 0
+            ) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const activeParticipant = currentParticipants[currentTurnIndex];
+            if (!activeParticipant) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const characterFilters = [
+              { characterId: activeParticipant.characterId },
+            ];
+
+            if (ObjectId.isValid(activeParticipant.characterId)) {
+              characterFilters.push({ _id: new ObjectId(activeParticipant.characterId) });
+            }
+
+            const charactersCollection = db_connect.collection('Characters');
+            const activeCharacter = await charactersCollection.findOne({
+              campaign: campaign.campaignName,
+              $or: characterFilters,
+            });
+
+            const ownerCandidates = [
+              activeCharacter?.token,
+              activeCharacter?.player,
+              activeCharacter?.owner,
+              activeCharacter?.username,
+            ]
+              .filter((value) => typeof value === 'string')
+              .map((value) => value.trim())
+              .filter(Boolean);
+
+            if (!ownerCandidates.includes(username)) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const expectedNextTurn =
+              (currentTurnIndex + 1) % currentParticipants.length;
+
+            if (activeTurn !== expectedNextTurn) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+          }
 
           if (
             activeTurn !== null &&
