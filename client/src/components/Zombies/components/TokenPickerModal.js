@@ -591,13 +591,14 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
   });
 
   const playerRootPath = resolvedRootFolders[0] || null;
-  const rootLeaf = playerRootPath
+  const rootSegments = playerRootPath
     ? playerRootPath
         .split('/')
         .map((segment) => segment.trim())
         .filter(Boolean)
-        .pop()
-    : null;
+    : [];
+  const rootLeaf = rootSegments.length > 0 ? rootSegments[rootSegments.length - 1] : null;
+  const rootLeafLower = rootLeaf ? rootLeaf.toLowerCase() : null;
 
   const flatFolders = Array.isArray(folderTree?.flatFolders)
     ? folderTree.flatFolders
@@ -659,14 +660,43 @@ const buildPlayerFolderFilters = (folderTree, fallbackFilters = DEFAULT_PLAYER_F
       return '';
     })();
 
-    const relativeSegments = normalizedRelativePath
-      ? normalizedRelativePath.split('/').map((segment) => segment.trim()).filter(Boolean)
-      : [];
+    const pathSegments = normalizedPath
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
 
-    const trimmedSegments =
-      rootLeaf && relativeSegments.length > 0 && relativeSegments[0] === rootLeaf
-        ? relativeSegments.slice(1)
-        : relativeSegments;
+    const rootIndex = rootLeafLower
+      ? pathSegments.findIndex((segment) => segment.toLowerCase() === rootLeafLower)
+      : -1;
+
+    if (rootIndex === -1) {
+      return;
+    }
+
+    if (rootSegments.length > 0) {
+      const expectedRootStart = rootIndex - (rootSegments.length - 1);
+      if (expectedRootStart < 0) {
+        return;
+      }
+
+      const matchesRoot = rootSegments.every((segment, segmentIndex) => {
+        const targetSegment = pathSegments[expectedRootStart + segmentIndex];
+        return (
+          typeof targetSegment === 'string' &&
+          targetSegment.trim().toLowerCase() === segment.trim().toLowerCase()
+        );
+      });
+
+      if (!matchesRoot) {
+        return;
+      }
+    }
+
+    const trimmedSegments = pathSegments.slice(rootIndex + 1);
+
+    if (trimmedSegments.length < 2) {
+      return;
+    }
 
     if (trimmedSegments.length <= 1) {
       return;
