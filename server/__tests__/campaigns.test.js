@@ -1500,6 +1500,141 @@ describe('Campaign routes', () => {
     expect(res.body.message).toBe('Forbidden');
   });
 
+  test('player controlling active participant can pass turn', async () => {
+    mockUser = { username: 'PlayerOne' };
+    const campaignDoc = {
+      campaignName: 'Test',
+      dm: 'DM',
+      players: ['PlayerOne'],
+      enemies: [],
+      combat: {
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 0,
+      },
+    };
+
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    const campaignCollection = {
+      findOne: jest.fn().mockResolvedValue(campaignDoc),
+      updateOne,
+    };
+    const characterCollection = {
+      findOne: jest
+        .fn()
+        .mockResolvedValue({
+          campaign: 'Test',
+          characterId: 'char-1',
+          token: 'PlayerOne',
+        }),
+    };
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return campaignCollection;
+        }
+        if (name === 'Characters') {
+          return characterCollection;
+        }
+        return {};
+      },
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/combat')
+      .send({
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 1,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      participants: [
+        { characterId: 'char-1', initiative: 15 },
+        { characterId: 'char-2', initiative: 12 },
+      ],
+      activeTurn: 1,
+    });
+    expect(updateOne).toHaveBeenCalledWith(
+      { campaignName: 'Test' },
+      {
+        $set: {
+          combat: {
+            participants: [
+              { characterId: 'char-1', initiative: 15 },
+              { characterId: 'char-2', initiative: 12 },
+            ],
+            activeTurn: 1,
+          },
+        },
+      }
+    );
+  });
+
+  test('player cannot skip ahead when passing turn', async () => {
+    mockUser = { username: 'PlayerOne' };
+    const campaignDoc = {
+      campaignName: 'Test',
+      dm: 'DM',
+      players: ['PlayerOne'],
+      enemies: [],
+      combat: {
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 0,
+      },
+    };
+
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    const campaignCollection = {
+      findOne: jest.fn().mockResolvedValue(campaignDoc),
+      updateOne,
+    };
+    const characterCollection = {
+      findOne: jest
+        .fn()
+        .mockResolvedValue({
+          campaign: 'Test',
+          characterId: 'char-1',
+          token: 'PlayerOne',
+        }),
+    };
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return campaignCollection;
+        }
+        if (name === 'Characters') {
+          return characterCollection;
+        }
+        return {};
+      },
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/combat')
+      .send({
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 0,
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe('Forbidden');
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+
   test('update combat validation failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
