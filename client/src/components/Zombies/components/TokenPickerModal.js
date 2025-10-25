@@ -492,7 +492,98 @@ const TokenPickerModal = ({
     return baseFilters;
   }, [baseFilters, filterScopeSet]);
 
-  const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
+  const playerScopedFilters = useMemo(() => {
+    if (isDm) {
+      return [];
+    }
+
+    if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
+      return [];
+    }
+
+    return availableFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
+  }, [availableFilters, filterScopeSet, isDm]);
+
+  const combinedPlayerFilter = useMemo(() => {
+    if (!Array.isArray(playerScopedFilters) || playerScopedFilters.length <= 1) {
+      return null;
+    }
+
+    const folderSet = new Set();
+    const aliasSet = new Set([
+      'scope:auto',
+      'scope:recommended',
+      'recommended',
+      'recommended tokens',
+      'recommendedtokens',
+    ]);
+
+    playerScopedFilters.forEach((filter) => {
+      if (!filter || typeof filter !== 'object') {
+        return;
+      }
+
+      if (Array.isArray(filter.folders)) {
+        filter.folders.forEach((folder) => {
+          if (typeof folder !== 'string') {
+            return;
+          }
+          const trimmed = folder.trim();
+          if (!trimmed) {
+            return;
+          }
+          folderSet.add(trimmed);
+          aliasSet.add(trimmed);
+          aliasSet.add(trimmed.toLowerCase());
+        });
+      }
+
+      if (Array.isArray(filter.aliases)) {
+        filter.aliases.forEach((alias) => {
+          if (typeof alias === 'string' && alias.trim() !== '') {
+            aliasSet.add(alias.trim());
+            aliasSet.add(alias.trim().toLowerCase());
+          }
+        });
+      }
+
+      if (typeof filter.label === 'string' && filter.label.trim() !== '') {
+        const normalizedLabel = filter.label.replace(/\u00A0/g, ' ').trim();
+        if (normalizedLabel) {
+          aliasSet.add(normalizedLabel);
+          aliasSet.add(normalizedLabel.toLowerCase());
+        }
+      }
+    });
+
+    const combinedFolders = Array.from(folderSet);
+    if (combinedFolders.length === 0) {
+      return null;
+    }
+
+    combinedFolders.sort((a, b) => a.localeCompare(b));
+
+    return {
+      key: 'scope:recommended',
+      label: 'Recommended Tokens',
+      folders: combinedFolders,
+      aliases: Array.from(aliasSet).filter(Boolean),
+      depth: 0,
+    };
+  }, [playerScopedFilters]);
+
+  const effectiveFilters = useMemo(() => {
+    if (combinedPlayerFilter) {
+      const existing = availableFilters.filter(
+        (filter) => filter && filter.key !== combinedPlayerFilter.key
+      );
+      return [combinedPlayerFilter, ...existing];
+    }
+
+    return availableFilters;
+  }, [availableFilters, combinedPlayerFilter]);
+
+  const filterLookup = useMemo(() => buildFilterMap(effectiveFilters), [effectiveFilters]);
 
   const [selectedFilterKey, setSelectedFilterKey] = useState(null);
 
@@ -510,11 +601,13 @@ const TokenPickerModal = ({
 
     let nextKey = null;
 
-    if (defaultFilter) {
+    if (combinedPlayerFilter && filterLookup.has(combinedPlayerFilter.key)) {
+      nextKey = combinedPlayerFilter.key;
+    } else if (defaultFilter) {
       if (filterLookup.has(defaultFilter)) {
         nextKey = defaultFilter;
       } else {
-        const aliasMatch = availableFilters.find(
+        const aliasMatch = effectiveFilters.find(
           (filter) =>
             filter &&
             typeof filter === 'object' &&
@@ -536,7 +629,13 @@ const TokenPickerModal = ({
     if (nextKey !== selectedFilterKey) {
       setSelectedFilterKey(nextKey);
     }
-  }, [filterLookup, availableFilters, defaultFilter, selectedFilterKey]);
+  }, [
+    filterLookup,
+    effectiveFilters,
+    defaultFilter,
+    selectedFilterKey,
+    combinedPlayerFilter,
+  ]);
 
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -995,7 +1094,7 @@ const TokenPickerModal = ({
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {availableFilters.length > 0 ? (
+        {effectiveFilters.length > 0 ? (
           <Form.Group className="mb-3" controlId="tokenPickerFilter">
             <Form.Label>Token Library</Form.Label>
             <Form.Select
@@ -1009,7 +1108,7 @@ const TokenPickerModal = ({
                   Loading token folders…
                 </option>
               ) : null}
-              {availableFilters.map((filter) => (
+              {effectiveFilters.map((filter) => (
                 <option key={filter.key} value={filter.key}>
                   {filter.label}
                 </option>
