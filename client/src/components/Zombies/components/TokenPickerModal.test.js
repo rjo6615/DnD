@@ -382,11 +382,12 @@ describe('TokenPickerModal', () => {
 
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
-    expect(options).toHaveLength(2);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
-    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
+    const actualOptions = options.filter((option) => option.value !== '');
+    expect(actualOptions).toHaveLength(2);
+    expect(actualOptions[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
+    expect(actualOptions[1].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
 
-    await user.selectOptions(select, options[1]);
+    await user.selectOptions(select, actualOptions[1]);
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
@@ -394,6 +395,62 @@ describe('TokenPickerModal', () => {
         '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FCore_Class_Tokens%2FFighter'
       );
     });
+  });
+
+  test('uses scoped fallback filters when folder tree lacks matching entries', async () => {
+    const folderTree = {
+      folders: [],
+      flatFolders: [],
+    };
+
+    const manifestPayload = {
+      assets: [],
+      nextCursor: null,
+      appliedFolders: [],
+      totalCount: 0,
+    };
+
+    const manifestCalls = [];
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        manifestCalls.push(url);
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope="Tokens/Adventurers/Goliaths/Warlock"
+      />
+    );
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith('/campaigns/Camp1/token-folders');
+    });
+
+    await waitFor(() => {
+      expect(manifestCalls.length).toBeGreaterThan(0);
+      expect(manifestCalls[0]).toBe(
+        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FGoliaths%2FWarlock'
+      );
+    });
+
+    const select = await screen.findByLabelText(/Token Library/i);
+    const options = within(select).getAllByRole('option');
+    const actualOptions = options.filter((option) => option.value !== '');
+    expect(actualOptions).toHaveLength(1);
+    expect(actualOptions[0].textContent.replace(/\u00A0/g, '')).toBe('Goliaths/Warlock');
   });
 
   test('filters manifest assets based on provided scope', async () => {
@@ -609,11 +666,15 @@ describe('TokenPickerModal', () => {
 
     await waitFor(() => {
       const options = within(select).getAllByRole('option');
-      const normalizedOptions = options.map((option) => option.textContent.replace(/\u00A0/g, ''));
+      const actualOptions = options.filter((option) => option.value !== '');
+      const normalizedOptions = actualOptions.map((option) =>
+        option.textContent.replace(/\u00A0/g, '')
+      );
 
       expect(normalizedOptions).toEqual([
         'Dwarves/Druid',
         'Core_Class_Tokens/Mediumfolk/Druid',
+        'Core_Class_Tokens/Druid',
       ]);
     });
   });
@@ -821,9 +882,10 @@ describe('TokenPickerModal', () => {
 
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
+    const actualOptions = options.filter((option) => option.value !== '');
 
-    expect(options).toHaveLength(1);
-    expect(options[0]).toHaveTextContent('Adversaries/Cultist');
+    expect(actualOptions).toHaveLength(1);
+    expect(actualOptions[0]).toHaveTextContent('Adversaries/Cultist');
   });
 
   test('does not include parent adversary filters when scope targets specific adversary', async () => {
@@ -859,8 +921,9 @@ describe('TokenPickerModal', () => {
 
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
+    const actualOptions = options.filter((option) => option.value !== '');
 
-    expect(options).toHaveLength(1);
-    expect(options[0]).toHaveTextContent('Adversaries/Cultists');
+    expect(actualOptions).toHaveLength(1);
+    expect(actualOptions[0]).toHaveTextContent('Adversaries/Cultists');
   });
 });

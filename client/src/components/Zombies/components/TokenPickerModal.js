@@ -288,6 +288,110 @@ const collectScopeMatchValues = (scopeSet) => {
   return buildNormalizedMatchSet(rawValues);
 };
 
+const buildScopedFallbackFilters = (scope) => {
+  const values = Array.isArray(scope) ? scope : [scope];
+  const filters = [];
+  const seen = new Set();
+
+  const normalizeFolderPath = (folderPath) => {
+    if (typeof folderPath !== 'string') {
+      return null;
+    }
+
+    const normalized = folderPath
+      .replace(/\u00A0/g, ' ')
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean)
+      .join('/');
+
+    return normalized || null;
+  };
+
+  const resolveFolderPath = (value) => {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.replace(/\u00A0/g, ' ').trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const lower = trimmed.toLowerCase();
+
+    if (lower.startsWith('folder:')) {
+      return resolveFolderPath(trimmed.slice('folder:'.length));
+    }
+
+    if (lower.startsWith('tokens/')) {
+      const normalized = normalizeFolderPath(trimmed);
+      if (normalized && normalized.toLowerCase().includes('adventurers/')) {
+        return normalized;
+      }
+      return null;
+    }
+
+    if (lower.startsWith('adventurers/')) {
+      const normalized = normalizeFolderPath(`Tokens/${trimmed}`);
+      if (normalized && normalized.toLowerCase().includes('adventurers/')) {
+        return normalized;
+      }
+      return null;
+    }
+
+    return null;
+  };
+
+  const addFolderFilter = (folderPath) => {
+    const normalizedFolder = normalizeFolderPath(folderPath);
+    if (!normalizedFolder || seen.has(normalizedFolder)) {
+      return;
+    }
+
+    seen.add(normalizedFolder);
+
+    const segments = normalizedFolder.split('/');
+    let displaySegments = segments;
+
+    if (displaySegments.length > 0 && displaySegments[0].toLowerCase() === 'tokens') {
+      displaySegments = displaySegments.slice(1);
+    }
+
+    if (displaySegments.length > 0 && displaySegments[0].toLowerCase() === 'adventurers') {
+      displaySegments = displaySegments.slice(1);
+    }
+
+    const rawLabel = displaySegments.join('/') || normalizedFolder;
+    const depth = Math.max(0, displaySegments.length - 1);
+    const indent = depth > 0 ? NBSP.repeat(depth * 2) : '';
+    const aliases = new Set([
+      normalizedFolder,
+      normalizedFolder.toLowerCase(),
+      rawLabel,
+      rawLabel.toLowerCase(),
+      `folder:${normalizedFolder}`,
+    ]);
+
+    filters.push({
+      key: `scope:${normalizedFolder}`,
+      label: `${indent}${rawLabel}`,
+      folders: [normalizedFolder],
+      aliases: Array.from(aliases).filter(Boolean),
+      depth,
+    });
+  };
+
+  values.forEach((scopeValue) => {
+    const folderPath = resolveFolderPath(scopeValue);
+    if (folderPath) {
+      addFolderFilter(folderPath);
+    }
+  });
+
+  return filters;
+};
+
 const assetMatchesScope = (asset, scopeSet, manifestMeta) => {
   if (!(scopeSet instanceof Set) || scopeSet.size === 0) {
     return true;
@@ -614,24 +718,79 @@ const TokenPickerModal = ({
     return cloneFilters(DEFAULT_PLAYER_FILTERS);
   }, [isDm, dmFolderOptions, playerFolderOptions]);
 
+  const scopeFallbackFilters = useMemo(
+    () => buildScopedFallbackFilters(filterScope),
+    [filterScope]
+  );
+
   const filterScopeSet = useMemo(() => buildScopeVariantSet(filterScope), [filterScope]);
 
   const { availableFilters, hasScopedFilterMatch } = useMemo(() => {
-    if (!Array.isArray(baseFilters)) {
-      return { availableFilters: [], hasScopedFilterMatch: false };
-    }
+    const baseList = Array.isArray(baseFilters) ? [...baseFilters] : [];
+    const mergedFilters = [...baseList];
+    const existingKeys = new Set(mergedFilters.map((filter) => filter?.key).filter(Boolean));
+    const existingFolderPaths = new Set();
+
+    mergedFilters.forEach((filter) => {
+      if (!filter || typeof filter !== 'object' || !Array.isArray(filter.folders)) {
+        return;
+      }
+
+      filter.folders.forEach((folder) => {
+        if (typeof folder === 'string' && folder.trim() !== '') {
+          existingFolderPaths.add(folder.trim());
+        }
+      });
+    });
+
+    scopeFallbackFilters.forEach((filter) => {
+      if (!filter || typeof filter !== 'object' || !filter.key) {
+        return;
+      }
+
+      if (existingKeys.has(filter.key)) {
+        return;
+      }
+
+      const fallbackFolder = Array.isArray(filter.folders)
+        ? filter.folders.find((folder) => typeof folder === 'string' && folder.trim() !== '')
+        : null;
+
+      if (fallbackFolder && existingFolderPaths.has(fallbackFolder.trim())) {
+        return;
+      }
+
+      mergedFilters.push({
+        ...filter,
+        ...(Array.isArray(filter.folders) ? { folders: [...filter.folders] } : {}),
+        ...(Array.isArray(filter.aliases)
+          ? { aliases: Array.from(new Set(filter.aliases.filter(Boolean))) }
+          : {}),
+      });
+
+      existingKeys.add(filter.key);
+      if (fallbackFolder && fallbackFolder.trim() !== '') {
+        existingFolderPaths.add(fallbackFolder.trim());
+      }
+    });
 
     if (!(filterScopeSet instanceof Set) || filterScopeSet.size === 0) {
-      return { availableFilters: baseFilters, hasScopedFilterMatch: false };
+      return {
+        availableFilters: mergedFilters,
+        hasScopedFilterMatch: scopeFallbackFilters.length > 0,
+      };
     }
 
-    const scoped = baseFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
+    const scoped = mergedFilters.filter((filter) => filterMatchesScope(filter, filterScopeSet));
     if (scoped.length > 0) {
       return { availableFilters: scoped, hasScopedFilterMatch: true };
     }
 
-    return { availableFilters: baseFilters, hasScopedFilterMatch: false };
-  }, [baseFilters, filterScopeSet]);
+    return {
+      availableFilters: mergedFilters,
+      hasScopedFilterMatch: scopeFallbackFilters.length > 0,
+    };
+  }, [baseFilters, filterScopeSet, scopeFallbackFilters]);
 
   const filterLookup = useMemo(() => buildFilterMap(availableFilters), [availableFilters]);
 
