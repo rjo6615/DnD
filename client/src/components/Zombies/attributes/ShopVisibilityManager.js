@@ -11,12 +11,19 @@ import {
   Card,
   Col,
   Form,
+  Modal,
   Nav,
   Row,
   Spinner,
   Tab,
 } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
+import {
+  normalizeAccessories,
+  normalizeArmor,
+  normalizeItems,
+  normalizeWeapons,
+} from './inventoryNormalization';
 
 const SHOP_TABS = [
   { key: 'weapons', title: 'Weapons' },
@@ -165,6 +172,232 @@ const normalizeArrayField = (value) => {
   return [];
 };
 
+const resolveFirstString = (...values) => {
+  for (const value of values) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return '';
+};
+
+const cloneInventoryEntry = (entry) => {
+  if (!entry || typeof entry !== 'object') {
+    return entry;
+  }
+  try {
+    return JSON.parse(JSON.stringify(entry));
+  } catch (error) {
+    return { ...entry };
+  }
+};
+
+const createInventoryCopies = (entry, quantity, extras = {}) => {
+  const normalizedQuantity = Math.max(
+    1,
+    Number.isFinite(quantity) ? quantity : Number.parseInt(quantity, 10) || 1
+  );
+  const copies = [];
+  for (let index = 0; index < normalizedQuantity; index += 1) {
+    let clone = cloneInventoryEntry(entry);
+    if (!clone || typeof clone !== 'object') {
+      clone = {};
+    }
+    copies.push({ ...clone, ...extras });
+  }
+  return copies;
+};
+
+const createWeaponInventoryPayload = (weapon, fallbackName, source) => {
+  if (!weapon) {
+    return null;
+  }
+  const resolvedName = resolveFirstString(
+    weapon.name,
+    weapon.displayName,
+    weapon.weaponName,
+    fallbackName
+  );
+  if (!resolvedName) {
+    return null;
+  }
+  const base = {
+    ...weapon,
+    name: resolvedName,
+  };
+  if (base.weaponName && base.displayName === undefined) {
+    base.displayName = base.weaponName;
+  }
+  if (base.weaponType !== undefined && base.type === undefined) {
+    base.type = base.weaponType;
+  }
+  const [normalized] = normalizeWeapons([base], { includeUnowned: true });
+  if (!normalized) {
+    return null;
+  }
+  return {
+    ...normalized,
+    ...(source ? { source } : {}),
+  };
+};
+
+const createArmorInventoryPayload = (armor, fallbackName, source) => {
+  if (!armor) {
+    return null;
+  }
+  const resolvedName = resolveFirstString(
+    armor.name,
+    armor.armorName,
+    armor.displayName,
+    fallbackName
+  );
+  if (!resolvedName) {
+    return null;
+  }
+  const base = {
+    ...armor,
+    name: resolvedName,
+  };
+  if (!base.displayName && armor.armorName) {
+    base.displayName = armor.armorName;
+  }
+  if (base.armorType !== undefined && base.type === undefined) {
+    base.type = base.armorType;
+  }
+  const [normalized] = normalizeArmor([base], { includeUnowned: true });
+  if (!normalized) {
+    return null;
+  }
+  return {
+    ...normalized,
+    ...(source ? { source } : {}),
+  };
+};
+
+const createItemInventoryPayload = (item, fallbackName, source) => {
+  if (!item) {
+    return null;
+  }
+  const resolvedName = resolveFirstString(
+    item.name,
+    item.itemName,
+    item.displayName,
+    fallbackName
+  );
+  if (!resolvedName) {
+    return null;
+  }
+  const base = {
+    ...item,
+    name: resolvedName,
+  };
+  if (!base.displayName && item.itemName) {
+    base.displayName = item.itemName;
+  }
+  const [normalized] = normalizeItems([base], { includeUnowned: true });
+  if (!normalized) {
+    return null;
+  }
+  return {
+    ...normalized,
+    ...(source ? { source } : {}),
+  };
+};
+
+const createAccessoryInventoryPayload = (accessory, fallbackName, source) => {
+  if (!accessory) {
+    return null;
+  }
+  const resolvedName = resolveFirstString(
+    accessory.name,
+    accessory.accessoryName,
+    accessory.displayName,
+    fallbackName
+  );
+  if (!resolvedName) {
+    return null;
+  }
+  const base = {
+    ...accessory,
+    name: resolvedName,
+  };
+  if (!base.displayName && accessory.accessoryName) {
+    base.displayName = accessory.accessoryName;
+  }
+  const [normalized] = normalizeAccessories([base], { includeUnowned: true });
+  if (!normalized) {
+    return null;
+  }
+  return {
+    ...normalized,
+    ...(source ? { source } : {}),
+  };
+};
+
+const resolveCharacterId = (character) => {
+  if (!character || typeof character !== 'object') {
+    return null;
+  }
+  const candidates = [character._id, character.characterId, character.id];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
+};
+
+const resolveCharacterLabel = (character) => {
+  if (!character || typeof character !== 'object') {
+    return 'Unnamed Character';
+  }
+  const name = resolveFirstString(
+    character.characterName,
+    character.name,
+    character.CharacterName
+  );
+  const player = resolveFirstString(character.token, character.player, character.username);
+  if (name && player) {
+    return `${name} (${player})`;
+  }
+  return name || player || 'Unnamed Character';
+};
+
+const DEFAULT_ADD_MODAL_STATE = {
+  show: false,
+  category: '',
+  item: null,
+  characterId: '',
+  quantity: '1',
+  submitting: false,
+  error: null,
+};
+
+const readErrorMessage = async (response, fallback = 'Request failed.') => {
+  if (!response) {
+    return fallback;
+  }
+  let message = fallback;
+  try {
+    const data = await response.json();
+    if (data && typeof data.message === 'string' && data.message.trim()) {
+      message = data.message.trim();
+    }
+  } catch (error) {
+    // ignore JSON parse errors
+  }
+  if (!message && response.statusText) {
+    message = response.statusText;
+  }
+  return message || fallback;
+};
+
 const buildWeaponCatalog = (standard, custom) => {
   const map = new Map();
   if (standard && typeof standard === 'object') {
@@ -176,14 +409,20 @@ const buildWeaponCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = weapon.displayName || weapon.name || key;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: weapon.displayName || weapon.name || key,
+        name: displayName,
         category: weapon.category || '',
         cost: weapon.cost ?? '',
         damage: weapon.damage ?? '',
         properties: normalizeArrayField(weapon.properties),
         source: 'Standard',
+        inventoryPayload: createWeaponInventoryPayload(
+          weapon,
+          displayName,
+          'Standard'
+        ),
       });
     });
   }
@@ -197,14 +436,21 @@ const buildWeaponCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName =
+        weapon.displayName || weapon.name || weapon.weaponName || rawName;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: weapon.displayName || weapon.name || weapon.weaponName || rawName,
+        name: displayName,
         category: weapon.category || weapon.type || 'custom',
         cost: weapon.cost ?? '',
         damage: weapon.damage ?? '',
         properties: normalizeArrayField(weapon.properties),
         source: 'Custom',
+        inventoryPayload: createWeaponInventoryPayload(
+          weapon,
+          displayName,
+          'Custom'
+        ),
       });
     });
   }
@@ -224,9 +470,10 @@ const buildArmorCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = armor.displayName || armor.name || key;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: armor.displayName || armor.name || key,
+        name: displayName,
         category: armor.category || '',
         cost: armor.cost ?? '',
         armorClass: armor.acBonus ?? armor.ac ?? '',
@@ -234,6 +481,11 @@ const buildArmorCatalog = (standard, custom) => {
         strength: armor.strength ?? null,
         stealth: armor.stealth ?? false,
         source: 'Standard',
+        inventoryPayload: createArmorInventoryPayload(
+          armor,
+          displayName,
+          'Standard'
+        ),
       });
     });
   }
@@ -247,9 +499,10 @@ const buildArmorCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = armor.name || armor.armorName || rawName;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: armor.name || armor.armorName || rawName,
+        name: displayName,
         category: armor.category || armor.type || 'custom',
         cost: armor.cost ?? '',
         armorClass: armor.acBonus ?? armor.armorBonus ?? armor.ac ?? '',
@@ -257,6 +510,11 @@ const buildArmorCatalog = (standard, custom) => {
         strength: armor.strength ?? null,
         stealth: armor.stealth ?? false,
         source: 'Custom',
+        inventoryPayload: createArmorInventoryPayload(
+          armor,
+          displayName,
+          'Custom'
+        ),
       });
     });
   }
@@ -276,14 +534,20 @@ const buildItemCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = item.displayName || item.name || key;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: item.displayName || item.name || key,
+        name: displayName,
         category: item.category || '',
         cost: item.cost ?? '',
         weight: item.weight ?? '',
         notes: item.notes || '',
         source: 'Standard',
+        inventoryPayload: createItemInventoryPayload(
+          item,
+          displayName,
+          'Standard'
+        ),
       });
     });
   }
@@ -296,14 +560,20 @@ const buildItemCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = item.name;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: item.name,
+        name: displayName,
         category: item.category || 'custom',
         cost: item.cost ?? '',
         weight: item.weight ?? '',
         notes: item.notes || '',
         source: 'Custom',
+        inventoryPayload: createItemInventoryPayload(
+          item,
+          displayName,
+          'Custom'
+        ),
       });
     });
   }
@@ -323,14 +593,20 @@ const buildAccessoryCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = accessory.displayName || accessory.name || key;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: accessory.displayName || accessory.name || key,
+        name: displayName,
         category: accessory.category || '',
         cost: accessory.cost ?? '',
         targetSlots: normalizeArrayField(accessory.targetSlots),
         rarity: accessory.rarity || '',
         source: 'Standard',
+        inventoryPayload: createAccessoryInventoryPayload(
+          accessory,
+          displayName,
+          'Standard'
+        ),
       });
     });
   }
@@ -343,14 +619,20 @@ const buildAccessoryCatalog = (standard, custom) => {
       if (!normalizedKey) {
         return;
       }
+      const displayName = accessory.name;
       map.set(normalizedKey, {
         key: normalizedKey,
-        name: accessory.name,
+        name: displayName,
         category: accessory.category || 'custom',
         cost: accessory.cost ?? '',
         targetSlots: normalizeArrayField(accessory.targetSlots),
         rarity: accessory.rarity || '',
         source: 'Custom',
+        inventoryPayload: createAccessoryInventoryPayload(
+          accessory,
+          displayName,
+          'Custom'
+        ),
       });
     });
   }
@@ -359,7 +641,13 @@ const buildAccessoryCatalog = (standard, custom) => {
   );
 };
 
-export default function ShopVisibilityManager({ campaign, active, onStatus }) {
+export default function ShopVisibilityManager({
+  campaign,
+  active,
+  onStatus,
+  characters,
+  onInventoryUpdate,
+}) {
   const [activeTabKey, setActiveTabKey] = useState('weapons');
   const [hiddenState, setHiddenState] = useState(() => createEmptyHiddenState());
   const [initialHiddenState, setInitialHiddenState] = useState(() =>
@@ -375,6 +663,7 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [addModalState, setAddModalState] = useState(DEFAULT_ADD_MODAL_STATE);
 
   useEffect(() => {
     setHiddenState(createEmptyHiddenState());
@@ -461,6 +750,29 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
     };
   }, [active, campaign, initialized, onStatus]);
 
+  const characterLookup = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(characters)) {
+      characters.forEach((character) => {
+        const id = resolveCharacterId(character);
+        if (id && !map.has(id)) {
+          map.set(id, character);
+        }
+      });
+    }
+    return map;
+  }, [characters]);
+
+  const characterOptions = useMemo(() => {
+    const options = [];
+    characterLookup.forEach((character, id) => {
+      options.push({ id, label: resolveCharacterLabel(character) });
+    });
+    return options.sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: 'base' })
+    );
+  }, [characterLookup]);
+
   const hiddenSets = useMemo(() => {
     const sets = {};
     SHOP_TABS.forEach(({ key }) => {
@@ -472,6 +784,153 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
   const hasChanges = useMemo(
     () => !hiddenStatesEqual(hiddenState, initialHiddenState),
     [hiddenState, initialHiddenState]
+  );
+
+  const openAddInventoryModal = useCallback(
+    (category, item) => {
+      if (!item || !item.inventoryPayload) {
+        return;
+      }
+      setAddModalState((prev) => {
+        const defaultId =
+          prev.characterId &&
+          characterOptions.some((option) => option.id === prev.characterId)
+            ? prev.characterId
+            : characterOptions[0]?.id || '';
+        return {
+          ...DEFAULT_ADD_MODAL_STATE,
+          show: true,
+          category,
+          item,
+          characterId: defaultId,
+        };
+      });
+    },
+    [characterOptions]
+  );
+
+  const closeAddInventoryModal = useCallback(() => {
+    setAddModalState({ ...DEFAULT_ADD_MODAL_STATE });
+  }, []);
+
+  const handleConfirmAdd = useCallback(
+    async (event) => {
+      event.preventDefault();
+      const { category, item, characterId, quantity } = addModalState;
+      setAddModalState((prev) => ({ ...prev, submitting: true, error: null }));
+      try {
+        if (!item || !item.inventoryPayload) {
+          throw new Error('Item details are unavailable.');
+        }
+        const trimmedCharacterId =
+          typeof characterId === 'string' ? characterId.trim() : '';
+        if (!trimmedCharacterId) {
+          throw new Error('Select a player character.');
+        }
+        const character = characterLookup.get(trimmedCharacterId);
+        if (!character) {
+          throw new Error('Character not found.');
+        }
+        const quantityValue = Math.min(
+          99,
+          Math.max(1, Number.parseInt(quantity, 10) || 1)
+        );
+        const additions = createInventoryCopies(item.inventoryPayload, quantityValue, {
+          owned: true,
+        });
+        if (!additions.length) {
+          throw new Error('Unable to prepare item for inventory.');
+        }
+
+        let endpoint = '';
+        let bodyKey = '';
+        let updatedInventory = [];
+
+        if (category === 'weapons') {
+          const existing = normalizeWeapons(
+            Array.isArray(character.weapon) ? character.weapon : [],
+            { includeUnowned: true }
+          );
+          updatedInventory = [...existing, ...additions];
+          endpoint = `/equipment/update-weapon/${encodeURIComponent(trimmedCharacterId)}`;
+          bodyKey = 'weapon';
+        } else if (category === 'armor') {
+          const existing = normalizeArmor(
+            Array.isArray(character.armor) ? character.armor : [],
+            { includeUnowned: true }
+          );
+          updatedInventory = [...existing, ...additions];
+          endpoint = `/equipment/update-armor/${encodeURIComponent(trimmedCharacterId)}`;
+          bodyKey = 'armor';
+        } else if (category === 'items') {
+          const existing = normalizeItems(
+            Array.isArray(character.item) ? character.item : [],
+            { includeUnowned: true }
+          );
+          updatedInventory = [...existing, ...additions];
+          endpoint = `/equipment/update-item/${encodeURIComponent(trimmedCharacterId)}`;
+          bodyKey = 'item';
+        } else if (category === 'accessories') {
+          const accessorySource = Array.isArray(character.accessories)
+            ? character.accessories
+            : Array.isArray(character.accessory)
+              ? character.accessory
+              : [];
+          const existing = normalizeAccessories(accessorySource, {
+            includeUnowned: true,
+          });
+          updatedInventory = [...existing, ...additions];
+          endpoint = `/equipment/update-accessories/${encodeURIComponent(
+            trimmedCharacterId
+          )}`;
+          bodyKey = 'accessories';
+        } else {
+          throw new Error('Unsupported item type.');
+        }
+
+        const response = await apiFetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [bodyKey]: updatedInventory }),
+        });
+
+        if (!response.ok) {
+          const message = await readErrorMessage(
+            response,
+            'Failed to update inventory.'
+          );
+          throw new Error(message);
+        }
+
+        if (typeof onInventoryUpdate === 'function') {
+          await onInventoryUpdate();
+        }
+
+        if (typeof onStatus === 'function') {
+          const label = resolveCharacterLabel(character);
+          const itemName = item.inventoryPayload?.name || item.name || 'Item';
+          onStatus({
+            type: 'success',
+            message: `${itemName} added to ${label}'s inventory.`,
+          });
+        }
+
+        setAddModalState({ ...DEFAULT_ADD_MODAL_STATE });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to add item to inventory', error);
+        const message = error?.message || 'Failed to add item to inventory.';
+        setAddModalState((prev) => ({
+          ...prev,
+          submitting: false,
+          error: message,
+        }));
+        if (typeof onStatus === 'function') {
+          onStatus({ type: 'danger', message });
+        }
+      }
+    },
+    [addModalState, characterLookup, onInventoryUpdate, onStatus]
   );
 
   const handleToggleItem = useCallback((category, key, visible) => {
@@ -616,6 +1075,16 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
           <Row className="row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
             {entries.map((item) => {
               const visible = !hiddenSet.has(item.key);
+              const canAddItem = Boolean(item.inventoryPayload);
+              let addButtonDisabled = addModalState.submitting;
+              let addButtonTitle;
+              if (!canAddItem) {
+                addButtonDisabled = true;
+                addButtonTitle = 'This item cannot be added to inventory.';
+              } else if (characterOptions.length === 0) {
+                addButtonDisabled = true;
+                addButtonTitle = 'No player characters available.';
+              }
               return (
                 <Col key={`${category}-${item.key}`} className="d-flex">
                   <Card className="flex-grow-1 h-100 bg-dark bg-opacity-75 border border-secondary text-light">
@@ -689,16 +1158,27 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
                         ) : null}
                       </div>
                       <div className="mt-auto">
-                        <Form.Check
-                          type="checkbox"
-                          id={`${category}-visibility-${toHtmlId(item.key)}`}
-                          label="Visible in player shop"
-                          checked={visible}
-                          onChange={(event) =>
-                            handleToggleItem(category, item.key, event.target.checked)
-                          }
-                          disabled={saving}
-                        />
+                        <div className="d-flex flex-column gap-2">
+                          <Form.Check
+                            type="checkbox"
+                            id={`${category}-visibility-${toHtmlId(item.key)}`}
+                            label="Visible in player shop"
+                            checked={visible}
+                            onChange={(event) =>
+                              handleToggleItem(category, item.key, event.target.checked)
+                            }
+                            disabled={saving}
+                          />
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            onClick={() => openAddInventoryModal(category, item)}
+                            disabled={addButtonDisabled}
+                            title={addButtonTitle}
+                          >
+                            Add to Inventory
+                          </Button>
+                        </div>
                       </div>
                     </Card.Body>
                   </Card>
@@ -709,8 +1189,31 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
         </>
       );
     },
-    [handleToggleAll, handleToggleItem, hiddenSets, inventory, loading, saving]
+    [
+      addModalState.submitting,
+      characterOptions,
+      handleToggleAll,
+      handleToggleItem,
+      hiddenSets,
+      inventory,
+      loading,
+      openAddInventoryModal,
+      saving,
+    ]
   );
+
+  const selectedCharacterValid = characterOptions.some(
+    (option) => option.id === addModalState.characterId
+  );
+  const canSubmitAddModal =
+    Boolean(addModalState.item?.inventoryPayload) &&
+    selectedCharacterValid &&
+    !addModalState.submitting;
+  const modalItemName =
+    addModalState.item?.inventoryPayload?.name ||
+    addModalState.item?.name ||
+    'this item';
+  const modalCategoryLabel = toTitleCase(addModalState.category);
 
   return (
     <div>
@@ -752,6 +1255,80 @@ export default function ShopVisibilityManager({ campaign, active, onStatus }) {
           ))}
         </Tab.Content>
       </Tab.Container>
+      <Modal show={addModalState.show} onHide={closeAddInventoryModal} centered>
+        <Form onSubmit={handleConfirmAdd}>
+          <Modal.Header closeButton>
+            <Modal.Title>Add to Inventory</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p className="mb-3">
+              Choose a player character to receive{' '}
+              <span className="fw-semibold">{modalItemName}</span>
+              {modalCategoryLabel ? ` (${modalCategoryLabel})` : ''}.
+            </p>
+            {characterOptions.length === 0 ? (
+              <Alert variant="info">No player characters are available for this campaign.</Alert>
+            ) : null}
+            <Form.Group className="mb-3" controlId="add-inventory-character">
+              <Form.Label>Player Character</Form.Label>
+              <Form.Select
+                value={addModalState.characterId}
+                onChange={(event) =>
+                  setAddModalState((prev) => ({
+                    ...prev,
+                    characterId: event.target.value,
+                  }))
+                }
+                disabled={characterOptions.length === 0 || addModalState.submitting}
+              >
+                {characterOptions.length === 0 ? (
+                  <option value="">No characters available</option>
+                ) : (
+                  characterOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))
+                )}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="add-inventory-quantity">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                min={1}
+                max={99}
+                value={addModalState.quantity}
+                onChange={(event) =>
+                  setAddModalState((prev) => ({
+                    ...prev,
+                    quantity: event.target.value,
+                  }))
+                }
+                disabled={addModalState.submitting}
+              />
+              <Form.Text className="text-muted">
+                Adds the selected item this many times.
+              </Form.Text>
+            </Form.Group>
+            {addModalState.error ? (
+              <Alert variant="danger">{addModalState.error}</Alert>
+            ) : null}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={closeAddInventoryModal}
+              disabled={addModalState.submitting}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={!canSubmitAddModal}>
+              {addModalState.submitting ? 'Adding…' : 'Add Item'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </div>
   );
 }
@@ -760,4 +1337,6 @@ ShopVisibilityManager.defaultProps = {
   campaign: '',
   active: false,
   onStatus: () => {},
+  characters: [],
+  onInventoryUpdate: null,
 };
