@@ -246,9 +246,9 @@
       "url": "/api/monsters/black-bear"
     },
     {
-      "index": "black-dragon-wyrmling",
-      "name": "Black Dragon Wyrmling",
-      "url": "/api/monsters/black-dragon-wyrmling"
+      "index": "wyrmling-black-dragon",
+      "name": "Wyrmling Black Dragon",
+      "url": "/api/monsters/wyrmling-black-dragon"
     },
     {
       "index": "black-pudding",
@@ -266,9 +266,9 @@
       "url": "/api/monsters/blood-hawk"
     },
     {
-      "index": "blue-dragon-wyrmling",
-      "name": "Blue Dragon Wyrmling",
-      "url": "/api/monsters/blue-dragon-wyrmling"
+      "index": "wyrmling-blue-dragon",
+      "name": "Wyrmling Blue Dragon",
+      "url": "/api/monsters/wyrmling-blue-dragon"
     },
     {
       "index": "boar",
@@ -276,14 +276,14 @@
       "url": "/api/monsters/boar"
     },
     {
-      "index": "brass-dragon-wyrmling",
-      "name": "Brass Dragon Wyrmling",
-      "url": "/api/monsters/brass-dragon-wyrmling"
+      "index": "wyrmling-brass-dragon",
+      "name": "Wyrmling Brass Dragon",
+      "url": "/api/monsters/wyrmling-brass-dragon"
     },
     {
-      "index": "bronze-dragon-wyrmling",
-      "name": "Bronze Dragon Wyrmling",
-      "url": "/api/monsters/bronze-dragon-wyrmling"
+      "index": "wyrmling-bronze-dragon",
+      "name": "Wyrmling Bronze Dragon",
+      "url": "/api/monsters/wyrmling-bronze-dragon"
     },
     {
       "index": "brown-bear",
@@ -366,9 +366,9 @@
       "url": "/api/monsters/constrictor-snake"
     },
     {
-      "index": "copper-dragon-wyrmling",
-      "name": "Copper Dragon Wyrmling",
-      "url": "/api/monsters/copper-dragon-wyrmling"
+      "index": "wyrmling-copper-dragon",
+      "name": "Wyrmling Copper Dragon",
+      "url": "/api/monsters/wyrmling-copper-dragon"
     },
     {
       "index": "couatl",
@@ -736,9 +736,9 @@
       "url": "/api/monsters/goblin-warrior"
     },
     {
-      "index": "gold-dragon-wyrmling",
-      "name": "Gold Dragon Wyrmling",
-      "url": "/api/monsters/gold-dragon-wyrmling"
+      "index": "wyrmling-gold-dragon",
+      "name": "Wyrmling Gold Dragon",
+      "url": "/api/monsters/wyrmling-gold-dragon"
     },
     {
       "index": "gorgon",
@@ -751,9 +751,9 @@
       "url": "/api/monsters/gray-ooze"
     },
     {
-      "index": "green-dragon-wyrmling",
-      "name": "Green Dragon Wyrmling",
-      "url": "/api/monsters/green-dragon-wyrmling"
+      "index": "wyrmling-green-dragon",
+      "name": "Wyrmling Green Dragon",
+      "url": "/api/monsters/wyrmling-green-dragon"
     },
     {
       "index": "green-hag",
@@ -1191,9 +1191,9 @@
       "url": "/api/monsters/raven"
     },
     {
-      "index": "red-dragon-wyrmling",
-      "name": "Red Dragon Wyrmling",
-      "url": "/api/monsters/red-dragon-wyrmling"
+      "index": "wyrmling-red-dragon",
+      "name": "Wyrmling Red Dragon",
+      "url": "/api/monsters/wyrmling-red-dragon"
     },
     {
       "index": "reef-shark",
@@ -1296,9 +1296,9 @@
       "url": "/api/monsters/shrieker-fungus"
     },
     {
-      "index": "silver-dragon-wyrmling",
-      "name": "Silver Dragon Wyrmling",
-      "url": "/api/monsters/silver-dragon-wyrmling"
+      "index": "wyrmling-silver-dragon",
+      "name": "Wyrmling Silver Dragon",
+      "url": "/api/monsters/wyrmling-silver-dragon"
     },
     {
       "index": "skeleton",
@@ -1561,9 +1561,9 @@
       "url": "/api/monsters/werewolf"
     },
     {
-      "index": "white-dragon-wyrmling",
-      "name": "White Dragon Wyrmling",
-      "url": "/api/monsters/white-dragon-wyrmling"
+      "index": "wyrmling-white-dragon",
+      "name": "Wyrmling White Dragon",
+      "url": "/api/monsters/wyrmling-white-dragon"
     },
     {
       "index": "wight",
@@ -3430,9 +3430,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "black-dragon-wyrmling": {
-      "index": "black-dragon-wyrmling",
-      "name": "Black Dragon Wyrmling",
+    "wyrmling-black-dragon": {
+      "index": "wyrmling-black-dragon",
+      "name": "Wyrmling Black Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Chaotic Evil",
@@ -3499,6 +3499,12 @@
               "damage_dice": "1d6+2",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3600,6 +3606,12 @@
               "damage_dice": "2d4+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3705,6 +3717,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3840,6 +3858,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -3969,6 +3993,12 @@
               "damage_dice": "2d10+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4190,9 +4220,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "blue-dragon-wyrmling": {
-      "index": "blue-dragon-wyrmling",
-      "name": "Blue Dragon Wyrmling",
+    "wyrmling-blue-dragon": {
+      "index": "wyrmling-blue-dragon",
+      "name": "Wyrmling Blue Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Lawful Evil",
@@ -4254,6 +4284,12 @@
               "damage_dice": "1d10+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4350,6 +4386,12 @@
               "damage_dice": "2d6+5",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d10",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4522,9 +4564,9 @@
       "regional_effects": null,
       "subtype": "chromatic"
     },
-    "brass-dragon-wyrmling": {
-      "index": "brass-dragon-wyrmling",
-      "name": "Brass Dragon Wyrmling",
+    "wyrmling-brass-dragon": {
+      "index": "wyrmling-brass-dragon",
+      "name": "Wyrmling Brass Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Chaotic Good",
@@ -4791,6 +4833,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d10+6",
@@ -4934,6 +4982,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d10+8",
@@ -5006,9 +5060,9 @@
       "regional_effects": null,
       "subtype": "metallic"
     },
-    "bronze-dragon-wyrmling": {
-      "index": "bronze-dragon-wyrmling",
-      "name": "Bronze Dragon Wyrmling",
+    "wyrmling-bronze-dragon": {
+      "index": "wyrmling-bronze-dragon",
+      "name": "Wyrmling Bronze Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Lawful Good",
@@ -5292,6 +5346,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d10",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "2d8+7",
@@ -5438,6 +5498,12 @@
               "damage_dice": "2d8+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -6609,9 +6675,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "copper-dragon-wyrmling": {
-      "index": "copper-dragon-wyrmling",
-      "name": "Copper Dragon Wyrmling",
+    "wyrmling-copper-dragon": {
+      "index": "wyrmling-copper-dragon",
+      "name": "Wyrmling Copper Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Chaotic Good",
@@ -6877,6 +6943,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d10+6",
@@ -7015,6 +7087,12 @@
               "damage_dice": "2d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -10454,9 +10532,9 @@
       "regional_effects": null,
       "subtype": "goblinoid"
     },
-    "gold-dragon-wyrmling": {
-      "index": "gold-dragon-wyrmling",
-      "name": "Gold Dragon Wyrmling",
+    "wyrmling-gold-dragon": {
+      "index": "wyrmling-gold-dragon",
+      "name": "Wyrmling Gold Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Lawful Good",
@@ -10765,6 +10843,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -10923,6 +11007,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -11175,9 +11265,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "green-dragon-wyrmling": {
-      "index": "green-dragon-wyrmling",
-      "name": "Green Dragon Wyrmling",
+    "wyrmling-green-dragon": {
+      "index": "wyrmling-green-dragon",
+      "name": "Wyrmling Green Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Lawful Evil",
@@ -11246,6 +11336,12 @@
               "damage_dice": "1d10+2",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11350,6 +11446,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11458,6 +11560,12 @@
               "damage_dice": "2d8+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11603,6 +11711,12 @@
               "damage_dice": "2d8+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -12550,6 +12664,12 @@
               "damage_dice": "1d4+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -16065,6 +16185,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d10",
+              "damage_type": {
+                "name": "force"
+              }
             }
           ],
           "damage_dice": "2d10+5",
@@ -18035,9 +18161,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "red-dragon-wyrmling": {
-      "index": "red-dragon-wyrmling",
-      "name": "Red Dragon Wyrmling",
+    "wyrmling-red-dragon": {
+      "index": "wyrmling-red-dragon",
+      "name": "Wyrmling Red Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Chaotic Evil",
@@ -18099,6 +18225,12 @@
               "damage_dice": "1d10+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18195,6 +18327,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18296,6 +18434,12 @@
               "damage_dice": "1d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18418,6 +18562,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -19499,9 +19649,9 @@
       "lair_actions": null,
       "regional_effects": null
     },
-    "silver-dragon-wyrmling": {
-      "index": "silver-dragon-wyrmling",
-      "name": "Silver Dragon Wyrmling",
+    "wyrmling-silver-dragon": {
+      "index": "wyrmling-silver-dragon",
+      "name": "Wyrmling Silver Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Lawful Good",
@@ -19768,6 +19918,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -19905,6 +20061,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -20577,6 +20739,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -23513,9 +23681,9 @@
       "regional_effects": null,
       "subtype": "lycanthrope"
     },
-    "white-dragon-wyrmling": {
-      "index": "white-dragon-wyrmling",
-      "name": "White Dragon Wyrmling",
+    "wyrmling-white-dragon": {
+      "index": "wyrmling-white-dragon",
+      "name": "Wyrmling White Dragon",
       "size": "Medium",
       "type": "dragon",
       "alignment": "Chaotic Evil",
@@ -23819,6 +23987,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d4+4",
@@ -23920,6 +24094,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -24055,6 +24235,12 @@
               "damage_dice": "2d8+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -26791,6 +26977,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
