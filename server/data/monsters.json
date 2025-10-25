@@ -2146,6 +2146,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d6+3",
@@ -2243,6 +2249,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "5d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d6+4",
@@ -2259,6 +2271,12 @@
               "damage_dice": "1d8+4",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "6d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -2507,6 +2525,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "1d10+3",
@@ -2619,6 +2643,12 @@
               "damage_type": {
                 "name": "force"
               }
+            },
+            {
+              "damage_dice": "5d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "3d6+8",
@@ -2635,6 +2665,12 @@
               "damage_dice": "3d8+8",
               "damage_type": {
                 "name": "force"
+              }
+            },
+            {
+              "damage_dice": "4d10",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -3013,6 +3049,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "2d6+3",
@@ -3192,6 +3234,12 @@
               "damage_dice": "2d12+6",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d10",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -3500,6 +3548,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "1d6+2",
@@ -3600,6 +3654,12 @@
               "damage_dice": "2d4+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3705,6 +3765,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -3840,6 +3906,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -3969,6 +4041,12 @@
               "damage_dice": "2d10+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4255,6 +4333,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "1d10+3",
@@ -4350,6 +4434,12 @@
               "damage_dice": "2d6+5",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d10",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -4489,6 +4579,12 @@
               "damage_dice": "2d10+4",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "4d8",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -4791,6 +4887,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d10+6",
@@ -4933,6 +5035,12 @@
               "damage_dice": "2d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -5292,6 +5400,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d10",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "2d8+7",
@@ -5438,6 +5552,12 @@
               "damage_dice": "2d8+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -6446,6 +6566,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "thunder"
+              }
             }
           ],
           "damage_dice": "3d8+8",
@@ -6877,6 +7003,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "2d10+6",
@@ -7015,6 +7147,12 @@
               "damage_dice": "2d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -7367,6 +7505,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d8+2",
@@ -7602,6 +7746,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "4d8",
+              "damage_type": {
+                "name": "radiant"
+              }
             }
           ],
           "damage_dice": "1d6+4",
@@ -7699,6 +7849,12 @@
               "damage_dice": "2d6+5",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -7896,6 +8052,12 @@
               "damage_dice": "3d10+7",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -8253,6 +8415,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d8+3",
@@ -8556,6 +8724,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d12",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d6+6",
@@ -8677,6 +8851,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d10",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "2d8+4",
@@ -8771,6 +8951,12 @@
               "damage_dice": "1d6+2",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -9052,6 +9238,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "4d6+7",
@@ -9068,6 +9260,12 @@
               "damage_dice": "3d10+7",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -9154,6 +9352,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "2d8+4",
@@ -9233,6 +9437,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d12+6",
@@ -9249,6 +9459,12 @@
               "damage_dice": "2d10+6",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -9608,6 +9824,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d8+3",
@@ -9807,6 +10029,12 @@
               "damage_dice": "1d6+2",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -10765,6 +10993,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -10923,6 +11157,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -11247,6 +11487,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d10+2",
@@ -11350,6 +11596,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11458,6 +11710,12 @@
               "damage_dice": "2d8+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11604,6 +11862,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -11731,6 +11995,12 @@
               "damage_dice": "1d8+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -11943,6 +12213,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "psychic"
+              }
             }
           ],
           "damage_dice": "1d6+3",
@@ -12043,6 +12319,12 @@
               "damage_dice": "2d12+4",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "4d10",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -12439,6 +12721,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "1d8+3",
@@ -12550,6 +12838,12 @@
               "damage_dice": "1d4+4",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -12783,6 +13077,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "3d4",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d8+1",
@@ -12843,6 +13143,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "2d6+2",
@@ -12859,6 +13165,12 @@
               "damage_dice": "1d8+2",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -13023,6 +13335,12 @@
               "damage_dice": "2d8+6",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -13232,6 +13550,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d8+5",
@@ -13248,6 +13572,12 @@
               "damage_dice": "3d6+5",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "4d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -13329,6 +13659,12 @@
               "damage_dice": "1d6+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -13615,6 +13951,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "3d8+7",
@@ -13720,6 +14062,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "radiant"
+              }
             }
           ],
           "damage_dice": "2d6+3",
@@ -13736,6 +14084,12 @@
               "damage_dice": "2d10",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -13961,6 +14315,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "7d6",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "3d8+10",
@@ -14037,6 +14397,12 @@
               "damage_dice": "1d8+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "psychic"
               }
             }
           ],
@@ -14746,6 +15112,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d10+5",
@@ -14861,6 +15233,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "4d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -15059,6 +15437,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "1d4+1",
@@ -15162,6 +15546,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "1d4+1",
@@ -15263,6 +15653,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "1d4",
@@ -15341,6 +15737,12 @@
               "damage_dice": "1d6",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -15513,6 +15915,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
+              }
             }
           ],
           "damage_dice": "1d8+3",
@@ -15529,6 +15937,12 @@
               "damage_dice": "1d8+3",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "acid"
               }
             }
           ],
@@ -15717,6 +16131,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d12+4",
@@ -15811,6 +16231,12 @@
               "damage_dice": "1d10+3",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -15914,6 +16340,12 @@
               "damage_dice": "2d10+4",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -16064,6 +16496,12 @@
               "damage_dice": "2d10+5",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d10",
+              "damage_type": {
+                "name": "force"
               }
             }
           ],
@@ -16250,6 +16688,12 @@
               "damage_dice": "2d8+4",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -16655,6 +17099,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d12+4",
@@ -16927,6 +17377,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "radiant"
+              }
             }
           ],
           "damage_dice": "1d6+4",
@@ -17004,6 +17460,12 @@
               "damage_dice": "1d10+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -17327,6 +17789,12 @@
               "damage_type": {
                 "name": "force"
               }
+            },
+            {
+              "damage_dice": "6d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "4d6+8",
@@ -17432,6 +17900,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "4d8",
+              "damage_type": {
+                "name": "radiant"
+              }
             }
           ],
           "damage_dice": "2d6+7",
@@ -17515,6 +17989,12 @@
               "damage_dice": "1d6+2",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -17607,6 +18087,12 @@
               "damage_dice": "1d6+3",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -17818,6 +18304,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "10d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "2d6+9",
@@ -18001,6 +18493,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "3d12",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "2d6+5",
@@ -18100,6 +18598,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "1d10+4",
@@ -18195,6 +18699,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18296,6 +18806,12 @@
               "damage_dice": "1d10+8",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18419,6 +18935,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d8+10",
@@ -18524,6 +19046,12 @@
               "damage_dice": "2d10+7",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "4d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -18955,6 +19483,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "fire"
+              }
             }
           ],
           "damage_dice": "2d8+4",
@@ -18970,6 +19504,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "fire"
               }
             }
           ],
@@ -19394,6 +19934,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "lightning"
+              }
             }
           ],
           "damage_dice": "1d6+4",
@@ -19479,6 +20025,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "force"
               }
             }
           ],
@@ -19768,6 +20320,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -19905,6 +20463,12 @@
               "damage_dice": "2d8+10",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -20276,6 +20840,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "8d8",
+              "damage_type": {
+                "name": "radiant"
+              }
             }
           ],
           "damage_dice": "4d6+8",
@@ -20291,6 +20861,12 @@
               "damage_dice": "4d8+6",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "8d8",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -20577,6 +21153,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -20913,6 +21495,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "4d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d6+4",
@@ -21069,6 +21657,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d6+2",
@@ -21085,6 +21679,12 @@
               "damage_dice": "1d6+2",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -21149,6 +21749,12 @@
               "damage_dice": "1d6+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -21334,6 +21940,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "2d8",
+              "damage_type": {
+                "name": "force"
+              }
             }
           ],
           "damage_dice": "2d8+6",
@@ -21452,6 +22064,12 @@
               "damage_dice": "4d6+9",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "3d8",
+              "damage_type": {
+                "name": "lightning"
               }
             }
           ],
@@ -22432,6 +23050,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "3d4",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d4+3",
@@ -22549,6 +23173,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -22669,6 +23299,12 @@
               "damage_type": {
                 "name": "bludgeoning"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d8+4",
@@ -22684,6 +23320,12 @@
               "damage_dice": "1d4+4",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "3d8",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -22799,6 +23441,12 @@
               "damage_dice": "2d6+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -23819,6 +24467,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d4",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d4+4",
@@ -23920,6 +24574,12 @@
               "damage_dice": "2d6+6",
               "damage_type": {
                 "name": "slashing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "cold"
               }
             }
           ],
@@ -24056,6 +24716,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "cold"
+              }
             }
           ],
           "damage_dice": "2d8+8",
@@ -24179,6 +24845,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "necrotic"
+              }
             }
           ],
           "damage_dice": "1d8+2",
@@ -24195,6 +24867,12 @@
               "damage_dice": "1d8+2",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "necrotic"
               }
             }
           ],
@@ -24498,6 +25176,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "7d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -26792,6 +27476,12 @@
               "damage_type": {
                 "name": "slashing"
               }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "radiant"
+              }
             }
           ],
           "damage_dice": "1d4+3",
@@ -26863,6 +27553,12 @@
               "damage_dice": "2d6+4",
               "damage_type": {
                 "name": "bludgeoning"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "radiant"
               }
             }
           ],
@@ -27494,6 +28190,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d10",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d8+3",
@@ -27703,6 +28405,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d8+3",
@@ -27775,6 +28483,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d6+2",
@@ -27839,6 +28553,12 @@
               "damage_dice": "1d4+4",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d8",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -27971,6 +28691,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d6+2",
@@ -28098,6 +28824,12 @@
               "damage_dice": "1d4+3",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "2d4",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
@@ -30407,6 +31139,12 @@
               "damage_type": {
                 "name": "piercing"
               }
+            },
+            {
+              "damage_dice": "3d6",
+              "damage_type": {
+                "name": "poison"
+              }
             }
           ],
           "damage_dice": "1d8+4",
@@ -30683,6 +31421,12 @@
               "damage_dice": "1d4+2",
               "damage_type": {
                 "name": "piercing"
+              }
+            },
+            {
+              "damage_dice": "1d6",
+              "damage_type": {
+                "name": "poison"
               }
             }
           ],
