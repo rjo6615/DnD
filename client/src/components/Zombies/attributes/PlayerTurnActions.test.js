@@ -107,6 +107,24 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(onPassTurn).not.toHaveBeenCalled();
   });
 
+  test('opens dice roller modal when the dice button is clicked', () => {
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#112233', equipment: {}, weapon: [], spells: [] }}
+        strMod={0}
+        dexMod={0}
+        onPassTurn={jest.fn()}
+      />
+    );
+
+    const diceButton = screen.getByRole('button', { name: /open dice roller/i });
+    expect(diceButton).toBeInTheDocument();
+
+    fireEvent.click(diceButton);
+
+    expect(screen.getByRole('dialog', { name: /dice roller/i })).toBeInTheDocument();
+  });
+
   test('weapon damage segments include ability and type classes', async () => {
     const weapon = {
       name: 'Frost Brand',
