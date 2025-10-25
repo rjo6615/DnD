@@ -1514,6 +1514,7 @@ const manualCriticalRef = useRef(false);
     const { result, d20 } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
     });
+    diceBoxThemeRef.current = diceFaceColor;
     const weaponLabel = getWeaponDisplayName(slot, weapon);
     const segments = [`${d20} (d20)`];
     if (bonus) {
@@ -1553,6 +1554,7 @@ const manualCriticalRef = useRef(false);
       const { result, d20 } = await rollSkillWithDiceBox(total, {
         diceColor: diceFaceColor,
       });
+      diceBoxThemeRef.current = diceFaceColor;
       const segments = [`${d20} (d20)`];
       segments.push(`${formatModifier(abilityBonus)} ${spellAbilityLabel}`);
       segments.push(
