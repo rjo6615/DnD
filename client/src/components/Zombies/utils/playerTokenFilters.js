@@ -37,6 +37,16 @@ const capitalizeTokenWord = (word) => {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 };
 
+const IRREGULAR_PLURALS = new Set([
+  'people',
+  'men',
+  'children',
+  'teeth',
+  'feet',
+  'mice',
+  'geese',
+]);
+
 const pluralizeTokenWord = (word) => {
   if (typeof word !== 'string' || word.length === 0) {
     return word;
@@ -188,26 +198,30 @@ const buildTokenNameVariantSet = (rawValue) => {
     const lastIndex = pluralWords.length - 1;
 
     if (lastIndex >= 0) {
-      const pluralLower = pluralizeTokenWord(pluralWords[lastIndex]);
+      const baseLower = pluralWords[lastIndex].toLowerCase();
 
-      if (pluralLower && pluralLower !== pluralWords[lastIndex].toLowerCase()) {
-        pluralWords[lastIndex] = pluralLower;
+      if (!IRREGULAR_PLURALS.has(baseLower) && !baseLower.endsWith('s')) {
+        const pluralLower = pluralizeTokenWord(pluralWords[lastIndex]);
 
-        const pluralTitleWords = pluralWords.map(capitalizeTokenWord);
-        const pluralLowerWords = pluralWords.map((word) => word.toLowerCase());
+        if (pluralLower && pluralLower !== baseLower) {
+          pluralWords[lastIndex] = pluralLower;
 
-        [pluralTitleWords, pluralLowerWords].forEach((wordList) => {
-          const spaceVariant = wordList.join(' ').trim();
-          const hyphenVariant = wordList.join('-').trim();
-          const underscoreVariant = wordList.join('_').trim();
-          const compactVariant = wordList.join('').trim();
+          const pluralTitleWords = pluralWords.map(capitalizeTokenWord);
+          const pluralLowerWords = pluralWords.map((word) => word.toLowerCase());
 
-          [spaceVariant, hyphenVariant, underscoreVariant, compactVariant].forEach((entry) => {
-            if (entry) {
-              variants.add(entry);
-            }
+          [pluralTitleWords, pluralLowerWords].forEach((wordList) => {
+            const spaceVariant = wordList.join(' ').trim();
+            const hyphenVariant = wordList.join('-').trim();
+            const underscoreVariant = wordList.join('_').trim();
+            const compactVariant = wordList.join('').trim();
+
+            [spaceVariant, hyphenVariant, underscoreVariant, compactVariant].forEach((entry) => {
+              if (entry) {
+                variants.add(entry);
+              }
+            });
           });
-        });
+        }
       }
     }
   });

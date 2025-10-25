@@ -101,4 +101,10 @@ describe('buildPlayerTokenFolderScope', () => {
       ])
     );
   });
+
+  it('avoids runaway pluralization variants', () => {
+    const scope = buildPlayerTokenFolderScope('Elf', ['Fighter', 'Fighters']);
+
+    expect(scope.some((value) => /Elveses|Fighterses/i.test(value))).toBe(false);
+  });
 });
