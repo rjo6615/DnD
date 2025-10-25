@@ -122,6 +122,7 @@ function normalizeAccessoryBonuses(bonuses) {
  *   onAddToCart?: (accessory: any) => void,
  *   ownedOnly?: boolean,
  *   cartCounts?: Record<string, number> | null,
+ *   hiddenKeys?: Set<string> | string[] | Record<string, boolean> | null,
  * }} props
  */
 function AccessoryList({
@@ -133,6 +134,7 @@ function AccessoryList({
   onAddToCart = () => {},
   ownedOnly = false,
   cartCounts = null,
+  hiddenKeys = null,
 }) {
   const [accessories, setAccessories] =
     useState/** @type {Record<string, any & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
@@ -149,6 +151,26 @@ function AccessoryList({
     () => buildAccessoryOwnershipMap(initialAccessoriesArray),
     [initialAccessoriesArray]
   );
+
+  const hiddenSet = useMemo(() => {
+    if (!hiddenKeys) {
+      return null;
+    }
+    if (hiddenKeys instanceof Set) {
+      return new Set(Array.from(hiddenKeys, (value) => String(value).toLowerCase()));
+    }
+    if (Array.isArray(hiddenKeys)) {
+      return new Set(hiddenKeys.map((value) => String(value).toLowerCase()));
+    }
+    if (hiddenKeys && typeof hiddenKeys === 'object') {
+      return new Set(
+        Object.entries(hiddenKeys)
+          .filter(([, hidden]) => Boolean(hidden))
+          .map(([key]) => String(key).toLowerCase())
+      );
+    }
+    return null;
+  }, [hiddenKeys]);
 
   useEffect(() => {
     if (!show) return undefined;
@@ -331,9 +353,16 @@ function AccessoryList({
 
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
 
-  const filteredEntries = Object.entries(accessories).filter(([, accessory]) =>
-    ownedOnly ? (accessory.ownedCount ?? 0) > 0 : true
-  );
+  const filteredEntries = Object.entries(accessories).filter(([key, accessory]) => {
+    if (hiddenSet) {
+      const normalizedKey = String(key || '').toLowerCase();
+      const displayKey = String(accessory.displayName || accessory.name || '').toLowerCase();
+      if (hiddenSet.has(normalizedKey) || (displayKey && hiddenSet.has(displayKey))) {
+        return false;
+      }
+    }
+    return ownedOnly ? (accessory.ownedCount ?? 0) > 0 : true;
+  });
 
   const expandedEntries = ownedOnly
     ? filteredEntries.flatMap(([key, accessory]) => {
