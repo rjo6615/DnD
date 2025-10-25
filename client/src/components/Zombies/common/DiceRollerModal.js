@@ -72,12 +72,6 @@ const DiceRollerModal = ({
     setCustomSides(event.target.value);
   }, []);
 
-  const resetAndClose = useCallback(() => {
-    setRolling(false);
-    setError('');
-    onHide();
-  }, [onHide]);
-
   const handleRoll = useCallback(
     async (event) => {
       event?.preventDefault();
@@ -97,6 +91,7 @@ const DiceRollerModal = ({
 
       setError('');
       setRolling(true);
+      onHide();
 
       try {
         const response = await rollDiceWithBox([
@@ -118,13 +113,21 @@ const DiceRollerModal = ({
           values,
           usedFallback: Boolean(response?.usedFallback),
         });
-        resetAndClose();
       } catch (rollError) {
-        setError('Rolling the dice failed. Please try again.');
+        console.error('Rolling the dice failed.', rollError);
+      } finally {
         setRolling(false);
       }
     },
-    [rolling, isValidCount, isValidSides, parsedCount, resolvedSides, onRollComplete, resetAndClose],
+    [
+      rolling,
+      isValidCount,
+      isValidSides,
+      parsedCount,
+      resolvedSides,
+      onHide,
+      onRollComplete,
+    ],
   );
 
   const canRoll = isValidCount && isValidSides && !rolling;
