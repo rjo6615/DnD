@@ -18,6 +18,12 @@ describe('buildTokenPickerScope', () => {
       'Dragonborn/Fighter',
       'Dragonborn/fighter',
       'Tokens/Adventurers/Dragonborn/Fighter',
+      'Dragonborn/Core_Class_Tokens/Fighter',
+      'Adventurers/Dragonborn/Core_Class_Tokens/Fighter',
+      'Tokens/Adventurers/Dragonborn/Core_Class_Tokens/Fighter',
+      'Dragonborn/Core_Class_Tokens/Mediumfolk/Fighter',
+      'Adventurers/Dragonborn/Core_Class_Tokens/Mediumfolk/Fighter',
+      'Tokens/Adventurers/Dragonborn/Core_Class_Tokens/Mediumfolk/Fighter',
     ]));
 
     expect(scope).not.toContain('Dragonborn');

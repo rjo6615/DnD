@@ -105,6 +105,25 @@ export const buildTokenPickerScope = ({
 
     if (Array.isArray(racePrefixList) && racePrefixList.length > 0) {
       addScopeVariantsToSet(scopeSet, rawClassName, racePrefixList);
+
+      const raceClassPrefixes = racePrefixList.map((prefix) =>
+        typeof prefix === 'string' && prefix.trim() !== ''
+          ? `${prefix.trim()}/Core_Class_Tokens`
+          : ''
+      );
+      addScopeVariantsToSet(scopeSet, rawClassName, raceClassPrefixes, {
+        includeStandalone: false,
+      });
+
+      const raceSizePrefixes = raceClassPrefixes.map((prefix) =>
+        typeof prefix === 'string' && prefix.trim() !== ''
+          ? `${prefix.trim()}/${normalizedSizeFolder}`
+          : ''
+      );
+      addScopeVariantsToSet(scopeSet, rawClassName, raceSizePrefixes, {
+        includeStandalone: false,
+      });
+
       hasRaceSpecificClassScope = true;
     }
   });
