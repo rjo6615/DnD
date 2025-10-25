@@ -34,6 +34,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'folder:Tokens/Adventurers/Dragonborn/Fighters',
       ])
     );
+    expect(scope.some((value) => value === 'Tokens/Adventurers/Dragonborn')).toBe(false);
     expect(scope.filter((value) => value === 'Dragonborn/Fighter').length).toBe(1);
     expect(scope.some((value) => value === 'Tokens/Adventurers/Dragonborn')).toBe(
       false
@@ -51,6 +52,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Adventurers/Elf/Wizard',
         'Tokens/Adventurers/Elf/Wizard',
         'folder:Tokens/Adventurers/Elf/Wizard',
+        'Tokens/Adventurers/Elves',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Elves')).toBe(false);
@@ -68,6 +70,7 @@ describe('buildPlayerTokenFolderScope', () => {
         'Half-Orc/Cleric',
         'Tokens/Adventurers/Half-Orc/Barbarian',
         'Tokens/Adventurers/Half-Orc/Cleric',
+        'Tokens/Adventurers/Half-Orcs',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Half-Orcs')).toBe(
@@ -84,6 +87,7 @@ describe('buildPlayerTokenFolderScope', () => {
       expect.arrayContaining([
         'Tokens/Adventurers/Goliaths/Cleric',
         'folder:Tokens/Adventurers/Goliaths/Cleric',
+        'Tokens/Adventurers/Goliaths',
       ])
     );
     expect(scope.some((value) => value === 'Tokens/Adventurers/Goliaths')).toBe(
