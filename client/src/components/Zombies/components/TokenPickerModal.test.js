@@ -371,8 +371,16 @@ describe('TokenPickerModal', () => {
 
     await waitFor(() => {
       expect(manifestCalls.length).toBeGreaterThan(0);
-      expect(manifestCalls[0]).toBe(
-        '/campaigns/Camp1/token-manifest?folders=Tokens%2FAdventurers%2FDragonborn%2FFighter'
+      expect(manifestCalls[0].startsWith('/campaigns/Camp1/token-manifest')).toBe(true);
+      const firstUrl = new URL(`http://example.com${manifestCalls[0]}`);
+      const folderParam = firstUrl.searchParams.get('folders');
+      expect(folderParam).toBeTruthy();
+      const folderList = folderParam.split(',').map((entry) => entry.trim());
+      expect(new Set(folderList)).toEqual(
+        new Set([
+          'Tokens/Adventurers/Core_Class_Tokens/Fighter',
+          'Tokens/Adventurers/Dragonborn/Fighter',
+        ])
       );
     });
 
@@ -382,11 +390,12 @@ describe('TokenPickerModal', () => {
 
     const select = await screen.findByLabelText(/Token Library/i);
     const options = within(select).getAllByRole('option');
-    expect(options).toHaveLength(2);
-    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
-    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
+    expect(options).toHaveLength(3);
+    expect(options[0].textContent.replace(/\u00A0/g, '')).toBe('Recommended Tokens');
+    expect(options[1].textContent.replace(/\u00A0/g, '')).toBe('Dragonborn/Fighter');
+    expect(options[2].textContent.replace(/\u00A0/g, '')).toBe('Core_Class_Tokens/Fighter');
 
-    await user.selectOptions(select, options[1]);
+    await user.selectOptions(select, options[2]);
 
     await waitFor(() => {
       const lastCall = manifestCalls[manifestCalls.length - 1];
@@ -559,6 +568,7 @@ describe('TokenPickerModal', () => {
       const normalizedOptions = options.map((option) => option.textContent.replace(/\u00A0/g, ''));
 
       expect(normalizedOptions).toEqual([
+        'Recommended Tokens',
         'Dwarves/Druid',
         'Core_Class_Tokens/Mediumfolk/Druid',
       ]);

@@ -3568,6 +3568,35 @@ export default function ZombiesCharacterSheet() {
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
+  const resolveTokenSizeFolder = useCallback(() => {
+    const rawSize = (() => {
+      if (typeof form?.temporarySize === 'string' && form.temporarySize.trim() !== '') {
+        return form.temporarySize.trim();
+      }
+
+      if (typeof form?.size === 'string' && form.size.trim() !== '') {
+        return form.size.trim();
+      }
+
+      return '';
+    })()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+
+    if (!rawSize) {
+      return 'Mediumfolk';
+    }
+
+    switch (rawSize) {
+      case 'tiny':
+      case 'small':
+      case 'little':
+        return 'Smallfolk';
+      default:
+        return 'Mediumfolk';
+    }
+  }, [form?.size, form?.temporarySize]);
+
   const tokenPickerFilterScope = useMemo(() => {
     const scopeSet = new Set();
 
@@ -3612,6 +3641,12 @@ export default function ZombiesCharacterSheet() {
       buildRaceTokenScopeData(form?.race?.name);
 
     const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
+    const sizeFolder = resolveTokenSizeFolder();
+    const sizePrefixes = [
+      `Core_Class_Tokens/${sizeFolder}`,
+      `Adventurers/Core_Class_Tokens/${sizeFolder}`,
+      `Tokens/Adventurers/Core_Class_Tokens/${sizeFolder}`,
+    ];
     const seenClasses = new Set();
     occupations.forEach((occupation) => {
       if (!occupation || typeof occupation !== 'object') {
@@ -3636,6 +3671,8 @@ export default function ZombiesCharacterSheet() {
         'Tokens/Adventurers/Core_Class_Tokens',
       ]);
 
+      addScopeVariants(rawClassName, sizePrefixes);
+
       if (racePrefixList.length > 0) {
         addScopeVariants(rawClassName, racePrefixList);
       }
@@ -3652,7 +3689,7 @@ export default function ZombiesCharacterSheet() {
     }
 
     return Array.from(scopeSet);
-  }, [form?.occupation, form?.race?.name]);
+  }, [form?.occupation, form?.race?.name, resolveTokenSizeFolder]);
 
   const updateLocalDiceColor = useCallback(
     (incomingCharacterId, nextColor, nextTheme = null) => {
