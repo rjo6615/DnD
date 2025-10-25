@@ -1650,8 +1650,15 @@ export default function ZombiesCharacterSheet() {
 
     // Clear effects on rest
     setActiveEffects([]);
+    if (didLongRestIncrement) {
+      const { maxHp } = calculateCharacterHitPoints(form);
+      const nextHealth = Number.isFinite(maxHp) ? maxHp : 0;
+      handleHealthChange(nextHealth);
+      return;
+    }
+
     handleHealthChange(0);
-  }, [handleHealthChange, longRestCount, shortRestCount]);
+  }, [form, handleHealthChange, longRestCount, shortRestCount]);
 
   useEffect(() => {
     const hasteActive = activeEffects.some((e) => e.name === 'Haste');
