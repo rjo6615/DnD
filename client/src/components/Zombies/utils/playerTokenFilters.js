@@ -308,21 +308,15 @@ export const buildPlayerTokenFolderScope = (raceName, occupations) => {
 
   const scopeSet = new Set();
 
-  const addRaceOnlyScopes = () => {
+  if (classVariantSet.size === 0) {
     raceVariantSet.forEach((raceVariant) => {
       addScopeValue(scopeSet, raceVariant);
       addScopeValue(scopeSet, `Adventurers/${raceVariant}`);
       addScopeValue(scopeSet, `Tokens/Adventurers/${raceVariant}`);
       addScopeValue(scopeSet, `folder:Tokens/Adventurers/${raceVariant}`);
     });
-  };
-
-  if (classVariantSet.size === 0) {
-    addRaceOnlyScopes();
     return scopeSet.size > 0 ? Array.from(scopeSet) : null;
   }
-
-  addRaceOnlyScopes();
 
   raceVariantSet.forEach((raceVariant) => {
     classVariantSet.forEach((classVariant) => {
