@@ -5267,7 +5267,6 @@ export default function ZombiesCharacterSheet() {
               totalLevel={totalLevel}
               dexMod={statMods.dex}
               conMod={statMods.con}
-              wisMod={statMods.wis}
               initiative={featBonuses.initiative}
               speed={featBonuses.speed}
               ac={featBonuses.ac}
