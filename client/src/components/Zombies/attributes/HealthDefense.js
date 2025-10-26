@@ -125,13 +125,13 @@ export default function HealthDefense({
     return checkValue(form?.features);
   }, [form?.features]);
 
-  const hasMonkLevels = useMemo(() => {
+  const monkLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) {
-      return false;
+      return 0;
     }
-    return form.occupation.some((occupationEntry) => {
+    return form.occupation.reduce((total, occupationEntry) => {
       if (!occupationEntry || typeof occupationEntry !== 'object') {
-        return false;
+        return total;
       }
       const name = String(
         occupationEntry.Name ??
@@ -141,7 +141,7 @@ export default function HealthDefense({
           ''
       ).toLowerCase();
       if (name !== 'monk') {
-        return false;
+        return total;
       }
       const levelValue = Number(
         occupationEntry.Level ??
@@ -150,9 +150,14 @@ export default function HealthDefense({
           occupationEntry.levels ??
           0
       );
-      return Number.isFinite(levelValue) && levelValue > 0;
-    });
+      if (!Number.isFinite(levelValue) || levelValue <= 0) {
+        return total;
+      }
+      return total + levelValue;
+    }, 0);
   }, [form?.occupation]);
+
+  const hasMonkLevels = monkLevel > 0;
 
   const shouldApplyUnarmoredDefenseWisBonus = useMemo(() => {
     if (hasArmorEquipped || hasShieldEquipped) {
@@ -324,10 +329,33 @@ export default function HealthDefense({
       ? numericSpeedMultiplier
       : 1;
 
+  const unarmoredMovementBonus = useMemo(() => {
+    if (hasArmorEquipped || hasShieldEquipped) {
+      return 0;
+    }
+    if (monkLevel < 2) {
+      return 0;
+    }
+    if (monkLevel <= 5) {
+      return 10;
+    }
+    if (monkLevel <= 9) {
+      return 15;
+    }
+    if (monkLevel <= 13) {
+      return 20;
+    }
+    if (monkLevel <= 17) {
+      return 25;
+    }
+    return 30;
+  }, [hasArmorEquipped, hasShieldEquipped, monkLevel]);
+
   const baseSpeed =
     Number(form?.speed ?? 0) +
     Number(speed ?? 0) +
-    Number(form?.temporarySpeedBonus ?? 0);
+    Number(form?.temporarySpeedBonus ?? 0) +
+    unarmoredMovementBonus;
 
   const totalSpeed = baseSpeed * safeSpeedMultiplier;
 
