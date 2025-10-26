@@ -698,8 +698,26 @@ const monkFeatures = {
   ],
   2: [
     {
-      name: 'Ki',
-      description: 'You can channel ki to fuel special abilities.'
+      name: "Monk's Focus",
+      description:
+        'Your focus and martial training allow you to harness a well of extraordinary energy represented by Focus Points. Your Monk level determines the number of points you have. You can expend these points to enhance or fuel certain Monk features. You start knowing Flurry of Blows, Patient Defense, and Step of the Wind.'
+    },
+    {
+      name: 'Flurry of Blows',
+      meta: "Monk's Focus",
+      description: 'You can expend 1 Focus Point to make two Unarmed Strikes as a Bonus Action.'
+    },
+    {
+      name: 'Patient Defense',
+      meta: "Monk's Focus",
+      description:
+        'You can take the Disengage action as a Bonus Action. Alternatively, you can expend 1 Focus Point to take both the Disengage and the Dodge actions as a Bonus Action.'
+    },
+    {
+      name: 'Step of the Wind',
+      meta: "Monk's Focus",
+      description:
+        'You can take the Dash action as a Bonus Action. Alternatively, you can expend 1 Focus Point to take both the Disengage and Dash actions as a Bonus Action, and your jump distance is doubled for the turn.'
     },
     {
       name: 'Unarmored Movement',
