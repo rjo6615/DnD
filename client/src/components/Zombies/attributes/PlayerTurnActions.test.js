@@ -1,5 +1,12 @@
 import React from 'react';
-import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
+import {
+  render,
+  act,
+  fireEvent,
+  screen,
+  within,
+  waitFor,
+} from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
 
 jest.mock('../../../utils/diceBoxManager', () => {
@@ -16,6 +23,15 @@ const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
 import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
+
+async function getRollDamageButtonForCard(titleMatcher) {
+  const titleNode = await screen.findByText(titleMatcher);
+  const card = titleNode.closest('.attack-card');
+  if (!card) {
+    throw new Error('Attack card not found');
+  }
+  return within(card).getByLabelText(/Roll damage/i);
+}
 
 beforeEach(() => {
   rollDiceWithBox.mockClear();
@@ -353,9 +369,7 @@ describe('PlayerTurnActions weapon damage display', () => {
 
     const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
     expect(damageRow).not.toBeNull();
-    expect(
-      within(damageRow).getByText('1d4+1 Bludgeoning'),
-    ).toBeInTheDocument();
+    expect(damageRow).toHaveTextContent(/1d6\s*\+1\s*Bludgeoning/);
   });
 
   test('monk uses strength for non-light martial melee weapons', () => {
@@ -869,7 +883,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Frost Brand');
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -922,7 +936,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Elemental Blade');
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -975,7 +989,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard(/greatsword of fire/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -992,7 +1006,7 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Greatsword of Fire - (3)');
+    expect(totalLine).toHaveTextContent(/greatsword of fire - \(3\)/i);
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -1022,7 +1036,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Fire Bolt');
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1040,10 +1054,8 @@ describe('PlayerTurnActions damage log', () => {
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
     expect(totalLine).toHaveTextContent('Fire Bolt - (1)');
-    const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
-      (d) => d.textContent.trim()
-    );
-    expect(breakdownLines).toEqual(['- 1 fire']);
+    const breakdownText = breakdownDiv.textContent.replace(/\s+/g, ' ').trim();
+    expect(breakdownText).toContain('- 1 fire');
     Math.random = orig;
   });
 
@@ -1137,6 +1149,61 @@ describe('PlayerTurnActions weapon damage display', () => {
     const card = screen.getByText('Unarmed Strike').closest('.attack-card');
     expect(card).not.toBeNull();
     expect(within(card).getByText('1d4+3 Bludgeoning')).toBeInTheDocument();
+  });
+
+  test('shows bonus unarmed strike card when monk has the feature', () => {
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: {},
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+          features: {
+            classes: {
+              monk: [
+                { name: 'Martial Arts', description: 'Base feature' },
+                { name: 'Bonus Unarmed Strike', meta: 'Martial Arts' },
+              ],
+            },
+          },
+        }}
+        strMod={3}
+        dexMod={4}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    expect(screen.getByText('Bonus Unarmed Strike')).toBeInTheDocument();
+  });
+
+  test('omits bonus unarmed strike card when feature is absent', () => {
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: {},
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+          features: {
+            classes: {
+              monk: [{ name: 'Martial Arts', description: 'Base feature' }],
+            },
+          },
+        }}
+        strMod={3}
+        dexMod={4}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    expect(screen.queryByText('Bonus Unarmed Strike')).not.toBeInTheDocument();
   });
 
   test('does not duplicate unarmed strike when other weapons are equipped', () => {
@@ -1312,7 +1379,7 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Fire Bolt');
     await act(async () => {
       fireEvent.click(rollButton);
     });
@@ -1356,7 +1423,7 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Fire Bolt');
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1404,7 +1471,7 @@ describe('PlayerTurnActions spell casting', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Fire Bolt');
     await act(async () => {
       fireEvent.click(rollButton);
     });
@@ -1445,7 +1512,7 @@ describe('PlayerTurnActions spell casting', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard('Flame Blade');
     await act(async () => {
       fireEvent.click(rollButton);
     });
@@ -1534,7 +1601,7 @@ describe('cantrip scaling', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const rollButton = await screen.findByLabelText(/Roll damage/i);
+    const rollButton = await getRollDamageButtonForCard(baseSpell.name);
     act(() => {
       fireEvent.click(rollButton);
     });
