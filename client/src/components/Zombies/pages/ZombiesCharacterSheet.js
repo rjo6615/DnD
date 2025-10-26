@@ -41,6 +41,7 @@ import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
+import { getMonkFocusPoints } from '../../../utils/monk';
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
@@ -252,6 +253,7 @@ const createCircleState = () => ({
 const createDefaultUsedSlots = () => ({
   action: createCircleState(),
   bonus: createCircleState(),
+  focus: 0,
 });
 
 const mergeUsedSlotsWithDefaults = (stored) => {
@@ -285,6 +287,20 @@ const mergeUsedSlotsWithDefaults = (stored) => {
       });
 
       result[key] = baseEntry;
+      return;
+    }
+
+    if (key === 'focus') {
+      const parsed =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'string'
+          ? Number.parseFloat(value)
+          : Number(value?.spent ?? value);
+
+      if (Number.isFinite(parsed) && parsed > 0) {
+        result.focus = Math.max(0, Math.floor(parsed));
+      }
       return;
     }
 
@@ -335,6 +351,14 @@ const serializeUsedSlotsForStorage = (slots) => {
         payload[key] = usedEntries;
       }
 
+      return;
+    }
+
+    if (key === 'focus') {
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue) && numericValue > 0) {
+        payload.focus = Math.floor(numericValue);
+      }
       return;
     }
 
@@ -1164,6 +1188,7 @@ export default function ZombiesCharacterSheet() {
       return total + (Number.isFinite(level) ? level : 0);
     }, 0);
   }, [occupations]);
+  const monkFocusPoints = useMemo(() => getMonkFocusPoints(form), [form]);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
   const [usedSlots, setUsedSlots] = useState(() =>
@@ -2019,7 +2044,12 @@ export default function ZombiesCharacterSheet() {
     }
 
     setUsedSlots((prev) => {
-      const updated = { ...prev, action: createCircleState(), bonus: createCircleState() };
+      const updated = {
+        ...prev,
+        action: createCircleState(),
+        bonus: createCircleState(),
+        focus: 0,
+      };
       Object.keys(updated).forEach((key) => {
         if (key.startsWith('warlock-')) delete updated[key];
       });
@@ -2027,6 +2057,33 @@ export default function ZombiesCharacterSheet() {
     });
     setActionCount(baseActionCount);
   }, [shortRestCount, baseActionCount]);
+
+  useEffect(() => {
+    setUsedSlots((prev) => {
+      const maxFocus = Math.max(0, monkFocusPoints);
+      const rawCurrent = prev?.focus;
+      const numericCurrent = Number(rawCurrent);
+      const normalizedCurrent =
+        Number.isFinite(numericCurrent) && numericCurrent > 0
+          ? Math.floor(numericCurrent)
+          : 0;
+      const clamped = Math.min(normalizedCurrent, maxFocus);
+
+      if (rawCurrent === clamped) {
+        return prev;
+      }
+
+      if (rawCurrent === undefined && clamped === 0) {
+        return prev;
+      }
+
+      if (clamped === normalizedCurrent && normalizedCurrent === 0 && rawCurrent === 0) {
+        return prev;
+      }
+
+      return { ...prev, focus: clamped };
+    });
+  }, [monkFocusPoints]);
 
   useEffect(() => {
     const handler = () => {
@@ -3043,6 +3100,40 @@ export default function ZombiesCharacterSheet() {
         if (arg === 'action') {
           speakWithAnimalsPendingRef.current = false;
         }
+        return;
+      }
+      if (arg === 'focus') {
+        const operation = typeof lvl === 'string' ? lvl : 'spend';
+        const providedMax = Number(idx);
+        const maxFocus = Number.isFinite(providedMax)
+          ? Math.max(0, Math.floor(providedMax))
+          : getMonkFocusPoints(form);
+
+        setUsedSlots((prev) => {
+          const numericCurrent = Number(prev?.focus);
+          const current =
+            Number.isFinite(numericCurrent) && numericCurrent > 0
+              ? Math.floor(numericCurrent)
+              : 0;
+          let next = current;
+
+          if (operation === 'restore') {
+            next = Math.max(0, current - 1);
+          } else if (operation === 'reset') {
+            next = 0;
+          } else if (operation === 'spend') {
+            if (current >= maxFocus) {
+              return prev;
+            }
+            next = Math.min(maxFocus, current + 1);
+          }
+
+          if (next === current) {
+            return prev;
+          }
+
+          return { ...prev, focus: next };
+        });
         return;
       }
       const consumeSlot = (level, preferredType) => {
