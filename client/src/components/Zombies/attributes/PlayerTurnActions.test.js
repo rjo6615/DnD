@@ -1046,6 +1046,69 @@ describe('PlayerTurnActions weapon damage display', () => {
     const unarmedCards = screen.getAllByText('Unarmed Strike');
     expect(unarmedCards).toHaveLength(1);
   });
+
+  test('shows Bonus Unarmed Strike button for monks and consumes bonus action', async () => {
+    const onConsumeCircle = jest.fn();
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: {},
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={3}
+        dexMod={2}
+        onConsumeCircle={onConsumeCircle}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Unarmed Strike').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('missing unarmed strike card');
+
+    const bonusButton = within(card).getByRole('button', {
+      name: /Bonus Unarmed Strike/i,
+    });
+
+    await act(async () => {
+      fireEvent.click(bonusButton);
+    });
+
+    expect(onConsumeCircle).toHaveBeenCalledWith('bonus');
+    expect(onConsumeCircle).toHaveBeenCalledTimes(1);
+  });
+
+  test('non-monk characters do not see Bonus Unarmed Strike option', () => {
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: {},
+          spells: [],
+          occupation: [{ Name: 'Fighter', Level: 2 }],
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Unarmed Strike').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('missing unarmed strike card');
+
+    expect(
+      within(card).queryByRole('button', { name: /Bonus Unarmed Strike/i })
+    ).toBeNull();
+  });
 });
 
 describe('PlayerTurnActions critical events', () => {

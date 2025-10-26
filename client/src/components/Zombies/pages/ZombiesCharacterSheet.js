@@ -5315,6 +5315,7 @@ export default function ZombiesCharacterSheet() {
               onPassTurn={handlePassTurn}
               canPassTurn={canPassTurn}
               isPassTurnInProgress={isPassingTurn}
+              onConsumeCircle={consumeCircle}
             />
           </div>
           {form && (

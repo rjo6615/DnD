@@ -397,6 +397,7 @@ const PlayerTurnActions = React.forwardRef(
       longRestCount = 0,
       shortRestCount = 0,
       characterId = null,
+      onConsumeCircle = null,
     },
     ref
   ) => {
@@ -623,6 +624,21 @@ const manualCriticalRef = useRef(false);
     []
   );
 
+  const isUnarmedStrikeWeapon = useCallback((slot, weapon) => {
+    const slotKey = typeof slot === 'string' ? slot.trim().toLowerCase() : '';
+    if (slotKey === 'unarmed-strike') {
+      return true;
+    }
+    const name =
+      typeof weapon?.name === 'string' ? weapon.name.trim().toLowerCase() : '';
+    if (name === 'unarmed strike') {
+      return true;
+    }
+    const type =
+      typeof weapon?.type === 'string' ? weapon.type.trim().toLowerCase() : '';
+    return type.includes('unarmed');
+  }, []);
+
   const getAbilityKeyForWeapon = (slot, weapon) => {
     if (isFinesseWeapon(weapon)) {
       const stored = weaponAbilitySelections[slot];
@@ -816,6 +832,83 @@ const manualCriticalRef = useRef(false);
         : 0,
     [form.occupation]
   );
+
+  const hasMonkLevels = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) {
+      return false;
+    }
+    return form.occupation.some((occupationEntry) => {
+      if (!occupationEntry || typeof occupationEntry !== 'object') {
+        return false;
+      }
+      const name = String(
+        occupationEntry.Name ??
+          occupationEntry.Occupation ??
+          occupationEntry.name ??
+          occupationEntry.occupation ??
+          '',
+      )
+        .trim()
+        .toLowerCase();
+      if (name !== 'monk') {
+        return false;
+      }
+      const levelValue = Number(
+        occupationEntry.Level ??
+          occupationEntry.level ??
+          occupationEntry.Levels ??
+          occupationEntry.levels ??
+          0,
+      );
+      return Number.isFinite(levelValue) && levelValue > 0;
+    });
+  }, [form?.occupation]);
+
+  const hasBonusUnarmedStrike = useMemo(() => {
+    const target = 'bonus unarmed strike';
+    const visited = new Set();
+
+    const search = (value) => {
+      if (!value) {
+        return false;
+      }
+      if (typeof value === 'string') {
+        return value.toLowerCase().includes(target);
+      }
+      if (Array.isArray(value)) {
+        for (const entry of value) {
+          if (search(entry)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      if (typeof value === 'object') {
+        if (visited.has(value)) {
+          return false;
+        }
+        visited.add(value);
+        if (
+          typeof value.name === 'string' &&
+          value.name.trim().toLowerCase() === target
+        ) {
+          return true;
+        }
+        for (const entry of Object.values(value)) {
+          if (search(entry)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    if (search(form?.features)) {
+      return true;
+    }
+
+    return hasMonkLevels;
+  }, [form?.features, hasMonkLevels]);
 
   const { tieflingLegacy, tieflingLegacyKey } = useMemo(() => {
     const race = form?.race || {};
@@ -1479,17 +1572,17 @@ const manualCriticalRef = useRef(false);
   );
 
   const handleWeaponAttack = useCallback(
-    async (slot, weapon) => {
+    async (slot, weapon, options = {}) => {
       const ability = abilityForWeapon(weapon, slot);
       const damageString = getDamageStringForHandSelection(slot, weapon);
-      if (typeof damageString !== 'string' || !damageString.trim()) return;
+      if (typeof damageString !== 'string' || !damageString.trim()) return false;
 
       const result = await rollDamageExpression({
         damageString,
         ability,
         crit: isCritical,
       });
-      if (!result) return;
+      if (!result) return false;
 
       const weaponLabel = getWeaponDisplayName(slot, weapon);
       const expression = damageString
@@ -1512,11 +1605,16 @@ const manualCriticalRef = useRef(false);
         modifierValues = [`${sign}${Math.abs(ability)} ${abilityName} modifier`];
       }
 
+      const actionLabel =
+        options && typeof options.actionLabel === 'string'
+          ? options.actionLabel
+          : 'Damage';
+
       const extraDetails = {
         diceRolls: result.diceRolls,
         rollValues: result.rollValues,
         sourceLabel: weaponLabel,
-        actionLabel: 'Damage',
+        actionLabel,
         expression: expression || undefined,
         modifierValues,
       };
@@ -1527,6 +1625,7 @@ const manualCriticalRef = useRef(false);
         weapon.name,
         extraDetails,
       );
+      return true;
     },
     [
       abilityForWeapon,
@@ -2615,6 +2714,28 @@ const damageAmountStyle = {
                         >
                           <i className="fa-solid fa-dice-d20"></i>
                         </Button>
+                        {hasBonusUnarmedStrike &&
+                          isUnarmedStrikeWeapon(slot, weapon) && (
+                            <Button
+                              onClick={async () => {
+                                const didAttack = await handleWeaponAttack(
+                                  slot,
+                                  weapon,
+                                  { actionLabel: 'Bonus Unarmed Strike' },
+                                );
+                                if (didAttack && typeof onConsumeCircle === 'function') {
+                                  onConsumeCircle('bonus');
+                                }
+                                handleCloseAttack();
+                              }}
+                              variant="link"
+                              type="button"
+                              aria-label="Roll damage as a Bonus Unarmed Strike"
+                              className="attack-card__roll"
+                            >
+                              Bonus Unarmed Strike
+                            </Button>
+                          )}
                       </div>
                     </div>
                   );
