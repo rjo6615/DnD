@@ -585,6 +585,25 @@ const manualCriticalRef = useRef(false);
 
     return '1d12 Bludgeoning';
   }, [monkLevel]);
+  const hasBonusUnarmedStrikeFeature = useMemo(() => {
+    const searchValue = 'bonus unarmed strike';
+    const checkValue = (value) => {
+      if (!value) return false;
+      if (Array.isArray(value)) {
+        return value.some((entry) => checkValue(entry));
+      }
+      if (typeof value === 'object') {
+        return Object.values(value).some((entry) => checkValue(entry));
+      }
+      return (
+        typeof value === 'string' &&
+        value.toLowerCase().includes(searchValue)
+      );
+    };
+
+    return checkValue(form?.features);
+  }, [form?.features]);
+
   const equippedWeapons = useMemo(() => {
     let weapons = [];
 
@@ -613,11 +632,30 @@ const manualCriticalRef = useRef(false);
       return name.toLowerCase() === 'unarmed strike';
     });
 
+    const hasBonusUnarmedStrike = weapons.some(({ weapon }) => {
+      const name = typeof weapon?.name === 'string' ? weapon.name.trim() : '';
+      return name.toLowerCase() === 'bonus unarmed strike';
+    });
+
     if (hasUnarmedStrike) {
-      return weapons;
+      const enhancedWeapons = [...weapons];
+      if (hasBonusUnarmedStrikeFeature && !hasBonusUnarmedStrike) {
+        enhancedWeapons.push({
+          slot: 'bonus-unarmed-strike',
+          weapon: {
+            name: 'Bonus Unarmed Strike',
+            damage: unarmedStrikeDamage,
+            type: 'Unarmed Bonus Action',
+            category: 'Bonus Action',
+            properties: ['Bonus Action'],
+            source: 'weapon',
+          },
+        });
+      }
+      return enhancedWeapons;
     }
 
-    return [
+    const nextWeapons = [
       ...weapons,
       {
         slot: 'unarmed-strike',
@@ -631,11 +669,28 @@ const manualCriticalRef = useRef(false);
         },
       },
     ];
+
+    if (hasBonusUnarmedStrikeFeature && !hasBonusUnarmedStrike) {
+      nextWeapons.push({
+        slot: 'bonus-unarmed-strike',
+        weapon: {
+          name: 'Bonus Unarmed Strike',
+          damage: unarmedStrikeDamage,
+          type: 'Unarmed Bonus Action',
+          category: 'Bonus Action',
+          properties: ['Bonus Action'],
+          source: 'weapon',
+        },
+      });
+    }
+
+    return nextWeapons;
   }, [
     equipmentProvided,
     normalizedEquipment,
     form.weapon,
     unarmedStrikeDamage,
+    hasBonusUnarmedStrikeFeature,
   ]);
 
   const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
