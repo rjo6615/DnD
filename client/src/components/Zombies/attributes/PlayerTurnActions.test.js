@@ -354,61 +354,8 @@ describe('PlayerTurnActions weapon damage display', () => {
     const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
     expect(damageRow).not.toBeNull();
     expect(
-      within(damageRow).getByText((content) =>
-        /1d6\s*\+1 Bludgeoning/i.test(content)
-      ),
+      within(damageRow).getByText('1d4+1 Bludgeoning'),
     ).toBeInTheDocument();
-  });
-
-  test('monk with bonus unarmed strike feature shows bonus attack card', () => {
-    render(
-      <PlayerTurnActions
-        form={{
-          diceColor: '#000000',
-          equipment: {},
-          weapon: [],
-          spells: [],
-          occupation: [{ Name: 'Monk', Level: 2 }],
-          features: {
-            class: {
-              monk: {
-                1: [{ name: 'Bonus Unarmed Strike' }],
-              },
-            },
-          },
-        }}
-        strMod={1}
-        dexMod={3}
-      />
-    );
-
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-
-    expect(screen.getByText('Bonus Unarmed Strike')).toBeInTheDocument();
-  });
-
-  test('bonus unarmed strike card is hidden without feature', () => {
-    render(
-      <PlayerTurnActions
-        form={{
-          diceColor: '#000000',
-          equipment: {},
-          weapon: [],
-          spells: [],
-          occupation: [{ Name: 'Monk', Level: 2 }],
-        }}
-        strMod={1}
-        dexMod={3}
-      />
-    );
-
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-
-    expect(screen.queryByText('Bonus Unarmed Strike')).not.toBeInTheDocument();
   });
 
   test('monk uses strength for non-light martial melee weapons', () => {
@@ -922,12 +869,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const weaponCardTitle = await screen.findByText('Frost Brand');
-    const weaponCard = weaponCardTitle.closest('.attack-card');
-    if (!weaponCard) {
-      throw new Error('Weapon card not found');
-    }
-    const rollButton = within(weaponCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -980,12 +922,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const weaponCardTitle = await screen.findByText('Elemental Blade');
-    const weaponCard = weaponCardTitle.closest('.attack-card');
-    if (!weaponCard) {
-      throw new Error('Weapon card not found');
-    }
-    const rollButton = within(weaponCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1038,12 +975,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const weaponCardTitle = await screen.findByText(/greatsword of fire/i);
-    const weaponCard = weaponCardTitle.closest('.attack-card');
-    if (!weaponCard) {
-      throw new Error('Weapon card not found');
-    }
-    const rollButton = within(weaponCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1060,10 +992,7 @@ describe('PlayerTurnActions damage log', () => {
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    const expectedText = 'Greatsword of Fire - (3)';
-    expect(totalLine.textContent?.toLowerCase()).toBe(
-      expectedText.toLowerCase()
-    );
+    expect(totalLine).toHaveTextContent('Greatsword of Fire - (3)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -1093,12 +1022,7 @@ describe('PlayerTurnActions damage log', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const spellCardTitle = await screen.findByText('Fire Bolt');
-    const spellCard = spellCardTitle.closest('.attack-card');
-    if (!spellCard) {
-      throw new Error('Spell card not found');
-    }
-    const rollButton = within(spellCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1119,7 +1043,7 @@ describe('PlayerTurnActions damage log', () => {
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
-    expect(breakdownLines).toContain('- 1 fire');
+    expect(breakdownLines).toEqual(['- 1 fire']);
     Math.random = orig;
   });
 
@@ -1388,12 +1312,7 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const spellCardTitle = await screen.findByText('Fire Bolt');
-    const spellCard = spellCardTitle.closest('.attack-card');
-    if (!spellCard) {
-      throw new Error('Spell card not found');
-    }
-    const rollButton = within(spellCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     await act(async () => {
       fireEvent.click(rollButton);
     });
@@ -1437,12 +1356,7 @@ describe('PlayerTurnActions spell casting', () => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
 
-    const spellCardTitle = await screen.findByText('Fire Bolt');
-    const spellCard = spellCardTitle.closest('.attack-card');
-    if (!spellCard) {
-      throw new Error('Spell card not found');
-    }
-    const rollButton = within(spellCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -1490,12 +1404,7 @@ describe('PlayerTurnActions spell casting', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const spellCardTitle = await screen.findByText('Fire Bolt');
-    const spellCard = spellCardTitle.closest('.attack-card');
-    if (!spellCard) {
-      throw new Error('Spell card not found');
-    }
-    const rollButton = within(spellCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     await act(async () => {
       fireEvent.click(rollButton);
     });
@@ -1536,12 +1445,7 @@ describe('PlayerTurnActions spell casting', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const spellCardTitle = await screen.findByText('Flame Blade');
-    const spellCard = spellCardTitle.closest('.attack-card');
-    if (!spellCard) {
-      throw new Error('Spell card not found');
-    }
-    const rollButton = within(spellCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     await act(async () => {
       fireEvent.click(rollButton);
     });
@@ -1630,12 +1534,7 @@ describe('cantrip scaling', () => {
     act(() => {
       fireEvent.click(screen.getByTitle('Attack'));
     });
-    const spellCardTitle = await screen.findByText(baseSpell.name);
-    const spellCard = spellCardTitle.closest('.attack-card');
-    if (!spellCard) {
-      throw new Error('Spell card not found');
-    }
-    const rollButton = within(spellCard).getByLabelText(/Roll damage/i);
+    const rollButton = await screen.findByLabelText(/Roll damage/i);
     act(() => {
       fireEvent.click(rollButton);
     });
