@@ -723,6 +723,11 @@ const monkFeatures = {
       name: 'Unarmored Movement',
       description:
         'Your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus improves to 15 feet at 6th level, 20 feet at 10th level, 25 feet at 14th level, and 30 feet at 18th level.'
+    },
+    {
+      name: 'Uncanny Metabolism',
+      description:
+        'When you roll Initiative, you can regain all expended Focus Points. When you do so, roll your Martial Arts die, and regain a number of Hit Points equal to your Monk level plus the number rolled. Once you use this feature, you can’t use it again until you finish a Long Rest.'
     }
   ],
   3: [
