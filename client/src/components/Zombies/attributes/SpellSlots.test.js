@@ -21,6 +21,40 @@ test('renders only the available number of slots', () => {
   });
 });
 
+test('renders monk focus icon with remaining points', () => {
+  const form = { occupation: [{ Name: 'Monk', Level: 5 }] };
+  const { container } = render(
+    <SpellSlots form={form} used={{ focus: 2 }} />
+  );
+  const focusSlot = container.querySelector('.focus-slot');
+  expect(focusSlot).toBeTruthy();
+  const focusCount = focusSlot.querySelector('.focus-count');
+  expect(focusCount.textContent).toBe('3');
+  const icon = focusSlot.querySelector('.focus-icon');
+  expect(icon.classList.contains('focus-icon--glow')).toBe(true);
+});
+
+test('focus icon removes glow when depleted and triggers callbacks', () => {
+  const form = { occupation: [{ Name: 'Monk', Level: 2 }] };
+  const onToggle = jest.fn();
+  const { container } = render(
+    <SpellSlots form={form} used={{ focus: 2 }} onToggleSlot={onToggle} />
+  );
+  const iconWrapper = container.querySelector('.focus-icon-wrapper');
+  const icon = container.querySelector('.focus-icon');
+  expect(icon.classList.contains('focus-icon--glow')).toBe(false);
+  fireEvent.click(iconWrapper);
+  expect(onToggle).toHaveBeenCalledWith('focus', 'spend', 2);
+  fireEvent.contextMenu(iconWrapper);
+  expect(onToggle).toHaveBeenCalledWith('focus', 'restore', 2);
+});
+
+test('does not render monk focus icon before level two', () => {
+  const form = { occupation: [{ Name: 'Monk', Level: 1 }] };
+  const { container } = render(<SpellSlots form={form} used={{}} />);
+  expect(container.querySelector('.focus-slot')).toBeNull();
+});
+
 test('reflects used slots from props and toggles via callback', () => {
   const form = { occupation: [{ Name: 'Wizard', Level: 1 }] };
   const onToggle = jest.fn();

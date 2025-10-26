@@ -1563,6 +1563,48 @@ body.docked-modal--resizing {
   padding: 2px;
 }
 
+.spell-slot.focus-slot {
+  width: auto;
+  min-width: 48px;
+  height: auto;
+  padding: 6px 12px;
+}
+
+.focus-slot .focus-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.focus-slot .focus-count {
+  position: absolute;
+  top: -0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffa94d;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+.focus-slot .focus-icon {
+  font-size: 2rem;
+  color: #6c757d;
+  transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease;
+}
+
+.focus-slot .focus-icon--glow {
+  color: #ffa94d;
+  filter: drop-shadow(0 0 6px rgba(255, 153, 0, 0.85))
+    drop-shadow(0 0 16px rgba(255, 153, 0, 0.5));
+}
+
+.focus-slot .focus-icon-wrapper:active .focus-icon {
+  transform: scale(0.95);
+}
+
 .spell-slot .slot-level {
   position: absolute;
   top: -2px;               /* push it near the top */
