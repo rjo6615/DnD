@@ -180,14 +180,16 @@ test('use button removes a consumable item copy and triggers onChange', async ()
     },
   ];
 
-  render(
-    <ItemList
-      ownedOnly
-      embedded
-      initialItems={initialItems}
-      onChange={onChange}
-    />
-  );
+  await act(async () => {
+    render(
+      <ItemList
+        ownedOnly
+        embedded
+        initialItems={initialItems}
+        onChange={onChange}
+      />
+    );
+  });
 
   const potionHeading = await screen.findByText('Potion of healing');
   const potionCard = potionHeading.closest('.card');
@@ -268,5 +270,73 @@ test('using all copies of a consumable potion removes it from the inventory', as
 
   await waitFor(() =>
     expect(screen.queryByText('Potion of healing')).not.toBeInTheDocument()
+  );
+});
+
+test('delete button removes an item after confirmation', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
+  const onChange = jest.fn();
+  const initialItems = [
+    { name: 'Torch', displayName: 'Torch', owned: true },
+    { name: 'Torch', displayName: 'Torch', owned: true },
+    {
+      name: 'potion-healing',
+      displayName: 'Potion of healing',
+      properties: ['consumable'],
+      owned: true,
+    },
+  ];
+
+  render(
+    <ItemList
+      ownedOnly
+      embedded
+      initialItems={initialItems}
+      onChange={onChange}
+    />
+  );
+
+  const torchHeading = await screen.findByText('Torch');
+  const torchCard = torchHeading.closest('.card');
+  expect(torchCard).not.toBeNull();
+
+  const deleteButton = within(torchCard).getByRole('button', { name: /delete torch/i });
+  await act(async () => {
+    await userEvent.click(deleteButton);
+  });
+
+  const confirmationMessage = await screen.findByText(
+    /are you sure you want to remove torch from your inventory/i
+  );
+  const confirmationModal = confirmationMessage.closest('.modal');
+  expect(confirmationModal).not.toBeNull();
+
+  const confirmButton = within(confirmationModal).getByRole('button', { name: /delete/i });
+  await act(async () => {
+    await userEvent.click(confirmButton);
+  });
+
+  await act(async () => {});
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  const updatedItems = onChange.mock.calls[0][0];
+  expect(updatedItems).toHaveLength(2);
+
+  const torchCount = updatedItems.filter((entry) => {
+    if (!entry) return false;
+    if (typeof entry === 'string') return entry.toLowerCase() === 'torch';
+    if (Array.isArray(entry)) {
+      return String(entry[0] || '').toLowerCase() === 'torch';
+    }
+    const name = String(entry.name || entry.displayName || '').toLowerCase();
+    return name === 'torch';
+  }).length;
+  expect(torchCount).toBe(1);
+
+  await waitFor(() =>
+    expect(screen.queryByText(/are you sure you want to remove torch/i)).not.toBeInTheDocument()
+  );
+  await waitFor(() =>
+    expect(within(torchCard).queryByText(/×2/)).not.toBeInTheDocument()
   );
 });

@@ -396,6 +396,7 @@ function ItemList({
   const [error, setError] = useState(null);
   const [unknownItems, setUnknownItems] = useState([]);
   const [notesItem, setNotesItem] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [ownedEntries, setOwnedEntries] = useState(() =>
     Array.isArray(initialItems) ? initialItems : EMPTY_ARRAY
   );
@@ -631,6 +632,38 @@ function ItemList({
     }
   };
 
+  const handleRequestDelete = (dataKey, item) => () => {
+    if (!ownedOnly) {
+      return;
+    }
+    setDeleteTarget({ dataKey, item });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteTarget(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const { dataKey, item } = deleteTarget;
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
+
+    setDeleteTarget(null);
+
+    if (nextEntries === ownedEntries) {
+      return;
+    }
+
+    setOwnedEntries(nextEntries);
+
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
+  };
+
   const getCartCount = (item) => {
     if (!cartCounts) return 0;
     const key = `item::${String(item?.name || '').toLowerCase()}`;
@@ -771,16 +804,27 @@ function ItemList({
                   </Card.Body>
                   <Card.Footer className="d-flex justify-content-center">
                     {ownedOnly ? (
-                      <Button
-                        size="sm"
-                        onClick={handleUseItem(dataKey, item)}
-                        disabled={!canUseItem}
-                        title={
-                          canUseItem ? undefined : 'Only consumable items can be used.'
-                        }
-                      >
-                        Use
-                      </Button>
+                      <div className="d-flex align-items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleUseItem(dataKey, item)}
+                          disabled={!canUseItem}
+                          title={
+                            canUseItem
+                              ? undefined
+                              : 'Only consumable items can be used.'
+                          }
+                        >
+                          Use
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="btn-danger action-btn fa-solid fa-trash"
+                          onClick={handleRequestDelete(dataKey, item)}
+                          title={`Delete ${item.displayName || item.name || 'item'}`}
+                          aria-label={`Delete ${item.displayName || item.name || 'item'}`}
+                        />
+                      </div>
                     ) : (
                       <div className="d-flex align-items-center gap-2">
                         <Button size="sm" onClick={handleAddToCart(item)}>
@@ -809,7 +853,7 @@ function ItemList({
     <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
   );
 
-  const modal = (
+  const notesModal = (
     <Modal show={!!notesItem} onHide={handleCloseNotes} size="sm">
       <Modal.Header closeButton>
         <Modal.Title>{notesItem?.displayName || notesItem?.name}</Modal.Title>
@@ -818,11 +862,34 @@ function ItemList({
     </Modal>
   );
 
+  const deleteItemName = deleteTarget?.item?.displayName || deleteTarget?.item?.name;
+  const deleteModal = (
+    <Modal show={!!deleteTarget} onHide={handleCancelDelete} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Delete Item</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {`Are you sure you want to remove ${
+          deleteItemName ? `${deleteItemName}` : 'this item'
+        } from your inventory?`}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" className="action-btn close-btn" onClick={handleCancelDelete}>
+          Cancel
+        </Button>
+        <Button variant="danger" className="action-btn" onClick={handleConfirmDelete}>
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
   if (embedded) {
     return (
       <>
         {body}
-        {modal}
+        {notesModal}
+        {deleteModal}
       </>
     );
   }
@@ -833,7 +900,8 @@ function ItemList({
         <Card.Title className="modal-title">Items</Card.Title>
       </Card.Header>
       {body}
-      {modal}
+      {notesModal}
+      {deleteModal}
     </Card>
   );
 }
