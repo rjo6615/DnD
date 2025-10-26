@@ -63,6 +63,7 @@ const clampPercentage = (value) => {
 };
 
 const FIGURINE_STRING_FIELDS = ['imageUrl', 'cloudinaryPublicId', 'folder'];
+const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 
 const normalizeTokenRotation = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -81,6 +82,34 @@ const normalizeTokenRotation = (value) => {
   // noise from repeated normalization. Three decimal places is more than
   // enough granularity for visual rotations.
   return Math.round(resolved * 1000) / 1000;
+};
+
+const normalizeTokenSize = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (CREATURE_SIZE_KEYS.includes(trimmed)) {
+    return trimmed;
+  }
+
+  const tokens = trimmed.split(/[^a-z]+/).filter(Boolean);
+  const tokenMatch = CREATURE_SIZE_KEYS.find((size) => tokens.includes(size));
+  if (tokenMatch) {
+    return tokenMatch;
+  }
+
+  const prefixMatch = CREATURE_SIZE_KEYS.find((size) => trimmed.startsWith(size));
+  if (prefixMatch) {
+    return prefixMatch;
+  }
+
+  return null;
 };
 
 const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
@@ -186,6 +215,18 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         }
       }
 
+      if ('size' in candidate) {
+        const normalizedSize = normalizeTokenSize(candidate.size);
+        if (normalizedSize) {
+          sanitizedToken.size = normalizedSize;
+          if (normalizedSize !== candidate.size) {
+            didMutate = true;
+          }
+        } else if (candidate.size !== undefined) {
+          didMutate = true;
+        }
+      }
+
       FIGURINE_STRING_FIELDS.forEach((field) => {
         if (!(field in candidate)) {
           return;
@@ -222,6 +263,9 @@ const normalizeMapTokens = ({ mapTokens, validMapIds = new Set(), now }) => {
         }, {}),
         ...(rawValue && Object.prototype.hasOwnProperty.call(rawValue, 'rotation')
           ? { rotation: rawValue.rotation }
+          : {}),
+        ...(rawValue && Object.prototype.hasOwnProperty.call(rawValue, 'size')
+          ? { size: rawValue.size }
           : {}),
       });
       const sanitizedComparable = JSON.stringify(sanitizedToken);
@@ -551,4 +595,5 @@ module.exports = {
   getMapSchemas,
   normalizeMapTokens,
   normalizeTokenRotation,
+  normalizeTokenSize,
 };
