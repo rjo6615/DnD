@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Form, Alert, Button, Badge } from 'react-bootstrap';
+import { Card, Row, Col, Form, Alert, Button, Badge, Modal } from 'react-bootstrap';
 import {
   GiStoneAxe,
   GiBowArrow,
@@ -25,6 +25,67 @@ import apiFetch from '../../utils/apiFetch';
  *   cartCounts?: Record<string, number> | null,
  * }} props
  */
+const EMPTY_ARRAY = Object.freeze([]);
+
+const normalizeWeaponName = (value) => {
+  if (typeof value === 'string') {
+    return value.trim().toLowerCase();
+  }
+  return '';
+};
+
+const extractWeaponEntryName = (entry) => {
+  if (!entry) return '';
+  if (typeof entry === 'string') {
+    return normalizeWeaponName(entry);
+  }
+  if (Array.isArray(entry)) {
+    return extractWeaponEntryName(entry[0]);
+  }
+  if (typeof entry === 'object') {
+    return (
+      normalizeWeaponName(entry.displayName) ||
+      normalizeWeaponName(entry.weaponName) ||
+      normalizeWeaponName(entry.name)
+    );
+  }
+  return '';
+};
+
+const buildMatchKeySet = (weapon, dataKey) => {
+  const keys = new Set();
+  const addKey = (value) => {
+    const normalized = normalizeWeaponName(value);
+    if (normalized) {
+      keys.add(normalized);
+    }
+  };
+  addKey(dataKey);
+  if (weapon) {
+    addKey(weapon.displayName);
+    addKey(weapon.weaponName);
+    addKey(weapon.name);
+  }
+  return keys;
+};
+
+const removeFirstMatchingEntry = (entries, weapon, dataKey) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return entries;
+  }
+  const matchKeys = buildMatchKeySet(weapon, dataKey);
+  if (matchKeys.size === 0) {
+    return entries;
+  }
+  const index = entries.findIndex((entry) => matchKeys.has(extractWeaponEntryName(entry)));
+  if (index === -1) {
+    return entries;
+  }
+  const next = entries.slice();
+  next.splice(index, 1);
+  return next;
+};
+
 const buildWeaponOwnershipMap = (initialWeapons) => {
   const map = new Map();
   if (!Array.isArray(initialWeapons)) return map;
@@ -64,7 +125,7 @@ const buildWeaponOwnershipMap = (initialWeapons) => {
 function WeaponList({
   campaign,
   onChange,
-  initialWeapons = [],
+  initialWeapons = EMPTY_ARRAY,
   characterId,
   show = true,
   embedded = false,
@@ -77,10 +138,25 @@ function WeaponList({
     useState/** @type {Record<string, Weapon & { owned?: boolean, ownedCount?: number, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownWeapons, setUnknownWeapons] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const initialWeaponsArray = useMemo(
+    () => (Array.isArray(initialWeapons) ? initialWeapons : EMPTY_ARRAY),
+    [initialWeapons]
+  );
+  const [ownedEntries, setOwnedEntries] = useState(initialWeaponsArray);
+
+  useEffect(() => {
+    if (Array.isArray(initialWeapons)) {
+      setOwnedEntries((prev) => (prev === initialWeapons ? prev : initialWeapons));
+    } else {
+      setOwnedEntries((prev) => (prev === EMPTY_ARRAY ? prev : EMPTY_ARRAY));
+    }
+  }, [initialWeapons]);
 
   const ownershipMap = useMemo(
-    () => buildWeaponOwnershipMap(initialWeapons),
-    [initialWeapons]
+    () => buildWeaponOwnershipMap(ownedEntries),
+    [ownedEntries]
   );
 
   const hiddenSet = useMemo(() => {
@@ -304,6 +380,36 @@ function WeaponList({
     }
   };
 
+  const handleRequestDelete = (dataKey, weapon) => () => {
+    if (!ownedOnly) {
+      return;
+    }
+    setDeleteTarget({ dataKey, weapon });
+  };
+
+  const handleCancelDelete = () => setDeleteTarget(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const { dataKey, weapon } = deleteTarget;
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, weapon, dataKey);
+
+    setDeleteTarget(null);
+
+    if (nextEntries === ownedEntries) {
+      return;
+    }
+
+    setOwnedEntries(nextEntries);
+
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
+  };
+
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
   const filteredEntries = Object.entries(weapons).filter(([key, weapon]) => {
     if (hiddenSet) {
@@ -407,7 +513,15 @@ function WeaponList({
                         : undefined
                     }
                   />
-                  {!ownedOnly && (
+                  {ownedOnly ? (
+                    <Button
+                      size="sm"
+                      className="btn-danger action-btn fa-solid fa-trash"
+                      onClick={handleRequestDelete(dataKey, weapon)}
+                      title={`Delete ${weapon.displayName || weapon.name || 'weapon'}`}
+                      aria-label={`Delete ${weapon.displayName || weapon.name || 'weapon'}`}
+                    />
+                  ) : (
                     <>
                       <Button size="sm" onClick={handleAddToCart(weapon)}>
                         Add to Cart
@@ -429,17 +543,47 @@ function WeaponList({
     </>
   );
 
+  const deleteWeaponName = deleteTarget?.weapon?.displayName || deleteTarget?.weapon?.name;
+  const deleteModal = (
+    <Modal show={!!deleteTarget} onHide={handleCancelDelete} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Delete Weapon</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {`Are you sure you want to remove ${
+          deleteWeaponName ? `${deleteWeaponName}` : 'this weapon'
+        } from your inventory?`}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" className="action-btn close-btn" onClick={handleCancelDelete}>
+          Cancel
+        </Button>
+        <Button variant="danger" className="action-btn" onClick={handleConfirmDelete}>
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
   if (embedded) {
-    return bodyContent;
+    return (
+      <>
+        {bodyContent}
+        {deleteModal}
+      </>
+    );
   }
 
   return (
-    <Card className="modern-card">
-      <Card.Header className="modal-header">
-        <Card.Title className="modal-title">Weapons</Card.Title>
-      </Card.Header>
-      <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
-    </Card>
+    <>
+      <Card className="modern-card">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">Weapons</Card.Title>
+        </Card.Header>
+        <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
+      </Card>
+      {deleteModal}
+    </>
   );
 }
 

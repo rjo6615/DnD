@@ -5303,6 +5303,9 @@ export default function ZombiesCharacterSheet() {
           onTabChange: setInventoryTab,
           characterId,
           onItemsChange: handleItemsChange,
+          onWeaponsChange: handleWeaponsChange,
+          onArmorChange: handleArmorChange,
+          onAccessoriesChange: handleAccessoriesChange,
           onDockChange: (side) => handleDockChange('inventory', side),
         }),
       },
@@ -5840,6 +5843,9 @@ export default function ZombiesCharacterSheet() {
           dockedSide={getDockedSide('inventory')}
           onDockChange={(side) => handleDockChange('inventory', side)}
           onItemsChange={handleItemsChange}
+          onWeaponsChange={handleWeaponsChange}
+          onArmorChange={handleArmorChange}
+          onAccessoriesChange={handleAccessoriesChange}
         />
         <EquipmentModal
           show={showEquipment}

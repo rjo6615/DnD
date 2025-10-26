@@ -26,6 +26,9 @@ export default function InventoryModal({
   onDockClose,
   onDockChange,
   onItemsChange,
+  onWeaponsChange,
+  onArmorChange,
+  onAccessoriesChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -105,6 +108,7 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onWeaponsChange}
             />
           ),
       },
@@ -124,6 +128,7 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onArmorChange}
             />
           ),
       },
@@ -164,6 +169,7 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onAccessoriesChange}
             />
           ),
       },
@@ -176,6 +182,9 @@ export default function InventoryModal({
       normalizedAccessories,
       normalizedWeapons,
       onItemsChange,
+      onWeaponsChange,
+      onArmorChange,
+      onAccessoriesChange,
       handleItemListClose,
     ]
   );
