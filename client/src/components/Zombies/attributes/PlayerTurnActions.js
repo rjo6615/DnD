@@ -532,8 +532,10 @@ const manualCriticalRef = useRef(false);
     [form.equipment]
   );
   const equippedWeapons = useMemo(() => {
+    let weapons = [];
+
     if (equipmentProvided) {
-      return WEAPON_SLOT_KEYS.map((slot) => {
+      weapons = WEAPON_SLOT_KEYS.map((slot) => {
         const weapon = normalizedEquipment[slot];
         if (!weapon) return null;
         if (weapon.source && weapon.source !== 'weapon') return null;
@@ -542,16 +544,44 @@ const manualCriticalRef = useRef(false);
         if (!damage) return null;
         return { slot, weapon };
       }).filter(Boolean);
+    } else {
+      const legacyWeapons = normalizeWeapons(form.weapon || [], {
+        includeUnowned: true,
+      });
+      weapons = legacyWeapons.map((weapon, index) => ({
+        slot: `legacy-${index}`,
+        weapon,
+      }));
     }
 
-    const legacyWeapons = normalizeWeapons(form.weapon || [], {
-      includeUnowned: true,
+    const hasUnarmedStrike = weapons.some(({ weapon }) => {
+      const name = typeof weapon?.name === 'string' ? weapon.name.trim() : '';
+      return name.toLowerCase() === 'unarmed strike';
     });
-    return legacyWeapons.map((weapon, index) => ({
-      slot: `legacy-${index}`,
-      weapon,
-    }));
-  }, [equipmentProvided, normalizedEquipment, form.weapon]);
+
+    if (hasUnarmedStrike) {
+      return weapons;
+    }
+
+    return [
+      ...weapons,
+      {
+        slot: 'unarmed-strike',
+        weapon: {
+          name: 'Unarmed Strike',
+          damage: '1d4 Bludgeoning',
+          type: 'Unarmed',
+          category: 'Melee Weapon',
+          properties: [],
+          source: 'weapon',
+        },
+      },
+    ];
+  }, [
+    equipmentProvided,
+    normalizedEquipment,
+    form.weapon,
+  ]);
 
   const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
   const [weaponHandSelections, setWeaponHandSelections] = useState({});

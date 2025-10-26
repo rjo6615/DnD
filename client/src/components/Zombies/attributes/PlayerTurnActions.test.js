@@ -999,6 +999,53 @@ describe('PlayerTurnActions weapon damage display', () => {
     expect(fire).toHaveClass('damage-fire');
     expect(fire.textContent).toBe('1d10 Fire');
   });
+
+  test('includes an unarmed strike attack when no weapons are equipped', () => {
+    render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
+        strMod={3}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Unarmed Strike').closest('.attack-card');
+    expect(card).not.toBeNull();
+    expect(within(card).getByText('1d4+3 Bludgeoning')).toBeInTheDocument();
+  });
+
+  test('does not duplicate unarmed strike when other weapons are equipped', () => {
+    const rapier = {
+      name: 'Rapier',
+      damage: '1d8 piercing',
+      category: 'melee',
+      source: 'weapon',
+    };
+
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: rapier },
+          spells: [],
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    expect(screen.getByText('Rapier')).toBeInTheDocument();
+    const unarmedCards = screen.getAllByText('Unarmed Strike');
+    expect(unarmedCards).toHaveLength(1);
+  });
 });
 
 describe('PlayerTurnActions critical events', () => {
