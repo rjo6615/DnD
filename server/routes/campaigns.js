@@ -14,6 +14,7 @@ const {
   buildCampaignMapPayload,
   normalizeMapTokens,
   normalizeTokenRotation,
+  normalizeTokenSize,
 } = require('../utils/campaignMaps');
 const {
   uploadMapImage,
@@ -1192,6 +1193,7 @@ module.exports = (router) => {
           .isFloat()
           .withMessage('rotation must be a number')
           .toFloat(),
+        body('size').optional().isString().withMessage('size must be a string').trim(),
       ],
       handleValidationErrors,
       async (req, res, next) => {
@@ -1272,6 +1274,15 @@ module.exports = (router) => {
               delete nextTokens[mapId][trimmedCharacterId].rotation;
             } else {
               nextTokens[mapId][trimmedCharacterId].rotation = normalizedRotation;
+            }
+          }
+
+          if (Object.prototype.hasOwnProperty.call(req.body, 'size')) {
+            const normalizedSize = normalizeTokenSize(req.body.size);
+            if (normalizedSize) {
+              nextTokens[mapId][trimmedCharacterId].size = normalizedSize;
+            } else {
+              delete nextTokens[mapId][trimmedCharacterId].size;
             }
           }
 
