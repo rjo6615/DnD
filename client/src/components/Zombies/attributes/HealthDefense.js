@@ -10,6 +10,7 @@ export default function HealthDefense({
   form,
   conMod,
   dexMod,
+  wisMod = 0,
   totalLevel,
   ac = 0,
   hpMaxBonus = 0,
@@ -63,13 +64,120 @@ export default function HealthDefense({
     Number(ac);
   let filteredMaxDexArray = armorMaxDexBonus.filter((e) => e !== 0);
   let armorMaxDexMin = Math.min(...filteredMaxDexArray);
-    
+
      let armorMaxDex;
      if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
         armorMaxDex = armorMaxDexMin;
      } else {
       armorMaxDex = dexMod;
      }
+
+  const numericWisMod = Number(wisMod);
+  const safeWisMod = Number.isFinite(numericWisMod) ? numericWisMod : 0;
+
+  const isShieldItem = (item) => {
+    if (!item) return false;
+    if (Array.isArray(item)) {
+      const [name] = item;
+      return typeof name === 'string' && name.toLowerCase().includes('shield');
+    }
+    const category = String(item.category ?? item.type ?? '').toLowerCase();
+    if (category.includes('shield')) {
+      return true;
+    }
+    const name = String(item.name ?? item.title ?? item.displayName ?? item.label ?? '').toLowerCase();
+    return name.includes('shield');
+  };
+
+  const hasShieldEquipped = useMemo(
+    () => armorItems.some((item) => isShieldItem(item)),
+    [armorItems]
+  );
+
+  const hasArmorEquipped = useMemo(
+    () =>
+      armorItems.some((item) => {
+        if (!item) return false;
+        if (isShieldItem(item)) return false;
+        if (Array.isArray(item)) return true;
+        const source = String(item.__source ?? item.source ?? '').toLowerCase();
+        if (source === 'armor') {
+          return true;
+        }
+        return false;
+      }),
+    [armorItems]
+  );
+
+  const hasUnarmoredDefenseFeature = useMemo(() => {
+    const searchValue = 'unarmored defense';
+    const checkValue = (value) => {
+      if (!value) return false;
+      if (Array.isArray(value)) {
+        return value.some((entry) => checkValue(entry));
+      }
+      if (typeof value === 'object') {
+        return Object.values(value).some((entry) => checkValue(entry));
+      }
+      return typeof value === 'string' && value.toLowerCase().includes(searchValue);
+    };
+
+    return checkValue(form?.features);
+  }, [form?.features]);
+
+  const monkLevel = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) {
+      return 0;
+    }
+    return form.occupation.reduce((total, occupationEntry) => {
+      if (!occupationEntry || typeof occupationEntry !== 'object') {
+        return total;
+      }
+      const name = String(
+        occupationEntry.Name ??
+          occupationEntry.Occupation ??
+          occupationEntry.name ??
+          occupationEntry.occupation ??
+          ''
+      ).toLowerCase();
+      if (name !== 'monk') {
+        return total;
+      }
+      const levelValue = Number(
+        occupationEntry.Level ??
+          occupationEntry.level ??
+          occupationEntry.Levels ??
+          occupationEntry.levels ??
+          0
+      );
+      if (!Number.isFinite(levelValue) || levelValue <= 0) {
+        return total;
+      }
+      return total + levelValue;
+    }, 0);
+  }, [form?.occupation]);
+
+  const hasMonkLevels = monkLevel > 0;
+
+  const shouldApplyUnarmoredDefenseWisBonus = useMemo(() => {
+    if (hasArmorEquipped || hasShieldEquipped) {
+      return false;
+    }
+    if (!Number.isFinite(numericWisMod)) {
+      return false;
+    }
+    return hasUnarmoredDefenseFeature || hasMonkLevels;
+  }, [
+    hasArmorEquipped,
+    hasShieldEquipped,
+    hasMonkLevels,
+    hasUnarmoredDefenseFeature,
+    numericWisMod,
+  ]);
+
+  const wisdomBonusToAc = shouldApplyUnarmoredDefenseWisBonus ? safeWisMod : 0;
+
+  const totalArmorClass = Number(totalArmorAcBonus) + 10 + Number(armorMaxDex) + wisdomBonusToAc;
     
   const derivedTotalLevel = useMemo(() => {
     if (Number.isFinite(totalLevel)) {
@@ -221,10 +329,33 @@ export default function HealthDefense({
       ? numericSpeedMultiplier
       : 1;
 
+  const unarmoredMovementBonus = useMemo(() => {
+    if (hasArmorEquipped || hasShieldEquipped) {
+      return 0;
+    }
+    if (monkLevel < 2) {
+      return 0;
+    }
+    if (monkLevel <= 5) {
+      return 10;
+    }
+    if (monkLevel <= 9) {
+      return 15;
+    }
+    if (monkLevel <= 13) {
+      return 20;
+    }
+    if (monkLevel <= 17) {
+      return 25;
+    }
+    return 30;
+  }, [hasArmorEquipped, hasShieldEquipped, monkLevel]);
+
   const baseSpeed =
     Number(form?.speed ?? 0) +
     Number(speed ?? 0) +
-    Number(form?.temporarySpeedBonus ?? 0);
+    Number(form?.temporarySpeedBonus ?? 0) +
+    unarmoredMovementBonus;
 
   const totalSpeed = baseSpeed * safeSpeedMultiplier;
 
@@ -427,7 +558,7 @@ return (
 <div style={{ color: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
   {/* First row */}
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-    <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+    <div><strong>AC:</strong> {totalArmorClass}</div>
     <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
     <div><strong>Speed:</strong> {totalSpeed}</div>
   </div>

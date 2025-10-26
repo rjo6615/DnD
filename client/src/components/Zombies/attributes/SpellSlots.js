@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { FaHandSparkles } from 'react-icons/fa';
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
+import { getMonkFocusPoints } from '../../../utils/monk';
 
 const SPELLCASTING_CLASSES = {
   bard: 'full',
@@ -44,6 +46,7 @@ export default function SpellSlots({
   const warlockData = pactMagic[warlockLevel] || {};
 
   const features = form.features || {};
+  const monkFocusPoints = getMonkFocusPoints(form);
   const actionCount =
     propActionCount ?? features.actionCount ?? 1;
   const bonusCount =
@@ -93,6 +96,53 @@ export default function SpellSlots({
         );
       });
 
+  const focusUsed = Number(used?.focus) || 0;
+  const focusRemaining = Math.max(monkFocusPoints - focusUsed, 0);
+  const hasMonkFocus = monkFocusPoints > 0;
+
+  const handleFocusActivation = useCallback(
+    (event, action) => {
+      event.preventDefault();
+      if (!onToggleSlot || !hasMonkFocus) {
+        return;
+      }
+      onToggleSlot('focus', action, monkFocusPoints);
+    },
+    [hasMonkFocus, monkFocusPoints, onToggleSlot]
+  );
+
+  const handleFocusClick = useCallback(
+    (event) => {
+      handleFocusActivation(event, event.shiftKey ? 'restore' : 'spend');
+    },
+    [handleFocusActivation]
+  );
+
+  const handleFocusContext = useCallback(
+    (event) => {
+      handleFocusActivation(event, 'restore');
+    },
+    [handleFocusActivation]
+  );
+
+  const handleFocusKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+        handleFocusActivation(event, 'spend');
+      } else if (event.key === 'Backspace' || event.key === 'Delete') {
+        handleFocusActivation(event, 'restore');
+      }
+    },
+    [handleFocusActivation]
+  );
+
+  const handleFocusDoubleClick = useCallback(
+    (event) => {
+      handleFocusActivation(event, 'reset');
+    },
+    [handleFocusActivation]
+  );
+
   return (
     <div style={{ display: 'flex', flexShrink: 0 }}>
       <div className="spell-slot-container">
@@ -134,6 +184,35 @@ export default function SpellSlots({
             })}
           </div>
         </div>
+        {hasMonkFocus && (
+          <div className="spell-slot focus-slot">
+            <div
+              className="focus-icon-wrapper"
+              role="button"
+              tabIndex={0}
+              onClick={handleFocusClick}
+              onContextMenu={handleFocusContext}
+              onDoubleClick={handleFocusDoubleClick}
+              onKeyDown={handleFocusKeyDown}
+              title={
+                "Monk's Focus: " +
+                `${focusRemaining}/${monkFocusPoints} remaining. ` +
+                'Click to spend, Shift+Click or right-click to restore, double-click to reset.'
+              }
+              aria-label={`Monk's Focus: ${focusRemaining} of ${monkFocusPoints} remaining`}
+            >
+              <div className="focus-count" aria-hidden="true">
+                {focusRemaining}
+              </div>
+              <FaHandSparkles
+                aria-hidden="true"
+                className={`focus-icon ${
+                  focusRemaining > 0 ? 'focus-icon--glow' : ''
+                }`}
+              />
+            </div>
+          </div>
+        )}
         {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
         {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
       </div>

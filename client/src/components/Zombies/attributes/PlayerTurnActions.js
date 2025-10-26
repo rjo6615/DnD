@@ -571,9 +571,65 @@ const manualCriticalRef = useRef(false);
     () => normalizeEquipmentMap(form.equipment),
     [form.equipment]
   );
+
+  const monkLevel = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) {
+      return 0;
+    }
+    return form.occupation.reduce((total, occupationEntry) => {
+      if (!occupationEntry || typeof occupationEntry !== 'object') {
+        return total;
+      }
+      const name = String(
+        occupationEntry.Name ??
+          occupationEntry.Occupation ??
+          occupationEntry.name ??
+          occupationEntry.occupation ??
+          '',
+      ).toLowerCase();
+      if (name !== 'monk') {
+        return total;
+      }
+      const levelValue = Number(
+        occupationEntry.Level ??
+          occupationEntry.level ??
+          occupationEntry.Levels ??
+          occupationEntry.levels ??
+          0,
+      );
+      if (!Number.isFinite(levelValue) || levelValue <= 0) {
+        return total;
+      }
+      return total + levelValue;
+    }, 0);
+  }, [form?.occupation]);
+
+  const hasMonkLevels = monkLevel > 0;
+
+  const unarmedStrikeDamage = useMemo(() => {
+    if (monkLevel <= 0) {
+      return '1d4 Bludgeoning';
+    }
+
+    if (monkLevel <= 4) {
+      return '1d6 Bludgeoning';
+    }
+
+    if (monkLevel <= 10) {
+      return '1d8 Bludgeoning';
+    }
+
+    if (monkLevel <= 16) {
+      return '1d10 Bludgeoning';
+    }
+
+    return '1d12 Bludgeoning';
+  }, [monkLevel]);
   const equippedWeapons = useMemo(() => {
+    let weapons = [];
+
     if (equipmentProvided) {
-      return WEAPON_SLOT_KEYS.map((slot) => {
+      weapons = WEAPON_SLOT_KEYS.map((slot) => {
         const weapon = normalizedEquipment[slot];
         if (!weapon) return null;
         if (weapon.source && weapon.source !== 'weapon') return null;
@@ -582,16 +638,45 @@ const manualCriticalRef = useRef(false);
         if (!damage) return null;
         return { slot, weapon };
       }).filter(Boolean);
+    } else {
+      const legacyWeapons = normalizeWeapons(form.weapon || [], {
+        includeUnowned: true,
+      });
+      weapons = legacyWeapons.map((weapon, index) => ({
+        slot: `legacy-${index}`,
+        weapon,
+      }));
     }
 
-    const legacyWeapons = normalizeWeapons(form.weapon || [], {
-      includeUnowned: true,
+    const hasUnarmedStrike = weapons.some(({ weapon }) => {
+      const name = typeof weapon?.name === 'string' ? weapon.name.trim() : '';
+      return name.toLowerCase() === 'unarmed strike';
     });
-    return legacyWeapons.map((weapon, index) => ({
-      slot: `legacy-${index}`,
-      weapon,
-    }));
-  }, [equipmentProvided, normalizedEquipment, form.weapon]);
+
+    if (hasUnarmedStrike) {
+      return weapons;
+    }
+
+    return [
+      ...weapons,
+      {
+        slot: 'unarmed-strike',
+        weapon: {
+          name: 'Unarmed Strike',
+          damage: unarmedStrikeDamage,
+          type: 'Unarmed',
+          category: 'Melee Weapon',
+          properties: [],
+          source: 'weapon',
+        },
+      },
+    ];
+  }, [
+    equipmentProvided,
+    normalizedEquipment,
+    form.weapon,
+    unarmedStrikeDamage,
+  ]);
 
   const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
   const [weaponHandSelections, setWeaponHandSelections] = useState({});
@@ -617,13 +702,6 @@ const manualCriticalRef = useRef(false);
     [],
   );
 
-  const isRangedWeapon = (weapon) => {
-    const category = weapon?.category;
-    return (
-      typeof category === 'string' && category.toLowerCase().includes('ranged')
-    );
-  };
-
   const isFinesseWeapon = useCallback(
     (weapon) =>
       Array.isArray(weapon?.properties) &&
@@ -633,7 +711,122 @@ const manualCriticalRef = useRef(false);
     []
   );
 
+  const getWeaponCategoryString = useCallback((weapon) => {
+    if (!weapon || typeof weapon !== 'object') {
+      return '';
+    }
+    const candidates = [
+      weapon.category,
+      weapon.weaponCategory,
+      weapon.weaponType,
+      weapon.type,
+    ];
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string') continue;
+      const normalized = candidate.trim().toLowerCase();
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return '';
+  }, []);
+
+  const isRangedWeapon = useCallback(
+    (weapon) => getWeaponCategoryString(weapon).includes('ranged'),
+    [getWeaponCategoryString],
+  );
+
+  const hasWeaponProperty = useCallback((weapon, property) => {
+    if (!Array.isArray(weapon?.properties)) {
+      return false;
+    }
+    const normalizedSearch = String(property || '').toLowerCase();
+    if (!normalizedSearch) {
+      return false;
+    }
+    return weapon.properties.some((prop) => {
+      if (typeof prop !== 'string') {
+        return false;
+      }
+      return prop.toLowerCase().includes(normalizedSearch);
+    });
+  }, []);
+
+  const isMeleeWeapon = useCallback(
+    (weapon) => getWeaponCategoryString(weapon).includes('melee'),
+    [getWeaponCategoryString],
+  );
+
+  const isSimpleMeleeWeapon = useCallback(
+    (weapon) => {
+      const category = getWeaponCategoryString(weapon);
+      return category.includes('simple') && category.includes('melee');
+    },
+    [getWeaponCategoryString],
+  );
+
+  const isMartialMeleeWeapon = useCallback(
+    (weapon) => {
+      const category = getWeaponCategoryString(weapon);
+      return category.includes('martial') && category.includes('melee');
+    },
+    [getWeaponCategoryString],
+  );
+
+  const isUnarmedAttack = useCallback((weapon) => {
+    if (!weapon || typeof weapon !== 'object') {
+      return false;
+    }
+    const nameCandidates = [
+      weapon.name,
+      weapon.label,
+      weapon.title,
+      weapon.displayName,
+    ];
+    for (const candidate of nameCandidates) {
+      if (typeof candidate !== 'string') continue;
+      if (candidate.trim().toLowerCase() === 'unarmed strike') {
+        return true;
+      }
+    }
+    const typeString = getWeaponCategoryString(weapon);
+    if (typeString.includes('unarmed')) {
+      return true;
+    }
+    const rawType = String(weapon?.type || '').toLowerCase();
+    return rawType.includes('unarmed');
+  }, [getWeaponCategoryString]);
+
+  const qualifiesForMonkDexterity = useCallback(
+    (weapon) => {
+      if (!hasMonkLevels) {
+        return false;
+      }
+      if (isUnarmedAttack(weapon)) {
+        return true;
+      }
+      if (!isMeleeWeapon(weapon)) {
+        return false;
+      }
+      if (isSimpleMeleeWeapon(weapon)) {
+        return true;
+      }
+      return isMartialMeleeWeapon(weapon) && hasWeaponProperty(weapon, 'light');
+    },
+    [
+      hasMonkLevels,
+      hasWeaponProperty,
+      isMartialMeleeWeapon,
+      isMeleeWeapon,
+      isSimpleMeleeWeapon,
+      isUnarmedAttack,
+    ],
+  );
+
   const getAbilityKeyForWeapon = (slot, weapon) => {
+    if (qualifiesForMonkDexterity(weapon)) {
+      return 'dex';
+    }
     if (isFinesseWeapon(weapon)) {
       const stored = weaponAbilitySelections[slot];
       if (stored === 'str' || stored === 'dex') {
