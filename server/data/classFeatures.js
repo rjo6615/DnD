@@ -721,7 +721,8 @@ const monkFeatures = {
     },
     {
       name: 'Unarmored Movement',
-      description: 'Your speed increases while you are not wearing armor or wielding a shield.'
+      description:
+        'Your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus improves to 15 feet at 6th level, 20 feet at 10th level, 25 feet at 14th level, and 30 feet at 18th level.'
     }
   ],
   3: [
