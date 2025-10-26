@@ -3,7 +3,7 @@
 // keyed by level.
 
 /**
- * @typedef {{ name: string, description: string }} Feature
+ * @typedef {{ name: string, description: string, meta?: string }} Feature
  * @typedef {{
  *   featuresByLevel: Record<number, Feature[]>,
  *   spellSlots?: Record<number, Record<number, number>>,
@@ -676,7 +676,24 @@ const monkFeatures = {
     {
       name: 'Martial Arts',
       description:
-        'Your practice of martial arts gives you mastery of combat styles using unarmed strikes and monk weapons.'
+        'Your practice of martial arts gives you mastery of combat styles that use your Unarmed Strike and monk weapons. Monk weapons include simple melee weapons and martial melee weapons that have the Light property. You gain the following benefits while you are unarmed or wielding only monk weapons and you aren’t wearing armor or wielding a shield.'
+    },
+    {
+      name: 'Bonus Unarmed Strike',
+      meta: 'Martial Arts',
+      description: 'You can make an Unarmed Strike as a Bonus Action.'
+    },
+    {
+      name: 'Martial Arts Die',
+      meta: 'Martial Arts',
+      description:
+        'You can roll 1d6 in place of the normal damage of your Unarmed Strike or monk weapons. This die changes as you gain monk levels, as shown in the Martial Arts column of the Monk Features table.'
+    },
+    {
+      name: 'Dexterous Attacks',
+      meta: 'Martial Arts',
+      description:
+        'You can use your Dexterity modifier instead of your Strength modifier for the attack and damage rolls of your Unarmed Strikes and monk weapons. When you use the Grapple or Shove option of your Unarmed Strike, you can use your Dexterity modifier instead of your Strength modifier to determine the save DC.'
     }
   ],
   2: [
