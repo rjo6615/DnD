@@ -130,8 +130,6 @@ const groupDiceRollsByType = (diceRolls, normalizer) => {
 };
 
 const WEAPON_SLOT_KEYS = ['mainHand', 'offHand', 'ranged'];
-const UNARMED_ATTACK_NAMES = new Set(['unarmed strike', 'bonus unarmed strike']);
-const MAX_FEATURE_SEARCH_DEPTH = 10;
 const HAND_SELECTIONS = {
   ONE_HANDED: 'one-handed',
   TWO_HANDED: 'two-handed',
@@ -568,88 +566,6 @@ const manualCriticalRef = useRef(false);
 
   const hasMonkLevels = monkLevel > 0;
 
-  const hasBonusUnarmedStrikeFeature = useMemo(() => {
-    const targetName = 'bonus unarmed strike';
-    const visited = new WeakSet();
-
-    const inspect = (root) => {
-      const stack = [{ value: root, depth: 0 }];
-
-      while (stack.length > 0) {
-        const { value, depth } = stack.pop();
-
-        if (!value || depth > MAX_FEATURE_SEARCH_DEPTH) {
-          continue;
-        }
-
-        if (typeof value === 'string') {
-          if (value.trim().toLowerCase() === targetName) {
-            return true;
-          }
-          continue;
-        }
-
-        if (Array.isArray(value)) {
-          for (const entry of value) {
-            stack.push({ value: entry, depth: depth + 1 });
-          }
-          continue;
-        }
-
-        if (typeof value === 'object') {
-          if (visited.has(value)) {
-            continue;
-          }
-          visited.add(value);
-
-          if (
-            typeof value.name === 'string' &&
-            value.name.trim().toLowerCase() === targetName
-          ) {
-            return true;
-          }
-
-          for (const key of Object.keys(value)) {
-            if (key === '__proto__') continue;
-            stack.push({ value: value[key], depth: depth + 1 });
-          }
-        }
-      }
-
-      return false;
-    };
-
-    if (!form || typeof form !== 'object') {
-      return false;
-    }
-
-    const sources = [
-      form.features,
-      form.classFeatures,
-      form.featureChoices,
-      form.featureSelections,
-      form.featureStates,
-      form.featureToggles,
-      form.selectedFeatures,
-    ];
-
-    for (const source of sources) {
-      if (inspect(source)) {
-        return true;
-      }
-    }
-
-    if (Array.isArray(form.occupation)) {
-      for (const occupationEntry of form.occupation) {
-        if (inspect(occupationEntry?.features)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }, [form]);
-
   const unarmedStrikeDamage = useMemo(() => {
     if (monkLevel <= 0) {
       return '1d4 Bludgeoning';
@@ -697,57 +613,29 @@ const manualCriticalRef = useRef(false);
       return name.toLowerCase() === 'unarmed strike';
     });
 
-    let normalizedWeapons = weapons;
-
-    if (!hasUnarmedStrike) {
-      normalizedWeapons = [
-        ...normalizedWeapons,
-        {
-          slot: 'unarmed-strike',
-          weapon: {
-            name: 'Unarmed Strike',
-            damage: unarmedStrikeDamage,
-            type: 'Unarmed',
-            category: 'Melee Weapon',
-            properties: [],
-            source: 'weapon',
-          },
-        },
-      ];
+    if (hasUnarmedStrike) {
+      return weapons;
     }
 
-    if (
-      hasMonkLevels &&
-      hasBonusUnarmedStrikeFeature &&
-      !normalizedWeapons.some(({ weapon }) => {
-        const name = typeof weapon?.name === 'string' ? weapon.name.trim() : '';
-        return name.toLowerCase() === 'bonus unarmed strike';
-      })
-    ) {
-      normalizedWeapons = [
-        ...normalizedWeapons,
-        {
-          slot: 'bonus-unarmed-strike',
-          weapon: {
-            name: 'Bonus Unarmed Strike',
-            damage: unarmedStrikeDamage,
-            type: 'Unarmed',
-            category: 'Melee Weapon',
-            properties: [],
-            source: 'feature',
-          },
+    return [
+      ...weapons,
+      {
+        slot: 'unarmed-strike',
+        weapon: {
+          name: 'Unarmed Strike',
+          damage: unarmedStrikeDamage,
+          type: 'Unarmed',
+          category: 'Melee Weapon',
+          properties: [],
+          source: 'weapon',
         },
-      ];
-    }
-
-    return normalizedWeapons;
+      },
+    ];
   }, [
     equipmentProvided,
     normalizedEquipment,
     form.weapon,
     unarmedStrikeDamage,
-    hasMonkLevels,
-    hasBonusUnarmedStrikeFeature,
   ]);
 
   const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
@@ -857,7 +745,7 @@ const manualCriticalRef = useRef(false);
     ];
     for (const candidate of nameCandidates) {
       if (typeof candidate !== 'string') continue;
-      if (UNARMED_ATTACK_NAMES.has(candidate.trim().toLowerCase())) {
+      if (candidate.trim().toLowerCase() === 'unarmed strike') {
         return true;
       }
     }
