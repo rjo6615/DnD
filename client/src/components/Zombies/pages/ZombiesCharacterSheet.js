@@ -1214,6 +1214,39 @@ export default function ZombiesCharacterSheet() {
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
   const appliedLargeFormMapsRef = useRef(new Set());
+  const largeFormActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Large Form'),
+    [activeEffects]
+  );
+  const adrenalineRushActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
+    [activeEffects]
+  );
+  const speedMultiplier = useMemo(
+    () => (adrenalineRushActive ? 2 : 1),
+    [adrenalineRushActive]
+  );
+  const temporarySize = form?.temporarySize;
+  const temporarySpeedBonus = form?.temporarySpeedBonus;
+  const desiredTokenSize = useMemo(() => resolveCharacterTokenSize(form), [form]);
+  const resolvedCharacterId = useMemo(() => {
+    const candidates = [];
+    if (typeof form?._id === 'string' && form._id.trim() !== '') {
+      candidates.push(form._id.trim());
+    }
+    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
+      candidates.push(form.characterId.trim());
+    }
+    if (typeof characterId === 'string' && characterId.trim() !== '') {
+      candidates.push(characterId.trim());
+    }
+    return candidates.find(Boolean) || null;
+  }, [characterId, form]);
+  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
+
+  useEffect(() => {
+    resolvedCharacterIdRef.current = resolvedCharacterId;
+  }, [resolvedCharacterId]);
   const [dockedModals, setDockedModals] = useState({ left: null, right: null });
   const [dockedModalWidths, setDockedModalWidths] = useState({ left: null, right: null });
 
@@ -1954,25 +1987,6 @@ export default function ZombiesCharacterSheet() {
       return { ...used, action };
     });
   }, [baseActionCount, activeEffects]);
-
-  const largeFormActive = useMemo(
-    () => activeEffects.some((effect) => effect?.name === 'Large Form'),
-    [activeEffects]
-  );
-
-  const adrenalineRushActive = useMemo(
-    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
-    [activeEffects]
-  );
-
-  const speedMultiplier = useMemo(
-    () => (adrenalineRushActive ? 2 : 1),
-    [adrenalineRushActive]
-  );
-
-  const temporarySize = form?.temporarySize;
-  const temporarySpeedBonus = form?.temporarySpeedBonus;
-  const desiredTokenSize = useMemo(() => resolveCharacterTokenSize(form), [form]);
 
   useEffect(() => {
     if (!form) {
@@ -3826,26 +3840,6 @@ export default function ZombiesCharacterSheet() {
   const featAbilityBonuses = collectFeatAbilityBonuses(form?.feat);
 
   const raceBonus = form?.race?.abilities || {};
-
-  const resolvedCharacterId = useMemo(() => {
-    const candidates = [];
-    if (typeof form?._id === 'string' && form._id.trim() !== '') {
-      candidates.push(form._id.trim());
-    }
-    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
-      candidates.push(form.characterId.trim());
-    }
-    if (typeof characterId === 'string' && characterId.trim() !== '') {
-      candidates.push(characterId.trim());
-    }
-    return candidates.find(Boolean) || null;
-  }, [characterId, form]);
-
-  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
-
-  useEffect(() => {
-    resolvedCharacterIdRef.current = resolvedCharacterId;
-  }, [resolvedCharacterId]);
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
