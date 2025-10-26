@@ -71,8 +71,8 @@ const normalizeText = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
 const FIGURINE_SIZE_MULTIPLIERS = {
-  tiny: 0.25,
-  small: 0.5,
+  tiny: 0.5,
+  small: 1,
   medium: 1,
   large: 2,
   huge: 3,
