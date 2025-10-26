@@ -280,6 +280,127 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('monk uses dexterity for simple melee weapon attacks', () => {
+    const weapon = {
+      name: 'Quarterstaff',
+      damage: '1d6 bludgeoning',
+      category: 'Simple Melee Weapon',
+      source: 'weapon',
+      properties: [],
+    };
+
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={5}
+        dexMod={1}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Quarterstaff').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('Quarterstaff card not found');
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    expect(attackRow).not.toBeNull();
+    const attackValue = attackRow?.querySelector('.attack-card__value');
+    expect(attackValue?.textContent).toBe(String(3));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d6+1 Bludgeoning'),
+    ).toBeInTheDocument();
+  });
+
+  test('monk uses dexterity for unarmed strikes', () => {
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: {},
+          weapon: [],
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={5}
+        dexMod={1}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Unarmed Strike').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('Unarmed Strike card not found');
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    expect(attackRow).not.toBeNull();
+    const attackValue = attackRow?.querySelector('.attack-card__value');
+    expect(attackValue?.textContent).toBe(String(3));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d4+1 Bludgeoning'),
+    ).toBeInTheDocument();
+  });
+
+  test('monk uses strength for non-light martial melee weapons', () => {
+    const weapon = {
+      name: 'Glaive',
+      damage: '1d10 slashing',
+      category: 'Martial Melee Weapon',
+      source: 'weapon',
+      properties: ['Heavy', 'Reach'],
+    };
+
+    render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={5}
+        dexMod={1}
+      />
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTitle('Attack'));
+    });
+
+    const card = screen.getByText('Glaive').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('Glaive card not found');
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    expect(attackRow).not.toBeNull();
+    const attackValue = attackRow?.querySelector('.attack-card__value');
+    expect(attackValue?.textContent).toBe(String(7));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d10+5 Slashing'),
+    ).toBeInTheDocument();
+  });
+
   test('multi-part weapon damage applies ability modifier once', () => {
     const weapon = {
       name: 'Storm Blade',
