@@ -531,6 +531,60 @@ const manualCriticalRef = useRef(false);
     () => normalizeEquipmentMap(form.equipment),
     [form.equipment]
   );
+
+  const monkLevel = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) {
+      return 0;
+    }
+    return form.occupation.reduce((total, occupationEntry) => {
+      if (!occupationEntry || typeof occupationEntry !== 'object') {
+        return total;
+      }
+      const name = String(
+        occupationEntry.Name ??
+          occupationEntry.Occupation ??
+          occupationEntry.name ??
+          occupationEntry.occupation ??
+          '',
+      ).toLowerCase();
+      if (name !== 'monk') {
+        return total;
+      }
+      const levelValue = Number(
+        occupationEntry.Level ??
+          occupationEntry.level ??
+          occupationEntry.Levels ??
+          occupationEntry.levels ??
+          0,
+      );
+      if (!Number.isFinite(levelValue) || levelValue <= 0) {
+        return total;
+      }
+      return total + levelValue;
+    }, 0);
+  }, [form?.occupation]);
+
+  const hasMonkLevels = monkLevel > 0;
+
+  const unarmedStrikeDamage = useMemo(() => {
+    if (monkLevel <= 0) {
+      return '1d4 Bludgeoning';
+    }
+
+    if (monkLevel <= 4) {
+      return '1d6 Bludgeoning';
+    }
+
+    if (monkLevel <= 10) {
+      return '1d8 Bludgeoning';
+    }
+
+    if (monkLevel <= 16) {
+      return '1d10 Bludgeoning';
+    }
+
+    return '1d12 Bludgeoning';
+  }, [monkLevel]);
   const equippedWeapons = useMemo(() => {
     let weapons = [];
 
@@ -569,7 +623,7 @@ const manualCriticalRef = useRef(false);
         slot: 'unarmed-strike',
         weapon: {
           name: 'Unarmed Strike',
-          damage: '1d4 Bludgeoning',
+          damage: unarmedStrikeDamage,
           type: 'Unarmed',
           category: 'Melee Weapon',
           properties: [],
@@ -581,6 +635,7 @@ const manualCriticalRef = useRef(false);
     equipmentProvided,
     normalizedEquipment,
     form.weapon,
+    unarmedStrikeDamage,
   ]);
 
   const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
@@ -592,35 +647,6 @@ const manualCriticalRef = useRef(false);
     const parsed = Number(spellAbilityMod);
     return Number.isFinite(parsed) ? parsed : null;
   })();
-
-  const hasMonkLevels = useMemo(() => {
-    if (!Array.isArray(form?.occupation)) {
-      return false;
-    }
-    return form.occupation.some((occupationEntry) => {
-      if (!occupationEntry || typeof occupationEntry !== 'object') {
-        return false;
-      }
-      const name = String(
-        occupationEntry.Name ??
-          occupationEntry.Occupation ??
-          occupationEntry.name ??
-          occupationEntry.occupation ??
-          '',
-      ).toLowerCase();
-      if (name !== 'monk') {
-        return false;
-      }
-      const levelValue = Number(
-        occupationEntry.Level ??
-          occupationEntry.level ??
-          occupationEntry.Levels ??
-          occupationEntry.levels ??
-          0,
-      );
-      return Number.isFinite(levelValue) && levelValue > 0;
-    });
-  }, [form?.occupation]);
 
   const spellAbilityLabel = useMemo(() => {
     if (!spellAbilityKey) {
