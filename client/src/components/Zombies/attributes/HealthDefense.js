@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
@@ -10,6 +10,7 @@ export default function HealthDefense({
   form,
   conMod,
   dexMod,
+  wisMod,
   totalLevel,
   ac = 0,
   hpMaxBonus = 0,
@@ -46,30 +47,188 @@ export default function HealthDefense({
     return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
   }, [hasEquipment, normalizedEquipment, form.armor]);
 
-  const armorAcBonus = armorItems.map((item) => {
-    if (Array.isArray(item)) {
-      const value = Number(item[1] ?? 0);
-      return value > 10 ? value - 10 : value;
+  const isArmorItem = useCallback((item) => {
+    if (!item) return false;
+    if (Array.isArray(item)) return true;
+    if (typeof item !== 'object') return false;
+
+    const source = String(item.__source ?? item.source ?? '').toLowerCase();
+    if (source === 'armor') return true;
+
+    const typeCandidates = [
+      item.type,
+      item.armorType,
+      item.category,
+      item.slot,
+    ];
+    return typeCandidates.some((candidate) => {
+      if (typeof candidate !== 'string') return false;
+      const lower = candidate.toLowerCase();
+      if (!lower) return false;
+      if (lower.includes('armor')) return true;
+      if (['light', 'medium', 'heavy'].includes(lower)) return true;
+      return ['chest', 'body'].includes(lower);
+    });
+  }, []);
+
+  const { armorAcBonusTotal, otherAcBonusTotal } = useMemo(() => {
+    return armorItems.reduce(
+      (acc, item) => {
+        let value;
+        if (Array.isArray(item)) {
+          const numeric = Number(item[1] ?? 0);
+          value = numeric > 10 ? numeric - 10 : numeric;
+        } else {
+          value = Number(item?.acBonus ?? item?.armorBonus ?? item?.ac ?? 0);
+        }
+
+        if (!Number.isFinite(value) || value === 0) {
+          return acc;
+        }
+
+        if (isArmorItem(item)) {
+          acc.armor += value;
+        } else {
+          acc.other += value;
+        }
+
+        return acc;
+      },
+      { armor: 0, other: 0 }
+    );
+  }, [armorItems, isArmorItem]);
+
+  const armorMaxDexCandidates = useMemo(() => {
+    return armorItems
+      .map((item) => {
+        if (!isArmorItem(item)) {
+          return null;
+        }
+        if (Array.isArray(item)) {
+          return Number(item[2] ?? 0);
+        }
+        return Number(item?.maxDex ?? item?.maxDexterity ?? 0);
+      })
+      .filter((value) => Number.isFinite(value) && value !== 0);
+  }, [armorItems, isArmorItem]);
+
+  const armorMaxDexLimit = useMemo(() => {
+    if (!armorMaxDexCandidates.length) {
+      return null;
     }
-    return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
-  });
-  const armorMaxDexBonus = armorItems.map((item) =>
-    Array.isArray(item)
-      ? Number(item[2] ?? 0)
-      : Number(item.maxDex ?? item.maxDexterity ?? 0)
+    return Math.min(...armorMaxDexCandidates);
+  }, [armorMaxDexCandidates]);
+
+  const armorDexContribution = useMemo(() => {
+    const numericDex = Number(dexMod);
+    if (!Number.isFinite(numericDex)) {
+      return 0;
+    }
+    if (armorMaxDexLimit !== null && armorMaxDexLimit < numericDex) {
+      return armorMaxDexLimit;
+    }
+    return numericDex;
+  }, [armorMaxDexLimit, dexMod]);
+
+  const equipmentArmorEquipped = useMemo(() => {
+    return Object.values(normalizedEquipment || {}).some((item) => {
+      if (!item) return false;
+      return isArmorItem(item);
+    });
+  }, [normalizedEquipment, isArmorItem]);
+
+  const isWearingArmor = useMemo(() => {
+    if (Array.isArray(form?.armor) && form.armor.some(Boolean)) {
+      return true;
+    }
+    return equipmentArmorEquipped;
+  }, [equipmentArmorEquipped, form?.armor]);
+
+  const classLevels = useMemo(() => {
+    if (!Array.isArray(form?.occupation)) {
+      return [];
+    }
+    return form.occupation
+      .map((occ) => {
+        if (!occ || typeof occ !== 'object') {
+          return null;
+        }
+        const rawName = occ.Name || occ.Occupation || occ.name || '';
+        const name = typeof rawName === 'string' ? rawName.trim().toLowerCase() : '';
+        const levelValue = Number(occ.Level ?? occ.level ?? occ.Levels ?? occ.levels ?? 0);
+        const level = Number.isFinite(levelValue) ? levelValue : 0;
+        if (!name || level <= 0) {
+          return null;
+        }
+        return { name, level };
+      })
+      .filter(Boolean);
+  }, [form?.occupation]);
+
+  const hasMonkUnarmoredDefense = useMemo(
+    () => classLevels.some((entry) => entry.name === 'monk' && entry.level >= 1),
+    [classLevels]
   );
-  let totalArmorAcBonus =
-    armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
-    Number(ac);
-  let filteredMaxDexArray = armorMaxDexBonus.filter((e) => e !== 0);
-  let armorMaxDexMin = Math.min(...filteredMaxDexArray);
-    
-     let armorMaxDex;
-     if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
-        armorMaxDex = armorMaxDexMin;
-     } else {
-      armorMaxDex = dexMod;
-     }
+
+  const hasBarbarianUnarmoredDefense = useMemo(
+    () => classLevels.some((entry) => entry.name === 'barbarian' && entry.level >= 1),
+    [classLevels]
+  );
+
+  const numericAcBonus = useMemo(() => {
+    const parsed = Number(ac);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [ac]);
+
+  const armorBasedAc = useMemo(() => {
+    const baseAc = 10 + armorDexContribution + armorAcBonusTotal;
+    return baseAc + otherAcBonusTotal + numericAcBonus;
+  }, [armorDexContribution, armorAcBonusTotal, otherAcBonusTotal, numericAcBonus]);
+
+  const unarmoredDefenseAc = useMemo(() => {
+    if (isWearingArmor) {
+      return null;
+    }
+
+    const numericDex = Number(dexMod);
+    const numericWis = Number(wisMod);
+    const numericCon = Number(conMod);
+
+    const candidates = [];
+
+    if (hasMonkUnarmoredDefense && Number.isFinite(numericDex) && Number.isFinite(numericWis)) {
+      candidates.push(10 + numericDex + numericWis);
+    }
+
+    if (hasBarbarianUnarmoredDefense && Number.isFinite(numericDex) && Number.isFinite(numericCon)) {
+      candidates.push(10 + numericDex + numericCon);
+    }
+
+    if (!candidates.length) {
+      return null;
+    }
+
+    const bestBase = Math.max(...candidates);
+    return bestBase + otherAcBonusTotal + numericAcBonus;
+  }, [
+    conMod,
+    dexMod,
+    hasBarbarianUnarmoredDefense,
+    hasMonkUnarmoredDefense,
+    isWearingArmor,
+    numericAcBonus,
+    otherAcBonusTotal,
+    wisMod,
+  ]);
+
+  const displayAc = useMemo(() => {
+    const candidates = [armorBasedAc];
+    if (Number.isFinite(unarmoredDefenseAc)) {
+      candidates.push(unarmoredDefenseAc);
+    }
+    const best = Math.max(...candidates.filter((value) => Number.isFinite(value)));
+    return Number.isFinite(best) ? best : null;
+  }, [armorBasedAc, unarmoredDefenseAc]);
     
   const derivedTotalLevel = useMemo(() => {
     if (Number.isFinite(totalLevel)) {
@@ -427,7 +586,7 @@ return (
 <div style={{ color: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
   {/* First row */}
   <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-    <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
+    <div><strong>AC:</strong> {Number.isFinite(displayAc) ? displayAc : '—'}</div>
     <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
     <div><strong>Speed:</strong> {totalSpeed}</div>
   </div>
