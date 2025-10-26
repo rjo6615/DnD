@@ -120,6 +120,19 @@ const normalizeCreatureSize = (value) => {
   return null;
 };
 
+const resolveCharacterTokenSize = (form) =>
+  normalizeCreatureSize(
+    form?.temporarySize ??
+      form?.size ??
+      form?.characterSize ??
+      form?.character?.size ??
+      form?.creature?.size ??
+      form?.profile?.size ??
+      form?.race?.size ??
+      form?.attributes?.size ??
+      form?.displayType
+  );
+
 const normalizeCombatState = (state) => {
   if (!state || typeof state !== "object") {
     return createEmptyCombatState();
@@ -375,7 +388,25 @@ const sanitizeToken = (tokenValue, fallbackId) => {
     return null;
   }
 
-  return { ...candidate, characterId: candidateId, x, y };
+  const sanitized = { ...candidate, characterId: candidateId, x, y };
+
+  if (Object.prototype.hasOwnProperty.call(candidate, 'rotation')) {
+    const normalizedRotation = normalizeRotation(candidate.rotation);
+    if (normalizedRotation === null) {
+      delete sanitized.rotation;
+    } else {
+      sanitized.rotation = normalizedRotation;
+    }
+  }
+
+  const normalizedSize = normalizeCreatureSize(candidate.size);
+  if (normalizedSize) {
+    sanitized.size = normalizedSize;
+  } else if (Object.prototype.hasOwnProperty.call(candidate, 'size')) {
+    delete sanitized.size;
+  }
+
+  return sanitized;
 };
 
 const sanitizeTokenDictionary = (tokens) => {
@@ -1182,6 +1213,40 @@ export default function ZombiesCharacterSheet() {
   const campaignMapRef = useRef(null);
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
+  const appliedLargeFormMapsRef = useRef(new Set());
+  const largeFormActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Large Form'),
+    [activeEffects]
+  );
+  const adrenalineRushActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
+    [activeEffects]
+  );
+  const speedMultiplier = useMemo(
+    () => (adrenalineRushActive ? 2 : 1),
+    [adrenalineRushActive]
+  );
+  const temporarySize = form?.temporarySize;
+  const temporarySpeedBonus = form?.temporarySpeedBonus;
+  const desiredTokenSize = useMemo(() => resolveCharacterTokenSize(form), [form]);
+  const resolvedCharacterId = useMemo(() => {
+    const candidates = [];
+    if (typeof form?._id === 'string' && form._id.trim() !== '') {
+      candidates.push(form._id.trim());
+    }
+    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
+      candidates.push(form.characterId.trim());
+    }
+    if (typeof characterId === 'string' && characterId.trim() !== '') {
+      candidates.push(characterId.trim());
+    }
+    return candidates.find(Boolean) || null;
+  }, [characterId, form]);
+  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
+
+  useEffect(() => {
+    resolvedCharacterIdRef.current = resolvedCharacterId;
+  }, [resolvedCharacterId]);
   const [dockedModals, setDockedModals] = useState({ left: null, right: null });
   const [dockedModalWidths, setDockedModalWidths] = useState({ left: null, right: null });
 
@@ -1300,6 +1365,253 @@ export default function ZombiesCharacterSheet() {
         ? campaignActiveMapId.trim()
         : null;
   }, [campaignActiveMapId]);
+
+  useEffect(() => {
+    const normalizedCampaign =
+      typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
+    const normalizedCharacterId =
+      typeof resolvedCharacterId === 'string' && resolvedCharacterId.trim() !== ''
+        ? resolvedCharacterId.trim()
+        : null;
+
+    if (!normalizedCampaign || !normalizedCharacterId) {
+      return;
+    }
+
+    const tokensByMap = campaignMapTokensRef.current || {};
+    const updates = Object.entries(tokensByMap).reduce((acc, [mapId, tokens]) => {
+      if (typeof mapId !== 'string') {
+        return acc;
+      }
+
+      const trimmedMapId = mapId.trim();
+      if (!trimmedMapId) {
+        return acc;
+      }
+
+      if (!tokens || typeof tokens !== 'object') {
+        return acc;
+      }
+
+      const token = tokens[normalizedCharacterId];
+      if (!token || typeof token !== 'object') {
+        return acc;
+      }
+
+      const clampedX = clamp01(token.x);
+      const clampedY = clamp01(token.y);
+      if (clampedX === null || clampedY === null) {
+        return acc;
+      }
+
+      const currentSize = normalizeCreatureSize(token.size);
+      if (largeFormActive) {
+        if (currentSize === 'large') {
+          return acc;
+        }
+
+        acc.push({ mapId: trimmedMapId, token, x: clampedX, y: clampedY, nextSize: 'large' });
+        return acc;
+      }
+
+      if (currentSize === 'large' && desiredTokenSize !== 'large') {
+        const appliedMaps = appliedLargeFormMapsRef.current;
+        if (!(appliedMaps instanceof Set) || !appliedMaps.has(trimmedMapId)) {
+          return acc;
+        }
+
+        acc.push({ mapId: trimmedMapId, token, x: clampedX, y: clampedY, nextSize: null });
+      }
+
+      return acc;
+    }, []);
+
+    if (updates.length === 0) {
+      return;
+    }
+
+    const previousAppliedLargeMaps =
+      appliedLargeFormMapsRef.current instanceof Set
+        ? new Set(appliedLargeFormMapsRef.current)
+        : new Set();
+    const nextAppliedLargeMaps = new Set(previousAppliedLargeMaps);
+    updates.forEach(({ mapId, nextSize }) => {
+      if (nextSize === 'large') {
+        nextAppliedLargeMaps.add(mapId);
+      } else {
+        nextAppliedLargeMaps.delete(mapId);
+      }
+    });
+    appliedLargeFormMapsRef.current = nextAppliedLargeMaps;
+
+    const encodedCampaign = encodeURIComponent(normalizedCampaign);
+    const encodedCharacterId = encodeURIComponent(normalizedCharacterId);
+    const previousCampaignTokens = campaignMapTokensRef.current || {};
+    const previousActiveTokens = activeMapTokensRef.current || {};
+    const previousCampaignMap = campaignMapRef.current || null;
+    const timestamp = new Date().toISOString();
+
+    const applySizeToToken = (baseToken = {}, nextSize) => {
+      const nextToken = {
+        ...baseToken,
+        characterId: normalizedCharacterId,
+        updatedAt: timestamp,
+      };
+
+      if (nextSize) {
+        nextToken.size = nextSize;
+      } else if (Object.prototype.hasOwnProperty.call(nextToken, 'size')) {
+        delete nextToken.size;
+      }
+
+      return nextToken;
+    };
+
+    setCampaignMapTokens((prev) => {
+      const next = { ...(prev || {}) };
+      updates.forEach(({ mapId, token, nextSize }) => {
+        const existing = { ...(next[mapId] || {}) };
+        const baseToken = {
+          ...(existing[normalizedCharacterId] || {}),
+          ...(token || {}),
+        };
+        existing[normalizedCharacterId] = applySizeToToken(baseToken, nextSize);
+        next[mapId] = existing;
+      });
+      return next;
+    });
+
+    const activeMapId = campaignActiveMapIdRef.current;
+    const activeUpdate = activeMapId
+      ? updates.find((update) => update.mapId === activeMapId) || null
+      : null;
+    const shouldUpdateActiveTokens =
+      !activeMapId ||
+      Boolean(activeUpdate) ||
+      Boolean(activeMapTokensRef.current?.[normalizedCharacterId]);
+
+    if (shouldUpdateActiveTokens) {
+      const fallbackToken =
+        (activeUpdate && activeUpdate.token) ||
+        activeMapTokensRef.current?.[normalizedCharacterId] ||
+        updates[0]?.token ||
+        {};
+      const fallbackSize =
+        (activeUpdate && activeUpdate.nextSize) ||
+        (updates[0] && updates[0].nextSize) ||
+        null;
+
+      setActiveMapTokens((prev) => ({
+        ...(prev || {}),
+        [normalizedCharacterId]: applySizeToToken({
+          ...(prev?.[normalizedCharacterId] || {}),
+          ...fallbackToken,
+        }, fallbackSize),
+      }));
+    }
+
+    setCampaignMap((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const prevMapId =
+        typeof prev.mapId === 'string' && prev.mapId.trim() !== '' ? prev.mapId.trim() : null;
+      if (!prevMapId) {
+        return prev;
+      }
+
+      const update = updates.find((entry) => entry.mapId === prevMapId);
+      if (!update) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        tokens: {
+          ...(prev.tokens || {}),
+          [normalizedCharacterId]: applySizeToToken({
+            ...(prev.tokens?.[normalizedCharacterId] || {}),
+            ...(update.token || {}),
+          }, update.nextSize),
+        },
+      };
+    });
+
+    let isCancelled = false;
+    let didPersist = false;
+
+    const persist = async () => {
+      try {
+        for (const update of updates) {
+          if (isCancelled) {
+            return;
+          }
+
+          const encodedMapId = encodeURIComponent(update.mapId);
+          const payload = {
+            x: update.x,
+            y: update.y,
+            size: update.nextSize || '',
+          };
+
+          if (Object.prototype.hasOwnProperty.call(update.token, 'rotation')) {
+            const normalizedRotation = normalizeRotation(update.token.rotation);
+            if (normalizedRotation !== null) {
+              payload.rotation = normalizedRotation;
+            }
+          }
+
+          const response = await apiFetch(
+            `/campaigns/${encodedCampaign}/maps/${encodedMapId}/tokens/${encodedCharacterId}`,
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }
+          );
+
+          if (!response.ok) {
+            const message = await parseErrorMessage(
+              response,
+              'Failed to update figurine size.'
+            );
+            throw new Error(message);
+          }
+        }
+
+        didPersist = true;
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error(error);
+        setCampaignMapTokens(previousCampaignTokens || {});
+        setActiveMapTokens(previousActiveTokens || {});
+        setCampaignMap(previousCampaignMap || null);
+        appliedLargeFormMapsRef.current = previousAppliedLargeMaps;
+      }
+    };
+
+    persist();
+
+    return () => {
+      isCancelled = true;
+      if (!didPersist) {
+        appliedLargeFormMapsRef.current = previousAppliedLargeMaps;
+      }
+    };
+  }, [
+    campaignId,
+    campaignMapTokens,
+    desiredTokenSize,
+    largeFormActive,
+    resolvedCharacterId,
+    setActiveMapTokens,
+    setCampaignMap,
+    setCampaignMapTokens,
+  ]);
 
   const applyMapPayload = useCallback(
     (payload = {}) => {
@@ -1676,29 +1988,12 @@ export default function ZombiesCharacterSheet() {
     });
   }, [baseActionCount, activeEffects]);
 
-  const adrenalineRushActive = useMemo(
-    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
-    [activeEffects]
-  );
-
-  const speedMultiplier = useMemo(
-    () => (adrenalineRushActive ? 2 : 1),
-    [adrenalineRushActive]
-  );
-
-  const temporarySize = form?.temporarySize;
-  const temporarySpeedBonus = form?.temporarySpeedBonus;
-
   useEffect(() => {
     if (!form) {
       return;
     }
 
-    const hasLargeForm = activeEffects.some(
-      (effect) => effect && effect.name === 'Large Form'
-    );
-
-    if (hasLargeForm) {
+    if (largeFormActive) {
       const desiredSize = 'Large';
       const desiredSpeedBonus = 10;
       const nextSize = form.temporarySize;
@@ -1766,7 +2061,7 @@ export default function ZombiesCharacterSheet() {
       } = prev;
       return rest;
     });
-  }, [activeEffects, form]);
+  }, [form, largeFormActive]);
 
   const consumeCircle = useCallback(
     (type, index) => {
@@ -3545,26 +3840,6 @@ export default function ZombiesCharacterSheet() {
   const featAbilityBonuses = collectFeatAbilityBonuses(form?.feat);
 
   const raceBonus = form?.race?.abilities || {};
-
-  const resolvedCharacterId = useMemo(() => {
-    const candidates = [];
-    if (typeof form?._id === 'string' && form._id.trim() !== '') {
-      candidates.push(form._id.trim());
-    }
-    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
-      candidates.push(form.characterId.trim());
-    }
-    if (typeof characterId === 'string' && characterId.trim() !== '') {
-      candidates.push(characterId.trim());
-    }
-    return candidates.find(Boolean) || null;
-  }, [characterId, form]);
-
-  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
-
-  useEffect(() => {
-    resolvedCharacterIdRef.current = resolvedCharacterId;
-  }, [resolvedCharacterId]);
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 

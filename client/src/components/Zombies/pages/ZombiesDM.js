@@ -908,7 +908,25 @@ const sanitizeToken = (tokenValue, fallbackId) => {
     return null;
   }
 
-  return { ...candidate, characterId: candidateId, x, y };
+  const sanitized = { ...candidate, characterId: candidateId, x, y };
+
+  if (Object.prototype.hasOwnProperty.call(candidate, 'rotation')) {
+    const normalizedRotation = normalizeRotation(candidate.rotation);
+    if (normalizedRotation === null) {
+      delete sanitized.rotation;
+    } else {
+      sanitized.rotation = normalizedRotation;
+    }
+  }
+
+  const normalizedSize = normalizeCreatureSize(candidate.size);
+  if (normalizedSize) {
+    sanitized.size = normalizedSize;
+  } else if (Object.prototype.hasOwnProperty.call(candidate, 'size')) {
+    delete sanitized.size;
+  }
+
+  return sanitized;
 };
 
 const sanitizeTokenDictionary = (tokens) => {
