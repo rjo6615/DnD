@@ -566,6 +566,79 @@ const manualCriticalRef = useRef(false);
 
   const hasMonkLevels = monkLevel > 0;
 
+  const hasMartialArtsBonusUnarmedStrikeFeature = useMemo(() => {
+    if (!hasMonkLevels) {
+      return false;
+    }
+
+    const targetName = 'bonus unarmed strike';
+    const targetMeta = 'martial arts';
+    const visited = new WeakSet();
+
+    const normalize = (value) =>
+      typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+    function checkValue(value) {
+      if (!value) {
+        return false;
+      }
+
+      if (Array.isArray(value)) {
+        if (visited.has(value)) {
+          return false;
+        }
+        visited.add(value);
+        return value.some((entry) => checkValue(entry));
+      }
+
+      if (typeof value === 'object') {
+        if (visited.has(value)) {
+          return false;
+        }
+        visited.add(value);
+
+        const name = normalize(
+          value?.name ?? value?.Name ?? value?.title ?? value?.Title,
+        );
+        const meta = normalize(
+          value?.meta ?? value?.Meta ?? value?.category ?? value?.Category,
+        );
+
+        const combined = `${meta} ${name}`.trim();
+
+        if (
+          (name && name === targetName) ||
+          (combined && combined.includes(`${targetMeta} ${targetName}`)) ||
+          (meta && meta.includes(targetName))
+        ) {
+          if (!meta || meta.includes(targetMeta) || combined.includes(targetMeta)) {
+            return true;
+          }
+        }
+
+        return Object.values(value).some((entry) => checkValue(entry));
+      }
+
+      if (typeof value === 'string') {
+        const normalized = normalize(value);
+        if (!normalized) {
+          return false;
+        }
+
+        if (
+          normalized.includes(targetName) &&
+          (normalized.includes(targetMeta) || normalized === targetName)
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    return checkValue(form?.features);
+  }, [form?.features, hasMonkLevels]);
+
   const unarmedStrikeDamage = useMemo(() => {
     if (monkLevel <= 0) {
       return '1d4 Bludgeoning';
@@ -635,6 +708,39 @@ const manualCriticalRef = useRef(false);
     equipmentProvided,
     normalizedEquipment,
     form.weapon,
+    unarmedStrikeDamage,
+  ]);
+
+  const displayedWeapons = useMemo(() => {
+    if (!hasMartialArtsBonusUnarmedStrikeFeature) {
+      return equippedWeapons;
+    }
+
+    const alreadyPresent = equippedWeapons.some(
+      ({ slot }) => slot === 'bonus-unarmed-strike'
+    );
+
+    if (alreadyPresent) {
+      return equippedWeapons;
+    }
+
+    return [
+      ...equippedWeapons,
+      {
+        slot: 'bonus-unarmed-strike',
+        weapon: {
+          name: 'Bonus Unarmed Strike',
+          damage: unarmedStrikeDamage,
+          type: 'Unarmed',
+          category: 'Melee Weapon',
+          properties: [],
+          source: 'feature',
+        },
+      },
+    ];
+  }, [
+    equippedWeapons,
+    hasMartialArtsBonusUnarmedStrikeFeature,
     unarmedStrikeDamage,
   ]);
 
@@ -803,7 +909,7 @@ const manualCriticalRef = useRef(false);
   useEffect(() => {
     setWeaponAbilitySelections((prev) => {
       const next = {};
-      equippedWeapons.forEach(({ slot, weapon }) => {
+      displayedWeapons.forEach(({ slot, weapon }) => {
         if (isFinesseWeapon(weapon)) {
           const existing = prev[slot];
           if (existing === 'dex' || existing === 'str') {
@@ -821,11 +927,11 @@ const manualCriticalRef = useRef(false);
       }
       return next;
     });
-  }, [equippedWeapons, isFinesseWeapon]);
+  }, [displayedWeapons, isFinesseWeapon]);
 
   useEffect(() => {
     setWeaponHandSelections({});
-  }, [equippedWeapons]);
+  }, [displayedWeapons]);
   // --------------------------------Breaks down weapon damage into useable numbers--------------------------------
   const abilityForWeapon = (weapon, slot) => {
     const key = getAbilityKeyForWeapon(slot, weapon);
@@ -2568,12 +2674,12 @@ const damageAmountStyle = {
           <Card.Body>
             <Card.Title className="modal-title">Weapons</Card.Title>
             <div className="attack-card-grid">
-              {equippedWeapons.length === 0 ? (
+              {displayedWeapons.length === 0 ? (
                 <div className="attack-card attack-card--empty">
                   <p className="text-muted mb-0">No weapons equipped.</p>
                 </div>
               ) : (
-                equippedWeapons.map(({ slot, weapon }) => {
+                displayedWeapons.map(({ slot, weapon }) => {
                   const weaponTypeLabel = getWeaponTypeLabel(weapon);
                   const propertyDetails = getWeaponPropertyDetails(weapon);
                   const propertyLabels = propertyDetails.map(({ label }) => label);
