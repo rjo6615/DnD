@@ -531,6 +531,68 @@ const manualCriticalRef = useRef(false);
     () => normalizeEquipmentMap(form.equipment),
     [form.equipment]
   );
+  const equippedWeapons = useMemo(() => {
+    let weapons = [];
+
+    if (equipmentProvided) {
+      weapons = WEAPON_SLOT_KEYS.map((slot) => {
+        const weapon = normalizedEquipment[slot];
+        if (!weapon) return null;
+        if (weapon.source && weapon.source !== 'weapon') return null;
+        const damage =
+          typeof weapon.damage === 'string' ? weapon.damage.trim() : '';
+        if (!damage) return null;
+        return { slot, weapon };
+      }).filter(Boolean);
+    } else {
+      const legacyWeapons = normalizeWeapons(form.weapon || [], {
+        includeUnowned: true,
+      });
+      weapons = legacyWeapons.map((weapon, index) => ({
+        slot: `legacy-${index}`,
+        weapon,
+      }));
+    }
+
+    const hasUnarmedStrike = weapons.some(({ weapon }) => {
+      const name = typeof weapon?.name === 'string' ? weapon.name.trim() : '';
+      return name.toLowerCase() === 'unarmed strike';
+    });
+
+    if (hasUnarmedStrike) {
+      return weapons;
+    }
+
+    return [
+      ...weapons,
+      {
+        slot: 'unarmed-strike',
+        weapon: {
+          name: 'Unarmed Strike',
+          damage: '1d4 Bludgeoning',
+          type: 'Unarmed',
+          category: 'Melee Weapon',
+          properties: [],
+          source: 'weapon',
+        },
+      },
+    ];
+  }, [
+    equipmentProvided,
+    normalizedEquipment,
+    form.weapon,
+  ]);
+
+  const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
+  const [weaponHandSelections, setWeaponHandSelections] = useState({});
+
+  const numericStrMod = Number(strMod) || 0;
+  const numericDexMod = Number(dexMod) || 0;
+  const numericSpellAbilityMod = (() => {
+    const parsed = Number(spellAbilityMod);
+    return Number.isFinite(parsed) ? parsed : null;
+  })();
+
   const hasMonkLevels = useMemo(() => {
     if (!Array.isArray(form?.occupation)) {
       return false;
@@ -559,141 +621,6 @@ const manualCriticalRef = useRef(false);
       return Number.isFinite(levelValue) && levelValue > 0;
     });
   }, [form?.occupation]);
-  const bonusUnarmedStrikeFeature = useMemo(() => {
-    const target = 'bonus unarmed strike';
-
-    const searchValue = (value, depth = 0) => {
-      if (!value || depth > 10) {
-        return false;
-      }
-
-      if (typeof value === 'string') {
-        return value.trim().toLowerCase() === target;
-      }
-
-      if (Array.isArray(value)) {
-        return value.some((entry) => searchValue(entry, depth + 1));
-      }
-
-      if (typeof value === 'object') {
-        return Object.entries(value).some(([key, entry]) => {
-          if (typeof key === 'string' && key.trim().toLowerCase() === target) {
-            return true;
-          }
-          return searchValue(entry, depth + 1);
-        });
-      }
-
-      return false;
-    };
-
-    const featureSources = [
-      form?.features,
-      form?.classFeatures,
-      form?.featureList,
-    ];
-
-    return featureSources.some((source) => searchValue(source));
-  }, [form?.classFeatures, form?.featureList, form?.features]);
-
-  const equippedWeapons = useMemo(() => {
-    let weapons = [];
-
-    if (equipmentProvided) {
-      weapons = WEAPON_SLOT_KEYS.map((slot) => {
-        const weapon = normalizedEquipment[slot];
-        if (!weapon) return null;
-        if (weapon.source && weapon.source !== 'weapon') return null;
-        const damage =
-          typeof weapon.damage === 'string' ? weapon.damage.trim() : '';
-        if (!damage) return null;
-        return { slot, weapon };
-      }).filter(Boolean);
-    } else {
-      const legacyWeapons = normalizeWeapons(form.weapon || [], {
-        includeUnowned: true,
-      });
-      weapons = legacyWeapons.map((weapon, index) => ({
-        slot: `legacy-${index}`,
-        weapon,
-      }));
-    }
-
-    const ensureUnarmedStrike = (currentWeapons) => {
-      const hasUnarmedStrike = currentWeapons.some(({ weapon }) => {
-        const name =
-          typeof weapon?.name === 'string' ? weapon.name.trim() : '';
-        return name.toLowerCase() === 'unarmed strike';
-      });
-
-      if (hasUnarmedStrike) {
-        return currentWeapons;
-      }
-
-      return [
-        ...currentWeapons,
-        {
-          slot: 'unarmed-strike',
-          weapon: {
-            name: 'Unarmed Strike',
-            damage: '1d4 Bludgeoning',
-            type: 'Unarmed',
-            category: 'Melee Weapon',
-            properties: [],
-            source: 'weapon',
-          },
-        },
-      ];
-    };
-
-    const withUnarmed = ensureUnarmedStrike(weapons);
-
-    if (hasMonkLevels && bonusUnarmedStrikeFeature) {
-      const baseUnarmed = withUnarmed.find(({ weapon }) => {
-        const name =
-          typeof weapon?.name === 'string' ? weapon.name.trim() : '';
-        return name.toLowerCase() === 'unarmed strike';
-      });
-
-      const baseWeapon = baseUnarmed?.weapon || {
-        name: 'Unarmed Strike',
-        damage: '1d4 Bludgeoning',
-        type: 'Unarmed',
-        category: 'Melee Weapon',
-        properties: [],
-        source: 'weapon',
-      };
-
-      return [
-        ...withUnarmed,
-        {
-          slot: 'bonus-unarmed-strike',
-          weapon: {
-            ...baseWeapon,
-            displayName: 'Bonus Unarmed Strike',
-          },
-        },
-      ];
-    }
-
-    return withUnarmed;
-  }, [
-    bonusUnarmedStrikeFeature,
-    equipmentProvided,
-    form.weapon,
-    hasMonkLevels,
-    normalizedEquipment,
-  ]);
-
-  const [weaponAbilitySelections, setWeaponAbilitySelections] = useState({});
-  const [weaponHandSelections, setWeaponHandSelections] = useState({});
-
-  const numericStrMod = Number(strMod) || 0;
-  const numericDexMod = Number(dexMod) || 0;
-  const numericSpellAbilityMod = (() => {
-    const parsed = Number(spellAbilityMod);
-    return Number.isFinite(parsed) ? parsed : null;
-  })();
 
   const spellAbilityLabel = useMemo(() => {
     if (!spellAbilityKey) {
@@ -1281,13 +1208,6 @@ const manualCriticalRef = useRef(false);
   };
 
   const getWeaponDisplayName = (slot, weapon) => {
-    if (weapon?.displayName && typeof weapon.displayName === 'string') {
-      const trimmed = weapon.displayName.trim();
-      if (trimmed) {
-        return trimmed;
-      }
-    }
-
     if (weapon?.name && typeof weapon.name === 'string') {
       const trimmed = weapon.name.trim();
       if (trimmed) {
