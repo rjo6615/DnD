@@ -273,6 +273,32 @@ test('using all copies of a consumable potion removes it from the inventory', as
   );
 });
 
+test('inventory entries with slug and display names stack together', async () => {
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
+
+  render(
+    <ItemList
+      ownedOnly
+      embedded
+      initialItems={[
+        'potion-healing',
+        { name: 'Potion of healing', properties: ['consumable'], owned: true },
+        {
+          name: 'potion of healing',
+          displayName: 'Potion of Healing',
+          properties: ['consumable'],
+          owned: true,
+        },
+      ]}
+    />
+  );
+
+  const potionHeading = await screen.findByText('Potion of healing');
+  const potionCard = potionHeading.closest('.card');
+  expect(potionCard).not.toBeNull();
+  expect(within(potionCard).getByText('×3')).toBeInTheDocument();
+});
+
 test('delete button removes an item after confirmation', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => itemsData });
   const onChange = jest.fn();
