@@ -245,6 +245,17 @@ const attachSelectedAncestryToRace = useCallback((race, {
     updatedRace.__baseSpeed = baseSpeed;
   }
 
+  const hasStoredBaseAbilities = Object.prototype.hasOwnProperty.call(
+    race,
+    "__baseAbilities"
+  );
+  const baseAbilities = hasStoredBaseAbilities ? race.__baseAbilities : race.abilities;
+  if (baseAbilities) {
+    updatedRace.__baseAbilities = { ...baseAbilities };
+  } else {
+    delete updatedRace.__baseAbilities;
+  }
+
   const hasStoredBaseDarkvision = Object.prototype.hasOwnProperty.call(
     race,
     "__baseDarkvisionRange"
@@ -313,6 +324,7 @@ const attachSelectedAncestryToRace = useCallback((race, {
       typeof lineageToApply?.darkvisionRange === "number"
         ? lineageToApply.darkvisionRange
         : null;
+    const lineageAbilities = lineageToApply?.abilities || null;
 
     if (typeof baseSpeed === "number") {
       updatedRace.speed = lineageSpeed ?? baseSpeed;
@@ -328,6 +340,24 @@ const attachSelectedAncestryToRace = useCallback((race, {
       } else {
         updatedRace.darkvisionRange = baseDarkvision;
       }
+    }
+
+    if (baseAbilities || lineageAbilities) {
+      const combinedAbilities = baseAbilities ? { ...baseAbilities } : {};
+
+      if (lineageAbilities) {
+        Object.entries(lineageAbilities).forEach(([abilityKey, bonusValue]) => {
+          const numericBase = Number(combinedAbilities[abilityKey] ?? 0);
+          const numericBonus = Number(bonusValue ?? 0);
+          const safeBase = Number.isNaN(numericBase) ? 0 : numericBase;
+          const safeBonus = Number.isNaN(numericBonus) ? 0 : numericBonus;
+          combinedAbilities[abilityKey] = safeBase + safeBonus;
+        });
+      }
+
+      updatedRace.abilities = combinedAbilities;
+    } else if (updatedRace.abilities) {
+      delete updatedRace.abilities;
     }
   }
 
@@ -741,6 +771,7 @@ useEffect(() => {
     if (raceWithAncestry) {
       newCharacter.race = raceWithAncestry;
       delete newCharacter.race.__baseSpeed;
+      delete newCharacter.race.__baseAbilities;
       delete newCharacter.race.__baseDarkvisionRange;
     } else {
       delete newCharacter.race;
@@ -1714,6 +1745,7 @@ const sendManualToDb = useCallback(async (characterData) => {
   if (raceWithAncestry) {
     newCharacter.race = raceWithAncestry;
     delete newCharacter.race.__baseSpeed;
+    delete newCharacter.race.__baseAbilities;
     delete newCharacter.race.__baseDarkvisionRange;
   } else {
     delete newCharacter.race;
