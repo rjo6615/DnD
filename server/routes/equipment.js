@@ -64,6 +64,33 @@ const isValidWeight = (value) => {
   return false;
 };
 
+const coerceOptionalCost = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+  return value;
+};
+
+const isValidCost = (value) => {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+  if (typeof value === 'string') {
+    return value.length > 0;
+  }
+  return false;
+};
+
 const getSlotString = (value) => {
   if (!value) return '';
   if (typeof value === 'string') {
@@ -677,7 +704,7 @@ module.exports = (router) => {
       body('item.*.name').trim().notEmpty().withMessage('name is required'),
       body('item.*.category').optional().isString().bail().customSanitizer(coerceOptionalString),
       body('item.*.weight')
-        .optional({ values: 'falsy' })
+        .optional({ values: 'nullish' })
         .customSanitizer(coerceOptionalWeight)
         .custom((value) => {
           if (!isValidWeight(value)) {
@@ -685,7 +712,15 @@ module.exports = (router) => {
           }
           return true;
         }),
-      body('item.*.cost').optional().isString().trim(),
+      body('item.*.cost')
+        .optional({ values: 'nullish' })
+        .customSanitizer(coerceOptionalCost)
+        .custom((value) => {
+          if (!isValidCost(value)) {
+            throw new Error('cost must be a string or number');
+          }
+          return true;
+        }),
       body('item.*.notes').optional().isString().trim(),
       body('item.*.statBonuses').optional().custom(validateBonusObject),
       body('item.*.skillBonuses').optional().custom(validateBonusObject),
@@ -740,7 +775,7 @@ module.exports = (router) => {
         }),
       body('accessories.*.rarity').optional().isString().trim(),
       body('accessories.*.weight')
-        .optional({ values: 'falsy' })
+        .optional({ values: 'nullish' })
         .customSanitizer(coerceOptionalWeight)
         .custom((value) => {
           if (!isValidWeight(value)) {
@@ -748,7 +783,15 @@ module.exports = (router) => {
           }
           return true;
         }),
-      body('accessories.*.cost').optional().isString().trim(),
+      body('accessories.*.cost')
+        .optional({ values: 'nullish' })
+        .customSanitizer(coerceOptionalCost)
+        .custom((value) => {
+          if (!isValidCost(value)) {
+            throw new Error('cost must be a string or number');
+          }
+          return true;
+        }),
       body('accessories.*.notes').optional().isString().trim(),
       body('accessories.*.statBonuses')
         .optional()

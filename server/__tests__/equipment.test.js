@@ -668,6 +668,25 @@ describe('Equipment routes', () => {
       expect(res.body.message).toBe('Item updated');
     });
 
+    test('update allows numeric costs', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: [{ name: 'alchemy jug', cost: 50 }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Item updated');
+    });
+
+    test('update rejects invalid cost types', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: [{ name: 'alchemy jug', cost: { amount: 50 } }] });
+      expect(res.status).toBe(400);
+    });
+
     test('update not found', async () => {
       dbo.mockResolvedValue({
         collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
@@ -797,6 +816,29 @@ describe('Equipment routes', () => {
         .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
         .send({
           accessories: [{ ...baseAccessory, weight: { amount: 2 } }],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories allows numeric costs', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, cost: 5000 }],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessories updated');
+    });
+
+    test('update accessories reject invalid cost types', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, cost: { amount: 5000 } }],
         });
       expect(res.status).toBe(400);
     });
