@@ -114,6 +114,34 @@ const coerceOptionalCost = (value) => {
   return value;
 };
 
+const coerceOptionalBoolean = (value) => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    return trimmed;
+  }
+  return value;
+};
+
+const coerceOptionalInteger = (value) => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    return trimmed;
+  }
+  return value;
+};
+
 const isValidCost = (value) => {
   if (value === undefined) {
     return true;
@@ -790,8 +818,16 @@ module.exports = (router) => {
         .optional()
         .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
-      body('item.*.owned').optional().isBoolean().toBoolean(),
-      body('item.*.ownedCount').optional().isInt({ min: 0 }).toInt(),
+      body('item.*.owned')
+        .customSanitizer(coerceOptionalBoolean)
+        .optional()
+        .isBoolean()
+        .toBoolean(),
+      body('item.*.ownedCount')
+        .customSanitizer(coerceOptionalInteger)
+        .optional()
+        .isInt({ min: 0 })
+        .toInt(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -867,8 +903,16 @@ module.exports = (router) => {
         .optional()
         .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
-      body('accessories.*.owned').optional().isBoolean().toBoolean(),
-      body('accessories.*.ownedCount').optional().isInt().toInt(),
+      body('accessories.*.owned')
+        .customSanitizer(coerceOptionalBoolean)
+        .optional()
+        .isBoolean()
+        .toBoolean(),
+      body('accessories.*.ownedCount')
+        .customSanitizer(coerceOptionalInteger)
+        .optional()
+        .isInt()
+        .toInt(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
