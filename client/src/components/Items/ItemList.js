@@ -49,44 +49,72 @@ const renderBonuses = (bonuses, labels) =>
 
 const EMPTY_ARRAY = Object.freeze([]);
 
-const normalizeItemName = (value) => {
-  if (typeof value === 'string') {
-    return value.trim().toLowerCase();
+const STOP_WORDS = new Set(['a', 'an', 'of', 'the']);
+
+const addNameVariants = (set, value) => {
+  if (typeof value !== 'string') {
+    return;
   }
-  return '';
+
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return;
+  }
+
+  set.add(trimmed);
+
+  const sanitized = trimmed
+    .replace(/&/g, ' and ')
+    .replace(/["'`’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+  if (!sanitized) {
+    return;
+  }
+
+  set.add(sanitized);
+
+  const tokens = sanitized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return;
+  }
+
+  set.add(tokens.join('-'));
+  set.add(tokens.join(''));
+
+  const filteredTokens = tokens.filter((token) => !STOP_WORDS.has(token));
+  if (filteredTokens.length > 0) {
+    set.add(filteredTokens.join(' '));
+    set.add(filteredTokens.join('-'));
+    set.add(filteredTokens.join(''));
+  }
 };
 
-const extractEntryName = (entry) => {
-  if (!entry) return '';
+const extractEntryKeys = (entry) => {
+  const keys = new Set();
+  if (!entry) {
+    return keys;
+  }
   if (typeof entry === 'string') {
-    return normalizeItemName(entry);
+    addNameVariants(keys, entry);
+  } else if (Array.isArray(entry)) {
+    addNameVariants(keys, entry[0]);
+  } else if (typeof entry === 'object') {
+    addNameVariants(keys, entry.displayName);
+    addNameVariants(keys, entry.itemName);
+    addNameVariants(keys, entry.name);
   }
-  if (Array.isArray(entry)) {
-    return extractEntryName(entry[0]);
-  }
-  if (typeof entry === 'object') {
-    return (
-      normalizeItemName(entry.displayName) ||
-      normalizeItemName(entry.itemName) ||
-      normalizeItemName(entry.name)
-    );
-  }
-  return '';
+  return keys;
 };
 
 const buildMatchKeySet = (item, dataKey) => {
   const keys = new Set();
-  const addKey = (value) => {
-    const normalized = normalizeItemName(value);
-    if (normalized) {
-      keys.add(normalized);
-    }
-  };
-  addKey(dataKey);
+  addNameVariants(keys, dataKey);
   if (item) {
-    addKey(item.displayName);
-    addKey(item.itemName);
-    addKey(item.name);
+    addNameVariants(keys, item.displayName);
+    addNameVariants(keys, item.itemName);
+    addNameVariants(keys, item.name);
   }
   return keys;
 };
@@ -99,7 +127,18 @@ const removeFirstMatchingEntry = (entries, item, dataKey) => {
   if (matchKeys.size === 0) {
     return entries;
   }
-  const index = entries.findIndex((entry) => matchKeys.has(extractEntryName(entry)));
+  const index = entries.findIndex((entry) => {
+    const entryKeys = extractEntryKeys(entry);
+    if (entryKeys.size === 0) {
+      return false;
+    }
+    for (const key of entryKeys) {
+      if (matchKeys.has(key)) {
+        return true;
+      }
+    }
+    return false;
+  });
   if (index === -1) {
     return entries;
   }
@@ -168,29 +207,36 @@ const buildItemOwnershipMap = (initialItems) => {
     if (!entry) return;
     if (typeof entry === 'object' && entry.owned === false) return;
 
-    let name = '';
-    if (typeof entry === 'string') {
-      name = entry;
-    } else if (Array.isArray(entry)) {
-      [name] = entry;
-    } else if (typeof entry === 'object') {
-      name = entry.name || entry.displayName || '';
+    const keys = extractEntryKeys(entry);
+    if (keys.size === 0) {
+      return;
     }
 
-    if (typeof name !== 'string') return;
+    let record = null;
+    for (const key of keys) {
+      const existing = map.get(key);
+      if (existing) {
+        record = existing;
+        break;
+      }
+    }
 
-    const key = name.trim().toLowerCase();
-    if (!key) return;
+    if (!record) {
+      const firstKey = keys.values().next().value || '';
+      record = {
+        item:
+          typeof entry === 'object' && !Array.isArray(entry)
+            ? entry
+            : { name: firstKey },
+        count: 0,
+      };
+    }
 
-    const existing = map.get(key);
-    const nextCount = (existing?.count ?? 0) + 1;
-    const normalizedItem =
-      existing?.item ||
-      (typeof entry === 'object' && !Array.isArray(entry)
-        ? entry
-        : { name });
+    record.count += 1;
 
-    map.set(key, { item: normalizedItem, count: nextCount });
+    for (const key of keys) {
+      map.set(key, record);
+    }
   });
 
   return map;
