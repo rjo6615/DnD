@@ -657,6 +657,71 @@ describe('Equipment routes', () => {
       expect(res.body.message).toBe('Item updated');
     });
 
+    test('update allows textual weights', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: [{ name: 'alchemy jug', weight: 'Varies by form' }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Item updated');
+    });
+
+    test('update allows numeric costs', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: [{ name: 'alchemy jug', cost: 50 }] });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Item updated');
+    });
+
+    test('update coerces numeric string bonuses', async () => {
+      const updateOne = jest
+        .fn()
+        .mockResolvedValue({ matchedCount: 1 });
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne })
+      });
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({
+          item: [
+            {
+              name: 'alchemy jug',
+              statBonuses: { str: '+1', wis: ' 2 ' },
+              skillBonuses: { stealth: '-0.5', insight: 'abc' },
+            },
+          ],
+        });
+      expect(res.status).toBe(200);
+      expect(updateOne).toHaveBeenCalledWith(
+        expect.anything(),
+        {
+          $set: {
+            item: [
+              expect.objectContaining({
+                name: 'alchemy jug',
+                statBonuses: { str: 1, wis: 2 },
+                skillBonuses: { stealth: -0.5 },
+              }),
+            ],
+          },
+        }
+      );
+    });
+
+    test('update rejects invalid cost types', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-item/507f1f77bcf86cd799439011')
+        .send({ item: [{ name: 'alchemy jug', cost: { amount: 50 } }] });
+      expect(res.status).toBe(400);
+    });
+
     test('update not found', async () => {
       dbo.mockResolvedValue({
         collection: () => ({ updateOne: async () => ({ matchedCount: 0 }) })
@@ -747,6 +812,49 @@ describe('Equipment routes', () => {
       expect(res.status).toBe(400);
     });
 
+    test('update accessories coerces numeric string bonuses', async () => {
+      const updateOne = jest
+        .fn()
+        .mockResolvedValue({ matchedCount: 1 });
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [
+            {
+              name: 'Amulet of Insight',
+              targetSlots: [ACCESSORY_SLOT_KEYS[1]],
+              statBonuses: { wis: '+3' },
+              skillBonuses: { history: ' 4 ' },
+            },
+          ],
+        });
+      expect(res.status).toBe(200);
+      expect(updateOne).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          $set: {
+            accessories: [
+              expect.objectContaining({
+                name: 'Amulet of Insight',
+                statBonuses: { wis: 3 },
+                skillBonuses: { history: 4 },
+              }),
+            ],
+            accessory: [
+              expect.objectContaining({
+                name: 'Amulet of Insight',
+                statBonuses: { wis: 3 },
+                skillBonuses: { history: 4 },
+              }),
+            ],
+          },
+        })
+      );
+    });
+
     test('update accessories invalid slot', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
@@ -767,12 +875,48 @@ describe('Equipment routes', () => {
       expect(res.status).toBe(400);
     });
 
-    test('update accessories invalid weight', async () => {
+    test('update accessories allows textual weight', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, weight: 'Feather-light' }],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessories updated');
+    });
+
+    test('update accessories rejects non-string weight', async () => {
       dbo.mockResolvedValue({});
       const res = await request(app)
         .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
         .send({
-          accessories: [{ ...baseAccessory, weight: 'heavy' }],
+          accessories: [{ ...baseAccessory, weight: { amount: 2 } }],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    test('update accessories allows numeric costs', async () => {
+      dbo.mockResolvedValue({
+        collection: () => ({ updateOne: async () => ({ matchedCount: 1 }) })
+      });
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, cost: 5000 }],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Accessories updated');
+    });
+
+    test('update accessories reject invalid cost types', async () => {
+      dbo.mockResolvedValue({});
+      const res = await request(app)
+        .put('/equipment/update-accessories/507f1f77bcf86cd799439011')
+        .send({
+          accessories: [{ ...baseAccessory, cost: { amount: 5000 } }],
         });
       expect(res.status).toBe(400);
     });
