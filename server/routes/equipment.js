@@ -64,6 +64,42 @@ const isValidWeight = (value) => {
   return false;
 };
 
+const NUMERIC_STRING_PATTERN = /^[-+]?\d+(?:\.\d+)?$/;
+
+const coerceNumericBonusValue = (value) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    if (NUMERIC_STRING_PATTERN.test(trimmed)) {
+      const numeric = Number.parseFloat(trimmed);
+      return Number.isNaN(numeric) ? undefined : numeric;
+    }
+  }
+  return undefined;
+};
+
+const coerceBonusObject = (value) => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return value;
+  }
+  const entries = Object.entries(value).reduce((acc, [key, raw]) => {
+    const coerced = coerceNumericBonusValue(raw);
+    if (coerced !== undefined) {
+      acc[key] = coerced;
+    }
+    return acc;
+  }, {});
+  return entries;
+};
+
 const coerceOptionalCost = (value) => {
   if (value === null || value === undefined || value === '') {
     return undefined;
@@ -486,8 +522,14 @@ module.exports = (router) => {
       body('weight').isFloat().withMessage('weight must be a number').toFloat(),
       body('cost').trim().notEmpty().withMessage('cost is required'),
       body('notes').optional().trim(),
-      body('statBonuses').optional().custom(validateBonusObject),
-      body('skillBonuses').optional().custom(validateBonusObject),
+      body('statBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
+      body('skillBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -514,8 +556,14 @@ module.exports = (router) => {
       body('weight').optional().isFloat().toFloat(),
       body('cost').optional().trim().notEmpty(),
       body('notes').optional().trim(),
-      body('statBonuses').optional().custom(validateBonusObject),
-      body('skillBonuses').optional().custom(validateBonusObject),
+      body('statBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
+      body('skillBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -603,8 +651,14 @@ module.exports = (router) => {
       body('weight').optional().isFloat().toFloat(),
       body('cost').optional().isString().trim(),
       body('notes').optional().isString().trim(),
-      body('statBonuses').optional().custom(validateBonusObject),
-      body('skillBonuses').optional().custom(validateBonusObject),
+      body('statBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
+      body('skillBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -649,8 +703,14 @@ module.exports = (router) => {
       body('weight').optional().isFloat().toFloat(),
       body('cost').optional().isString().trim(),
       body('notes').optional().isString().trim(),
-      body('statBonuses').optional().custom(validateBonusObject),
-      body('skillBonuses').optional().custom(validateBonusObject),
+      body('statBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
+      body('skillBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -722,8 +782,14 @@ module.exports = (router) => {
           return true;
         }),
       body('item.*.notes').optional().isString().trim(),
-      body('item.*.statBonuses').optional().custom(validateBonusObject),
-      body('item.*.skillBonuses').optional().custom(validateBonusObject),
+      body('item.*.statBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
+      body('item.*.skillBonuses')
+        .optional()
+        .customSanitizer(coerceBonusObject)
+        .custom(validateBonusObject),
       body('item.*.owned').optional().isBoolean().toBoolean(),
       body('item.*.ownedCount').optional().isInt({ min: 0 }).toInt(),
     ],
@@ -795,9 +861,11 @@ module.exports = (router) => {
       body('accessories.*.notes').optional().isString().trim(),
       body('accessories.*.statBonuses')
         .optional()
+        .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
       body('accessories.*.skillBonuses')
         .optional()
+        .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
       body('accessories.*.owned').optional().isBoolean().toBoolean(),
       body('accessories.*.ownedCount').optional().isInt().toInt(),
