@@ -20,6 +20,50 @@ const SLOT_KEY_LOOKUP = EQUIPMENT_SLOT_KEYS.reduce((lookup, key) => {
   return lookup;
 }, {});
 
+const coerceOptionalString = (value) => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return String(value);
+};
+
+const coerceOptionalWeight = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    const numeric = Number.parseFloat(trimmed);
+    if (!Number.isNaN(numeric) && /^[-+]?\d*(?:\.\d+)?$/.test(trimmed)) {
+      return numeric;
+    }
+    return trimmed;
+  }
+  return value;
+};
+
+const isValidWeight = (value) => {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+  if (typeof value === 'string') {
+    return /\d/.test(value);
+  }
+  return false;
+};
+
 const getSlotString = (value) => {
   if (!value) return '';
   if (typeof value === 'string') {
@@ -631,12 +675,22 @@ module.exports = (router) => {
       body('item').isArray().withMessage('item must be an array'),
       body('item.*').isObject().withMessage('each item must be an object'),
       body('item.*.name').trim().notEmpty().withMessage('name is required'),
-      body('item.*.category').optional().isString().trim(),
-      body('item.*.weight').optional({ checkFalsy: true }).isFloat().toFloat(),
+      body('item.*.category').optional().isString().bail().customSanitizer(coerceOptionalString),
+      body('item.*.weight')
+        .optional({ values: 'falsy' })
+        .customSanitizer(coerceOptionalWeight)
+        .custom((value) => {
+          if (!isValidWeight(value)) {
+            throw new Error('weight must be a string or number');
+          }
+          return true;
+        }),
       body('item.*.cost').optional().isString().trim(),
       body('item.*.notes').optional().isString().trim(),
       body('item.*.statBonuses').optional().custom(validateBonusObject),
       body('item.*.skillBonuses').optional().custom(validateBonusObject),
+      body('item.*.owned').optional().isBoolean().toBoolean(),
+      body('item.*.ownedCount').optional().isInt({ min: 0 }).toInt(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -686,9 +740,14 @@ module.exports = (router) => {
         }),
       body('accessories.*.rarity').optional().isString().trim(),
       body('accessories.*.weight')
-        .optional({ checkFalsy: true })
-        .isFloat()
-        .toFloat(),
+        .optional({ values: 'falsy' })
+        .customSanitizer(coerceOptionalWeight)
+        .custom((value) => {
+          if (!isValidWeight(value)) {
+            throw new Error('weight must be a string or number');
+          }
+          return true;
+        }),
       body('accessories.*.cost').optional().isString().trim(),
       body('accessories.*.notes').optional().isString().trim(),
       body('accessories.*.statBonuses')
