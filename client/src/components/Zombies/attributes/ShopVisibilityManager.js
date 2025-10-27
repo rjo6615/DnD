@@ -1075,13 +1075,10 @@ export default function ShopVisibilityManager({
           filterControl = (
             <Form.Group
               className="d-flex align-items-center gap-2 mb-0"
-              controlId="dm-shop-item-category-filter"
+              controlId="dm-shop-item-category-filter-select"
             >
-              <Form.Label className="mb-0" htmlFor="dm-shop-item-category-filter-select">
-                Category
-              </Form.Label>
+              <Form.Label className="mb-0">Category</Form.Label>
               <Form.Select
-                id="dm-shop-item-category-filter-select"
                 size="sm"
                 value={normalizedItemFilter}
                 onChange={handleItemCategoryFilterChange}

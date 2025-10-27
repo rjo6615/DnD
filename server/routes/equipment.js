@@ -59,7 +59,7 @@ const isValidWeight = (value) => {
     return Number.isFinite(value);
   }
   if (typeof value === 'string') {
-    return /\d/.test(value);
+    return value.trim().length > 0;
   }
   return false;
 };
