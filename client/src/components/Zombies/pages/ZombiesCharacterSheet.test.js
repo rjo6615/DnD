@@ -1808,12 +1808,14 @@ test('normalizes legacy inventory entries before updating items', async () => {
     {
       name: 'Spyglass',
       category: 'Adventuring Gear',
-      weight: '1',
+      weight: ' 1 ',
       cost: '1,000 gp',
-      notes: 'Expensive',
+      notes: 'Expensive ',
       owned: false,
       displayName: 'Spyglass',
       rarity: 'rare',
+      statBonuses: { wis: '2', str: 'not-a-number' },
+      skillBonuses: { perception: '3', stealth: '' },
     },
   ];
 
@@ -1888,29 +1890,23 @@ test('normalizes legacy inventory entries before updating items', async () => {
     )
   ).toBe(true);
 
-  expect(payload.item).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        name: 'Rope (hempen)',
-        category: '',
-        weight: '',
-        statBonuses: {},
-        skillBonuses: {},
-      }),
-      expect.objectContaining({
-        name: 'Lantern',
-        category: 'Adventuring Gear',
-        notes: 'Brass lantern',
-        statBonuses: { wis: 1 },
-        skillBonuses: { perception: 2 },
-      }),
-      expect.objectContaining({
-        name: 'Alchemy Jug',
-        type: 'gear',
-        owned: true,
-      }),
-    ])
-  );
+  const rope = payload.item.find((entry) => entry.name === 'Rope (hempen)');
+  expect(rope).toEqual({ name: 'Rope (hempen)' });
+
+  const lantern = payload.item.find((entry) => entry.name === 'Lantern');
+  expect(lantern).toMatchObject({
+    category: 'Adventuring Gear',
+    notes: 'Brass lantern',
+    statBonuses: { wis: 1 },
+    skillBonuses: { perception: 2 },
+    weight: 2,
+  });
+
+  const newPurchase = payload.item.find((entry) => entry.name === 'Alchemy Jug');
+  expect(newPurchase).toMatchObject({
+    type: 'gear',
+    owned: true,
+  });
 
   const preserved = payload.item.find((entry) => entry.name === 'Spyglass');
   expect(preserved).toMatchObject({
@@ -1918,6 +1914,10 @@ test('normalizes legacy inventory entries before updating items', async () => {
     owned: false,
     rarity: 'rare',
     notes: 'Expensive',
+    category: 'Adventuring Gear',
+    weight: 1,
+    statBonuses: { wis: 2 },
+    skillBonuses: { perception: 3 },
   });
 });
 

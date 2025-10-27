@@ -56,6 +56,7 @@ import {
   normalizeAccessories as normalizeInventoryAccessories,
 } from "../attributes/inventoryNormalization";
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
+import { sanitizeInventoryItemsForUpdate } from "../attributes/inventorySanitization";
 import MapModal from "../attributes/MapModal";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
@@ -80,15 +81,6 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   help: { label: 'Help', component: Help },
 };
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
-
-const toFiniteNumberOrNull = (value) => {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 
@@ -121,6 +113,14 @@ const normalizeCreatureSize = (value) => {
   return null;
 };
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 const resolveCharacterTokenSize = (form) =>
   normalizeCreatureSize(
     form?.temporarySize ??
@@ -3701,12 +3701,13 @@ export default function ZombiesCharacterSheet() {
 
   const handleItemsChange = useCallback(
     async (items) => {
-      setForm((prev) => ({ ...prev, item: items }));
+      const sanitizedItems = sanitizeInventoryItemsForUpdate(items);
+      setForm((prev) => ({ ...prev, item: sanitizedItems }));
       try {
         await apiFetch(`/equipment/update-item/${characterId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ item: items }),
+          body: JSON.stringify({ item: sanitizedItems }),
         });
       } catch (err) {
         // eslint-disable-next-line no-console

@@ -24,6 +24,7 @@ import {
   normalizeItems,
   normalizeWeapons,
 } from './inventoryNormalization';
+import { sanitizeInventoryItemsForUpdate } from './inventorySanitization';
 
 const SHOP_TABS = [
   { key: 'weapons', title: 'Weapons' },
@@ -930,10 +931,15 @@ export default function ShopVisibilityManager({
           throw new Error('Unsupported item type.');
         }
 
+        const sanitizedPayload =
+          category === 'items'
+            ? sanitizeInventoryItemsForUpdate(updatedInventory)
+            : updatedInventory;
+
         const response = await apiFetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [bodyKey]: updatedInventory }),
+          body: JSON.stringify({ [bodyKey]: sanitizedPayload }),
         });
 
         if (!response.ok) {
@@ -1073,10 +1079,7 @@ export default function ShopVisibilityManager({
 
         if (itemCategoryOptions.length > 0) {
           filterControl = (
-            <Form.Group
-              className="d-flex align-items-center gap-2 mb-0"
-              controlId="dm-shop-item-category-filter"
-            >
+            <Form.Group className="d-flex align-items-center gap-2 mb-0">
               <Form.Label className="mb-0" htmlFor="dm-shop-item-category-filter-select">
                 Category
               </Form.Label>
