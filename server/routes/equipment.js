@@ -87,9 +87,32 @@ const coerceBonusObject = (value) => {
   if (value === null || value === undefined) {
     return undefined;
   }
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    return value;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        value = parsed;
+      } else {
+        return undefined;
+      }
+    } catch (err) {
+      return undefined;
+    }
   }
+
+  if (Array.isArray(value)) {
+    return undefined;
+  }
+
+  if (typeof value !== 'object') {
+    return undefined;
+  }
+
   const entries = Object.entries(value).reduce((acc, [key, raw]) => {
     const coerced = coerceNumericBonusValue(raw);
     if (coerced !== undefined) {
@@ -97,6 +120,11 @@ const coerceBonusObject = (value) => {
     }
     return acc;
   }, {});
+
+  if (Object.keys(entries).length === 0) {
+    return undefined;
+  }
+
   return entries;
 };
 
@@ -110,6 +138,34 @@ const coerceOptionalCost = (value) => {
   if (typeof value === 'string') {
     const trimmed = value.trim();
     return trimmed || undefined;
+  }
+  return value;
+};
+
+const coerceOptionalBoolean = (value) => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    return trimmed;
+  }
+  return value;
+};
+
+const coerceOptionalInteger = (value) => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    return trimmed;
   }
   return value;
 };
@@ -176,6 +232,9 @@ const hasExplicitEquipFlag = (entry) => {
 };
 
 const validateBonusObject = (value) => {
+  if (value === undefined) {
+    return true;
+  }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('must be an object');
   }
@@ -762,7 +821,11 @@ module.exports = (router) => {
       body('item').isArray().withMessage('item must be an array'),
       body('item.*').isObject().withMessage('each item must be an object'),
       body('item.*.name').trim().notEmpty().withMessage('name is required'),
-      body('item.*.category').optional().isString().bail().customSanitizer(coerceOptionalString),
+      body('item.*.category')
+        .optional({ values: 'nullish' })
+        .isString()
+        .bail()
+        .customSanitizer(coerceOptionalString),
       body('item.*.weight')
         .optional({ values: 'nullish' })
         .customSanitizer(coerceOptionalWeight)
@@ -781,17 +844,25 @@ module.exports = (router) => {
           }
           return true;
         }),
-      body('item.*.notes').optional().isString().trim(),
+      body('item.*.notes').optional({ values: 'nullish' }).isString().trim(),
       body('item.*.statBonuses')
-        .optional()
+        .optional({ values: 'nullish' })
         .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
       body('item.*.skillBonuses')
-        .optional()
+        .optional({ values: 'nullish' })
         .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
-      body('item.*.owned').optional().isBoolean().toBoolean(),
-      body('item.*.ownedCount').optional().isInt({ min: 0 }).toInt(),
+      body('item.*.owned')
+        .customSanitizer(coerceOptionalBoolean)
+        .optional()
+        .isBoolean()
+        .toBoolean(),
+      body('item.*.ownedCount')
+        .customSanitizer(coerceOptionalInteger)
+        .optional()
+        .isInt({ min: 0 })
+        .toInt(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
@@ -867,8 +938,16 @@ module.exports = (router) => {
         .optional()
         .customSanitizer(coerceBonusObject)
         .custom(validateBonusObject),
-      body('accessories.*.owned').optional().isBoolean().toBoolean(),
-      body('accessories.*.ownedCount').optional().isInt().toInt(),
+      body('accessories.*.owned')
+        .customSanitizer(coerceOptionalBoolean)
+        .optional()
+        .isBoolean()
+        .toBoolean(),
+      body('accessories.*.ownedCount')
+        .customSanitizer(coerceOptionalInteger)
+        .optional()
+        .isInt()
+        .toInt(),
     ],
     handleValidationErrors,
     async (req, res, next) => {
