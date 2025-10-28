@@ -76,7 +76,6 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   equipment: { label: 'Equipment', component: EquipmentModal },
   inventory: { label: 'Inventory', component: InventoryModal },
   shop: { label: 'Shop', component: ShopModal },
-  map: { label: 'Campaign Map', component: MapModal },
   help: { label: 'Help', component: Help },
 };
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
@@ -5425,23 +5424,6 @@ export default function ZombiesCharacterSheet() {
           onDockChange: (side) => handleDockChange('shop', side),
         }),
       },
-      map: {
-        ...DOCKABLE_MODAL_DEFINITIONS.map,
-        showProp: 'show',
-        isEnabled: true,
-        getBaseProps: () => ({
-          map: campaignMap,
-          maps: campaignMaps,
-          activeMapId: campaignActiveMapId,
-          tokensByMapId: modalTokensByMapId,
-          currentCharacterId: resolvedCharacterId,
-          activeCharacterId: activeTurnParticipantId,
-          characterLookup: tokenMetaById,
-          onTokenMove: handleTokenMove,
-          onHide: handleCloseMapModal,
-          onDockChange: (side) => handleDockChange('map', side),
-        }),
-      },
       help: {
         ...DOCKABLE_MODAL_DEFINITIONS.help,
         showProp: 'showHelpModal',
@@ -5592,7 +5574,6 @@ export default function ZombiesCharacterSheet() {
           paddingTop: navHeight + HEADER_PADDING,
           display: 'flex',
           flexDirection: 'column',
-          backdropFilter: 'blur(8px)',
           position: 'relative',
         }}
       >
