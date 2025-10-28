@@ -28,7 +28,7 @@
   z-index: 0;
   color: #fff;
   overflow: hidden;
-  background-color: #19273c;
+  background-color: #3f5378;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -40,9 +40,9 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 45%),
-    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 52%);
-  opacity: 0.65;
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 62%);
+  opacity: 0.82;
   mix-blend-mode: screen;
 }
 
@@ -52,8 +52,8 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(13, 19, 33, 0.15) 0%, rgba(13, 19, 33, 0.35) 35%, rgba(13, 19, 33, 0.15) 100%),
-    radial-gradient(circle at 50% 100%, rgba(19, 31, 54, 0.45) 0%, rgba(19, 31, 54, 0) 55%);
+    linear-gradient(180deg, rgba(36, 52, 82, 0.16) 0%, rgba(36, 52, 82, 0.18) 45%, rgba(36, 52, 82, 0.1) 100%),
+    radial-gradient(circle at 50% 100%, rgba(58, 80, 118, 0.4) 0%, rgba(58, 80, 118, 0) 60%);
   mix-blend-mode: screen;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .map-modal-background__board-inner > .map-modal__empty {
-  background: rgba(10, 12, 18, 0.42);
+  background: rgba(17, 23, 33, 0.28);
   border-radius: var(--bs-border-radius-lg, 0.75rem);
   padding: 1.5rem;
 }
@@ -106,11 +106,11 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(14, 22, 36, 0.35), rgba(14, 22, 36, 0.15));
+  background: linear-gradient(180deg, rgba(44, 62, 94, 0.2), rgba(44, 62, 94, 0.04));
   border-radius: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: clamp(0.5rem, 1vw, 0.75rem);
-  box-shadow: none;
+  box-shadow: 0 1.5rem 3rem rgba(6, 10, 20, 0.28);
 }
 
 .map-modal-background__board-inner .campaign-map-board__stage {
@@ -126,7 +126,7 @@
 }
 
 .map-modal-background__board-inner .campaign-map-board__image {
-  filter: brightness(1.6) contrast(1.12) saturate(1.12);
+  filter: brightness(2.15) contrast(1.05) saturate(1.2);
   transition: filter 0.3s ease;
 }
 
@@ -150,11 +150,11 @@
   gap: 1rem;
   height: 100%;
   pointer-events: auto;
-  background: rgba(18, 28, 45, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(42, 60, 92, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--bs-border-radius-xl, 1rem);
-  box-shadow: 0 1.25rem 2.75rem rgba(8, 12, 22, 0.4);
-  backdrop-filter: blur(14px);
+  box-shadow: 0 1.75rem 3.75rem rgba(8, 12, 24, 0.32);
+  backdrop-filter: blur(20px);
 }
 
 .map-modal-background__header-inner {
