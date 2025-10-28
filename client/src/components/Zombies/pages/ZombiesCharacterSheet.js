@@ -113,6 +113,28 @@ const normalizeCreatureSize = (value) => {
   return null;
 };
 
+const buildMapBackgroundImageSource = (map) => {
+  if (!map || typeof map !== 'object') {
+    return null;
+  }
+
+  const { imageUrl, imageBase64, imageType } = map;
+
+  if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
+    return imageUrl.trim();
+  }
+
+  if (typeof imageBase64 === 'string' && imageBase64.trim() !== '') {
+    const mimeType =
+      typeof imageType === 'string' && imageType.trim() !== ''
+        ? imageType.trim()
+        : 'image/png';
+    return `data:${mimeType};base64,${imageBase64.trim()}`;
+  }
+
+  return null;
+};
+
 const toFiniteNumberOrNull = (value) => {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -5291,6 +5313,41 @@ export default function ZombiesCharacterSheet() {
   const diceBoxFailed = diceBoxStatus.failed;
   const shouldShowDiceLoadingOverlay =
     isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
+  const mapBackgroundImage = useMemo(
+    () => buildMapBackgroundImageSource(campaignMap),
+    [campaignMap]
+  );
+  const mapSectionBackgroundImage = mapBackgroundImage || loginbg;
+  const mapSectionStyle = useMemo(
+    () => ({
+      backgroundImage: `url(${mapSectionBackgroundImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      borderRadius: 16,
+      marginBottom: 16,
+      overflow: 'hidden',
+      position: 'relative',
+      padding: '24px 16px',
+    }),
+    [mapSectionBackgroundImage]
+  );
+  const mapSectionOverlayStyle = useMemo(
+    () => ({
+      position: 'absolute',
+      inset: 0,
+      background:
+        'linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.75) 60%, rgba(0, 0, 0, 0.85) 100%)',
+    }),
+    []
+  );
+  const mapSectionContentStyle = useMemo(
+    () => ({
+      position: 'relative',
+      zIndex: 1,
+    }),
+    []
+  );
 
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
@@ -5566,11 +5623,10 @@ export default function ZombiesCharacterSheet() {
       className="text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
-        backgroundImage: `url(${loginbg})`,
-        height: "100vh",
+        backgroundColor: '#040404',
+        minHeight: '100vh',
+        height: '100vh',
         overflow: "hidden",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
         paddingTop: navHeight + HEADER_PADDING,
         display: 'flex',
         flexDirection: 'column',
@@ -5606,62 +5662,56 @@ export default function ZombiesCharacterSheet() {
               reconnects.
             </div>
           )}
-          <div ref={headerRef}>
-            <div ref={combatHeaderRef}>
-              <CombatTurnHeader
-                participants={participantsWithDetails}
-                tokenLookup={tokenMetaById}
+        <div style={mapSectionStyle}>
+          <div style={mapSectionOverlayStyle} aria-hidden="true" />
+          <div style={mapSectionContentStyle}>
+            <div ref={headerRef}>
+              <div ref={combatHeaderRef}>
+                <CombatTurnHeader
+                  participants={participantsWithDetails}
+                  tokenLookup={tokenMetaById}
+                />
+              </div>
+              <h1
+                style={{
+                  fontSize: "28px",
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  padding: "8px 0",
+                  textAlign: "center",
+                  letterSpacing: "1px",
+                  textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
+                  fontFamily: "'Merriweather', serif",
+                  textTransform: "capitalize",
+                  borderBottom: "2px solid #555", // Subtle underline for structure
+                  display: "inline-block",
+                }}
+                className="mx-auto"
+              >
+                {form?.characterName || 'Loading Character'}
+              </h1>
+
+              <HealthDefense
+                form={form}
+                totalLevel={totalLevel}
+                dexMod={statMods.dex}
+                conMod={statMods.con}
+                wisMod={statMods.wis}
+                initiative={featBonuses.initiative}
+                speed={featBonuses.speed}
+                ac={featBonuses.ac}
+                hpMaxBonus={featBonuses.hpMaxBonus}
+                hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+                onTempHealthChange={handleHealthChange}
+                speedMultiplier={speedMultiplier}
+                {...(spellAbilityMod !== null && { spellAbilityMod })}
               />
             </div>
-            <h1
-              style={{
-                fontSize: "28px",
-                fontWeight: 600,
-                color: "#FFFFFF",
-                padding: "8px 0",
-                textAlign: "center",
-                letterSpacing: "1px",
-                textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-                fontFamily: "'Merriweather', serif",
-                textTransform: "capitalize",
-                borderBottom: "2px solid #555", // Subtle underline for structure
-                display: "inline-block",
-              }}
-              className="mx-auto"
-            >
-              {form?.characterName || 'Loading Character'}
-            </h1>
-
-            <HealthDefense
-              form={form}
-              totalLevel={totalLevel}
-              dexMod={statMods.dex}
-              conMod={statMods.con}
-              wisMod={statMods.wis}
-              initiative={featBonuses.initiative}
-              speed={featBonuses.speed}
-              ac={featBonuses.ac}
-              hpMaxBonus={featBonuses.hpMaxBonus}
-              hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-              onTempHealthChange={handleHealthChange}
-              speedMultiplier={speedMultiplier}
-              {...(spellAbilityMod !== null && { spellAbilityMod })}
-            />
-          </div>
-          <div
-            style={{
-              height: `calc(100vh - ${headerHeight}px)`,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                flexShrink: 0,
+                justifyContent: 'center',
+                marginTop: 16,
               }}
             >
               <StatusEffectBar
@@ -5669,24 +5719,34 @@ export default function ZombiesCharacterSheet() {
                 onRemoveEffect={handleRemoveEffect}
               />
             </div>
-            <PlayerTurnActions
-              form={form}
-              dexMod={statMods.dex}
-              strMod={statMods.str}
-              conMod={statMods.con}
-              spellAbilityMod={spellAbilityMod}
-              spellAbilityKey={spellAbilityKey}
-              characterId={characterId}
-              ref={playerTurnActionsRef}
-              onCastSpell={handleCastSpell}
-              availableSlots={availableSlots}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onPassTurn={handlePassTurn}
-              canPassTurn={canPassTurn}
-              isPassTurnInProgress={isPassingTurn}
-            />
           </div>
+        </div>
+        <div
+          style={{
+            height: `calc(100vh - ${headerHeight}px)`,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          <PlayerTurnActions
+            form={form}
+            dexMod={statMods.dex}
+            strMod={statMods.str}
+            conMod={statMods.con}
+            spellAbilityMod={spellAbilityMod}
+            spellAbilityKey={spellAbilityKey}
+            characterId={characterId}
+            ref={playerTurnActionsRef}
+            onCastSpell={handleCastSpell}
+            availableSlots={availableSlots}
+            longRestCount={longRestCount}
+            shortRestCount={shortRestCount}
+            onPassTurn={handlePassTurn}
+            canPassTurn={canPassTurn}
+            isPassTurnInProgress={isPassingTurn}
+          />
+        </div>
           {form && (
             <SpellSlots
               form={form}
