@@ -28,10 +28,25 @@
   z-index: 0;
   color: #fff;
   overflow: hidden;
-  background-color: #05070c;
+  background-color: #0f1726;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
+}
+
+.map-modal-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 45%
+    ),
+    radial-gradient(circle at 80% 15%, rgba(255, 255, 255, 0.06) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(16, 23, 38, 0.4) 0%, rgba(16, 23, 38, 0.1) 100%);
+  mix-blend-mode: screen;
 }
 
 .map-modal-background__board {
@@ -39,7 +54,6 @@
   inset: 0;
   z-index: 1;
   overflow: hidden;
-  pointer-events: none;
 }
 
 .map-modal-background__board-inner {
@@ -100,6 +114,11 @@
   background: transparent;
 }
 
+.map-modal-background__board-inner .campaign-map-board__image {
+  filter: brightness(1.18) contrast(1.05);
+  transition: filter 0.3s ease;
+}
+
 .map-modal-background__overlay {
   position: absolute;
   inset: 0;
@@ -120,6 +139,11 @@
   gap: 1rem;
   height: 100%;
   pointer-events: auto;
+  background: rgba(15, 23, 38, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--bs-border-radius-xl, 1rem);
+  box-shadow: 0 1.5rem 3rem rgba(10, 15, 30, 0.45);
+  backdrop-filter: blur(12px);
 }
 
 .map-modal-background__header-inner {
@@ -148,6 +172,23 @@
 .map-modal-background__footer {
   display: flex;
   justify-content: flex-end;
+}
+
+.map-modal__list .list-group-item-action {
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.map-modal__list .list-group-item-action:not(.active):hover,
+.map-modal__list .list-group-item-action:not(.active):focus-visible {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 0.75rem 2rem rgba(8, 12, 20, 0.45);
+}
+
+.map-modal__list .list-group-item-action.active {
+  box-shadow: 0 0.5rem 1.5rem rgba(8, 12, 20, 0.35);
 }
 
 .zombies-character-sheet-layout {
