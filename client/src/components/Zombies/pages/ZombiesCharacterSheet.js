@@ -5592,7 +5592,6 @@ export default function ZombiesCharacterSheet() {
           paddingTop: navHeight + HEADER_PADDING,
           display: 'flex',
           flexDirection: 'column',
-          backdropFilter: 'blur(8px)',
           position: 'relative',
         }}
       >
