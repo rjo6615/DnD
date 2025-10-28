@@ -5,7 +5,6 @@ import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
-import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
@@ -5560,9 +5559,7 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
-  const mapLayerClassName = shouldShowMapModal
-    ? 'zombies-character-sheet-layout__map zombies-character-sheet-layout__map--visible'
-    : 'zombies-character-sheet-layout__map';
+  const mapLayerClassName = 'zombies-character-sheet-layout__map';
 
   return (
     <div className="zombies-character-sheet-layout">
@@ -5589,16 +5586,13 @@ export default function ZombiesCharacterSheet() {
         className="text-center zombies-character-sheet-layout__content"
         style={{
           fontFamily: 'Raleway, sans-serif',
-          backgroundImage: shouldShowMapModal ? 'none' : `url(${loginbg})`,
-          backgroundColor: shouldShowMapModal ? 'rgba(10, 12, 18, 0.78)' : undefined,
+          backgroundColor: 'rgba(10, 12, 18, 0.78)',
           height: '100vh',
           overflow: 'hidden',
-          backgroundSize: 'cover',
-          backgroundRepeat: 'no-repeat',
           paddingTop: navHeight + HEADER_PADDING,
           display: 'flex',
           flexDirection: 'column',
-          backdropFilter: shouldShowMapModal ? 'blur(8px)' : undefined,
+          backdropFilter: 'blur(8px)',
           position: 'relative',
         }}
       >

@@ -928,6 +928,15 @@ const MapModal = ({
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
+  const handleOverlayBackdropClick = useCallback(
+    (event) => {
+      if (event.target === event.currentTarget) {
+        handleModalHide();
+      }
+    },
+    [handleModalHide]
+  );
+
   const titleContent = <>{title}</>;
   const backgroundAriaLabel = useMemo(() => {
     if (typeof title === 'string' && title.trim() !== '') {
@@ -937,6 +946,20 @@ const MapModal = ({
     return 'Campaign map';
   }, [title]);
 
+  const emptyBoardMessage = hasManagementFeatures ? (
+    <p className="text-muted mb-0">No map selected.</p>
+  ) : (
+    <p className="text-muted mb-0">No map image available.</p>
+  );
+
+  const boardContent = previewMap ? (
+    renderPreviewContent()
+  ) : (
+    <div className="map-modal__empty" data-testid="map-modal-empty">
+      {emptyBoardMessage}
+    </div>
+  );
+
   const bodyContent = hasManagementFeatures ? (
     <div className="d-flex flex-column flex-lg-row gap-4">
       <div className="flex-grow-1" data-testid="map-modal-sidebar">
@@ -944,17 +967,11 @@ const MapModal = ({
         {renderMapList()}
       </div>
       <div className="flex-grow-1" data-testid="map-modal-preview">
-        {previewMap ? renderPreviewContent() : (
-          <p className="text-muted mb-0">No map selected.</p>
-        )}
+        {boardContent}
       </div>
     </div>
   ) : (
-    <div data-testid="map-modal-preview">
-      {previewMap ? renderPreviewContent() : (
-        <p className="text-muted mb-0">No map image available.</p>
-      )}
-    </div>
+    <div data-testid="map-modal-preview">{boardContent}</div>
   );
 
   const footerContent = (
@@ -964,33 +981,41 @@ const MapModal = ({
   );
 
   if (isBackground) {
-    if (!show) {
-      return null;
-    }
-
     return (
-      <div
-        className="map-modal-background"
-        data-testid="map-modal-wrapper"
-        role="region"
-        aria-label={backgroundAriaLabel}
-      >
-        <div className="map-modal-background__backdrop" aria-hidden="true" />
-        <div className="map-modal-background__content">
-          <header className="map-modal-background__header">
-            <div className="map-modal-background__header-inner">
-              <h2 className="map-modal-background__title">{titleContent}</h2>
-              <CloseButton
-                variant="white"
-                onClick={handleModalHide}
-                aria-label="Close map"
-                data-testid="map-modal-close-button"
-              />
-            </div>
-          </header>
-          <div className="map-modal-background__body">{bodyContent}</div>
-          <footer className="map-modal-background__footer">{footerContent}</footer>
+      <div className="map-modal-background" data-testid="map-modal-wrapper">
+        <div
+          className="map-modal-background__board"
+          role="region"
+          aria-label={backgroundAriaLabel}
+        >
+          {boardContent}
         </div>
+        {show && (
+          <div
+            className="map-modal-background__overlay"
+            role="dialog"
+            aria-modal="false"
+            aria-label={backgroundAriaLabel}
+            onClick={handleOverlayBackdropClick}
+          >
+            <div className="map-modal-background__overlay-backdrop" aria-hidden="true" />
+            <div className="map-modal-background__overlay-content">
+              <header className="map-modal-background__header">
+                <div className="map-modal-background__header-inner">
+                  <h2 className="map-modal-background__title">{titleContent}</h2>
+                  <CloseButton
+                    variant="white"
+                    onClick={handleModalHide}
+                    aria-label="Close map"
+                    data-testid="map-modal-close-button"
+                  />
+                </div>
+              </header>
+              <div className="map-modal-background__body">{bodyContent}</div>
+              <footer className="map-modal-background__footer">{footerContent}</footer>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
