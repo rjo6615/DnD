@@ -23,13 +23,13 @@
 }
 
 .map-modal-background {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 1050;
+  z-index: 1;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  pointer-events: auto;
+  pointer-events: none;
   color: #fff;
 }
 
@@ -37,6 +37,7 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at top, rgba(15, 15, 25, 0.75), rgba(6, 6, 10, 0.9));
+  pointer-events: none;
 }
 
 .map-modal-background__content {
@@ -48,6 +49,7 @@
   flex-direction: column;
   gap: 1rem;
   height: 100%;
+  pointer-events: auto;
 }
 
 .map-modal-background__header-inner {
@@ -76,6 +78,27 @@
 .map-modal-background__footer {
   display: flex;
   justify-content: flex-end;
+}
+
+.zombies-character-sheet-layout {
+  position: relative;
+  min-height: 100vh;
+}
+
+.zombies-character-sheet-layout__map {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: none;
+}
+
+.zombies-character-sheet-layout__map--visible {
+  display: block;
+}
+
+.zombies-character-sheet-layout__content {
+  position: relative;
+  z-index: 1;
 }
 
 .map-display__grid-overlay,

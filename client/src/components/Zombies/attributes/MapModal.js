@@ -972,8 +972,7 @@ const MapModal = ({
       <div
         className="map-modal-background"
         data-testid="map-modal-wrapper"
-        role="dialog"
-        aria-modal="true"
+        role="region"
         aria-label={backgroundAriaLabel}
       >
         <div className="map-modal-background__backdrop" aria-hidden="true" />
