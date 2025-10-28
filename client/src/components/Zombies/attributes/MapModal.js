@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
 import MapDisplay from './MapDisplay';
@@ -6,6 +6,7 @@ import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import DockControls from '../components/DockControls';
+import classNames from '../../../utils/classNames';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -149,6 +150,9 @@ const areSetsEqual = (a, b) => {
   return true;
 };
 
+const BACKGROUND_DEFAULT_SCALE = 1.35;
+const BACKGROUND_DRAG_THRESHOLD = 4;
+
 const MapModal = ({
   show,
   onHide,
@@ -177,6 +181,8 @@ const MapModal = ({
   displayMode = 'modal',
 }) => {
   const isBackground = displayMode === 'background';
+  const backgroundBoardRef = useRef(null);
+  const backgroundDragStateRef = useRef(null);
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
@@ -257,6 +263,18 @@ const MapModal = ({
     () => groupMapsByFolder(normalizedMaps),
     [normalizedMaps]
   );
+
+  const [backgroundPan, setBackgroundPan] = useState({ x: 0, y: 0 });
+  const [isBackgroundDragging, setIsBackgroundDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    setBackgroundPan({ x: 0, y: 0 });
+    setIsBackgroundDragging(false);
+  }, [isBackground, previewMapId]);
 
   const autoExpandedFolderKeys = useMemo(() => {
     const keys = new Set();
@@ -623,6 +641,216 @@ const MapModal = ({
     },
     [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
   );
+
+  const computeNormalizedBackgroundCoords = useCallback((clientX, clientY) => {
+    const container = backgroundBoardRef.current;
+    if (!container || typeof container.querySelector !== 'function') {
+      return null;
+    }
+
+    const imageWrapper = container.querySelector('.campaign-map-board__image-wrapper');
+    if (!imageWrapper || typeof imageWrapper.getBoundingClientRect !== 'function') {
+      return null;
+    }
+
+    const rect = imageWrapper.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) {
+      return null;
+    }
+
+    const relativeX = (clientX - rect.left) / rect.width;
+    const relativeY = (clientY - rect.top) / rect.height;
+
+    if (!Number.isFinite(relativeX) || !Number.isFinite(relativeY)) {
+      return null;
+    }
+
+    const clampedX = Math.min(1, Math.max(0, relativeX));
+    const clampedY = Math.min(1, Math.max(0, relativeY));
+
+    return { x: clampedX, y: clampedY };
+  }, []);
+
+  const handleBackgroundPointerDownCapture = useCallback(
+    (event) => {
+      if (!isBackground) {
+        backgroundDragStateRef.current = null;
+        return;
+      }
+
+      const target = event.target;
+      if (!target || typeof target.closest !== 'function') {
+        backgroundDragStateRef.current = null;
+        return;
+      }
+
+      if (target.closest('.map-modal-background__overlay')) {
+        backgroundDragStateRef.current = null;
+        return;
+      }
+
+      if (target.closest('.campaign-map-board__token') || target.closest('.campaign-map-board__rotation-controls')) {
+        backgroundDragStateRef.current = null;
+        return;
+      }
+
+      const pointerButton = event.button;
+      const isPrimaryPointer = pointerButton === 0 || pointerButton === -1;
+      const isTouch = event.pointerType === 'touch';
+      if (!isPrimaryPointer && !isTouch) {
+        backgroundDragStateRef.current = null;
+        return;
+      }
+
+      const container = backgroundBoardRef.current;
+      if (!container) {
+        backgroundDragStateRef.current = null;
+        return;
+      }
+
+      event.stopPropagation();
+      event.preventDefault();
+
+      try {
+        container.setPointerCapture?.(event.pointerId);
+      } catch (error) {
+        // Ignore pointer capture failures in environments that do not support it.
+      }
+
+      backgroundDragStateRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        originX: backgroundPan.x,
+        originY: backgroundPan.y,
+        hasMoved: false,
+        lastClientX: event.clientX,
+        lastClientY: event.clientY,
+        shouldHandlePlacement: isPrimaryPointer,
+      };
+    },
+    [backgroundPan.x, backgroundPan.y, isBackground]
+  );
+
+  const finalizeBackgroundDrag = useCallback(() => {
+    const container = backgroundBoardRef.current;
+    const state = backgroundDragStateRef.current;
+    if (container && state && state.pointerId !== undefined) {
+      try {
+        container.releasePointerCapture?.(state.pointerId);
+      } catch (error) {
+        // Ignore pointer capture release failures.
+      }
+    }
+    backgroundDragStateRef.current = null;
+    setIsBackgroundDragging(false);
+  }, []);
+
+  const handleBackgroundPointerMove = useCallback(
+    (event) => {
+      if (!isBackground) {
+        return;
+      }
+
+      const state = backgroundDragStateRef.current;
+      if (!state || state.pointerId !== event.pointerId) {
+        return;
+      }
+
+      event.stopPropagation();
+
+      const deltaX = event.clientX - state.startX;
+      const deltaY = event.clientY - state.startY;
+
+      if (!state.hasMoved) {
+        const distance = Math.hypot(deltaX, deltaY);
+        if (distance >= BACKGROUND_DRAG_THRESHOLD) {
+          state.hasMoved = true;
+          setIsBackgroundDragging(true);
+        }
+      }
+
+      state.lastClientX = event.clientX;
+      state.lastClientY = event.clientY;
+
+      if (!state.hasMoved) {
+        return;
+      }
+
+      event.preventDefault();
+      setBackgroundPan({ x: state.originX + deltaX, y: state.originY + deltaY });
+    },
+    [isBackground]
+  );
+
+  const handleBackgroundPointerEnd = useCallback(
+    (event) => {
+      if (!isBackground) {
+        return;
+      }
+
+      const state = backgroundDragStateRef.current;
+      if (!state || state.pointerId !== event.pointerId) {
+        return;
+      }
+
+      event.stopPropagation();
+
+      if (state.hasMoved) {
+        event.preventDefault();
+        finalizeBackgroundDrag();
+        return;
+      }
+
+      if (state.shouldHandlePlacement) {
+        const coords = computeNormalizedBackgroundCoords(event.clientX, event.clientY);
+        if (coords) {
+          handleBackgroundPlacement(coords);
+        }
+      }
+
+      finalizeBackgroundDrag();
+    },
+    [computeNormalizedBackgroundCoords, finalizeBackgroundDrag, handleBackgroundPlacement, isBackground]
+  );
+
+  const handleBackgroundPointerCancel = useCallback(
+    (event) => {
+      if (!isBackground) {
+        return;
+      }
+
+      const state = backgroundDragStateRef.current;
+      if (!state || state.pointerId !== event.pointerId) {
+        return;
+      }
+
+      event.stopPropagation();
+      finalizeBackgroundDrag();
+    },
+    [finalizeBackgroundDrag, isBackground]
+  );
+
+  const backgroundBoardStyleValue = useMemo(() => {
+    return {
+      '--map-modal-background-scale': BACKGROUND_DEFAULT_SCALE,
+      transform: `translate(calc(-50% + ${backgroundPan.x}px), calc(-50% + ${backgroundPan.y}px)) scale(${BACKGROUND_DEFAULT_SCALE})`,
+    };
+  }, [backgroundPan.x, backgroundPan.y]);
+
+  const backgroundBoardClassName = classNames(
+    'map-modal-background__board-inner',
+    isBackgroundDragging && 'map-modal-background__board-inner--dragging'
+  );
+
+  const backgroundPointerHandlers = isBackground
+    ? {
+        onPointerDownCapture: handleBackgroundPointerDownCapture,
+        onPointerMove: handleBackgroundPointerMove,
+        onPointerUp: handleBackgroundPointerEnd,
+        onPointerCancel: handleBackgroundPointerCancel,
+      }
+    : {};
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
@@ -1031,7 +1259,14 @@ const MapModal = ({
           role="region"
           aria-label={backgroundAriaLabel}
         >
-          {boardContent}
+          <div
+            ref={backgroundBoardRef}
+            className={backgroundBoardClassName}
+            style={backgroundBoardStyleValue}
+            {...backgroundPointerHandlers}
+          >
+            {boardContent}
+          </div>
         </div>
         {show && (
           <div
