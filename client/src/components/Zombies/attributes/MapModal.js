@@ -1,7 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
-import MapDisplay from './MapDisplay';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
@@ -1357,22 +1356,20 @@ const MapModal = ({
       return <p className="text-muted mb-0">No map image available.</p>;
     }
 
-    if (!isInteractive) {
-      return <MapDisplay map={previewMap} />;
-    }
-
     return (
       <>
         <div className="map-modal__board-wrapper">
           <CampaignMapBoard
             map={previewMap}
             tokens={boardTokens}
-            disabled={placementPending}
-            onTokenPositionChange={handleTokenPositionChange}
-            onBackgroundClick={handleBackgroundPlacement}
-            onTokenRemove={handleTokenRemove}
+            disabled={!isInteractive || placementPending}
+            onTokenPositionChange={
+              isInteractive ? handleTokenPositionChange : undefined
+            }
+            onBackgroundClick={isInteractive ? handleBackgroundPlacement : undefined}
+            onTokenRemove={isInteractive ? handleTokenRemove : undefined}
           />
-          {placementPending && (
+          {isInteractive && placementPending && (
             <div
               className="map-modal__saving-indicator d-flex align-items-center gap-2 text-muted small"
               data-testid="map-modal-placement-pending"
@@ -1384,12 +1381,12 @@ const MapModal = ({
             </div>
           )}
         </div>
-        {canClickToPlace && (
+        {isInteractive && canClickToPlace && (
           <div className="text-info small mt-3" data-testid="map-modal-placement-hint">
             Click the map to place your figurine.
           </div>
         )}
-        {placementError && (
+        {isInteractive && placementError && (
           <Alert variant="danger" className="mt-3" data-testid="map-modal-placement-error">
             {placementError}
           </Alert>
