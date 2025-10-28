@@ -3614,10 +3614,15 @@ h1 {
 
     .campaign-map-board__stage {
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .campaign-map-board__image-wrapper {
       height: 100%;
+      max-height: 100%;
+      max-width: 100%;
       border-radius: 0;
       aspect-ratio: auto;
     }
@@ -3625,7 +3630,7 @@ h1 {
     .campaign-map-board__image {
       height: 100%;
       width: 100%;
-      object-fit: cover;
+      object-fit: contain;
       object-position: center;
     }
   }

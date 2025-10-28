@@ -469,6 +469,7 @@ const CampaignMapBoard = ({
   const interactionDisabled = disabled || !imageSrc;
 
   const boardRef = useRef(null);
+  const stageRef = useRef(null);
   const layerRef = useRef(null);
   const dragStateRef = useRef({ tokenId: null, pointerId: null });
   const [dragPositions, setDragPositions] = useState({});
@@ -485,10 +486,146 @@ const CampaignMapBoard = ({
   const rotationMoveHandlerRef = useRef(null);
   const rotationUpHandlerRef = useRef(null);
   const rotationCancelHandlerRef = useRef(null);
+  const [imageNaturalSize, setImageNaturalSize] = useState(null);
+  const [imageFitSize, setImageFitSize] = useState(null);
+  const hasBackgroundVariant = useMemo(() => {
+    if (!className) {
+      return false;
+    }
+
+    const classList = typeof className === 'string' ? className : `${className}`;
+    return classList.split(/\s+/).includes('campaign-map-board--background');
+  }, [className]);
   const handleLayerRef = useCallback((node) => {
     layerRef.current = node;
     setLayerNode(node);
   }, []);
+
+  const handleImageLoad = useCallback((event) => {
+    const target = event?.currentTarget || event?.target;
+    const naturalWidth = Number(target?.naturalWidth);
+    const naturalHeight = Number(target?.naturalHeight);
+
+    if (!Number.isFinite(naturalWidth) || !Number.isFinite(naturalHeight)) {
+      setImageNaturalSize(null);
+      return;
+    }
+
+    if (naturalWidth <= 0 || naturalHeight <= 0) {
+      setImageNaturalSize(null);
+      return;
+    }
+
+    setImageNaturalSize({ width: naturalWidth, height: naturalHeight });
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageNaturalSize(null);
+    setImageFitSize(null);
+  }, []);
+
+  const updateBackgroundFitSize = useCallback(() => {
+    if (!hasBackgroundVariant) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    const stageElement = stageRef.current;
+    const naturalSize = imageNaturalSize;
+
+    if (!stageElement || !naturalSize) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    const rect = stageElement.getBoundingClientRect();
+    const stageWidth = Number(rect?.width);
+    const stageHeight = Number(rect?.height);
+
+    if (!Number.isFinite(stageWidth) || !Number.isFinite(stageHeight)) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    if (stageWidth <= 0 || stageHeight <= 0) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    const { width: naturalWidth, height: naturalHeight } = naturalSize;
+
+    if (!Number.isFinite(naturalWidth) || !Number.isFinite(naturalHeight)) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    if (naturalWidth <= 0 || naturalHeight <= 0) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    const widthScale = stageWidth / naturalWidth;
+    const heightScale = stageHeight / naturalHeight;
+    const scale = Math.min(widthScale, heightScale);
+
+    if (!Number.isFinite(scale) || scale <= 0) {
+      setImageFitSize((prev) => (prev === null ? prev : null));
+      return;
+    }
+
+    const nextWidth = naturalWidth * scale;
+    const nextHeight = naturalHeight * scale;
+
+    setImageFitSize((prev) => {
+      if (prev && Math.abs(prev.width - nextWidth) < 0.5 && Math.abs(prev.height - nextHeight) < 0.5) {
+        return prev;
+      }
+
+      return { width: nextWidth, height: nextHeight };
+    });
+  }, [hasBackgroundVariant, imageNaturalSize]);
+
+  useEffect(() => {
+    updateBackgroundFitSize();
+  }, [updateBackgroundFitSize]);
+
+  useEffect(() => {
+    if (!hasBackgroundVariant) {
+      return undefined;
+    }
+
+    const stageElement = stageRef.current;
+
+    if (!stageElement) {
+      return undefined;
+    }
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(() => {
+        updateBackgroundFitSize();
+      });
+      observer.observe(stageElement);
+
+      return () => {
+        observer.disconnect();
+      };
+    }
+
+    const handleResize = () => {
+      updateBackgroundFitSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [hasBackgroundVariant, updateBackgroundFitSize]);
+
+  useEffect(() => {
+    setImageNaturalSize(null);
+    setImageFitSize(null);
+  }, [imageSrc, hasBackgroundVariant]);
 
   const handleFigurineImageLoad = useCallback((metricKey, target) => {
     if (!metricKey || !target) {
@@ -1380,9 +1517,41 @@ const CampaignMapBoard = ({
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
-        <div className="campaign-map-board__stage">
-          <div className="campaign-map-board__image-wrapper">
-            <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
+        <div
+          className="campaign-map-board__stage"
+          ref={stageRef}
+          style={
+            hasBackgroundVariant
+              ? {
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }
+              : undefined
+          }
+        >
+          <div
+            className="campaign-map-board__image-wrapper"
+            style={
+              hasBackgroundVariant
+                ? imageFitSize
+                  ? {
+                      width: `${imageFitSize.width}px`,
+                      height: `${imageFitSize.height}px`,
+                    }
+                  : { width: '100%', height: '100%' }
+                : undefined
+            }
+          >
+            <img
+              src={imageSrc}
+              alt={altText}
+              className="campaign-map-board__image"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
             <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
             <div
               className="campaign-map-board__tokens-layer"
