@@ -34,6 +34,29 @@
   background-size: cover;
 }
 
+.map-modal-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 62%);
+  opacity: 0.82;
+  mix-blend-mode: screen;
+}
+
+.map-modal-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(36, 52, 82, 0.16) 0%, rgba(36, 52, 82, 0.18) 45%, rgba(36, 52, 82, 0.1) 100%),
+    radial-gradient(circle at 50% 100%, rgba(58, 80, 118, 0.4) 0%, rgba(58, 80, 118, 0) 60%);
+  mix-blend-mode: screen;
+}
+
 .map-modal-background__board {
   position: absolute;
   inset: 0;
@@ -87,7 +110,7 @@
   border-radius: inherit;
   border: none;
   padding: clamp(0.5rem, 1vw, 0.75rem);
-  box-shadow: none;
+  box-shadow: 0 1.5rem 3rem rgba(6, 10, 20, 0.28);
 }
 
 .map-modal-background__board-inner .campaign-map-board__stage {
