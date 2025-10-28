@@ -921,6 +921,43 @@ const MapModal = ({
     setIsBackgroundDragging(false);
   }, []);
 
+  const clampBackgroundPan = useCallback(
+    (pan) => {
+      const { width: boardWidth, height: boardHeight } = backgroundBoardDimensions || {};
+      const { width: containerWidth, height: containerHeight } = backgroundContainerSize;
+
+      if (
+        !Number.isFinite(boardWidth) ||
+        !Number.isFinite(boardHeight) ||
+        !Number.isFinite(containerWidth) ||
+        !Number.isFinite(containerHeight)
+      ) {
+        return pan;
+      }
+
+      const maxOffsetX = Math.max(0, (boardWidth - containerWidth) / 2);
+      const maxOffsetY = Math.max(0, (boardHeight - containerHeight) / 2);
+
+      const nextX = maxOffsetX === 0 ? 0 : Math.min(Math.max(pan.x, -maxOffsetX), maxOffsetX);
+      const nextY = maxOffsetY === 0 ? 0 : Math.min(Math.max(pan.y, -maxOffsetY), maxOffsetY);
+
+      if (nextX === pan.x && nextY === pan.y) {
+        return pan;
+      }
+
+      return { x: nextX, y: nextY };
+    },
+    [backgroundBoardDimensions, backgroundContainerSize]
+  );
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    setBackgroundPan((previous) => clampBackgroundPan(previous));
+  }, [clampBackgroundPan, isBackground]);
+
   const handleBackgroundPointerMove = useCallback(
     (event) => {
       if (!isBackground) {
@@ -953,9 +990,22 @@ const MapModal = ({
       }
 
       event.preventDefault();
-      setBackgroundPan({ x: state.originX + deltaX, y: state.originY + deltaY });
+      setBackgroundPan((previous) => {
+        const desired = {
+          x: state.originX + deltaX,
+          y: state.originY + deltaY,
+        };
+
+        const clamped = clampBackgroundPan(desired);
+
+        if (clamped === previous || (clamped.x === previous.x && clamped.y === previous.y)) {
+          return previous;
+        }
+
+        return clamped;
+      });
     },
-    [isBackground]
+    [clampBackgroundPan, isBackground]
   );
 
   const handleBackgroundPointerEnd = useCallback(
@@ -1028,9 +1078,9 @@ const MapModal = ({
   const backgroundPointerHandlers = isBackground
     ? {
         onPointerDownCapture: handleBackgroundPointerDownCapture,
-        onPointerMove: handleBackgroundPointerMove,
-        onPointerUp: handleBackgroundPointerEnd,
-        onPointerCancel: handleBackgroundPointerCancel,
+        onPointerMoveCapture: handleBackgroundPointerMove,
+        onPointerUpCapture: handleBackgroundPointerEnd,
+        onPointerCancelCapture: handleBackgroundPointerCancel,
       }
     : {};
 
