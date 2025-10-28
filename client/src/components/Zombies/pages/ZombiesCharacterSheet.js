@@ -5568,7 +5568,7 @@ export default function ZombiesCharacterSheet() {
         className="text-center zombies-character-sheet-layout__content"
         style={{
           fontFamily: 'Raleway, sans-serif',
-          backgroundColor: 'rgba(10, 12, 18, 0.78)',
+          backgroundColor: 'transparent',
           height: '100vh',
           overflow: 'hidden',
           paddingTop: navHeight + HEADER_PADDING,
