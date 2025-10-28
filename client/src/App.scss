@@ -22,6 +22,62 @@
   object-position: center;
 }
 
+.map-modal-background {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  pointer-events: auto;
+  color: #fff;
+}
+
+.map-modal-background__backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(15, 15, 25, 0.75), rgba(6, 6, 10, 0.9));
+}
+
+.map-modal-background__content {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, 100%);
+  padding: clamp(1rem, 2.5vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.map-modal-background__header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.map-modal-background__title {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 600;
+  margin: 0;
+}
+
+.map-modal-background__body {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: rgba(12, 12, 18, 0.65);
+  border-radius: var(--bs-border-radius-lg, 0.75rem);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+}
+
+.map-modal-background__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .map-display__grid-overlay,
 .campaign-map-board__grid-overlay {
   position: absolute;

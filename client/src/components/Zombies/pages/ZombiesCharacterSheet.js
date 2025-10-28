@@ -6019,6 +6019,7 @@ export default function ZombiesCharacterSheet() {
       onTokenRemove={handleTokenRemove}
       dockedSide={getDockedSide('map')}
       onDockChange={(side) => handleDockChange('map', side)}
+      displayMode="background"
     />
     {dockedModalElements}
   </div>
