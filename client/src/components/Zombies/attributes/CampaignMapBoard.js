@@ -1506,6 +1506,21 @@ const CampaignMapBoard = ({
     };
   }, [lastDraggedTokenId, lockRotation, rotateTokenBy]);
 
+  const boardStyle = useMemo(() => {
+    if (!hasBackgroundVariant) {
+      return undefined;
+    }
+
+    return {
+      width: '100%',
+      height: '100%',
+      flex: '1 1 auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    };
+  }, [hasBackgroundVariant]);
+
   return (
     <div
       ref={boardRef}
@@ -1514,6 +1529,7 @@ const CampaignMapBoard = ({
         className,
         interactionDisabled && 'campaign-map-board--disabled'
       )}
+      style={boardStyle}
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
