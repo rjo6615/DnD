@@ -150,7 +150,7 @@ const areSetsEqual = (a, b) => {
   return true;
 };
 
-const BACKGROUND_DEFAULT_SCALE = 1.35;
+const BACKGROUND_DEFAULT_SCALE = 1;
 const BACKGROUND_DRAG_THRESHOLD = 4;
 
 const MapModal = ({
