@@ -58,6 +58,7 @@ import {
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import { sanitizeInventoryItemsForUpdate } from "../attributes/inventorySanitization";
 import MapModal from "../attributes/MapModal";
+import CampaignMapBoard from "../attributes/CampaignMapBoard";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -108,6 +109,28 @@ const normalizeCreatureSize = (value) => {
   const prefixMatch = CREATURE_SIZE_KEYS.find((size) => trimmed.startsWith(size));
   if (prefixMatch) {
     return prefixMatch;
+  }
+
+  return null;
+};
+
+const buildMapBackgroundImageSource = (map) => {
+  if (!map || typeof map !== 'object') {
+    return null;
+  }
+
+  const { imageUrl, imageBase64, imageType } = map;
+
+  if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
+    return imageUrl.trim();
+  }
+
+  if (typeof imageBase64 === 'string' && imageBase64.trim() !== '') {
+    const mimeType =
+      typeof imageType === 'string' && imageType.trim() !== ''
+        ? imageType.trim()
+        : 'image/png';
+    return `data:${mimeType};base64,${imageBase64.trim()}`;
   }
 
   return null;
@@ -5291,6 +5314,328 @@ export default function ZombiesCharacterSheet() {
   const diceBoxFailed = diceBoxStatus.failed;
   const shouldShowDiceLoadingOverlay =
     isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
+  const mapBackgroundImage = useMemo(
+    () => buildMapBackgroundImageSource(campaignMap),
+    [campaignMap]
+  );
+  const mapSectionStyle = useMemo(
+    () => ({
+      position: 'relative',
+      padding: '24px 16px',
+      borderRadius: 16,
+      marginBottom: 16,
+      overflow: 'hidden',
+      backgroundColor: 'rgba(6, 6, 6, 0.72)',
+      backdropFilter: 'blur(4px)',
+    }),
+    []
+  );
+  const mapSectionOverlayStyle = useMemo(
+    () => ({
+      position: 'absolute',
+      inset: 0,
+      background:
+        'linear-gradient(180deg, rgba(8, 8, 8, 0.7) 0%, rgba(8, 8, 8, 0.35) 100%)',
+      pointerEvents: 'none',
+    }),
+    []
+  );
+  const mapSectionContentStyle = useMemo(
+    () => ({
+      position: 'relative',
+      zIndex: 1,
+    }),
+    []
+  );
+
+  const mapBoardMap = useMemo(() => {
+    if (!campaignMap) {
+      return null;
+    }
+
+    if (mapBackgroundImage) {
+      return campaignMap;
+    }
+
+    return {
+      ...campaignMap,
+      imageUrl: loginbg,
+    };
+  }, [campaignMap, mapBackgroundImage]);
+
+  const activeCampaignMapId = useMemo(() => {
+    if (typeof campaignMap?.mapId !== 'string') {
+      return null;
+    }
+    const trimmed = campaignMap.mapId.trim();
+    return trimmed !== '' ? trimmed : null;
+  }, [campaignMap]);
+
+  const normalizedCharacterLookup = useMemo(() => {
+    if (!tokenMetaById || typeof tokenMetaById !== 'object') {
+      return {};
+    }
+
+    return Object.entries(tokenMetaById).reduce((acc, [key, value]) => {
+      if (typeof key !== 'string') {
+        return acc;
+      }
+
+      const trimmed = key.trim();
+      if (!trimmed) {
+        return acc;
+      }
+
+      acc[trimmed] = value && typeof value === 'object' ? value : {};
+      return acc;
+    }, {});
+  }, [tokenMetaById]);
+
+  const activeMapTokensDictionary = useMemo(() => {
+    if (!activeCampaignMapId) {
+      return {};
+    }
+
+    if (modalTokensByMapId && typeof modalTokensByMapId === 'object') {
+      const entry = modalTokensByMapId[activeCampaignMapId];
+      if (entry && typeof entry === 'object') {
+        return sanitizeTokenDictionary(entry);
+      }
+    }
+
+    if (campaignMap && typeof campaignMap === 'object' && campaignMap.tokens) {
+      return sanitizeTokenDictionary(campaignMap.tokens);
+    }
+
+    return {};
+  }, [activeCampaignMapId, campaignMap, modalTokensByMapId]);
+
+  const normalizedResolvedCharacterId = useMemo(() => {
+    if (typeof resolvedCharacterId !== 'string') {
+      return null;
+    }
+    const trimmed = resolvedCharacterId.trim();
+    return trimmed !== '' ? trimmed : null;
+  }, [resolvedCharacterId]);
+
+  const currentPlayerToken = useMemo(() => {
+    if (!normalizedResolvedCharacterId) {
+      return null;
+    }
+
+    return activeMapTokensDictionary[normalizedResolvedCharacterId] || null;
+  }, [activeMapTokensDictionary, normalizedResolvedCharacterId]);
+
+  const [mapInteractionPending, setMapInteractionPending] = useState(false);
+
+  useEffect(() => {
+    setMapInteractionPending(false);
+  }, [activeCampaignMapId, normalizedResolvedCharacterId]);
+
+  const mapBoardTokens = useMemo(() => {
+    const tokensList = Object.values(activeMapTokensDictionary);
+
+    return tokensList
+      .map((token) => {
+        if (!token || typeof token !== 'object') {
+          return null;
+        }
+
+        const baseId =
+          (typeof token.characterId === 'string' && token.characterId.trim() !== '')
+            ? token.characterId.trim()
+            : null;
+
+        if (!baseId) {
+          return null;
+        }
+
+        const lookup = normalizedCharacterLookup[baseId] || {};
+        const rawLabel =
+          lookup.label ||
+          (typeof token.label === 'string' && token.label.trim() !== '' ? token.label.trim() : null) ||
+          baseId;
+
+        const currentHp = toFiniteNumberOrNull(
+          lookup.currentHp ?? token.currentHp ?? token.hpCurrent ?? token.health
+        );
+        const maxHp = toFiniteNumberOrNull(
+          lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
+        );
+
+        const lookupVariant =
+          typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
+            ? lookup.variant.trim().toLowerCase()
+            : null;
+        const tokenVariant =
+          typeof token.variant === 'string' && token.variant.trim() !== ''
+            ? token.variant.trim().toLowerCase()
+            : null;
+        const lookupEntityType =
+          typeof lookup.entityType === 'string' && lookup.entityType.trim() !== ''
+            ? lookup.entityType.trim().toLowerCase()
+            : null;
+        const tokenEntityType =
+          typeof token.entityType === 'string' && token.entityType.trim() !== ''
+            ? token.entityType.trim().toLowerCase()
+            : null;
+
+        const entityType = lookupEntityType || tokenEntityType || null;
+
+        const baseColor = lookup.color || token.color || null;
+        const normalizedColor =
+          typeof baseColor === 'string' && baseColor.trim() !== '' ? baseColor.trim() : null;
+
+        const { figurineImageUrl, figurineImagePublicId } = resolveFigurineImageData(lookup, token);
+
+        const lookupSize =
+          typeof lookup.size === 'string' && lookup.size.trim() !== ''
+            ? lookup.size.trim().toLowerCase()
+            : null;
+        const tokenSize =
+          typeof token.size === 'string' && token.size.trim() !== ''
+            ? token.size.trim().toLowerCase()
+            : null;
+        const size = lookupSize || tokenSize || null;
+
+        const isPlayerToken = playerCharacterIdSet.has(baseId);
+
+        let variant = lookupVariant || tokenVariant || null;
+        if (!variant) {
+          if (entityType === 'enemy') {
+            variant = 'enemy';
+          } else if (entityType === 'character') {
+            variant = isPlayerToken ? 'self' : 'ally';
+          } else if (isPlayerToken) {
+            variant = 'self';
+          }
+        }
+
+        const resolvedVariant = variant || (isPlayerToken ? 'self' : 'ally');
+
+        return {
+          ...token,
+          characterId: baseId,
+          label: typeof rawLabel === 'string' ? rawLabel : baseId,
+          color: normalizedColor || undefined,
+          currentHp: currentHp !== null ? currentHp : undefined,
+          maxHp: maxHp !== null ? maxHp : undefined,
+          variant: resolvedVariant,
+          isMovable: isPlayerToken && !mapInteractionPending,
+          isActiveTurn:
+            typeof activeTurnParticipantId === 'string' && activeTurnParticipantId
+              ? activeTurnParticipantId === baseId
+              : false,
+          size: size || undefined,
+          figurineImageUrl: figurineImageUrl || undefined,
+          figurineImagePublicId: figurineImagePublicId || undefined,
+        };
+      })
+      .filter(Boolean);
+  }, [
+    activeMapTokensDictionary,
+    activeTurnParticipantId,
+    mapInteractionPending,
+    normalizedCharacterLookup,
+    playerCharacterIdSet,
+  ]);
+
+  const handleMapBoardTokenPositionChange = useCallback(
+    async ({ characterId, x, y, rotation }) => {
+      if (mapInteractionPending || !activeCampaignMapId) {
+        return;
+      }
+
+      const normalizedCharacterId =
+        typeof characterId === 'string' && characterId.trim() !== ''
+          ? characterId.trim()
+          : null;
+
+      if (!normalizedCharacterId || !playerCharacterIdSet.has(normalizedCharacterId)) {
+        return;
+      }
+
+      const payload = {
+        mapId: activeCampaignMapId,
+        characterId: normalizedCharacterId,
+        x,
+        y,
+      };
+
+      if (Number.isFinite(rotation)) {
+        payload.rotation = rotation;
+      }
+
+      try {
+        setMapInteractionPending(true);
+        await handleTokenMove(payload);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      } finally {
+        setMapInteractionPending(false);
+      }
+    },
+    [activeCampaignMapId, handleTokenMove, mapInteractionPending, playerCharacterIdSet]
+  );
+
+  const handleMapBoardBackgroundClick = useCallback(
+    async ({ x, y }) => {
+      if (
+        mapInteractionPending ||
+        !activeCampaignMapId ||
+        !normalizedResolvedCharacterId ||
+        currentPlayerToken
+      ) {
+        return;
+      }
+
+      try {
+        setMapInteractionPending(true);
+        await handleTokenMove({
+          mapId: activeCampaignMapId,
+          characterId: normalizedResolvedCharacterId,
+          x,
+          y,
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      } finally {
+        setMapInteractionPending(false);
+      }
+    },
+    [
+      activeCampaignMapId,
+      currentPlayerToken,
+      handleTokenMove,
+      mapInteractionPending,
+      normalizedResolvedCharacterId,
+    ]
+  );
+
+  const handleMapBoardTokenRemove = useCallback(
+    (payload) => {
+      if (!payload || typeof payload !== 'object' || !activeCampaignMapId) {
+        return false;
+      }
+
+      const normalizedCharacterId =
+        typeof payload.characterId === 'string' && payload.characterId.trim() !== ''
+          ? payload.characterId.trim()
+          : null;
+
+      if (!normalizedCharacterId || !playerCharacterIdSet.has(normalizedCharacterId)) {
+        return false;
+      }
+
+      return handleTokenRemove({
+        mapId: activeCampaignMapId,
+        characterId: normalizedCharacterId,
+      });
+    },
+    [activeCampaignMapId, handleTokenRemove, playerCharacterIdSet]
+  );
 
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
@@ -5566,16 +5911,63 @@ export default function ZombiesCharacterSheet() {
       className="text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
-        backgroundImage: `url(${loginbg})`,
-        height: "100vh",
+        backgroundColor: '#040404',
+        minHeight: '100vh',
+        height: '100vh',
         overflow: "hidden",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
         paddingTop: navHeight + HEADER_PADDING,
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
       }}
     >
+      <div
+        className="zombies-character-sheet__map-backdrop"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          overflow: 'hidden',
+        }}
+      >
+        {mapBoardMap ? (
+          <div
+            className="zombies-character-sheet__map-backdrop-board"
+            style={{ position: 'absolute', inset: 0 }}
+          >
+            <CampaignMapBoard
+              map={mapBoardMap}
+              tokens={mapBoardTokens}
+              className="campaign-map-board--background"
+              disabled={mapInteractionPending}
+              onTokenPositionChange={handleMapBoardTokenPositionChange}
+              onBackgroundClick={handleMapBoardBackgroundClick}
+              onTokenRemove={handleMapBoardTokenRemove}
+            />
+          </div>
+        ) : (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${loginbg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        )}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, rgba(8, 8, 8, 0.45) 0%, rgba(8, 8, 8, 0.85) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
       <div
         ref={contentColumnRef}
         className="zombies-character-sheet__content"
@@ -5585,6 +5977,7 @@ export default function ZombiesCharacterSheet() {
           flex: '1 1 auto',
           minHeight: 0,
           position: 'relative',
+          zIndex: 1,
         }}
       >
         {shouldShowDiceLoadingOverlay && (
@@ -5606,62 +5999,56 @@ export default function ZombiesCharacterSheet() {
               reconnects.
             </div>
           )}
-          <div ref={headerRef}>
-            <div ref={combatHeaderRef}>
-              <CombatTurnHeader
-                participants={participantsWithDetails}
-                tokenLookup={tokenMetaById}
+        <div style={mapSectionStyle}>
+          <div style={mapSectionOverlayStyle} aria-hidden="true" />
+          <div style={mapSectionContentStyle}>
+            <div ref={headerRef}>
+              <div ref={combatHeaderRef}>
+                <CombatTurnHeader
+                  participants={participantsWithDetails}
+                  tokenLookup={tokenMetaById}
+                />
+              </div>
+              <h1
+                style={{
+                  fontSize: "28px",
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  padding: "8px 0",
+                  textAlign: "center",
+                  letterSpacing: "1px",
+                  textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
+                  fontFamily: "'Merriweather', serif",
+                  textTransform: "capitalize",
+                  borderBottom: "2px solid #555", // Subtle underline for structure
+                  display: "inline-block",
+                }}
+                className="mx-auto"
+              >
+                {form?.characterName || 'Loading Character'}
+              </h1>
+
+              <HealthDefense
+                form={form}
+                totalLevel={totalLevel}
+                dexMod={statMods.dex}
+                conMod={statMods.con}
+                wisMod={statMods.wis}
+                initiative={featBonuses.initiative}
+                speed={featBonuses.speed}
+                ac={featBonuses.ac}
+                hpMaxBonus={featBonuses.hpMaxBonus}
+                hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
+                onTempHealthChange={handleHealthChange}
+                speedMultiplier={speedMultiplier}
+                {...(spellAbilityMod !== null && { spellAbilityMod })}
               />
             </div>
-            <h1
-              style={{
-                fontSize: "28px",
-                fontWeight: 600,
-                color: "#FFFFFF",
-                padding: "8px 0",
-                textAlign: "center",
-                letterSpacing: "1px",
-                textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-                fontFamily: "'Merriweather', serif",
-                textTransform: "capitalize",
-                borderBottom: "2px solid #555", // Subtle underline for structure
-                display: "inline-block",
-              }}
-              className="mx-auto"
-            >
-              {form?.characterName || 'Loading Character'}
-            </h1>
-
-            <HealthDefense
-              form={form}
-              totalLevel={totalLevel}
-              dexMod={statMods.dex}
-              conMod={statMods.con}
-              wisMod={statMods.wis}
-              initiative={featBonuses.initiative}
-              speed={featBonuses.speed}
-              ac={featBonuses.ac}
-              hpMaxBonus={featBonuses.hpMaxBonus}
-              hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-              onTempHealthChange={handleHealthChange}
-              speedMultiplier={speedMultiplier}
-              {...(spellAbilityMod !== null && { spellAbilityMod })}
-            />
-          </div>
-          <div
-            style={{
-              height: `calc(100vh - ${headerHeight}px)`,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                flexShrink: 0,
+                justifyContent: 'center',
+                marginTop: 16,
               }}
             >
               <StatusEffectBar
@@ -5669,24 +6056,34 @@ export default function ZombiesCharacterSheet() {
                 onRemoveEffect={handleRemoveEffect}
               />
             </div>
-            <PlayerTurnActions
-              form={form}
-              dexMod={statMods.dex}
-              strMod={statMods.str}
-              conMod={statMods.con}
-              spellAbilityMod={spellAbilityMod}
-              spellAbilityKey={spellAbilityKey}
-              characterId={characterId}
-              ref={playerTurnActionsRef}
-              onCastSpell={handleCastSpell}
-              availableSlots={availableSlots}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onPassTurn={handlePassTurn}
-              canPassTurn={canPassTurn}
-              isPassTurnInProgress={isPassingTurn}
-            />
           </div>
+        </div>
+        <div
+          style={{
+            height: `calc(100vh - ${headerHeight}px)`,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          <PlayerTurnActions
+            form={form}
+            dexMod={statMods.dex}
+            strMod={statMods.str}
+            conMod={statMods.con}
+            spellAbilityMod={spellAbilityMod}
+            spellAbilityKey={spellAbilityKey}
+            characterId={characterId}
+            ref={playerTurnActionsRef}
+            onCastSpell={handleCastSpell}
+            availableSlots={availableSlots}
+            longRestCount={longRestCount}
+            shortRestCount={shortRestCount}
+            onPassTurn={handlePassTurn}
+            canPassTurn={canPassTurn}
+            isPassTurnInProgress={isPassingTurn}
+          />
+        </div>
           {form && (
             <SpellSlots
               form={form}
