@@ -87,6 +87,28 @@ const normalizeMaps = (maps) =>
     ? maps.filter((map) => map && typeof map === 'object')
     : [];
 
+const buildMapImageSource = (map) => {
+  if (!map || typeof map !== 'object') {
+    return null;
+  }
+
+  const { imageUrl, imageBase64, imageType } = map;
+
+  if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
+    return imageUrl.trim();
+  }
+
+  if (typeof imageBase64 === 'string' && imageBase64.trim() !== '') {
+    const mimeType =
+      typeof imageType === 'string' && imageType.trim() !== ''
+        ? imageType.trim()
+        : 'image/png';
+    return `data:${mimeType};base64,${imageBase64.trim()}`;
+  }
+
+  return null;
+};
+
 const resolveMapTitle = (map, index) => {
   if (!map || typeof map !== 'object') {
     return `Map ${index + 1}`;
@@ -199,6 +221,32 @@ const MapModal = ({
 
     return map || null;
   }, [normalizedMaps, resolvedSelectedId, normalizedActiveId, map]);
+
+  const backgroundImageSrc = useMemo(
+    () => buildMapImageSource(previewMap),
+    [previewMap]
+  );
+
+  const backgroundStyle = useMemo(() => {
+    if (!backgroundImageSrc) {
+      return undefined;
+    }
+
+    return {
+      backgroundImage: `url("${backgroundImageSrc}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    };
+  }, [backgroundImageSrc]);
+
+  const backgroundClassName = useMemo(() => {
+    const classes = ['map-modal-background'];
+    if (backgroundImageSrc) {
+      classes.push('map-modal-background--has-image');
+    }
+    return classes.join(' ');
+  }, [backgroundImageSrc]);
 
   const previewMapId = useMemo(
     () => normalizeMapId(previewMap?.mapId),
@@ -973,7 +1021,11 @@ const MapModal = ({
 
   if (isBackground) {
     return (
-      <div className="map-modal-background" data-testid="map-modal-wrapper">
+      <div
+        className={backgroundClassName}
+        style={backgroundStyle}
+        data-testid="map-modal-wrapper"
+      >
         <div
           className="map-modal-background__board"
           role="region"
