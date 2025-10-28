@@ -928,15 +928,6 @@ const MapModal = ({
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
-  const handleOverlayBackdropClick = useCallback(
-    (event) => {
-      if (event.target === event.currentTarget) {
-        handleModalHide();
-      }
-    },
-    [handleModalHide]
-  );
-
   const titleContent = <>{title}</>;
   const backgroundAriaLabel = useMemo(() => {
     if (typeof title === 'string' && title.trim() !== '') {
@@ -996,9 +987,7 @@ const MapModal = ({
             role="dialog"
             aria-modal="false"
             aria-label={backgroundAriaLabel}
-            onClick={handleOverlayBackdropClick}
           >
-            <div className="map-modal-background__overlay-backdrop" aria-hidden="true" />
             <div className="map-modal-background__overlay-content">
               <header className="map-modal-background__header">
                 <div className="map-modal-background__header-inner">
