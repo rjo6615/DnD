@@ -5560,22 +5560,48 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const mapLayerClassName = shouldShowMapModal
+    ? 'zombies-character-sheet-layout__map zombies-character-sheet-layout__map--visible'
+    : 'zombies-character-sheet-layout__map';
+
   return (
-    <div
-      ref={rootContainerRef}
-      className="text-center"
-      style={{
-        fontFamily: 'Raleway, sans-serif',
-        backgroundImage: `url(${loginbg})`,
-        height: "100vh",
-        overflow: "hidden",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        paddingTop: navHeight + HEADER_PADDING,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className="zombies-character-sheet-layout">
+      <div className={mapLayerClassName}>
+        <MapModal
+          show={shouldShowMapModal}
+          onHide={handleCloseMapModal}
+          map={campaignMap}
+          maps={campaignMaps}
+          activeMapId={campaignActiveMapId}
+          tokensByMapId={modalTokensByMapId}
+          currentCharacterId={resolvedCharacterId}
+          activeCharacterId={activeTurnParticipantId}
+          characterLookup={tokenMetaById}
+          onTokenMove={handleTokenMove}
+          onTokenRemove={handleTokenRemove}
+          dockedSide={getDockedSide('map')}
+          onDockChange={(side) => handleDockChange('map', side)}
+          displayMode="background"
+        />
+      </div>
+      <div
+        ref={rootContainerRef}
+        className="text-center zombies-character-sheet-layout__content"
+        style={{
+          fontFamily: 'Raleway, sans-serif',
+          backgroundImage: shouldShowMapModal ? 'none' : `url(${loginbg})`,
+          backgroundColor: shouldShowMapModal ? 'rgba(10, 12, 18, 0.78)' : undefined,
+          height: '100vh',
+          overflow: 'hidden',
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+          paddingTop: navHeight + HEADER_PADDING,
+          display: 'flex',
+          flexDirection: 'column',
+          backdropFilter: shouldShowMapModal ? 'blur(8px)' : undefined,
+          position: 'relative',
+        }}
+      >
       <div
         ref={contentColumnRef}
         className="zombies-character-sheet__content"
@@ -6005,22 +6031,8 @@ export default function ZombiesCharacterSheet() {
       errorMessage={tokenPickerError}
       filterScope={tokenPickerFilterScope}
     />
-    <MapModal
-      show={shouldShowMapModal}
-      onHide={handleCloseMapModal}
-      map={campaignMap}
-      maps={campaignMaps}
-      activeMapId={campaignActiveMapId}
-      tokensByMapId={modalTokensByMapId}
-      currentCharacterId={resolvedCharacterId}
-      activeCharacterId={activeTurnParticipantId}
-      characterLookup={tokenMetaById}
-      onTokenMove={handleTokenMove}
-      onTokenRemove={handleTokenRemove}
-      dockedSide={getDockedSide('map')}
-      onDockChange={(side) => handleDockChange('map', side)}
-    />
     {dockedModalElements}
-  </div>
-);
+      </div>
+    </div>
+  );
 }

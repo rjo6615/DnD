@@ -152,7 +152,9 @@ const MapModal = ({
   dockedSide = null,
   onDockClose,
   onDockChange,
+  displayMode = 'modal',
 }) => {
+  const isBackground = displayMode === 'background';
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
@@ -889,7 +891,7 @@ const MapModal = ({
   };
 
   const dialogClassName = useMemo(() => {
-    if (!isDocked) {
+    if (!isDocked || isBackground) {
       return undefined;
     }
 
@@ -902,6 +904,10 @@ const MapModal = ({
   }, [isDocked, dockedSide]);
 
   const modalClassName = useMemo(() => {
+    if (isBackground) {
+      return undefined;
+    }
+
     const classes = ['dnd-modal', 'modern-modal'];
 
     if (isDocked) {
@@ -922,6 +928,73 @@ const MapModal = ({
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
+  const titleContent = <>{title}</>;
+  const backgroundAriaLabel = useMemo(() => {
+    if (typeof title === 'string' && title.trim() !== '') {
+      return title.trim();
+    }
+
+    return 'Campaign map';
+  }, [title]);
+
+  const bodyContent = hasManagementFeatures ? (
+    <div className="d-flex flex-column flex-lg-row gap-4">
+      <div className="flex-grow-1" data-testid="map-modal-sidebar">
+        <h5 className="h6 mb-3">Saved Maps</h5>
+        {renderMapList()}
+      </div>
+      <div className="flex-grow-1" data-testid="map-modal-preview">
+        {previewMap ? renderPreviewContent() : (
+          <p className="text-muted mb-0">No map selected.</p>
+        )}
+      </div>
+    </div>
+  ) : (
+    <div data-testid="map-modal-preview">
+      {previewMap ? renderPreviewContent() : (
+        <p className="text-muted mb-0">No map image available.</p>
+      )}
+    </div>
+  );
+
+  const footerContent = (
+    <Button className="action-btn close-btn" onClick={handleModalHide} data-testid="map-modal-close">
+      Close
+    </Button>
+  );
+
+  if (isBackground) {
+    if (!show) {
+      return null;
+    }
+
+    return (
+      <div
+        className="map-modal-background"
+        data-testid="map-modal-wrapper"
+        role="region"
+        aria-label={backgroundAriaLabel}
+      >
+        <div className="map-modal-background__backdrop" aria-hidden="true" />
+        <div className="map-modal-background__content">
+          <header className="map-modal-background__header">
+            <div className="map-modal-background__header-inner">
+              <h2 className="map-modal-background__title">{titleContent}</h2>
+              <CloseButton
+                variant="white"
+                onClick={handleModalHide}
+                aria-label="Close map"
+                data-testid="map-modal-close-button"
+              />
+            </div>
+          </header>
+          <div className="map-modal-background__body">{bodyContent}</div>
+          <footer className="map-modal-background__footer">{footerContent}</footer>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Modal
       className={modalClassName}
@@ -941,34 +1014,10 @@ const MapModal = ({
           onDockChange={onDockChange}
           isDocked={isDocked}
         />
-        <Modal.Title>{title}</Modal.Title>
+        <Modal.Title>{titleContent}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {hasManagementFeatures ? (
-          <div className="d-flex flex-column flex-lg-row gap-4">
-            <div className="flex-grow-1" data-testid="map-modal-sidebar">
-              <h5 className="h6 mb-3">Saved Maps</h5>
-              {renderMapList()}
-            </div>
-            <div className="flex-grow-1" data-testid="map-modal-preview">
-              {previewMap ? renderPreviewContent() : (
-                <p className="text-muted mb-0">No map selected.</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div data-testid="map-modal-preview">
-            {previewMap ? renderPreviewContent() : (
-              <p className="text-muted mb-0">No map image available.</p>
-            )}
-          </div>
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button className="action-btn close-btn" onClick={handleModalHide} data-testid="map-modal-close">
-          Close
-        </Button>
-      </Modal.Footer>
+      <Modal.Body>{bodyContent}</Modal.Body>
+      <Modal.Footer>{footerContent}</Modal.Footer>
     </Modal>
   );
 };
@@ -1009,6 +1058,7 @@ MapModal.propTypes = {
   dockedSide: PropTypes.oneOf(['left', 'right']),
   onDockClose: PropTypes.func,
   onDockChange: PropTypes.func,
+  displayMode: PropTypes.oneOf(['modal', 'background']),
 };
 
 MapModal.defaultProps = {
@@ -1036,6 +1086,7 @@ MapModal.defaultProps = {
   dockedSide: null,
   onDockClose: null,
   onDockChange: null,
+  displayMode: 'modal',
 };
 
 export default MapModal;
