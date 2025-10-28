@@ -181,6 +181,7 @@ const MapModal = ({
   displayMode = 'modal',
 }) => {
   const isBackground = displayMode === 'background';
+  const backgroundBoardContainerRef = useRef(null);
   const backgroundBoardRef = useRef(null);
   const backgroundDragStateRef = useRef(null);
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
@@ -266,6 +267,8 @@ const MapModal = ({
 
   const [backgroundPan, setBackgroundPan] = useState({ x: 0, y: 0 });
   const [isBackgroundDragging, setIsBackgroundDragging] = useState(false);
+  const [backgroundImageMetrics, setBackgroundImageMetrics] = useState({ width: null, height: null });
+  const [backgroundContainerSize, setBackgroundContainerSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     if (!isBackground) {
@@ -275,6 +278,178 @@ const MapModal = ({
     setBackgroundPan({ x: 0, y: 0 });
     setIsBackgroundDragging(false);
   }, [isBackground, previewMapId]);
+
+  useEffect(() => {
+    if (!backgroundImageSrc) {
+      setBackgroundImageMetrics({ width: null, height: null });
+      return;
+    }
+
+    let isCancelled = false;
+    const image = new Image();
+
+    const handleLoad = () => {
+      if (isCancelled) {
+        return;
+      }
+
+      const { naturalWidth, naturalHeight } = image;
+
+      if (!Number.isFinite(naturalWidth) || !Number.isFinite(naturalHeight)) {
+        setBackgroundImageMetrics({ width: null, height: null });
+        return;
+      }
+
+      const nextWidth = Math.round(naturalWidth);
+      const nextHeight = Math.round(naturalHeight);
+
+      setBackgroundImageMetrics((previous) => {
+        if (previous.width === nextWidth && previous.height === nextHeight) {
+          return previous;
+        }
+
+        return { width: nextWidth, height: nextHeight };
+      });
+    };
+
+    const handleError = () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setBackgroundImageMetrics({ width: null, height: null });
+    };
+
+    image.addEventListener('load', handleLoad);
+    image.addEventListener('error', handleError);
+    image.src = backgroundImageSrc;
+
+    if (image.complete && image.naturalWidth && image.naturalHeight) {
+      handleLoad();
+    }
+
+    return () => {
+      isCancelled = true;
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', handleError);
+    };
+  }, [backgroundImageSrc]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    const container = backgroundBoardContainerRef.current;
+
+    if (!container || typeof container.getBoundingClientRect !== 'function') {
+      return;
+    }
+
+    let frameHandle = null;
+
+    const readSize = () => {
+      frameHandle = null;
+
+      const rect = container.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+
+      if (!Number.isFinite(width) || !Number.isFinite(height)) {
+        return;
+      }
+
+      setBackgroundContainerSize((previous) => {
+        if (previous.width === width && previous.height === height) {
+          return previous;
+        }
+
+        return { width, height };
+      });
+    };
+
+    const scheduleRead = () => {
+      if (frameHandle !== null) {
+        return;
+      }
+
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        frameHandle = window.requestAnimationFrame(readSize);
+      } else {
+        frameHandle = setTimeout(readSize, 16);
+      }
+    };
+
+    scheduleRead();
+
+    let resizeObserver = null;
+
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver(scheduleRead);
+      resizeObserver.observe(container);
+    } else if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('resize', scheduleRead);
+    }
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', scheduleRead);
+      }
+
+      if (frameHandle !== null) {
+        if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+          window.cancelAnimationFrame(frameHandle);
+        } else {
+          clearTimeout(frameHandle);
+        }
+      }
+    };
+  }, [isBackground, show, previewMapId]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      setBackgroundContainerSize({ width: 0, height: 0 });
+    }
+  }, [isBackground]);
+
+  const backgroundBoardDimensions = useMemo(() => {
+    const { width: imageWidth, height: imageHeight } = backgroundImageMetrics;
+    const { width: containerWidth, height: containerHeight } = backgroundContainerSize;
+
+    if (
+      !Number.isFinite(imageWidth) ||
+      !Number.isFinite(imageHeight) ||
+      imageWidth <= 0 ||
+      imageHeight <= 0 ||
+      !Number.isFinite(containerWidth) ||
+      !Number.isFinite(containerHeight) ||
+      containerWidth <= 0 ||
+      containerHeight <= 0
+    ) {
+      return null;
+    }
+
+    const scaleFactor = Math.max(containerWidth / imageWidth, containerHeight / imageHeight);
+
+    if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) {
+      return null;
+    }
+
+    const width = imageWidth * scaleFactor;
+    const height = imageHeight * scaleFactor;
+
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { width, height };
+  }, [backgroundContainerSize.height, backgroundContainerSize.width, backgroundImageMetrics.height, backgroundImageMetrics.width]);
 
   const autoExpandedFolderKeys = useMemo(() => {
     const keys = new Set();
@@ -832,11 +1007,18 @@ const MapModal = ({
   );
 
   const backgroundBoardStyleValue = useMemo(() => {
-    return {
+    const style = {
       '--map-modal-background-scale': BACKGROUND_DEFAULT_SCALE,
       transform: `translate(calc(-50% + ${backgroundPan.x}px), calc(-50% + ${backgroundPan.y}px)) scale(${BACKGROUND_DEFAULT_SCALE})`,
     };
-  }, [backgroundPan.x, backgroundPan.y]);
+
+    if (backgroundBoardDimensions) {
+      style.width = `${backgroundBoardDimensions.width}px`;
+      style.height = `${backgroundBoardDimensions.height}px`;
+    }
+
+    return style;
+  }, [backgroundBoardDimensions, backgroundPan.x, backgroundPan.y]);
 
   const backgroundBoardClassName = classNames(
     'map-modal-background__board-inner',
@@ -1255,6 +1437,7 @@ const MapModal = ({
         data-testid="map-modal-wrapper"
       >
         <div
+          ref={backgroundBoardContainerRef}
           className="map-modal-background__board"
           role="region"
           aria-label={backgroundAriaLabel}
