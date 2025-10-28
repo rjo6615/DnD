@@ -5928,12 +5928,19 @@ export default function ZombiesCharacterSheet() {
           inset: 0,
           zIndex: 0,
           overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'stretch',
+          justifyContent: 'center',
         }}
       >
         {mapBoardMap ? (
           <div
             className="zombies-character-sheet__map-backdrop-board"
-            style={{ position: 'absolute', inset: 0 }}
+            style={{
+              position: 'relative',
+              flex: '1 1 auto',
+              display: 'flex',
+            }}
           >
             <CampaignMapBoard
               map={mapBoardMap}
