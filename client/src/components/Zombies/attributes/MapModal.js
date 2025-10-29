@@ -78,8 +78,22 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const normalizeMapId = (value) =>
-  typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+const normalizeMapId = (value) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed !== '' ? trimmed : null;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `${value}`;
+  }
+
+  if (typeof value === 'bigint') {
+    return `${value}`;
+  }
+
+  return null;
+};
 
 const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
 
@@ -291,14 +305,6 @@ const MapModal = ({
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     };
-  }, [backgroundImageSrc]);
-
-  const backgroundClassName = useMemo(() => {
-    const classes = ['map-modal-background'];
-    if (backgroundImageSrc) {
-      classes.push('map-modal-background--has-image');
-    }
-    return classes.join(' ');
   }, [backgroundImageSrc]);
 
   const previewMapIdCandidates = useMemo(() => {
@@ -724,6 +730,20 @@ const MapModal = ({
     () => typeof onTokenMove === 'function' && Boolean(placementMapId),
     [onTokenMove, placementMapId]
   );
+
+  const backgroundClassName = useMemo(() => {
+    const classes = ['map-modal-background'];
+
+    if (backgroundImageSrc) {
+      classes.push('map-modal-background--has-image');
+    }
+
+    if (isInteractive) {
+      classes.push('map-modal-background--interactive');
+    }
+
+    return classes.join(' ');
+  }, [backgroundImageSrc, isInteractive]);
 
   const boardTokens = useMemo(() => {
     const tokensList = Object.values(tokensDictionary);
