@@ -360,7 +360,10 @@ const MapModal = ({
 }) => {
   const isBackground = displayMode === 'background';
   const backgroundBoardContainerRef = useRef(null);
-  const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
+  const normalizedMaps = useMemo(
+    () => (isBackground ? [] : normalizeMaps(maps)),
+    [isBackground, maps]
+  );
   const normalizedTokensByMapId = useMemo(() => {
     if (!tokensByMapId || typeof tokensByMapId !== 'object') {
       return {};
@@ -409,6 +412,10 @@ const MapModal = ({
   }, [normalizedMaps, normalizedSelectedId, normalizedActiveId]);
 
   const previewMap = useMemo(() => {
+    if (isBackground) {
+      return map || null;
+    }
+
     if (normalizedMaps.length > 0) {
       const selectedFromList = findMapById(normalizedMaps, resolvedSelectedId);
       if (selectedFromList) {
@@ -426,7 +433,13 @@ const MapModal = ({
     }
 
     return map || null;
-  }, [normalizedMaps, resolvedSelectedId, normalizedActiveId, map]);
+  }, [
+    isBackground,
+    map,
+    normalizedMaps,
+    resolvedSelectedId,
+    normalizedActiveId,
+  ]);
 
   const backgroundImageSrc = useMemo(
     () => buildMapImageSource(previewMap),

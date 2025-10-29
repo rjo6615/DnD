@@ -583,6 +583,36 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('prioritizes the provided background map even when saved maps exist', async () => {
+    const backgroundMap = {
+      _id: 'primary-map',
+      title: 'Primary Map',
+      imageUrl: 'https://example.com/primary-map.png',
+    };
+
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={backgroundMap}
+        maps={[
+          {
+            mapId: 'saved-map',
+            title: 'Saved Map',
+            imageUrl: 'https://example.com/saved-map.png',
+          },
+        ]}
+        onTokenMove={jest.fn()}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+
+    expect(boardProps.map).toEqual(backgroundMap);
+  });
+
   it('renders the background board without overlay controls', async () => {
     render(
       <MapModal
