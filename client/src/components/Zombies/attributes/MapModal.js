@@ -6,6 +6,8 @@ import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import DockControls from '../components/DockControls';
 import classNames from '../../../utils/classNames';
+import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
+import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -183,6 +185,7 @@ const MapModal = ({
   const backgroundBoardContainerRef = useRef(null);
   const backgroundBoardRef = useRef(null);
   const backgroundDragStateRef = useRef(null);
+  const pointerEventsSupported = usePointerEventsSupported();
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
@@ -885,10 +888,12 @@ const MapModal = ({
       event.stopPropagation();
       event.preventDefault();
 
-      try {
-        container.setPointerCapture?.(event.pointerId);
-      } catch (error) {
-        // Ignore pointer capture failures in environments that do not support it.
+      if (pointerEventsSupported && event.pointerId !== undefined) {
+        try {
+          container.setPointerCapture?.(event.pointerId);
+        } catch (error) {
+          // Ignore pointer capture failures in environments that do not support it.
+        }
       }
 
       backgroundDragStateRef.current = {
@@ -903,7 +908,7 @@ const MapModal = ({
         shouldHandlePlacement: isPrimaryPointer,
       };
     },
-    [backgroundPan.x, backgroundPan.y, isBackground]
+    [backgroundPan.x, backgroundPan.y, isBackground, pointerEventsSupported]
   );
 
   const finalizeBackgroundDrag = useCallback(() => {
@@ -1074,14 +1079,46 @@ const MapModal = ({
     isBackgroundDragging && 'map-modal-background__board-inner--dragging'
   );
 
-  const backgroundPointerHandlers = isBackground
-    ? {
-        onPointerDownCapture: handleBackgroundPointerDownCapture,
-        onPointerMoveCapture: handleBackgroundPointerMove,
-        onPointerUpCapture: handleBackgroundPointerEnd,
-        onPointerCancelCapture: handleBackgroundPointerCancel,
-      }
-    : {};
+  const backgroundPointerHandlers = useMemo(() => {
+    if (!isBackground) {
+      return {};
+    }
+
+    const handlers = {
+      onPointerDownCapture: handleBackgroundPointerDownCapture,
+      onPointerMoveCapture: handleBackgroundPointerMove,
+      onPointerUpCapture: handleBackgroundPointerEnd,
+      onPointerCancelCapture: handleBackgroundPointerCancel,
+    };
+
+    if (!pointerEventsSupported) {
+      handlers.onMouseDownCapture = (event) =>
+        handleBackgroundPointerDownCapture(enhanceMouseEvent(event));
+      handlers.onMouseMoveCapture = (event) =>
+        handleBackgroundPointerMove(enhanceMouseEvent(event));
+      handlers.onMouseUpCapture = (event) =>
+        handleBackgroundPointerEnd(enhanceMouseEvent(event));
+      handlers.onMouseLeaveCapture = (event) =>
+        handleBackgroundPointerCancel(enhanceMouseEvent(event));
+      handlers.onTouchStartCapture = (event) =>
+        handleBackgroundPointerDownCapture(enhanceTouchEvent(event));
+      handlers.onTouchMoveCapture = (event) =>
+        handleBackgroundPointerMove(enhanceTouchEvent(event));
+      handlers.onTouchEndCapture = (event) =>
+        handleBackgroundPointerEnd(enhanceTouchEvent(event));
+      handlers.onTouchCancelCapture = (event) =>
+        handleBackgroundPointerCancel(enhanceTouchEvent(event));
+    }
+
+    return handlers;
+  }, [
+    handleBackgroundPointerCancel,
+    handleBackgroundPointerDownCapture,
+    handleBackgroundPointerEnd,
+    handleBackgroundPointerMove,
+    isBackground,
+    pointerEventsSupported,
+  ]);
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
