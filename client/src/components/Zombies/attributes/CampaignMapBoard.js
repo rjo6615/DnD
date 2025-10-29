@@ -556,26 +556,13 @@ const CampaignMapBoard = ({
     mapPanOffsetRef.current = mapPanOffset;
   }, [mapPanOffset]);
 
-  useEffect(() => {
-    const boardElement = boardRef.current;
-    if (!boardElement) {
-      return () => {};
-    }
-
-    boardElement.style.setProperty(
-      '--campaign-map-pan-x',
-      `${mapPanOffset.x}px`
-    );
-    boardElement.style.setProperty(
-      '--campaign-map-pan-y',
-      `${mapPanOffset.y}px`
-    );
-
-    return () => {
-      boardElement.style.removeProperty('--campaign-map-pan-x');
-      boardElement.style.removeProperty('--campaign-map-pan-y');
-    };
-  }, [mapPanOffset]);
+  const panStyle = useMemo(
+    () => ({
+      '--campaign-map-pan-x': `${mapPanOffset.x}px`,
+      '--campaign-map-pan-y': `${mapPanOffset.y}px`,
+    }),
+    [mapPanOffset.x, mapPanOffset.y]
+  );
 
   useEffect(() => {
     mapPanStateRef.current = null;
@@ -1596,7 +1583,7 @@ const CampaignMapBoard = ({
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
-        <div className="campaign-map-board__stage">
+        <div className="campaign-map-board__stage" style={panStyle}>
           <div className="campaign-map-board__image-wrapper">
             <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
             <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
