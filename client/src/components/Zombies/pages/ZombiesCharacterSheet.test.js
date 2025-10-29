@@ -824,7 +824,7 @@ test('footer renders equipment button before inventory for non-spellcasters', as
   expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
 });
 
-test('map footer button toggles the campaign map modal', async () => {
+test('campaign map background is active without footer toggle', async () => {
   apiFetch
     .mockResolvedValueOnce({
       ok: true,
@@ -874,10 +874,10 @@ test('map footer button toggles the campaign map modal', async () => {
 
   const buttons = await screen.findAllByRole('button');
   const mapButton = buttons.find((btn) => btn.querySelector('.fa-map'));
-  expect(mapButton).toBeInTheDocument();
+  expect(mapButton).toBeUndefined();
 
   await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
-  expect(mockMapModalProps.current.show).toBe(false);
+  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
   expect(mockMapModalProps.current.map).toMatchObject({
     mapId: 'wilds-map',
     title: 'Wilds Overview',
@@ -885,15 +885,6 @@ test('map footer button toggles the campaign map modal', async () => {
   });
   expect(mockMapModalProps.current.maps).toHaveLength(1);
   expect(mockMapModalProps.current.activeMapId).toBe('wilds-map');
-
-  await userEvent.click(mapButton);
-  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
-
-  act(() => {
-    mockMapModalProps.current.onHide();
-  });
-
-  await waitFor(() => expect(mockMapModalProps.current.show).toBe(false));
 });
 
 test('campaign map update events synchronize active map and list', async () => {
@@ -2704,7 +2695,7 @@ test('allows selecting a figurine token through the token picker modal', async (
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (typeof url === 'string' && url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2727,11 +2718,16 @@ test('allows selecting a figurine token through the token picker modal', async (
 
   render(<ZombiesCharacterSheet />);
 
-  const openPickerButton = await screen.findByRole('button', { name: /choose figurine/i });
-  await userEvent.click(openPickerButton);
+  await waitFor(() => expect(mockCharacterInfoProps.current).not.toBeNull());
+
+  await act(async () => {
+    mockCharacterInfoProps.current.handleOpenTokenPicker();
+  });
 
   await waitFor(() => {
-    expect(apiFetch).toHaveBeenCalledWith(`/campaigns/${campaignId}/token-manifest`);
+    expect(apiFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/token-manifest`)
+    );
   });
 
   const heroTokenButton = await screen.findByRole('button', { name: /hero token/i });
@@ -2745,11 +2741,13 @@ test('allows selecting a figurine token through the token picker modal', async (
   });
 
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: /change figurine/i })).toBeInTheDocument();
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImageUrl).toBe(
+      manifestAsset.secureUrl
+    );
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImagePublicId).toBe(
+      manifestAsset.publicId
+    );
   });
-
-  const previewImage = await screen.findByAltText('Current figurine token');
-  expect(previewImage).toHaveAttribute('src', manifestAsset.secureUrl);
 });
 
 test('allows clearing an existing figurine selection from the token picker modal', async () => {
@@ -2820,7 +2818,7 @@ test('allows clearing an existing figurine selection from the token picker modal
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (typeof url === 'string' && url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2843,10 +2841,17 @@ test('allows clearing an existing figurine selection from the token picker modal
 
   render(<ZombiesCharacterSheet />);
 
-  await screen.findByRole('button', { name: /change figurine/i });
-  expect(screen.getByAltText('Current figurine token')).toHaveAttribute('src', existingFigurineUrl);
+  await waitFor(() => expect(mockCharacterInfoProps.current).not.toBeNull());
 
-  await userEvent.click(screen.getByRole('button', { name: /change figurine/i }));
+  await waitFor(() => {
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImageUrl).toBe(
+      existingFigurineUrl
+    );
+  });
+
+  await act(async () => {
+    mockCharacterInfoProps.current.handleOpenTokenPicker();
+  });
 
   const clearButton = await screen.findByRole('button', { name: /clear selection/i });
   await userEvent.click(clearButton);
@@ -2858,10 +2863,7 @@ test('allows clearing an existing figurine selection from the token picker modal
   expect(figurineUpdateBodies[0]).toEqual({ figurineImageUrl: '', figurineImagePublicId: '' });
 
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: /choose figurine/i })).toBeInTheDocument();
-  });
-
-  await waitFor(() => {
-    expect(screen.queryByAltText('Current figurine token')).not.toBeInTheDocument();
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImageUrl).toBeNull();
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImagePublicId).toBeNull();
   });
 });

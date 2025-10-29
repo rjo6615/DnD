@@ -57,6 +57,11 @@
   mix-blend-mode: screen;
 }
 
+.map-modal-background--interactive::before,
+.map-modal-background--interactive::after {
+  display: none;
+}
+
 .map-modal-background__board {
   position: absolute;
   inset: 0;

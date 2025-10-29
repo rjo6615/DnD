@@ -1057,7 +1057,6 @@ export default function ZombiesCharacterSheet() {
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
-  const [isMapInteractionActive, setIsMapInteractionActive] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
@@ -3239,10 +3238,6 @@ export default function ZombiesCharacterSheet() {
     return campaignMaps[0] || null;
   }, [campaignActiveMapId, campaignMap, campaignMaps]);
 
-  useEffect(() => {
-    setIsMapInteractionActive(Boolean(hasInteractiveCampaignMap));
-  }, [hasInteractiveCampaignMap]);
-
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
@@ -3269,16 +3264,6 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
-  const handleToggleMapInteraction = useCallback(() => {
-    if (!hasInteractiveCampaignMap) {
-      return;
-    }
-
-    setIsMapInteractionActive((prev) => !prev);
-  }, [hasInteractiveCampaignMap]);
-  const handleCloseMapInteraction = useCallback(() => {
-    setIsMapInteractionActive(false);
-  }, []);
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -5607,12 +5592,6 @@ export default function ZombiesCharacterSheet() {
     });
   }, [DOCKABLE_MODAL_CONFIG]);
 
-  useEffect(() => {
-    if (!campaignMap) {
-      setIsMapInteractionActive(false);
-    }
-  }, [campaignMap]);
-
   const dockedModalElements = useMemo(() => {
     return Object.entries(DOCKABLE_MODAL_CONFIG)
       .map(([modalKey, config]) => {
@@ -5643,6 +5622,14 @@ export default function ZombiesCharacterSheet() {
       })
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
+
+  const isMapInteractionActive = useMemo(
+    () =>
+      hasInteractiveCampaignMap ||
+      dockedModals.left === 'map' ||
+      dockedModals.right === 'map',
+    [hasInteractiveCampaignMap, dockedModals.left, dockedModals.right]
+  );
 
   const overlaySurfaceClassName = useMemo(
     () =>
@@ -5854,19 +5841,6 @@ export default function ZombiesCharacterSheet() {
                   className="d-flex justify-content-center flex-wrap flex-grow-1"
                   style={{ backgroundColor: 'transparent' }}
                 >
-                  <Button
-                    onClick={handleToggleMapInteraction}
-                    style={{ color: isMapInteractionActive ? 'white' : 'black' }}
-                    className="footer-btn"
-                    variant={isMapInteractionActive ? 'primary' : 'secondary'}
-                    aria-pressed={isMapInteractionActive}
-                    aria-label={
-                      isMapInteractionActive ? 'Hide map controls' : 'Show map controls'
-                    }
-                    disabled={!hasInteractiveCampaignMap}
-                  >
-                    <i className="fas fa-map" aria-hidden="true"></i>
-                  </Button>
                   <Button
                     onClick={handleShowCharacterInfo}
                     style={{ color: "black" }}
