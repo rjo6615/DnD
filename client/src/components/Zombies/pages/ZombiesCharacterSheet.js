@@ -62,6 +62,7 @@ import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
+import classNames from '../../../utils/classNames';
 
 const HEADER_PADDING = 16;
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -5541,7 +5542,14 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
-  const mapLayerClassName = 'zombies-character-sheet-layout__map';
+  const mapLayerClassName = useMemo(
+    () =>
+      classNames(
+        'zombies-character-sheet-layout__map',
+        shouldShowMapModal && 'zombies-character-sheet-layout__map--overlay-visible'
+      ),
+    [shouldShowMapModal]
+  );
 
   return (
     <div className="zombies-character-sheet-layout">
