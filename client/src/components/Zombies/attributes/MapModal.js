@@ -78,7 +78,28 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+const MAP_IDENTIFIER_KEYS = [
+  'mapId',
+  'map_id',
+  'mapID',
+  'MapId',
+  'MapID',
+  'MAPID',
+  'MAP_ID',
+  '_id',
+  'id',
+  'Id',
+  'ID',
+  'uuid',
+  'UUID',
+  'guid',
+  'GUID',
+  'slug',
+  'Slug',
+  'identifier',
+  'Identifier',
+  'IDENTIFIER',
+];
 const MAP_IDENTIFIER_FALLBACK_KEYS = [
   '$oid',
   '$id',
@@ -90,6 +111,33 @@ const MAP_IDENTIFIER_FALLBACK_KEYS = [
   'string',
   'idStr',
 ];
+const NORMALIZED_IDENTIFIER_KEY_VALUES = new Set([
+  'mapid',
+  'id',
+  'uuid',
+  'guid',
+  'slug',
+  'identifier',
+]);
+const NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES = new Set([
+  'oid',
+  'id',
+  'uuid',
+  'guid',
+  'hex',
+  'hexstring',
+  'value',
+  'string',
+  'idstr',
+]);
+
+const normalizeIdentifierKey = (key) => {
+  if (typeof key !== 'string') {
+    return '';
+  }
+
+  return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+};
 
 const normalizeMapId = (value, visited = new Set()) => {
   if (value === null || value === undefined) {
@@ -152,10 +200,25 @@ const normalizeMapId = (value, visited = new Set()) => {
       }
     }
 
-    const keysToInspect = [...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS];
+    const keysToInspect = Array.from(
+      new Set([...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS])
+    );
     for (const key of keysToInspect) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
         const normalized = normalizeMapId(value[key], visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const [candidateKey, candidateValue] of Object.entries(value)) {
+      const normalizedKey = normalizeIdentifierKey(candidateKey);
+      if (
+        NORMALIZED_IDENTIFIER_KEY_VALUES.has(normalizedKey) ||
+        NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES.has(normalizedKey)
+      ) {
+        const normalized = normalizeMapId(candidateValue, visited);
         if (normalized) {
           return normalized;
         }
@@ -427,6 +490,38 @@ const MapModal = ({
     normalizedActiveId,
     normalizedSelectedId,
     previewMapId,
+    tokenMapIdCandidates,
+  ]);
+
+  const resolvedPlacementMapId = useMemo(() => {
+    if (placementMapId) {
+      return placementMapId;
+    }
+
+    const directMapIdentifier = normalizeMapId(previewMap?.mapId);
+    if (directMapIdentifier) {
+      return directMapIdentifier;
+    }
+
+    const fallbackPreviewId = normalizeMapId(previewMap?.id ?? previewMap?._id);
+    if (fallbackPreviewId) {
+      return fallbackPreviewId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    placementMapId,
+    previewMap,
+    normalizedSelectedId,
+    normalizedActiveId,
     tokenMapIdCandidates,
   ]);
 
@@ -800,11 +895,11 @@ const MapModal = ({
   useEffect(() => {
     setPlacementError(null);
     setPlacementPending(false);
-  }, [placementMapId, currentCharacterId]);
+  }, [resolvedPlacementMapId, currentCharacterId]);
 
   const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(placementMapId),
-    [onTokenMove, placementMapId]
+    () => typeof onTokenMove === 'function' && Boolean(previewMap),
+    [onTokenMove, previewMap]
   );
 
   const backgroundClassName = useMemo(() => {
@@ -966,7 +1061,7 @@ const MapModal = ({
       }
 
       const normalizedCharacterId = normalizeMapId(characterId);
-      if (!normalizedCharacterId || !placementMapId) {
+      if (!normalizedCharacterId) {
         return;
       }
 
@@ -979,11 +1074,15 @@ const MapModal = ({
 
       try {
         const payload = {
-          mapId: placementMapId,
           characterId: normalizedCharacterId,
           x,
           y,
         };
+
+        const payloadMapId = resolvedPlacementMapId;
+        if (payloadMapId) {
+          payload.mapId = payloadMapId;
+        }
 
         if (Number.isFinite(rotation)) {
           payload.rotation = rotation;
@@ -1008,8 +1107,8 @@ const MapModal = ({
       isInteractive,
       onTokenMove,
       placementPending,
-      placementMapId,
       readOnly,
+      resolvedPlacementMapId,
     ]
   );
 
@@ -1060,7 +1159,7 @@ const MapModal = ({
         return false;
       }
 
-      if (typeof onTokenRemove !== 'function' || !placementMapId) {
+      if (typeof onTokenRemove !== 'function') {
         return false;
       }
 
@@ -1074,9 +1173,12 @@ const MapModal = ({
       }
 
       const payload = {
-        mapId: placementMapId,
         characterId: normalizedCharacterId,
       };
+
+      if (resolvedPlacementMapId) {
+        payload.mapId = resolvedPlacementMapId;
+      }
 
       if (token) {
         payload.token = token;
@@ -1090,7 +1192,7 @@ const MapModal = ({
       isInteractive,
       placementPending,
       onTokenRemove,
-      placementMapId,
+      resolvedPlacementMapId,
       readOnly,
       normalizedCurrentCharacterId,
       tokensDictionary,
