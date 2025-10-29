@@ -78,10 +78,100 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const normalizeMapId = (value) =>
-  typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
-
 const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+const MAP_IDENTIFIER_FALLBACK_KEYS = [
+  '$oid',
+  '$id',
+  '$uuid',
+  '$guid',
+  'hex',
+  'hexString',
+  'value',
+  'string',
+  'idStr',
+];
+
+const normalizeMapId = (value, visited = new Set()) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed === '[object Object]') {
+      return null;
+    }
+
+    const wrappedMatch = trimmed.match(/^(?:new\s+)?(?:ObjectId|UUID|Guid)\((.*)\)$/i);
+    if (wrappedMatch) {
+      const inner = wrappedMatch[1].replace(/^['"]|['"]$/g, '').trim();
+      if (inner) {
+        return inner;
+      }
+    }
+
+    return trimmed;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `${value}`;
+  }
+
+  if (typeof value === 'bigint') {
+    return `${value}`;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const normalized = normalizeMapId(entry, visited);
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    if (visited.has(value)) {
+      return null;
+    }
+
+    visited.add(value);
+
+    if (typeof value.toString === 'function') {
+      try {
+        const stringValue = value.toString();
+        if (typeof stringValue === 'string') {
+          const normalized = normalizeMapId(stringValue, visited);
+          if (normalized && normalized !== '[object Object]') {
+            return normalized;
+          }
+        }
+      } catch (error) {
+        // Ignore toString errors and continue inspecting properties.
+      }
+    }
+
+    const keysToInspect = [...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS];
+    for (const key of keysToInspect) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const normalized = normalizeMapId(value[key], visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const entry of Object.values(value)) {
+      const normalized = normalizeMapId(entry, visited);
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+
+  return null;
+};
 
 const collectMapIdentifiers = (map, fallbackIds = []) => {
   const identifiers = new Set();
@@ -293,14 +383,6 @@ const MapModal = ({
     };
   }, [backgroundImageSrc]);
 
-  const backgroundClassName = useMemo(() => {
-    const classes = ['map-modal-background'];
-    if (backgroundImageSrc) {
-      classes.push('map-modal-background--has-image');
-    }
-    return classes.join(' ');
-  }, [backgroundImageSrc]);
-
   const previewMapIdCandidates = useMemo(() => {
     const fallbackIdentifiers = [];
 
@@ -326,6 +408,27 @@ const MapModal = ({
   }, [normalizedActiveId, normalizedSelectedId, previewMap, tokenMapIdCandidates]);
 
   const previewMapId = useMemo(() => previewMapIdCandidates[0] || null, [previewMapIdCandidates]);
+
+  const placementMapId = useMemo(() => {
+    if (previewMapId) {
+      return previewMapId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    normalizedActiveId,
+    normalizedSelectedId,
+    previewMapId,
+    tokenMapIdCandidates,
+  ]);
 
   const groupedMaps = useMemo(
     () => groupMapsByFolder(normalizedMaps),
@@ -697,24 +800,26 @@ const MapModal = ({
   useEffect(() => {
     setPlacementError(null);
     setPlacementPending(false);
-  }, [previewMapId, currentCharacterId]);
-
-  useEffect(() => {
-    if (!isBackground) {
-      return;
-    }
-
-    if (show) {
-      setIsBackgroundPanelOpen(true);
-    } else {
-      setIsBackgroundPanelOpen(false);
-    }
-  }, [isBackground, show]);
+  }, [placementMapId, currentCharacterId]);
 
   const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && previewMapIdCandidates.length > 0,
-    [onTokenMove, previewMapIdCandidates]
+    () => typeof onTokenMove === 'function' && Boolean(placementMapId),
+    [onTokenMove, placementMapId]
   );
+
+  const backgroundClassName = useMemo(() => {
+    const classes = ['map-modal-background'];
+
+    if (backgroundImageSrc) {
+      classes.push('map-modal-background--has-image');
+    }
+
+    if (isInteractive) {
+      classes.push('map-modal-background--interactive');
+    }
+
+    return classes.join(' ');
+  }, [backgroundImageSrc, isInteractive]);
 
   const boardTokens = useMemo(() => {
     const tokensList = Object.values(tokensDictionary);
@@ -861,7 +966,7 @@ const MapModal = ({
       }
 
       const normalizedCharacterId = normalizeMapId(characterId);
-      if (!normalizedCharacterId || !previewMapId) {
+      if (!normalizedCharacterId || !placementMapId) {
         return;
       }
 
@@ -874,7 +979,7 @@ const MapModal = ({
 
       try {
         const payload = {
-          mapId: previewMapId,
+          mapId: placementMapId,
           characterId: normalizedCharacterId,
           x,
           y,
@@ -903,7 +1008,7 @@ const MapModal = ({
       isInteractive,
       onTokenMove,
       placementPending,
-      previewMapId,
+      placementMapId,
       readOnly,
     ]
   );
@@ -955,7 +1060,7 @@ const MapModal = ({
         return false;
       }
 
-      if (typeof onTokenRemove !== 'function' || !previewMapId) {
+      if (typeof onTokenRemove !== 'function' || !placementMapId) {
         return false;
       }
 
@@ -969,7 +1074,7 @@ const MapModal = ({
       }
 
       const payload = {
-        mapId: previewMapId,
+        mapId: placementMapId,
         characterId: normalizedCharacterId,
       };
 
@@ -985,7 +1090,7 @@ const MapModal = ({
       isInteractive,
       placementPending,
       onTokenRemove,
-      previewMapId,
+      placementMapId,
       readOnly,
       normalizedCurrentCharacterId,
       tokensDictionary,
