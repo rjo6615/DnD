@@ -5546,7 +5546,7 @@ export default function ZombiesCharacterSheet() {
     () =>
       classNames(
         'zombies-character-sheet-layout__map',
-        shouldShowMapModal && 'zombies-character-sheet-layout__map--interactive'
+        shouldShowMapModal && 'zombies-character-sheet-layout__map--overlay-visible'
       ),
     [shouldShowMapModal]
   );
