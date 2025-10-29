@@ -655,6 +655,97 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('keeps tokens movable when provided mobility flags override read-only restrictions', async () => {
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            ally: {
+              characterId: 'ally',
+              x: 0.1,
+              y: 0.2,
+              isMovable: true,
+            },
+          },
+        }}
+        currentCharacterId="rogue"
+        characterLookup={{
+          rogue: { label: 'Rogue' },
+        }}
+        onTokenMove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'ally',
+      isMovable: true,
+    });
+  });
+
+  it('allows interaction when no character identifiers are available', async () => {
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            lone: {
+              characterId: 'lone',
+              x: 0.5,
+              y: 0.5,
+            },
+          },
+        }}
+        onTokenMove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'lone',
+      isMovable: true,
+    });
+  });
+
+  it('honors explicit immobility flags even when the player would otherwise control the token', async () => {
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            rogue: {
+              characterId: 'rogue',
+              x: 0.25,
+              y: 0.25,
+              isMovable: false,
+            },
+          },
+        }}
+        currentCharacterId="rogue"
+        onTokenMove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'rogue',
+      isMovable: false,
+    });
+  });
+
   it('prioritizes the provided background map even when saved maps exist', async () => {
     const backgroundMap = {
       _id: 'primary-map',
