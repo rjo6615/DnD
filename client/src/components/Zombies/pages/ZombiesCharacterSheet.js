@@ -3193,18 +3193,6 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
-  const hasInteractiveCampaignMap = useMemo(() => {
-    if (campaignMap) {
-      return true;
-    }
-
-    if (Array.isArray(campaignMaps) && campaignMaps.length > 0) {
-      return true;
-    }
-
-    return false;
-  }, [campaignMap, campaignMaps]);
-
   const resolvedCampaignMap = useMemo(() => {
     if (campaignMap) {
       return campaignMap;
@@ -3237,6 +3225,18 @@ export default function ZombiesCharacterSheet() {
 
     return campaignMaps[0] || null;
   }, [campaignActiveMapId, campaignMap, campaignMaps]);
+
+  const hasInteractiveCampaignMap = useMemo(() => {
+    if (resolvedCampaignMap) {
+      return true;
+    }
+
+    if (Array.isArray(campaignMaps) && campaignMaps.length > 0) {
+      return true;
+    }
+
+    return false;
+  }, [campaignMaps, resolvedCampaignMap]);
 
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
