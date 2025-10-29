@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MapModal from './MapModal';
 
@@ -227,5 +227,47 @@ describe('MapModal figurine imagery', () => {
       'data-figurine-public-id',
       'figurines/heroes/lookup-hero'
     );
+  });
+});
+
+describe('MapModal overlay mode', () => {
+  it('renders the overlay layout with default controls', async () => {
+    const onHide = jest.fn();
+    render(
+      <MapModal
+        show
+        displayMode="overlay"
+        onHide={onHide}
+        title="Overlay Map"
+        map={{
+          mapId: 'overlay-map',
+          title: 'Overlay Map',
+          imageUrl: 'https://example.com/overlay.png',
+        }}
+      />
+    );
+
+    const overlay = await screen.findByTestId('map-modal-wrapper');
+    expect(overlay).toHaveClass('map-modal-overlay');
+
+    const closeButton = screen.getByTestId('map-modal-overlay-close');
+    await act(async () => {
+      await userEvent.click(closeButton);
+    });
+    expect(onHide).toHaveBeenCalled();
+  });
+
+  it('supports custom overlay header and footer content', () => {
+    render(
+      <MapModal
+        show
+        displayMode="overlay"
+        overlayHeader={<div data-testid="custom-overlay-header">Header</div>}
+        overlayFooter={null}
+      />
+    );
+
+    expect(screen.getByTestId('custom-overlay-header')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
   });
 });

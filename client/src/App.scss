@@ -59,6 +59,119 @@
   padding-block: 0.75rem;
 }
 
+.map-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at top, rgba(22, 25, 32, 0.95), rgba(7, 9, 12, 0.95));
+  color: #f8f9fa;
+}
+
+.map-modal-overlay__header,
+.map-modal-overlay__footer {
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.map-modal-overlay__header-content {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.map-modal-overlay__header-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(8, 9, 14, 0.75);
+  border-radius: 0.75rem;
+  padding: clamp(0.5rem, 1.5vw, 1rem) clamp(0.75rem, 2vw, 1.25rem);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
+}
+
+.map-modal-overlay__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.map-modal-overlay__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(248, 249, 250, 0.7);
+}
+
+.map-modal-overlay__title {
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  margin: 0;
+  font-weight: 600;
+}
+
+.map-modal-overlay__tracker {
+  background: rgba(8, 9, 14, 0.65);
+  border-radius: 0.75rem;
+  padding: clamp(0.5rem, 1.5vw, 1rem);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
+}
+
+.map-modal-overlay__tracker .combat-turn-header {
+  margin-bottom: 0;
+}
+
+.map-modal-overlay__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: clamp(0.75rem, 2.5vw, 2rem);
+}
+
+.map-modal-overlay__content {
+  flex: 1 1 auto;
+  max-width: min(1200px, 95vw);
+  border-radius: 1rem;
+  background: rgba(10, 12, 18, 0.8);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.45);
+  padding: clamp(1rem, 2.5vw, 2rem);
+  overflow: auto;
+}
+
+.map-modal-overlay__footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.map-modal-overlay__footer-bar {
+  background: rgba(8, 9, 14, 0.75);
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
+}
+
+.map-modal-overlay__footer .navbar {
+  width: min(640px, 90vw);
+  border-radius: 9999px;
+  background: rgba(8, 9, 14, 0.85) !important;
+  backdrop-filter: blur(8px);
+  padding-block: 0.25rem;
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.4);
+}
+
+.map-modal-overlay__footer .navbar .footer-btn {
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .zombies-dm-container {
   padding-left: 1rem;
   padding-right: 1rem;
