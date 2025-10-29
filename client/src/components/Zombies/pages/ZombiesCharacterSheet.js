@@ -3194,6 +3194,57 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
+  const hasInteractiveCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return true;
+    }
+
+    if (Array.isArray(campaignMaps) && campaignMaps.length > 0) {
+      return true;
+    }
+
+    return false;
+  }, [campaignMap, campaignMaps]);
+
+  const resolvedCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return campaignMap;
+    }
+
+    if (!Array.isArray(campaignMaps) || campaignMaps.length === 0) {
+      return null;
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      const normalizedTarget = campaignActiveMapId.trim();
+
+      const match = campaignMaps.find((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return false;
+        }
+
+        const entryId =
+          typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
+            ? entry.mapId.trim()
+            : null;
+
+        return entryId === normalizedTarget;
+      });
+
+      if (match) {
+        return match;
+      }
+    }
+
+    return campaignMaps[0] || null;
+  }, [campaignActiveMapId, campaignMap, campaignMaps]);
+
+  useEffect(() => {
+    if (!hasInteractiveCampaignMap) {
+      setIsMapInteractionActive(false);
+    }
+  }, [hasInteractiveCampaignMap]);
+
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
@@ -3221,8 +3272,12 @@ export default function ZombiesCharacterSheet() {
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
   const handleToggleMapInteraction = useCallback(() => {
+    if (!hasInteractiveCampaignMap) {
+      return;
+    }
+
     setIsMapInteractionActive((prev) => !prev);
-  }, []);
+  }, [hasInteractiveCampaignMap]);
   const handleCloseMapInteraction = useCallback(() => {
     setIsMapInteractionActive(false);
   }, []);
@@ -5560,7 +5615,7 @@ export default function ZombiesCharacterSheet() {
       <div className={mapContainerClassName}>
         <MapModal
           show={isMapInteractionActive}
-          map={campaignMap}
+          map={resolvedCampaignMap}
           maps={campaignMaps}
           activeMapId={campaignActiveMapId}
           tokensByMapId={modalTokensByMapId}
@@ -5736,7 +5791,7 @@ export default function ZombiesCharacterSheet() {
                     aria-label={
                       isMapInteractionActive ? 'Hide map controls' : 'Show map controls'
                     }
-                    disabled={!campaignMap}
+                    disabled={!hasInteractiveCampaignMap}
                   >
                     <i className="fas fa-map" aria-hidden="true"></i>
                   </Button>
