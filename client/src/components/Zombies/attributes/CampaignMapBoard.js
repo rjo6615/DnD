@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
+import resolveMapImageSource from '../utils/mapImages';
 import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
 import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
@@ -51,22 +52,6 @@ const formatHpValue = (value) => {
 
   const precision = Math.abs(clamped) >= 100 ? 0 : 1;
   return clamped.toFixed(precision);
-};
-
-const buildImageSource = ({ imageUrl, imageBase64, imageType }) => {
-  if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-    return imageUrl.trim();
-  }
-
-  if (typeof imageBase64 === 'string' && imageBase64.trim() !== '') {
-    const mimeType =
-      typeof imageType === 'string' && imageType.trim() !== ''
-        ? imageType.trim()
-        : 'image/png';
-    return `data:${mimeType};base64,${imageBase64.trim()}`;
-  }
-
-  return null;
 };
 
 const normalizeText = (value) =>
@@ -489,7 +474,7 @@ const CampaignMapBoard = ({
     title ||
     normalizeText(safeMap.prompt) ||
     'Campaign map image';
-  const imageSrc = buildImageSource(safeMap);
+  const imageSrc = resolveMapImageSource(safeMap);
 
   const interactionDisabled = disabled || !imageSrc;
 

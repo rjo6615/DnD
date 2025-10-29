@@ -4,6 +4,7 @@ import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
+import resolveMapImageSource from '../utils/mapImages';
 import DockControls from '../components/DockControls';
 
 const clamp01 = (value) => {
@@ -269,28 +270,6 @@ const normalizeMaps = (maps) =>
     ? maps.filter((map) => map && typeof map === 'object')
     : [];
 
-const buildMapImageSource = (map) => {
-  if (!map || typeof map !== 'object') {
-    return null;
-  }
-
-  const { imageUrl, imageBase64, imageType } = map;
-
-  if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-    return imageUrl.trim();
-  }
-
-  if (typeof imageBase64 === 'string' && imageBase64.trim() !== '') {
-    const mimeType =
-      typeof imageType === 'string' && imageType.trim() !== ''
-        ? imageType.trim()
-        : 'image/png';
-    return `data:${mimeType};base64,${imageBase64.trim()}`;
-  }
-
-  return null;
-};
-
 const resolveMapTitle = (map, index) => {
   if (!map || typeof map !== 'object') {
     return `Map ${index + 1}`;
@@ -442,7 +421,7 @@ const MapModal = ({
   ]);
 
   const backgroundImageSrc = useMemo(
-    () => buildMapImageSource(previewMap),
+    () => resolveMapImageSource(previewMap),
     [previewMap]
   );
 
