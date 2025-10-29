@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
@@ -83,6 +83,36 @@ const sanitizeTokenDictionary = (tokens) => {
 
 const normalizeMapId = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+
+const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+
+const collectMapIdentifiers = (map, fallbackIds = []) => {
+  const identifiers = new Set();
+
+  const addIdentifier = (candidate) => {
+    const normalized = normalizeMapId(candidate);
+    if (normalized) {
+      identifiers.add(normalized);
+    }
+  };
+
+  if (map && typeof map === 'object') {
+    MAP_IDENTIFIER_KEYS.forEach((key) => addIdentifier(map[key]));
+
+    const relatedMetadata = [map.meta, map.metadata, map.details, map.settings];
+    relatedMetadata.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return;
+      }
+
+      MAP_IDENTIFIER_KEYS.forEach((key) => addIdentifier(entry[key]));
+    });
+  }
+
+  fallbackIds.forEach(addIdentifier);
+
+  return Array.from(identifiers);
+};
 
 const normalizeMaps = (maps) =>
   Array.isArray(maps)
@@ -257,10 +287,17 @@ const MapModal = ({
     return classes.join(' ');
   }, [backgroundImageSrc]);
 
-  const previewMapId = useMemo(
-    () => normalizeMapId(previewMap?.mapId),
-    [previewMap]
-  );
+  const previewMapIdCandidates = useMemo(() => {
+    const candidates = collectMapIdentifiers(previewMap, [normalizedActiveId]);
+
+    if (normalizedSelectedId) {
+      candidates.unshift(normalizedSelectedId);
+    }
+
+    return candidates.filter((value, index, array) => array.indexOf(value) === index);
+  }, [normalizedActiveId, normalizedSelectedId, previewMap]);
+
+  const previewMapId = useMemo(() => previewMapIdCandidates[0] || null, [previewMapIdCandidates]);
 
   const groupedMaps = useMemo(
     () => groupMapsByFolder(normalizedMaps),
@@ -527,6 +564,14 @@ const MapModal = ({
     [currentCharacterId]
   );
 
+  const normalizedCurrentCharacterIdLower = useMemo(() => {
+    if (!normalizedCurrentCharacterId) {
+      return null;
+    }
+
+    return normalizedCurrentCharacterId.toLowerCase();
+  }, [normalizedCurrentCharacterId]);
+
   const normalizedActiveCharacterId = useMemo(
     () => normalizeMapId(activeCharacterId),
     [activeCharacterId]
@@ -587,14 +632,16 @@ const MapModal = ({
   }, [characterLookup]);
 
   const tokensDictionary = useMemo(() => {
-    if (!previewMapId) {
-      return {};
-    }
-
     if (tokensByMapId && typeof tokensByMapId === 'object') {
-      const entry = tokensByMapId[previewMapId];
-      if (entry && typeof entry === 'object') {
-        return sanitizeTokenDictionary(entry);
+      for (const candidate of previewMapIdCandidates) {
+        if (!candidate) {
+          continue;
+        }
+
+        const entry = tokensByMapId[candidate];
+        if (entry && typeof entry === 'object') {
+          return sanitizeTokenDictionary(entry);
+        }
       }
     }
 
@@ -603,11 +650,10 @@ const MapModal = ({
     }
 
     return {};
-  }, [previewMap, previewMapId, tokensByMapId]);
+  }, [previewMap, previewMapIdCandidates, tokensByMapId]);
 
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
-
   useEffect(() => {
     if (!show) {
       setPlacementPending(false);
@@ -621,8 +667,8 @@ const MapModal = ({
   }, [previewMapId, currentCharacterId]);
 
   const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(previewMapId),
-    [onTokenMove, previewMapId]
+    () => typeof onTokenMove === 'function' && previewMapIdCandidates.length > 0,
+    [onTokenMove, previewMapIdCandidates]
   );
 
   const boardTokens = useMemo(() => {
@@ -643,10 +689,21 @@ const MapModal = ({
           lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
         );
 
+        const tokenIdentifier =
+          typeof token.characterId === 'string' && token.characterId.trim() !== ''
+            ? token.characterId.trim()
+            : null;
+
+        const matchesCurrentCharacter = Boolean(
+          normalizedCurrentCharacterIdLower &&
+            tokenIdentifier &&
+            tokenIdentifier.toLowerCase() === normalizedCurrentCharacterIdLower
+        );
+
         const isMovable =
           isInteractive &&
           !placementPending &&
-          (!readOnly || token.characterId === normalizedCurrentCharacterId);
+          (!readOnly || matchesCurrentCharacter);
 
         const lookupVariant =
           typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
@@ -736,7 +793,20 @@ const MapModal = ({
     if (!normalizedCurrentCharacterId) {
       return null;
     }
-    return tokensDictionary[normalizedCurrentCharacterId] || null;
+
+    const directMatch = tokensDictionary[normalizedCurrentCharacterId];
+    if (directMatch) {
+      return directMatch;
+    }
+
+    const targetLower = normalizedCurrentCharacterId.toLowerCase();
+
+    const fallbackMatch = Object.values(tokensDictionary).find((token) => {
+      const tokenId = normalizeMapId(token?.characterId);
+      return tokenId && tokenId.toLowerCase() === targetLower;
+    });
+
+    return fallbackMatch || null;
   }, [normalizedCurrentCharacterId, tokensDictionary]);
 
   const handleCommitMove = useCallback(
@@ -1098,7 +1168,7 @@ const MapModal = ({
         handleBackgroundPointerMove(enhanceMouseEvent(event));
       handlers.onMouseUpCapture = (event) =>
         handleBackgroundPointerEnd(enhanceMouseEvent(event));
-      handlers.onMouseLeaveCapture = (event) =>
+      handlers.onMouseLeave = (event) =>
         handleBackgroundPointerCancel(enhanceMouseEvent(event));
       handlers.onTouchStartCapture = (event) =>
         handleBackgroundPointerDownCapture(enhanceTouchEvent(event));
@@ -1537,30 +1607,6 @@ const MapModal = ({
             {boardContent}
           </div>
         </div>
-        {show && (
-          <div
-            className="map-modal-background__overlay"
-            role="dialog"
-            aria-modal="false"
-            aria-label={backgroundAriaLabel}
-          >
-            <div className="map-modal-background__overlay-content">
-              <header className="map-modal-background__header">
-                <div className="map-modal-background__header-inner">
-                  <h2 className="map-modal-background__title">{titleContent}</h2>
-                  <CloseButton
-                    variant="white"
-                    onClick={handleModalHide}
-                    aria-label="Close map"
-                    data-testid="map-modal-close-button"
-                  />
-                </div>
-              </header>
-              <div className="map-modal-background__body">{bodyContent}</div>
-              <footer className="map-modal-background__footer">{footerContent}</footer>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
