@@ -1,13 +1,10 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import DockControls from '../components/DockControls';
-import classNames from '../../../utils/classNames';
-import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
-import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -84,6 +81,36 @@ const sanitizeTokenDictionary = (tokens) => {
 const normalizeMapId = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
+const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+
+const collectMapIdentifiers = (map, fallbackIds = []) => {
+  const identifiers = new Set();
+
+  const addIdentifier = (candidate) => {
+    const normalized = normalizeMapId(candidate);
+    if (normalized) {
+      identifiers.add(normalized);
+    }
+  };
+
+  if (map && typeof map === 'object') {
+    MAP_IDENTIFIER_KEYS.forEach((key) => addIdentifier(map[key]));
+
+    const relatedMetadata = [map.meta, map.metadata, map.details, map.settings];
+    relatedMetadata.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return;
+      }
+
+      MAP_IDENTIFIER_KEYS.forEach((key) => addIdentifier(entry[key]));
+    });
+  }
+
+  fallbackIds.forEach(addIdentifier);
+
+  return Array.from(identifiers);
+};
+
 const normalizeMaps = (maps) =>
   Array.isArray(maps)
     ? maps.filter((map) => map && typeof map === 'object')
@@ -151,9 +178,6 @@ const areSetsEqual = (a, b) => {
   return true;
 };
 
-const BACKGROUND_DEFAULT_SCALE = 1;
-const BACKGROUND_DRAG_THRESHOLD = 4;
-
 const MapModal = ({
   show,
   onHide,
@@ -183,9 +207,6 @@ const MapModal = ({
 }) => {
   const isBackground = displayMode === 'background';
   const backgroundBoardContainerRef = useRef(null);
-  const backgroundBoardRef = useRef(null);
-  const backgroundDragStateRef = useRef(null);
-  const pointerEventsSupported = usePointerEventsSupported();
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
@@ -257,29 +278,25 @@ const MapModal = ({
     return classes.join(' ');
   }, [backgroundImageSrc]);
 
-  const previewMapId = useMemo(
-    () => normalizeMapId(previewMap?.mapId),
-    [previewMap]
-  );
+  const previewMapIdCandidates = useMemo(() => {
+    const candidates = collectMapIdentifiers(previewMap, [normalizedActiveId]);
+
+    if (normalizedSelectedId) {
+      candidates.unshift(normalizedSelectedId);
+    }
+
+    return candidates.filter((value, index, array) => array.indexOf(value) === index);
+  }, [normalizedActiveId, normalizedSelectedId, previewMap]);
+
+  const previewMapId = useMemo(() => previewMapIdCandidates[0] || null, [previewMapIdCandidates]);
 
   const groupedMaps = useMemo(
     () => groupMapsByFolder(normalizedMaps),
     [normalizedMaps]
   );
 
-  const [backgroundPan, setBackgroundPan] = useState({ x: 0, y: 0 });
-  const [isBackgroundDragging, setIsBackgroundDragging] = useState(false);
   const [backgroundImageMetrics, setBackgroundImageMetrics] = useState({ width: null, height: null });
   const [backgroundContainerSize, setBackgroundContainerSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (!isBackground) {
-      return;
-    }
-
-    setBackgroundPan({ x: 0, y: 0 });
-    setIsBackgroundDragging(false);
-  }, [isBackground, previewMapId]);
 
   useEffect(() => {
     if (!backgroundImageSrc) {
@@ -527,6 +544,14 @@ const MapModal = ({
     [currentCharacterId]
   );
 
+  const normalizedCurrentCharacterIdLower = useMemo(() => {
+    if (!normalizedCurrentCharacterId) {
+      return null;
+    }
+
+    return normalizedCurrentCharacterId.toLowerCase();
+  }, [normalizedCurrentCharacterId]);
+
   const normalizedActiveCharacterId = useMemo(
     () => normalizeMapId(activeCharacterId),
     [activeCharacterId]
@@ -587,14 +612,16 @@ const MapModal = ({
   }, [characterLookup]);
 
   const tokensDictionary = useMemo(() => {
-    if (!previewMapId) {
-      return {};
-    }
-
     if (tokensByMapId && typeof tokensByMapId === 'object') {
-      const entry = tokensByMapId[previewMapId];
-      if (entry && typeof entry === 'object') {
-        return sanitizeTokenDictionary(entry);
+      for (const candidate of previewMapIdCandidates) {
+        if (!candidate) {
+          continue;
+        }
+
+        const entry = tokensByMapId[candidate];
+        if (entry && typeof entry === 'object') {
+          return sanitizeTokenDictionary(entry);
+        }
       }
     }
 
@@ -603,11 +630,10 @@ const MapModal = ({
     }
 
     return {};
-  }, [previewMap, previewMapId, tokensByMapId]);
+  }, [previewMap, previewMapIdCandidates, tokensByMapId]);
 
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
-
   useEffect(() => {
     if (!show) {
       setPlacementPending(false);
@@ -621,8 +647,8 @@ const MapModal = ({
   }, [previewMapId, currentCharacterId]);
 
   const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(previewMapId),
-    [onTokenMove, previewMapId]
+    () => typeof onTokenMove === 'function' && previewMapIdCandidates.length > 0,
+    [onTokenMove, previewMapIdCandidates]
   );
 
   const boardTokens = useMemo(() => {
@@ -643,10 +669,21 @@ const MapModal = ({
           lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
         );
 
+        const tokenIdentifier =
+          typeof token.characterId === 'string' && token.characterId.trim() !== ''
+            ? token.characterId.trim()
+            : null;
+
+        const matchesCurrentCharacter = Boolean(
+          normalizedCurrentCharacterIdLower &&
+            tokenIdentifier &&
+            tokenIdentifier.toLowerCase() === normalizedCurrentCharacterIdLower
+        );
+
         const isMovable =
           isInteractive &&
           !placementPending &&
-          (!readOnly || token.characterId === normalizedCurrentCharacterId);
+          (!readOnly || matchesCurrentCharacter);
 
         const lookupVariant =
           typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
@@ -736,7 +773,20 @@ const MapModal = ({
     if (!normalizedCurrentCharacterId) {
       return null;
     }
-    return tokensDictionary[normalizedCurrentCharacterId] || null;
+
+    const directMatch = tokensDictionary[normalizedCurrentCharacterId];
+    if (directMatch) {
+      return directMatch;
+    }
+
+    const targetLower = normalizedCurrentCharacterId.toLowerCase();
+
+    const fallbackMatch = Object.values(tokensDictionary).find((token) => {
+      const tokenId = normalizeMapId(token?.characterId);
+      return tokenId && tokenId.toLowerCase() === targetLower;
+    });
+
+    return fallbackMatch || null;
   }, [normalizedCurrentCharacterId, tokensDictionary]);
 
   const handleCommitMove = useCallback(
@@ -819,251 +869,9 @@ const MapModal = ({
     [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
   );
 
-  const computeNormalizedBackgroundCoords = useCallback((clientX, clientY) => {
-    const container = backgroundBoardRef.current;
-    if (!container || typeof container.querySelector !== 'function') {
-      return null;
-    }
-
-    const imageWrapper = container.querySelector('.campaign-map-board__image-wrapper');
-    if (!imageWrapper || typeof imageWrapper.getBoundingClientRect !== 'function') {
-      return null;
-    }
-
-    const rect = imageWrapper.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) {
-      return null;
-    }
-
-    const relativeX = (clientX - rect.left) / rect.width;
-    const relativeY = (clientY - rect.top) / rect.height;
-
-    if (!Number.isFinite(relativeX) || !Number.isFinite(relativeY)) {
-      return null;
-    }
-
-    const clampedX = Math.min(1, Math.max(0, relativeX));
-    const clampedY = Math.min(1, Math.max(0, relativeY));
-
-    return { x: clampedX, y: clampedY };
-  }, []);
-
-  const handleBackgroundPointerDownCapture = useCallback(
-    (event) => {
-      if (!isBackground) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      const target = event.target;
-      if (!target || typeof target.closest !== 'function') {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      if (target.closest('.map-modal-background__overlay')) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      if (target.closest('.campaign-map-board__token') || target.closest('.campaign-map-board__rotation-controls')) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      const pointerButton = event.button;
-      const isPrimaryPointer = pointerButton === 0 || pointerButton === -1;
-      const isTouch = event.pointerType === 'touch';
-      if (!isPrimaryPointer && !isTouch) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      const container = backgroundBoardRef.current;
-      if (!container) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      event.stopPropagation();
-      event.preventDefault();
-
-      if (pointerEventsSupported && event.pointerId !== undefined) {
-        try {
-          container.setPointerCapture?.(event.pointerId);
-        } catch (error) {
-          // Ignore pointer capture failures in environments that do not support it.
-        }
-      }
-
-      backgroundDragStateRef.current = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        originX: backgroundPan.x,
-        originY: backgroundPan.y,
-        hasMoved: false,
-        lastClientX: event.clientX,
-        lastClientY: event.clientY,
-        shouldHandlePlacement: isPrimaryPointer,
-      };
-    },
-    [backgroundPan.x, backgroundPan.y, isBackground, pointerEventsSupported]
-  );
-
-  const finalizeBackgroundDrag = useCallback(() => {
-    const container = backgroundBoardRef.current;
-    const state = backgroundDragStateRef.current;
-    if (container && state && state.pointerId !== undefined) {
-      try {
-        container.releasePointerCapture?.(state.pointerId);
-      } catch (error) {
-        // Ignore pointer capture release failures.
-      }
-    }
-    backgroundDragStateRef.current = null;
-    setIsBackgroundDragging(false);
-  }, []);
-
-  const clampBackgroundPan = useCallback(
-    (pan) => {
-      const { width: boardWidth, height: boardHeight } = backgroundBoardDimensions || {};
-      const { width: containerWidth, height: containerHeight } = backgroundContainerSize;
-
-      if (
-        !Number.isFinite(boardWidth) ||
-        !Number.isFinite(boardHeight) ||
-        !Number.isFinite(containerWidth) ||
-        !Number.isFinite(containerHeight)
-      ) {
-        return pan;
-      }
-
-      const maxOffsetX = Math.max(0, (boardWidth - containerWidth) / 2);
-      const maxOffsetY = Math.max(0, (boardHeight - containerHeight) / 2);
-
-      const nextX = maxOffsetX === 0 ? 0 : Math.min(Math.max(pan.x, -maxOffsetX), maxOffsetX);
-      const nextY = maxOffsetY === 0 ? 0 : Math.min(Math.max(pan.y, -maxOffsetY), maxOffsetY);
-
-      if (nextX === pan.x && nextY === pan.y) {
-        return pan;
-      }
-
-      return { x: nextX, y: nextY };
-    },
-    [backgroundBoardDimensions, backgroundContainerSize]
-  );
-
-  useEffect(() => {
-    if (!isBackground) {
-      return;
-    }
-
-    setBackgroundPan((previous) => clampBackgroundPan(previous));
-  }, [clampBackgroundPan, isBackground]);
-
-  const handleBackgroundPointerMove = useCallback(
-    (event) => {
-      if (!isBackground) {
-        return;
-      }
-
-      const state = backgroundDragStateRef.current;
-      if (!state || state.pointerId !== event.pointerId) {
-        return;
-      }
-
-      event.stopPropagation();
-
-      const deltaX = event.clientX - state.startX;
-      const deltaY = event.clientY - state.startY;
-
-      if (!state.hasMoved) {
-        const distance = Math.hypot(deltaX, deltaY);
-        if (distance >= BACKGROUND_DRAG_THRESHOLD) {
-          state.hasMoved = true;
-          setIsBackgroundDragging(true);
-        }
-      }
-
-      state.lastClientX = event.clientX;
-      state.lastClientY = event.clientY;
-
-      if (!state.hasMoved) {
-        return;
-      }
-
-      event.preventDefault();
-      setBackgroundPan((previous) => {
-        const desired = {
-          x: state.originX + deltaX,
-          y: state.originY + deltaY,
-        };
-
-        const clamped = clampBackgroundPan(desired);
-
-        if (clamped === previous || (clamped.x === previous.x && clamped.y === previous.y)) {
-          return previous;
-        }
-
-        return clamped;
-      });
-    },
-    [clampBackgroundPan, isBackground]
-  );
-
-  const handleBackgroundPointerEnd = useCallback(
-    (event) => {
-      if (!isBackground) {
-        return;
-      }
-
-      const state = backgroundDragStateRef.current;
-      if (!state || state.pointerId !== event.pointerId) {
-        return;
-      }
-
-      event.stopPropagation();
-
-      if (state.hasMoved) {
-        event.preventDefault();
-        finalizeBackgroundDrag();
-        return;
-      }
-
-      if (state.shouldHandlePlacement) {
-        const coords = computeNormalizedBackgroundCoords(event.clientX, event.clientY);
-        if (coords) {
-          handleBackgroundPlacement(coords);
-        }
-      }
-
-      finalizeBackgroundDrag();
-    },
-    [computeNormalizedBackgroundCoords, finalizeBackgroundDrag, handleBackgroundPlacement, isBackground]
-  );
-
-  const handleBackgroundPointerCancel = useCallback(
-    (event) => {
-      if (!isBackground) {
-        return;
-      }
-
-      const state = backgroundDragStateRef.current;
-      if (!state || state.pointerId !== event.pointerId) {
-        return;
-      }
-
-      event.stopPropagation();
-      finalizeBackgroundDrag();
-    },
-    [finalizeBackgroundDrag, isBackground]
-  );
-
   const backgroundBoardStyleValue = useMemo(() => {
     const style = {
-      '--map-modal-background-scale': BACKGROUND_DEFAULT_SCALE,
-      transform: `translate(calc(-50% + ${backgroundPan.x}px), calc(-50% + ${backgroundPan.y}px)) scale(${BACKGROUND_DEFAULT_SCALE})`,
+      transform: 'translate(-50%, -50%)',
     };
 
     if (backgroundBoardDimensions) {
@@ -1072,53 +880,9 @@ const MapModal = ({
     }
 
     return style;
-  }, [backgroundBoardDimensions, backgroundPan.x, backgroundPan.y]);
+  }, [backgroundBoardDimensions]);
 
-  const backgroundBoardClassName = classNames(
-    'map-modal-background__board-inner',
-    isBackgroundDragging && 'map-modal-background__board-inner--dragging'
-  );
-
-  const backgroundPointerHandlers = useMemo(() => {
-    if (!isBackground) {
-      return {};
-    }
-
-    const handlers = {
-      onPointerDownCapture: handleBackgroundPointerDownCapture,
-      onPointerMoveCapture: handleBackgroundPointerMove,
-      onPointerUpCapture: handleBackgroundPointerEnd,
-      onPointerCancelCapture: handleBackgroundPointerCancel,
-    };
-
-    if (!pointerEventsSupported) {
-      handlers.onMouseDownCapture = (event) =>
-        handleBackgroundPointerDownCapture(enhanceMouseEvent(event));
-      handlers.onMouseMoveCapture = (event) =>
-        handleBackgroundPointerMove(enhanceMouseEvent(event));
-      handlers.onMouseUpCapture = (event) =>
-        handleBackgroundPointerEnd(enhanceMouseEvent(event));
-      handlers.onMouseLeaveCapture = (event) =>
-        handleBackgroundPointerCancel(enhanceMouseEvent(event));
-      handlers.onTouchStartCapture = (event) =>
-        handleBackgroundPointerDownCapture(enhanceTouchEvent(event));
-      handlers.onTouchMoveCapture = (event) =>
-        handleBackgroundPointerMove(enhanceTouchEvent(event));
-      handlers.onTouchEndCapture = (event) =>
-        handleBackgroundPointerEnd(enhanceTouchEvent(event));
-      handlers.onTouchCancelCapture = (event) =>
-        handleBackgroundPointerCancel(enhanceTouchEvent(event));
-    }
-
-    return handlers;
-  }, [
-    handleBackgroundPointerCancel,
-    handleBackgroundPointerDownCapture,
-    handleBackgroundPointerEnd,
-    handleBackgroundPointerMove,
-    isBackground,
-    pointerEventsSupported,
-  ]);
+  const backgroundBoardClassName = 'map-modal-background__board-inner';
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
@@ -1528,39 +1292,10 @@ const MapModal = ({
           role="region"
           aria-label={backgroundAriaLabel}
         >
-          <div
-            ref={backgroundBoardRef}
-            className={backgroundBoardClassName}
-            style={backgroundBoardStyleValue}
-            {...backgroundPointerHandlers}
-          >
+          <div className={backgroundBoardClassName} style={backgroundBoardStyleValue}>
             {boardContent}
           </div>
         </div>
-        {show && (
-          <div
-            className="map-modal-background__overlay"
-            role="dialog"
-            aria-modal="false"
-            aria-label={backgroundAriaLabel}
-          >
-            <div className="map-modal-background__overlay-content">
-              <header className="map-modal-background__header">
-                <div className="map-modal-background__header-inner">
-                  <h2 className="map-modal-background__title">{titleContent}</h2>
-                  <CloseButton
-                    variant="white"
-                    onClick={handleModalHide}
-                    aria-label="Close map"
-                    data-testid="map-modal-close-button"
-                  />
-                </div>
-              </header>
-              <div className="map-modal-background__body">{bodyContent}</div>
-              <footer className="map-modal-background__footer">{footerContent}</footer>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
