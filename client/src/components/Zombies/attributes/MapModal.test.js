@@ -335,6 +335,45 @@ describe('MapModal figurine imagery', () => {
       isMovable: true,
     });
   });
+
+  it('treats character lookup aliases as movable for the current player', async () => {
+    const objectId = '507f1f77bcf86cd799439011';
+
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            hero: {
+              characterId: 'hero',
+              x: 0.3,
+              y: 0.7,
+            },
+          },
+        }}
+        currentCharacterId={objectId}
+        activeCharacterId="hero"
+        characterLookup={{
+          hero: {
+            label: 'Hero',
+            _id: objectId,
+            characterId: 'hero',
+          },
+        }}
+        onTokenMove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'hero',
+      isMovable: true,
+    });
+  });
 });
 
 describe('MapModal background interaction resolution', () => {

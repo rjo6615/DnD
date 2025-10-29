@@ -263,6 +263,128 @@ const normalizeMapId = (value, visited = new Set()) => {
   return null;
 };
 
+const CHARACTER_IDENTIFIER_KEYS = [
+  'characterId',
+  'character_id',
+  'characterID',
+  'CharacterId',
+  'CharacterID',
+  'CHARACTERID',
+  'playerCharacterId',
+  'playerCharacterID',
+  'player_character_id',
+  'player_characterID',
+  'playerId',
+  'playerID',
+  'player_id',
+  'PlayerId',
+  'PlayerID',
+  'profileId',
+  'profileID',
+  'profile_id',
+  'ProfileId',
+  'ProfileID',
+  'id',
+  'Id',
+  'ID',
+  '_id',
+  'uuid',
+  'UUID',
+  'guid',
+  'GUID',
+  'slug',
+  'Slug',
+  'identifier',
+  'Identifier',
+  'IDENTIFIER',
+];
+const CHARACTER_IDENTIFIER_FALLBACK_KEYS = [
+  '$oid',
+  '$id',
+  '$uuid',
+  '$guid',
+  'hex',
+  'hexString',
+  'value',
+  'string',
+  'idStr',
+];
+const NORMALIZED_CHARACTER_IDENTIFIER_KEY_VALUES = new Set(
+  CHARACTER_IDENTIFIER_KEYS.map((key) => normalizeIdentifierKey(key))
+);
+const NORMALIZED_CHARACTER_FALLBACK_IDENTIFIER_KEY_VALUES = new Set(
+  CHARACTER_IDENTIFIER_FALLBACK_KEYS.map((key) => normalizeIdentifierKey(key))
+);
+
+const collectCharacterIdentifiers = (value, fallbackIds = [], visited = new Set()) => {
+  const identifiers = new Set();
+
+  const addIdentifier = (candidate) => {
+    const normalized = normalizeMapId(candidate, visited);
+    if (normalized) {
+      identifiers.add(normalized);
+    }
+  };
+
+  fallbackIds.forEach(addIdentifier);
+
+  const inspect = (input) => {
+    if (input === null || input === undefined) {
+      return;
+    }
+
+    if (typeof input === 'string' || typeof input === 'number' || typeof input === 'bigint') {
+      addIdentifier(input);
+      return;
+    }
+
+    if (typeof input !== 'object') {
+      return;
+    }
+
+    if (visited.has(input)) {
+      return;
+    }
+
+    visited.add(input);
+
+    if (typeof input.toString === 'function') {
+      try {
+        const stringValue = input.toString();
+        if (typeof stringValue === 'string' && stringValue.trim() !== '') {
+          addIdentifier(stringValue);
+        }
+      } catch (error) {
+        // Ignore toString errors and continue inspecting properties.
+      }
+    }
+
+    CHARACTER_IDENTIFIER_KEYS.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(input, key)) {
+        inspect(input[key]);
+      }
+    });
+
+    Object.entries(input).forEach(([candidateKey, candidateValue]) => {
+      const normalizedKey = normalizeIdentifierKey(candidateKey);
+      if (
+        NORMALIZED_CHARACTER_IDENTIFIER_KEY_VALUES.has(normalizedKey) ||
+        NORMALIZED_CHARACTER_FALLBACK_IDENTIFIER_KEY_VALUES.has(normalizedKey)
+      ) {
+        inspect(candidateValue);
+      }
+    });
+
+    Object.values(input).forEach((entry) => {
+      inspect(entry);
+    });
+  };
+
+  inspect(value);
+
+  return Array.from(identifiers);
+};
+
 const collectMapIdentifiers = (map, fallbackIds = []) => {
   const identifiers = new Set();
 
@@ -797,18 +919,47 @@ const MapModal = ({
     [currentCharacterId]
   );
 
-  const normalizedCurrentCharacterIdLower = useMemo(() => {
-    if (!normalizedCurrentCharacterId) {
-      return null;
-    }
-
-    return normalizedCurrentCharacterId.toLowerCase();
-  }, [normalizedCurrentCharacterId]);
-
   const normalizedActiveCharacterId = useMemo(
     () => normalizeMapId(activeCharacterId),
     [activeCharacterId]
   );
+
+  const currentCharacterIdCandidatesLower = useMemo(() => {
+    const candidates = new Set();
+
+    const addCandidate = (candidate) => {
+      const normalized = normalizeMapId(candidate);
+      if (normalized) {
+        candidates.add(normalized.toLowerCase());
+      }
+    };
+
+    addCandidate(normalizedCurrentCharacterId);
+    addCandidate(normalizedActiveCharacterId);
+
+    const initialCandidates = new Set(candidates);
+
+    if (characterLookup && typeof characterLookup === 'object') {
+      Object.entries(characterLookup).forEach(([key, value]) => {
+        const identifiers = collectCharacterIdentifiers(value, [key]);
+        const identifierLowers = identifiers
+          .map((identifier) => identifier.toLowerCase())
+          .filter(Boolean);
+
+        const hasOverlap = identifierLowers.some((identifier) =>
+          initialCandidates.has(identifier)
+        );
+
+        if (hasOverlap) {
+          identifierLowers.forEach((identifier) => {
+            candidates.add(identifier);
+          });
+        }
+      });
+    }
+
+    return candidates;
+  }, [characterLookup, normalizedActiveCharacterId, normalizedCurrentCharacterId]);
 
   const normalizedCharacterLookup = useMemo(() => {
     if (!characterLookup || typeof characterLookup !== 'object') {
@@ -962,11 +1113,13 @@ const MapModal = ({
             ? token.characterId.trim()
             : null;
         const normalizedTokenIdentifier = normalizeMapId(tokenIdentifier);
+        const normalizedTokenIdentifierLower = normalizedTokenIdentifier
+          ? normalizedTokenIdentifier.toLowerCase()
+          : null;
 
         const matchesCurrentCharacter = Boolean(
-          normalizedCurrentCharacterIdLower &&
-            normalizedTokenIdentifier &&
-            normalizedTokenIdentifier.toLowerCase() === normalizedCurrentCharacterIdLower
+          normalizedTokenIdentifierLower &&
+            currentCharacterIdCandidatesLower.has(normalizedTokenIdentifierLower)
         );
 
         const isMovable =
@@ -1007,15 +1160,9 @@ const MapModal = ({
         if (!variant && entityType) {
           if (entityType === 'enemy') {
             variant = 'enemy';
-          } else if (
-            entityType === 'character' &&
-            normalizedCurrentCharacterId &&
-            token.characterId === normalizedCurrentCharacterId
-          ) {
+          } else if (entityType === 'character' && matchesCurrentCharacter) {
             variant = 'self';
-          } else if (entityType === 'character') {
-            variant = 'ally';
-          } else if (entityType !== 'enemy') {
+          } else if (entityType === 'character' || entityType !== 'enemy') {
             variant = 'ally';
           }
         }
@@ -1050,8 +1197,8 @@ const MapModal = ({
       });
   }, [
     canManipulateTokens,
+    currentCharacterIdCandidatesLower,
     normalizedCharacterLookup,
-    normalizedCurrentCharacterId,
     normalizedActiveCharacterId,
     placementPending,
     readOnly,
@@ -1059,24 +1206,31 @@ const MapModal = ({
   ]);
 
   const currentToken = useMemo(() => {
-    if (!normalizedCurrentCharacterId) {
+    if (!currentCharacterIdCandidatesLower || currentCharacterIdCandidatesLower.size === 0) {
       return null;
     }
 
-    const directMatch = tokensDictionary[normalizedCurrentCharacterId];
-    if (directMatch) {
-      return directMatch;
+    for (const [key, value] of Object.entries(tokensDictionary)) {
+      if (!value || typeof value !== 'object') {
+        continue;
+      }
+
+      const normalizedKey = normalizeMapId(key);
+      if (normalizedKey && currentCharacterIdCandidatesLower.has(normalizedKey.toLowerCase())) {
+        return value;
+      }
+
+      const normalizedValueId = normalizeMapId(value.characterId);
+      if (
+        normalizedValueId &&
+        currentCharacterIdCandidatesLower.has(normalizedValueId.toLowerCase())
+      ) {
+        return value;
+      }
     }
 
-    const targetLower = normalizedCurrentCharacterId.toLowerCase();
-
-    const fallbackMatch = Object.values(tokensDictionary).find((token) => {
-      const tokenId = normalizeMapId(token?.characterId);
-      return tokenId && tokenId.toLowerCase() === targetLower;
-    });
-
-    return fallbackMatch || null;
-  }, [normalizedCurrentCharacterId, tokensDictionary]);
+    return null;
+  }, [currentCharacterIdCandidatesLower, tokensDictionary]);
 
   const handleCommitMove = useCallback(
     async ({ characterId, x, y, rotation }) => {
@@ -1089,7 +1243,9 @@ const MapModal = ({
         return;
       }
 
-      if (readOnly && normalizedCharacterId !== normalizedCurrentCharacterId) {
+      const normalizedCharacterIdLower = normalizedCharacterId.toLowerCase();
+
+      if (readOnly && !currentCharacterIdCandidatesLower.has(normalizedCharacterIdLower)) {
         return;
       }
 
@@ -1131,7 +1287,7 @@ const MapModal = ({
       }
     },
     [
-      normalizedCurrentCharacterId,
+      currentCharacterIdCandidatesLower,
       canManipulateTokens,
       onTokenMove,
       placementPending,
@@ -1202,7 +1358,9 @@ const MapModal = ({
         return false;
       }
 
-      if (readOnly && normalizedCharacterId !== normalizedCurrentCharacterId) {
+      const normalizedCharacterIdLower = normalizedCharacterId.toLowerCase();
+
+      if (readOnly && !currentCharacterIdCandidatesLower.has(normalizedCharacterIdLower)) {
         return false;
       }
 
@@ -1218,6 +1376,18 @@ const MapModal = ({
         payload.token = token;
       } else if (tokensDictionary[normalizedCharacterId]) {
         payload.token = tokensDictionary[normalizedCharacterId];
+      } else {
+        const aliasToken = Object.values(tokensDictionary).find((entry) => {
+          const normalizedEntryId = normalizeMapId(entry?.characterId);
+          return (
+            normalizedEntryId &&
+            currentCharacterIdCandidatesLower.has(normalizedEntryId.toLowerCase())
+          );
+        });
+
+        if (aliasToken) {
+          payload.token = aliasToken;
+        }
       }
 
       if (typeof onTokenRemove !== 'function') {
@@ -1232,7 +1402,7 @@ const MapModal = ({
       onTokenRemove,
       resolvedPlacementMapId,
       readOnly,
-      normalizedCurrentCharacterId,
+      currentCharacterIdCandidatesLower,
       tokensDictionary,
     ]
   );
@@ -1242,10 +1412,16 @@ const MapModal = ({
       Boolean(
         canManipulateTokens &&
           !placementPending &&
-          normalizedCurrentCharacterId &&
+          currentCharacterIdCandidatesLower &&
+          currentCharacterIdCandidatesLower.size > 0 &&
           !currentToken
       ),
-    [currentToken, canManipulateTokens, normalizedCurrentCharacterId, placementPending]
+    [
+      currentCharacterIdCandidatesLower,
+      currentToken,
+      canManipulateTokens,
+      placementPending,
+    ]
   );
 
   const handleSelectMap = useCallback(
