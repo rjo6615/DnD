@@ -1058,6 +1058,7 @@ export default function ZombiesCharacterSheet() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [isMapInteractionActive, setIsMapInteractionActive] = useState(false);
+  const hasAutoActivatedMapRef = useRef(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
@@ -3242,6 +3243,13 @@ export default function ZombiesCharacterSheet() {
   useEffect(() => {
     if (!hasInteractiveCampaignMap) {
       setIsMapInteractionActive(false);
+      hasAutoActivatedMapRef.current = false;
+      return;
+    }
+
+    if (!hasAutoActivatedMapRef.current) {
+      setIsMapInteractionActive(true);
+      hasAutoActivatedMapRef.current = true;
     }
   }, [hasInteractiveCampaignMap]);
 
