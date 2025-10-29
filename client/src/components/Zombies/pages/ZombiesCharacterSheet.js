@@ -5555,6 +5555,19 @@ export default function ZombiesCharacterSheet() {
     <div className="zombies-character-sheet-layout">
       <div className={mapLayerClassName}>
         <MapModal
+          show={false}
+          map={campaignMap}
+          maps={campaignMaps}
+          activeMapId={campaignActiveMapId}
+          tokensByMapId={modalTokensByMapId}
+          currentCharacterId={resolvedCharacterId}
+          activeCharacterId={activeTurnParticipantId}
+          characterLookup={tokenMetaById}
+          onTokenMove={shouldShowMapModal ? undefined : handleTokenMove}
+          onTokenRemove={shouldShowMapModal ? undefined : handleTokenRemove}
+          displayMode="background"
+        />
+        <MapModal
           show={shouldShowMapModal}
           onHide={handleCloseMapModal}
           map={campaignMap}
@@ -5568,7 +5581,6 @@ export default function ZombiesCharacterSheet() {
           onTokenRemove={handleTokenRemove}
           dockedSide={getDockedSide('map')}
           onDockChange={(side) => handleDockChange('map', side)}
-          displayMode="background"
         />
       </div>
       <div
