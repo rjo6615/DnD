@@ -390,6 +390,21 @@ describe('MapModal background interactions', () => {
     expect(screen.queryByTestId('map-modal-background-show-panel')).not.toBeInTheDocument();
   });
 
+  it('renders the background board without overlay controls', async () => {
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{ _id: 'map-xyz', title: 'Full Screen Map', imageUrl: 'https://example.com/map.png' }}
+      />
+    );
+
+    await screen.findByTestId('map-modal-wrapper');
+
+    expect(screen.queryByTestId('map-modal-background-hide-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('map-modal-background-show-panel')).not.toBeInTheDocument();
+  });
+
   it('can collapse and expand the background control panel', async () => {
     render(
       <MapModal
