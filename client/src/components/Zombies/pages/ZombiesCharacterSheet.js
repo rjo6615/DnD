@@ -1057,6 +1057,7 @@ export default function ZombiesCharacterSheet() {
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
+  const [isMapInteractionActive, setIsMapInteractionActive] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
@@ -3193,6 +3194,57 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
+  const hasInteractiveCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return true;
+    }
+
+    if (Array.isArray(campaignMaps) && campaignMaps.length > 0) {
+      return true;
+    }
+
+    return false;
+  }, [campaignMap, campaignMaps]);
+
+  const resolvedCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return campaignMap;
+    }
+
+    if (!Array.isArray(campaignMaps) || campaignMaps.length === 0) {
+      return null;
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      const normalizedTarget = campaignActiveMapId.trim();
+
+      const match = campaignMaps.find((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return false;
+        }
+
+        const entryId =
+          typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
+            ? entry.mapId.trim()
+            : null;
+
+        return entryId === normalizedTarget;
+      });
+
+      if (match) {
+        return match;
+      }
+    }
+
+    return campaignMaps[0] || null;
+  }, [campaignActiveMapId, campaignMap, campaignMaps]);
+
+  useEffect(() => {
+    if (!hasInteractiveCampaignMap) {
+      setIsMapInteractionActive(false);
+    }
+  }, [hasInteractiveCampaignMap]);
+
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
@@ -3219,6 +3271,16 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
+  const handleToggleMapInteraction = useCallback(() => {
+    if (!hasInteractiveCampaignMap) {
+      return;
+    }
+
+    setIsMapInteractionActive((prev) => !prev);
+  }, [hasInteractiveCampaignMap]);
+  const handleCloseMapInteraction = useCallback(() => {
+    setIsMapInteractionActive(false);
+  }, []);
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -5526,12 +5588,28 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const layoutClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout--map-interaction-active');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
+  const mapContainerClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout__map'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout__map--overlay-visible');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
   return (
-    <div className="zombies-character-sheet-layout">
-      <div className="zombies-character-sheet-layout__map">
+    <div className={layoutClassName}>
+      <div className={mapContainerClassName}>
         <MapModal
-          show={false}
-          map={campaignMap}
+          show={isMapInteractionActive}
+          map={resolvedCampaignMap}
           maps={campaignMaps}
           activeMapId={campaignActiveMapId}
           tokensByMapId={modalTokensByMapId}
@@ -5541,6 +5619,11 @@ export default function ZombiesCharacterSheet() {
           onTokenMove={handleTokenMove}
           onTokenRemove={handleTokenRemove}
           displayMode="background"
+          onHide={handleCloseMapInteraction}
+          isDocked={Boolean(getDockedSide('map'))}
+          dockedSide={getDockedSide('map')}
+          onDockChange={(side) => handleDockChange('map', side)}
+          onDockClose={() => handleDockClose('map')}
         />
       </div>
       <div
@@ -5693,6 +5776,19 @@ export default function ZombiesCharacterSheet() {
                   className="d-flex justify-content-center flex-wrap flex-grow-1"
                   style={{ backgroundColor: 'transparent' }}
                 >
+                  <Button
+                    onClick={handleToggleMapInteraction}
+                    style={{ color: isMapInteractionActive ? 'white' : 'black' }}
+                    className="footer-btn"
+                    variant={isMapInteractionActive ? 'primary' : 'secondary'}
+                    aria-pressed={isMapInteractionActive}
+                    aria-label={
+                      isMapInteractionActive ? 'Hide map controls' : 'Show map controls'
+                    }
+                    disabled={!hasInteractiveCampaignMap}
+                  >
+                    <i className="fas fa-map" aria-hidden="true"></i>
+                  </Button>
                   <Button
                     onClick={handleShowCharacterInfo}
                     style={{ color: "black" }}
