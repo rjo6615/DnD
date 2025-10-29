@@ -654,6 +654,7 @@ const MapModal = ({
 
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
+  const [isBackgroundPanelOpen, setIsBackgroundPanelOpen] = useState(true);
 
   useEffect(() => {
     if (!show) {
@@ -666,6 +667,18 @@ const MapModal = ({
     setPlacementError(null);
     setPlacementPending(false);
   }, [previewMapId, currentCharacterId]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    if (show) {
+      setIsBackgroundPanelOpen(true);
+    } else {
+      setIsBackgroundPanelOpen(false);
+    }
+  }, [isBackground, show]);
 
   const isInteractive = useMemo(
     () => typeof onTokenMove === 'function' && previewMapIdCandidates.length > 0,
@@ -1615,21 +1628,51 @@ const MapModal = ({
             aria-modal="false"
             aria-label={backgroundAriaLabel}
           >
-            <div className="map-modal-background__overlay-content">
-              <header className="map-modal-background__header">
-                <div className="map-modal-background__header-inner">
-                  <h2 className="map-modal-background__title">{titleContent}</h2>
-                  <CloseButton
-                    variant="white"
-                    onClick={handleModalHide}
-                    aria-label="Close map"
-                    data-testid="map-modal-close-button"
-                  />
-                </div>
-              </header>
-              <div className="map-modal-background__body">{bodyContent}</div>
-              <footer className="map-modal-background__footer">{footerContent}</footer>
-            </div>
+            {isBackgroundPanelOpen ? (
+              <div className="map-modal-background__overlay-content">
+                <header className="map-modal-background__header">
+                  <div className="map-modal-background__header-inner">
+                    <h2 className="map-modal-background__title">{titleContent}</h2>
+                    <div className="map-modal-background__header-actions">
+                      <Button
+                        variant="outline-light"
+                        size="sm"
+                        className="map-modal-background__collapse"
+                        onClick={() => setIsBackgroundPanelOpen(false)}
+                        data-testid="map-modal-background-hide-panel"
+                      >
+                        Hide panel
+                      </Button>
+                      <CloseButton
+                        variant="white"
+                        onClick={handleModalHide}
+                        aria-label="Close map"
+                        data-testid="map-modal-close-button"
+                      />
+                    </div>
+                  </div>
+                </header>
+                <div className="map-modal-background__body">{bodyContent}</div>
+                <footer className="map-modal-background__footer">{footerContent}</footer>
+              </div>
+            ) : (
+              <div className="map-modal-background__overlay-toggle">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setIsBackgroundPanelOpen(true)}
+                  data-testid="map-modal-background-show-panel"
+                >
+                  Show map controls
+                </Button>
+                <CloseButton
+                  variant="white"
+                  onClick={handleModalHide}
+                  aria-label="Close map"
+                  data-testid="map-modal-close-button"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -134,8 +134,9 @@
   position: absolute;
   inset: 0;
   display: flex;
-  justify-content: center;
-  align-items: stretch;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
   z-index: 2;
   pointer-events: none;
 }
@@ -143,18 +144,41 @@
 .map-modal-background__overlay-content {
   position: relative;
   z-index: 1;
-  width: min(1100px, 100%);
-  padding: clamp(1rem, 2.5vw, 2rem);
+  width: min(420px, 100%);
+  max-width: 100%;
+  padding: clamp(1rem, 2.5vw, 1.75rem);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  height: 100%;
+  max-height: calc(100vh - clamp(0.75rem, 2vw, 1.5rem) * 2);
+  overflow: hidden;
   pointer-events: auto;
-  background: rgba(42, 60, 92, 0.34);
+  background: rgba(42, 60, 92, 0.38);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--bs-border-radius-xl, 1rem);
   box-shadow: 0 1.75rem 3.75rem rgba(8, 12, 24, 0.32);
   backdrop-filter: blur(20px);
+}
+
+.map-modal-background__body {
+  overflow: auto;
+}
+
+@media (max-width: 991.98px) {
+  .map-modal-background__overlay {
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .map-modal-background__overlay-content {
+    width: min(90vw, 560px);
+    max-height: calc(100vh - clamp(1rem, 4vw, 3rem));
+    overflow: hidden;
+  }
+
+  .map-modal-background__body {
+    overflow: auto;
+  }
 }
 
 .map-modal-background__header-inner {
@@ -162,6 +186,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.map-modal-background__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .map-modal-background__title {
@@ -183,6 +213,18 @@
 .map-modal-background__footer {
   display: flex;
   justify-content: flex-end;
+}
+
+.map-modal-background__overlay-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem);
+  background: rgba(42, 60, 92, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--bs-border-radius-xl, 1rem);
+  box-shadow: 0 1.5rem 3rem rgba(8, 12, 24, 0.3);
 }
 
 .map-modal__list .list-group-item-action {
