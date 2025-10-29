@@ -207,6 +207,19 @@
   min-height: 100vh;
 }
 
+.zombies-character-sheet-layout--map-interaction-active .zombies-character-sheet-layout__content {
+  pointer-events: none;
+}
+
+.zombies-character-sheet-layout--map-interaction-active
+  .zombies-character-sheet-layout__content::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 27, 42, 0.45);
+  pointer-events: none;
+}
+
 .zombies-character-sheet-layout__map {
   position: fixed;
   inset: 0;
