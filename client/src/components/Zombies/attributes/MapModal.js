@@ -78,7 +78,28 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+const MAP_IDENTIFIER_KEYS = [
+  'mapId',
+  'map_id',
+  'mapID',
+  'MapId',
+  'MapID',
+  'MAPID',
+  'MAP_ID',
+  '_id',
+  'id',
+  'Id',
+  'ID',
+  'uuid',
+  'UUID',
+  'guid',
+  'GUID',
+  'slug',
+  'Slug',
+  'identifier',
+  'Identifier',
+  'IDENTIFIER',
+];
 const MAP_IDENTIFIER_FALLBACK_KEYS = [
   '$oid',
   '$id',
@@ -90,6 +111,33 @@ const MAP_IDENTIFIER_FALLBACK_KEYS = [
   'string',
   'idStr',
 ];
+const NORMALIZED_IDENTIFIER_KEY_VALUES = new Set([
+  'mapid',
+  'id',
+  'uuid',
+  'guid',
+  'slug',
+  'identifier',
+]);
+const NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES = new Set([
+  'oid',
+  'id',
+  'uuid',
+  'guid',
+  'hex',
+  'hexstring',
+  'value',
+  'string',
+  'idstr',
+]);
+
+const normalizeIdentifierKey = (key) => {
+  if (typeof key !== 'string') {
+    return '';
+  }
+
+  return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+};
 
 const normalizeMapId = (value, visited = new Set()) => {
   if (value === null || value === undefined) {
@@ -152,10 +200,25 @@ const normalizeMapId = (value, visited = new Set()) => {
       }
     }
 
-    const keysToInspect = [...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS];
+    const keysToInspect = Array.from(
+      new Set([...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS])
+    );
     for (const key of keysToInspect) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
         const normalized = normalizeMapId(value[key], visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const [candidateKey, candidateValue] of Object.entries(value)) {
+      const normalizedKey = normalizeIdentifierKey(candidateKey);
+      if (
+        NORMALIZED_IDENTIFIER_KEY_VALUES.has(normalizedKey) ||
+        NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES.has(normalizedKey)
+      ) {
+        const normalized = normalizeMapId(candidateValue, visited);
         if (normalized) {
           return normalized;
         }
