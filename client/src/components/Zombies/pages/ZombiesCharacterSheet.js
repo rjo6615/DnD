@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
+import classNames from "../../../utils/classNames";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
@@ -6022,7 +6023,19 @@ export default function ZombiesCharacterSheet() {
       }}
     >
       <div
-        className="zombies-character-sheet__map-backdrop"
+        className={classNames(
+          'zombies-character-sheet__map-backdrop',
+          mapBoardMap && !isMapOverlayOpen && 'zombies-character-sheet__map-backdrop--interactive'
+        )}
+        role={mapBoardMap ? 'button' : undefined}
+        tabIndex={mapBoardMap && !isMapOverlayOpen ? 0 : -1}
+        aria-label={
+          mapBoardMap && !isMapOverlayOpen
+            ? 'Open interactive campaign map controls'
+            : undefined
+        }
+        onPointerDownCapture={handleMapBackdropPointerDown}
+        onKeyDown={handleMapBackdropKeyDown}
         style={{
           position: 'absolute',
           inset: 0,
