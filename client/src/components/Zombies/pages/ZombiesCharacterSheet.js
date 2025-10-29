@@ -4920,15 +4920,64 @@ export default function ZombiesCharacterSheet() {
     return lookup;
   }, [campaignCharacters, enemies, form, resolvedCharacterId]);
 
+  const collectMapIdentifiers = useCallback((map) => {
+    const identifiers = new Set();
+
+    const addIdentifier = (candidate) => {
+      if (typeof candidate !== 'string') {
+        return;
+      }
+
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        identifiers.add(trimmed);
+      }
+    };
+
+    if (map && typeof map === 'object') {
+      ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'].forEach((key) =>
+        addIdentifier(map[key])
+      );
+
+      [map.meta, map.metadata, map.details, map.settings].forEach((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return;
+        }
+
+        ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'].forEach((key) =>
+          addIdentifier(entry[key])
+        );
+      });
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      addIdentifier(campaignActiveMapId);
+    }
+
+    return Array.from(identifiers);
+  }, [campaignActiveMapId]);
+
   const modalTokensByMapId = useMemo(() => {
     const base = { ...(campaignMapTokens || {}) };
-    const mapId =
-      typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
-        ? campaignMap.mapId.trim()
-        : null;
+    const identifiers = collectMapIdentifiers(campaignMap);
 
-    if (mapId) {
-      const existing = { ...(base[mapId] || {}) };
+    if (identifiers.length > 0) {
+      const mergedTokens = identifiers.reduce((acc, identifier) => {
+        const entry = base[identifier];
+        if (!entry || typeof entry !== 'object') {
+          return acc;
+        }
+
+        const sanitizedEntry = sanitizeTokenDictionary(entry);
+        Object.values(sanitizedEntry).forEach((token) => {
+          acc[token.characterId] = {
+            ...(acc[token.characterId] || {}),
+            ...token,
+          };
+        });
+
+        return acc;
+      }, {});
 
       if (activeMapTokens && typeof activeMapTokens === 'object') {
         Object.entries(activeMapTokens).forEach(([key, value]) => {
@@ -4936,18 +4985,21 @@ export default function ZombiesCharacterSheet() {
           if (!sanitized) {
             return;
           }
-          existing[sanitized.characterId] = {
-            ...(existing[sanitized.characterId] || {}),
+
+          mergedTokens[sanitized.characterId] = {
+            ...(mergedTokens[sanitized.characterId] || {}),
             ...sanitized,
           };
         });
       }
 
-      base[mapId] = existing;
+      identifiers.forEach((identifier) => {
+        base[identifier] = mergedTokens;
+      });
     }
 
     return base;
-  }, [activeMapTokens, campaignMap, campaignMapTokens]);
+  }, [activeMapTokens, campaignMap, campaignMapTokens, collectMapIdentifiers]);
 
   const handleTokenMove = useCallback(
     async ({ mapId, characterId: tokenCharacterId, x, y, rotation }) => {
