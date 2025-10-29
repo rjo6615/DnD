@@ -78,10 +78,39 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const normalizeMapId = (value) => {
+const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+const MAP_IDENTIFIER_FALLBACK_KEYS = [
+  '$oid',
+  '$id',
+  '$uuid',
+  '$guid',
+  'hex',
+  'hexString',
+  'value',
+  'string',
+  'idStr',
+];
+
+const normalizeMapId = (value, visited = new Set()) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    return trimmed !== '' ? trimmed : null;
+    if (trimmed === '' || trimmed === '[object Object]') {
+      return null;
+    }
+
+    const wrappedMatch = trimmed.match(/^(?:new\s+)?(?:ObjectId|UUID|Guid)\((.*)\)$/i);
+    if (wrappedMatch) {
+      const inner = wrappedMatch[1].replace(/^['"]|['"]$/g, '').trim();
+      if (inner) {
+        return inner;
+      }
+    }
+
+    return trimmed;
   }
 
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -92,10 +121,57 @@ const normalizeMapId = (value) => {
     return `${value}`;
   }
 
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const normalized = normalizeMapId(entry, visited);
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    if (visited.has(value)) {
+      return null;
+    }
+
+    visited.add(value);
+
+    if (typeof value.toString === 'function') {
+      try {
+        const stringValue = value.toString();
+        if (typeof stringValue === 'string') {
+          const normalized = normalizeMapId(stringValue, visited);
+          if (normalized && normalized !== '[object Object]') {
+            return normalized;
+          }
+        }
+      } catch (error) {
+        // Ignore toString errors and continue inspecting properties.
+      }
+    }
+
+    const keysToInspect = [...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS];
+    for (const key of keysToInspect) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const normalized = normalizeMapId(value[key], visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const entry of Object.values(value)) {
+      const normalized = normalizeMapId(entry, visited);
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+
   return null;
 };
-
-const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
 
 const collectMapIdentifiers = (map, fallbackIds = []) => {
   const identifiers = new Set();

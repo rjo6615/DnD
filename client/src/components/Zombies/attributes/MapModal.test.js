@@ -304,6 +304,61 @@ describe('MapModal figurine imagery', () => {
   });
 });
 
+describe('MapModal background interaction resolution', () => {
+  let campaignMapBoardSpy;
+
+  beforeEach(() => {
+    mockCapturedBoardProps = [];
+    campaignMapBoardSpy = jest
+      .spyOn(CampaignMapBoardModule, 'default')
+      .mockImplementation((props) => {
+        mockCapturedBoardProps.push(props);
+        return actualCampaignMapBoard(props);
+      });
+  });
+
+  afterEach(() => {
+    campaignMapBoardSpy?.mockRestore();
+  });
+
+  it('derives placement identifiers from nested map metadata for background boards', async () => {
+    const objectId = '507f1f77bcf86cd799439011';
+
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{
+          _id: { $oid: objectId },
+          metadata: { identifier: { value: { $id: objectId } } },
+          imageUrl: 'https://example.com/maps/campaign.jpg',
+        }}
+        activeMapId={`ObjectId("${objectId}")`}
+        tokensByMapId={{
+          [objectId]: {
+            hero: { characterId: 'hero', x: 0.25, y: 0.75 },
+          },
+        }}
+        currentCharacterId="hero"
+        activeCharacterId="hero"
+        characterLookup={{ hero: { label: 'Hero' } }}
+        onTokenMove={jest.fn()}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    const wrapper = await screen.findByTestId('map-modal-wrapper');
+    expect(wrapper.className).toContain('map-modal-background--interactive');
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+
+    expect(boardProps.onTokenPositionChange).toEqual(expect.any(Function));
+    expect(boardProps.onBackgroundClick).toEqual(expect.any(Function));
+    expect(boardProps.onTokenRemove).toEqual(expect.any(Function));
+  });
+});
+
 describe('MapModal background interactions', () => {
   let campaignMapBoardSpy;
 
