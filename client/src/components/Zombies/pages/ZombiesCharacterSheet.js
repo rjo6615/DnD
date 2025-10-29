@@ -3269,6 +3269,16 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
+  const handleToggleMapInteraction = useCallback(() => {
+    if (!hasInteractiveCampaignMap) {
+      return;
+    }
+
+    setIsMapInteractionActive((prev) => !prev);
+  }, [hasInteractiveCampaignMap]);
+  const handleCloseMapInteraction = useCallback(() => {
+    setIsMapInteractionActive(false);
+  }, []);
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -5597,6 +5607,12 @@ export default function ZombiesCharacterSheet() {
     });
   }, [DOCKABLE_MODAL_CONFIG]);
 
+  useEffect(() => {
+    if (!campaignMap) {
+      setIsMapInteractionActive(false);
+    }
+  }, [campaignMap]);
+
   const dockedModalElements = useMemo(() => {
     return Object.entries(DOCKABLE_MODAL_CONFIG)
       .map(([modalKey, config]) => {
@@ -5838,6 +5854,19 @@ export default function ZombiesCharacterSheet() {
                   className="d-flex justify-content-center flex-wrap flex-grow-1"
                   style={{ backgroundColor: 'transparent' }}
                 >
+                  <Button
+                    onClick={handleToggleMapInteraction}
+                    style={{ color: isMapInteractionActive ? 'white' : 'black' }}
+                    className="footer-btn"
+                    variant={isMapInteractionActive ? 'primary' : 'secondary'}
+                    aria-pressed={isMapInteractionActive}
+                    aria-label={
+                      isMapInteractionActive ? 'Hide map controls' : 'Show map controls'
+                    }
+                    disabled={!hasInteractiveCampaignMap}
+                  >
+                    <i className="fas fa-map" aria-hidden="true"></i>
+                  </Button>
                   <Button
                     onClick={handleShowCharacterInfo}
                     style={{ color: "black" }}

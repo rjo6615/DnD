@@ -666,6 +666,18 @@ const MapModal = ({
     setPlacementPending(false);
   }, [previewMapId, currentCharacterId]);
 
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    if (show) {
+      setIsBackgroundPanelOpen(true);
+    } else {
+      setIsBackgroundPanelOpen(false);
+    }
+  }, [isBackground, show]);
+
   const isInteractive = useMemo(
     () => typeof onTokenMove === 'function' && previewMapIdCandidates.length > 0,
     [onTokenMove, previewMapIdCandidates]
