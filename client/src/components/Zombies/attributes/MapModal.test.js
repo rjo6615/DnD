@@ -375,6 +375,59 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('allows interactivity when map identifiers only exist in the token payload', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{ title: 'Token Only Map', imageUrl: 'https://example.com/map.png' }}
+        tokensByMapId={{
+          '  map-xyz  ': {
+            rogue: {
+              characterId: 'rogue',
+              x: 0.1,
+              y: 0.2,
+            },
+          },
+        }}
+        currentCharacterId="rogue"
+        characterLookup={{
+          rogue: {
+            label: 'Rogue',
+          },
+        }}
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ characterId: 'rogue', label: 'Rogue', isMovable: true }),
+      ])
+    );
+    expect(boardProps.disabled).toBe(false);
+
+    await act(async () => {
+      boardProps.onTokenPositionChange?.({ characterId: 'rogue', x: 0.3, y: 0.4 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mapId: 'map-xyz',
+          characterId: 'rogue',
+          x: 0.3,
+          y: 0.4,
+        })
+      )
+    );
+  });
+
   it('renders the background board without overlay controls', async () => {
     render(
       <MapModal

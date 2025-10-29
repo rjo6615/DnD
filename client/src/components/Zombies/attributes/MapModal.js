@@ -208,6 +208,29 @@ const MapModal = ({
   const isBackground = displayMode === 'background';
   const backgroundBoardContainerRef = useRef(null);
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
+  const normalizedTokensByMapId = useMemo(() => {
+    if (!tokensByMapId || typeof tokensByMapId !== 'object') {
+      return {};
+    }
+
+    return Object.entries(tokensByMapId).reduce((acc, [key, value]) => {
+      if (!value || typeof value !== 'object') {
+        return acc;
+      }
+
+      const normalizedKey = normalizeMapId(key);
+      if (!normalizedKey) {
+        return acc;
+      }
+
+      acc[normalizedKey] = value;
+      return acc;
+    }, {});
+  }, [tokensByMapId]);
+  const tokenMapIdCandidates = useMemo(
+    () => Object.keys(normalizedTokensByMapId),
+    [normalizedTokensByMapId]
+  );
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
     () => normalizeMapId(actionInProgressId),
@@ -279,14 +302,28 @@ const MapModal = ({
   }, [backgroundImageSrc]);
 
   const previewMapIdCandidates = useMemo(() => {
-    const candidates = collectMapIdentifiers(previewMap, [normalizedActiveId]);
+    const fallbackIdentifiers = [];
+
+    if (normalizedActiveId) {
+      fallbackIdentifiers.push(normalizedActiveId);
+    }
+
+    fallbackIdentifiers.push(...tokenMapIdCandidates);
+
+    const candidates = collectMapIdentifiers(previewMap, fallbackIdentifiers);
 
     if (normalizedSelectedId) {
       candidates.unshift(normalizedSelectedId);
     }
 
+    tokenMapIdCandidates.forEach((identifier) => {
+      if (!candidates.includes(identifier)) {
+        candidates.push(identifier);
+      }
+    });
+
     return candidates.filter((value, index, array) => array.indexOf(value) === index);
-  }, [normalizedActiveId, normalizedSelectedId, previewMap]);
+  }, [normalizedActiveId, normalizedSelectedId, previewMap, tokenMapIdCandidates]);
 
   const previewMapId = useMemo(() => previewMapIdCandidates[0] || null, [previewMapIdCandidates]);
 
@@ -618,7 +655,10 @@ const MapModal = ({
           continue;
         }
 
-        const entry = tokensByMapId[candidate];
+        const normalizedCandidate = normalizeMapId(candidate);
+        const entry =
+          tokensByMapId[candidate] ||
+          (normalizedCandidate ? normalizedTokensByMapId[normalizedCandidate] : null);
         if (entry && typeof entry === 'object') {
           return sanitizeTokenDictionary(entry);
         }
@@ -629,8 +669,21 @@ const MapModal = ({
       return sanitizeTokenDictionary(previewMap.tokens);
     }
 
+    if (tokenMapIdCandidates.length > 0) {
+      const fallbackEntry = normalizedTokensByMapId[tokenMapIdCandidates[0]];
+      if (fallbackEntry && typeof fallbackEntry === 'object') {
+        return sanitizeTokenDictionary(fallbackEntry);
+      }
+    }
+
     return {};
-  }, [previewMap, previewMapIdCandidates, tokensByMapId]);
+  }, [
+    normalizedTokensByMapId,
+    previewMap,
+    previewMapIdCandidates,
+    tokenMapIdCandidates,
+    tokensByMapId,
+  ]);
 
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
