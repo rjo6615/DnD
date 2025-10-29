@@ -5314,6 +5314,33 @@ export default function ZombiesCharacterSheet() {
   const diceBoxFailed = diceBoxStatus.failed;
   const shouldShowDiceLoadingOverlay =
     isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
+  const [isMapOverlayOpen, setIsMapOverlayOpen] = useState(false);
+  const openMapOverlay = useCallback(() => {
+    setIsMapOverlayOpen(true);
+  }, []);
+  const closeMapOverlay = useCallback(() => {
+    setIsMapOverlayOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isMapOverlayOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event?.key === 'Escape') {
+        event.preventDefault();
+        closeMapOverlay();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeMapOverlay, isMapOverlayOpen]);
+
   const mapBackgroundImage = useMemo(
     () => buildMapBackgroundImageSource(campaignMap),
     [campaignMap]
@@ -5362,6 +5389,12 @@ export default function ZombiesCharacterSheet() {
       imageUrl: loginbg,
     };
   }, [campaignMap, mapBackgroundImage]);
+
+  useEffect(() => {
+    if (isMapOverlayOpen && !mapBoardMap) {
+      setIsMapOverlayOpen(false);
+    }
+  }, [isMapOverlayOpen, mapBoardMap]);
 
   const activeCampaignMapId = useMemo(() => {
     if (typeof campaignMap?.mapId !== 'string') {
@@ -5946,7 +5979,7 @@ export default function ZombiesCharacterSheet() {
               map={mapBoardMap}
               tokens={mapBoardTokens}
               className="campaign-map-board--background"
-              disabled={mapInteractionPending}
+              disabled={mapInteractionPending || isMapOverlayOpen}
               onTokenPositionChange={handleMapBoardTokenPositionChange}
               onBackgroundClick={handleMapBoardBackgroundClick}
               onTokenRemove={handleMapBoardTokenRemove}
@@ -5975,6 +6008,30 @@ export default function ZombiesCharacterSheet() {
           }}
         />
       </div>
+      {isMapOverlayOpen && mapBoardMap && (
+        <div className="zombies-character-sheet__map-overlay" role="dialog" aria-modal="true">
+          <div className="zombies-character-sheet__map-overlay-header">
+            <h2 className="zombies-character-sheet__map-overlay-title">Campaign Map</h2>
+            <button
+              type="button"
+              className="zombies-character-sheet__map-overlay-close"
+              onClick={closeMapOverlay}
+            >
+              Close
+            </button>
+          </div>
+          <div className="zombies-character-sheet__map-overlay-board">
+            <CampaignMapBoard
+              map={mapBoardMap}
+              tokens={mapBoardTokens}
+              disabled={mapInteractionPending}
+              onTokenPositionChange={handleMapBoardTokenPositionChange}
+              onBackgroundClick={handleMapBoardBackgroundClick}
+              onTokenRemove={handleMapBoardTokenRemove}
+            />
+          </div>
+        </div>
+      )}
       <div
         ref={contentColumnRef}
         className="zombies-character-sheet__content"
@@ -6016,6 +6073,18 @@ export default function ZombiesCharacterSheet() {
                   tokenLookup={tokenMetaById}
                 />
               </div>
+              {mapBoardMap && (
+                <div className="zombies-character-sheet__map-overlay-launcher">
+                  <button
+                    type="button"
+                    className="btn btn-outline-light btn-sm"
+                    onClick={openMapOverlay}
+                    disabled={isMapOverlayOpen}
+                  >
+                    Open Interactive Map
+                  </button>
+                </div>
+              )}
               <h1
                 style={{
                   fontSize: "28px",
