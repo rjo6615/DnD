@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
+import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
+import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -479,6 +481,7 @@ const CampaignMapBoard = ({
   className,
   children,
 }) => {
+  const pointerEventsSupported = usePointerEventsSupported();
   const safeMap = map && typeof map === 'object' ? map : {};
   const title = normalizeText(safeMap.title);
   const altText =
@@ -790,7 +793,10 @@ const CampaignMapBoard = ({
         onTokenDragStart({ token, characterId });
       }
 
-      if (event.currentTarget.setPointerCapture) {
+      if (
+        event.pointerId !== undefined &&
+        event.currentTarget.setPointerCapture
+      ) {
         try {
           event.currentTarget.setPointerCapture(event.pointerId);
         } catch (error) {
@@ -1018,7 +1024,10 @@ const CampaignMapBoard = ({
         return;
       }
 
-      if (event.currentTarget.releasePointerCapture) {
+      if (
+        event.pointerId !== undefined &&
+        event.currentTarget.releasePointerCapture
+      ) {
         try {
           event.currentTarget.releasePointerCapture(event.pointerId);
         } catch (error) {
@@ -1072,7 +1081,10 @@ const CampaignMapBoard = ({
         return;
       }
 
-      if (event.currentTarget.releasePointerCapture) {
+      if (
+        event.pointerId !== undefined &&
+        event.currentTarget.releasePointerCapture
+      ) {
         try {
           event.currentTarget.releasePointerCapture(event.pointerId);
         } catch (error) {
@@ -1129,7 +1141,17 @@ const CampaignMapBoard = ({
     if (rotationMoveHandlerRef.current) {
       targets.forEach((target) => {
         if (target && typeof target.removeEventListener === 'function') {
-          target.removeEventListener('pointermove', rotationMoveHandlerRef.current);
+          if (pointerEventsSupported) {
+            target.removeEventListener('pointermove', rotationMoveHandlerRef.current);
+          } else {
+            const handlers = rotationMoveHandlerRef.current;
+            if (handlers?.mouse) {
+              target.removeEventListener('mousemove', handlers.mouse);
+            }
+            if (handlers?.touch) {
+              target.removeEventListener('touchmove', handlers.touch);
+            }
+          }
         }
       });
       rotationMoveHandlerRef.current = null;
@@ -1138,7 +1160,17 @@ const CampaignMapBoard = ({
     if (rotationUpHandlerRef.current) {
       targets.forEach((target) => {
         if (target && typeof target.removeEventListener === 'function') {
-          target.removeEventListener('pointerup', rotationUpHandlerRef.current);
+          if (pointerEventsSupported) {
+            target.removeEventListener('pointerup', rotationUpHandlerRef.current);
+          } else {
+            const handlers = rotationUpHandlerRef.current;
+            if (handlers?.mouse) {
+              target.removeEventListener('mouseup', handlers.mouse);
+            }
+            if (handlers?.touch) {
+              target.removeEventListener('touchend', handlers.touch);
+            }
+          }
         }
       });
       rotationUpHandlerRef.current = null;
@@ -1147,7 +1179,18 @@ const CampaignMapBoard = ({
     if (rotationCancelHandlerRef.current) {
       targets.forEach((target) => {
         if (target && typeof target.removeEventListener === 'function') {
-          target.removeEventListener('pointercancel', rotationCancelHandlerRef.current);
+          if (pointerEventsSupported) {
+            target.removeEventListener('pointercancel', rotationCancelHandlerRef.current);
+          } else {
+            const handlers = rotationCancelHandlerRef.current;
+            if (handlers?.mouse) {
+              target.removeEventListener('mouseleave', handlers.mouse);
+              target.removeEventListener('mouseout', handlers.mouse);
+            }
+            if (handlers?.touch) {
+              target.removeEventListener('touchcancel', handlers.touch);
+            }
+          }
         }
       });
       rotationCancelHandlerRef.current = null;
@@ -1155,7 +1198,7 @@ const CampaignMapBoard = ({
 
     rotationDragStateRef.current = null;
     setDraggingRotationTokenId(null);
-  }, [setDraggingRotationTokenId]);
+  }, [pointerEventsSupported, setDraggingRotationTokenId]);
 
   useEffect(() => () => stopRotationDrag(), [stopRotationDrag]);
 
@@ -1479,9 +1522,24 @@ const CampaignMapBoard = ({
         stopRotationDrag();
       };
 
-      rotationMoveHandlerRef.current = handleMove;
-      rotationUpHandlerRef.current = handleRelease;
-      rotationCancelHandlerRef.current = handleCancel;
+      if (pointerEventsSupported) {
+        rotationMoveHandlerRef.current = handleMove;
+        rotationUpHandlerRef.current = handleRelease;
+        rotationCancelHandlerRef.current = handleCancel;
+      } else {
+        rotationMoveHandlerRef.current = {
+          mouse: (ev) => handleMove(enhanceMouseEvent(ev)),
+          touch: (ev) => handleMove(enhanceTouchEvent(ev)),
+        };
+        rotationUpHandlerRef.current = {
+          mouse: (ev) => handleRelease(enhanceMouseEvent(ev)),
+          touch: (ev) => handleRelease(enhanceTouchEvent(ev)),
+        };
+        rotationCancelHandlerRef.current = {
+          mouse: (ev) => handleCancel(enhanceMouseEvent(ev)),
+          touch: (ev) => handleCancel(enhanceTouchEvent(ev)),
+        };
+      }
 
       const targets = [];
       if (typeof window !== 'undefined') {
@@ -1493,9 +1551,51 @@ const CampaignMapBoard = ({
 
       targets.forEach((target) => {
         if (target && typeof target.addEventListener === 'function') {
-          target.addEventListener('pointermove', handleMove, { passive: false });
-          target.addEventListener('pointerup', handleRelease, { passive: false });
-          target.addEventListener('pointercancel', handleCancel, { passive: false });
+          if (pointerEventsSupported) {
+            target.addEventListener('pointermove', handleMove, { passive: false });
+            target.addEventListener('pointerup', handleRelease, { passive: false });
+            target.addEventListener('pointercancel', handleCancel, { passive: false });
+          } else {
+            const moveHandlers = rotationMoveHandlerRef.current;
+            const upHandlers = rotationUpHandlerRef.current;
+            const cancelHandlers = rotationCancelHandlerRef.current;
+
+            if (moveHandlers?.mouse) {
+              target.addEventListener('mousemove', moveHandlers.mouse, {
+                passive: false,
+              });
+            }
+            if (moveHandlers?.touch) {
+              target.addEventListener('touchmove', moveHandlers.touch, {
+                passive: false,
+              });
+            }
+
+            if (upHandlers?.mouse) {
+              target.addEventListener('mouseup', upHandlers.mouse, {
+                passive: false,
+              });
+            }
+            if (upHandlers?.touch) {
+              target.addEventListener('touchend', upHandlers.touch, {
+                passive: false,
+              });
+            }
+
+            if (cancelHandlers?.mouse) {
+              target.addEventListener('mouseleave', cancelHandlers.mouse, {
+                passive: false,
+              });
+              target.addEventListener('mouseout', cancelHandlers.mouse, {
+                passive: false,
+              });
+            }
+            if (cancelHandlers?.touch) {
+              target.addEventListener('touchcancel', cancelHandlers.touch, {
+                passive: false,
+              });
+            }
+          }
         }
       });
 
@@ -1507,6 +1607,7 @@ const CampaignMapBoard = ({
     [
       applyTokenRotation,
       interactionDisabled,
+      pointerEventsSupported,
       previewTokenRotation,
       setDraggingRotationTokenId,
       setHoveredTokenId,
@@ -1597,6 +1698,54 @@ const CampaignMapBoard = ({
               onPointerMove={handleLayerPointerMove}
               onPointerUp={handleLayerPointerUp}
               onPointerCancel={handleLayerPointerCancel}
+              onMouseDown={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerDown(enhanceMouseEvent(event));
+              }}
+              onMouseMove={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerMove(enhanceMouseEvent(event));
+              }}
+              onMouseUp={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerUp(enhanceMouseEvent(event));
+              }}
+              onMouseLeave={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerCancel(enhanceMouseEvent(event));
+              }}
+              onTouchStart={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerDown(enhanceTouchEvent(event));
+              }}
+              onTouchMove={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerMove(enhanceTouchEvent(event));
+              }}
+              onTouchEnd={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerUp(enhanceTouchEvent(event));
+              }}
+              onTouchCancel={(event) => {
+                if (pointerEventsSupported) {
+                  return;
+                }
+                handleLayerPointerCancel(enhanceTouchEvent(event));
+              }}
             >
               {tokenPositions.map((token, tokenIndex) => {
                 const {
@@ -1747,6 +1896,102 @@ const CampaignMapBoard = ({
                       }
                       setHoveredTokenId((prev) => (prev === characterId ? null : prev));
                     }}
+                    onMouseDown={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      const adapted = enhanceMouseEvent(event);
+                      if (characterId) {
+                        setActiveLabelTokenId(characterId);
+                      }
+                      handlePointerDown(adapted, token);
+                    }}
+                    onMouseMove={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      handlePointerMove(enhanceMouseEvent(event));
+                    }}
+                    onMouseUp={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      const adapted = enhanceMouseEvent(event);
+                      setActiveLabelTokenId((prev) =>
+                        prev === characterId ? null : prev
+                      );
+                      handlePointerUp(adapted);
+                    }}
+                    onMouseLeave={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      if (
+                        draggingRotationTokenId === characterId ||
+                        (event?.relatedTarget &&
+                          event.currentTarget &&
+                          event.currentTarget.contains(event.relatedTarget))
+                      ) {
+                        return;
+                      }
+                      setHoveredTokenId((prev) => (prev === characterId ? null : prev));
+                      handlePointerCancel(enhanceMouseEvent(event));
+                    }}
+                    onMouseOver={() => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      if (!interactionDisabled && characterId) {
+                        setHoveredTokenId(characterId);
+                      }
+                    }}
+                    onMouseEnter={() => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      if (!interactionDisabled && characterId) {
+                        setHoveredTokenId(characterId);
+                      }
+                    }}
+                    onTouchStart={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      const adapted = enhanceTouchEvent(event);
+                      if (characterId) {
+                        setActiveLabelTokenId(characterId);
+                        setHoveredTokenId(characterId);
+                      }
+                      handlePointerDown(adapted, token);
+                    }}
+                    onTouchMove={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      handlePointerMove(enhanceTouchEvent(event));
+                    }}
+                    onTouchEnd={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      const adapted = enhanceTouchEvent(event);
+                      setActiveLabelTokenId((prev) =>
+                        prev === characterId ? null : prev
+                      );
+                      setHoveredTokenId((prev) => (prev === characterId ? null : prev));
+                      handlePointerUp(adapted);
+                    }}
+                    onTouchCancel={(event) => {
+                      if (pointerEventsSupported) {
+                        return;
+                      }
+                      const adapted = enhanceTouchEvent(event);
+                      setActiveLabelTokenId((prev) =>
+                        prev === characterId ? null : prev
+                      );
+                      setHoveredTokenId((prev) => (prev === characterId ? null : prev));
+                      handlePointerCancel(adapted);
+                    }}
                     onContextMenu={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -1870,6 +2115,36 @@ const CampaignMapBoard = ({
                             event.stopPropagation();
                           }
                         }}
+                        onMouseDown={(event) => {
+                          if (!pointerEventsSupported) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onMouseMove={(event) => {
+                          if (!pointerEventsSupported && !isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onMouseUp={(event) => {
+                          if (!pointerEventsSupported && !isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onTouchStart={(event) => {
+                          if (!pointerEventsSupported) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onTouchMove={(event) => {
+                          if (!pointerEventsSupported && !isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onTouchEnd={(event) => {
+                          if (!pointerEventsSupported && !isRotationDragging) {
+                            event.stopPropagation();
+                          }
+                        }}
                       >
                         <div className="campaign-map-board__rotation-handle-track">
                           <button
@@ -1883,10 +2158,66 @@ const CampaignMapBoard = ({
                             onPointerDown={(event) =>
                               handleRotationHandlePointerDown(event, characterId, rotationValue)
                             }
+                            onPointerUp={(event) => {
+                              event.stopPropagation();
+                              lockRotation(characterId);
+                            }}
+                            onPointerCancel={(event) => {
+                              event.stopPropagation();
+                              stopRotationDrag();
+                            }}
                             onFocus={() => setLastDraggedTokenId(characterId)}
                             onBlur={() =>
                               setLastDraggedTokenId((prev) => (prev === characterId ? null : prev))
                             }
+                            onMouseDown={(event) => {
+                              if (pointerEventsSupported) {
+                                return;
+                              }
+                              handleRotationHandlePointerDown(
+                                enhanceMouseEvent(event),
+                                characterId,
+                                rotationValue
+                              );
+                            }}
+                            onMouseUp={(event) => {
+                              if (pointerEventsSupported) {
+                                return;
+                              }
+                              event.stopPropagation();
+                              lockRotation(characterId);
+                            }}
+                            onMouseLeave={(event) => {
+                              if (pointerEventsSupported) {
+                                return;
+                              }
+                              event.stopPropagation();
+                              stopRotationDrag();
+                            }}
+                            onTouchStart={(event) => {
+                              if (pointerEventsSupported) {
+                                return;
+                              }
+                              handleRotationHandlePointerDown(
+                                enhanceTouchEvent(event),
+                                characterId,
+                                rotationValue
+                              );
+                            }}
+                            onTouchEnd={(event) => {
+                              if (pointerEventsSupported) {
+                                return;
+                              }
+                              event.stopPropagation();
+                              lockRotation(characterId);
+                            }}
+                            onTouchCancel={(event) => {
+                              if (pointerEventsSupported) {
+                                return;
+                              }
+                              event.stopPropagation();
+                              stopRotationDrag();
+                            }}
                           >
                             <svg
                               aria-hidden="true"
