@@ -389,4 +389,26 @@ describe('MapModal background interactions', () => {
     expect(screen.queryByTestId('map-modal-background-hide-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('map-modal-background-show-panel')).not.toBeInTheDocument();
   });
+
+  it('can collapse and expand the background control panel', async () => {
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{ _id: 'map-xyz', title: 'Collapsed Map', imageUrl: 'https://example.com/map.png' }}
+      />
+    );
+
+    const hideButton = await screen.findByTestId('map-modal-background-hide-panel');
+    await userEvent.click(hideButton);
+
+    const showButton = await screen.findByTestId('map-modal-background-show-panel');
+    expect(showButton).toBeInTheDocument();
+
+    await userEvent.click(showButton);
+
+    expect(
+      screen.getByTestId('map-modal-background-hide-panel')
+    ).toBeInTheDocument();
+  });
 });
