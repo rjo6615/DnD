@@ -78,7 +78,28 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const MAP_IDENTIFIER_KEYS = ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'];
+const MAP_IDENTIFIER_KEYS = [
+  'mapId',
+  'map_id',
+  'mapID',
+  'MapId',
+  'MapID',
+  'MAPID',
+  'MAP_ID',
+  '_id',
+  'id',
+  'Id',
+  'ID',
+  'uuid',
+  'UUID',
+  'guid',
+  'GUID',
+  'slug',
+  'Slug',
+  'identifier',
+  'Identifier',
+  'IDENTIFIER',
+];
 const MAP_IDENTIFIER_FALLBACK_KEYS = [
   '$oid',
   '$id',
@@ -90,6 +111,33 @@ const MAP_IDENTIFIER_FALLBACK_KEYS = [
   'string',
   'idStr',
 ];
+const NORMALIZED_IDENTIFIER_KEY_VALUES = new Set([
+  'mapid',
+  'id',
+  'uuid',
+  'guid',
+  'slug',
+  'identifier',
+]);
+const NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES = new Set([
+  'oid',
+  'id',
+  'uuid',
+  'guid',
+  'hex',
+  'hexstring',
+  'value',
+  'string',
+  'idstr',
+]);
+
+const normalizeIdentifierKey = (key) => {
+  if (typeof key !== 'string') {
+    return '';
+  }
+
+  return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+};
 
 const normalizeMapId = (value, visited = new Set()) => {
   if (value === null || value === undefined) {
@@ -152,10 +200,25 @@ const normalizeMapId = (value, visited = new Set()) => {
       }
     }
 
-    const keysToInspect = [...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS];
+    const keysToInspect = Array.from(
+      new Set([...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS])
+    );
     for (const key of keysToInspect) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
         const normalized = normalizeMapId(value[key], visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const [candidateKey, candidateValue] of Object.entries(value)) {
+      const normalizedKey = normalizeIdentifierKey(candidateKey);
+      if (
+        NORMALIZED_IDENTIFIER_KEY_VALUES.has(normalizedKey) ||
+        NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES.has(normalizedKey)
+      ) {
+        const normalized = normalizeMapId(candidateValue, visited);
         if (normalized) {
           return normalized;
         }
@@ -427,6 +490,38 @@ const MapModal = ({
     normalizedActiveId,
     normalizedSelectedId,
     previewMapId,
+    tokenMapIdCandidates,
+  ]);
+
+  const resolvedPlacementMapId = useMemo(() => {
+    if (placementMapId) {
+      return placementMapId;
+    }
+
+    const directMapIdentifier = normalizeMapId(previewMap?.mapId);
+    if (directMapIdentifier) {
+      return directMapIdentifier;
+    }
+
+    const fallbackPreviewId = normalizeMapId(previewMap?.id ?? previewMap?._id);
+    if (fallbackPreviewId) {
+      return fallbackPreviewId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    placementMapId,
+    previewMap,
+    normalizedSelectedId,
+    normalizedActiveId,
     tokenMapIdCandidates,
   ]);
 
@@ -800,11 +895,16 @@ const MapModal = ({
   useEffect(() => {
     setPlacementError(null);
     setPlacementPending(false);
-  }, [placementMapId, currentCharacterId]);
+  }, [resolvedPlacementMapId, currentCharacterId]);
 
-  const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(placementMapId),
-    [onTokenMove, placementMapId]
+  const hasInteractiveBoard = useMemo(() => Boolean(previewMap), [previewMap]);
+  const canManipulateTokens = useMemo(
+    () => hasInteractiveBoard && typeof onTokenMove === 'function',
+    [hasInteractiveBoard, onTokenMove]
+  );
+  const canHandleTokenRemoval = useMemo(
+    () => hasInteractiveBoard && typeof onTokenRemove === 'function',
+    [hasInteractiveBoard, onTokenRemove]
   );
 
   const backgroundClassName = useMemo(() => {
@@ -814,12 +914,12 @@ const MapModal = ({
       classes.push('map-modal-background--has-image');
     }
 
-    if (isInteractive) {
+    if (hasInteractiveBoard) {
       classes.push('map-modal-background--interactive');
     }
 
     return classes.join(' ');
-  }, [backgroundImageSrc, isInteractive]);
+  }, [backgroundImageSrc, hasInteractiveBoard]);
 
   const boardTokens = useMemo(() => {
     const tokensList = Object.values(tokensDictionary);
@@ -851,7 +951,7 @@ const MapModal = ({
         );
 
         const isMovable =
-          isInteractive &&
+          canManipulateTokens &&
           !placementPending &&
           (!readOnly || matchesCurrentCharacter);
 
@@ -930,7 +1030,7 @@ const MapModal = ({
         return labelA.localeCompare(labelB);
       });
   }, [
-    isInteractive,
+    canManipulateTokens,
     normalizedCharacterLookup,
     normalizedCurrentCharacterId,
     normalizedActiveCharacterId,
@@ -961,12 +1061,12 @@ const MapModal = ({
 
   const handleCommitMove = useCallback(
     async ({ characterId, x, y, rotation }) => {
-      if (!isInteractive || placementPending) {
+      if (!canManipulateTokens || placementPending) {
         return;
       }
 
       const normalizedCharacterId = normalizeMapId(characterId);
-      if (!normalizedCharacterId || !placementMapId) {
+      if (!normalizedCharacterId) {
         return;
       }
 
@@ -979,14 +1079,22 @@ const MapModal = ({
 
       try {
         const payload = {
-          mapId: placementMapId,
           characterId: normalizedCharacterId,
           x,
           y,
         };
 
+        const payloadMapId = resolvedPlacementMapId;
+        if (payloadMapId) {
+          payload.mapId = payloadMapId;
+        }
+
         if (Number.isFinite(rotation)) {
           payload.rotation = rotation;
+        }
+
+        if (typeof onTokenMove !== 'function') {
+          return;
         }
 
         const result = await onTokenMove(payload);
@@ -1005,28 +1113,28 @@ const MapModal = ({
     },
     [
       normalizedCurrentCharacterId,
-      isInteractive,
+      canManipulateTokens,
       onTokenMove,
       placementPending,
-      placementMapId,
       readOnly,
+      resolvedPlacementMapId,
     ]
   );
 
   const handleTokenPositionChange = useCallback(
     ({ characterId, x, y, rotation }) => {
-      if (!isInteractive) {
+      if (!canManipulateTokens) {
         return;
       }
 
       handleCommitMove({ characterId, x, y, rotation });
     },
-    [handleCommitMove, isInteractive]
+    [handleCommitMove, canManipulateTokens]
   );
 
   const handleBackgroundPlacement = useCallback(
     ({ x, y }) => {
-      if (!isInteractive || placementPending) {
+      if (!canManipulateTokens || placementPending) {
         return;
       }
 
@@ -1036,7 +1144,13 @@ const MapModal = ({
 
       handleCommitMove({ characterId: normalizedCurrentCharacterId, x, y });
     },
-    [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
+    [
+      currentToken,
+      handleCommitMove,
+      canManipulateTokens,
+      normalizedCurrentCharacterId,
+      placementPending,
+    ]
   );
 
   const backgroundBoardStyleValue = useMemo(() => {
@@ -1056,11 +1170,11 @@ const MapModal = ({
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
-      if (!isInteractive || placementPending) {
+      if (!canHandleTokenRemoval || placementPending) {
         return false;
       }
 
-      if (typeof onTokenRemove !== 'function' || !placementMapId) {
+      if (typeof onTokenRemove !== 'function') {
         return false;
       }
 
@@ -1074,9 +1188,12 @@ const MapModal = ({
       }
 
       const payload = {
-        mapId: placementMapId,
         characterId: normalizedCharacterId,
       };
+
+      if (resolvedPlacementMapId) {
+        payload.mapId = resolvedPlacementMapId;
+      }
 
       if (token) {
         payload.token = token;
@@ -1084,13 +1201,17 @@ const MapModal = ({
         payload.token = tokensDictionary[normalizedCharacterId];
       }
 
+      if (typeof onTokenRemove !== 'function') {
+        return false;
+      }
+
       return onTokenRemove(payload);
     },
     [
-      isInteractive,
+      canHandleTokenRemoval,
       placementPending,
       onTokenRemove,
-      placementMapId,
+      resolvedPlacementMapId,
       readOnly,
       normalizedCurrentCharacterId,
       tokensDictionary,
@@ -1100,12 +1221,12 @@ const MapModal = ({
   const canClickToPlace = useMemo(
     () =>
       Boolean(
-        isInteractive &&
+        canManipulateTokens &&
           !placementPending &&
           normalizedCurrentCharacterId &&
           !currentToken
       ),
-    [currentToken, isInteractive, normalizedCurrentCharacterId, placementPending]
+    [currentToken, canManipulateTokens, normalizedCurrentCharacterId, placementPending]
   );
 
   const handleSelectMap = useCallback(
@@ -1337,12 +1458,16 @@ const MapModal = ({
             tokens={boardTokens}
             disabled={isBoardDisabled}
             onTokenPositionChange={
-              isInteractive ? handleTokenPositionChange : undefined
+              canManipulateTokens ? handleTokenPositionChange : undefined
             }
-            onBackgroundClick={isInteractive ? handleBackgroundPlacement : undefined}
-            onTokenRemove={isInteractive ? handleTokenRemove : undefined}
+            onBackgroundClick={
+              canManipulateTokens ? handleBackgroundPlacement : undefined
+            }
+            onTokenRemove={
+              canHandleTokenRemoval ? handleTokenRemove : undefined
+            }
           />
-          {isInteractive && placementPending && (
+          {canManipulateTokens && placementPending && (
             <div
               className="map-modal__saving-indicator d-flex align-items-center gap-2 text-muted small"
               data-testid="map-modal-placement-pending"
@@ -1354,12 +1479,12 @@ const MapModal = ({
             </div>
           )}
         </div>
-        {isInteractive && canClickToPlace && (
+        {canManipulateTokens && canClickToPlace && (
           <div className="text-info small mt-3" data-testid="map-modal-placement-hint">
             Click the map to place your figurine.
           </div>
         )}
-        {isInteractive && placementError && (
+        {canManipulateTokens && placementError && (
           <Alert variant="danger" className="mt-3" data-testid="map-modal-placement-error">
             {placementError}
           </Alert>
