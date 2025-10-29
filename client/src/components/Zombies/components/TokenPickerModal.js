@@ -590,13 +590,18 @@ const TokenPickerModal = ({
   isBusy = false,
   errorMessage = null,
   filterScope = null,
+  enableFolderFetching = true,
 }) => {
-  const [dmFolderOptions, setDmFolderOptions] = useState(null);
+  const [dmFolderOptions, setDmFolderOptions] = useState(() =>
+    enableFolderFetching ? null : cloneFilters(dmFilters)
+  );
   const [playerFolderOptions, setPlayerFolderOptions] = useState(() =>
     cloneFilters(DEFAULT_PLAYER_FILTERS)
   );
   const [fetchingFolders, setFetchingFolders] = useState(false);
-  const [playerFoldersReady, setPlayerFoldersReady] = useState(() => isDm);
+  const [playerFoldersReady, setPlayerFoldersReady] = useState(
+    () => isDm || !enableFolderFetching
+  );
 
   const baseFilters = useMemo(() => {
     if (isDm) {
@@ -709,8 +714,12 @@ const TokenPickerModal = ({
     if (resetFolderLoading) {
       setFetchingFolders(false);
     }
-    setPlayerFoldersReady(isDm);
-  }, [isDm]);
+    setPlayerFoldersReady(isDm || !enableFolderFetching);
+    if (!enableFolderFetching) {
+      setDmFolderOptions(cloneFilters(dmFilters));
+      setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
+    }
+  }, [isDm, enableFolderFetching, dmFilters]);
 
   const activeFilter = useMemo(() => {
     if (selectedFilterKey && filterLookup.has(selectedFilterKey)) {
@@ -786,7 +795,7 @@ const TokenPickerModal = ({
       }
 
       const folders = Array.isArray(activeFilter.folders) ? activeFilter.folders : null;
-      if (folders && folders.length > 0) {
+      if (enableFolderFetching && folders && folders.length > 0) {
         const sanitized = folders
           .map((folder) => (typeof folder === 'string' ? folder.trim() : ''))
           .filter(Boolean);
@@ -847,7 +856,7 @@ const TokenPickerModal = ({
         setLoadingMore(false);
       }
     },
-    [campaignId, activeFilter, isDm]
+    [campaignId, activeFilter, isDm, enableFolderFetching]
   );
 
   const fetchManifestRef = useRef(fetchManifest);
@@ -862,9 +871,14 @@ const TokenPickerModal = ({
       lastFetchKeyRef.current = null;
       resetState();
       if (isDm) {
-        setDmFolderOptions(null);
+        setDmFolderOptions(
+          enableFolderFetching ? null : cloneFilters(dmFilters)
+        );
       } else {
         setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
+        if (!enableFolderFetching) {
+          setPlayerFoldersReady(true);
+        }
       }
       return;
     }
@@ -892,9 +906,21 @@ const TokenPickerModal = ({
     isDm,
     resetState,
     shouldDeferManifest,
+    enableFolderFetching,
+    dmFilters,
   ]);
 
   useEffect(() => {
+    if (!enableFolderFetching) {
+      setDmFolderOptions(
+        Array.isArray(dmFilters) && dmFilters.length > 0
+          ? cloneFilters(dmFilters)
+          : cloneFilters(DEFAULT_DM_FILTERS)
+      );
+      setFetchingFolders(false);
+      return;
+    }
+
     if (!isDm) {
       return;
     }
@@ -948,9 +974,16 @@ const TokenPickerModal = ({
     return () => {
       isCancelled = true;
     };
-  }, [show, isDm, campaignId, dmFilters]);
+  }, [show, isDm, campaignId, dmFilters, enableFolderFetching]);
 
   useEffect(() => {
+    if (!enableFolderFetching) {
+      setPlayerFolderOptions(cloneFilters(DEFAULT_PLAYER_FILTERS));
+      setPlayerFoldersReady(true);
+      setFetchingFolders(false);
+      return;
+    }
+
     if (isDm) {
       return;
     }
@@ -1005,7 +1038,7 @@ const TokenPickerModal = ({
     return () => {
       isCancelled = true;
     };
-  }, [show, isDm, campaignId]);
+  }, [show, isDm, campaignId, enableFolderFetching]);
 
   const handleFilterChange = useCallback(
     (event) => {
@@ -1231,6 +1264,7 @@ TokenPickerModal.propTypes = {
     PropTypes.string,
     PropTypes.arrayOf(PropTypes.string),
   ]),
+  enableFolderFetching: PropTypes.bool,
 };
 
 export default TokenPickerModal;

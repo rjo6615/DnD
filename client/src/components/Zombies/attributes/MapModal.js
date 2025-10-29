@@ -962,12 +962,12 @@ const MapModal = ({
     };
   }, [displayMode, show, onHide]);
 
-  if (displayMode === 'overlay') {
+  if (displayMode === 'overlay' || displayMode === 'background') {
     if (!show) {
       return null;
     }
 
-    const resolvedHeader =
+    const baseHeader =
       typeof overlayHeader !== 'undefined'
         ? overlayHeader
         : (
@@ -987,7 +987,7 @@ const MapModal = ({
             </div>
           );
 
-    const resolvedFooter =
+    const baseFooter =
       typeof overlayFooter !== 'undefined'
         ? overlayFooter
         : (
@@ -998,6 +998,22 @@ const MapModal = ({
             </div>
           );
 
+    if (displayMode === 'background') {
+      return (
+        <div className="map-modal-background" data-testid="map-modal-wrapper">
+          {baseHeader !== null && (
+            <div className="map-modal-background__header">{baseHeader}</div>
+          )}
+          <div className="map-modal-background__body">
+            <div className="map-modal-background__content">{mainContent}</div>
+          </div>
+          {baseFooter !== null && (
+            <div className="map-modal-background__footer">{baseFooter}</div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         className="map-modal-overlay"
@@ -1006,14 +1022,14 @@ const MapModal = ({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : 'Campaign Map'}
       >
-        {resolvedHeader !== null && (
-          <div className="map-modal-overlay__header">{resolvedHeader}</div>
+        {baseHeader !== null && (
+          <div className="map-modal-overlay__header">{baseHeader}</div>
         )}
         <div className="map-modal-overlay__body">
           <div className="map-modal-overlay__content">{mainContent}</div>
         </div>
-        {resolvedFooter !== null && (
-          <div className="map-modal-overlay__footer">{resolvedFooter}</div>
+        {baseFooter !== null && (
+          <div className="map-modal-overlay__footer">{baseFooter}</div>
         )}
       </div>
     );
@@ -1086,7 +1102,7 @@ MapModal.propTypes = {
   dockedSide: PropTypes.oneOf(['left', 'right']),
   onDockClose: PropTypes.func,
   onDockChange: PropTypes.func,
-  displayMode: PropTypes.oneOf(['modal', 'overlay']),
+  displayMode: PropTypes.oneOf(['modal', 'overlay', 'background']),
   overlayHeader: PropTypes.node,
   overlayFooter: PropTypes.node,
 };
