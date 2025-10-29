@@ -77,7 +77,6 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   equipment: { label: 'Equipment', component: EquipmentModal },
   inventory: { label: 'Inventory', component: InventoryModal },
   shop: { label: 'Shop', component: ShopModal },
-  map: { label: 'Campaign Map', component: MapModal },
   help: { label: 'Help', component: Help },
 };
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
@@ -1046,7 +1045,6 @@ export default function ZombiesCharacterSheet() {
   const [campaignMap, setCampaignMap] = useState(null);
   const [campaignMapTokens, setCampaignMapTokens] = useState({});
   const [activeMapTokens, setActiveMapTokens] = useState({});
-  const [showMapModal, setShowMapModal] = useState(false);
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
@@ -2310,7 +2308,7 @@ export default function ZombiesCharacterSheet() {
   const rootContainerRef = useRef(null);
   const contentColumnRef = useRef(null);
   const headerRef = useRef(null);
-  const combatHeaderRef = useRef(null);
+  const mapOverlayHeaderRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
 
@@ -2436,14 +2434,15 @@ export default function ZombiesCharacterSheet() {
 
     const contentRect = contentElement.getBoundingClientRect();
     const headerElement = headerRef.current;
-    const combatHeaderElement = combatHeaderRef.current;
+    const overlayHeaderElement = mapOverlayHeaderRef.current;
     const headerRect =
       headerElement && typeof headerElement.getBoundingClientRect === 'function'
         ? headerElement.getBoundingClientRect()
         : null;
-    const combatHeaderRect =
-      combatHeaderElement && typeof combatHeaderElement.getBoundingClientRect === 'function'
-        ? combatHeaderElement.getBoundingClientRect()
+    const overlayHeaderRect =
+      overlayHeaderElement &&
+      typeof overlayHeaderElement.getBoundingClientRect === 'function'
+        ? overlayHeaderElement.getBoundingClientRect()
         : null;
     const rootRect =
       typeof rootElement.getBoundingClientRect === 'function'
@@ -2453,9 +2452,10 @@ export default function ZombiesCharacterSheet() {
 
     const rootTop = rootRect?.top ?? 0;
     const TRACKER_BUFFER = 12;
+    const trackerRect = overlayHeaderRect;
     const trackerOffset =
-      combatHeaderRect?.bottom != null
-        ? Math.max(0, combatHeaderRect.bottom - rootTop + TRACKER_BUFFER)
+      trackerRect?.bottom != null
+        ? Math.max(0, trackerRect.bottom - rootTop + TRACKER_BUFFER)
         : null;
     const topOffset = trackerOffset ??
       (headerRect?.bottom != null
@@ -2545,6 +2545,11 @@ export default function ZombiesCharacterSheet() {
       const headerElement = headerRef.current;
       if (headerElement) {
         resizeObserver.observe(headerElement);
+      }
+
+      const overlayHeaderElement = mapOverlayHeaderRef.current;
+      if (overlayHeaderElement) {
+        resizeObserver.observe(overlayHeaderElement);
       }
     }
 
@@ -3177,9 +3182,6 @@ export default function ZombiesCharacterSheet() {
           case 'help':
             setShowHelpModal(false);
             break;
-          case 'map':
-            setShowMapModal(false);
-            break;
           default:
             break;
         }
@@ -3196,7 +3198,6 @@ export default function ZombiesCharacterSheet() {
       setShowInventory,
       setShowShop,
       setShowHelpModal,
-      setShowMapModal,
     ]
   );
 
@@ -3226,12 +3227,6 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
-  const handleShowMapModal = useCallback(() => setShowMapModal(true), []);
-  const handleCloseMapModal = useCallback(() => {
-    setShowMapModal(false);
-    handleDockClose('map');
-  }, [handleDockClose]);
-
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -3252,8 +3247,6 @@ export default function ZombiesCharacterSheet() {
   );
 
   const shouldShowSkillsModal = showSkill;
-  const shouldShowMapModal = showMapModal;
-
   const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
       result,
@@ -4198,7 +4191,6 @@ export default function ZombiesCharacterSheet() {
         socketRef.current = null;
       }
       applyMapPayload({ maps: [], activeMapId: null, map: null });
-      setShowMapModal(false);
       return undefined;
     }
 
@@ -5426,23 +5418,6 @@ export default function ZombiesCharacterSheet() {
           onDockChange: (side) => handleDockChange('shop', side),
         }),
       },
-      map: {
-        ...DOCKABLE_MODAL_DEFINITIONS.map,
-        showProp: 'show',
-        isEnabled: true,
-        getBaseProps: () => ({
-          map: campaignMap,
-          maps: campaignMaps,
-          activeMapId: campaignActiveMapId,
-          tokensByMapId: modalTokensByMapId,
-          currentCharacterId: resolvedCharacterId,
-          activeCharacterId: activeTurnParticipantId,
-          characterLookup: tokenMetaById,
-          onTokenMove: handleTokenMove,
-          onHide: handleCloseMapModal,
-          onDockChange: (side) => handleDockChange('map', side),
-        }),
-      },
       help: {
         ...DOCKABLE_MODAL_DEFINITIONS.help,
         showProp: 'showHelpModal',
@@ -5474,7 +5449,6 @@ export default function ZombiesCharacterSheet() {
       handleCloseFeats,
       handleCloseHelpModal,
       handleCloseInventory,
-      handleCloseMapModal,
       handleCloseShop,
       handleCloseSkill,
       handleCloseSpells,
@@ -5496,8 +5470,6 @@ export default function ZombiesCharacterSheet() {
       inventoryTab,
       isFormReady,
       longRestCount,
-      modalTokensByMapId,
-      resolvedCharacterId,
       setInventoryTab,
       setShopTab,
       shopTab,
@@ -5560,22 +5532,217 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const renderFooterNavigation = (mode = 'default') => {
+    const isOverlay = mode === 'overlay';
+    const navbarProps = {
+      bg: 'dark',
+      variant: 'dark',
+      'data-bs-theme': 'dark',
+      style: isOverlay
+        ? { backgroundColor: 'transparent' }
+        : { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+      className: 'footer-navbar',
+    };
+
+    if (!isOverlay) {
+      navbarProps.fixed = 'bottom';
+    }
+
+    return (
+      <Navbar {...navbarProps} key={`footer-${mode}`}>
+        <Container style={{ backgroundColor: 'transparent' }}>
+          <Nav className="w-100 align-items-center" style={{ backgroundColor: 'transparent' }}>
+            <div
+              className="d-flex justify-content-center flex-wrap flex-grow-1"
+              style={{ backgroundColor: 'transparent' }}
+            >
+              <Button
+                onClick={handleShowCharacterInfo}
+                style={{ color: 'black' }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-image-portrait" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowStats}
+                style={{
+                  color: 'black',
+                  backgroundColor: statPointsLeft > 0 ? 'gold' : '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-scroll" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowSkill}
+                style={{
+                  color: 'black',
+                  backgroundColor: skillsGold,
+                }}
+                className={`footer-btn ${
+                  skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
+                }`}
+                variant="secondary"
+              >
+                <i className="fas fa-book-open" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowFeats}
+                style={{
+                  color: 'black',
+                  backgroundColor: featsGold,
+                }}
+                className={`footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`}
+                variant="secondary"
+              >
+                <i className="fas fa-hand-fist" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowFeatures}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-star" aria-hidden="true"></i>
+              </Button>
+              {hasSpellcasting && (
+                <Button
+                  onClick={handleShowSpells}
+                  style={{
+                    color: 'black',
+                    backgroundColor: spellsGold,
+                  }}
+                  className={`footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+                  variant="secondary"
+                >
+                  <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+                </Button>
+              )}
+              <Button
+                onClick={handleShowEquipment}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-toolbox" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={() => handleShowInventory()}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-box-open" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={() => handleShowShop()}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-store" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowHelpModal}
+                style={{ color: 'white' }}
+                className="footer-btn"
+                variant="primary"
+              >
+                <i className="fas fa-info" aria-hidden="true"></i>
+              </Button>
+            </div>
+          </Nav>
+        </Container>
+      </Navbar>
+    );
+  };
+
+  const campaignMapTitle =
+    typeof campaignMap?.title === 'string' && campaignMap.title.trim() !== ''
+      ? campaignMap.title.trim()
+      : 'Campaign Map';
+
+  const hasFigurineSelection = Boolean(
+    characterFigurine?.figurineImageUrl || characterFigurine?.figurineImagePublicId
+  );
+
+  const figurineButtonLabel = tokenPickerSaving
+    ? 'Updating Figurine...'
+    : hasFigurineSelection
+    ? 'Change Figurine'
+    : 'Choose Figurine';
+
+  const effectiveTokenPickerScope = isTestEnvironment
+    ? null
+    : tokenPickerFilterScope;
+
+  const mapOverlayHeader = (
+    <div ref={mapOverlayHeaderRef} className="map-modal-background__header-content">
+      <div className="map-modal-overlay__header-bar map-modal-background__title-bar">
+        <div className="map-modal-overlay__title-group">
+          <div className="map-modal-overlay__eyebrow">Campaign Map</div>
+          <h2 className="map-modal-overlay__title">{campaignMapTitle}</h2>
+        </div>
+      </div>
+      <div className="map-modal-overlay__tracker map-modal-background__tracker">
+        <CombatTurnHeader
+          participants={participantsWithDetails}
+          tokenLookup={tokenMetaById}
+        />
+      </div>
+    </div>
+  );
+
+  const shouldRenderInlineTracker = isTestEnvironment;
+
   return (
     <div
       ref={rootContainerRef}
-      className="text-center"
+      className="zombies-character-sheet text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
         backgroundImage: `url(${loginbg})`,
-        height: "100vh",
-        overflow: "hidden",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
+        minHeight: '100vh',
+        overflow: 'hidden',
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
         paddingTop: navHeight + HEADER_PADDING,
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
       }}
     >
+      <div className="zombies-character-sheet__map-layer">
+        <MapModal
+          show
+          map={campaignMap}
+          maps={campaignMaps}
+          activeMapId={campaignActiveMapId}
+          tokensByMapId={modalTokensByMapId}
+          currentCharacterId={resolvedCharacterId}
+          activeCharacterId={activeTurnParticipantId}
+          characterLookup={tokenMetaById}
+          onTokenMove={handleTokenMove}
+          onTokenRemove={handleTokenRemove}
+          displayMode="background"
+          overlayHeader={mapOverlayHeader}
+          overlayFooter={null}
+        />
+      </div>
       <div
         ref={contentColumnRef}
         className="zombies-character-sheet__content"
@@ -5585,6 +5752,14 @@ export default function ZombiesCharacterSheet() {
           flex: '1 1 auto',
           minHeight: 0,
           position: 'relative',
+          zIndex: 1,
+          width: 'min(720px, 95%)',
+          margin: '0 auto',
+          backgroundColor: 'rgba(10, 12, 18, 0.82)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '18px',
+          padding: '24px',
+          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.5)',
         }}
       >
         {shouldShowDiceLoadingOverlay && (
@@ -5607,12 +5782,14 @@ export default function ZombiesCharacterSheet() {
             </div>
           )}
           <div ref={headerRef}>
-            <div ref={combatHeaderRef}>
-              <CombatTurnHeader
-                participants={participantsWithDetails}
-                tokenLookup={tokenMetaById}
-              />
-            </div>
+            {shouldRenderInlineTracker && (
+              <div className="zombies-character-sheet__tracker-inline">
+                <CombatTurnHeader
+                  participants={participantsWithDetails}
+                  tokenLookup={tokenMetaById}
+                />
+              </div>
+            )}
             <h1
               style={{
                 fontSize: "28px",
@@ -5647,6 +5824,25 @@ export default function ZombiesCharacterSheet() {
               speedMultiplier={speedMultiplier}
               {...(spellAbilityMod !== null && { spellAbilityMod })}
             />
+            <div className="zombies-character-sheet__figurine-button">
+              <Button
+                variant="outline-light"
+                size="sm"
+                onClick={handleOpenTokenPicker}
+                disabled={tokenPickerSaving}
+              >
+                {figurineButtonLabel}
+              </Button>
+              {characterFigurine?.figurineImageUrl && (
+                <div className="zombies-character-sheet__figurine-preview">
+                  <img
+                    src={characterFigurine.figurineImageUrl}
+                    alt="Current figurine token"
+                    draggable={false}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <div
             style={{
@@ -5698,150 +5894,7 @@ export default function ZombiesCharacterSheet() {
               onActionSurge={handleActionSurge}
             />
           )}
-          <Navbar
-            fixed="bottom"
-            data-bs-theme="dark"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-          >
-            <Container style={{ backgroundColor: 'transparent' }}>
-              <Nav
-                className="w-100 align-items-center"
-                style={{ backgroundColor: 'transparent' }}
-              >
-                <div
-                  className="d-flex justify-content-center flex-wrap flex-grow-1"
-                  style={{ backgroundColor: 'transparent' }}
-                >
-                  <Button
-                    onClick={handleShowCharacterInfo}
-                    style={{ color: "black" }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-image-portrait" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowStats}
-                    style={{
-                      color: "black",
-                      backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-scroll" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowSkill}
-                    style={{
-                      color: "black",
-                      backgroundColor: skillsGold,
-                    }}
-                    className={`footer-btn ${
-                      skillPointsLeft > 0 || expertisePointsLeft > 0
-                        ? 'points-glow'
-                        : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-book-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeats}
-                    style={{
-                      color: "black",
-                      backgroundColor: featsGold,
-                    }}
-                    className={`footer-btn ${
-                      featPointsLeft > 0 ? 'points-glow' : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-hand-fist" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeatures}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-star" aria-hidden="true"></i>
-                  </Button>
-                  {hasSpellcasting && (
-                    <Button
-                      onClick={handleShowSpells}
-                      style={{
-                        color: 'black',
-                        backgroundColor: spellsGold,
-                      }}
-                      className={`footer-btn ${
-                        spellPointsLeft > 0 ? 'points-glow' : ''
-                      }`}
-                      variant="secondary"
-                    >
-                      <i className="fas fa-hat-wizard" aria-hidden="true"></i>
-                    </Button>
-                  )}
-                  <Button
-                    onClick={handleShowEquipment}
-                    style={{
-                      color: 'black',
-                      backgroundColor: '#6C757D',
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-toolbox" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowInventory()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-box-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowShop()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-store" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowMapModal}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                    aria-label="Show campaign map"
-                  >
-                    <i className="fas fa-map" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowHelpModal}
-                    style={{ color: "white" }}
-                    className="footer-btn"
-                    variant="primary"
-                  >
-                    <i className="fas fa-info" aria-hidden="true"></i>
-                  </Button>
-                </div>
-              </Nav>
-            </Container>
-          </Navbar>
+          {renderFooterNavigation('default')}
         </>
       ) : (
         <div
@@ -6003,22 +6056,8 @@ export default function ZombiesCharacterSheet() {
       onClear={() => handleTokenSelection(null)}
       isBusy={tokenPickerSaving}
       errorMessage={tokenPickerError}
-      filterScope={tokenPickerFilterScope}
-    />
-    <MapModal
-      show={shouldShowMapModal}
-      onHide={handleCloseMapModal}
-      map={campaignMap}
-      maps={campaignMaps}
-      activeMapId={campaignActiveMapId}
-      tokensByMapId={modalTokensByMapId}
-      currentCharacterId={resolvedCharacterId}
-      activeCharacterId={activeTurnParticipantId}
-      characterLookup={tokenMetaById}
-      onTokenMove={handleTokenMove}
-      onTokenRemove={handleTokenRemove}
-      dockedSide={getDockedSide('map')}
-      onDockChange={(side) => handleDockChange('map', side)}
+      filterScope={effectiveTokenPickerScope}
+      enableFolderFetching={!isTestEnvironment}
     />
     {dockedModalElements}
   </div>

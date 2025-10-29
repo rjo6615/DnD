@@ -152,6 +152,9 @@ const MapModal = ({
   dockedSide = null,
   onDockClose,
   onDockChange,
+  displayMode = 'modal',
+  overlayHeader,
+  overlayFooter,
 }) => {
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
@@ -922,6 +925,116 @@ const MapModal = ({
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
+  const mainContent = hasManagementFeatures ? (
+    <div className="d-flex flex-column flex-lg-row gap-4">
+      <div className="flex-grow-1" data-testid="map-modal-sidebar">
+        <h5 className="h6 mb-3">Saved Maps</h5>
+        {renderMapList()}
+      </div>
+      <div className="flex-grow-1" data-testid="map-modal-preview">
+        {previewMap ? renderPreviewContent() : (
+          <p className="text-muted mb-0">No map selected.</p>
+        )}
+      </div>
+    </div>
+  ) : (
+    <div data-testid="map-modal-preview">
+      {previewMap ? renderPreviewContent() : (
+        <p className="text-muted mb-0">No map image available.</p>
+      )}
+    </div>
+  );
+
+  useEffect(() => {
+    if (displayMode !== 'overlay' || !show) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onHide?.();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [displayMode, show, onHide]);
+
+  if (displayMode === 'overlay' || displayMode === 'background') {
+    if (!show) {
+      return null;
+    }
+
+    const baseHeader =
+      typeof overlayHeader !== 'undefined'
+        ? overlayHeader
+        : (
+            <div className="map-modal-overlay__header-bar">
+              <div className="map-modal-overlay__title-group">
+                <div className="map-modal-overlay__eyebrow">Campaign Map</div>
+                <h2 className="map-modal-overlay__title">{title}</h2>
+              </div>
+              <Button
+                variant="outline-light"
+                size="sm"
+                onClick={onHide}
+                data-testid="map-modal-overlay-close"
+              >
+                Close
+              </Button>
+            </div>
+          );
+
+    const baseFooter =
+      typeof overlayFooter !== 'undefined'
+        ? overlayFooter
+        : (
+            <div className="map-modal-overlay__footer-bar">
+              <Button variant="secondary" onClick={onHide}>
+                Close
+              </Button>
+            </div>
+          );
+
+    if (displayMode === 'background') {
+      return (
+        <div className="map-modal-background" data-testid="map-modal-wrapper">
+          {baseHeader !== null && (
+            <div className="map-modal-background__header">{baseHeader}</div>
+          )}
+          <div className="map-modal-background__body">
+            <div className="map-modal-background__content">{mainContent}</div>
+          </div>
+          {baseFooter !== null && (
+            <div className="map-modal-background__footer">{baseFooter}</div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className="map-modal-overlay"
+        data-testid="map-modal-wrapper"
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : 'Campaign Map'}
+      >
+        {baseHeader !== null && (
+          <div className="map-modal-overlay__header">{baseHeader}</div>
+        )}
+        <div className="map-modal-overlay__body">
+          <div className="map-modal-overlay__content">{mainContent}</div>
+        </div>
+        {baseFooter !== null && (
+          <div className="map-modal-overlay__footer">{baseFooter}</div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Modal
       className={modalClassName}
@@ -943,27 +1056,7 @@ const MapModal = ({
         />
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {hasManagementFeatures ? (
-          <div className="d-flex flex-column flex-lg-row gap-4">
-            <div className="flex-grow-1" data-testid="map-modal-sidebar">
-              <h5 className="h6 mb-3">Saved Maps</h5>
-              {renderMapList()}
-            </div>
-            <div className="flex-grow-1" data-testid="map-modal-preview">
-              {previewMap ? renderPreviewContent() : (
-                <p className="text-muted mb-0">No map selected.</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div data-testid="map-modal-preview">
-            {previewMap ? renderPreviewContent() : (
-              <p className="text-muted mb-0">No map image available.</p>
-            )}
-          </div>
-        )}
-      </Modal.Body>
+      <Modal.Body>{mainContent}</Modal.Body>
       <Modal.Footer>
         <Button className="action-btn close-btn" onClick={handleModalHide} data-testid="map-modal-close">
           Close
@@ -1009,6 +1102,9 @@ MapModal.propTypes = {
   dockedSide: PropTypes.oneOf(['left', 'right']),
   onDockClose: PropTypes.func,
   onDockChange: PropTypes.func,
+  displayMode: PropTypes.oneOf(['modal', 'overlay', 'background']),
+  overlayHeader: PropTypes.node,
+  overlayFooter: PropTypes.node,
 };
 
 MapModal.defaultProps = {
@@ -1036,6 +1132,9 @@ MapModal.defaultProps = {
   dockedSide: null,
   onDockClose: null,
   onDockChange: null,
+  displayMode: 'modal',
+  overlayHeader: undefined,
+  overlayFooter: undefined,
 };
 
 export default MapModal;

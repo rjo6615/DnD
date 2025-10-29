@@ -673,31 +673,10 @@ test('modal docking controls update docking state', async () => {
     expect(mockSkillsModalProps.current.dockedSide).toBeNull();
   });
 
-  expect(typeof mockMapModalProps.current?.onDockChange).toBe('function');
-
-  act(() => {
-    mockMapModalProps.current?.onDockChange?.('right');
-  });
-
-  await waitFor(() => {
-    expect(mockMapModalProps.current).not.toBeNull();
-    if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
-      expect(mockMapModalProps.current.isDocked).toBe(true);
-      expect(mockMapModalProps.current.dockedSide).toBe('right');
-    }
-    expect(mockMapModalProps.current?.show).toBe(true);
-  });
-
-  act(() => {
-    mockMapModalProps.current?.onDockClose?.();
-  });
-
-  await waitFor(() => {
-    expect(mockMapModalProps.current).not.toBeNull();
-    if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
-      expect(mockMapModalProps.current.isDocked).toBe(false);
-    }
-  });
+  expect(mockMapModalProps.current).not.toBeNull();
+  expect(mockMapModalProps.current.displayMode).toBe('background');
+  expect(mockMapModalProps.current.overlayHeader).toBeTruthy();
+  expect(mockMapModalProps.current.overlayFooter).toBeNull();
 });
 
 test('docked inventory modal retains item change handler', async () => {
@@ -824,7 +803,7 @@ test('footer renders equipment button before inventory for non-spellcasters', as
   expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
 });
 
-test('map footer button toggles the campaign map modal', async () => {
+test('campaign map renders as a persistent background overlay', async () => {
   apiFetch
     .mockResolvedValueOnce({
       ok: true,
@@ -872,28 +851,21 @@ test('map footer button toggles the campaign map modal', async () => {
 
   render(<ZombiesCharacterSheet />);
 
-  const buttons = await screen.findAllByRole('button');
-  const mapButton = buttons.find((btn) => btn.querySelector('.fa-map'));
-  expect(mapButton).toBeInTheDocument();
-
   await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
-  expect(mockMapModalProps.current.show).toBe(false);
-  expect(mockMapModalProps.current.map).toMatchObject({
-    mapId: 'wilds-map',
-    title: 'Wilds Overview',
-    imageUrl: 'https://example.com/wilds-map.png',
+  await waitFor(() => {
+    expect(mockMapModalProps.current?.map).toMatchObject({
+      mapId: 'wilds-map',
+      title: 'Wilds Overview',
+      imageUrl: 'https://example.com/wilds-map.png',
+    });
   });
+  expect(mockMapModalProps.current.show).toBe(true);
+  expect(mockMapModalProps.current.displayMode).toBe('background');
   expect(mockMapModalProps.current.maps).toHaveLength(1);
   expect(mockMapModalProps.current.activeMapId).toBe('wilds-map');
 
-  await userEvent.click(mapButton);
-  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
-
-  act(() => {
-    mockMapModalProps.current.onHide();
-  });
-
-  await waitFor(() => expect(mockMapModalProps.current.show).toBe(false));
+  const buttons = await screen.findAllByRole('button');
+  expect(buttons.some((btn) => btn.querySelector('.fa-map'))).toBe(false);
 });
 
 test('campaign map update events synchronize active map and list', async () => {
