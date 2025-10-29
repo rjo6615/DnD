@@ -1117,15 +1117,28 @@ const MapModal = ({
           ? normalizedTokenIdentifier.toLowerCase()
           : null;
 
+        const hasCharacterContext = Boolean(
+          readOnly &&
+            currentCharacterIdCandidatesLower &&
+            currentCharacterIdCandidatesLower.size > 0
+        );
+
         const matchesCurrentCharacter = Boolean(
-          normalizedTokenIdentifierLower &&
+          hasCharacterContext &&
+            normalizedTokenIdentifierLower &&
             currentCharacterIdCandidatesLower.has(normalizedTokenIdentifierLower)
         );
 
-        const isMovable =
-          canManipulateTokens &&
-          !placementPending &&
-          (!readOnly || matchesCurrentCharacter);
+        const canCurrentlyManipulate = canManipulateTokens && !placementPending;
+
+        let isMovable =
+          canCurrentlyManipulate && (!hasCharacterContext || matchesCurrentCharacter);
+
+        if (token.isMovable === true) {
+          isMovable = canCurrentlyManipulate;
+        } else if (token.isMovable === false) {
+          isMovable = false;
+        }
 
         const lookupVariant =
           typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
