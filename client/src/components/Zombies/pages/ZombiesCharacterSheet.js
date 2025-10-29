@@ -3226,18 +3226,6 @@ export default function ZombiesCharacterSheet() {
     return campaignMaps[0] || null;
   }, [campaignActiveMapId, campaignMap, campaignMaps]);
 
-  const hasInteractiveCampaignMap = useMemo(() => {
-    if (resolvedCampaignMap) {
-      return true;
-    }
-
-    if (Array.isArray(campaignMaps) && campaignMaps.length > 0) {
-      return true;
-    }
-
-    return false;
-  }, [campaignMaps, resolvedCampaignMap]);
-
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
@@ -5623,12 +5611,11 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const mapDockedSide = useMemo(() => getDockedSide('map'), [getDockedSide]);
+
   const isMapInteractionActive = useMemo(
-    () =>
-      hasInteractiveCampaignMap ||
-      dockedModals.left === 'map' ||
-      dockedModals.right === 'map',
-    [hasInteractiveCampaignMap, dockedModals.left, dockedModals.right]
+    () => Boolean(mapDockedSide),
+    [mapDockedSide]
   );
 
   const overlaySurfaceClassName = useMemo(
@@ -5670,8 +5657,8 @@ export default function ZombiesCharacterSheet() {
           onTokenMove={handleTokenMove}
           onTokenRemove={handleTokenRemove}
           displayMode="background"
-          isDocked={Boolean(getDockedSide('map'))}
-          dockedSide={getDockedSide('map')}
+          isDocked={Boolean(mapDockedSide)}
+          dockedSide={mapDockedSide}
           onDockChange={(side) => handleDockChange('map', side)}
           onDockClose={() => handleDockClose('map')}
         />
