@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
@@ -654,8 +654,6 @@ const MapModal = ({
 
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
-  const [isBackgroundPanelOpen, setIsBackgroundPanelOpen] = useState(true);
-
   useEffect(() => {
     if (!show) {
       setPlacementPending(false);
@@ -1182,7 +1180,7 @@ const MapModal = ({
         handleBackgroundPointerMove(enhanceMouseEvent(event));
       handlers.onMouseUpCapture = (event) =>
         handleBackgroundPointerEnd(enhanceMouseEvent(event));
-      handlers.onMouseLeaveCapture = (event) =>
+      handlers.onMouseLeave = (event) =>
         handleBackgroundPointerCancel(enhanceMouseEvent(event));
       handlers.onTouchStartCapture = (event) =>
         handleBackgroundPointerDownCapture(enhanceTouchEvent(event));
@@ -1621,60 +1619,6 @@ const MapModal = ({
             {boardContent}
           </div>
         </div>
-        {show && (
-          <div
-            className="map-modal-background__overlay"
-            role="dialog"
-            aria-modal="false"
-            aria-label={backgroundAriaLabel}
-          >
-            {isBackgroundPanelOpen ? (
-              <div className="map-modal-background__overlay-content">
-                <header className="map-modal-background__header">
-                  <div className="map-modal-background__header-inner">
-                    <h2 className="map-modal-background__title">{titleContent}</h2>
-                    <div className="map-modal-background__header-actions">
-                      <Button
-                        variant="outline-light"
-                        size="sm"
-                        className="map-modal-background__collapse"
-                        onClick={() => setIsBackgroundPanelOpen(false)}
-                        data-testid="map-modal-background-hide-panel"
-                      >
-                        Hide panel
-                      </Button>
-                      <CloseButton
-                        variant="white"
-                        onClick={handleModalHide}
-                        aria-label="Close map"
-                        data-testid="map-modal-close-button"
-                      />
-                    </div>
-                  </div>
-                </header>
-                <div className="map-modal-background__body">{bodyContent}</div>
-                <footer className="map-modal-background__footer">{footerContent}</footer>
-              </div>
-            ) : (
-              <div className="map-modal-background__overlay-toggle">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setIsBackgroundPanelOpen(true)}
-                  data-testid="map-modal-background-show-panel"
-                >
-                  Show map controls
-                </Button>
-                <CloseButton
-                  variant="white"
-                  onClick={handleModalHide}
-                  aria-label="Close map"
-                  data-testid="map-modal-close-button"
-                />
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
