@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { Nav, Navbar, Container, Button } from 'react-bootstrap';
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
+import classNames from "../../../utils/classNames";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
@@ -82,6 +83,7 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   help: { label: 'Help', component: Help },
 };
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
+const MAP_OVERLAY_DISMISSAL_STORAGE_KEY = 'zombiesCharacterSheet.mapOverlayDismissed';
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 
@@ -5315,12 +5317,64 @@ export default function ZombiesCharacterSheet() {
   const shouldShowDiceLoadingOverlay =
     isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
   const [isMapOverlayOpen, setIsMapOverlayOpen] = useState(false);
-  const openMapOverlay = useCallback(() => {
-    setIsMapOverlayOpen(true);
+  const [shouldAutoOpenMapOverlay, setShouldAutoOpenMapOverlay] = useState(false);
+  const hasAutoOpenedMapOverlayRef = useRef(false);
+  const mapOverlayCloseButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setShouldAutoOpenMapOverlay(false);
+      return;
+    }
+
+    try {
+      const storedValue = window.sessionStorage.getItem(
+        MAP_OVERLAY_DISMISSAL_STORAGE_KEY
+      );
+      setShouldAutoOpenMapOverlay(storedValue !== 'true');
+    } catch (error) {
+      setShouldAutoOpenMapOverlay(true);
+    }
   }, []);
+
+  const openMapOverlay = useCallback(() => {
+    hasAutoOpenedMapOverlayRef.current = true;
+    setIsMapOverlayOpen(true);
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem(MAP_OVERLAY_DISMISSAL_STORAGE_KEY);
+      } catch (error) {
+        // Ignore storage errors (e.g., in private browsing)
+      }
+    }
+  }, []);
+
   const closeMapOverlay = useCallback(() => {
     setIsMapOverlayOpen(false);
+    hasAutoOpenedMapOverlayRef.current = true;
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem(MAP_OVERLAY_DISMISSAL_STORAGE_KEY, 'true');
+      } catch (error) {
+        // Ignore storage errors (e.g., in private browsing)
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (!isMapOverlayOpen) {
+      return;
+    }
+
+    const target = mapOverlayCloseButtonRef.current;
+    if (target && typeof target.focus === 'function') {
+      try {
+        target.focus({ preventScroll: true });
+      } catch (error) {
+        target.focus();
+      }
+    }
+  }, [isMapOverlayOpen]);
 
   useEffect(() => {
     if (!isMapOverlayOpen) {
@@ -5391,10 +5445,55 @@ export default function ZombiesCharacterSheet() {
   }, [campaignMap, mapBackgroundImage]);
 
   useEffect(() => {
+    if (
+      !mapBoardMap ||
+      isMapOverlayOpen ||
+      hasAutoOpenedMapOverlayRef.current ||
+      !shouldAutoOpenMapOverlay
+    ) {
+      return;
+    }
+
+    hasAutoOpenedMapOverlayRef.current = true;
+    setIsMapOverlayOpen(true);
+  }, [isMapOverlayOpen, mapBoardMap, shouldAutoOpenMapOverlay]);
+
+  useEffect(() => {
     if (isMapOverlayOpen && !mapBoardMap) {
       setIsMapOverlayOpen(false);
     }
   }, [isMapOverlayOpen, mapBoardMap]);
+
+  const handleMapBackdropPointerDown = useCallback(
+    (event) => {
+      if (isMapOverlayOpen || !mapBoardMap) {
+        return;
+      }
+
+      if (event && typeof event.button === 'number' && event.button !== 0) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      openMapOverlay();
+    },
+    [isMapOverlayOpen, mapBoardMap, openMapOverlay]
+  );
+
+  const handleMapBackdropKeyDown = useCallback(
+    (event) => {
+      if (isMapOverlayOpen || !mapBoardMap) {
+        return;
+      }
+
+      if (event?.key === 'Enter' || event?.key === ' ' || event?.key === 'Spacebar') {
+        event.preventDefault();
+        openMapOverlay();
+      }
+    },
+    [isMapOverlayOpen, mapBoardMap, openMapOverlay]
+  );
 
   const activeCampaignMapId = useMemo(() => {
     if (typeof campaignMap?.mapId !== 'string') {
@@ -5955,7 +6054,19 @@ export default function ZombiesCharacterSheet() {
       }}
     >
       <div
-        className="zombies-character-sheet__map-backdrop"
+        className={classNames(
+          'zombies-character-sheet__map-backdrop',
+          mapBoardMap && !isMapOverlayOpen && 'zombies-character-sheet__map-backdrop--interactive'
+        )}
+        role={mapBoardMap ? 'button' : undefined}
+        tabIndex={mapBoardMap && !isMapOverlayOpen ? 0 : -1}
+        aria-label={
+          mapBoardMap && !isMapOverlayOpen
+            ? 'Open interactive campaign map controls'
+            : undefined
+        }
+        onPointerDownCapture={handleMapBackdropPointerDown}
+        onKeyDown={handleMapBackdropKeyDown}
         style={{
           position: 'absolute',
           inset: 0,
@@ -6015,6 +6126,7 @@ export default function ZombiesCharacterSheet() {
             <button
               type="button"
               className="zombies-character-sheet__map-overlay-close"
+              ref={mapOverlayCloseButtonRef}
               onClick={closeMapOverlay}
             >
               Close
@@ -6083,6 +6195,9 @@ export default function ZombiesCharacterSheet() {
                   >
                     Open Interactive Map
                   </button>
+                  <div className="zombies-character-sheet__map-overlay-hint text-muted small">
+                    Click or tap the map background to enter the interactive view.
+                  </div>
                 </div>
               )}
               <h1
