@@ -327,6 +327,27 @@ const MapModal = ({
 
   const previewMapId = useMemo(() => previewMapIdCandidates[0] || null, [previewMapIdCandidates]);
 
+  const placementMapId = useMemo(() => {
+    if (previewMapId) {
+      return previewMapId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    normalizedActiveId,
+    normalizedSelectedId,
+    previewMapId,
+    tokenMapIdCandidates,
+  ]);
+
   const groupedMaps = useMemo(
     () => groupMapsByFolder(normalizedMaps),
     [normalizedMaps]
@@ -697,23 +718,11 @@ const MapModal = ({
   useEffect(() => {
     setPlacementError(null);
     setPlacementPending(false);
-  }, [previewMapId, currentCharacterId]);
-
-  useEffect(() => {
-    if (!isBackground) {
-      return;
-    }
-
-    if (show) {
-      setIsBackgroundPanelOpen(true);
-    } else {
-      setIsBackgroundPanelOpen(false);
-    }
-  }, [isBackground, show]);
+  }, [placementMapId, currentCharacterId]);
 
   const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && previewMapIdCandidates.length > 0,
-    [onTokenMove, previewMapIdCandidates]
+    () => typeof onTokenMove === 'function' && Boolean(placementMapId),
+    [onTokenMove, placementMapId]
   );
 
   const boardTokens = useMemo(() => {
@@ -861,7 +870,7 @@ const MapModal = ({
       }
 
       const normalizedCharacterId = normalizeMapId(characterId);
-      if (!normalizedCharacterId || !previewMapId) {
+      if (!normalizedCharacterId || !placementMapId) {
         return;
       }
 
@@ -874,7 +883,7 @@ const MapModal = ({
 
       try {
         const payload = {
-          mapId: previewMapId,
+          mapId: placementMapId,
           characterId: normalizedCharacterId,
           x,
           y,
@@ -903,7 +912,7 @@ const MapModal = ({
       isInteractive,
       onTokenMove,
       placementPending,
-      previewMapId,
+      placementMapId,
       readOnly,
     ]
   );
@@ -955,7 +964,7 @@ const MapModal = ({
         return false;
       }
 
-      if (typeof onTokenRemove !== 'function' || !previewMapId) {
+      if (typeof onTokenRemove !== 'function' || !placementMapId) {
         return false;
       }
 
@@ -969,7 +978,7 @@ const MapModal = ({
       }
 
       const payload = {
-        mapId: previewMapId,
+        mapId: placementMapId,
         characterId: normalizedCharacterId,
       };
 
@@ -985,7 +994,7 @@ const MapModal = ({
       isInteractive,
       placementPending,
       onTokenRemove,
-      previewMapId,
+      placementMapId,
       readOnly,
       normalizedCurrentCharacterId,
       tokensDictionary,
