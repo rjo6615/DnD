@@ -27,9 +27,37 @@ describe('resolveMapImageSource', () => {
     expect(resolveMapImageSource(map)).toBe('data:image/gif;base64,QUJD');
   });
 
+  it('supports image values provided directly as strings', () => {
+    expect(resolveMapImageSource({ image: 'https://cdn.example.com/direct.png' })).toBe(
+      'https://cdn.example.com/direct.png'
+    );
+  });
+
+  it('treats standalone base64 strings as image data', () => {
+    expect(resolveMapImageSource({ image: 'R0lGODdhAQABAIAAAAUEBA==' })).toBe(
+      'data:image/png;base64,R0lGODdhAQABAIAAAAUEBA=='
+    );
+  });
+
   it('falls back to the first resolvable entry in a nested images array', () => {
     const map = { images: [{}, { data: 'Rk9P', mimeType: 'image/webp' }] };
     expect(resolveMapImageSource(map)).toBe('data:image/webp;base64,Rk9P');
+  });
+
+  it('supports string entries in nested image arrays', () => {
+    const map = { images: ['   https://cdn.example.com/listed.png  '] };
+    expect(resolveMapImageSource(map)).toBe('https://cdn.example.com/listed.png');
+  });
+
+  it('prefers nested mapImage definitions when available', () => {
+    const map = { mapImage: { imageUrl: 'https://cdn.example.com/mapImage.jpg' } };
+    expect(resolveMapImageSource(map)).toBe('https://cdn.example.com/mapImage.jpg');
+  });
+
+  it('returns plain strings that are not base64 as-is', () => {
+    expect(resolveMapImageSource({ image: 'relative/path/to/image.png' })).toBe(
+      'relative/path/to/image.png'
+    );
   });
 
   it('returns null when no source can be resolved', () => {
