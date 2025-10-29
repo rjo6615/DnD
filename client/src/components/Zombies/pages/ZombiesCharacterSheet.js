@@ -1057,6 +1057,7 @@ export default function ZombiesCharacterSheet() {
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
+  const [isMapInteractionActive, setIsMapInteractionActive] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
@@ -3219,6 +3220,12 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
+  const handleToggleMapInteraction = useCallback(() => {
+    setIsMapInteractionActive((prev) => !prev);
+  }, []);
+  const handleCloseMapInteraction = useCallback(() => {
+    setIsMapInteractionActive(false);
+  }, []);
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -5495,6 +5502,12 @@ export default function ZombiesCharacterSheet() {
     });
   }, [DOCKABLE_MODAL_CONFIG]);
 
+  useEffect(() => {
+    if (!campaignMap) {
+      setIsMapInteractionActive(false);
+    }
+  }, [campaignMap]);
+
   const dockedModalElements = useMemo(() => {
     return Object.entries(DOCKABLE_MODAL_CONFIG)
       .map(([modalKey, config]) => {
@@ -5526,11 +5539,27 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const layoutClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout--map-interaction-active');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
+  const mapContainerClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout__map'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout__map--overlay-visible');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
   return (
-    <div className="zombies-character-sheet-layout">
-      <div className="zombies-character-sheet-layout__map">
+    <div className={layoutClassName}>
+      <div className={mapContainerClassName}>
         <MapModal
-          show={false}
+          show={isMapInteractionActive}
           map={campaignMap}
           maps={campaignMaps}
           activeMapId={campaignActiveMapId}
@@ -5541,6 +5570,11 @@ export default function ZombiesCharacterSheet() {
           onTokenMove={handleTokenMove}
           onTokenRemove={handleTokenRemove}
           displayMode="background"
+          onHide={handleCloseMapInteraction}
+          isDocked={Boolean(getDockedSide('map'))}
+          dockedSide={getDockedSide('map')}
+          onDockChange={(side) => handleDockChange('map', side)}
+          onDockClose={() => handleDockClose('map')}
         />
       </div>
       <div
@@ -5693,6 +5727,19 @@ export default function ZombiesCharacterSheet() {
                   className="d-flex justify-content-center flex-wrap flex-grow-1"
                   style={{ backgroundColor: 'transparent' }}
                 >
+                  <Button
+                    onClick={handleToggleMapInteraction}
+                    style={{ color: isMapInteractionActive ? 'white' : 'black' }}
+                    className="footer-btn"
+                    variant={isMapInteractionActive ? 'primary' : 'secondary'}
+                    aria-pressed={isMapInteractionActive}
+                    aria-label={
+                      isMapInteractionActive ? 'Hide map controls' : 'Show map controls'
+                    }
+                    disabled={!campaignMap}
+                  >
+                    <i className="fas fa-map" aria-hidden="true"></i>
+                  </Button>
                   <Button
                     onClick={handleShowCharacterInfo}
                     style={{ color: "black" }}
