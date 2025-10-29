@@ -897,9 +897,14 @@ const MapModal = ({
     setPlacementPending(false);
   }, [resolvedPlacementMapId, currentCharacterId]);
 
-  const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(previewMap),
-    [onTokenMove, previewMap]
+  const hasInteractiveBoard = useMemo(() => Boolean(previewMap), [previewMap]);
+  const canManipulateTokens = useMemo(
+    () => hasInteractiveBoard && typeof onTokenMove === 'function',
+    [hasInteractiveBoard, onTokenMove]
+  );
+  const canHandleTokenRemoval = useMemo(
+    () => hasInteractiveBoard && typeof onTokenRemove === 'function',
+    [hasInteractiveBoard, onTokenRemove]
   );
 
   const backgroundClassName = useMemo(() => {
@@ -909,12 +914,12 @@ const MapModal = ({
       classes.push('map-modal-background--has-image');
     }
 
-    if (isInteractive) {
+    if (hasInteractiveBoard) {
       classes.push('map-modal-background--interactive');
     }
 
     return classes.join(' ');
-  }, [backgroundImageSrc, isInteractive]);
+  }, [backgroundImageSrc, hasInteractiveBoard]);
 
   const boardTokens = useMemo(() => {
     const tokensList = Object.values(tokensDictionary);
@@ -946,7 +951,7 @@ const MapModal = ({
         );
 
         const isMovable =
-          isInteractive &&
+          canManipulateTokens &&
           !placementPending &&
           (!readOnly || matchesCurrentCharacter);
 
@@ -1025,7 +1030,7 @@ const MapModal = ({
         return labelA.localeCompare(labelB);
       });
   }, [
-    isInteractive,
+    canManipulateTokens,
     normalizedCharacterLookup,
     normalizedCurrentCharacterId,
     normalizedActiveCharacterId,
@@ -1056,7 +1061,7 @@ const MapModal = ({
 
   const handleCommitMove = useCallback(
     async ({ characterId, x, y, rotation }) => {
-      if (!isInteractive || placementPending) {
+      if (!canManipulateTokens || placementPending) {
         return;
       }
 
@@ -1088,6 +1093,10 @@ const MapModal = ({
           payload.rotation = rotation;
         }
 
+        if (typeof onTokenMove !== 'function') {
+          return;
+        }
+
         const result = await onTokenMove(payload);
 
         if (result === false) {
@@ -1104,7 +1113,7 @@ const MapModal = ({
     },
     [
       normalizedCurrentCharacterId,
-      isInteractive,
+      canManipulateTokens,
       onTokenMove,
       placementPending,
       readOnly,
@@ -1114,18 +1123,18 @@ const MapModal = ({
 
   const handleTokenPositionChange = useCallback(
     ({ characterId, x, y, rotation }) => {
-      if (!isInteractive) {
+      if (!canManipulateTokens) {
         return;
       }
 
       handleCommitMove({ characterId, x, y, rotation });
     },
-    [handleCommitMove, isInteractive]
+    [handleCommitMove, canManipulateTokens]
   );
 
   const handleBackgroundPlacement = useCallback(
     ({ x, y }) => {
-      if (!isInteractive || placementPending) {
+      if (!canManipulateTokens || placementPending) {
         return;
       }
 
@@ -1135,7 +1144,13 @@ const MapModal = ({
 
       handleCommitMove({ characterId: normalizedCurrentCharacterId, x, y });
     },
-    [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
+    [
+      currentToken,
+      handleCommitMove,
+      canManipulateTokens,
+      normalizedCurrentCharacterId,
+      placementPending,
+    ]
   );
 
   const backgroundBoardStyleValue = useMemo(() => {
@@ -1155,7 +1170,7 @@ const MapModal = ({
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
-      if (!isInteractive || placementPending) {
+      if (!canHandleTokenRemoval || placementPending) {
         return false;
       }
 
@@ -1186,10 +1201,14 @@ const MapModal = ({
         payload.token = tokensDictionary[normalizedCharacterId];
       }
 
+      if (typeof onTokenRemove !== 'function') {
+        return false;
+      }
+
       return onTokenRemove(payload);
     },
     [
-      isInteractive,
+      canHandleTokenRemoval,
       placementPending,
       onTokenRemove,
       resolvedPlacementMapId,
@@ -1202,12 +1221,12 @@ const MapModal = ({
   const canClickToPlace = useMemo(
     () =>
       Boolean(
-        isInteractive &&
+        canManipulateTokens &&
           !placementPending &&
           normalizedCurrentCharacterId &&
           !currentToken
       ),
-    [currentToken, isInteractive, normalizedCurrentCharacterId, placementPending]
+    [currentToken, canManipulateTokens, normalizedCurrentCharacterId, placementPending]
   );
 
   const handleSelectMap = useCallback(
@@ -1439,12 +1458,16 @@ const MapModal = ({
             tokens={boardTokens}
             disabled={isBoardDisabled}
             onTokenPositionChange={
-              isInteractive ? handleTokenPositionChange : undefined
+              canManipulateTokens ? handleTokenPositionChange : undefined
             }
-            onBackgroundClick={isInteractive ? handleBackgroundPlacement : undefined}
-            onTokenRemove={isInteractive ? handleTokenRemove : undefined}
+            onBackgroundClick={
+              canManipulateTokens ? handleBackgroundPlacement : undefined
+            }
+            onTokenRemove={
+              canHandleTokenRemoval ? handleTokenRemove : undefined
+            }
           />
-          {isInteractive && placementPending && (
+          {canManipulateTokens && placementPending && (
             <div
               className="map-modal__saving-indicator d-flex align-items-center gap-2 text-muted small"
               data-testid="map-modal-placement-pending"
@@ -1456,12 +1479,12 @@ const MapModal = ({
             </div>
           )}
         </div>
-        {isInteractive && canClickToPlace && (
+        {canManipulateTokens && canClickToPlace && (
           <div className="text-info small mt-3" data-testid="map-modal-placement-hint">
             Click the map to place your figurine.
           </div>
         )}
-        {isInteractive && placementError && (
+        {canManipulateTokens && placementError && (
           <Alert variant="danger" className="mt-3" data-testid="map-modal-placement-error">
             {placementError}
           </Alert>
