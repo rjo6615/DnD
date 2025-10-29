@@ -258,7 +258,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(13, 27, 42, 0.45);
+  background: rgba(13, 27, 42, 0.3);
   pointer-events: none;
 }
 
@@ -270,12 +270,18 @@
 }
 
 .zombies-character-sheet-layout__map--overlay-visible {
-  z-index: 3;
+  z-index: 1;
 }
 
 .zombies-character-sheet-layout__content {
   position: relative;
   z-index: 1;
+}
+
+.zombies-character-sheet-layout__overlay-surface {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .map-display__grid-overlay,

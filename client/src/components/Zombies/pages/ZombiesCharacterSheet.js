@@ -5654,6 +5654,14 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const overlaySurfaceClassName = useMemo(
+    () =>
+      isMapInteractionActive
+        ? 'zombies-character-sheet-layout__overlay-surface'
+        : '',
+    [isMapInteractionActive]
+  );
+
   const layoutClassName = useMemo(() => {
     const classes = ['zombies-character-sheet-layout'];
     if (isMapInteractionActive) {
@@ -5736,7 +5744,10 @@ export default function ZombiesCharacterSheet() {
               reconnects.
             </div>
           )}
-          <div ref={headerRef}>
+          <div
+            ref={headerRef}
+            className={overlaySurfaceClassName || undefined}
+          >
             <div ref={combatHeaderRef}>
               <CombatTurnHeader
                 participants={participantsWithDetails}
@@ -5787,6 +5798,7 @@ export default function ZombiesCharacterSheet() {
             }}
           >
             <div
+              className={overlaySurfaceClassName || undefined}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -5799,39 +5811,50 @@ export default function ZombiesCharacterSheet() {
                 onRemoveEffect={handleRemoveEffect}
               />
             </div>
-            <PlayerTurnActions
-              form={form}
-              dexMod={statMods.dex}
-              strMod={statMods.str}
-              conMod={statMods.con}
-              spellAbilityMod={spellAbilityMod}
-              spellAbilityKey={spellAbilityKey}
-              characterId={characterId}
-              ref={playerTurnActionsRef}
-              onCastSpell={handleCastSpell}
-              availableSlots={availableSlots}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onPassTurn={handlePassTurn}
-              canPassTurn={canPassTurn}
-              isPassTurnInProgress={isPassingTurn}
-            />
+            <div
+              className={overlaySurfaceClassName || undefined}
+              style={{ width: '100%' }}
+            >
+              <PlayerTurnActions
+                form={form}
+                dexMod={statMods.dex}
+                strMod={statMods.str}
+                conMod={statMods.con}
+                spellAbilityMod={spellAbilityMod}
+                spellAbilityKey={spellAbilityKey}
+                characterId={characterId}
+                ref={playerTurnActionsRef}
+                onCastSpell={handleCastSpell}
+                availableSlots={availableSlots}
+                longRestCount={longRestCount}
+                shortRestCount={shortRestCount}
+                onPassTurn={handlePassTurn}
+                canPassTurn={canPassTurn}
+                isPassTurnInProgress={isPassingTurn}
+              />
+            </div>
           </div>
           {form && (
-            <SpellSlots
-              form={form}
-              used={usedSlots}
-              onToggleSlot={handleCastSpell}
-              actionCount={actionCount}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onActionSurge={handleActionSurge}
-            />
+            <div
+              className={overlaySurfaceClassName || undefined}
+              style={{ width: '100%' }}
+            >
+              <SpellSlots
+                form={form}
+                used={usedSlots}
+                onToggleSlot={handleCastSpell}
+                actionCount={actionCount}
+                longRestCount={longRestCount}
+                shortRestCount={shortRestCount}
+                onActionSurge={handleActionSurge}
+              />
+            </div>
           )}
           <Navbar
             fixed="bottom"
             data-bs-theme="dark"
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            className={overlaySurfaceClassName || undefined}
           >
             <Container style={{ backgroundColor: 'transparent' }}>
               <Nav
