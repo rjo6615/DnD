@@ -51,6 +51,91 @@
   z-index: 1;
 }
 
+.zombies-character-sheet__map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: linear-gradient(180deg, rgba(4, 4, 4, 0.92) 0%, rgba(4, 4, 4, 0.98) 100%);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.zombies-character-sheet__map-overlay-header {
+  width: min(100%, 960px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #f8f9fa;
+}
+
+.zombies-character-sheet__map-overlay-title {
+  margin: 0;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  letter-spacing: 0.02em;
+}
+
+.zombies-character-sheet__map-overlay-close {
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8f9fa;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.zombies-character-sheet__map-overlay-close:hover,
+.zombies-character-sheet__map-overlay-close:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.zombies-character-sheet__map-overlay-board {
+  width: min(100%, 960px);
+  height: min(80vh, 960px);
+  display: flex;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.6);
+  background: rgba(18, 18, 18, 0.9);
+}
+
+.zombies-character-sheet__map-overlay-board .campaign-map-board {
+  flex: 1 1 auto;
+}
+
+.zombies-character-sheet__map-overlay-launcher {
+  margin: 0.5rem 0 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.zombies-character-sheet__map-overlay-hint {
+  color: rgba(248, 249, 250, 0.7);
+  text-align: center;
+}
+
+.zombies-character-sheet__map-backdrop--interactive {
+  cursor: pointer;
+}
+
+.zombies-character-sheet__map-backdrop--interactive:focus-visible {
+  outline: 2px solid rgba(248, 249, 250, 0.65);
+  outline-offset: -4px;
+}
+
 .map-modal__saving-indicator {
   position: absolute;
   inset: auto 0 0 0;
