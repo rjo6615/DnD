@@ -5617,6 +5617,12 @@ export default function ZombiesCharacterSheet() {
     });
   }, [DOCKABLE_MODAL_CONFIG]);
 
+  useEffect(() => {
+    if (!campaignMap) {
+      setIsMapInteractionActive(false);
+    }
+  }, [campaignMap]);
+
   const dockedModalElements = useMemo(() => {
     return Object.entries(DOCKABLE_MODAL_CONFIG)
       .map(([modalKey, config]) => {
