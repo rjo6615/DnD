@@ -1057,6 +1057,7 @@ export default function ZombiesCharacterSheet() {
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
+  const [isMapInteractionActive, setIsMapInteractionActive] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
   const [shortRestCount, setShortRestCount] = useState(0);
@@ -3193,6 +3194,55 @@ export default function ZombiesCharacterSheet() {
     ]
   );
 
+  const hasInteractiveCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return true;
+    }
+
+    if (Array.isArray(campaignMaps) && campaignMaps.length > 0) {
+      return true;
+    }
+
+    return false;
+  }, [campaignMap, campaignMaps]);
+
+  const resolvedCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return campaignMap;
+    }
+
+    if (!Array.isArray(campaignMaps) || campaignMaps.length === 0) {
+      return null;
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      const normalizedTarget = campaignActiveMapId.trim();
+
+      const match = campaignMaps.find((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return false;
+        }
+
+        const entryId =
+          typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
+            ? entry.mapId.trim()
+            : null;
+
+        return entryId === normalizedTarget;
+      });
+
+      if (match) {
+        return match;
+      }
+    }
+
+    return campaignMaps[0] || null;
+  }, [campaignActiveMapId, campaignMap, campaignMaps]);
+
+  useEffect(() => {
+    setIsMapInteractionActive(Boolean(hasInteractiveCampaignMap));
+  }, [hasInteractiveCampaignMap]);
+
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
     setShowSkill(false);
@@ -4858,15 +4908,64 @@ export default function ZombiesCharacterSheet() {
     return lookup;
   }, [campaignCharacters, enemies, form, resolvedCharacterId]);
 
+  const collectMapIdentifiers = useCallback((map) => {
+    const identifiers = new Set();
+
+    const addIdentifier = (candidate) => {
+      if (typeof candidate !== 'string') {
+        return;
+      }
+
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        identifiers.add(trimmed);
+      }
+    };
+
+    if (map && typeof map === 'object') {
+      ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'].forEach((key) =>
+        addIdentifier(map[key])
+      );
+
+      [map.meta, map.metadata, map.details, map.settings].forEach((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return;
+        }
+
+        ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'].forEach((key) =>
+          addIdentifier(entry[key])
+        );
+      });
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      addIdentifier(campaignActiveMapId);
+    }
+
+    return Array.from(identifiers);
+  }, [campaignActiveMapId]);
+
   const modalTokensByMapId = useMemo(() => {
     const base = { ...(campaignMapTokens || {}) };
-    const mapId =
-      typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
-        ? campaignMap.mapId.trim()
-        : null;
+    const identifiers = collectMapIdentifiers(campaignMap);
 
-    if (mapId) {
-      const existing = { ...(base[mapId] || {}) };
+    if (identifiers.length > 0) {
+      const mergedTokens = identifiers.reduce((acc, identifier) => {
+        const entry = base[identifier];
+        if (!entry || typeof entry !== 'object') {
+          return acc;
+        }
+
+        const sanitizedEntry = sanitizeTokenDictionary(entry);
+        Object.values(sanitizedEntry).forEach((token) => {
+          acc[token.characterId] = {
+            ...(acc[token.characterId] || {}),
+            ...token,
+          };
+        });
+
+        return acc;
+      }, {});
 
       if (activeMapTokens && typeof activeMapTokens === 'object') {
         Object.entries(activeMapTokens).forEach(([key, value]) => {
@@ -4874,18 +4973,21 @@ export default function ZombiesCharacterSheet() {
           if (!sanitized) {
             return;
           }
-          existing[sanitized.characterId] = {
-            ...(existing[sanitized.characterId] || {}),
+
+          mergedTokens[sanitized.characterId] = {
+            ...(mergedTokens[sanitized.characterId] || {}),
             ...sanitized,
           };
         });
       }
 
-      base[mapId] = existing;
+      identifiers.forEach((identifier) => {
+        base[identifier] = mergedTokens;
+      });
     }
 
     return base;
-  }, [activeMapTokens, campaignMap, campaignMapTokens]);
+  }, [activeMapTokens, campaignMap, campaignMapTokens, collectMapIdentifiers]);
 
   const handleTokenMove = useCallback(
     async ({ mapId, characterId: tokenCharacterId, x, y, rotation }) => {
@@ -5526,12 +5628,36 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const overlaySurfaceClassName = useMemo(
+    () =>
+      isMapInteractionActive
+        ? 'zombies-character-sheet-layout__overlay-surface'
+        : '',
+    [isMapInteractionActive]
+  );
+
+  const layoutClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout--map-interaction-active');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
+  const mapContainerClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout__map'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout__map--overlay-visible');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
   return (
-    <div className="zombies-character-sheet-layout">
-      <div className="zombies-character-sheet-layout__map">
+    <div className={layoutClassName}>
+      <div className={mapContainerClassName}>
         <MapModal
-          show={false}
-          map={campaignMap}
+          show={isMapInteractionActive}
+          map={resolvedCampaignMap}
           maps={campaignMaps}
           activeMapId={campaignActiveMapId}
           tokensByMapId={modalTokensByMapId}
@@ -5541,6 +5667,10 @@ export default function ZombiesCharacterSheet() {
           onTokenMove={handleTokenMove}
           onTokenRemove={handleTokenRemove}
           displayMode="background"
+          isDocked={Boolean(getDockedSide('map'))}
+          dockedSide={getDockedSide('map')}
+          onDockChange={(side) => handleDockChange('map', side)}
+          onDockClose={() => handleDockClose('map')}
         />
       </div>
       <div
@@ -5587,7 +5717,10 @@ export default function ZombiesCharacterSheet() {
               reconnects.
             </div>
           )}
-          <div ref={headerRef}>
+          <div
+            ref={headerRef}
+            className={overlaySurfaceClassName || undefined}
+          >
             <div ref={combatHeaderRef}>
               <CombatTurnHeader
                 participants={participantsWithDetails}
@@ -5638,6 +5771,7 @@ export default function ZombiesCharacterSheet() {
             }}
           >
             <div
+              className={overlaySurfaceClassName || undefined}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -5650,39 +5784,50 @@ export default function ZombiesCharacterSheet() {
                 onRemoveEffect={handleRemoveEffect}
               />
             </div>
-            <PlayerTurnActions
-              form={form}
-              dexMod={statMods.dex}
-              strMod={statMods.str}
-              conMod={statMods.con}
-              spellAbilityMod={spellAbilityMod}
-              spellAbilityKey={spellAbilityKey}
-              characterId={characterId}
-              ref={playerTurnActionsRef}
-              onCastSpell={handleCastSpell}
-              availableSlots={availableSlots}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onPassTurn={handlePassTurn}
-              canPassTurn={canPassTurn}
-              isPassTurnInProgress={isPassingTurn}
-            />
+            <div
+              className={overlaySurfaceClassName || undefined}
+              style={{ width: '100%' }}
+            >
+              <PlayerTurnActions
+                form={form}
+                dexMod={statMods.dex}
+                strMod={statMods.str}
+                conMod={statMods.con}
+                spellAbilityMod={spellAbilityMod}
+                spellAbilityKey={spellAbilityKey}
+                characterId={characterId}
+                ref={playerTurnActionsRef}
+                onCastSpell={handleCastSpell}
+                availableSlots={availableSlots}
+                longRestCount={longRestCount}
+                shortRestCount={shortRestCount}
+                onPassTurn={handlePassTurn}
+                canPassTurn={canPassTurn}
+                isPassTurnInProgress={isPassingTurn}
+              />
+            </div>
           </div>
           {form && (
-            <SpellSlots
-              form={form}
-              used={usedSlots}
-              onToggleSlot={handleCastSpell}
-              actionCount={actionCount}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onActionSurge={handleActionSurge}
-            />
+            <div
+              className={overlaySurfaceClassName || undefined}
+              style={{ width: '100%' }}
+            >
+              <SpellSlots
+                form={form}
+                used={usedSlots}
+                onToggleSlot={handleCastSpell}
+                actionCount={actionCount}
+                longRestCount={longRestCount}
+                shortRestCount={shortRestCount}
+                onActionSurge={handleActionSurge}
+              />
+            </div>
           )}
           <Navbar
             fixed="bottom"
             data-bs-theme="dark"
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            className={overlaySurfaceClassName || undefined}
           >
             <Container style={{ backgroundColor: 'transparent' }}>
               <Nav

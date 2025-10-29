@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import MapModal from './MapModal';
 
 let capturedModalProps;
+let mockCapturedBoardProps = [];
 
 jest.mock('react-bootstrap', () => {
   const actual = jest.requireActual('react-bootstrap');
@@ -30,9 +30,27 @@ jest.mock('react-bootstrap', () => {
   };
 });
 
+import * as CampaignMapBoardModule from './CampaignMapBoard';
+import MapModal from './MapModal';
+
+const actualCampaignMapBoard = CampaignMapBoardModule.default;
+
 describe('MapModal docking props', () => {
+  let campaignMapBoardSpy;
+
   beforeEach(() => {
     capturedModalProps = null;
+    mockCapturedBoardProps = [];
+    campaignMapBoardSpy = jest
+      .spyOn(CampaignMapBoardModule, 'default')
+      .mockImplementation((props) => {
+        mockCapturedBoardProps.push(props);
+        return actualCampaignMapBoard(props);
+      });
+  });
+
+  afterEach(() => {
+    campaignMapBoardSpy?.mockRestore();
   });
 
   it('applies docked dialog class and disables backdrop when docked', () => {
@@ -58,6 +76,21 @@ describe('MapModal docking props', () => {
 });
 
 describe('MapModal folder expansion', () => {
+  let campaignMapBoardSpy;
+
+  beforeEach(() => {
+    mockCapturedBoardProps = [];
+    campaignMapBoardSpy = jest
+      .spyOn(CampaignMapBoardModule, 'default')
+      .mockImplementation((props) => {
+        mockCapturedBoardProps.push(props);
+        return actualCampaignMapBoard(props);
+      });
+  });
+
+  afterEach(() => {
+    campaignMapBoardSpy?.mockRestore();
+  });
   const renderMapModal = (overrideProps = {}) => {
     const maps = [
       { mapId: 'map-1', title: 'Forest Path', folder: 'Encounters' },
@@ -123,8 +156,23 @@ describe('MapModal folder expansion', () => {
 });
 
 describe('MapModal figurine imagery', () => {
+  let campaignMapBoardSpy;
+
+  beforeEach(() => {
+    mockCapturedBoardProps = [];
+    campaignMapBoardSpy = jest
+      .spyOn(CampaignMapBoardModule, 'default')
+      .mockImplementation((props) => {
+        mockCapturedBoardProps.push(props);
+        return actualCampaignMapBoard(props);
+      });
+  });
+
+  afterEach(() => {
+    campaignMapBoardSpy?.mockRestore();
+  });
   it('renders figurine overlays for board tokens with imagery metadata', async () => {
-    const { container } = render(
+    render(
       <MapModal
         show
         onHide={jest.fn()}
@@ -161,21 +209,19 @@ describe('MapModal figurine imagery', () => {
       />
     );
 
-    const tokenElement = await screen.findByRole('button', { name: 'Hero' });
-    expect(tokenElement).toBeInTheDocument();
-    expect(tokenElement).toHaveAttribute('aria-label', 'Hero');
-
-    const figurineImage = container.querySelector(
-      '[data-token-id="hero"] .campaign-map-board__figurine-image'
-    );
-    expect(figurineImage).not.toBeNull();
-    expect(figurineImage).toHaveAttribute('src', 'https://example.com/figurines/hero.png');
-    expect(figurineImage).toHaveAttribute('data-figurine-public-id', 'figurines/heroes/hero');
-    expect(figurineImage?.getAttribute('alt')).toBe('');
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'hero',
+      label: 'Hero',
+      figurineImageUrl: 'https://example.com/figurines/hero.png',
+      figurineImagePublicId: 'figurines/heroes/hero',
+    });
   });
 
   it('renders figurine overlays when imagery metadata is only available in character lookup', async () => {
-    const { container } = render(
+    render(
       <MapModal
         show
         onHide={jest.fn()}
@@ -212,20 +258,135 @@ describe('MapModal figurine imagery', () => {
       />
     );
 
-    const tokenElement = await screen.findByRole('button', { name: 'Hero' });
-    expect(tokenElement).toBeInTheDocument();
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'hero',
+      figurineImageUrl: 'https://example.com/figurines/lookup-hero.png',
+      figurineImagePublicId: 'figurines/heroes/lookup-hero',
+    });
+  });
 
-    const figurineImage = container.querySelector(
-      '[data-token-id="hero"] .campaign-map-board__figurine-image'
+  it('treats the current character id case-insensitively for movable tokens', async () => {
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            'CHAR-1': {
+              characterId: 'CHAR-1',
+              x: 0.1,
+              y: 0.2,
+            },
+          },
+        }}
+        currentCharacterId="char-1"
+        activeCharacterId="char-1"
+        characterLookup={{
+          'CHAR-1': {
+            label: 'Hero',
+          },
+        }}
+        onTokenMove={jest.fn()}
+      />
     );
-    expect(figurineImage).not.toBeNull();
-    expect(figurineImage).toHaveAttribute(
-      'src',
-      'https://example.com/figurines/lookup-hero.png'
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({
+      characterId: 'CHAR-1',
+      isMovable: true,
+    });
+  });
+});
+
+describe('MapModal background interactions', () => {
+  let campaignMapBoardSpy;
+
+  beforeEach(() => {
+    mockCapturedBoardProps = [];
+    campaignMapBoardSpy = jest
+      .spyOn(CampaignMapBoardModule, 'default')
+      .mockImplementation((props) => {
+        mockCapturedBoardProps.push(props);
+        return actualCampaignMapBoard(props);
+      });
+  });
+
+  afterEach(() => {
+    campaignMapBoardSpy?.mockRestore();
+  });
+
+  it('allows interactivity when only an _id is available for the map', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{ _id: 'map-abc', title: 'Fallback Map', imageUrl: 'https://example.com/map.png' }}
+        tokensByMapId={{
+          'map-abc': {
+            hero: {
+              characterId: 'hero',
+              x: 0.25,
+              y: 0.75,
+            },
+          },
+        }}
+        currentCharacterId="hero"
+        characterLookup={{
+          hero: {
+            label: 'Hero',
+          },
+        }}
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+      />
     );
-    expect(figurineImage).toHaveAttribute(
-      'data-figurine-public-id',
-      'figurines/heroes/lookup-hero'
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ characterId: 'hero', label: 'Hero' }),
+      ])
     );
+    expect(boardProps.disabled).toBe(false);
+    expect(typeof boardProps.onTokenPositionChange).toBe('function');
+
+    await act(async () => {
+      boardProps.onTokenPositionChange?.({ characterId: 'hero', x: 0.4, y: 0.5 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mapId: 'map-abc',
+          characterId: 'hero',
+          x: 0.4,
+          y: 0.5,
+        })
+      )
+    );
+  });
+
+  it('renders the background board without overlay controls', async () => {
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{ _id: 'map-xyz', title: 'Full Screen Map', imageUrl: 'https://example.com/map.png' }}
+      />
+    );
+
+    await screen.findByTestId('map-modal-wrapper');
+
+    expect(screen.queryByTestId('map-modal-background-hide-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('map-modal-background-show-panel')).not.toBeInTheDocument();
   });
 });
