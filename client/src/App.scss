@@ -245,6 +245,12 @@
   background-repeat: repeat;
   mix-blend-mode: screen;
   z-index: 1;
+  transform: translate(
+    var(--campaign-map-pan-x, 0),
+    var(--campaign-map-pan-y, 0)
+  );
+  transition: transform 0.08s ease-out;
+  will-change: transform;
 }
 
 .map-modal__saving-indicator {
@@ -3827,6 +3833,12 @@ h1 {
     height: 100%;
     object-fit: contain;
     object-position: center;
+    transform: translate(
+      var(--campaign-map-pan-x, 0),
+      var(--campaign-map-pan-y, 0)
+    );
+    transition: transform 0.08s ease-out;
+    will-change: transform;
   }
 
   &__tokens-layer {
@@ -3840,6 +3852,18 @@ h1 {
     inset: 0;
     pointer-events: auto;
     z-index: 2;
+    cursor: grab;
+    touch-action: none;
+    transform: translate(
+      var(--campaign-map-pan-x, 0),
+      var(--campaign-map-pan-y, 0)
+    );
+    transition: transform 0.08s ease-out;
+    will-change: transform;
+  }
+
+  &__tokens-layer--panning {
+    cursor: grabbing;
   }
 
   &__token {
@@ -4326,12 +4350,14 @@ h1 {
   }
 
   &__token--label-active,
+  &__token--hovered,
   &__token:hover,
   &__token:focus-visible {
     z-index: 50;
   }
 
   &__token--label-active .campaign-map-board__figurine-label,
+  &__token--hovered .campaign-map-board__figurine-label,
   &__token:hover .campaign-map-board__figurine-label,
   &__token:focus-visible .campaign-map-board__figurine-label {
     opacity: 1;
@@ -4350,6 +4376,10 @@ h1 {
   }
 
   &--disabled &__token--draggable {
+    cursor: default;
+  }
+
+  &--disabled &__tokens-layer {
     cursor: default;
   }
 }

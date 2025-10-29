@@ -27,6 +27,7 @@ describe('CampaignMapBoard pointer interactions', () => {
         onTokenDrag={overrides.onTokenDrag}
         onTokenDragEnd={overrides.onTokenDragEnd}
         onTokenPositionChange={overrides.onTokenPositionChange}
+        onBackgroundClick={overrides.onBackgroundClick}
         onTokenRemove={overrides.onTokenRemove}
       />
     );
@@ -92,6 +93,62 @@ describe('CampaignMapBoard pointer interactions', () => {
     fireEvent(tokenElement, pointerUpEvent);
 
     expect(pointerUpEvent.defaultPrevented).toBe(false);
+  });
+
+  it('fires onBackgroundClick when the background is clicked without dragging', () => {
+    const onBackgroundClick = jest.fn();
+    const { container } = renderBoard({ onBackgroundClick });
+
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    expect(layer).not.toBeNull();
+    if (!layer) {
+      return;
+    }
+
+    layer.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 400,
+      height: 400,
+    });
+
+    const pointerDownEvent = createEvent.pointerDown(layer, {
+      button: 0,
+      pointerId: 10,
+      clientX: 200,
+      clientY: 200,
+      pageX: 200,
+      pageY: 200,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(layer, pointerDownEvent);
+
+    const pointerUpEvent = createEvent.pointerUp(layer, {
+      button: 0,
+      pointerId: 10,
+      clientX: 200,
+      clientY: 200,
+      pageX: 200,
+      pageY: 200,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(layer, pointerUpEvent);
+
+    expect(onBackgroundClick).toHaveBeenCalledTimes(1);
+    const [coords] = onBackgroundClick.mock.calls[0];
+    expect(coords).toEqual(
+      expect.objectContaining({
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
+    expect(coords.x).toBeGreaterThanOrEqual(0);
+    expect(coords.x).toBeLessThanOrEqual(1);
+    expect(coords.y).toBeGreaterThanOrEqual(0);
+    expect(coords.y).toBeLessThanOrEqual(1);
+    expect(pointerUpEvent.defaultPrevented).toBe(true);
   });
 
   it('supports dragging with the primary pointer button', () => {

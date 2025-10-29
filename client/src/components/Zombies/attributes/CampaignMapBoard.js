@@ -427,6 +427,28 @@ const ROTATION_STEP_DEGREES = 15;
 
 const TWO_PI = Math.PI * 2;
 
+const MAP_PAN_DRAG_THRESHOLD_PX = 5;
+const MAP_PAN_DRAG_THRESHOLD_SQUARED = MAP_PAN_DRAG_THRESHOLD_PX ** 2;
+
+const resolvePointerValue = (primary, fallback) => {
+  const primaryNumber = Number(primary);
+  if (Number.isFinite(primaryNumber)) {
+    return primaryNumber;
+  }
+
+  const fallbackNumber = Number(fallback);
+  if (Number.isFinite(fallbackNumber)) {
+    return fallbackNumber;
+  }
+
+  return null;
+};
+
+const resolvePointerCoordinates = (event) => ({
+  x: resolvePointerValue(event?.clientX, event?.pageX),
+  y: resolvePointerValue(event?.clientY, event?.pageY),
+});
+
 const normalizeDegrees = (value) => {
   if (value === null || value === undefined || value === '') {
     return 0;
@@ -478,6 +500,10 @@ const CampaignMapBoard = ({
   const [rotationOverrides, setRotationOverrides] = useState({});
   const rotationOverridesRef = useRef({});
   const [draggingRotationTokenId, setDraggingRotationTokenId] = useState(null);
+  const [mapPanOffset, setMapPanOffset] = useState({ x: 0, y: 0 });
+  const mapPanOffsetRef = useRef(mapPanOffset);
+  const mapPanStateRef = useRef(null);
+  const [isMapPanning, setIsMapPanning] = useState(false);
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
@@ -525,6 +551,30 @@ const CampaignMapBoard = ({
     [map]
   );
   const metadataSquareSize = useMemo(() => resolveSquareSizeFromMetadata(map), [map]);
+
+  useEffect(() => {
+    mapPanOffsetRef.current = mapPanOffset;
+  }, [mapPanOffset]);
+
+  const panStyle = useMemo(
+    () => ({
+      '--campaign-map-pan-x': `${mapPanOffset.x}px`,
+      '--campaign-map-pan-y': `${mapPanOffset.y}px`,
+    }),
+    [mapPanOffset.x, mapPanOffset.y]
+  );
+
+  useEffect(() => {
+    mapPanStateRef.current = null;
+    setIsMapPanning(false);
+    setMapPanOffset((prev) => {
+      if (prev.x === 0 && prev.y === 0) {
+        return prev;
+      }
+      return { x: 0, y: 0 };
+    });
+    mapPanOffsetRef.current = { x: 0, y: 0 };
+  }, [imageSrc]);
 
   useEffect(() => {
     const boardElement = boardRef.current;
@@ -858,7 +908,8 @@ const CampaignMapBoard = ({
     (event) => {
       setActiveLabelTokenId(null);
       setLastDraggedTokenId(null);
-      if (interactionDisabled || typeof onBackgroundClick !== 'function') {
+      setHoveredTokenId(null);
+      if (interactionDisabled) {
         return;
       }
 
@@ -866,7 +917,135 @@ const CampaignMapBoard = ({
         return;
       }
 
-      const coords = getNormalizedCoordinates(event.clientX, event.clientY);
+      if (typeof event?.button === 'number' && event.button !== 0) {
+        return;
+      }
+
+      const { x: startX, y: startY } = resolvePointerCoordinates(event);
+      const resolvedStartX = Number.isFinite(startX) ? startX : 0;
+      const resolvedStartY = Number.isFinite(startY) ? startY : 0;
+      const initialCoords =
+        Number.isFinite(startX) && Number.isFinite(startY)
+          ? getNormalizedCoordinates(startX, startY)
+          : null;
+
+      mapPanStateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: resolvedStartX,
+        startClientY: resolvedStartY,
+        originX: mapPanOffsetRef.current.x,
+        originY: mapPanOffsetRef.current.y,
+        initialCoords: initialCoords || null,
+        hasDragged: false,
+        allowBackgroundClick: typeof onBackgroundClick === 'function',
+      };
+
+      if (event.currentTarget.setPointerCapture) {
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (error) {
+          // Ignore pointer capture errors (e.g., when unsupported)
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [getNormalizedCoordinates, interactionDisabled, onBackgroundClick]
+  );
+
+  const handleLayerPointerMove = useCallback((event) => {
+    const panState = mapPanStateRef.current;
+    if (!panState) {
+      return;
+    }
+
+    const { x: currentX, y: currentY } = resolvePointerCoordinates(event);
+    if (!Number.isFinite(currentX) || !Number.isFinite(currentY)) {
+      return;
+    }
+
+    if (
+      panState.pointerId !== undefined &&
+      event.pointerId !== undefined &&
+      panState.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    const deltaX = currentX - panState.startClientX;
+    const deltaY = currentY - panState.startClientY;
+
+    if (!panState.hasDragged) {
+      const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+      if (distanceSquared < MAP_PAN_DRAG_THRESHOLD_SQUARED) {
+        return;
+      }
+
+      panState.hasDragged = true;
+      setIsMapPanning(true);
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const nextX = panState.originX + deltaX;
+    const nextY = panState.originY + deltaY;
+
+    if (
+      nextX === mapPanOffsetRef.current.x &&
+      nextY === mapPanOffsetRef.current.y
+    ) {
+      return;
+    }
+
+    mapPanOffsetRef.current = { x: nextX, y: nextY };
+    setMapPanOffset({ x: nextX, y: nextY });
+  }, []);
+
+  const handleLayerPointerUp = useCallback(
+    (event) => {
+      const panState = mapPanStateRef.current;
+      if (!panState) {
+        return;
+      }
+
+      if (
+        panState.pointerId !== undefined &&
+        event.pointerId !== undefined &&
+        panState.pointerId !== event.pointerId
+      ) {
+        return;
+      }
+
+      if (event.currentTarget.releasePointerCapture) {
+        try {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        } catch (error) {
+          // Ignore release errors – capturing might not be active or supported
+        }
+      }
+
+      mapPanStateRef.current = null;
+      mapPanOffsetRef.current = mapPanOffset;
+      setIsMapPanning(false);
+
+      if (panState.hasDragged) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      if (!panState.allowBackgroundClick) {
+        return;
+      }
+
+      const { x: upX, y: upY } = resolvePointerCoordinates(event);
+      const resolvedClientX = Number.isFinite(upX) ? upX : panState.startClientX;
+      const resolvedClientY = Number.isFinite(upY) ? upY : panState.startClientY;
+      const coords =
+        getNormalizedCoordinates(resolvedClientX, resolvedClientY) ||
+        panState.initialCoords;
       if (!coords) {
         return;
       }
@@ -875,12 +1054,36 @@ const CampaignMapBoard = ({
       event.stopPropagation();
       onBackgroundClick(coords);
     },
-    [
-      getNormalizedCoordinates,
-      interactionDisabled,
-      onBackgroundClick,
-      setActiveLabelTokenId,
-    ]
+    [getNormalizedCoordinates, mapPanOffset, onBackgroundClick]
+  );
+
+  const handleLayerPointerCancel = useCallback(
+    (event) => {
+      const panState = mapPanStateRef.current;
+      if (!panState) {
+        return;
+      }
+
+      if (
+        panState.pointerId !== undefined &&
+        event.pointerId !== undefined &&
+        panState.pointerId !== event.pointerId
+      ) {
+        return;
+      }
+
+      if (event.currentTarget.releasePointerCapture) {
+        try {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        } catch (error) {
+          // Ignore release errors – capturing might not be active or supported
+        }
+      }
+
+      mapPanStateRef.current = null;
+      setIsMapPanning(false);
+    },
+    []
   );
 
   const getResolvedRotationForToken = useCallback(
@@ -1380,14 +1583,20 @@ const CampaignMapBoard = ({
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
-        <div className="campaign-map-board__stage">
+        <div className="campaign-map-board__stage" style={panStyle}>
           <div className="campaign-map-board__image-wrapper">
             <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
             <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
             <div
-              className="campaign-map-board__tokens-layer"
+              className={classNames(
+                'campaign-map-board__tokens-layer',
+                isMapPanning && 'campaign-map-board__tokens-layer--panning'
+              )}
               ref={handleLayerRef}
               onPointerDown={handleLayerPointerDown}
+              onPointerMove={handleLayerPointerMove}
+              onPointerUp={handleLayerPointerUp}
+              onPointerCancel={handleLayerPointerCancel}
             >
               {tokenPositions.map((token, tokenIndex) => {
                 const {
@@ -1482,6 +1691,8 @@ const CampaignMapBoard = ({
                       'campaign-map-board__token',
                       draggable && 'campaign-map-board__token--draggable',
                       isLabelActive && 'campaign-map-board__token--label-active',
+                      hoveredTokenId === characterId &&
+                        'campaign-map-board__token--hovered',
                       isActiveTurn && 'campaign-map-board__token--active-turn',
                       `campaign-map-board__token--size-${sizeKey}`,
                       isRotationActive && 'lastDragged',
