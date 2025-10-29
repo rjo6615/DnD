@@ -4183,7 +4183,6 @@ export default function ZombiesCharacterSheet() {
         socketRef.current = null;
       }
       applyMapPayload({ maps: [], activeMapId: null, map: null });
-      setShowMapModal(false);
       return undefined;
     }
 
