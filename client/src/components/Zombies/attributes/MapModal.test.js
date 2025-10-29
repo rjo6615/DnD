@@ -430,6 +430,57 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('treats snake_case map identifiers as interactive background boards', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{
+          map_id: 'legacy-map-123',
+          metadata: { map_identifier: { value: { $id: 'legacy-map-123' } } },
+          imageUrl: 'https://example.com/legacy-map.png',
+        }}
+        tokensByMapId={{
+          'legacy-map-123': {
+            hero: {
+              characterId: 'hero',
+              x: 0.5,
+              y: 0.5,
+            },
+          },
+        }}
+        currentCharacterId="hero"
+        characterLookup={{ hero: { label: 'Hero' } }}
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    const wrapper = await screen.findByTestId('map-modal-wrapper');
+    expect(wrapper.className).toContain('map-modal-background--interactive');
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(typeof boardProps.onTokenPositionChange).toBe('function');
+
+    await act(async () => {
+      boardProps.onTokenPositionChange?.({ characterId: 'hero', x: 0.6, y: 0.7 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mapId: 'legacy-map-123',
+          characterId: 'hero',
+          x: 0.6,
+          y: 0.7,
+        })
+      )
+    );
+  });
+
   it('allows interactivity when map identifiers only exist in the token payload', async () => {
     const handleTokenMove = jest.fn().mockResolvedValue(true);
 
