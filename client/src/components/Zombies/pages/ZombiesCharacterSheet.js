@@ -5560,6 +5560,189 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const renderFooterNavigation = (mode = 'default') => {
+    const isOverlay = mode === 'overlay';
+    const navbarProps = {
+      bg: 'dark',
+      variant: 'dark',
+      'data-bs-theme': 'dark',
+      style: isOverlay
+        ? { backgroundColor: 'transparent' }
+        : { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+      className: 'footer-navbar',
+    };
+
+    if (!isOverlay) {
+      navbarProps.fixed = 'bottom';
+    }
+
+    return (
+      <Navbar {...navbarProps} key={`footer-${mode}`}>
+        <Container style={{ backgroundColor: 'transparent' }}>
+          <Nav className="w-100 align-items-center" style={{ backgroundColor: 'transparent' }}>
+            <div
+              className="d-flex justify-content-center flex-wrap flex-grow-1"
+              style={{ backgroundColor: 'transparent' }}
+            >
+              <Button
+                onClick={handleShowCharacterInfo}
+                style={{ color: 'black' }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-image-portrait" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowStats}
+                style={{
+                  color: 'black',
+                  backgroundColor: statPointsLeft > 0 ? 'gold' : '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-scroll" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowSkill}
+                style={{
+                  color: 'black',
+                  backgroundColor: skillsGold,
+                }}
+                className={`footer-btn ${
+                  skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
+                }`}
+                variant="secondary"
+              >
+                <i className="fas fa-book-open" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowFeats}
+                style={{
+                  color: 'black',
+                  backgroundColor: featsGold,
+                }}
+                className={`footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`}
+                variant="secondary"
+              >
+                <i className="fas fa-hand-fist" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowFeatures}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-star" aria-hidden="true"></i>
+              </Button>
+              {hasSpellcasting && (
+                <Button
+                  onClick={handleShowSpells}
+                  style={{
+                    color: 'black',
+                    backgroundColor: spellsGold,
+                  }}
+                  className={`footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`}
+                  variant="secondary"
+                >
+                  <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+                </Button>
+              )}
+              <Button
+                onClick={handleShowEquipment}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-toolbox" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={() => handleShowInventory()}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-box-open" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={() => handleShowShop()}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+              >
+                <i className="fas fa-store" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={shouldShowMapModal ? handleCloseMapModal : handleShowMapModal}
+                style={{
+                  color: 'black',
+                  backgroundColor: '#6C757D',
+                }}
+                className="footer-btn"
+                variant="secondary"
+                aria-label={shouldShowMapModal ? 'Hide campaign map' : 'Show campaign map'}
+                aria-pressed={shouldShowMapModal}
+              >
+                <i className="fas fa-map" aria-hidden="true"></i>
+              </Button>
+              <Button
+                onClick={handleShowHelpModal}
+                style={{ color: 'white' }}
+                className="footer-btn"
+                variant="primary"
+              >
+                <i className="fas fa-info" aria-hidden="true"></i>
+              </Button>
+            </div>
+          </Nav>
+        </Container>
+      </Navbar>
+    );
+  };
+
+  const campaignMapTitle =
+    typeof campaignMap?.title === 'string' && campaignMap.title.trim() !== ''
+      ? campaignMap.title.trim()
+      : 'Campaign Map';
+
+  const mapOverlayHeader = (
+    <div className="map-modal-overlay__header-content">
+      <div className="map-modal-overlay__header-bar">
+        <div className="map-modal-overlay__title-group">
+          <div className="map-modal-overlay__eyebrow">Campaign Map</div>
+          <h2 className="map-modal-overlay__title">{campaignMapTitle}</h2>
+        </div>
+        <Button
+          variant="outline-light"
+          size="sm"
+          onClick={handleCloseMapModal}
+          data-testid="character-map-overlay-close"
+        >
+          <i className="fas fa-times me-2" aria-hidden="true"></i>
+          Close Map
+        </Button>
+      </div>
+      <div className="map-modal-overlay__tracker">
+        <CombatTurnHeader
+          participants={participantsWithDetails}
+          tokenLookup={tokenMetaById}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div
       ref={rootContainerRef}
@@ -5698,150 +5881,7 @@ export default function ZombiesCharacterSheet() {
               onActionSurge={handleActionSurge}
             />
           )}
-          <Navbar
-            fixed="bottom"
-            data-bs-theme="dark"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-          >
-            <Container style={{ backgroundColor: 'transparent' }}>
-              <Nav
-                className="w-100 align-items-center"
-                style={{ backgroundColor: 'transparent' }}
-              >
-                <div
-                  className="d-flex justify-content-center flex-wrap flex-grow-1"
-                  style={{ backgroundColor: 'transparent' }}
-                >
-                  <Button
-                    onClick={handleShowCharacterInfo}
-                    style={{ color: "black" }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-image-portrait" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowStats}
-                    style={{
-                      color: "black",
-                      backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-scroll" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowSkill}
-                    style={{
-                      color: "black",
-                      backgroundColor: skillsGold,
-                    }}
-                    className={`footer-btn ${
-                      skillPointsLeft > 0 || expertisePointsLeft > 0
-                        ? 'points-glow'
-                        : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-book-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeats}
-                    style={{
-                      color: "black",
-                      backgroundColor: featsGold,
-                    }}
-                    className={`footer-btn ${
-                      featPointsLeft > 0 ? 'points-glow' : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-hand-fist" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeatures}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-star" aria-hidden="true"></i>
-                  </Button>
-                  {hasSpellcasting && (
-                    <Button
-                      onClick={handleShowSpells}
-                      style={{
-                        color: 'black',
-                        backgroundColor: spellsGold,
-                      }}
-                      className={`footer-btn ${
-                        spellPointsLeft > 0 ? 'points-glow' : ''
-                      }`}
-                      variant="secondary"
-                    >
-                      <i className="fas fa-hat-wizard" aria-hidden="true"></i>
-                    </Button>
-                  )}
-                  <Button
-                    onClick={handleShowEquipment}
-                    style={{
-                      color: 'black',
-                      backgroundColor: '#6C757D',
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-toolbox" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowInventory()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-box-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowShop()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-store" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowMapModal}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                    aria-label="Show campaign map"
-                  >
-                    <i className="fas fa-map" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowHelpModal}
-                    style={{ color: "white" }}
-                    className="footer-btn"
-                    variant="primary"
-                  >
-                    <i className="fas fa-info" aria-hidden="true"></i>
-                  </Button>
-                </div>
-              </Nav>
-            </Container>
-          </Navbar>
+          {!shouldShowMapModal && renderFooterNavigation('default')}
         </>
       ) : (
         <div
@@ -6017,8 +6057,9 @@ export default function ZombiesCharacterSheet() {
       characterLookup={tokenMetaById}
       onTokenMove={handleTokenMove}
       onTokenRemove={handleTokenRemove}
-      dockedSide={getDockedSide('map')}
-      onDockChange={(side) => handleDockChange('map', side)}
+      displayMode="overlay"
+      overlayHeader={mapOverlayHeader}
+      overlayFooter={renderFooterNavigation('overlay')}
     />
     {dockedModalElements}
   </div>

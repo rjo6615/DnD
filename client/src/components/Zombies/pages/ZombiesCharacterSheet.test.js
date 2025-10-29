@@ -673,31 +673,10 @@ test('modal docking controls update docking state', async () => {
     expect(mockSkillsModalProps.current.dockedSide).toBeNull();
   });
 
-  expect(typeof mockMapModalProps.current?.onDockChange).toBe('function');
-
-  act(() => {
-    mockMapModalProps.current?.onDockChange?.('right');
-  });
-
-  await waitFor(() => {
-    expect(mockMapModalProps.current).not.toBeNull();
-    if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
-      expect(mockMapModalProps.current.isDocked).toBe(true);
-      expect(mockMapModalProps.current.dockedSide).toBe('right');
-    }
-    expect(mockMapModalProps.current?.show).toBe(true);
-  });
-
-  act(() => {
-    mockMapModalProps.current?.onDockClose?.();
-  });
-
-  await waitFor(() => {
-    expect(mockMapModalProps.current).not.toBeNull();
-    if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
-      expect(mockMapModalProps.current.isDocked).toBe(false);
-    }
-  });
+  expect(mockMapModalProps.current).not.toBeNull();
+  expect(mockMapModalProps.current.displayMode).toBe('overlay');
+  expect(mockMapModalProps.current.overlayHeader).toBeTruthy();
+  expect(mockMapModalProps.current.overlayFooter).toBeTruthy();
 });
 
 test('docked inventory modal retains item change handler', async () => {
