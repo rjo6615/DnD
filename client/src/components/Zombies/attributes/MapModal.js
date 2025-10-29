@@ -5,9 +5,6 @@ import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import DockControls from '../components/DockControls';
-import classNames from '../../../utils/classNames';
-import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
-import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -181,9 +178,6 @@ const areSetsEqual = (a, b) => {
   return true;
 };
 
-const BACKGROUND_DEFAULT_SCALE = 1;
-const BACKGROUND_DRAG_THRESHOLD = 4;
-
 const MapModal = ({
   show,
   onHide,
@@ -213,9 +207,6 @@ const MapModal = ({
 }) => {
   const isBackground = displayMode === 'background';
   const backgroundBoardContainerRef = useRef(null);
-  const backgroundBoardRef = useRef(null);
-  const backgroundDragStateRef = useRef(null);
-  const pointerEventsSupported = usePointerEventsSupported();
   const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
@@ -304,19 +295,8 @@ const MapModal = ({
     [normalizedMaps]
   );
 
-  const [backgroundPan, setBackgroundPan] = useState({ x: 0, y: 0 });
-  const [isBackgroundDragging, setIsBackgroundDragging] = useState(false);
   const [backgroundImageMetrics, setBackgroundImageMetrics] = useState({ width: null, height: null });
   const [backgroundContainerSize, setBackgroundContainerSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (!isBackground) {
-      return;
-    }
-
-    setBackgroundPan({ x: 0, y: 0 });
-    setIsBackgroundDragging(false);
-  }, [isBackground, previewMapId]);
 
   useEffect(() => {
     if (!backgroundImageSrc) {
@@ -901,251 +881,9 @@ const MapModal = ({
     [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
   );
 
-  const computeNormalizedBackgroundCoords = useCallback((clientX, clientY) => {
-    const container = backgroundBoardRef.current;
-    if (!container || typeof container.querySelector !== 'function') {
-      return null;
-    }
-
-    const imageWrapper = container.querySelector('.campaign-map-board__image-wrapper');
-    if (!imageWrapper || typeof imageWrapper.getBoundingClientRect !== 'function') {
-      return null;
-    }
-
-    const rect = imageWrapper.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) {
-      return null;
-    }
-
-    const relativeX = (clientX - rect.left) / rect.width;
-    const relativeY = (clientY - rect.top) / rect.height;
-
-    if (!Number.isFinite(relativeX) || !Number.isFinite(relativeY)) {
-      return null;
-    }
-
-    const clampedX = Math.min(1, Math.max(0, relativeX));
-    const clampedY = Math.min(1, Math.max(0, relativeY));
-
-    return { x: clampedX, y: clampedY };
-  }, []);
-
-  const handleBackgroundPointerDownCapture = useCallback(
-    (event) => {
-      if (!isBackground) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      const target = event.target;
-      if (!target || typeof target.closest !== 'function') {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      if (target.closest('.map-modal-background__overlay')) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      if (target.closest('.campaign-map-board__token') || target.closest('.campaign-map-board__rotation-controls')) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      const pointerButton = event.button;
-      const isPrimaryPointer = pointerButton === 0 || pointerButton === -1;
-      const isTouch = event.pointerType === 'touch';
-      if (!isPrimaryPointer && !isTouch) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      const container = backgroundBoardRef.current;
-      if (!container) {
-        backgroundDragStateRef.current = null;
-        return;
-      }
-
-      event.stopPropagation();
-      event.preventDefault();
-
-      if (pointerEventsSupported && event.pointerId !== undefined) {
-        try {
-          container.setPointerCapture?.(event.pointerId);
-        } catch (error) {
-          // Ignore pointer capture failures in environments that do not support it.
-        }
-      }
-
-      backgroundDragStateRef.current = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        originX: backgroundPan.x,
-        originY: backgroundPan.y,
-        hasMoved: false,
-        lastClientX: event.clientX,
-        lastClientY: event.clientY,
-        shouldHandlePlacement: isPrimaryPointer,
-      };
-    },
-    [backgroundPan.x, backgroundPan.y, isBackground, pointerEventsSupported]
-  );
-
-  const finalizeBackgroundDrag = useCallback(() => {
-    const container = backgroundBoardRef.current;
-    const state = backgroundDragStateRef.current;
-    if (container && state && state.pointerId !== undefined) {
-      try {
-        container.releasePointerCapture?.(state.pointerId);
-      } catch (error) {
-        // Ignore pointer capture release failures.
-      }
-    }
-    backgroundDragStateRef.current = null;
-    setIsBackgroundDragging(false);
-  }, []);
-
-  const clampBackgroundPan = useCallback(
-    (pan) => {
-      const { width: boardWidth, height: boardHeight } = backgroundBoardDimensions || {};
-      const { width: containerWidth, height: containerHeight } = backgroundContainerSize;
-
-      if (
-        !Number.isFinite(boardWidth) ||
-        !Number.isFinite(boardHeight) ||
-        !Number.isFinite(containerWidth) ||
-        !Number.isFinite(containerHeight)
-      ) {
-        return pan;
-      }
-
-      const maxOffsetX = Math.max(0, (boardWidth - containerWidth) / 2);
-      const maxOffsetY = Math.max(0, (boardHeight - containerHeight) / 2);
-
-      const nextX = maxOffsetX === 0 ? 0 : Math.min(Math.max(pan.x, -maxOffsetX), maxOffsetX);
-      const nextY = maxOffsetY === 0 ? 0 : Math.min(Math.max(pan.y, -maxOffsetY), maxOffsetY);
-
-      if (nextX === pan.x && nextY === pan.y) {
-        return pan;
-      }
-
-      return { x: nextX, y: nextY };
-    },
-    [backgroundBoardDimensions, backgroundContainerSize]
-  );
-
-  useEffect(() => {
-    if (!isBackground) {
-      return;
-    }
-
-    setBackgroundPan((previous) => clampBackgroundPan(previous));
-  }, [clampBackgroundPan, isBackground]);
-
-  const handleBackgroundPointerMove = useCallback(
-    (event) => {
-      if (!isBackground) {
-        return;
-      }
-
-      const state = backgroundDragStateRef.current;
-      if (!state || state.pointerId !== event.pointerId) {
-        return;
-      }
-
-      event.stopPropagation();
-
-      const deltaX = event.clientX - state.startX;
-      const deltaY = event.clientY - state.startY;
-
-      if (!state.hasMoved) {
-        const distance = Math.hypot(deltaX, deltaY);
-        if (distance >= BACKGROUND_DRAG_THRESHOLD) {
-          state.hasMoved = true;
-          setIsBackgroundDragging(true);
-        }
-      }
-
-      state.lastClientX = event.clientX;
-      state.lastClientY = event.clientY;
-
-      if (!state.hasMoved) {
-        return;
-      }
-
-      event.preventDefault();
-      setBackgroundPan((previous) => {
-        const desired = {
-          x: state.originX + deltaX,
-          y: state.originY + deltaY,
-        };
-
-        const clamped = clampBackgroundPan(desired);
-
-        if (clamped === previous || (clamped.x === previous.x && clamped.y === previous.y)) {
-          return previous;
-        }
-
-        return clamped;
-      });
-    },
-    [clampBackgroundPan, isBackground]
-  );
-
-  const handleBackgroundPointerEnd = useCallback(
-    (event) => {
-      if (!isBackground) {
-        return;
-      }
-
-      const state = backgroundDragStateRef.current;
-      if (!state || state.pointerId !== event.pointerId) {
-        return;
-      }
-
-      event.stopPropagation();
-
-      if (state.hasMoved) {
-        event.preventDefault();
-        finalizeBackgroundDrag();
-        return;
-      }
-
-      if (state.shouldHandlePlacement) {
-        const coords = computeNormalizedBackgroundCoords(event.clientX, event.clientY);
-        if (coords) {
-          handleBackgroundPlacement(coords);
-        }
-      }
-
-      finalizeBackgroundDrag();
-    },
-    [computeNormalizedBackgroundCoords, finalizeBackgroundDrag, handleBackgroundPlacement, isBackground]
-  );
-
-  const handleBackgroundPointerCancel = useCallback(
-    (event) => {
-      if (!isBackground) {
-        return;
-      }
-
-      const state = backgroundDragStateRef.current;
-      if (!state || state.pointerId !== event.pointerId) {
-        return;
-      }
-
-      event.stopPropagation();
-      finalizeBackgroundDrag();
-    },
-    [finalizeBackgroundDrag, isBackground]
-  );
-
   const backgroundBoardStyleValue = useMemo(() => {
     const style = {
-      '--map-modal-background-scale': BACKGROUND_DEFAULT_SCALE,
-      transform: `translate(calc(-50% + ${backgroundPan.x}px), calc(-50% + ${backgroundPan.y}px)) scale(${BACKGROUND_DEFAULT_SCALE})`,
+      transform: 'translate(-50%, -50%)',
     };
 
     if (backgroundBoardDimensions) {
@@ -1154,53 +892,9 @@ const MapModal = ({
     }
 
     return style;
-  }, [backgroundBoardDimensions, backgroundPan.x, backgroundPan.y]);
+  }, [backgroundBoardDimensions]);
 
-  const backgroundBoardClassName = classNames(
-    'map-modal-background__board-inner',
-    isBackgroundDragging && 'map-modal-background__board-inner--dragging'
-  );
-
-  const backgroundPointerHandlers = useMemo(() => {
-    if (!isBackground) {
-      return {};
-    }
-
-    const handlers = {
-      onPointerDownCapture: handleBackgroundPointerDownCapture,
-      onPointerMoveCapture: handleBackgroundPointerMove,
-      onPointerUpCapture: handleBackgroundPointerEnd,
-      onPointerCancelCapture: handleBackgroundPointerCancel,
-    };
-
-    if (!pointerEventsSupported) {
-      handlers.onMouseDownCapture = (event) =>
-        handleBackgroundPointerDownCapture(enhanceMouseEvent(event));
-      handlers.onMouseMoveCapture = (event) =>
-        handleBackgroundPointerMove(enhanceMouseEvent(event));
-      handlers.onMouseUpCapture = (event) =>
-        handleBackgroundPointerEnd(enhanceMouseEvent(event));
-      handlers.onMouseLeave = (event) =>
-        handleBackgroundPointerCancel(enhanceMouseEvent(event));
-      handlers.onTouchStartCapture = (event) =>
-        handleBackgroundPointerDownCapture(enhanceTouchEvent(event));
-      handlers.onTouchMoveCapture = (event) =>
-        handleBackgroundPointerMove(enhanceTouchEvent(event));
-      handlers.onTouchEndCapture = (event) =>
-        handleBackgroundPointerEnd(enhanceTouchEvent(event));
-      handlers.onTouchCancelCapture = (event) =>
-        handleBackgroundPointerCancel(enhanceTouchEvent(event));
-    }
-
-    return handlers;
-  }, [
-    handleBackgroundPointerCancel,
-    handleBackgroundPointerDownCapture,
-    handleBackgroundPointerEnd,
-    handleBackgroundPointerMove,
-    isBackground,
-    pointerEventsSupported,
-  ]);
+  const backgroundBoardClassName = 'map-modal-background__board-inner';
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
@@ -1610,12 +1304,7 @@ const MapModal = ({
           role="region"
           aria-label={backgroundAriaLabel}
         >
-          <div
-            ref={backgroundBoardRef}
-            className={backgroundBoardClassName}
-            style={backgroundBoardStyleValue}
-            {...backgroundPointerHandlers}
-          >
+          <div className={backgroundBoardClassName} style={backgroundBoardStyleValue}>
             {boardContent}
           </div>
         </div>

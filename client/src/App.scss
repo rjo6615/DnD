@@ -77,13 +77,9 @@
   transform: translate(-50%, -50%)
     scale(var(--map-modal-background-scale, 1));
   transform-origin: center center;
-  cursor: grab;
+  cursor: default;
   touch-action: none;
   pointer-events: auto;
-}
-
-.map-modal-background__board-inner--dragging {
-  cursor: grabbing;
 }
 
 .map-modal-background__board-inner > .map-modal__empty {
