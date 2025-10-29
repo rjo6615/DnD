@@ -159,6 +159,32 @@ const normalizeMapId = (value, visited = new Set()) => {
       }
     }
 
+    const prefixMatch = trimmed.match(
+      /^(?:characters?|character|pcs?|pc|npcs?|npc|tokens?|token|figurines?|figurine|miniatures?|miniature)[\s:._#\/\\]+(.+)$/i
+    );
+    if (prefixMatch) {
+      const remainder = prefixMatch[1].trim();
+      if (remainder) {
+        const normalizedRemainder = normalizeMapId(remainder, visited);
+        if (normalizedRemainder) {
+          return normalizedRemainder;
+        }
+      }
+    }
+
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+      const segments = trimmed.split(/[\/\\]+/).filter(Boolean);
+      if (segments.length > 1) {
+        const lastSegment = segments[segments.length - 1].trim();
+        if (lastSegment && lastSegment !== trimmed) {
+          const normalizedSegment = normalizeMapId(lastSegment, visited);
+          if (normalizedSegment) {
+            return normalizedSegment;
+          }
+        }
+      }
+    }
+
     return trimmed;
   }
 
@@ -935,11 +961,12 @@ const MapModal = ({
           typeof token.characterId === 'string' && token.characterId.trim() !== ''
             ? token.characterId.trim()
             : null;
+        const normalizedTokenIdentifier = normalizeMapId(tokenIdentifier);
 
         const matchesCurrentCharacter = Boolean(
           normalizedCurrentCharacterIdLower &&
-            tokenIdentifier &&
-            tokenIdentifier.toLowerCase() === normalizedCurrentCharacterIdLower
+            normalizedTokenIdentifier &&
+            normalizedTokenIdentifier.toLowerCase() === normalizedCurrentCharacterIdLower
         );
 
         const isMovable =
