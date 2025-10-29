@@ -493,6 +493,38 @@ const MapModal = ({
     tokenMapIdCandidates,
   ]);
 
+  const resolvedPlacementMapId = useMemo(() => {
+    if (placementMapId) {
+      return placementMapId;
+    }
+
+    const directMapIdentifier = normalizeMapId(previewMap?.mapId);
+    if (directMapIdentifier) {
+      return directMapIdentifier;
+    }
+
+    const fallbackPreviewId = normalizeMapId(previewMap?.id ?? previewMap?._id);
+    if (fallbackPreviewId) {
+      return fallbackPreviewId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    placementMapId,
+    previewMap,
+    normalizedSelectedId,
+    normalizedActiveId,
+    tokenMapIdCandidates,
+  ]);
+
   const groupedMaps = useMemo(
     () => groupMapsByFolder(normalizedMaps),
     [normalizedMaps]
@@ -863,11 +895,11 @@ const MapModal = ({
   useEffect(() => {
     setPlacementError(null);
     setPlacementPending(false);
-  }, [placementMapId, currentCharacterId]);
+  }, [resolvedPlacementMapId, currentCharacterId]);
 
   const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(placementMapId),
-    [onTokenMove, placementMapId]
+    () => typeof onTokenMove === 'function' && Boolean(previewMap),
+    [onTokenMove, previewMap]
   );
 
   const backgroundClassName = useMemo(() => {
@@ -1029,7 +1061,7 @@ const MapModal = ({
       }
 
       const normalizedCharacterId = normalizeMapId(characterId);
-      if (!normalizedCharacterId || !placementMapId) {
+      if (!normalizedCharacterId) {
         return;
       }
 
@@ -1042,11 +1074,15 @@ const MapModal = ({
 
       try {
         const payload = {
-          mapId: placementMapId,
           characterId: normalizedCharacterId,
           x,
           y,
         };
+
+        const payloadMapId = resolvedPlacementMapId;
+        if (payloadMapId) {
+          payload.mapId = payloadMapId;
+        }
 
         if (Number.isFinite(rotation)) {
           payload.rotation = rotation;
@@ -1071,8 +1107,8 @@ const MapModal = ({
       isInteractive,
       onTokenMove,
       placementPending,
-      placementMapId,
       readOnly,
+      resolvedPlacementMapId,
     ]
   );
 
@@ -1123,7 +1159,7 @@ const MapModal = ({
         return false;
       }
 
-      if (typeof onTokenRemove !== 'function' || !placementMapId) {
+      if (typeof onTokenRemove !== 'function') {
         return false;
       }
 
@@ -1137,9 +1173,12 @@ const MapModal = ({
       }
 
       const payload = {
-        mapId: placementMapId,
         characterId: normalizedCharacterId,
       };
+
+      if (resolvedPlacementMapId) {
+        payload.mapId = resolvedPlacementMapId;
+      }
 
       if (token) {
         payload.token = token;
@@ -1153,7 +1192,7 @@ const MapModal = ({
       isInteractive,
       placementPending,
       onTokenRemove,
-      placementMapId,
+      resolvedPlacementMapId,
       readOnly,
       normalizedCurrentCharacterId,
       tokensDictionary,

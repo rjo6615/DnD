@@ -430,6 +430,55 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('keeps the background board interactive when the preview map lacks an identifier', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        displayMode="background"
+        map={{
+          title: 'Mystery Cavern',
+          imageUrl: 'https://example.com/mystery-cavern.png',
+        }}
+        tokensByMapId={{
+          'token-map': {
+            hero: {
+              characterId: 'hero',
+              x: 0.2,
+              y: 0.3,
+            },
+          },
+        }}
+        currentCharacterId="hero"
+        characterLookup={{ hero: { label: 'Hero' } }}
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    const wrapper = await screen.findByTestId('map-modal-wrapper');
+    expect(wrapper.className).toContain('map-modal-background--interactive');
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+
+    await act(async () => {
+      boardProps.onTokenPositionChange?.({ characterId: 'hero', x: 0.4, y: 0.6 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mapId: 'token-map',
+          characterId: 'hero',
+          x: 0.4,
+          y: 0.6,
+        })
+      )
+    );
+  });
+
   it('treats snake_case map identifiers as interactive background boards', async () => {
     const handleTokenMove = jest.fn().mockResolvedValue(true);
 
