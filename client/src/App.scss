@@ -77,13 +77,9 @@
   transform: translate(-50%, -50%)
     scale(var(--map-modal-background-scale, 1));
   transform-origin: center center;
-  cursor: grab;
+  cursor: default;
   touch-action: none;
   pointer-events: auto;
-}
-
-.map-modal-background__board-inner--dragging {
-  cursor: grabbing;
 }
 
 .map-modal-background__board-inner > .map-modal__empty {
@@ -130,61 +126,6 @@
   transition: none;
 }
 
-.map-modal-background__overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.map-modal-background__overlay-content {
-  position: relative;
-  z-index: 1;
-  width: min(1100px, 100%);
-  padding: clamp(1rem, 2.5vw, 2rem);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  height: 100%;
-  pointer-events: auto;
-  background: rgba(42, 60, 92, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: var(--bs-border-radius-xl, 1rem);
-  box-shadow: 0 1.75rem 3.75rem rgba(8, 12, 24, 0.32);
-  backdrop-filter: blur(20px);
-}
-
-.map-modal-background__header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.map-modal-background__title {
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
-  font-weight: 600;
-  margin: 0;
-}
-
-.map-modal-background__body {
-  flex: 1 1 auto;
-  overflow: auto;
-  background: transparent;
-  border-radius: var(--bs-border-radius-lg, 0.75rem);
-  padding: clamp(1rem, 2.5vw, 1.5rem);
-  backdrop-filter: none;
-  box-shadow: none;
-}
-
-.map-modal-background__footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .map-modal__list .list-group-item-action {
   transition: background-color 0.2s ease, border-color 0.2s ease,
     transform 0.2s ease, box-shadow 0.2s ease;
@@ -207,6 +148,19 @@
   min-height: 100vh;
 }
 
+.zombies-character-sheet-layout--map-interaction-active .zombies-character-sheet-layout__content {
+  pointer-events: none;
+}
+
+.zombies-character-sheet-layout--map-interaction-active
+  .zombies-character-sheet-layout__content::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 27, 42, 0.3);
+  pointer-events: none;
+}
+
 .zombies-character-sheet-layout__map {
   position: fixed;
   inset: 0;
@@ -215,12 +169,18 @@
 }
 
 .zombies-character-sheet-layout__map--overlay-visible {
-  z-index: 3;
+  z-index: 1;
 }
 
 .zombies-character-sheet-layout__content {
   position: relative;
   z-index: 1;
+}
+
+.zombies-character-sheet-layout__overlay-surface {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .map-display__grid-overlay,
