@@ -141,6 +141,72 @@
   overflow: auto;
 }
 
+.map-modal-overlay--full {
+  .map-modal-overlay__header,
+  .map-modal-overlay__footer {
+    padding: clamp(0.5rem, 1.5vw, 1rem);
+  }
+
+  .map-modal-overlay__body {
+    align-items: stretch;
+    justify-content: center;
+    padding: clamp(0.5rem, 1.5vw, 1.25rem);
+  }
+
+  .map-modal-overlay__content {
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.5vw, 1.5rem);
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+    border-radius: clamp(0.75rem, 2vw, 1.5rem);
+    background: rgba(6, 8, 12, 0.7);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.45);
+    overflow: auto;
+  }
+
+  .map-modal__board-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+  }
+
+  .map-modal__board-wrapper > .campaign-map-board {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .map-modal__board-wrapper > .campaign-map-board .campaign-map-board__title {
+    margin-bottom: clamp(0.5rem, 1.5vw, 1rem);
+  }
+
+  .map-modal__board-wrapper > .campaign-map-board .campaign-map-board__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+  }
+
+  .map-modal__board-wrapper > .campaign-map-board .campaign-map-board__image-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    aspect-ratio: auto;
+    height: auto;
+  }
+
+  .map-modal__board-wrapper > .campaign-map-board .campaign-map-board__image {
+    height: 100%;
+  }
+
+  .map-modal-overlay__content > :not(.map-modal__board-wrapper) {
+    flex: 0 0 auto;
+  }
+}
+
 .map-modal-overlay__footer {
   display: flex;
   justify-content: center;

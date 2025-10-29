@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
+import classNames from '../../../utils/classNames';
 import MapDisplay from './MapDisplay';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
@@ -1014,9 +1015,14 @@ const MapModal = ({
       );
     }
 
+    const overlayClassName = classNames(
+      'map-modal-overlay',
+      displayMode === 'overlay' && !hasManagementFeatures && 'map-modal-overlay--full'
+    );
+
     return (
       <div
-        className="map-modal-overlay"
+        className={overlayClassName}
         data-testid="map-modal-wrapper"
         role="dialog"
         aria-modal="true"
