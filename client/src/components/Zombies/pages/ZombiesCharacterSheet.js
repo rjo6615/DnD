@@ -62,7 +62,6 @@ import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
-import classNames from '../../../utils/classNames';
 
 const HEADER_PADDING = 16;
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -1045,7 +1044,6 @@ export default function ZombiesCharacterSheet() {
   const [campaignMap, setCampaignMap] = useState(null);
   const [campaignMapTokens, setCampaignMapTokens] = useState({});
   const [activeMapTokens, setActiveMapTokens] = useState({});
-  const [showMapModal, setShowMapModal] = useState(false);
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
@@ -3176,9 +3174,6 @@ export default function ZombiesCharacterSheet() {
           case 'help':
             setShowHelpModal(false);
             break;
-          case 'map':
-            setShowMapModal(false);
-            break;
           default:
             break;
         }
@@ -3195,7 +3190,6 @@ export default function ZombiesCharacterSheet() {
       setShowInventory,
       setShowShop,
       setShowHelpModal,
-      setShowMapModal,
     ]
   );
 
@@ -3225,12 +3219,6 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
-  const handleShowMapModal = useCallback(() => setShowMapModal(true), []);
-  const handleCloseMapModal = useCallback(() => {
-    setShowMapModal(false);
-    handleDockClose('map');
-  }, [handleDockClose]);
-
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -3251,8 +3239,6 @@ export default function ZombiesCharacterSheet() {
   );
 
   const shouldShowSkillsModal = showSkill;
-  const shouldShowMapModal = showMapModal;
-
   const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
       result,
@@ -5456,7 +5442,6 @@ export default function ZombiesCharacterSheet() {
       handleCloseFeats,
       handleCloseHelpModal,
       handleCloseInventory,
-      handleCloseMapModal,
       handleCloseShop,
       handleCloseSkill,
       handleCloseSpells,
@@ -5542,18 +5527,9 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
-  const mapLayerClassName = useMemo(
-    () =>
-      classNames(
-        'zombies-character-sheet-layout__map',
-        shouldShowMapModal && 'zombies-character-sheet-layout__map--overlay-visible'
-      ),
-    [shouldShowMapModal]
-  );
-
   return (
     <div className="zombies-character-sheet-layout">
-      <div className={mapLayerClassName}>
+      <div className="zombies-character-sheet-layout__map">
         <MapModal
           show={false}
           map={campaignMap}
@@ -5563,24 +5539,9 @@ export default function ZombiesCharacterSheet() {
           currentCharacterId={resolvedCharacterId}
           activeCharacterId={activeTurnParticipantId}
           characterLookup={tokenMetaById}
-          onTokenMove={shouldShowMapModal ? undefined : handleTokenMove}
-          onTokenRemove={shouldShowMapModal ? undefined : handleTokenRemove}
-          displayMode="background"
-        />
-        <MapModal
-          show={shouldShowMapModal}
-          onHide={handleCloseMapModal}
-          map={campaignMap}
-          maps={campaignMaps}
-          activeMapId={campaignActiveMapId}
-          tokensByMapId={modalTokensByMapId}
-          currentCharacterId={resolvedCharacterId}
-          activeCharacterId={activeTurnParticipantId}
-          characterLookup={tokenMetaById}
           onTokenMove={handleTokenMove}
           onTokenRemove={handleTokenRemove}
-          dockedSide={getDockedSide('map')}
-          onDockChange={(side) => handleDockChange('map', side)}
+          displayMode="background"
         />
       </div>
       <div
@@ -5838,18 +5799,6 @@ export default function ZombiesCharacterSheet() {
                     variant="secondary"
                   >
                     <i className="fas fa-store" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowMapModal}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                    aria-label="Show campaign map"
-                  >
-                    <i className="fas fa-map" aria-hidden="true"></i>
                   </Button>
                   <Button
                     onClick={handleShowHelpModal}
