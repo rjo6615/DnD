@@ -1356,13 +1356,15 @@ const MapModal = ({
       return <p className="text-muted mb-0">No map image available.</p>;
     }
 
+    const isBoardDisabled = placementPending;
+
     return (
       <>
         <div className="map-modal__board-wrapper">
           <CampaignMapBoard
             map={previewMap}
             tokens={boardTokens}
-            disabled={!isInteractive || placementPending}
+            disabled={isBoardDisabled}
             onTokenPositionChange={
               isInteractive ? handleTokenPositionChange : undefined
             }
