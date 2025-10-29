@@ -1,21 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
-const buildImageSource = ({ imageUrl, imageBase64, imageType }) => {
-  if (typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-    return imageUrl.trim();
-  }
-
-  if (typeof imageBase64 === 'string' && imageBase64.trim() !== '') {
-    const mimeType =
-      typeof imageType === 'string' && imageType.trim() !== ''
-        ? imageType.trim()
-        : 'image/png';
-    return `data:${mimeType};base64,${imageBase64.trim()}`;
-  }
-
-  return null;
-};
+import resolveMapImageSource from '../utils/mapImages';
 
 const normalizeText = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
@@ -28,7 +13,7 @@ const MapDisplay = ({ map }) => {
     title ||
     normalizeText(safeMap.prompt) ||
     'Campaign map image';
-  const imageSrc = buildImageSource(safeMap);
+  const imageSrc = resolveMapImageSource(safeMap);
 
   return (
     <div className="map-display">
