@@ -3905,36 +3905,46 @@ h1 {
 
 @media (max-width: 576px) {
   .footer-toolbar {
-    gap: 6px;
-    padding: 10px 14px;
+    gap: 3px;
+    padding: 8px 12px 10px;
+  }
+
+  .footer-toolbar__slots {
+    margin-bottom: -6px;
+  }
+
+  .footer-toolbar__slots > .spell-slot-container {
+    gap: 0.35rem;
+    padding-top: 0;
   }
 
   .footer-actions-wrapper {
-    gap: 4px;
+    gap: 2px;
   }
 
   .footer-actions-inline {
-    gap: 4px;
+    gap: 8px;
+    align-items: center;
   }
 
   .footer-btn {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     padding: 0;
     box-sizing: border-box;
     line-height: 1;
-    margin: 2px;
+    margin: 0 2px;
     font-size: 0.95rem;
   }
 
   .footer-btn--attack {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(88px, 36vw, 132px);
-    margin: 0;
+    --footer-dice-size: clamp(120px, 38vw, 168px);
+    margin-top: 8px;
   }
 
   .footer-actions-popover {
