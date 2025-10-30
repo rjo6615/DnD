@@ -5416,15 +5416,16 @@ export default function ZombiesCharacterSheet() {
     {
       key: 'attack',
       className: 'footer-btn footer-btn--attack',
-      variant: 'secondary',
-      style: { color: 'black', backgroundColor: '#6C757D' },
+      variant: 'link',
+      type: 'button',
       ariaLabel: 'Open attack actions',
       title: 'Attack options',
       content: (
-        <span
-          className="footer-btn__image"
-          style={{ backgroundImage: `url(${sword})` }}
+        <img
+          src={sword}
+          alt=""
           aria-hidden="true"
+          className="footer-btn__attack-image"
         />
       ),
       onClick: () => {
@@ -5433,12 +5434,12 @@ export default function ZombiesCharacterSheet() {
     },
     {
       key: 'dice',
-      className: 'footer-btn',
-      variant: 'secondary',
-      style: { color: 'black', backgroundColor: '#6C757D' },
+      className: 'footer-btn footer-btn--dice',
+      variant: 'link',
+      type: 'button',
       ariaLabel: 'Open dice roller',
       title: 'Dice roller',
-      content: <i className="fas fa-dice-d20" aria-hidden="true"></i>,
+      content: <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>,
       onClick: () => {
         playerTurnActionsRef.current?.openDiceRoller?.();
       },
@@ -6083,6 +6084,7 @@ export default function ZombiesCharacterSheet() {
                         variant={action.variant}
                         className={action.className}
                         style={action.style}
+                        type={action.type}
                         onClick={() => {
                           setShowFooterActions(false);
                           action.onClick?.();
