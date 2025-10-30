@@ -1742,27 +1742,28 @@ body.docked-modal--resizing {
 
 .spell-slot-container {
   display: inline-flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
   flex-shrink: 0;
+  padding-top: 6px;
 }
 
 .spell-slot {
   position: relative;
-  width: 28px;
-  height: 48px;
+  width: 34px;
+  height: 64px;
   color: #fff;
-  padding: 2px;
+  padding: 4px;
   flex-shrink: 0;
 }
 
 .spell-slot.focus-slot {
-  width: 28px;
-  height: 48px;
-  padding: 2px;
-  margin-left: -10px;
+  width: 34px;
+  height: 64px;
+  padding: 4px;
+  margin-left: -6px;
 }
 
 .focus-slot .focus-icon-wrapper {
@@ -1775,24 +1776,25 @@ body.docked-modal--resizing {
   outline: none;
 }
 
+
 .focus-slot .focus-count {
   position: absolute;
-  top: -0.45rem;
-  font-size: 1.1rem;
+  top: -0.35rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #ffffff;
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
 }
 
 .focus-slot .focus-icon {
-  padding-top: 20px;
-  font-size: 2rem;
+  padding-top: 26px;
+  font-size: 2.2rem;
   color: #6c757d;
   transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease;
 }
 
 .focus-slot .focus-icon--glow {
-  padding-top: 20px;
+  padding-top: 26px;
   color: #ffa94d;
   filter: drop-shadow(0 0 6px rgba(255, 153, 0, 0.85))
     drop-shadow(0 0 16px rgba(255, 153, 0, 0.5));
@@ -1802,30 +1804,31 @@ body.docked-modal--resizing {
   transform: scale(0.95);
 }
 
+
 .spell-slot .slot-level {
   position: absolute;
-  top: -2px;               /* push it near the top */
-  left: 50%;              /* move to the horizontal center */
-  transform: translateX(-50%); /* center offset */
-  font-size: 1.2rem;      /* adjust size if needed */
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.3rem;
   z-index: 1;
   pointer-events: none;
 }
 
 .spell-slot .slot-boxes {
-  padding-top: 20px;
+  padding-top: 34px;
   display: grid;
-  grid-template-columns: repeat(2, 10px);
-  grid-template-rows: repeat(2, 10px);
-  gap: 2px;
+  grid-template-columns: repeat(2, 14px);
+  grid-template-rows: repeat(2, 14px);
+  gap: 4px;
   justify-content: center;
 }
 
 .spell-slot .slot-small {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   box-sizing: border-box;
-  border: 1px solid #fff;
+  border: 1.5px solid #fff;
 }
 
 .spell-slot .slot-active {
@@ -1849,18 +1852,18 @@ body.docked-modal--resizing {
 
 .action-slot .slot-boxes,
 .bonus-slot .slot-boxes {
-  padding-top: 20px;
+  padding-top: 34px;
   display: grid;
-  grid-template-columns: repeat(2, 10px);
-  grid-template-rows: repeat(2, 10px);
-  gap: 2px;
+  grid-template-columns: repeat(2, 14px);
+  grid-template-rows: repeat(2, 14px);
+  gap: 4px;
   justify-content: center;
 }
 
 .action-slot .action-circle {
-  width: 10px;
-  height: 10px;
-  border: 1px solid #fff;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #fff;
   border-radius: 50%;
   background: #28a745;
   box-shadow: 0 0 5px #28a745, 0 0 10px #28a745;
@@ -1870,9 +1873,9 @@ body.docked-modal--resizing {
 .bonus-slot { overflow: visible; }
 
 .bonus-slot .bonus-circle {
-  width: 10px;
-  height: 10px;
-  border: 1px solid #fff;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #fff;
   border-radius: 50%;
   background: #ffa500;
   box-shadow: 0 0 5px #ffa500, 0 0 10px #ffa500;
@@ -2292,8 +2295,8 @@ $rotateX: -$angle;
 
 .damage-roller__dice-area {
   position: relative;
-  width: clamp(140px, 36vw, var(--damage-dice-area-size, 320px));
-  height: clamp(140px, 36vw, var(--damage-dice-area-size, 320px));
+  width: clamp(180px, 42vw, var(--damage-dice-area-size, 380px));
+  height: clamp(180px, 42vw, var(--damage-dice-area-size, 380px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2304,7 +2307,7 @@ $rotateX: -$angle;
   perspective: 1400px;
   transform-style: preserve-3d;
   max-width: 100%;
-  max-height: var(--damage-dice-area-size, 320px);
+  max-height: var(--damage-dice-area-size, 380px);
 }
 
 .damage-roller__dice-wrapper {
@@ -2508,7 +2511,7 @@ $rotateX: -$angle;
 
 .damage-die {
   position: absolute;
-  top: 0;
+  top: 50%;
   width: var(--die-size, 36px);
   height: var(--die-size, 36px);
   pointer-events: none;
@@ -2523,7 +2526,7 @@ $rotateX: -$angle;
   --flight-mid-x: 0px;
   --flight-mid-y: -60px;
   --flight-mid-z: 0px;
-  --flight-end-y: 48px;
+  --flight-end-y: 64px;
   --flight-settle-bounce: 8px;
   --rot-x-start: 0deg;
   --rot-y-start: 0deg;
@@ -2739,7 +2742,7 @@ $rotateX: -$angle;
 @keyframes damage-die-flight {
   0% {
     opacity: 0;
-    transform: translateX(-50%)
+    transform: translate(-50%, -50%)
       translate3d(
         var(--flight-start-x, -160px),
         var(--flight-start-y, -140px),
@@ -2754,7 +2757,7 @@ $rotateX: -$angle;
     opacity: 1;
   }
   58% {
-    transform: translateX(-50%)
+    transform: translate(-50%, -50%)
       translate3d(
         var(--flight-mid-x, 0px),
         var(--flight-mid-y, -60px),
@@ -2765,10 +2768,10 @@ $rotateX: -$angle;
       rotateZ(var(--rot-z-mid, 110deg));
   }
   78% {
-    transform: translateX(-50%)
+    transform: translate(-50%, -50%)
       translate3d(
         calc(var(--flight-mid-x, 0px) * 0.25),
-        calc(var(--flight-end-y, 48px) - var(--flight-settle-bounce, 8px)),
+        calc(var(--flight-end-y, 64px) - var(--flight-settle-bounce, 8px)),
         calc(var(--flight-mid-z, 0px) * 0.2)
       )
       rotateX(calc((var(--rot-x-mid, 200deg) + var(--rot-x-end, 0deg)) / 2))
@@ -2777,8 +2780,8 @@ $rotateX: -$angle;
   }
   100% {
     opacity: 1;
-    transform: translateX(-50%)
-      translate3d(0, var(--flight-end-y, 48px), 0)
+    transform: translate(-50%, -50%)
+      translate3d(0, var(--flight-end-y, 64px), 0)
       rotateX(var(--rot-x-end, 0deg))
       rotateY(var(--rot-y-end, 0deg))
       rotateZ(var(--rot-z-end, 0deg));

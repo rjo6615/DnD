@@ -59,7 +59,7 @@ const getDieSize = (sides) => {
   if (DIE_SIZE_BY_SIDES.has(rounded)) {
     return DIE_SIZE_BY_SIDES.get(rounded);
   }
-  return clamp(42 + rounded * 0.75, 40, 66);
+  return clamp(52 + rounded * 0.9, 48, 92);
 };
 
 const getDieShapeClass = (sides) => {
