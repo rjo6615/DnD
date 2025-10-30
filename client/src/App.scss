@@ -3762,6 +3762,7 @@ h1 {
 }
 
 .footer-btn--dice .fa-dice-d20 {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3774,6 +3775,14 @@ h1 {
 }
 
 .footer-btn--dice .fa-dice-d20::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
   font-size: inherit;
 }
 
