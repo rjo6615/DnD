@@ -9,7 +9,6 @@ import React, {
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
 import UpcastModal from './UpcastModal';
-import sword from "../../../images/sword.png";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { normalizeWeapons } from './inventoryNormalization';
@@ -405,9 +404,9 @@ const PlayerTurnActions = React.forwardRef(
   const [showAttack, setShowAttack] = useState(false);
   const [showDiceRoller, setShowDiceRoller] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
-  const handleShowAttack = () => setShowAttack(true);
+  const handleShowAttack = useCallback(() => setShowAttack(true), []);
   const handleCloseDiceRoller = () => setShowDiceRoller(false);
-  const handleShowDiceRoller = () => setShowDiceRoller(true);
+  const handleShowDiceRoller = useCallback(() => setShowDiceRoller(true), []);
 
   const handleDiceRollComplete = ({ total, count, sides, values, usedFallback } = {}) => {
     if (!Number.isFinite(total)) {
@@ -2071,7 +2070,15 @@ const updateDamageValueWithAnimation = (
   }
 };
 
-useImperativeHandle(ref, () => ({ updateDamageValueWithAnimation }));
+useImperativeHandle(
+  ref,
+  () => ({
+    updateDamageValueWithAnimation,
+    openAttackModal: handleShowAttack,
+    openDiceRoller: handleShowDiceRoller,
+  }),
+  [handleShowAttack, handleShowDiceRoller],
+);
 
 const [pulseClass, setPulseClass] = useState('');
 
@@ -2423,37 +2430,6 @@ const damageAmountStyle = {
                   >
                     {damageValue}
                   </span>
-                </div>
-                <div className="damage-roller__overlay-dice">
-                  <button
-                    type="button"
-                    className="damage-roller__dice-button"
-                    onClick={handleShowDiceRoller}
-                    title="Open dice roller"
-                    aria-label="Open dice roller"
-                  >
-                    <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
-                  </button>
-                </div>
-                <div className="damage-roller__overlay-button">
-                  {/* Attack Button */}
-                  <button
-                    onClick={handleShowAttack}
-                    style={{
-                      width: '64px',
-                      height: '64px',
-                      backgroundImage: `url(${sword})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      border: 'none',
-                      transition: 'transform 0.2s ease',
-                      cursor: 'pointer',
-                      backgroundColor: 'transparent',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                    title="Attack"
-                  />
                 </div>
               </div>
             </div>
