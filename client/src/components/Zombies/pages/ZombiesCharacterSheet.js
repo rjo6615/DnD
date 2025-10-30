@@ -46,6 +46,7 @@ import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
 import adrenalineRushIcon from "../../../images/adrenaline-rush.png";
 import speakWithAnimalsIcon from "../../../images/speak-with-animal.png";
+import sword from "../../../images/sword.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
@@ -2301,6 +2302,8 @@ export default function ZombiesCharacterSheet() {
   ]);
 
   const playerTurnActionsRef = useRef(null);
+  const footerMenuRef = useRef(null);
+  const footerToggleRef = useRef(null);
   const speakWithAnimalsPendingRef = useRef(false);
   const socketRef = useRef(null);
 
@@ -2310,6 +2313,9 @@ export default function ZombiesCharacterSheet() {
   const combatHeaderRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
+  const [showFooterActions, setShowFooterActions] = useState(
+    () => process.env.NODE_ENV === 'test'
+  );
 
   useEffect(() => {
     if (!usageResetInitializedRef.current.long) {
@@ -5361,6 +5367,197 @@ export default function ZombiesCharacterSheet() {
   const shouldShowDiceLoadingOverlay =
     isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
 
+  useEffect(() => {
+    if (!showFooterActions) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowFooterActions(false);
+      }
+    };
+
+    const handlePointerEvent = (event) => {
+      const menu = footerMenuRef.current;
+      const toggle = footerToggleRef.current;
+      if (!menu || !toggle) {
+        return;
+      }
+
+      if (!menu.contains(event.target) && !toggle.contains(event.target)) {
+        setShowFooterActions(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerEvent);
+    document.addEventListener('touchstart', handlePointerEvent);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerEvent);
+      document.removeEventListener('touchstart', handlePointerEvent);
+    };
+  }, [showFooterActions]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
+    if (!isFormReady && showFooterActions) {
+      setShowFooterActions(false);
+    }
+  }, [isFormReady, showFooterActions]);
+
+  const footerActionTabIndex = showFooterActions ? undefined : -1;
+  const footerQuickActionButtons = [
+    {
+      key: 'attack',
+      className: 'footer-btn footer-btn--attack',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open attack actions',
+      title: 'Attack options',
+      content: (
+        <span
+          className="footer-btn__image"
+          style={{ backgroundImage: `url(${sword})` }}
+          aria-hidden="true"
+        />
+      ),
+      onClick: () => {
+        playerTurnActionsRef.current?.openAttackModal?.();
+      },
+    },
+    {
+      key: 'dice',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open dice roller',
+      title: 'Dice roller',
+      content: <i className="fas fa-dice-d20" aria-hidden="true"></i>,
+      onClick: () => {
+        playerTurnActionsRef.current?.openDiceRoller?.();
+      },
+    },
+  ];
+  const footerMenuButtons = [
+    {
+      key: 'characterInfo',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open character info',
+      title: 'Character info',
+      content: <i className="fas fa-image-portrait" aria-hidden="true"></i>,
+      onClick: handleShowCharacterInfo,
+    },
+    {
+      key: 'stats',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: {
+        color: 'black',
+        backgroundColor: statPointsLeft > 0 ? 'gold' : '#6C757D',
+      },
+      ariaLabel: 'Open stats',
+      title: 'Stats',
+      content: <i className="fas fa-scroll" aria-hidden="true"></i>,
+      onClick: handleShowStats,
+    },
+    {
+      key: 'skills',
+      className: `footer-btn ${
+        skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
+      }`,
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: skillsGold },
+      ariaLabel: 'Open skills',
+      title: 'Skills',
+      content: <i className="fas fa-book-open" aria-hidden="true"></i>,
+      onClick: handleShowSkill,
+    },
+    {
+      key: 'feats',
+      className: `footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`,
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: featsGold },
+      ariaLabel: 'Open feats',
+      title: 'Feats',
+      content: <i className="fas fa-hand-fist" aria-hidden="true"></i>,
+      onClick: handleShowFeats,
+    },
+    {
+      key: 'features',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open features',
+      title: 'Features',
+      content: <i className="fas fa-star" aria-hidden="true"></i>,
+      onClick: handleShowFeatures,
+    },
+  ];
+
+  if (hasSpellcasting) {
+    footerMenuButtons.push({
+      key: 'spells',
+      className: `footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`,
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: spellsGold },
+      ariaLabel: 'Open spells',
+      title: 'Spells',
+      content: <i className="fas fa-hat-wizard" aria-hidden="true"></i>,
+      onClick: handleShowSpells,
+    });
+  }
+
+  footerMenuButtons.push(
+    {
+      key: 'equipment',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open equipment',
+      title: 'Equipment',
+      content: <i className="fas fa-toolbox" aria-hidden="true"></i>,
+      onClick: handleShowEquipment,
+    },
+    {
+      key: 'inventory',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open inventory',
+      title: 'Inventory',
+      content: <i className="fas fa-box-open" aria-hidden="true"></i>,
+      onClick: () => handleShowInventory(),
+    },
+    {
+      key: 'shop',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open shop',
+      title: 'Shop',
+      content: <i className="fas fa-store" aria-hidden="true"></i>,
+      onClick: () => handleShowShop(),
+    },
+    {
+      key: 'help',
+      className: 'footer-btn',
+      variant: 'primary',
+      style: { color: 'white' },
+      ariaLabel: 'Open help',
+      title: 'Help',
+      content: <i className="fas fa-info" aria-hidden="true"></i>,
+      onClick: handleShowHelpModal,
+    },
+  );
+
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
       characterInfo: {
@@ -5612,6 +5809,57 @@ export default function ZombiesCharacterSheet() {
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
   const mapDockedSide = useMemo(() => getDockedSide('map'), [getDockedSide]);
+  const lastAutoDockedMapIdRef = useRef(null);
+
+  useEffect(() => {
+    const activeMapId =
+      typeof resolvedCampaignMap?.mapId === 'string' &&
+      resolvedCampaignMap.mapId.trim() !== ''
+        ? resolvedCampaignMap.mapId.trim()
+        : null;
+
+    setDockedModals((prev) => {
+      const hasDockedMap = prev.left === 'map' || prev.right === 'map';
+
+      if (!activeMapId) {
+        if (!hasDockedMap) {
+          lastAutoDockedMapIdRef.current = null;
+          return prev;
+        }
+
+        const next = { ...prev };
+        if (next.left === 'map') {
+          next.left = null;
+        }
+        if (next.right === 'map') {
+          next.right = null;
+        }
+        lastAutoDockedMapIdRef.current = null;
+        return next;
+      }
+
+      if (hasDockedMap) {
+        lastAutoDockedMapIdRef.current = activeMapId;
+        return prev;
+      }
+
+      if (lastAutoDockedMapIdRef.current === activeMapId) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      if (next.left === null) {
+        next.left = 'map';
+      } else if (next.right === null) {
+        next.right = 'map';
+      } else {
+        return prev;
+      }
+
+      lastAutoDockedMapIdRef.current = activeMapId;
+      return next;
+    });
+  }, [resolvedCampaignMap, setDockedModals]);
 
   const isMapInteractionActive = useMemo(
     () => Boolean(mapDockedSide),
@@ -5825,123 +6073,78 @@ export default function ZombiesCharacterSheet() {
                 style={{ backgroundColor: 'transparent' }}
               >
                 <div
-                  className="d-flex justify-content-center flex-wrap flex-grow-1"
+                  className="footer-actions-wrapper flex-grow-1"
                   style={{ backgroundColor: 'transparent' }}
                 >
-                  <Button
-                    onClick={handleShowCharacterInfo}
-                    style={{ color: "black" }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-image-portrait" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowStats}
-                    style={{
-                      color: "black",
-                      backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-scroll" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowSkill}
-                    style={{
-                      color: "black",
-                      backgroundColor: skillsGold,
-                    }}
-                    className={`footer-btn ${
-                      skillPointsLeft > 0 || expertisePointsLeft > 0
-                        ? 'points-glow'
-                        : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-book-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeats}
-                    style={{
-                      color: "black",
-                      backgroundColor: featsGold,
-                    }}
-                    className={`footer-btn ${
-                      featPointsLeft > 0 ? 'points-glow' : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-hand-fist" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeatures}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-star" aria-hidden="true"></i>
-                  </Button>
-                  {hasSpellcasting && (
+                  <div className="footer-actions-inline">
+                    {footerQuickActionButtons.map((action) => (
+                      <Button
+                        key={action.key}
+                        variant={action.variant}
+                        className={action.className}
+                        style={action.style}
+                        onClick={() => {
+                          setShowFooterActions(false);
+                          action.onClick?.();
+                        }}
+                        aria-label={action.ariaLabel}
+                        title={action.title}
+                      >
+                        {action.content}
+                      </Button>
+                    ))}
                     <Button
-                      onClick={handleShowSpells}
-                      style={{
-                        color: 'black',
-                        backgroundColor: spellsGold,
-                      }}
-                      className={`footer-btn ${
-                        spellPointsLeft > 0 ? 'points-glow' : ''
+                      ref={footerToggleRef}
+                      onClick={() => setShowFooterActions((prev) => !prev)}
+                      aria-expanded={showFooterActions}
+                      aria-controls="footer-actions-panel"
+                      aria-label={
+                        showFooterActions
+                          ? 'Hide footer actions'
+                          : 'Show footer actions'
+                      }
+                      title={
+                        showFooterActions
+                          ? 'Hide footer actions'
+                          : 'Show footer actions'
+                      }
+                      className={`footer-btn footer-menu-toggle ${
+                        showFooterActions ? 'is-open' : ''
                       }`}
                       variant="secondary"
                     >
-                      <i className="fas fa-hat-wizard" aria-hidden="true"></i>
+                      <i
+                        className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
+                        aria-hidden="true"
+                      ></i>
                     </Button>
-                  )}
-                  <Button
-                    onClick={handleShowEquipment}
-                    style={{
-                      color: 'black',
-                      backgroundColor: '#6C757D',
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
+                  </div>
+                  <div
+                    ref={footerMenuRef}
+                    id="footer-actions-panel"
+                    className={`footer-actions-popover ${
+                      showFooterActions ? 'is-open' : ''
+                    }`}
+                    aria-hidden={!showFooterActions}
                   >
-                    <i className="fas fa-toolbox" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowInventory()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-box-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowShop()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-store" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowHelpModal}
-                    style={{ color: "white" }}
-                    className="footer-btn"
-                    variant="primary"
-                  >
-                    <i className="fas fa-info" aria-hidden="true"></i>
-                  </Button>
+                    {footerMenuButtons.map((action) => (
+                      <Button
+                        key={action.key}
+                        variant={action.variant}
+                        className={action.className}
+                        style={action.style}
+                        onClick={() => {
+                          setShowFooterActions(false);
+                          action.onClick?.();
+                        }}
+                        tabIndex={footerActionTabIndex}
+                        aria-label={action.ariaLabel}
+                        title={action.title}
+                      >
+                        {action.content}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </Nav>
             </Container>
