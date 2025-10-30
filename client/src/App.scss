@@ -3744,7 +3744,7 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(112px, 24vw, 160px);
+  --footer-dice-size: clamp(48px, 12vw, 48px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   display: flex;
