@@ -144,9 +144,13 @@ export default function SpellSlots({
   );
 
   return (
-    <div style={{ display: 'flex', flexShrink: 0 }}>
-      <div className="spell-slot-container">
-        <div className="spell-slot action-slot">
+    <div
+      className="spell-slot-container"
+      data-allow-pointer-events="true"
+      role="group"
+      aria-label="Spell slots and action tracking"
+    >
+      <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
             {Array.from({ length: actionCount }).map((_, i) => {
@@ -165,57 +169,56 @@ export default function SpellSlots({
             })}
           </div>
         </div>
-        <div className="spell-slot bonus-slot">
-          <div className="slot-level">B</div>
-          <div className="slot-boxes">
-            {Array.from({ length: bonusCount }).map((_, i) => {
-              const state = used.bonus?.[i];
-              const cls = state === 'used' ? 'slot-used' : 'slot-active';
-              return (
-                <div
-                  key={i}
-                  data-slot-index={i}
-                  className={`bonus-circle ${cls}`}
-                  onClick={() =>
-                    onToggleSlot && onToggleSlot('bonus', i, bonusCount)
-                  }
-                />
-              );
-            })}
+      <div className="spell-slot bonus-slot">
+        <div className="slot-level">B</div>
+        <div className="slot-boxes">
+          {Array.from({ length: bonusCount }).map((_, i) => {
+            const state = used.bonus?.[i];
+            const cls = state === 'used' ? 'slot-used' : 'slot-active';
+            return (
+              <div
+                key={i}
+                data-slot-index={i}
+                className={`bonus-circle ${cls}`}
+                onClick={() =>
+                  onToggleSlot && onToggleSlot('bonus', i, bonusCount)
+                }
+              />
+            );
+          })}
+        </div>
+      </div>
+      {hasMonkFocus && (
+        <div className="spell-slot focus-slot">
+          <div
+            className="focus-icon-wrapper"
+            role="button"
+            tabIndex={0}
+            onClick={handleFocusClick}
+            onContextMenu={handleFocusContext}
+            onDoubleClick={handleFocusDoubleClick}
+            onKeyDown={handleFocusKeyDown}
+            title={
+              "Monk's Focus: " +
+              `${focusRemaining}/${monkFocusPoints} remaining. ` +
+              'Click to spend, Shift+Click or right-click to restore, double-click to reset.'
+            }
+            aria-label={`Monk's Focus: ${focusRemaining} of ${monkFocusPoints} remaining`}
+          >
+            <div className="focus-count" aria-hidden="true">
+              {focusRemaining}
+            </div>
+            <FaHandSparkles
+              aria-hidden="true"
+              className={`focus-icon ${
+                focusRemaining > 0 ? 'focus-icon--glow' : ''
+              }`}
+            />
           </div>
         </div>
-        {hasMonkFocus && (
-          <div className="spell-slot focus-slot">
-            <div
-              className="focus-icon-wrapper"
-              role="button"
-              tabIndex={0}
-              onClick={handleFocusClick}
-              onContextMenu={handleFocusContext}
-              onDoubleClick={handleFocusDoubleClick}
-              onKeyDown={handleFocusKeyDown}
-              title={
-                "Monk's Focus: " +
-                `${focusRemaining}/${monkFocusPoints} remaining. ` +
-                'Click to spend, Shift+Click or right-click to restore, double-click to reset.'
-              }
-              aria-label={`Monk's Focus: ${focusRemaining} of ${monkFocusPoints} remaining`}
-            >
-              <div className="focus-count" aria-hidden="true">
-                {focusRemaining}
-              </div>
-              <FaHandSparkles
-                aria-hidden="true"
-                className={`focus-icon ${
-                  focusRemaining > 0 ? 'focus-icon--glow' : ''
-                }`}
-              />
-            </div>
-          </div>
-        )}
-        {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
-        {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
-      </div>
+      )}
+      {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
+      {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
     </div>
   );
 }

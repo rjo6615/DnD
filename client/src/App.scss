@@ -1741,14 +1741,12 @@ body.docked-modal--resizing {
 }
 
 .spell-slot-container {
-  position: fixed;
-  bottom: 60px;
-  left: 0;
-  right: 0;
-  display: flex;
+  display: inline-flex;
+  align-items: flex-end;
   justify-content: center;
   gap: 0.5rem;
-  z-index: 1030;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .spell-slot {
@@ -1757,6 +1755,7 @@ body.docked-modal--resizing {
   height: 48px;
   color: #fff;
   padding: 2px;
+  flex-shrink: 0;
 }
 
 .spell-slot.focus-slot {
@@ -3695,7 +3694,7 @@ h1 {
   align-items: center;
   justify-content: center;
   margin: 0 4px;
-  margin-top: 10px;
+  flex-shrink: 0;
 }
 
 .footer-btn.btn-link {
@@ -3742,17 +3741,16 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  width: 64px;
-  height: 64px;
-  margin-top: 2px;
+  width: 80px;
+  height: 80px;
   padding: 0;
   border: none;
   background: transparent !important;
   color: #ffffff !important;
-  font-size: 64px;
-  line-height: 64px;
+  font-size: 80px;
+  line-height: 80px;
   box-shadow: none;
-  --fa-font-size: 64px;
+  --fa-font-size: 80px;
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
 }
 
@@ -3798,16 +3796,52 @@ h1 {
 
 .footer-actions-wrapper {
   position: relative;
-  width: 100%;
   display: flex;
-  justify-content: center;
-  padding: 8px 0 4px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  gap: 8px;
 }
 
 .footer-actions-inline {
-  display: flex;
-  align-items: center;
+  display: inline-flex;
+  align-items: flex-end;
   justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.footer-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
+}
+
+.footer-nav {
+  width: 100%;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.footer-toolbar {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  max-width: calc(100vw - 32px);
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+.footer-toolbar > .spell-slot-container {
+  justify-content: flex-start;
 }
 
 .footer-menu-toggle {
@@ -3816,9 +3850,9 @@ h1 {
 
 .footer-actions-popover {
   position: absolute;
-  bottom: 56px;
+  bottom: calc(100% + 12px);
   left: 50%;
-  transform: translate(-50%, 8px);
+  transform: translate(-50%, 12px);
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
