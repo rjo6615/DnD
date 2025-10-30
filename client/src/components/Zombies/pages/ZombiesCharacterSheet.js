@@ -6063,15 +6063,20 @@ export default function ZombiesCharacterSheet() {
                   data-allow-pointer-events="true"
                 >
                   {form && (
-                    <SpellSlots
-                      form={form}
-                      used={usedSlots}
-                      onToggleSlot={handleCastSpell}
-                      actionCount={actionCount}
-                      longRestCount={longRestCount}
-                      shortRestCount={shortRestCount}
-                      onActionSurge={handleActionSurge}
-                    />
+                    <div
+                      className="footer-toolbar__slots"
+                      data-allow-pointer-events="true"
+                    >
+                      <SpellSlots
+                        form={form}
+                        used={usedSlots}
+                        onToggleSlot={handleCastSpell}
+                        actionCount={actionCount}
+                        longRestCount={longRestCount}
+                        shortRestCount={shortRestCount}
+                        onActionSurge={handleActionSurge}
+                      />
+                    </div>
                   )}
                   <div className="footer-actions-wrapper">
                     <div className="footer-actions-inline">
