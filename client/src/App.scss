@@ -3742,17 +3742,22 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   margin-top: 2px;
   padding: 0;
   border: none;
   background: transparent !important;
   color: #ffffff !important;
-  font-size: 1.9rem;
+  font-size: 4rem;
   line-height: 1;
   box-shadow: none;
+  --fa-font-size: 4rem;
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.footer-btn--dice .fa-dice-d20 {
+  font-size: 1em;
 }
 
 .footer-btn--dice::before {
