@@ -183,9 +183,33 @@
 }
 
 .zombies-character-sheet-layout__overlay-surface {
-  pointer-events: auto;
   position: relative;
   z-index: 2;
+}
+
+.zombies-character-sheet-layout--map-interaction-active
+  // Allow the map to receive clicks when docked by default, while
+  // re-enabling interaction on specific focusable controls.
+  .zombies-character-sheet-layout__overlay-surface {
+  pointer-events: none;
+}
+
+.zombies-character-sheet-layout--map-interaction-active
+  .zombies-character-sheet-layout__overlay-surface
+  :is(
+    button,
+    [role='button'],
+    a,
+    input,
+    select,
+    textarea,
+    label,
+    summary,
+    details,
+    [tabindex]:not([tabindex='-1']),
+    [data-allow-pointer-events='true']
+  ) {
+  pointer-events: auto;
 }
 
 .map-display__grid-overlay,
