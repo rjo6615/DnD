@@ -3754,34 +3754,17 @@ h1 {
   border: none;
   background: transparent !important;
   color: #ffffff !important;
-  font-size: calc(var(--footer-dice-size) * 0.95);
-  line-height: 1;
   box-shadow: none;
-  --fa-font-size: calc(var(--footer-dice-size) * 0.95);
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
 }
 
-.footer-btn--dice .fa-dice-d20 {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: calc(var(--footer-dice-size) * 0.96);
-  --fa-font-size: calc(var(--footer-dice-size) * 0.96);
-  line-height: 1;
-  text-align: center;
-}
-
-.footer-btn--dice .fa-dice-d20::before {
-  position: static;
+.footer-btn__dice-icon {
   display: block;
   width: 100%;
   height: 100%;
-  line-height: inherit;
-  font-size: inherit;
-  transform: none;
+  color: inherit;
+  fill: currentColor;
+  transition: inherit;
 }
 
 .footer-btn--dice::before {
@@ -3972,8 +3955,6 @@ h1 {
   .footer-btn--dice {
     --footer-dice-size: clamp(120px, 38vw, 168px);
     margin-top: 0;
-    font-size: calc(var(--footer-dice-size) * 0.95);
-    --fa-font-size: calc(var(--footer-dice-size) * 0.95);
   }
 
   .footer-actions-popover {
