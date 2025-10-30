@@ -3741,17 +3741,17 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(88px, 18vw, 112px);
+  --footer-dice-size: clamp(112px, 24vw, 160px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   padding: 0;
   border: none;
   background: transparent !important;
   color: #ffffff !important;
-  font-size: calc(var(--footer-dice-size) * 0.9);
+  font-size: calc(var(--footer-dice-size) * 0.95);
   line-height: var(--footer-dice-size);
   box-shadow: none;
-  --fa-font-size: calc(var(--footer-dice-size) * 0.9);
+  --fa-font-size: calc(var(--footer-dice-size) * 0.95);
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
 }
 
@@ -3799,6 +3799,7 @@ h1 {
   text-shadow: 0 0 6px rgba(136, 188, 255, 0.5);
 }
 
+
 .footer-actions-wrapper {
   position: relative;
   display: flex;
@@ -3806,14 +3807,14 @@ h1 {
   align-items: center;
   justify-content: flex-end;
   padding: 0;
-  gap: 8px;
+  gap: 6px;
 }
 
 .footer-actions-inline {
   display: inline-flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -3821,7 +3822,7 @@ h1 {
   width: 100%;
   display: flex;
   justify-content: center;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0));
 }
 
 .footer-nav {
@@ -3834,10 +3835,10 @@ h1 {
 .footer-toolbar {
   display: inline-flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 12px 18px;
   background: rgba(0, 0, 0, 0.55);
   border-radius: 999px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
@@ -3848,10 +3849,12 @@ h1 {
   display: flex;
   width: 100%;
   justify-content: center;
+  margin-bottom: -2px;
 }
 
 .footer-toolbar__slots > .spell-slot-container {
   justify-content: center;
+  gap: 0.4rem;
 }
 
 .footer-menu-toggle {
