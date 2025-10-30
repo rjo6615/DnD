@@ -3904,15 +3904,49 @@ h1 {
 }
 
 @media (max-width: 576px) {
+  .footer-toolbar {
+    gap: 2px;
+    padding: 6px 10px 8px;
+  }
+
+  .footer-toolbar__slots {
+    margin-bottom: -10px;
+  }
+
+  .footer-toolbar__slots > .spell-slot-container {
+    gap: 0.25rem;
+    padding-top: 0;
+  }
+
+  .footer-actions-wrapper {
+    gap: 4px;
+  }
+
+  .footer-actions-inline {
+    gap: 8px;
+    align-items: flex-end;
+  }
+
   .footer-btn {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     padding: 0;
     box-sizing: border-box;
     line-height: 1;
     margin: 0 2px;
-    margin-top: 10px;
-    font-size: 0.9rem;
+    font-size: 1rem;
+  }
+
+  .footer-btn--attack {
+    width: 56px;
+    height: 56px;
+  }
+
+  .footer-btn--dice {
+    --footer-dice-size: clamp(120px, 42vw, 176px);
+    width: var(--footer-dice-size);
+    height: var(--footer-dice-size);
+    margin-top: 0;
   }
 
   .footer-actions-popover {
