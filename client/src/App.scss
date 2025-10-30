@@ -3766,6 +3766,14 @@ h1 {
   text-shadow: 0 0 12px rgba(136, 188, 255, 0.8);
 }
 
+.footer-btn--dice:hover::before,
+.footer-btn--dice:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+  border-color: rgba(102, 162, 255, 0.95);
+  box-shadow: 0 0 24px rgba(86, 144, 255, 0.65);
+}
+
 .footer-btn--dice:focus-visible {
   outline: none;
 }
