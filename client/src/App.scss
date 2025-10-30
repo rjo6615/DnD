@@ -3172,7 +3172,7 @@ h1 {
   display: block;
   position: absolute;
   top: 50%; // Center vertically
-  left: 30%; // Center horizontally
+  left: 50%; // Center horizontally
   transform: translate(-50%, -50%);
   transition: transform 200ms;
 }
@@ -3747,12 +3747,15 @@ h1 {
   --footer-dice-size: clamp(112px, 24vw, 160px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   border: none;
   background: transparent !important;
   color: #ffffff !important;
   font-size: calc(var(--footer-dice-size) * 0.95);
-  line-height: var(--footer-dice-size);
+  line-height: 1;
   box-shadow: none;
   --fa-font-size: calc(var(--footer-dice-size) * 0.95);
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
@@ -3862,6 +3865,23 @@ h1 {
 
 .footer-menu-toggle {
   margin-top: 0;
+}
+
+.footer-menu-toggle.btn-secondary,
+.footer-menu-toggle.btn-secondary:hover,
+.footer-menu-toggle.btn-secondary:active {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.footer-menu-toggle.btn-secondary:focus,
+.footer-menu-toggle.btn-secondary:focus-visible {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(136, 188, 255, 0.55);
 }
 
 .footer-actions-popover {
