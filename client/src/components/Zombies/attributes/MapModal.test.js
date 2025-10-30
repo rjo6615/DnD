@@ -746,6 +746,50 @@ describe('MapModal background interactions', () => {
     });
   });
 
+  it('allows token manipulation when alternate identifiers match the current character', async () => {
+    const handleTokenMove = jest.fn();
+
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            'pc-rogue': {
+              characterId: 'pc-rogue',
+              playerCharacterId: 'rogue',
+              x: 0.1,
+              y: 0.2,
+            },
+          },
+        }}
+        currentCharacterId="rogue"
+        onTokenMove={handleTokenMove}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toHaveLength(1);
+    expect(boardProps.tokens[0]).toMatchObject({ characterId: 'pc-rogue', isMovable: true });
+
+    await act(async () => {
+      boardProps.onTokenPositionChange?.({ characterId: 'pc-rogue', x: 0.4, y: 0.5 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          characterId: 'pc-rogue',
+          mapId: 'map-1',
+          x: 0.4,
+          y: 0.5,
+        })
+      )
+    );
+  });
+
   it('prioritizes the provided background map even when saved maps exist', async () => {
     const backgroundMap = {
       _id: 'primary-map',
