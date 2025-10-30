@@ -6046,106 +6046,104 @@ export default function ZombiesCharacterSheet() {
               />
             </div>
           </div>
-          {form && (
-            <div
-              className={overlaySurfaceClassName || undefined}
-              style={{ width: '100%' }}
-            >
-              <SpellSlots
-                form={form}
-                used={usedSlots}
-                onToggleSlot={handleCastSpell}
-                actionCount={actionCount}
-                longRestCount={longRestCount}
-                shortRestCount={shortRestCount}
-                onActionSurge={handleActionSurge}
-              />
-            </div>
-          )}
           <Navbar
             fixed="bottom"
             data-bs-theme="dark"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            style={{ backgroundColor: 'transparent' }}
             className={overlaySurfaceClassName || undefined}
           >
-            <Container style={{ backgroundColor: 'transparent' }}>
+            <Container className="footer-container">
               <Nav
-                className="w-100 align-items-center"
-                style={{ backgroundColor: 'transparent' }}
+                className="footer-nav"
+                role="navigation"
+                aria-label="Character sheet footer actions"
               >
                 <div
-                  className="footer-actions-wrapper flex-grow-1"
-                  style={{ backgroundColor: 'transparent' }}
+                  className="footer-toolbar"
+                  data-allow-pointer-events="true"
                 >
-                  <div className="footer-actions-inline">
-                    {footerQuickActionButtons.map((action) => (
+                  {form && (
+                    <SpellSlots
+                      form={form}
+                      used={usedSlots}
+                      onToggleSlot={handleCastSpell}
+                      actionCount={actionCount}
+                      longRestCount={longRestCount}
+                      shortRestCount={shortRestCount}
+                      onActionSurge={handleActionSurge}
+                    />
+                  )}
+                  <div className="footer-actions-wrapper">
+                    <div className="footer-actions-inline">
+                      {footerQuickActionButtons.map((action) => (
+                        <Button
+                          key={action.key}
+                          variant={action.variant}
+                          className={action.className}
+                          style={action.style}
+                          type={action.type}
+                          onClick={() => {
+                            setShowFooterActions(false);
+                            action.onClick?.();
+                          }}
+                          aria-label={action.ariaLabel}
+                          title={action.title}
+                        >
+                          {action.content}
+                        </Button>
+                      ))}
                       <Button
-                        key={action.key}
-                        variant={action.variant}
-                        className={action.className}
-                        style={action.style}
-                        type={action.type}
-                        onClick={() => {
-                          setShowFooterActions(false);
-                          action.onClick?.();
-                        }}
-                        aria-label={action.ariaLabel}
-                        title={action.title}
+                        ref={footerToggleRef}
+                        onClick={() => setShowFooterActions((prev) => !prev)}
+                        aria-expanded={showFooterActions}
+                        aria-controls="footer-actions-panel"
+                        aria-label={
+                          showFooterActions
+                            ? 'Hide footer actions'
+                            : 'Show footer actions'
+                        }
+                        title={
+                          showFooterActions
+                            ? 'Hide footer actions'
+                            : 'Show footer actions'
+                        }
+                        className={`footer-btn footer-menu-toggle ${
+                          showFooterActions ? 'is-open' : ''
+                        }`}
+                        variant="secondary"
                       >
-                        {action.content}
+                        <i
+                          className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
+                          aria-hidden="true"
+                        ></i>
                       </Button>
-                    ))}
-                    <Button
-                      ref={footerToggleRef}
-                      onClick={() => setShowFooterActions((prev) => !prev)}
-                      aria-expanded={showFooterActions}
-                      aria-controls="footer-actions-panel"
-                      aria-label={
-                        showFooterActions
-                          ? 'Hide footer actions'
-                          : 'Show footer actions'
-                      }
-                      title={
-                        showFooterActions
-                          ? 'Hide footer actions'
-                          : 'Show footer actions'
-                      }
-                      className={`footer-btn footer-menu-toggle ${
+                    </div>
+                    <div
+                      ref={footerMenuRef}
+                      id="footer-actions-panel"
+                      className={`footer-actions-popover ${
                         showFooterActions ? 'is-open' : ''
                       }`}
-                      variant="secondary"
+                      aria-hidden={!showFooterActions}
                     >
-                      <i
-                        className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
-                        aria-hidden="true"
-                      ></i>
-                    </Button>
-                  </div>
-                  <div
-                    ref={footerMenuRef}
-                    id="footer-actions-panel"
-                    className={`footer-actions-popover ${
-                      showFooterActions ? 'is-open' : ''
-                    }`}
-                    aria-hidden={!showFooterActions}
-                  >
-                    {footerMenuButtons.map((action) => (
-                      <Button
-                        key={action.key}
-                        variant={action.variant}
-                        className={action.className}
-                        style={action.style}
-                        onClick={() => {
-                          setShowFooterActions(false);
-                          action.onClick?.();
-                        }}
-                        tabIndex={footerActionTabIndex}
-                        aria-label={action.ariaLabel}
-                        title={action.title}
-                      >
-                        {action.content}
-                      </Button>
-                    ))}
+                      {footerMenuButtons.map((action) => (
+                        <Button
+                          key={action.key}
+                          variant={action.variant}
+                          className={action.className}
+                          style={action.style}
+                          onClick={() => {
+                            setShowFooterActions(false);
+                            action.onClick?.();
+                          }}
+                          tabIndex={footerActionTabIndex}
+                          aria-label={action.ariaLabel}
+                          title={action.title}
+                        >
+                          {action.content}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </Nav>
