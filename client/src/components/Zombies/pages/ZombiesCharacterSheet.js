@@ -64,6 +64,7 @@ import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
+import FooterCharacterSlot from './components/FooterCharacterSlot';
 
 const HEADER_PADDING = 16;
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -3960,6 +3961,55 @@ export default function ZombiesCharacterSheet() {
 
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
+  const footerCharacterName = useMemo(() => {
+    if (!form || typeof form !== 'object') {
+      return null;
+    }
+
+    const candidateValues = [
+      form?.characterName,
+      form?.name,
+      form?.displayName,
+      form?.alias,
+    ];
+
+    for (const value of candidateValues) {
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+    }
+
+    return null;
+  }, [form]);
+
+  const footerHealth = useMemo(() => {
+    if (!form || typeof form !== 'object') {
+      return { current: null, max: null };
+    }
+
+    const { currentHp, maxHp } = calculateCharacterHitPoints(form);
+
+    let resolvedMax = toFiniteNumberOrNull(maxHp);
+    if (resolvedMax === null) {
+      resolvedMax = toFiniteNumberOrNull(
+        form?.hpMax ?? form?.hitPoints ?? form?.health
+      );
+    }
+
+    let resolvedCurrent = toFiniteNumberOrNull(currentHp);
+    if (resolvedCurrent === null && resolvedMax !== null) {
+      resolvedCurrent = resolvedMax;
+    }
+
+    return {
+      current: resolvedCurrent,
+      max: resolvedMax,
+    };
+  }, [form]);
+
   const tokenPickerFilterScope = useMemo(() => {
     const raceValue =
       form?.race !== undefined && form?.race !== null && form?.race !== ''
@@ -5413,41 +5463,24 @@ export default function ZombiesCharacterSheet() {
   }, [isFormReady, showFooterActions]);
 
   const footerActionTabIndex = showFooterActions ? undefined : -1;
-  const footerQuickActionButtons = [
-    {
-      key: 'attack',
-      className: 'footer-btn footer-btn--attack',
-      variant: 'link',
-      type: 'button',
-      ariaLabel: 'Open attack actions',
-      title: 'Attack options',
-      content: (
-        <img
-          src={sword}
-          alt=""
-          aria-hidden="true"
-          className="footer-btn__attack-image"
-        />
-      ),
-      onClick: () => {
-        playerTurnActionsRef.current?.openAttackModal?.();
-      },
+
+  const handleFooterQuickAction = useCallback(
+    (action) => {
+      setShowFooterActions(false);
+      if (typeof action === 'function') {
+        action();
+      }
     },
-    {
-      key: 'dice',
-      className: 'footer-btn footer-btn--dice',
-      variant: 'link',
-      type: 'button',
-      ariaLabel: 'Open dice roller',
-      title: 'Dice roller',
-      content: (
-        <FaDiceD20 className="footer-btn__dice-icon" aria-hidden="true" focusable="false" />
-      ),
-      onClick: () => {
-        playerTurnActionsRef.current?.openDiceRoller?.();
-      },
-    },
-  ];
+    [setShowFooterActions]
+  );
+
+  const openAttackModal = useCallback(() => {
+    playerTurnActionsRef.current?.openAttackModal?.();
+  }, []);
+
+  const openDiceRoller = useCallback(() => {
+    playerTurnActionsRef.current?.openDiceRoller?.();
+  }, []);
   const footerMenuButtons = [
     {
       key: 'characterInfo',
@@ -6054,13 +6087,10 @@ export default function ZombiesCharacterSheet() {
             data-bs-theme="dark"
             style={{ backgroundColor: 'transparent' }}
             className={overlaySurfaceClassName || undefined}
+            aria-label="Character sheet footer actions"
           >
             <Container className="footer-container">
-              <Nav
-                className="footer-nav"
-                role="navigation"
-                aria-label="Character sheet footer actions"
-              >
+              <Nav className="footer-nav">
                 <div
                   className="footer-toolbar"
                   data-allow-pointer-events="true"
@@ -6083,23 +6113,43 @@ export default function ZombiesCharacterSheet() {
                   )}
                   <div className="footer-actions-wrapper">
                     <div className="footer-actions-inline">
-                      {footerQuickActionButtons.map((action) => (
-                        <Button
-                          key={action.key}
-                          variant={action.variant}
-                          className={action.className}
-                          style={action.style}
-                          type={action.type}
-                          onClick={() => {
-                            setShowFooterActions(false);
-                            action.onClick?.();
-                          }}
-                          aria-label={action.ariaLabel}
-                          title={action.title}
-                        >
-                          {action.content}
-                        </Button>
-                      ))}
+                      <Button
+                        variant="link"
+                        className="footer-btn footer-btn--dice"
+                        type="button"
+                        onClick={() => handleFooterQuickAction(openDiceRoller)}
+                        aria-label="Open dice roller"
+                        title="Dice roller"
+                      >
+                        <FaDiceD20
+                          className="footer-btn__dice-icon"
+                          aria-hidden="true"
+                          focusable="false"
+                        />
+                      </Button>
+                      <FooterCharacterSlot
+                        characterFigurine={characterFigurine}
+                        characterId={characterId}
+                        characterName={footerCharacterName}
+                        currentHealth={footerHealth.current}
+                        maxHealth={footerHealth.max}
+                        onHealthChange={handleHealthChange}
+                      />
+                      <Button
+                        variant="link"
+                        className="footer-btn footer-btn--attack"
+                        type="button"
+                        onClick={() => handleFooterQuickAction(openAttackModal)}
+                        aria-label="Open attack actions"
+                        title="Attack options"
+                      >
+                        <img
+                          src={sword}
+                          alt=""
+                          aria-hidden="true"
+                          className="footer-btn__attack-image"
+                        />
+                      </Button>
                       <Button
                         ref={footerToggleRef}
                         onClick={() => setShowFooterActions((prev) => !prev)}
