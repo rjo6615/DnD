@@ -41,6 +41,7 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
+import { FaDiceD20 } from "react-icons/fa";
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
@@ -5439,7 +5440,9 @@ export default function ZombiesCharacterSheet() {
       type: 'button',
       ariaLabel: 'Open dice roller',
       title: 'Dice roller',
-      content: <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>,
+      content: (
+        <FaDiceD20 className="footer-btn__dice-icon" aria-hidden="true" focusable="false" />
+      ),
       onClick: () => {
         playerTurnActionsRef.current?.openDiceRoller?.();
       },
