@@ -30,6 +30,8 @@ const toFiniteNumberOrNull = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const EMPTY_IDENTIFIER_SET = new Set();
+
 const sanitizeToken = (tokenValue, fallbackId) => {
   if (!tokenValue || typeof tokenValue !== 'object') {
     return null;
@@ -383,6 +385,26 @@ const collectCharacterIdentifiers = (value, fallbackIds = [], visited = new Set(
   inspect(value);
 
   return Array.from(identifiers);
+};
+
+const toLowercaseIdentifierSet = (identifiers) => {
+  if (!Array.isArray(identifiers)) {
+    return EMPTY_IDENTIFIER_SET;
+  }
+
+  const lowered = identifiers
+    .map((identifier) =>
+      typeof identifier === 'string' && identifier.trim() !== ''
+        ? identifier.trim().toLowerCase()
+        : null
+    )
+    .filter(Boolean);
+
+  if (lowered.length === 0) {
+    return EMPTY_IDENTIFIER_SET;
+  }
+
+  return new Set(lowered);
 };
 
 const collectMapIdentifiers = (map, fallbackIds = []) => {
@@ -1052,6 +1074,116 @@ const MapModal = ({
     tokensByMapId,
   ]);
 
+  const tokenIdentifierLookup = useMemo(() => {
+    const lookup = new Map();
+
+    Object.values(tokensDictionary).forEach((token) => {
+      if (!token || typeof token !== 'object') {
+        return;
+      }
+
+      const identifierSet = toLowercaseIdentifierSet(
+        collectCharacterIdentifiers(token, [token.characterId])
+      );
+
+      if (!identifierSet || identifierSet.size === 0) {
+        return;
+      }
+
+      const identifiers = Array.from(identifierSet);
+      identifiers.forEach((identifier) => {
+        if (!lookup.has(identifier)) {
+          lookup.set(identifier, new Set(identifierSet));
+        } else {
+          const existing = lookup.get(identifier);
+          identifierSet.forEach((value) => existing.add(value));
+        }
+      });
+    });
+
+    return lookup;
+  }, [tokensDictionary]);
+
+  const getTokenIdentifierSet = useCallback(
+    (token) => {
+      if (!token || typeof token !== 'object') {
+        return EMPTY_IDENTIFIER_SET;
+      }
+
+      const normalizedTokenId = normalizeMapId(token.characterId);
+      const normalizedTokenIdLower = normalizedTokenId
+        ? normalizedTokenId.toLowerCase()
+        : null;
+
+      if (normalizedTokenIdLower && tokenIdentifierLookup.has(normalizedTokenIdLower)) {
+        return tokenIdentifierLookup.get(normalizedTokenIdLower);
+      }
+
+      const collectedIdentifiers = toLowercaseIdentifierSet(
+        collectCharacterIdentifiers(token, [token.characterId])
+      );
+
+      if (!collectedIdentifiers || collectedIdentifiers.size === 0) {
+        return EMPTY_IDENTIFIER_SET;
+      }
+
+      return collectedIdentifiers;
+    },
+    [tokenIdentifierLookup]
+  );
+
+  const tokenMatchesCurrentCharacter = useCallback(
+    (token) => {
+      if (!currentCharacterIdCandidatesLower || currentCharacterIdCandidatesLower.size === 0) {
+        return false;
+      }
+
+      const identifiers = getTokenIdentifierSet(token);
+      if (!identifiers || identifiers.size === 0) {
+        return false;
+      }
+
+      for (const identifier of identifiers) {
+        if (currentCharacterIdCandidatesLower.has(identifier)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    [currentCharacterIdCandidatesLower, getTokenIdentifierSet]
+  );
+
+  const canControlCharacterId = useCallback(
+    (characterId) => {
+      if (!currentCharacterIdCandidatesLower || currentCharacterIdCandidatesLower.size === 0) {
+        return true;
+      }
+
+      const normalizedId = normalizeMapId(characterId);
+      if (!normalizedId) {
+        return false;
+      }
+
+      const normalizedLower = normalizedId.toLowerCase();
+      if (currentCharacterIdCandidatesLower.has(normalizedLower)) {
+        return true;
+      }
+
+      if (tokenIdentifierLookup.has(normalizedLower)) {
+        const identifiers = tokenIdentifierLookup.get(normalizedLower);
+        for (const identifier of identifiers) {
+          if (currentCharacterIdCandidatesLower.has(identifier)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+    [currentCharacterIdCandidatesLower, tokenIdentifierLookup]
+  );
+
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
   useEffect(() => {
@@ -1108,24 +1240,26 @@ const MapModal = ({
           lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
         );
 
-        const tokenIdentifier =
-          typeof token.characterId === 'string' && token.characterId.trim() !== ''
-            ? token.characterId.trim()
-            : null;
-        const normalizedTokenIdentifier = normalizeMapId(tokenIdentifier);
-        const normalizedTokenIdentifierLower = normalizedTokenIdentifier
-          ? normalizedTokenIdentifier.toLowerCase()
-          : null;
-
-        const matchesCurrentCharacter = Boolean(
-          normalizedTokenIdentifierLower &&
-            currentCharacterIdCandidatesLower.has(normalizedTokenIdentifierLower)
+        const hasCharacterContext = Boolean(
+          readOnly &&
+            currentCharacterIdCandidatesLower &&
+            currentCharacterIdCandidatesLower.size > 0
         );
 
-        const isMovable =
-          canManipulateTokens &&
-          !placementPending &&
-          (!readOnly || matchesCurrentCharacter);
+        const matchesCurrentCharacter = hasCharacterContext
+          ? tokenMatchesCurrentCharacter(token)
+          : false;
+
+        const canCurrentlyManipulate = canManipulateTokens && !placementPending;
+
+        let isMovable =
+          canCurrentlyManipulate && (!hasCharacterContext || matchesCurrentCharacter);
+
+        if (token.isMovable === true) {
+          isMovable = canCurrentlyManipulate;
+        } else if (token.isMovable === false) {
+          isMovable = false;
+        }
 
         const lookupVariant =
           typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
@@ -1202,6 +1336,7 @@ const MapModal = ({
     normalizedActiveCharacterId,
     placementPending,
     readOnly,
+    tokenMatchesCurrentCharacter,
     tokensDictionary,
   ]);
 
@@ -1210,27 +1345,14 @@ const MapModal = ({
       return null;
     }
 
-    for (const [key, value] of Object.entries(tokensDictionary)) {
-      if (!value || typeof value !== 'object') {
-        continue;
-      }
-
-      const normalizedKey = normalizeMapId(key);
-      if (normalizedKey && currentCharacterIdCandidatesLower.has(normalizedKey.toLowerCase())) {
-        return value;
-      }
-
-      const normalizedValueId = normalizeMapId(value.characterId);
-      if (
-        normalizedValueId &&
-        currentCharacterIdCandidatesLower.has(normalizedValueId.toLowerCase())
-      ) {
-        return value;
+    for (const token of Object.values(tokensDictionary)) {
+      if (tokenMatchesCurrentCharacter(token)) {
+        return token;
       }
     }
 
     return null;
-  }, [currentCharacterIdCandidatesLower, tokensDictionary]);
+  }, [currentCharacterIdCandidatesLower, tokenMatchesCurrentCharacter, tokensDictionary]);
 
   const handleCommitMove = useCallback(
     async ({ characterId, x, y, rotation }) => {
@@ -1243,9 +1365,7 @@ const MapModal = ({
         return;
       }
 
-      const normalizedCharacterIdLower = normalizedCharacterId.toLowerCase();
-
-      if (readOnly && !currentCharacterIdCandidatesLower.has(normalizedCharacterIdLower)) {
+      if (readOnly && !canControlCharacterId(normalizedCharacterId)) {
         return;
       }
 
@@ -1287,7 +1407,7 @@ const MapModal = ({
       }
     },
     [
-      currentCharacterIdCandidatesLower,
+      canControlCharacterId,
       canManipulateTokens,
       onTokenMove,
       placementPending,
@@ -1358,9 +1478,7 @@ const MapModal = ({
         return false;
       }
 
-      const normalizedCharacterIdLower = normalizedCharacterId.toLowerCase();
-
-      if (readOnly && !currentCharacterIdCandidatesLower.has(normalizedCharacterIdLower)) {
+      if (readOnly && !canControlCharacterId(normalizedCharacterId)) {
         return false;
       }
 
@@ -1377,13 +1495,9 @@ const MapModal = ({
       } else if (tokensDictionary[normalizedCharacterId]) {
         payload.token = tokensDictionary[normalizedCharacterId];
       } else {
-        const aliasToken = Object.values(tokensDictionary).find((entry) => {
-          const normalizedEntryId = normalizeMapId(entry?.characterId);
-          return (
-            normalizedEntryId &&
-            currentCharacterIdCandidatesLower.has(normalizedEntryId.toLowerCase())
-          );
-        });
+        const aliasToken = Object.values(tokensDictionary).find((entry) =>
+          tokenMatchesCurrentCharacter(entry)
+        );
 
         if (aliasToken) {
           payload.token = aliasToken;
@@ -1402,7 +1516,8 @@ const MapModal = ({
       onTokenRemove,
       resolvedPlacementMapId,
       readOnly,
-      currentCharacterIdCandidatesLower,
+      canControlCharacterId,
+      tokenMatchesCurrentCharacter,
       tokensDictionary,
     ]
   );
