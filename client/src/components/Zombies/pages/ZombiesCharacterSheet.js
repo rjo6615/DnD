@@ -5412,7 +5412,7 @@ export default function ZombiesCharacterSheet() {
   }, [isFormReady, showFooterActions]);
 
   const footerActionTabIndex = showFooterActions ? undefined : -1;
-  const footerActionButtons = [
+  const footerQuickActionButtons = [
     {
       key: 'attack',
       className: 'footer-btn footer-btn--attack',
@@ -5443,6 +5443,8 @@ export default function ZombiesCharacterSheet() {
         playerTurnActionsRef.current?.openDiceRoller?.();
       },
     },
+  ];
+  const footerMenuButtons = [
     {
       key: 'characterInfo',
       className: 'footer-btn',
@@ -5501,7 +5503,7 @@ export default function ZombiesCharacterSheet() {
   ];
 
   if (hasSpellcasting) {
-    footerActionButtons.push({
+    footerMenuButtons.push({
       key: 'spells',
       className: `footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`,
       variant: 'secondary',
@@ -5513,7 +5515,7 @@ export default function ZombiesCharacterSheet() {
     });
   }
 
-  footerActionButtons.push(
+  footerMenuButtons.push(
     {
       key: 'equipment',
       className: 'footer-btn',
@@ -6074,31 +6076,49 @@ export default function ZombiesCharacterSheet() {
                   className="footer-actions-wrapper flex-grow-1"
                   style={{ backgroundColor: 'transparent' }}
                 >
-                  <Button
-                    ref={footerToggleRef}
-                    onClick={() => setShowFooterActions((prev) => !prev)}
-                    aria-expanded={showFooterActions}
-                    aria-controls="footer-actions-panel"
-                    aria-label={
-                      showFooterActions
-                        ? 'Hide footer actions'
-                        : 'Show footer actions'
-                    }
-                    title={
-                      showFooterActions
-                        ? 'Hide footer actions'
-                        : 'Show footer actions'
-                    }
-                    className={`footer-btn footer-menu-toggle ${
-                      showFooterActions ? 'is-open' : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i
-                      className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
-                      aria-hidden="true"
-                    ></i>
-                  </Button>
+                  <div className="footer-actions-inline">
+                    {footerQuickActionButtons.map((action) => (
+                      <Button
+                        key={action.key}
+                        variant={action.variant}
+                        className={action.className}
+                        style={action.style}
+                        onClick={() => {
+                          setShowFooterActions(false);
+                          action.onClick?.();
+                        }}
+                        aria-label={action.ariaLabel}
+                        title={action.title}
+                      >
+                        {action.content}
+                      </Button>
+                    ))}
+                    <Button
+                      ref={footerToggleRef}
+                      onClick={() => setShowFooterActions((prev) => !prev)}
+                      aria-expanded={showFooterActions}
+                      aria-controls="footer-actions-panel"
+                      aria-label={
+                        showFooterActions
+                          ? 'Hide footer actions'
+                          : 'Show footer actions'
+                      }
+                      title={
+                        showFooterActions
+                          ? 'Hide footer actions'
+                          : 'Show footer actions'
+                      }
+                      className={`footer-btn footer-menu-toggle ${
+                        showFooterActions ? 'is-open' : ''
+                      }`}
+                      variant="secondary"
+                    >
+                      <i
+                        className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
+                        aria-hidden="true"
+                      ></i>
+                    </Button>
+                  </div>
                   <div
                     ref={footerMenuRef}
                     id="footer-actions-panel"
@@ -6107,7 +6127,7 @@ export default function ZombiesCharacterSheet() {
                     }`}
                     aria-hidden={!showFooterActions}
                   >
-                    {footerActionButtons.map((action) => (
+                    {footerMenuButtons.map((action) => (
                       <Button
                         key={action.key}
                         variant={action.variant}

@@ -3709,6 +3709,12 @@ h1 {
   padding: 8px 0 4px;
 }
 
+.footer-actions-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .footer-menu-toggle {
   margin-top: 0;
 }
