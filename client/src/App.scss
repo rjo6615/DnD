@@ -3905,26 +3905,26 @@ h1 {
 
 @media (max-width: 576px) {
   .footer-toolbar {
-    gap: 3px;
-    padding: 8px 12px 10px;
+    gap: 2px;
+    padding: 6px 10px 8px;
   }
 
   .footer-toolbar__slots {
-    margin-bottom: -6px;
+    margin-bottom: -10px;
   }
 
   .footer-toolbar__slots > .spell-slot-container {
-    gap: 0.35rem;
+    gap: 0.25rem;
     padding-top: 0;
   }
 
   .footer-actions-wrapper {
-    gap: 2px;
+    gap: 4px;
   }
 
   .footer-actions-inline {
     gap: 8px;
-    align-items: center;
+    align-items: flex-end;
   }
 
   .footer-btn {
@@ -3934,17 +3934,19 @@ h1 {
     box-sizing: border-box;
     line-height: 1;
     margin: 0 2px;
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .footer-btn--attack {
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(120px, 38vw, 168px);
-    margin-top: 8px;
+    --footer-dice-size: clamp(120px, 42vw, 176px);
+    width: var(--footer-dice-size);
+    height: var(--footer-dice-size);
+    margin-top: 0;
   }
 
   .footer-actions-popover {
