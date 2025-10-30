@@ -3973,7 +3973,9 @@ h1 {
 
   .footer-btn--dice {
     --footer-dice-size: clamp(120px, 38vw, 168px);
-    margin-top: 8px;
+    margin-top: 0;
+    font-size: calc(var(--footer-dice-size) * 0.95);
+    --fa-font-size: calc(var(--footer-dice-size) * 0.95);
   }
 
   .footer-actions-popover {
