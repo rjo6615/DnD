@@ -5903,6 +5903,10 @@ export default function ZombiesCharacterSheet() {
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
   const mapDockedSide = useMemo(() => getDockedSide('map'), [getDockedSide]);
+  const hasResolvedCampaignMap = useMemo(
+    () => Boolean(resolvedCampaignMap),
+    [resolvedCampaignMap]
+  );
   const lastAutoDockedMapIdRef = useRef(null);
 
   useEffect(() => {
@@ -5955,10 +5959,7 @@ export default function ZombiesCharacterSheet() {
     });
   }, [resolvedCampaignMap, setDockedModals]);
 
-  const isMapInteractionActive = useMemo(
-    () => Boolean(mapDockedSide),
-    [mapDockedSide]
-  );
+  const isMapInteractionActive = hasResolvedCampaignMap;
 
   const overlaySurfaceClassName = useMemo(
     () =>

@@ -696,6 +696,7 @@ test('modal docking controls update docking state', async () => {
     if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
       expect(mockMapModalProps.current.isDocked).toBe(false);
     }
+    expect(mockMapModalProps.current?.show).toBe(true);
   });
 });
 
