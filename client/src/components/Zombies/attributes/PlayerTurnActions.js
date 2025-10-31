@@ -1928,15 +1928,14 @@ const handleDamageClick = useCallback(() => {
   setIsFumble(false);
 }, []);
 
-const handleDamageKeyDown = useCallback(
-  (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleDamageClick();
-    }
-  },
-  [handleDamageClick]
-);
+const setCriticalState = useCallback((value) => {
+  const next = Boolean(value);
+  manualCriticalRef.current = next;
+  setIsCritical(next);
+  if (!next) {
+    setIsFumble(false);
+  }
+}, []);
 
 // Spells may come from different caster types (e.g., Wizard, Cleric). Before
 // rendering the spell table, group spells by caster type and sort each group by
@@ -2075,8 +2074,10 @@ useImperativeHandle(
     openAttackModal: handleShowAttack,
     openDiceRoller: handleShowDiceRoller,
     openDamageLog: () => setShowLog(true),
+    toggleCritical: handleDamageClick,
+    setCritical: setCriticalState,
   }),
-  [handleShowAttack, handleShowDiceRoller],
+  [handleShowAttack, handleShowDiceRoller, handleDamageClick, setCriticalState],
 );
 
 const [pulseClass, setPulseClass] = useState('');
@@ -2087,9 +2088,10 @@ useEffect(() => {
       value: damageValue,
       isCritical,
       isFumble,
+      timestamp: lastRollTimestamp || null,
     });
   }
-}, [onDamageSummaryChange, damageValue, isCritical, isFumble]);
+}, [onDamageSummaryChange, damageValue, isCritical, isFumble, lastRollTimestamp]);
 
 useEffect(() => {
   if (!lastRollTimestamp) {
@@ -2315,6 +2317,26 @@ const damageAmountStyle = {
           }`}
         >
           <div className="attack-roll-controls damage-roller__controls">
+            <span
+              id="damageValue"
+              className="visually-hidden"
+              aria-hidden="true"
+            >
+              {damageValue}
+            </span>
+            <button
+              type="button"
+              className="visually-hidden"
+              onClick={handleDamageClick}
+              aria-pressed={isCritical}
+              aria-label={
+                isCritical
+                  ? 'Critical damage roll enabled. Click to roll normally.'
+                  : 'Click to enable a critical damage roll on your next roll.'
+              }
+            >
+              Toggle critical damage roll
+            </button>
             <div
               className="damage-roller__dice-wrapper"
               style={{
@@ -2336,34 +2358,6 @@ const damageAmountStyle = {
                   instanceKey={characterId}
                   showOverlayDice={showOverlayDice}
                 />
-              </div>
-              <div className="damage-roller__overlay">
-                <div className="damage-roller__total">
-                  <span className="damage-roller__total-label">Total</span>
-                  <span
-                    id="damageValue"
-                    className={`damage-roller__total-value ${
-                      typeof damageValue === 'string' ? 'spell-cast-label' : ''
-                    }`}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={isCritical}
-                    aria-label={
-                      isCritical
-                        ? 'Critical damage roll enabled. Click to roll normally.'
-                        : 'Click to enable a critical damage roll on your next roll.'
-                    }
-                    title={
-                      isCritical
-                        ? 'Critical roll ready. Click to roll normally.'
-                        : 'Click to make your next damage roll critical.'
-                    }
-                    onClick={handleDamageClick}
-                    onKeyDown={handleDamageKeyDown}
-                  >
-                    {damageValue}
-                  </span>
-                </div>
               </div>
             </div>
           </div>

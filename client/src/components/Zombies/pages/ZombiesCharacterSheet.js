@@ -36,7 +36,6 @@ import {
   calculateCharacterArmorClass,
   calculateCharacterHitPoints,
 } from "../utils/characterMetrics";
-import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import StatusEffectBar from "../attributes/StatusEffectBar";
 import BackgroundModal from "../attributes/BackgroundModal";
@@ -1249,10 +1248,6 @@ export default function ZombiesCharacterSheet() {
   const adrenalineRushActive = useMemo(
     () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
     [activeEffects]
-  );
-  const speedMultiplier = useMemo(
-    () => (adrenalineRushActive ? 2 : 1),
-    [adrenalineRushActive]
   );
   const temporarySize = form?.temporarySize;
   const temporarySpeedBonus = form?.temporarySpeedBonus;
@@ -3992,6 +3987,7 @@ export default function ZombiesCharacterSheet() {
     value: null,
     isCritical: false,
     isFumble: false,
+    timestamp: null,
   });
 
   const handleDamageSummaryChange = useCallback((summary) => {
@@ -4000,7 +3996,7 @@ export default function ZombiesCharacterSheet() {
         if (prev.value === null && !prev.isCritical && !prev.isFumble) {
           return prev;
         }
-        return { value: null, isCritical: false, isFumble: false };
+        return { value: null, isCritical: false, isFumble: false, timestamp: null };
       }
 
       const next = {
@@ -4011,12 +4007,17 @@ export default function ZombiesCharacterSheet() {
             : null,
         isCritical: Boolean(summary.isCritical),
         isFumble: Boolean(summary.isFumble),
+        timestamp:
+          typeof summary.timestamp === 'number' && Number.isFinite(summary.timestamp)
+            ? summary.timestamp
+            : null,
       };
 
       if (
         prev.value === next.value &&
         prev.isCritical === next.isCritical &&
-        prev.isFumble === next.isFumble
+        prev.isFumble === next.isFumble &&
+        prev.timestamp === next.timestamp
       ) {
         return prev;
       }
@@ -5533,6 +5534,9 @@ export default function ZombiesCharacterSheet() {
   const openDamageLog = useCallback(() => {
     playerTurnActionsRef.current?.openDamageLog?.();
   }, []);
+  const toggleCriticalFromFooter = useCallback(() => {
+    playerTurnActionsRef.current?.toggleCritical?.();
+  }, []);
   const passDisabled = !canPassTurn || isPassingTurn;
   const footerMenuButtons = [
     {
@@ -6055,39 +6059,6 @@ export default function ZombiesCharacterSheet() {
                 tokenLookup={tokenMetaById}
               />
             </div>
-            <h1
-              style={{
-                fontSize: "28px",
-                fontWeight: 600,
-                color: "#FFFFFF",
-                padding: "8px 0",
-                textAlign: "center",
-                letterSpacing: "1px",
-                textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-                fontFamily: "'Merriweather', serif",
-                textTransform: "capitalize",
-                borderBottom: "2px solid #555", // Subtle underline for structure
-                display: "inline-block",
-              }}
-              className="mx-auto"
-            >
-              {form?.characterName || 'Loading Character'}
-            </h1>
-
-            <HealthDefense
-              form={form}
-              totalLevel={totalLevel}
-              dexMod={statMods.dex}
-              conMod={statMods.con}
-              wisMod={statMods.wis}
-              initiative={featBonuses.initiative}
-              speed={featBonuses.speed}
-              hpMaxBonus={featBonuses.hpMaxBonus}
-              hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-              onTempHealthChange={handleHealthChange}
-              speedMultiplier={speedMultiplier}
-              {...(spellAbilityMod !== null && { spellAbilityMod })}
-            />
           </div>
           <div
             style={{
@@ -6267,6 +6238,7 @@ export default function ZombiesCharacterSheet() {
                       </div>
                     </div>
                   }
+                  onToggleCritical={toggleCriticalFromFooter}
                 />
               </Nav>
             </Container>

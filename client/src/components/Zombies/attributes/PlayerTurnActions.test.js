@@ -1261,7 +1261,7 @@ describe('PlayerTurnActions critical events', () => {
     expect(damage.classList.contains('pulse')).toBe(true);
   });
 
-  test('clicking damageAmount toggles critical class', () => {
+  test('critical toggle method toggles critical class', () => {
     const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [] }}
@@ -1271,18 +1271,17 @@ describe('PlayerTurnActions critical events', () => {
     );
 
     const damage = document.getElementById('damageAmount');
-    const toggle = document.getElementById('damageValue');
 
     expect(damage.classList.contains('critical-active')).toBe(false);
 
     act(() => {
-      fireEvent.click(toggle);
+      actionsRef.current?.toggleCritical?.();
     });
 
     expect(damage.classList.contains('critical-active')).toBe(true);
 
     act(() => {
-      fireEvent.click(toggle);
+      actionsRef.current?.toggleCritical?.();
     });
 
     expect(damage.classList.contains('critical-active')).toBe(false);
@@ -1300,8 +1299,6 @@ describe('PlayerTurnActions critical events', () => {
     );
 
     const damage = document.getElementById('damageAmount');
-    const toggle = document.getElementById('damageValue');
-
     act(() => {
       window.dispatchEvent(
         new CustomEvent('damage-roll', { detail: { value: 7 } })
@@ -1309,7 +1306,7 @@ describe('PlayerTurnActions critical events', () => {
     });
 
     act(() => {
-      fireEvent.click(toggle);
+      actionsRef.current?.toggleCritical?.();
     });
 
     expect(damage.classList.contains('critical-active')).toBe(true);

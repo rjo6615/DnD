@@ -109,12 +109,6 @@ jest.mock('../attributes/SpellSelector', () => (props) => {
   mockHandleClose.current = props.handleClose;
   return props.show ? <div data-testid="spell-selector" /> : null;
 });
-const mockHealthDefenseProps = { current: null };
-jest.mock('../attributes/HealthDefense', () => (props) => {
-  mockHealthDefenseProps.current = props;
-  return null;
-});
-
 const mockFeaturesModalProps = { current: null };
 jest.mock('../attributes/Features', () => (props) => {
   mockFeaturesModalProps.current = props;
@@ -204,7 +198,6 @@ beforeEach(() => {
   mockSkillsModalProps.current = null;
   mockDockedSkillsModalProps.current = null;
   mockCharacterInfoProps.current = null;
-  mockHealthDefenseProps.current = null;
   window.localStorage.clear();
   window.matchMedia = jest.fn().mockImplementation((query) => ({
     matches: false,
@@ -290,10 +283,6 @@ test('uses character-derived hit points for synced combat participants', async (
   expect(screen.getByText('4/10')).toBeInTheDocument();
   expect(screen.queryByText('5/40')).not.toBeInTheDocument();
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current).not.toBeNull();
-  });
-  expect(mockHealthDefenseProps.current.form.health).toBe(30);
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -423,10 +412,6 @@ test('activating Draconic Flight adds a persistent effect without duplicates', a
 
   expect(mockFeaturesModalProps.current?.characterId).toBe('1');
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
-  });
-
   expect(typeof mockFeaturesModalProps.current.onDraconicFlight).toBe('function');
 
   await act(async () => {
@@ -533,9 +518,6 @@ test('adrenaline rush consumes a bonus action, persists once, grants temp HP, an
     );
   });
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(2);
-  });
 
   await waitFor(() => {
     const stored = window.localStorage.getItem('zombiesActiveEffects:1');
@@ -561,9 +543,6 @@ test('adrenaline rush consumes a bonus action, persists once, grants temp HP, an
     expect(mockFeaturesModalProps.current?.form?.tempHealth).toBe(0);
   });
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
-  });
 
   window.localStorage.clear();
 });
