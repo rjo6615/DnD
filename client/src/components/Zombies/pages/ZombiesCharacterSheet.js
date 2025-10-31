@@ -5493,6 +5493,10 @@ export default function ZombiesCharacterSheet() {
   const openDiceRoller = useCallback(() => {
     playerTurnActionsRef.current?.openDiceRoller?.();
   }, []);
+  const openDamageLog = useCallback(() => {
+    playerTurnActionsRef.current?.openDamageLog?.();
+  }, []);
+  const passDisabled = !canPassTurn || isPassingTurn;
   const footerMenuButtons = [
     {
       key: 'characterInfo',
@@ -6087,9 +6091,6 @@ export default function ZombiesCharacterSheet() {
                 availableSlots={availableSlots}
                 longRestCount={longRestCount}
                 shortRestCount={shortRestCount}
-                onPassTurn={handlePassTurn}
-                canPassTurn={canPassTurn}
-                isPassTurnInProgress={isPassingTurn}
               />
             </div>
           </div>
@@ -6126,6 +6127,27 @@ export default function ZombiesCharacterSheet() {
                   actions={
                     <div className="footer-actions-wrapper">
                       <div className="footer-actions-inline">
+                        <Button
+                          type="button"
+                          variant="outline-light"
+                          className="footer-pass-log-button"
+                          disabled={passDisabled}
+                          onClick={() => handleFooterQuickAction(handlePassTurn)}
+                          aria-label="Pass turn"
+                          title="Pass turn"
+                        >
+                          Pass ➔
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline-light"
+                          className="footer-pass-log-button"
+                          onClick={() => handleFooterQuickAction(openDamageLog)}
+                          aria-label="Open damage log"
+                          title="Damage log"
+                        >
+                          ⚔️ Log
+                        </Button>
                         <Button
                           variant="link"
                           className="footer-btn footer-btn--dice"
