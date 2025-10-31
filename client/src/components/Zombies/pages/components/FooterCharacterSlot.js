@@ -213,23 +213,30 @@ const FooterCharacterSlot = ({
           )}
           <span className="footer-character-slot__portrait-gloss" />
         </div>
-        <div className="footer-character-slot__health-readout" aria-live="polite">
-          {isUpdating ? (
-            <Spinner animation="border" role="status" size="sm">
-              <span className="visually-hidden">Updating health…</span>
-            </Spinner>
-          ) : (
-            <>
-              <span className="footer-character-slot__health-current">{displayCurrent}</span>
-              {displayMax !== '—' && (
-                <span className="footer-character-slot__health-max">/ {displayMax}</span>
-              )}
-            </>
-          )}
-        </div>
       </div>
-      <div className="footer-character-slot__panel">
-        <span className="footer-character-slot__health-label">Health</span>
+      <div className="footer-character-slot__details">
+        {characterName && (
+          <span className="footer-character-slot__name" title={characterName}>
+            {characterName}
+          </span>
+        )}
+        <div className="footer-character-slot__header">
+          <span className="footer-character-slot__health-label">Health</span>
+          <div className="footer-character-slot__health-readout" aria-live="polite">
+            {isUpdating ? (
+              <Spinner animation="border" role="status" size="sm">
+                <span className="visually-hidden">Updating health…</span>
+              </Spinner>
+            ) : (
+              <>
+                <span className="footer-character-slot__health-current">{displayCurrent}</span>
+                {displayMax !== '—' && (
+                  <span className="footer-character-slot__health-max">/ {displayMax}</span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
         <div className="footer-character-slot__health-track" role="presentation">
           <div className="footer-character-slot__health-track-base">
             <div
