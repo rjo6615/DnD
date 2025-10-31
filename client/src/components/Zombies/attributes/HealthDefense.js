@@ -4,7 +4,10 @@ import { Button } from 'react-bootstrap'; // Adjust as per your actual UI librar
 import { useParams } from "react-router-dom";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { normalizeEquipmentMap } from './equipmentNormalization';
-import { calculateCharacterHitPoints } from '../utils/characterMetrics';
+import {
+  calculateCharacterArmorClass,
+  calculateCharacterHitPoints,
+} from '../utils/characterMetrics';
 
 export default function HealthDefense({
   form,
@@ -12,7 +15,6 @@ export default function HealthDefense({
   dexMod,
   wisMod = 0,
   totalLevel,
-  ac = 0,
   hpMaxBonus = 0,
   hpMaxBonusPerLevel = 0,
   initiative = 0,
@@ -46,34 +48,6 @@ export default function HealthDefense({
     }
     return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
   }, [hasEquipment, normalizedEquipment, form.armor]);
-
-  const armorAcBonus = armorItems.map((item) => {
-    if (Array.isArray(item)) {
-      const value = Number(item[1] ?? 0);
-      return value > 10 ? value - 10 : value;
-    }
-    return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
-  });
-  const armorMaxDexBonus = armorItems.map((item) =>
-    Array.isArray(item)
-      ? Number(item[2] ?? 0)
-      : Number(item.maxDex ?? item.maxDexterity ?? 0)
-  );
-  let totalArmorAcBonus =
-    armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
-    Number(ac);
-  let filteredMaxDexArray = armorMaxDexBonus.filter((e) => e !== 0);
-  let armorMaxDexMin = Math.min(...filteredMaxDexArray);
-
-     let armorMaxDex;
-     if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
-        armorMaxDex = armorMaxDexMin;
-     } else {
-      armorMaxDex = dexMod;
-     }
-
-  const numericWisMod = Number(wisMod);
-  const safeWisMod = Number.isFinite(numericWisMod) ? numericWisMod : 0;
 
   const isShieldItem = (item) => {
     if (!item) return false;
@@ -109,22 +83,6 @@ export default function HealthDefense({
     [armorItems]
   );
 
-  const hasUnarmoredDefenseFeature = useMemo(() => {
-    const searchValue = 'unarmored defense';
-    const checkValue = (value) => {
-      if (!value) return false;
-      if (Array.isArray(value)) {
-        return value.some((entry) => checkValue(entry));
-      }
-      if (typeof value === 'object') {
-        return Object.values(value).some((entry) => checkValue(entry));
-      }
-      return typeof value === 'string' && value.toLowerCase().includes(searchValue);
-    };
-
-    return checkValue(form?.features);
-  }, [form?.features]);
-
   const monkLevel = useMemo(() => {
     if (!Array.isArray(form?.occupation)) {
       return 0;
@@ -157,27 +115,14 @@ export default function HealthDefense({
     }, 0);
   }, [form?.occupation]);
 
-  const hasMonkLevels = monkLevel > 0;
-
-  const shouldApplyUnarmoredDefenseWisBonus = useMemo(() => {
-    if (hasArmorEquipped || hasShieldEquipped) {
-      return false;
-    }
-    if (!Number.isFinite(numericWisMod)) {
-      return false;
-    }
-    return hasUnarmoredDefenseFeature || hasMonkLevels;
-  }, [
-    hasArmorEquipped,
-    hasShieldEquipped,
-    hasMonkLevels,
-    hasUnarmoredDefenseFeature,
-    numericWisMod,
-  ]);
-
-  const wisdomBonusToAc = shouldApplyUnarmoredDefenseWisBonus ? safeWisMod : 0;
-
-  const totalArmorClass = Number(totalArmorAcBonus) + 10 + Number(armorMaxDex) + wisdomBonusToAc;
+  const totalArmorClass = useMemo(
+    () =>
+      calculateCharacterArmorClass(form, {
+        dexMod,
+        wisMod,
+      }),
+    [form, dexMod, wisMod]
+  );
     
   const derivedTotalLevel = useMemo(() => {
     if (Number.isFinite(totalLevel)) {

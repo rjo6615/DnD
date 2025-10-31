@@ -32,7 +32,10 @@ import {
   collectFeatAbilityBonuses,
   collectFeatNumericBonuses,
 } from "../utils/derivedStats";
-import { calculateCharacterHitPoints } from "../utils/characterMetrics";
+import {
+  calculateCharacterArmorClass,
+  calculateCharacterHitPoints,
+} from "../utils/characterMetrics";
 import HealthDefense from "../attributes/HealthDefense";
 import SpellSelector from "../attributes/SpellSelector";
 import StatusEffectBar from "../attributes/StatusEffectBar";
@@ -5311,6 +5314,15 @@ export default function ZombiesCharacterSheet() {
     cha: Math.floor((computedStats.cha - 10) / 2),
   };
 
+  const footerArmorClass = useMemo(
+    () =>
+      calculateCharacterArmorClass(form, {
+        dexMod: statMods.dex,
+        wisMod: statMods.wis,
+      }),
+    [form, statMods.dex, statMods.wis]
+  );
+
   const SPELLCASTING_ABILITIES = {
     cleric: 'wis',
     druid: 'wis',
@@ -6029,7 +6041,6 @@ export default function ZombiesCharacterSheet() {
               wisMod={statMods.wis}
               initiative={featBonuses.initiative}
               speed={featBonuses.speed}
-              ac={featBonuses.ac}
               hpMaxBonus={featBonuses.hpMaxBonus}
               hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
               onTempHealthChange={handleHealthChange}
@@ -6097,6 +6108,7 @@ export default function ZombiesCharacterSheet() {
                   characterName={footerCharacterName}
                   currentHealth={footerHealth.current}
                   maxHealth={footerHealth.max}
+                  armorClass={footerArmorClass}
                   onHealthChange={handleHealthChange}
                   spellSlots={
                     form ? (
