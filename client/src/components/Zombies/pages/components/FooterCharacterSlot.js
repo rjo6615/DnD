@@ -28,11 +28,13 @@ const FooterCharacterSlot = ({
   actions,
   spellSlots,
   damageSummary,
+  onToggleCritical,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [pendingHealth, setPendingHealth] = useState(null);
   const pendingCommitRef = useRef(null);
+  const [damageHighlightClass, setDamageHighlightClass] = useState('');
 
   const { resolvedCurrent, resolvedMax } = useMemo(() => {
     const numericCurrent = Number(currentHealth);
@@ -82,19 +84,26 @@ const FooterCharacterSlot = ({
 
   const normalizedDamageSummary = useMemo(() => {
     if (!damageSummary || typeof damageSummary !== 'object') {
-      return { value: null, isCritical: false, isFumble: false };
+      return { value: null, isCritical: false, isFumble: false, timestamp: null };
     }
 
-    const { value, isCritical, isFumble } = damageSummary;
+    const { value, isCritical, isFumble, timestamp } = damageSummary;
 
     return {
       value: value !== undefined ? value : null,
       isCritical: Boolean(isCritical),
       isFumble: Boolean(isFumble),
+      timestamp:
+        typeof timestamp === 'number' && Number.isFinite(timestamp) ? timestamp : null,
     };
   }, [damageSummary]);
 
-  const { value: damageSummaryValue, isCritical: damageIsCritical, isFumble: damageIsFumble } =
+  const {
+    value: damageSummaryValue,
+    isCritical: damageIsCritical,
+    isFumble: damageIsFumble,
+    timestamp: damageTimestamp,
+  } = normalizedDamageSummary;
     normalizedDamageSummary;
 
   const hasDamageValue =
@@ -108,11 +117,17 @@ const FooterCharacterSlot = ({
 
   const damageClassName = [
     'footer-character-slot__damage',
+    damageHighlightClass,
     damageIsCritical ? 'footer-character-slot__damage--critical' : '',
     damageIsFumble ? 'footer-character-slot__damage--fumble' : '',
   ]
     .filter(Boolean)
     .join(' ');
+  const handleCritButtonClick = useCallback(() => {
+    if (typeof onToggleCritical === 'function') {
+      onToggleCritical();
+    }
+  }, [onToggleCritical]);
   const canDecrease = !isUpdating && numericCurrent > 0;
   const canIncrease =
     !isUpdating &&
@@ -251,6 +266,27 @@ const FooterCharacterSlot = ({
     }
   }, [commitPendingUpdate, isUpdating]);
 
+  useEffect(() => {
+    if (!damageTimestamp) {
+      setDamageHighlightClass('');
+      return undefined;
+    }
+
+    setDamageHighlightClass('footer-character-slot__damage--recent');
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDamageHighlightClass('');
+    }, 1600);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [damageTimestamp]);
+
   return (
     <div className="footer-character-slot" data-allow-pointer-events="true">
       {spellSlots ? (
@@ -318,7 +354,33 @@ const FooterCharacterSlot = ({
                 </div>
               </div>
               <div className={damageClassName} role="status" aria-live="polite">
-                <span className="footer-character-slot__damage-label">Damage</span>
+                <div className="footer-character-slot__damage-header">
+                  <span className="footer-character-slot__damage-label">Damage</span>
+                  {typeof onToggleCritical === 'function' ? (
+                    <Button
+                      type="button"
+                      variant="outline-light"
+                      size="sm"
+                      className={`footer-character-slot__crit-button ${
+                        damageIsCritical ? 'is-active' : ''
+                      }`}
+                      onClick={handleCritButtonClick}
+                      aria-pressed={damageIsCritical}
+                      aria-label={
+                        damageIsCritical
+                          ? 'Critical damage roll enabled. Click to roll normally.'
+                          : 'Click to enable a critical damage roll on your next roll.'
+                      }
+                      title={
+                        damageIsCritical
+                          ? 'Critical damage roll enabled. Click to roll normally.'
+                          : 'Click to enable a critical damage roll on your next roll.'
+                      }
+                    >
+                      Crit
+                    </Button>
+                  ) : null}
+                </div>
                 <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
               </div>
             </div>
@@ -412,7 +474,9 @@ FooterCharacterSlot.propTypes = {
     value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     isCritical: PropTypes.bool,
     isFumble: PropTypes.bool,
+    timestamp: PropTypes.number,
   }),
+  onToggleCritical: PropTypes.func,
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -426,6 +490,7 @@ FooterCharacterSlot.defaultProps = {
   actions: null,
   spellSlots: null,
   damageSummary: null,
+  onToggleCritical: undefined,
 };
 
 export default FooterCharacterSlot;
