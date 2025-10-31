@@ -104,7 +104,6 @@ const FooterCharacterSlot = ({
     isFumble: damageIsFumble,
     timestamp: damageTimestamp,
   } = normalizedDamageSummary;
-    normalizedDamageSummary;
 
   const hasDamageValue =
     damageSummaryValue !== null &&
