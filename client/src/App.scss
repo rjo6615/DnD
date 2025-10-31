@@ -2270,9 +2270,9 @@ $rotateX: -$angle;
   align-items: center;
   justify-content: flex-start;
   gap: 18px;
-  width: min(92vw, var(--damage-roller-max-width, 720px));
-  max-width: min(92vw, var(--damage-roller-max-width, 720px));
-  min-height: max(280px, min(60vh, var(--damage-roller-min-height, 540px)));
+  width: min(96vw, var(--damage-roller-max-width, 1280px));
+  max-width: min(96vw, var(--damage-roller-max-width, 1280px));
+  min-height: max(420px, min(96vh, var(--damage-roller-min-height, 1040px)));
   margin: 0 auto;
   padding: 32px 24px 48px;
   color: #ffffff;
@@ -2300,8 +2300,8 @@ $rotateX: -$angle;
 
 .damage-roller__dice-area {
   position: relative;
-  width: clamp(260px, 60vw, var(--damage-dice-area-size, 560px));
-  height: clamp(260px, 60vw, var(--damage-dice-area-size, 560px));
+  width: clamp(360px, 88vw, var(--damage-dice-area-size, 960px));
+  height: clamp(360px, 88vw, var(--damage-dice-area-size, 960px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2312,7 +2312,7 @@ $rotateX: -$angle;
   perspective: 1400px;
   transform-style: preserve-3d;
   max-width: 100%;
-  max-height: var(--damage-dice-area-size, 560px);
+  max-height: var(--damage-dice-area-size, 960px);
 }
 
 .damage-roller__dice-wrapper {
@@ -2448,7 +2448,7 @@ $rotateX: -$angle;
 
 .damage-roller__controls {
   width: 100%;
-  max-width: min(72vw, var(--damage-roller-max-width, 560px));
+  max-width: min(92vw, var(--damage-roller-max-width, 1120px));
   margin: 0 auto;
   gap: calc(var(--attack-die-size) * 0.2);
 }
@@ -2543,7 +2543,12 @@ $rotateX: -$angle;
   --rot-y-end: 0deg;
   --rot-z-end: 0deg;
   --die-surface-color: var(--dice-face-color, #1f46cc);
-  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(
+    0
+    calc(var(--die-size, 36px) * 0.18)
+    calc(var(--die-size, 36px) * 0.28)
+    rgba(0, 0, 0, 0.45)
+  );
   animation: damage-die-flight var(--drop-duration) cubic-bezier(0.25, 0.72, 0.13, 0.99)
     forwards;
   animation-delay: var(--drop-delay);
@@ -2621,13 +2626,14 @@ $rotateX: -$angle;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 16px;
-  min-height: 16px;
-  padding: 2px 4px;
-  font-size: 0.95rem;
+  min-width: calc(var(--die-size, 36px) * 0.26);
+  min-height: calc(var(--die-size, 36px) * 0.26);
+  padding: calc(var(--die-size, 36px) * 0.05) calc(var(--die-size, 36px) * 0.12);
+  font-size: clamp(1.2rem, calc(var(--die-size, 36px) * 0.22), 3.6rem);
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  text-shadow: 0 calc(var(--die-size, 36px) * 0.06) calc(var(--die-size, 36px) * 0.12)
+    rgba(0, 0, 0, 0.65);
   transform: translateZ(1.2px);
 }
 
@@ -2680,11 +2686,12 @@ $rotateX: -$angle;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: clamp(1.4rem, calc(var(--die-size, 36px) * 0.26), 4.6rem);
   line-height: 1;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+  text-shadow: 0 calc(var(--die-size, 36px) * 0.08) calc(var(--die-size, 36px) * 0.16)
+    rgba(0, 0, 0, 0.65);
   pointer-events: none;
   backface-visibility: hidden;
   transform: translateZ(6px);
