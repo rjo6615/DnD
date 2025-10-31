@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Spinner } from 'react-bootstrap';
 
@@ -27,6 +27,8 @@ const FooterCharacterSlot = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingHealth, setPendingHealth] = useState(null);
+  const pendingCommitRef = useRef(null);
 
   const { resolvedCurrent, resolvedMax } = useMemo(() => {
     const numericCurrent = Number(currentHealth);
@@ -43,113 +45,235 @@ const FooterCharacterSlot = ({
     [characterFigurine]
   );
 
-  const baseCurrent = resolvedCurrent ?? 0;
-  const canDecrease = !isUpdating && baseCurrent > 0;
+  const effectiveCurrent = pendingHealth ?? resolvedCurrent;
+  const numericCurrent = Number.isFinite(effectiveCurrent) ? effectiveCurrent : 0;
+  const sliderMax =
+    resolvedMax !== null && Number.isFinite(resolvedMax) && resolvedMax > 0
+      ? resolvedMax
+      : Math.max(numericCurrent + 20, 20);
+  const healthPercent = sliderMax > 0 ? Math.min((numericCurrent / sliderMax) * 100, 100) : 0;
+  const displayCurrent = Number.isFinite(effectiveCurrent) ? Math.round(effectiveCurrent) : '—';
+  const displayMax = Number.isFinite(resolvedMax) ? Math.round(resolvedMax) : '—';
+  const canDecrease = !isUpdating && numericCurrent > 0;
   const canIncrease =
     !isUpdating &&
-    (resolvedMax === null || resolvedCurrent === null || resolvedCurrent < resolvedMax);
+    (resolvedMax === null || !Number.isFinite(resolvedMax) || numericCurrent < resolvedMax);
 
-  const displayCurrent = resolvedCurrent ?? '—';
-  const displayMax = resolvedMax ?? '—';
+  const clampHealthValue = useCallback(
+    (value) => {
+      if (!Number.isFinite(value)) {
+        return null;
+      }
 
-  const handleAdjustHealth = async (offset) => {
-    if (!Number.isFinite(Number(offset)) || Number(offset) === 0) {
-      return;
-    }
-    if (isUpdating || !characterId) {
-      return;
-    }
+      let next = Math.round(value);
+      if (resolvedMax !== null && Number.isFinite(resolvedMax)) {
+        next = Math.min(next, resolvedMax);
+      }
+      next = Math.max(next, 0);
+      return next;
+    },
+    [resolvedMax]
+  );
 
-    let nextHealth = baseCurrent + Number(offset);
-    if (resolvedMax !== null) {
-      nextHealth = Math.min(nextHealth, resolvedMax);
-    }
-    nextHealth = Math.max(nextHealth, 0);
+  const updateHealth = useCallback(
+    async (nextHealth) => {
+      if (!Number.isFinite(nextHealth) || !characterId) {
+        return;
+      }
 
-    if (!Number.isFinite(nextHealth) || nextHealth === baseCurrent) {
-      return;
-    }
+      const next = clampHealthValue(nextHealth);
+      if (next === null) {
+        return;
+      }
 
-    setError(null);
-    setIsUpdating(true);
-    try {
-      const response = await apiFetch(`/characters/update-temphealth/${characterId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tempHealth: nextHealth,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(response.statusText || 'Failed to update health.');
+      if (resolvedCurrent !== null && Number.isFinite(resolvedCurrent) && next === resolvedCurrent) {
+        return;
       }
 
       setError(null);
-      if (typeof onHealthChange === 'function') {
-        onHealthChange(nextHealth);
+      setIsUpdating(true);
+      try {
+        const response = await apiFetch(`/characters/update-temphealth/${characterId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tempHealth: next,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(response.statusText || 'Failed to update health.');
+        }
+
+        if (typeof onHealthChange === 'function') {
+          onHealthChange(next);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setError('Failed to update health.');
+        setPendingHealth(null);
+        pendingCommitRef.current = null;
+      } finally {
+        setIsUpdating(false);
       }
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
-      setError('Failed to update health.');
-    } finally {
-      setIsUpdating(false);
+    },
+    [characterId, clampHealthValue, onHealthChange, resolvedCurrent]
+  );
+
+  const commitPendingUpdate = useCallback(() => {
+    if (pendingCommitRef.current === null) {
+      return;
     }
+    const valueToCommit = pendingCommitRef.current;
+    pendingCommitRef.current = null;
+    updateHealth(valueToCommit);
+  }, [updateHealth]);
+
+  const handleAdjustHealth = (offset) => {
+    if (!Number.isFinite(Number(offset)) || Number(offset) === 0) {
+      return;
+    }
+    if (!characterId) {
+      return;
+    }
+
+    const base = Number.isFinite(effectiveCurrent) ? effectiveCurrent : 0;
+    const next = clampHealthValue(base + Number(offset));
+    if (next === null || next === base) {
+      return;
+    }
+
+    setPendingHealth(next);
+    updateHealth(next);
   };
+
+  const handleSliderInput = useCallback(
+    (event) => {
+      const rawValue = Number(event.target.value);
+      if (Number.isNaN(rawValue)) {
+        return;
+      }
+
+      const next = clampHealthValue(rawValue);
+      if (next === null) {
+        return;
+      }
+
+      setPendingHealth(next);
+      pendingCommitRef.current = next;
+    },
+    [clampHealthValue]
+  );
+
+  const handleSliderCommit = useCallback(() => {
+    if (isUpdating) {
+      return;
+    }
+    commitPendingUpdate();
+  }, [commitPendingUpdate, isUpdating]);
+
+  useEffect(() => {
+    if (
+      pendingHealth !== null &&
+      resolvedCurrent !== null &&
+      Number.isFinite(resolvedCurrent) &&
+      pendingHealth === resolvedCurrent
+    ) {
+      setPendingHealth(null);
+    }
+  }, [pendingHealth, resolvedCurrent]);
+
+  useEffect(() => {
+    if (!isUpdating) {
+      commitPendingUpdate();
+    }
+  }, [commitPendingUpdate, isUpdating]);
 
   return (
     <div className="footer-character-slot" data-allow-pointer-events="true">
-      <div className="footer-character-slot__figurine">
-        {figurineImageUrl ? (
-          <img
-            src={figurineImageUrl}
-            alt={
-              characterName
-                ? `${characterName} figurine`
-                : 'Selected character figurine'
-            }
-            className="footer-character-slot__figurine-image"
-          />
-        ) : (
-          <div className="footer-character-slot__figurine-placeholder" aria-hidden="true">
-            <i className="fas fa-chess-king" />
-          </div>
-        )}
+      <div className="footer-character-slot__portrait">
+        <div className="footer-character-slot__portrait-ring">
+          {figurineImageUrl ? (
+            <img
+              src={figurineImageUrl}
+              alt={
+                characterName
+                  ? `${characterName} figurine`
+                  : 'Selected character figurine'
+              }
+              className="footer-character-slot__figurine-image"
+            />
+          ) : (
+            <div className="footer-character-slot__figurine-placeholder" aria-hidden="true">
+              <i className="fas fa-chess-king" />
+            </div>
+          )}
+          <span className="footer-character-slot__portrait-gloss" />
+        </div>
+        <div className="footer-character-slot__health-readout" aria-live="polite">
+          {isUpdating ? (
+            <Spinner animation="border" role="status" size="sm">
+              <span className="visually-hidden">Updating health…</span>
+            </Spinner>
+          ) : (
+            <>
+              <span className="footer-character-slot__health-current">{displayCurrent}</span>
+              {displayMax !== '—' && (
+                <span className="footer-character-slot__health-max">/ {displayMax}</span>
+              )}
+            </>
+          )}
+        </div>
       </div>
-      <div className="footer-character-slot__health">
+      <div className="footer-character-slot__panel">
         <span className="footer-character-slot__health-label">Health</span>
+        <div className="footer-character-slot__health-track" role="presentation">
+          <div className="footer-character-slot__health-track-base">
+            <div
+              className="footer-character-slot__health-track-fill"
+              style={{ width: `${healthPercent}%` }}
+            />
+            <div className="footer-character-slot__health-track-border" />
+          </div>
+          <input
+            type="range"
+            min="0"
+            max={sliderMax}
+            value={numericCurrent}
+            onChange={handleSliderInput}
+            onMouseUp={handleSliderCommit}
+            onTouchEnd={handleSliderCommit}
+            onBlur={handleSliderCommit}
+            onKeyUp={(event) => {
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+                handleSliderCommit();
+              }
+            }}
+            className="footer-character-slot__health-slider"
+            aria-label="Adjust health"
+            aria-valuemin={0}
+            aria-valuemax={sliderMax}
+            aria-valuenow={numericCurrent}
+          />
+        </div>
         <div className="footer-character-slot__health-controls" role="group" aria-label="Character health controls">
           <Button
             type="button"
             variant="outline-light"
-            className="footer-character-slot__health-button"
+            className="footer-character-slot__health-button footer-character-slot__health-button--decrease"
             onClick={() => handleAdjustHealth(-1)}
             disabled={!canDecrease}
             aria-label="Decrease health"
           >
             <i className="fas fa-minus" aria-hidden="true" />
           </Button>
-          <div className="footer-character-slot__health-value" aria-live="polite">
-            {isUpdating ? (
-              <Spinner animation="border" role="status" size="sm">
-                <span className="visually-hidden">Updating health…</span>
-              </Spinner>
-            ) : (
-              <>
-                <span className="footer-character-slot__health-current">{displayCurrent}</span>
-                {resolvedMax !== null && (
-                  <span className="footer-character-slot__health-max">/ {displayMax}</span>
-                )}
-              </>
-            )}
-          </div>
           <Button
             type="button"
             variant="outline-light"
-            className="footer-character-slot__health-button"
+            className="footer-character-slot__health-button footer-character-slot__health-button--increase"
             onClick={() => handleAdjustHealth(1)}
             disabled={!canIncrease}
             aria-label="Increase health"
