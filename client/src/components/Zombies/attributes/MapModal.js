@@ -595,18 +595,12 @@ const MapModal = ({
     [previewMap]
   );
 
-  const backgroundStyle = useMemo(() => {
-    if (!backgroundImageSrc) {
-      return undefined;
-    }
-
-    return {
-      backgroundImage: `url("${backgroundImageSrc}")`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-    };
-  }, [backgroundImageSrc]);
+  const backgroundStyle = useMemo(
+    () => ({
+      backgroundColor: '#0f1117',
+    }),
+    []
+  );
 
   const previewMapIdCandidates = useMemo(() => {
     const fallbackIdentifiers = [];
