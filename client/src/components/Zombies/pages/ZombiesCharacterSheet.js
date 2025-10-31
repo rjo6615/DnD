@@ -6091,15 +6091,15 @@ export default function ZombiesCharacterSheet() {
           >
             <Container className="footer-container">
               <Nav className="footer-nav">
-                <div
-                  className="footer-toolbar"
-                  data-allow-pointer-events="true"
-                >
-                  {form && (
-                    <div
-                      className="footer-toolbar__slots"
-                      data-allow-pointer-events="true"
-                    >
+                <FooterCharacterSlot
+                  characterFigurine={characterFigurine}
+                  characterId={characterId}
+                  characterName={footerCharacterName}
+                  currentHealth={footerHealth.current}
+                  maxHealth={footerHealth.max}
+                  onHealthChange={handleHealthChange}
+                  spellSlots={
+                    form ? (
                       <SpellSlots
                         form={form}
                         used={usedSlots}
@@ -6109,101 +6109,92 @@ export default function ZombiesCharacterSheet() {
                         shortRestCount={shortRestCount}
                         onActionSurge={handleActionSurge}
                       />
-                    </div>
-                  )}
-                  <div className="footer-actions-wrapper">
-                    <div className="footer-actions-inline">
-                      <Button
-                        variant="link"
-                        className="footer-btn footer-btn--dice"
-                        type="button"
-                        onClick={() => handleFooterQuickAction(openDiceRoller)}
-                        aria-label="Open dice roller"
-                        title="Dice roller"
-                      >
-                        <FaDiceD20
-                          className="footer-btn__dice-icon"
-                          aria-hidden="true"
-                          focusable="false"
-                        />
-                      </Button>
-                      <FooterCharacterSlot
-                        characterFigurine={characterFigurine}
-                        characterId={characterId}
-                        characterName={footerCharacterName}
-                        currentHealth={footerHealth.current}
-                        maxHealth={footerHealth.max}
-                        onHealthChange={handleHealthChange}
-                      />
-                      <Button
-                        variant="link"
-                        className="footer-btn footer-btn--attack"
-                        type="button"
-                        onClick={() => handleFooterQuickAction(openAttackModal)}
-                        aria-label="Open attack actions"
-                        title="Attack options"
-                      >
-                        <img
-                          src={sword}
-                          alt=""
-                          aria-hidden="true"
-                          className="footer-btn__attack-image"
-                        />
-                      </Button>
-                      <Button
-                        ref={footerToggleRef}
-                        onClick={() => setShowFooterActions((prev) => !prev)}
-                        aria-expanded={showFooterActions}
-                        aria-controls="footer-actions-panel"
-                        aria-label={
-                          showFooterActions
-                            ? 'Hide footer actions'
-                            : 'Show footer actions'
-                        }
-                        title={
-                          showFooterActions
-                            ? 'Hide footer actions'
-                            : 'Show footer actions'
-                        }
-                        className={`footer-btn footer-menu-toggle ${
+                    ) : null
+                  }
+                  actions={
+                    <div className="footer-actions-wrapper">
+                      <div className="footer-actions-inline">
+                        <Button
+                          variant="link"
+                          className="footer-btn footer-btn--dice"
+                          type="button"
+                          onClick={() => handleFooterQuickAction(openDiceRoller)}
+                          aria-label="Open dice roller"
+                          title="Dice roller"
+                        >
+                          <FaDiceD20
+                            className="footer-btn__dice-icon"
+                            aria-hidden="true"
+                            focusable="false"
+                          />
+                        </Button>
+                        <Button
+                          variant="link"
+                          className="footer-btn footer-btn--attack"
+                          type="button"
+                          onClick={() => handleFooterQuickAction(openAttackModal)}
+                          aria-label="Open attack actions"
+                          title="Attack options"
+                        >
+                          <img
+                            src={sword}
+                            alt=""
+                            aria-hidden="true"
+                            className="footer-btn__attack-image"
+                          />
+                        </Button>
+                        <Button
+                          ref={footerToggleRef}
+                          onClick={() => setShowFooterActions((prev) => !prev)}
+                          aria-expanded={showFooterActions}
+                          aria-controls="footer-actions-panel"
+                          aria-label={
+                            showFooterActions
+                              ? 'Hide footer actions'
+                              : 'Show footer actions'
+                          }
+                          title={
+                            showFooterActions
+                              ? 'Hide footer actions'
+                              : 'Show footer actions'
+                          }
+                          className={`footer-btn footer-menu-toggle ${
+                            showFooterActions ? 'is-open' : ''
+                          }`}
+                          variant="secondary"
+                        >
+                          <i
+                            className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
+                            aria-hidden="true"
+                          ></i>
+                        </Button>
+                      </div>
+                      <div
+                        ref={footerMenuRef}
+                        id="footer-actions-panel"
+                        className={`footer-actions-popover ${
                           showFooterActions ? 'is-open' : ''
                         }`}
-                        variant="secondary"
+                        aria-hidden={!showFooterActions}
                       >
-                        <i
-                          className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
-                          aria-hidden="true"
-                        ></i>
-                      </Button>
+                        {footerMenuButtons.map((action) => (
+                          <Button
+                            key={action.key}
+                            variant={action.variant}
+                            className={action.className}
+                            style={action.style}
+                            onClick={() => handleFooterQuickAction(action.onClick)}
+                            tabIndex={footerActionTabIndex}
+                            aria-label={action.ariaLabel}
+                            title={action.title}
+                          >
+                            {action.content}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
-                    <div
-                      ref={footerMenuRef}
-                      id="footer-actions-panel"
-                      className={`footer-actions-popover ${
-                        showFooterActions ? 'is-open' : ''
-                      }`}
-                      aria-hidden={!showFooterActions}
-                    >
-                      {footerMenuButtons.map((action) => (
-                        <Button
-                          key={action.key}
-                          variant={action.variant}
-                          className={action.className}
-                          style={action.style}
-                          onClick={() => {
-                            setShowFooterActions(false);
-                            action.onClick?.();
-                          }}
-                          tabIndex={footerActionTabIndex}
-                          aria-label={action.ariaLabel}
-                          title={action.title}
-                        >
-                          {action.content}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                  }
+                />
               </Nav>
             </Container>
           </Navbar>
