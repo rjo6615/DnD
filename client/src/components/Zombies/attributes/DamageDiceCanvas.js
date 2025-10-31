@@ -11,12 +11,12 @@ import {
 } from '../../../utils/diceColors';
 
 const DIE_SIZE_BY_SIDES = new Map([
-  [4, 44],
-  [6, 46],
-  [8, 48],
-  [10, 50],
-  [12, 54],
-  [20, 58],
+  [4, 72],
+  [6, 76],
+  [8, 80],
+  [10, 86],
+  [12, 94],
+  [20, 106],
 ]);
 
 const CATEGORY_CLASSNAMES = {
@@ -59,7 +59,7 @@ const getDieSize = (sides) => {
   if (DIE_SIZE_BY_SIDES.has(rounded)) {
     return DIE_SIZE_BY_SIDES.get(rounded);
   }
-  return clamp(52 + rounded * 0.9, 48, 92);
+  return clamp(88 + rounded * 1.2, 72, 160);
 };
 
 const getDieShapeClass = (sides) => {
