@@ -390,9 +390,6 @@ const PlayerTurnActions = React.forwardRef(
       spellAbilityMod = null,
       spellAbilityKey = '',
       onCastSpell,
-      onPassTurn = () => {},
-      canPassTurn = true,
-      isPassTurnInProgress = false,
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
@@ -2076,6 +2073,7 @@ useImperativeHandle(
     updateDamageValueWithAnimation,
     openAttackModal: handleShowAttack,
     openDiceRoller: handleShowDiceRoller,
+    openDamageLog: () => setShowLog(true),
   }),
   [handleShowAttack, handleShowDiceRoller],
 );
@@ -2122,8 +2120,6 @@ useEffect(() => {
   return () => window.removeEventListener('damage-roll', handler);
 }, []);
 
-const passDisabled = !canPassTurn || isPassTurnInProgress;
-const passLogRef = useRef(null);
 const damageWrapperRef = useRef(null);
 const damageAmountRef = useRef(null);
 const [damageLayout, setDamageLayout] = useState({
@@ -2136,10 +2132,10 @@ const updateDamageLayout = useCallback(() => {
     return;
   }
 
-  const passLogEl = passLogRef.current;
   const wrapperEl = damageWrapperRef.current;
+  const damageAmountEl = damageAmountRef.current;
 
-  if (!passLogEl || !wrapperEl) {
+  if (!wrapperEl || !damageAmountEl) {
     return;
   }
 
@@ -2166,7 +2162,7 @@ const updateDamageLayout = useCallback(() => {
   const positiveWidths = widthCandidates.filter((value) => Number.isFinite(value) && value > 0);
   const maxAllowedWidth = positiveWidths.length > 0 ? Math.min(...positiveWidths) : wrapperWidth;
 
-  const passLogRect = passLogEl.getBoundingClientRect();
+  const damageRect = damageAmountEl.getBoundingClientRect();
   const boundaries = [];
 
   if (spellSlotsEl) {
@@ -2190,7 +2186,7 @@ const updateDamageLayout = useCallback(() => {
   }
 
   const bottomBoundary = boundaries.length > 0 ? Math.min(...boundaries) : viewportHeight;
-  const verticalGap = bottomBoundary ? bottomBoundary - passLogRect.bottom - 16 : maxAllowedWidth;
+  const verticalGap = bottomBoundary ? bottomBoundary - damageRect.top - 16 : maxAllowedWidth;
   const maxAllowedHeight = Math.max(140, verticalGap);
   const diceSize = Math.max(140, Math.min(maxAllowedWidth, maxAllowedHeight));
 
@@ -2274,7 +2270,7 @@ useEffect(() => {
 
 useEffect(() => {
   updateDamageLayout();
-}, [updateDamageLayout, passDisabled, showLog, showAttack, activeDice.length]);
+}, [updateDamageLayout, showLog, showAttack, activeDice.length]);
 
 const resolvedMaxWidth = Number.isFinite(damageLayout.maxWidth)
   ? damageLayout.maxWidth
@@ -2290,80 +2286,6 @@ const damageAmountStyle = {
 };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <div
-        ref={passLogRef}
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <Button
-          style={{
-            padding: '4px 12px',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            color: '#fff',
-            background: 'transparent',
-            borderRadius: '8px',
-            textShadow: '1px 1px 2px #000',
-            cursor: passDisabled ? 'not-allowed' : 'pointer',
-            opacity: passDisabled ? 0.5 : 1,
-            transition: 'all 0.2s ease',
-            border: 'none',
-          }}
-          disabled={passDisabled}
-          onMouseOver={(e) => {
-            if (passDisabled) {
-              return;
-            }
-            e.target.style.background = 'none';
-            e.target.style.boxShadow =
-              '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = 'transparent';
-            e.target.style.boxShadow = 'none';
-            e.target.style.border = 'none';
-          }}
-          onClick={() => {
-            if (passDisabled) {
-              return;
-            }
-            onPassTurn();
-          }}
-        >
-          Pass ➔
-        </Button>
-        <Button
-          style={{
-            padding: '4px 12px',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            color: '#fff',
-            background: 'transparent',
-            borderRadius: '8px',
-            textShadow: '1px 1px 2px #000',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            border: 'none',
-          }}
-          onMouseOver={(e) => {
-            e.target.style.background = 'none';
-            e.target.style.boxShadow =
-              '0 0 16px rgba(0, 76, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 1)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = 'transparent';
-            e.target.style.boxShadow = 'none';
-            e.target.style.border = 'none';
-          }}
-          onClick={() => setShowLog(true)}
-        >
-          ⚔️ Log
-        </Button>
-      </div>
       <div
         ref={damageWrapperRef}
         style={{

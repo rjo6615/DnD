@@ -218,6 +218,14 @@ const FooterCharacterSlot = ({
 
   return (
     <div className="footer-character-slot" data-allow-pointer-events="true">
+      {spellSlots ? (
+        <div
+          className="footer-character-slot__slots-wrapper"
+          data-allow-pointer-events="true"
+        >
+          <div className="footer-character-slot__slots">{spellSlots}</div>
+        </div>
+      ) : null}
       <div className="footer-character-slot__main">
         <div className="footer-character-slot__portrait">
           <div className="footer-character-slot__portrait-ring">
@@ -248,23 +256,13 @@ const FooterCharacterSlot = ({
           </div>
         </div>
         <div className="footer-character-slot__details">
-          {(characterName || spellSlots) && (
+          {characterName ? (
             <div className="footer-character-slot__header">
-              {characterName && (
-                <span className="footer-character-slot__name" title={characterName}>
-                  {characterName}
-                </span>
-              )}
-              {spellSlots ? (
-                <div
-                  className="footer-character-slot__slots"
-                  data-allow-pointer-events="true"
-                >
-                  {spellSlots}
-                </div>
-              ) : null}
+              <span className="footer-character-slot__name" title={characterName}>
+                {characterName}
+              </span>
             </div>
-          )}
+          ) : null}
           <div className="footer-character-slot__health">
             <div className="footer-character-slot__health-top">
               <span className="footer-character-slot__health-label">Health</span>
