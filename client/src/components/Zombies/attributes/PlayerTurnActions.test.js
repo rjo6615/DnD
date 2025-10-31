@@ -156,6 +156,50 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('notifies damage summary changes through callback', async () => {
+    const handleDamageSummaryChange = jest.fn();
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#223344', equipment: {}, weapon: [], spells: [] }}
+        strMod={0}
+        dexMod={0}
+        onDamageSummaryChange={handleDamageSummaryChange}
+      />
+    );
+
+    expect(handleDamageSummaryChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 0, isCritical: false, isFumble: false })
+    );
+
+    handleDamageSummaryChange.mockClear();
+
+    act(() => {
+      actionsRef.current?.updateDamageValueWithAnimation?.(7, '', 'custom');
+    });
+
+    await waitFor(() => {
+      expect(handleDamageSummaryChange).toHaveBeenCalledWith(
+        expect.objectContaining({ value: 7, isCritical: false, isFumble: false })
+      );
+    });
+
+    handleDamageSummaryChange.mockClear();
+
+    const damageToggle = screen.getByRole('button', {
+      name: /click to enable a critical damage roll on your next roll/i,
+    });
+
+    await act(async () => {
+      fireEvent.click(damageToggle);
+    });
+
+    await waitFor(() => {
+      expect(handleDamageSummaryChange).toHaveBeenCalledWith(
+        expect.objectContaining({ value: 7, isCritical: true, isFumble: false })
+      );
+    });
+  });
+
   test('weapon damage segments include ability and type classes', async () => {
     const weapon = {
       name: 'Frost Brand',

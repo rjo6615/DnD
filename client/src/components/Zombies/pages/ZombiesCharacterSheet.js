@@ -3988,6 +3988,43 @@ export default function ZombiesCharacterSheet() {
     return null;
   }, [form]);
 
+  const [footerDamageSummary, setFooterDamageSummary] = useState({
+    value: null,
+    isCritical: false,
+    isFumble: false,
+  });
+
+  const handleDamageSummaryChange = useCallback((summary) => {
+    setFooterDamageSummary((prev) => {
+      if (!summary || typeof summary !== 'object') {
+        if (prev.value === null && !prev.isCritical && !prev.isFumble) {
+          return prev;
+        }
+        return { value: null, isCritical: false, isFumble: false };
+      }
+
+      const next = {
+        value:
+          Object.prototype.hasOwnProperty.call(summary, 'value') &&
+          summary.value !== undefined
+            ? summary.value
+            : null,
+        isCritical: Boolean(summary.isCritical),
+        isFumble: Boolean(summary.isFumble),
+      };
+
+      if (
+        prev.value === next.value &&
+        prev.isCritical === next.isCritical &&
+        prev.isFumble === next.isFumble
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, []);
+
   const footerHealth = useMemo(() => {
     if (!form || typeof form !== 'object') {
       return { current: null, max: null };
@@ -6088,6 +6125,7 @@ export default function ZombiesCharacterSheet() {
                 characterId={characterId}
                 ref={playerTurnActionsRef}
                 onCastSpell={handleCastSpell}
+                onDamageSummaryChange={handleDamageSummaryChange}
                 availableSlots={availableSlots}
                 longRestCount={longRestCount}
                 shortRestCount={shortRestCount}
@@ -6111,6 +6149,7 @@ export default function ZombiesCharacterSheet() {
                   maxHealth={footerHealth.max}
                   armorClass={footerArmorClass}
                   onHealthChange={handleHealthChange}
+                  damageSummary={footerDamageSummary}
                   spellSlots={
                     form ? (
                       <SpellSlots

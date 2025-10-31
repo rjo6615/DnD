@@ -27,6 +27,7 @@ const FooterCharacterSlot = ({
   onHealthChange,
   actions,
   spellSlots,
+  damageSummary,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -78,6 +79,40 @@ const FooterCharacterSlot = ({
     () => (displayArmorClass === '—' ? 'Armor Class unavailable' : `Armor Class ${displayArmorClass}`),
     [displayArmorClass]
   );
+
+  const normalizedDamageSummary = useMemo(() => {
+    if (!damageSummary || typeof damageSummary !== 'object') {
+      return { value: null, isCritical: false, isFumble: false };
+    }
+
+    const { value, isCritical, isFumble } = damageSummary;
+
+    return {
+      value: value !== undefined ? value : null,
+      isCritical: Boolean(isCritical),
+      isFumble: Boolean(isFumble),
+    };
+  }, [damageSummary]);
+
+  const { value: damageSummaryValue, isCritical: damageIsCritical, isFumble: damageIsFumble } =
+    normalizedDamageSummary;
+
+  const hasDamageValue =
+    damageSummaryValue !== null &&
+    damageSummaryValue !== undefined &&
+    !(typeof damageSummaryValue === 'string' && damageSummaryValue.trim() === '');
+
+  const displayDamageValue = hasDamageValue
+    ? `${damageSummaryValue}`
+    : '—';
+
+  const damageClassName = [
+    'footer-character-slot__damage',
+    damageIsCritical ? 'footer-character-slot__damage--critical' : '',
+    damageIsFumble ? 'footer-character-slot__damage--fumble' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const canDecrease = !isUpdating && numericCurrent > 0;
   const canIncrease =
     !isUpdating &&
@@ -265,20 +300,26 @@ const FooterCharacterSlot = ({
           ) : null}
           <div className="footer-character-slot__health">
             <div className="footer-character-slot__health-top">
-              <span className="footer-character-slot__health-label">Health</span>
-              <div className="footer-character-slot__health-readout" aria-live="polite">
-                {isUpdating ? (
-                  <Spinner animation="border" role="status" size="sm">
-                    <span className="visually-hidden">Updating health…</span>
-                  </Spinner>
-                ) : (
-                  <>
-                    <span className="footer-character-slot__health-current">{displayCurrent}</span>
-                    {displayMax !== '—' && (
-                      <span className="footer-character-slot__health-max">/ {displayMax}</span>
-                    )}
-                  </>
-                )}
+              <div className="footer-character-slot__health-summary">
+                <span className="footer-character-slot__health-label">Health</span>
+                <div className="footer-character-slot__health-readout" aria-live="polite">
+                  {isUpdating ? (
+                    <Spinner animation="border" role="status" size="sm">
+                      <span className="visually-hidden">Updating health…</span>
+                    </Spinner>
+                  ) : (
+                    <>
+                      <span className="footer-character-slot__health-current">{displayCurrent}</span>
+                      {displayMax !== '—' && (
+                        <span className="footer-character-slot__health-max">/ {displayMax}</span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className={damageClassName} role="status" aria-live="polite">
+                <span className="footer-character-slot__damage-label">Damage</span>
+                <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
               </div>
             </div>
             <div className="footer-character-slot__health-track" role="presentation">
@@ -367,6 +408,11 @@ FooterCharacterSlot.propTypes = {
   onHealthChange: PropTypes.func,
   actions: PropTypes.node,
   spellSlots: PropTypes.node,
+  damageSummary: PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    isCritical: PropTypes.bool,
+    isFumble: PropTypes.bool,
+  }),
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -379,6 +425,7 @@ FooterCharacterSlot.defaultProps = {
   onHealthChange: undefined,
   actions: null,
   spellSlots: null,
+  damageSummary: null,
 };
 
 export default FooterCharacterSlot;
