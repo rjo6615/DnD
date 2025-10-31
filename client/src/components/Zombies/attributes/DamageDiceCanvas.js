@@ -11,12 +11,12 @@ import {
 } from '../../../utils/diceColors';
 
 const DIE_SIZE_BY_SIDES = new Map([
-  [4, 44],
-  [6, 46],
-  [8, 48],
-  [10, 50],
-  [12, 54],
-  [20, 58],
+  [4, 248],
+  [6, 276],
+  [8, 304],
+  [10, 336],
+  [12, 368],
+  [20, 408],
 ]);
 
 const CATEGORY_CLASSNAMES = {
@@ -54,12 +54,19 @@ const createSeededRandom = (seedValue) => {
   };
 };
 
-const getDieSize = (sides) => {
+const getDieSize = (sides, areaSize) => {
   const rounded = Math.round(sides);
   if (DIE_SIZE_BY_SIDES.has(rounded)) {
     return DIE_SIZE_BY_SIDES.get(rounded);
   }
-  return clamp(52 + rounded * 0.9, 48, 92);
+  const fallbackSize = clamp(280 + rounded * 4.4, 200, 520);
+  if (!Number.isFinite(areaSize) || areaSize <= 0) {
+    return fallbackSize;
+  }
+  const upperBound = Math.max(220, areaSize * 0.96);
+  const lowerBound = Math.max(200, areaSize * 0.68);
+  const sized = Math.max(fallbackSize, lowerBound);
+  return Math.min(sized, upperBound);
 };
 
 const getDieShapeClass = (sides) => {
@@ -104,25 +111,35 @@ const usePrefersReducedMotion = () => {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 };
 
-const createDieStyle = (die, index, reduceMotion) => {
+const createDieStyle = (die, index, reduceMotion, areaSize, densityScale = 1) => {
   const seed = `${die.id ?? index}-${die.value}-${die.sides}`;
   const random = createSeededRandom(seed);
+  const normalizedScale = clamp(densityScale, 0.42, 1.05);
+  const dieSize = Math.max(140, getDieSize(die.sides, areaSize) * normalizedScale);
 
   const baseDelay = reduceMotion
     ? index * 0.02
     : index * 0.12 + random() * 0.08;
   const duration = reduceMotion ? 0.1 : 0.82 + random() * 0.5;
 
-  const startX = reduceMotion ? 0 : (random() - 0.5) * 260;
-  const startY = reduceMotion ? 0 : -130 - random() * 90;
-  const startZ = reduceMotion ? 0 : (random() - 0.5) * 200;
+  const areaLimit = Number.isFinite(areaSize) && areaSize > 0 ? areaSize : null;
+  const horizontalLimit = areaLimit
+    ? Math.max(dieSize * 0.9, areaLimit * 0.88)
+    : dieSize * 2.4;
+  const launchRadius = Math.min(dieSize * 2.2, horizontalLimit);
+  const dropRadius = Math.min(dieSize * 1.6, horizontalLimit * 0.92);
+  const launchHeight = dieSize * (1.05 + random() * 0.75);
 
-  const midX = reduceMotion ? 0 : (random() - 0.5) * 170;
-  const midY = reduceMotion ? 0 : -70 - random() * 70;
-  const midZ = reduceMotion ? 0 : (random() - 0.5) * 170;
+  const startX = reduceMotion ? 0 : (random() - 0.5) * launchRadius;
+  const startY = reduceMotion ? 0 : -launchHeight;
+  const startZ = reduceMotion ? 0 : (random() - 0.5) * dropRadius;
 
-  const endY = reduceMotion ? 0 : 34 + random() * 34;
-  const bounce = reduceMotion ? 0 : 6 + random() * 10;
+  const midX = reduceMotion ? 0 : (random() - 0.5) * (launchRadius * 0.65);
+  const midY = reduceMotion ? 0 : -dieSize * (0.72 + random() * 0.4);
+  const midZ = reduceMotion ? 0 : (random() - 0.5) * (dropRadius * 0.7);
+
+  const endY = reduceMotion ? 0 : dieSize * (0.28 + random() * 0.22);
+  const bounce = reduceMotion ? 0 : dieSize * (0.06 + random() * 0.08);
 
   const rotStartX = reduceMotion ? 0 : random() * 360;
   const rotStartY = reduceMotion ? 0 : random() * 360;
@@ -138,7 +155,7 @@ const createDieStyle = (die, index, reduceMotion) => {
 
   return {
     left: '50%',
-    '--die-size': formatCssNumber(getDieSize(die.sides), 'px', 0),
+    '--die-size': formatCssNumber(dieSize, 'px', 0),
     '--drop-delay': formatSeconds(baseDelay),
     '--drop-duration': formatSeconds(duration),
     '--flight-start-x': formatCssNumber(startX, 'px'),
@@ -166,6 +183,7 @@ const DamageDiceCanvas = ({
   diceColor,
   instanceKey = null,
   showOverlayDice = false,
+  diceAreaSize = null,
 }) => {
   const resolvedColor = useMemo(
     () => normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR,
@@ -198,6 +216,9 @@ const DamageDiceCanvas = ({
       return [];
     }
 
+    const diceCount = dice.length;
+    const densityScale = diceCount > 1 ? clamp(0.96 / Math.sqrt(diceCount), 0.48, 1) : 1;
+
     return dice
       .filter((die) => die && Number.isFinite(Number(die.sides)))
       .map((die, index) => {
@@ -205,7 +226,13 @@ const DamageDiceCanvas = ({
         const value = toNumericValue(die.value);
         const color = die.typeColor || resolvedColor;
         const style = {
-          ...createDieStyle({ ...die, sides }, index, reduceMotion),
+          ...createDieStyle(
+            { ...die, sides },
+            index,
+            reduceMotion,
+            diceAreaSize,
+            densityScale,
+          ),
           ...createDiceCategoryStyles(color, die.category),
         };
         const classes = [
@@ -241,7 +268,7 @@ const DamageDiceCanvas = ({
           </div>
         );
       });
-  }, [dice, reduceMotion, resolvedColor, showOverlayDice]);
+  }, [dice, diceAreaSize, reduceMotion, resolvedColor, showOverlayDice]);
 
   return (
     <div className="damage-dice-canvas" aria-hidden="true">

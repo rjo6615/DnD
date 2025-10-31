@@ -2136,8 +2136,8 @@ useEffect(() => {
 const damageWrapperRef = useRef(null);
 const damageAmountRef = useRef(null);
 const [damageLayout, setDamageLayout] = useState({
-  maxWidth: 360,
-  diceSize: 220,
+  maxWidth: 1200,
+  diceSize: 640,
 });
 
 const updateDamageLayout = useCallback(() => {
@@ -2153,25 +2153,10 @@ const updateDamageLayout = useCallback(() => {
   }
 
   const wrapperWidth = wrapperEl.clientWidth || window.innerWidth;
+  const viewportWidth = window.innerWidth || document.documentElement?.clientWidth || wrapperWidth;
   const spellSlotsEl = document.querySelector('.spell-slot-container');
-  const footerButtonsContainer = document.querySelector('.footer-btn')?.parentElement;
 
-  const widthCandidates = [wrapperWidth];
-
-  if (spellSlotsEl) {
-    const { width } = spellSlotsEl.getBoundingClientRect();
-    if (Number.isFinite(width) && width > 0) {
-      widthCandidates.push(width);
-    }
-  }
-
-  if (footerButtonsContainer) {
-    const { width } = footerButtonsContainer.getBoundingClientRect();
-    if (Number.isFinite(width) && width > 0) {
-      widthCandidates.push(width);
-    }
-  }
-
+  const widthCandidates = [wrapperWidth, Math.max(0, viewportWidth - 64)];
   const positiveWidths = widthCandidates.filter((value) => Number.isFinite(value) && value > 0);
   const maxAllowedWidth = positiveWidths.length > 0 ? Math.min(...positiveWidths) : wrapperWidth;
 
@@ -2200,8 +2185,8 @@ const updateDamageLayout = useCallback(() => {
 
   const bottomBoundary = boundaries.length > 0 ? Math.min(...boundaries) : viewportHeight;
   const verticalGap = bottomBoundary ? bottomBoundary - damageRect.top - 16 : maxAllowedWidth;
-  const maxAllowedHeight = Math.max(140, verticalGap);
-  const diceSize = Math.max(140, Math.min(maxAllowedWidth, maxAllowedHeight));
+  const maxAllowedHeight = Math.max(260, verticalGap);
+  const diceSize = Math.max(360, Math.min(maxAllowedWidth * 0.96, maxAllowedHeight * 0.96));
 
   setDamageLayout((prev) => {
     const next = {
@@ -2287,11 +2272,11 @@ useEffect(() => {
 
 const resolvedMaxWidth = Number.isFinite(damageLayout.maxWidth)
   ? damageLayout.maxWidth
-  : 360;
+  : 1200;
 const resolvedDiceSize = Number.isFinite(damageLayout.diceSize)
   ? damageLayout.diceSize
-  : 220;
-const damageContainerMinHeight = Math.max(240, resolvedDiceSize + 160);
+  : 640;
+const damageContainerMinHeight = Math.max(420, resolvedDiceSize + 320);
 const damageAmountStyle = {
   '--damage-roller-max-width': `${resolvedMaxWidth}px`,
   '--damage-roller-min-height': `${damageContainerMinHeight}px`,
@@ -2357,6 +2342,7 @@ const damageAmountStyle = {
                   diceColor={diceFaceColor}
                   instanceKey={characterId}
                   showOverlayDice={showOverlayDice}
+                  diceAreaSize={resolvedDiceSize}
                 />
               </div>
             </div>
