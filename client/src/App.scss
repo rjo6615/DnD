@@ -162,8 +162,13 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(13, 27, 42, 0.3);
   pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(13, 27, 42, 0.08) 0%,
+    rgba(13, 27, 42, 0.16) 45%,
+    rgba(13, 27, 42, 0.08) 100%
+  );
 }
 
 .zombies-character-sheet-layout__map {
