@@ -6,6 +6,7 @@ import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import resolveMapImageSource from '../utils/mapImages';
 import DockControls from '../components/DockControls';
+import loginbg from '../../../images/loginbg.png';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -31,6 +32,26 @@ const toFiniteNumberOrNull = (value) => {
 };
 
 const EMPTY_IDENTIFIER_SET = new Set();
+
+const BACKGROUND_ZOOM_DEFAULT = 1;
+const BACKGROUND_ZOOM_MIN = 0.5;
+const BACKGROUND_ZOOM_MAX = 2.5;
+
+const clampBackgroundZoom = (value) => {
+  if (!Number.isFinite(value)) {
+    return BACKGROUND_ZOOM_DEFAULT;
+  }
+
+  if (value < BACKGROUND_ZOOM_MIN) {
+    return BACKGROUND_ZOOM_MIN;
+  }
+
+  if (value > BACKGROUND_ZOOM_MAX) {
+    return BACKGROUND_ZOOM_MAX;
+  }
+
+  return value;
+};
 
 const sanitizeToken = (tokenValue, fallbackId) => {
   if (!tokenValue || typeof tokenValue !== 'object') {
@@ -595,18 +616,16 @@ const MapModal = ({
     [previewMap]
   );
 
-  const backgroundStyle = useMemo(() => {
-    if (!backgroundImageSrc) {
-      return undefined;
-    }
-
-    return {
-      backgroundImage: `url("${backgroundImageSrc}")`,
+  const backgroundStyle = useMemo(
+    () => ({
+      backgroundColor: '#0f1117',
+      backgroundImage: `url(${loginbg})`,
       backgroundSize: 'cover',
-      backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-    };
-  }, [backgroundImageSrc]);
+      backgroundPosition: 'center',
+    }),
+    [loginbg]
+  );
 
   const previewMapIdCandidates = useMemo(() => {
     const fallbackIdentifiers = [];
@@ -694,6 +713,7 @@ const MapModal = ({
 
   const [backgroundImageMetrics, setBackgroundImageMetrics] = useState({ width: null, height: null });
   const [backgroundContainerSize, setBackgroundContainerSize] = useState({ width: 0, height: 0 });
+  const [backgroundZoom, setBackgroundZoom] = useState(BACKGROUND_ZOOM_DEFAULT);
 
   useEffect(() => {
     if (!backgroundImageSrc) {
@@ -833,6 +853,14 @@ const MapModal = ({
       setBackgroundContainerSize({ width: 0, height: 0 });
     }
   }, [isBackground]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    setBackgroundZoom(BACKGROUND_ZOOM_DEFAULT);
+  }, [isBackground, previewMapId]);
 
   const backgroundBoardDimensions = useMemo(() => {
     const { width: imageWidth, height: imageHeight } = backgroundImageMetrics;
@@ -1450,7 +1478,7 @@ const MapModal = ({
 
   const backgroundBoardStyleValue = useMemo(() => {
     const style = {
-      transform: 'translate(-50%, -50%)',
+      '--map-modal-background-scale': `${clampBackgroundZoom(backgroundZoom)}`,
     };
 
     if (backgroundBoardDimensions) {
@@ -1459,9 +1487,69 @@ const MapModal = ({
     }
 
     return style;
-  }, [backgroundBoardDimensions]);
+  }, [backgroundBoardDimensions, backgroundZoom]);
 
   const backgroundBoardClassName = 'map-modal-background__board-inner';
+
+  const handleBackgroundWheel = useCallback(
+    (event) => {
+      if (!isBackground) {
+        return;
+      }
+
+      const wheelEvent = event?.nativeEvent ?? event;
+      if (!wheelEvent || typeof wheelEvent.deltaY !== 'number' || wheelEvent.deltaY === 0) {
+        return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      if (typeof event?.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+
+      const { deltaY, ctrlKey, deltaMode } = wheelEvent;
+
+      const deltaPixels = (() => {
+        if (typeof deltaMode !== 'number') {
+          return deltaY;
+        }
+
+        if (deltaMode === 1) {
+          // DOM_DELTA_LINE
+          return deltaY * 16;
+        }
+
+        if (deltaMode === 2) {
+          // DOM_DELTA_PAGE
+          return deltaY * 800;
+        }
+
+        return deltaY;
+      })();
+
+      if (!Number.isFinite(deltaPixels) || deltaPixels === 0) {
+        return;
+      }
+
+      const normalizedDelta = Math.max(-1, Math.min(1, deltaPixels / 120));
+      const zoomStrength = ctrlKey ? 0.12 : 0.2;
+      const zoomMultiplier = 1 - normalizedDelta * zoomStrength;
+
+      if (!Number.isFinite(zoomMultiplier) || zoomMultiplier <= 0) {
+        return;
+      }
+
+      setBackgroundZoom((previousZoom) => {
+        const safePrevious = clampBackgroundZoom(previousZoom);
+        const nextZoom = safePrevious * zoomMultiplier;
+        return clampBackgroundZoom(nextZoom);
+      });
+    },
+    [isBackground]
+  );
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
@@ -1894,6 +1982,7 @@ const MapModal = ({
         <div
           ref={backgroundBoardContainerRef}
           className="map-modal-background__board"
+          onWheel={handleBackgroundWheel}
           role="region"
           aria-label={backgroundAriaLabel}
         >
