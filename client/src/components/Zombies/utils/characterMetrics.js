@@ -159,6 +159,203 @@ const resolveHpBonusFromSource = (character) => {
   };
 };
 
+const resolveArmorItems = (character) => {
+  const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
+  const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
+
+  if (equipmentEntries.length) {
+    return equipmentEntries.filter((item) => {
+      if (!item || typeof item !== 'object' || isExplicitlyUnowned(item)) {
+        return false;
+      }
+
+      if (Array.isArray(item)) {
+        return true;
+      }
+
+      const source = String(item.__source ?? item.source ?? '').toLowerCase();
+      if (source === 'armor') {
+        return true;
+      }
+
+      return (
+        item.acBonus != null ||
+        item.armorBonus != null ||
+        item.ac != null ||
+        item.maxDex != null ||
+        item.maxDexterity != null ||
+        item.checkPenalty != null ||
+        item.stealth != null
+      );
+    });
+  }
+
+  const armorCollection = Array.isArray(character?.armor) ? character.armor : [];
+  return armorCollection.filter(Boolean);
+};
+
+const isShieldItem = (item) => {
+  if (!item) {
+    return false;
+  }
+
+  if (Array.isArray(item)) {
+    const [name] = item;
+    return typeof name === 'string' && name.toLowerCase().includes('shield');
+  }
+
+  const category = String(item.category ?? item.type ?? '').toLowerCase();
+  if (category.includes('shield')) {
+    return true;
+  }
+
+  const name = String(
+    item.name ?? item.title ?? item.displayName ?? item.label ?? ''
+  ).toLowerCase();
+  return name.includes('shield');
+};
+
+const resolveMonkLevel = (character) => {
+  if (!Array.isArray(character?.occupation)) {
+    return 0;
+  }
+
+  return character.occupation.reduce((total, occupationEntry) => {
+    if (!occupationEntry || typeof occupationEntry !== 'object') {
+      return total;
+    }
+
+    const name = String(
+      occupationEntry.Name ??
+        occupationEntry.Occupation ??
+        occupationEntry.name ??
+        occupationEntry.occupation ??
+        ''
+    ).toLowerCase();
+
+    if (name !== 'monk') {
+      return total;
+    }
+
+    const levelValue = Number(
+      occupationEntry.Level ??
+        occupationEntry.level ??
+        occupationEntry.Levels ??
+        occupationEntry.levels ??
+        0
+    );
+
+    if (!Number.isFinite(levelValue) || levelValue <= 0) {
+      return total;
+    }
+
+    return total + levelValue;
+  }, 0);
+};
+
+const hasUnarmoredDefense = (character) => {
+  const searchValue = 'unarmored defense';
+  const checkValue = (value) => {
+    if (!value) return false;
+    if (Array.isArray(value)) {
+      return value.some((entry) => checkValue(entry));
+    }
+    if (typeof value === 'object') {
+      return Object.values(value).some((entry) => checkValue(entry));
+    }
+    return typeof value === 'string' && value.toLowerCase().includes(searchValue);
+  };
+
+  return checkValue(character?.features);
+};
+
+export const calculateCharacterArmorClass = (character, overrides = {}) => {
+  if (!character || typeof character !== 'object') {
+    return null;
+  }
+
+  const armorItems = resolveArmorItems(character);
+
+  const armorAcBonus = armorItems.reduce((total, item) => {
+    if (Array.isArray(item)) {
+      const value = Number(item[1] ?? 0);
+      if (!Number.isFinite(value)) {
+        return total;
+      }
+      return total + (value > 10 ? value - 10 : value);
+    }
+
+    const value = Number(item?.acBonus ?? item?.armorBonus ?? item?.ac ?? 0);
+    return Number.isFinite(value) ? total + value : total;
+  }, 0);
+
+  const featAcBonus =
+    overrides.featAcBonus !== undefined
+      ? toFiniteNumberOrZero(overrides.featAcBonus)
+      : toFiniteNumberOrZero(collectFeatNumericBonuses(character?.feat).ac);
+
+  const additionalAcBonus = toFiniteNumberOrZero(overrides.additionalAcBonus);
+
+  const armorMaxDexCaps = armorItems
+    .map((item) => {
+      if (Array.isArray(item)) {
+        const value = Number(item[2] ?? 0);
+        return Number.isFinite(value) ? value : 0;
+      }
+
+      const value = Number(item?.maxDex ?? item?.maxDexterity ?? 0);
+      return Number.isFinite(value) ? value : 0;
+    })
+    .filter((value) => Number.isFinite(value));
+
+  const abilities = calculateEffectiveAbilityScores(character);
+
+  const baseDexMod = Number.isFinite(overrides.dexMod)
+    ? overrides.dexMod
+    : Math.floor((abilities.dex - 10) / 2);
+
+  let dexContribution = baseDexMod;
+  const positiveCaps = armorMaxDexCaps.filter((value) => value !== 0 && value > 0);
+  if (positiveCaps.length > 0) {
+    const minCap = Math.min(...positiveCaps);
+    if (Number.isFinite(minCap) && minCap < dexContribution) {
+      dexContribution = minCap;
+    }
+  }
+
+  const baseWisMod = Number.isFinite(overrides.wisMod)
+    ? overrides.wisMod
+    : Math.floor((abilities.wis - 10) / 2);
+
+  const hasShieldEquipped = armorItems.some((item) => isShieldItem(item));
+  const hasArmorEquipped = armorItems.some((item) => {
+    if (!item) {
+      return false;
+    }
+    if (Array.isArray(item)) {
+      return true;
+    }
+    if (typeof item !== 'object') {
+      return false;
+    }
+    if (isShieldItem(item)) {
+      return false;
+    }
+    const source = String(item.__source ?? item.source ?? '').toLowerCase();
+    return source === 'armor';
+  });
+
+  const monkLevel = resolveMonkLevel(character);
+  const wisdomBonus =
+    !hasArmorEquipped && !hasShieldEquipped && (hasUnarmoredDefense(character) || monkLevel > 0)
+      ? baseWisMod
+      : 0;
+
+  const armorClass = 10 + armorAcBonus + featAcBonus + additionalAcBonus + dexContribution + wisdomBonus;
+  const normalized = Number(armorClass);
+  return Number.isFinite(normalized) ? normalized : null;
+};
+
 export const calculateCharacterHitPoints = (character, overrides = {}) => {
   if (!character || typeof character !== 'object') {
     return { currentHp: null, maxHp: null };

@@ -23,6 +23,7 @@ const FooterCharacterSlot = ({
   characterName,
   currentHealth,
   maxHealth,
+  armorClass,
   onHealthChange,
   actions,
   spellSlots,
@@ -56,6 +57,27 @@ const FooterCharacterSlot = ({
   const healthPercent = sliderMax > 0 ? Math.min((numericCurrent / sliderMax) * 100, 100) : 0;
   const displayCurrent = Number.isFinite(effectiveCurrent) ? Math.round(effectiveCurrent) : '—';
   const displayMax = Number.isFinite(resolvedMax) ? Math.round(resolvedMax) : '—';
+  const displayArmorClass = useMemo(() => {
+    if (armorClass === null || armorClass === undefined) {
+      return '—';
+    }
+
+    if (typeof armorClass === 'string') {
+      const trimmed = armorClass.trim();
+      return trimmed ? trimmed : '—';
+    }
+
+    const numeric = Number(armorClass);
+    if (Number.isFinite(numeric)) {
+      return Math.round(numeric);
+    }
+
+    return '—';
+  }, [armorClass]);
+  const armorClassAriaLabel = useMemo(
+    () => (displayArmorClass === '—' ? 'Armor Class unavailable' : `Armor Class ${displayArmorClass}`),
+    [displayArmorClass]
+  );
   const canDecrease = !isUpdating && numericCurrent > 0;
   const canIncrease =
     !isUpdating &&
@@ -224,6 +246,14 @@ const FooterCharacterSlot = ({
             )}
             <span className="footer-character-slot__portrait-gloss" />
           </div>
+          <div
+            className="footer-character-slot__armor-class"
+            aria-live="polite"
+            aria-label={armorClassAriaLabel}
+          >
+            <span className="footer-character-slot__armor-class-label">AC</span>
+            <span className="footer-character-slot__armor-class-value">{displayArmorClass}</span>
+          </div>
         </div>
         <div className="footer-character-slot__details">
           {characterName && (
@@ -325,6 +355,11 @@ FooterCharacterSlot.propTypes = {
   characterName: PropTypes.string,
   currentHealth: PropTypes.oneOfType([PropTypes.number, PropTypes.oneOf([null])]),
   maxHealth: PropTypes.oneOfType([PropTypes.number, PropTypes.oneOf([null])]),
+  armorClass: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.string,
+    PropTypes.oneOf([null]),
+  ]),
   onHealthChange: PropTypes.func,
   actions: PropTypes.node,
   spellSlots: PropTypes.node,
@@ -336,6 +371,7 @@ FooterCharacterSlot.defaultProps = {
   characterName: null,
   currentHealth: null,
   maxHealth: null,
+  armorClass: null,
   onHealthChange: undefined,
   actions: null,
   spellSlots: null,
