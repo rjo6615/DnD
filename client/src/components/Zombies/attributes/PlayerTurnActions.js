@@ -390,6 +390,7 @@ const PlayerTurnActions = React.forwardRef(
       spellAbilityMod = null,
       spellAbilityKey = '',
       onCastSpell,
+      onDamageSummaryChange = () => {},
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
@@ -2079,6 +2080,16 @@ useImperativeHandle(
 );
 
 const [pulseClass, setPulseClass] = useState('');
+
+useEffect(() => {
+  if (typeof onDamageSummaryChange === 'function') {
+    onDamageSummaryChange({
+      value: damageValue,
+      isCritical,
+      isFumble,
+    });
+  }
+}, [onDamageSummaryChange, damageValue, isCritical, isFumble]);
 
 useEffect(() => {
   if (!lastRollTimestamp) {
