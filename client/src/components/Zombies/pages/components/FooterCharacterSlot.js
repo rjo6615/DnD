@@ -261,51 +261,53 @@ const FooterCharacterSlot = ({
               {characterName}
             </span>
           )}
-          <div className="footer-character-slot__header">
-            <span className="footer-character-slot__health-label">Health</span>
-            <div className="footer-character-slot__health-readout" aria-live="polite">
-              {isUpdating ? (
-                <Spinner animation="border" role="status" size="sm">
-                  <span className="visually-hidden">Updating health…</span>
-                </Spinner>
-              ) : (
-                <>
-                  <span className="footer-character-slot__health-current">{displayCurrent}</span>
-                  {displayMax !== '—' && (
-                    <span className="footer-character-slot__health-max">/ {displayMax}</span>
-                  )}
-                </>
-              )}
+          <div className="footer-character-slot__health">
+            <div className="footer-character-slot__health-top">
+              <span className="footer-character-slot__health-label">Health</span>
+              <div className="footer-character-slot__health-readout" aria-live="polite">
+                {isUpdating ? (
+                  <Spinner animation="border" role="status" size="sm">
+                    <span className="visually-hidden">Updating health…</span>
+                  </Spinner>
+                ) : (
+                  <>
+                    <span className="footer-character-slot__health-current">{displayCurrent}</span>
+                    {displayMax !== '—' && (
+                      <span className="footer-character-slot__health-max">/ {displayMax}</span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="footer-character-slot__health-track" role="presentation">
-            <div className="footer-character-slot__health-track-base">
-              <div
-                className="footer-character-slot__health-track-fill"
-                style={{ width: `${healthPercent}%` }}
+            <div className="footer-character-slot__health-track" role="presentation">
+              <div className="footer-character-slot__health-track-base">
+                <div
+                  className="footer-character-slot__health-track-fill"
+                  style={{ width: `${healthPercent}%` }}
+                />
+                <div className="footer-character-slot__health-track-border" />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max={sliderMax}
+                value={numericCurrent}
+                onChange={handleSliderInput}
+                onMouseUp={handleSliderCommit}
+                onTouchEnd={handleSliderCommit}
+                onBlur={handleSliderCommit}
+                onKeyUp={(event) => {
+                  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+                    handleSliderCommit();
+                  }
+                }}
+                className="footer-character-slot__health-slider"
+                aria-label="Adjust health"
+                aria-valuemin={0}
+                aria-valuemax={sliderMax}
+                aria-valuenow={numericCurrent}
               />
-              <div className="footer-character-slot__health-track-border" />
             </div>
-            <input
-              type="range"
-              min="0"
-              max={sliderMax}
-              value={numericCurrent}
-              onChange={handleSliderInput}
-              onMouseUp={handleSliderCommit}
-              onTouchEnd={handleSliderCommit}
-              onBlur={handleSliderCommit}
-              onKeyUp={(event) => {
-                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
-                  handleSliderCommit();
-                }
-              }}
-              className="footer-character-slot__health-slider"
-              aria-label="Adjust health"
-              aria-valuemin={0}
-              aria-valuemax={sliderMax}
-              aria-valuenow={numericCurrent}
-            />
           </div>
           <div className="footer-character-slot__health-controls" role="group" aria-label="Character health controls">
             <Button
