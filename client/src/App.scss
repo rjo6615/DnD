@@ -2270,9 +2270,9 @@ $rotateX: -$angle;
   align-items: center;
   justify-content: flex-start;
   gap: 18px;
-  width: min(90vw, var(--damage-roller-max-width, 520px));
-  max-width: min(90vw, var(--damage-roller-max-width, 520px));
-  min-height: max(240px, min(48vh, var(--damage-roller-min-height, 380px)));
+  width: min(92vw, var(--damage-roller-max-width, 720px));
+  max-width: min(92vw, var(--damage-roller-max-width, 720px));
+  min-height: max(280px, min(60vh, var(--damage-roller-min-height, 540px)));
   margin: 0 auto;
   padding: 32px 24px 48px;
   color: #ffffff;
@@ -2300,8 +2300,8 @@ $rotateX: -$angle;
 
 .damage-roller__dice-area {
   position: relative;
-  width: clamp(180px, 42vw, var(--damage-dice-area-size, 380px));
-  height: clamp(180px, 42vw, var(--damage-dice-area-size, 380px));
+  width: clamp(260px, 60vw, var(--damage-dice-area-size, 560px));
+  height: clamp(260px, 60vw, var(--damage-dice-area-size, 560px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2312,7 +2312,7 @@ $rotateX: -$angle;
   perspective: 1400px;
   transform-style: preserve-3d;
   max-width: 100%;
-  max-height: var(--damage-dice-area-size, 380px);
+  max-height: var(--damage-dice-area-size, 560px);
 }
 
 .damage-roller__dice-wrapper {
@@ -2403,7 +2403,7 @@ $rotateX: -$angle;
 .zombies-character-sheet__dice-warning {
   margin: 12px auto 0;
   padding: 12px 18px;
-  max-width: 480px;
+  max-width: 640px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.6);
   color: #ffd166;
@@ -2448,7 +2448,7 @@ $rotateX: -$angle;
 
 .damage-roller__controls {
   width: 100%;
-  max-width: min(70vw, var(--damage-roller-max-width, 360px));
+  max-width: min(72vw, var(--damage-roller-max-width, 560px));
   margin: 0 auto;
   gap: calc(var(--attack-die-size) * 0.2);
 }

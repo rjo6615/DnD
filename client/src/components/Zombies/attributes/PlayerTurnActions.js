@@ -2136,8 +2136,8 @@ useEffect(() => {
 const damageWrapperRef = useRef(null);
 const damageAmountRef = useRef(null);
 const [damageLayout, setDamageLayout] = useState({
-  maxWidth: 360,
-  diceSize: 220,
+  maxWidth: 560,
+  diceSize: 340,
 });
 
 const updateDamageLayout = useCallback(() => {
@@ -2287,11 +2287,11 @@ useEffect(() => {
 
 const resolvedMaxWidth = Number.isFinite(damageLayout.maxWidth)
   ? damageLayout.maxWidth
-  : 360;
+  : 560;
 const resolvedDiceSize = Number.isFinite(damageLayout.diceSize)
   ? damageLayout.diceSize
-  : 220;
-const damageContainerMinHeight = Math.max(240, resolvedDiceSize + 160);
+  : 340;
+const damageContainerMinHeight = Math.max(280, resolvedDiceSize + 200);
 const damageAmountStyle = {
   '--damage-roller-max-width': `${resolvedMaxWidth}px`,
   '--damage-roller-min-height': `${damageContainerMinHeight}px`,
