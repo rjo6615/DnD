@@ -3812,7 +3812,7 @@ h1 {
   --footer-character-portrait-size: clamp(72px, 11vw, 132px);
   position: relative;
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   justify-content: flex-end;
   align-items: flex-end;
   gap: 0;
@@ -3828,7 +3828,7 @@ h1 {
   align-items: flex-end;
   justify-content: center;
   width: calc(var(--footer-character-portrait-size) + 12px);
-  padding: 0 2px 0 0;
+  padding: 0;
   margin-bottom: -6px;
   background: none;
   border-radius: 16px;
@@ -4373,7 +4373,7 @@ h1 {
 
   .footer-character-slot__profile-card {
     width: calc(var(--footer-character-portrait-size) + 14px);
-    padding: 0 2px 0 0;
+    padding: 0;
     margin-bottom: -8px;
   }
 
