@@ -3821,16 +3821,15 @@ h1 {
 .footer-character-slot__profile-card {
   position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
-  width: clamp(140px, 26vw, 180px);
-  aspect-ratio: 1;
-  padding: 16px 14px 12px;
-  background: rgba(15, 22, 43, 0.9);
-  border-radius: 50%;
-  border: 1px solid rgba(104, 144, 216, 0.35);
-  box-shadow: 0 12px 22px rgba(6, 10, 20, 0.5);
-  backdrop-filter: blur(4px);
+  width: clamp(180px, 32vw, 240px);
+  padding: 8px;
+  background: none;
+  border-radius: 16px;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
   min-width: 0;
 }
 
@@ -3874,8 +3873,8 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
+  justify-content: center;
+  gap: 16px;
   width: 100%;
   height: 100%;
   text-align: center;
@@ -3883,8 +3882,8 @@ h1 {
 
 .footer-character-slot__portrait {
   position: relative;
-  width: 58px;
-  height: 58px;
+  width: 120px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3895,7 +3894,7 @@ h1 {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  padding: 2px;
+  padding: 6px;
   background: radial-gradient(circle at 35% 35%, rgba(120, 168, 255, 0.4), rgba(24, 36, 72, 0.85));
   box-shadow: 0 6px 12px rgba(8, 12, 26, 0.55), inset 0 0 12px rgba(80, 124, 216, 0.35);
 }
@@ -3943,10 +3942,21 @@ h1 {
   transform: rotate(-15deg);
 }
 
+.footer-character-slot__portrait-health {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 84%;
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+}
+
 .footer-character-slot__armor-class {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
+  bottom: 12px;
+  right: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4046,13 +4056,17 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(8, 12, 26, 0.82);
+  box-shadow: 0 6px 18px rgba(8, 12, 24, 0.55);
 }
 
 .footer-character-slot__health-mini-button {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4184,7 +4198,7 @@ h1 {
 .footer-character-slot__health-track {
   position: relative;
   width: 100%;
-  height: 10px;
+  height: 12px;
   border-radius: 999px;
   background: rgba(24, 40, 76, 0.88);
   overflow: hidden;
