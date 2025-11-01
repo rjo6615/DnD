@@ -3809,7 +3809,7 @@ h1 {
 
 
 .footer-character-slot {
-  --footer-character-portrait-size: clamp(150px, 18vw, 220px);
+  --footer-character-portrait-size: clamp(120px, 15vw, 180px);
   position: relative;
   display: flex;
   align-items: flex-end;
@@ -3825,7 +3825,7 @@ h1 {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: calc(var(--footer-character-portrait-size) + 32px);
+  width: calc(var(--footer-character-portrait-size) + 26px);
   padding: 0 12px 2px;
   background: none;
   border-radius: 16px;
@@ -3946,7 +3946,7 @@ h1 {
 
 .footer-character-slot__portrait-health {
   position: absolute;
-  bottom: clamp(16px, 2.1vw, 22px);
+  bottom: clamp(12px, 1.8vw, 20px);
   left: 50%;
   transform: translateX(-50%);
   width: 88%;
@@ -3957,8 +3957,8 @@ h1 {
 
 .footer-character-slot__armor-class {
   position: absolute;
-  bottom: clamp(14px, 1.9vw, 20px);
-  right: clamp(14px, 1.9vw, 20px);
+  bottom: clamp(10px, 1.6vw, 18px);
+  right: clamp(10px, 1.6vw, 18px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3972,6 +3972,7 @@ h1 {
   font-size: 0.68rem;
   letter-spacing: 0.05em;
   color: rgba(230, 236, 255, 0.95);
+  z-index: 3;
 }
 
 .footer-character-slot__armor-class-label {
@@ -4308,11 +4309,11 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    --footer-character-portrait-size: clamp(160px, 48vw, 220px);
+    --footer-character-portrait-size: clamp(130px, 50vw, 170px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 28px);
+    width: calc(var(--footer-character-portrait-size) + 22px);
   }
 
   .footer-character-slot__footer-rail {
@@ -4362,12 +4363,12 @@ h1 {
 
   .footer-character-slot {
     gap: 0.5rem;
-    --footer-character-portrait-size: clamp(190px, calc(12vw + 140px), 240px);
+    --footer-character-portrait-size: clamp(150px, calc(8vw + 110px), 210px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 36px);
-    padding: 0 14px 4px;
+    width: calc(var(--footer-character-portrait-size) + 30px);
+    padding: 0 12px 4px;
   }
 
   .footer-character-slot__footer-rail {
