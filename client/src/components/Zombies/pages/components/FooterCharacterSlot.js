@@ -297,86 +297,6 @@ const FooterCharacterSlot = ({
     <div className="footer-character-slot" data-allow-pointer-events="true">
       <div className="footer-character-slot__profile-card">
         <div className="footer-character-slot__profile">
-          {characterName ? (
-            <span className="footer-character-slot__name" title={characterName}>
-              {characterName}
-            </span>
-          ) : null}
-          <div
-            className="footer-character-slot__health-inline"
-            role="group"
-            aria-label="Character health controls"
-          >
-            <button
-              type="button"
-              className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--decrease"
-              onClick={() => handleAdjustHealth(-1)}
-              disabled={!canDecrease}
-              aria-label="Decrease health"
-            >
-              <i className="fas fa-minus" aria-hidden="true" />
-            </button>
-            <div
-              className="footer-character-slot__health-track footer-character-slot__health-track--compact"
-              role="presentation"
-            >
-              <div className="footer-character-slot__health-track-base" />
-              <div
-                className="footer-character-slot__health-track-fill"
-                style={{ width: `${healthPercent}%` }}
-              />
-              <div className="footer-character-slot__health-track-border" />
-              <div className="footer-character-slot__health-readout" aria-live="polite">
-                <span className="visually-hidden">Health</span>
-                {isUpdating ? (
-                  <Spinner animation="border" role="status" size="sm">
-                    <span className="visually-hidden">Updating health…</span>
-                  </Spinner>
-                ) : (
-                  <span className="footer-character-slot__health-readout-values">
-                    <span className="footer-character-slot__health-current">{displayCurrent}</span>
-                    {displayMax !== '—' && (
-                      <span className="footer-character-slot__health-max">/ {displayMax}</span>
-                    )}
-                  </span>
-                )}
-              </div>
-              <input
-                type="range"
-                min="0"
-                max={sliderMax}
-                value={numericCurrent}
-                onChange={handleSliderInput}
-                onMouseUp={handleSliderCommit}
-                onTouchEnd={handleSliderCommit}
-                onBlur={handleSliderCommit}
-                onKeyUp={(event) => {
-                  if (
-                    event.key === 'ArrowLeft' ||
-                    event.key === 'ArrowRight' ||
-                    event.key === 'Home' ||
-                    event.key === 'End'
-                  ) {
-                    handleSliderCommit();
-                  }
-                }}
-                className="footer-character-slot__health-slider"
-                aria-label="Adjust health"
-                aria-valuemin={0}
-                aria-valuemax={sliderMax}
-                aria-valuenow={numericCurrent}
-              />
-            </div>
-            <button
-              type="button"
-              className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--increase"
-              onClick={() => handleAdjustHealth(1)}
-              disabled={!canIncrease}
-              aria-label="Increase health"
-            >
-              <i className="fas fa-plus" aria-hidden="true" />
-            </button>
-          </div>
           <div className="footer-character-slot__portrait">
             <div className="footer-character-slot__portrait-ring">
               {figurineImageUrl ? (
@@ -395,6 +315,83 @@ const FooterCharacterSlot = ({
                 </div>
               )}
               <span className="footer-character-slot__portrait-gloss" />
+            </div>
+            <div className="footer-character-slot__portrait-health">
+              <div
+                className="footer-character-slot__health-inline"
+                role="group"
+                aria-label="Character health controls"
+              >
+                <button
+                  type="button"
+                  className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--decrease"
+                  onClick={() => handleAdjustHealth(-1)}
+                  disabled={!canDecrease}
+                  aria-label="Decrease health"
+                >
+                  <i className="fas fa-minus" aria-hidden="true" />
+                </button>
+                <div
+                  className="footer-character-slot__health-track footer-character-slot__health-track--compact"
+                  role="presentation"
+                >
+                  <div className="footer-character-slot__health-track-base" />
+                  <div
+                    className="footer-character-slot__health-track-fill"
+                    style={{ width: `${healthPercent}%` }}
+                  />
+                  <div className="footer-character-slot__health-track-border" />
+                  <div className="footer-character-slot__health-readout" aria-live="polite">
+                    <span className="visually-hidden">Health</span>
+                    {isUpdating ? (
+                      <Spinner animation="border" role="status" size="sm">
+                        <span className="visually-hidden">Updating health…</span>
+                      </Spinner>
+                    ) : (
+                      <span className="footer-character-slot__health-readout-values">
+                        <span className="footer-character-slot__health-current">{displayCurrent}</span>
+                        {displayMax !== '—' && (
+                          <span className="footer-character-slot__health-max">/ {displayMax}</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={sliderMax}
+                    value={numericCurrent}
+                    onChange={handleSliderInput}
+                    onMouseUp={handleSliderCommit}
+                    onTouchEnd={handleSliderCommit}
+                    onBlur={handleSliderCommit}
+                    onKeyUp={(event) => {
+                      if (
+                        event.key === 'ArrowLeft' ||
+                        event.key === 'ArrowRight' ||
+                        event.key === 'Home' ||
+                        event.key === 'End'
+                      ) {
+                        handleSliderCommit();
+                      }
+                    }}
+                    className="footer-character-slot__health-slider"
+                    aria-label="Adjust health"
+                    aria-valuemin={0}
+                    aria-valuemax={sliderMax}
+                    aria-valuenow={numericCurrent}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--increase"
+                  onClick={() => handleAdjustHealth(1)}
+                  disabled={!canIncrease}
+                  aria-label="Increase health"
+                >
+                  <i className="fas fa-plus" aria-hidden="true" />
+                </button>
+              </div>
             </div>
             <div
               className="footer-character-slot__armor-class"
