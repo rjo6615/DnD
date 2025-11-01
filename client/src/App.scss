@@ -3822,7 +3822,7 @@ h1 {
   margin: 0;
   min-height: 0;
   backdrop-filter: blur(4px);
-  width: min(100%, 420px);
+  width: min(100%, 360px);
 }
 
 .footer-character-slot::before {
@@ -4325,7 +4325,7 @@ h1 {
   }
 
   .footer-character-slot {
-    width: min(100%, 560px);
+    width: min(100%, 480px);
     padding: 20px 28px 22px;
     gap: 18px;
   }
