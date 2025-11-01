@@ -920,35 +920,35 @@ function CombatTurnHeader({ participants, tokenLookup = {} }) {
                       ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
                       : "rgba(28, 25, 22, 0.82)",
                     color: "#FFFFFF",
-                    borderRadius: "12px",
-                    padding: "10px 16px",
+                    borderRadius: "10px",
+                    padding: "8px 12px",
                     boxShadow: isActive
-                      ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
-                      : "0 0 8px rgba(0, 0, 0, 0.45)",
+                      ? "0 0 14px rgba(214, 178, 86, 0.65), 0 0 6px rgba(214, 178, 86, 0.35) inset"
+                      : "0 0 6px rgba(0, 0, 0, 0.4)",
                     border: isActive
-                      ? "1px solid rgba(214, 178, 86, 0.85)"
-                      : "1px solid rgba(255, 255, 255, 0.18)",
+                      ? "1px solid rgba(214, 178, 86, 0.8)"
+                      : "1px solid rgba(255, 255, 255, 0.16)",
                     transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                    transform: isActive ? "scale(1.03)" : "scale(1)",
+                    transform: isActive ? "scale(1.015)" : "scale(1)",
                   }}
                 >
                   <div
                     style={{
                       fontWeight: 600,
-                      fontSize: "14px",
-                      letterSpacing: "0.5px",
+                      fontSize: "12px",
+                      letterSpacing: "0.4px",
                     }}
                   >
                     {name}
                   </div>
-                  <div style={{ marginTop: "6px" }}>
+                  <div style={{ marginTop: "4px" }}>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        fontSize: "12px",
+                        fontSize: "11px",
                         opacity: 0.9,
-                        marginBottom: "4px",
+                        marginBottom: "3px",
                       }}
                     >
                       <span>HP</span>
@@ -958,8 +958,8 @@ function CombatTurnHeader({ participants, tokenLookup = {} }) {
                       style={{
                         position: "relative",
                         width: "100%",
-                        height: "8px",
-                        borderRadius: "6px",
+                        height: "6px",
+                        borderRadius: "4px",
                         background: "rgba(0, 0, 0, 0.45)",
                         overflow: "hidden",
                         border: "1px solid rgba(255, 255, 255, 0.12)",
