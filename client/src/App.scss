@@ -3821,12 +3821,13 @@ h1 {
 .footer-character-slot__profile-card {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 18px 18px;
+  align-items: stretch;
+  justify-content: center;
+  width: clamp(200px, 70vw, 260px);
+  aspect-ratio: 1;
+  padding: 22px 20px 14px;
   background: rgba(15, 22, 43, 0.88);
-  border-radius: 16px;
+  border-radius: 50%;
   border: 1px solid rgba(104, 144, 216, 0.35);
   box-shadow: 0 12px 22px rgba(6, 10, 20, 0.5);
   backdrop-filter: blur(4px);
@@ -3838,20 +3839,14 @@ h1 {
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
-  padding: 6px 14px;
-  border-radius: 999px;
+  padding: 10px 16px;
+  border-radius: 12px;
   border: 1px solid rgba(104, 144, 216, 0.35);
   background: rgba(10, 16, 34, 0.9);
   box-shadow: 0 10px 20px rgba(6, 10, 20, 0.45);
   backdrop-filter: blur(4px);
   min-height: 0;
   width: 100%;
-}
-
-.footer-character-slot__footer-rail-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .footer-character-slot__footer-rail-body {
@@ -3867,8 +3862,9 @@ h1 {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
+  height: 100%;
   text-align: center;
 }
 
@@ -3972,6 +3968,13 @@ h1 {
   gap: 8px;
 }
 
+.footer-character-slot__slots-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 8px 0 4px;
+}
+
 .footer-character-slot__slots {
   display: inline-flex;
   align-items: center;
@@ -3982,7 +3985,7 @@ h1 {
   border: 1px solid rgba(80, 124, 196, 0.35);
   background: rgba(8, 16, 36, 0.82);
   box-shadow: 0 10px 18px rgba(10, 18, 40, 0.45);
-  margin: 0 auto;
+  margin: 0;
   max-width: min(100%, 420px);
 }
 
@@ -4258,6 +4261,8 @@ h1 {
   color: #ffb4a2;
   text-align: center;
   width: 100%;
+  margin-top: auto;
+  padding-bottom: 2px;
 }
 
 .footer-character-slot__health-readout .spinner-border {
@@ -4275,8 +4280,7 @@ h1 {
   }
 
   .footer-character-slot__profile-card {
-    width: 100%;
-    max-width: 320px;
+    width: clamp(200px, 80vw, 240px);
   }
 
   .footer-character-slot__footer-rail {
@@ -4329,8 +4333,8 @@ h1 {
   }
 
   .footer-character-slot__profile-card {
-    padding: 18px 24px 22px;
-    gap: 16px;
+    width: clamp(220px, 18vw, 280px);
+    padding: 26px 28px 18px;
   }
 
   .footer-character-slot__portrait {
@@ -4339,8 +4343,8 @@ h1 {
   }
 
   .footer-character-slot__footer-rail {
-    padding: 8px 20px;
-    gap: 18px;
+    padding: 14px 22px;
+    gap: 16px;
   }
 
   .footer-character-slot__footer-rail-body {
