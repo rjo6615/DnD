@@ -3822,7 +3822,7 @@ h1 {
   margin: 0;
   min-height: 0;
   backdrop-filter: blur(4px);
-  width: min(100%, 420px);
+  width: min(100%, 360px);
 }
 
 .footer-character-slot::before {
@@ -3847,15 +3847,15 @@ h1 {
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  width: 120px;
+  width: 100px;
   flex-shrink: 0;
   text-align: center;
 }
 
 .footer-character-slot__portrait {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 74px;
+  height: 74px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4325,7 +4325,7 @@ h1 {
   }
 
   .footer-character-slot {
-    width: min(100%, 560px);
+    width: min(100%, 480px);
     padding: 20px 28px 22px;
     gap: 18px;
   }
@@ -4337,12 +4337,12 @@ h1 {
   }
 
   .footer-character-slot__profile {
-    width: 170px;
+    width: 140px;
   }
 
   .footer-character-slot__portrait {
-    width: 140px;
-    height: 140px;
+    width: 108px;
+    height: 108px;
   }
 
   .footer-character-slot__details {
