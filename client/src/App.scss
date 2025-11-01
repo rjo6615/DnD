@@ -3807,11 +3807,13 @@ h1 {
   text-shadow: 0 0 6px rgba(136, 188, 255, 0.5);
 }
 
+
 .footer-character-slot {
+  --footer-character-portrait-size: clamp(150px, 18vw, 220px);
   position: relative;
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: 0.25rem;
   padding: 0;
   margin: 0;
   min-height: 0;
@@ -3821,16 +3823,15 @@ h1 {
 .footer-character-slot__profile-card {
   position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: flex-end;
   justify-content: center;
-  width: clamp(140px, 26vw, 180px);
-  aspect-ratio: 1;
-  padding: 16px 14px 12px;
-  background: rgba(15, 22, 43, 0.9);
-  border-radius: 50%;
-  border: 1px solid rgba(104, 144, 216, 0.35);
-  box-shadow: 0 12px 22px rgba(6, 10, 20, 0.5);
-  backdrop-filter: blur(4px);
+  width: calc(var(--footer-character-portrait-size) + 32px);
+  padding: 0 12px 2px;
+  background: none;
+  border-radius: 16px;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
   min-width: 0;
 }
 
@@ -3874,8 +3875,8 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 18px;
   width: 100%;
   height: 100%;
   text-align: center;
@@ -3883,8 +3884,8 @@ h1 {
 
 .footer-character-slot__portrait {
   position: relative;
-  width: 58px;
-  height: 58px;
+  width: var(--footer-character-portrait-size);
+  height: var(--footer-character-portrait-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3895,7 +3896,7 @@ h1 {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  padding: 2px;
+  padding: clamp(10px, 1.6vw, 14px);
   background: radial-gradient(circle at 35% 35%, rgba(120, 168, 255, 0.4), rgba(24, 36, 72, 0.85));
   box-shadow: 0 6px 12px rgba(8, 12, 26, 0.55), inset 0 0 12px rgba(80, 124, 216, 0.35);
 }
@@ -3932,10 +3933,10 @@ h1 {
 
 .footer-character-slot__portrait-gloss {
   position: absolute;
-  top: 20%;
-  left: 25%;
-  width: 48%;
-  height: 26%;
+  top: 18%;
+  left: 26%;
+  width: 46%;
+  height: 24%;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.45), transparent);
   border-radius: 50%;
   opacity: 0.3;
@@ -3943,21 +3944,32 @@ h1 {
   transform: rotate(-15deg);
 }
 
+.footer-character-slot__portrait-health {
+  position: absolute;
+  bottom: clamp(16px, 2.1vw, 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88%;
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+}
+
 .footer-character-slot__armor-class {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
+  bottom: clamp(14px, 1.9vw, 20px);
+  right: clamp(14px, 1.9vw, 20px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  padding: 3px 5px;
+  min-width: 40px;
+  padding: 4px 7px;
   border-radius: 10px;
   background: rgba(10, 16, 34, 0.85);
   border: 1px solid rgba(132, 176, 248, 0.55);
   box-shadow: 0 6px 14px rgba(4, 6, 14, 0.6);
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   letter-spacing: 0.05em;
   color: rgba(230, 236, 255, 0.95);
 }
@@ -4046,22 +4058,27 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
   width: 100%;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(8, 12, 26, 0.88);
+  box-shadow: 0 8px 20px rgba(8, 12, 24, 0.6);
 }
 
 .footer-character-slot__health-mini-button {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   border: none;
-  background: transparent;
+  background: linear-gradient(135deg, rgba(40, 62, 120, 0.95), rgba(18, 28, 58, 0.95));
   color: #f5f7ff;
   padding: 0;
-  font-size: 0.58rem;
+  font-size: 0.75rem;
+  box-shadow: 0 4px 12px rgba(6, 10, 22, 0.55);
   transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
@@ -4074,7 +4091,7 @@ h1 {
 .footer-character-slot__health-mini-button:not(:disabled):hover,
 .footer-character-slot__health-mini-button:not(:disabled):focus-visible {
   transform: translateY(-1px) scale(1.05);
-  box-shadow: none;
+  box-shadow: 0 6px 16px rgba(8, 12, 26, 0.65);
   filter: brightness(1.2);
 }
 
@@ -4184,9 +4201,9 @@ h1 {
 .footer-character-slot__health-track {
   position: relative;
   width: 100%;
-  height: 10px;
+  height: 18px;
   border-radius: 999px;
-  background: rgba(24, 40, 76, 0.88);
+  background: rgba(24, 40, 76, 0.92);
   overflow: hidden;
   box-shadow: inset 0 1px 4px rgba(10, 16, 32, 0.7);
 }
@@ -4244,28 +4261,28 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: rgba(240, 248, 255, 0.95);
   text-shadow: 0 1px 3px rgba(6, 12, 24, 0.7);
   pointer-events: none;
-  gap: 4px;
+  gap: 6px;
 }
 
 .footer-character-slot__health-readout-values {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 6px;
 }
 
 .footer-character-slot__health-current {
-  font-size: 0.88rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #f0f6ff;
 }
 
 .footer-character-slot__health-max {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: rgba(210, 220, 255, 0.9);
 }
 
@@ -4280,9 +4297,9 @@ h1 {
 }
 
 .footer-character-slot__health-readout .spinner-border {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-width: 0.1em;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-width: 0.12em;
   color: #88bcff;
 }
 
@@ -4291,10 +4308,11 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    --footer-character-portrait-size: clamp(160px, 48vw, 220px);
   }
 
   .footer-character-slot__profile-card {
-    width: clamp(180px, 74vw, 220px);
+    width: calc(var(--footer-character-portrait-size) + 28px);
   }
 
   .footer-character-slot__footer-rail {
@@ -4343,17 +4361,13 @@ h1 {
   }
 
   .footer-character-slot {
-    gap: 6px;
+    gap: 0.5rem;
+    --footer-character-portrait-size: clamp(190px, calc(12vw + 140px), 240px);
   }
 
   .footer-character-slot__profile-card {
-    width: clamp(160px, 14vw, 210px);
-    padding: 18px 20px 14px;
-  }
-
-  .footer-character-slot__portrait {
-    width: 72px;
-    height: 72px;
+    width: calc(var(--footer-character-portrait-size) + 36px);
+    padding: 0 14px 4px;
   }
 
   .footer-character-slot__footer-rail {
