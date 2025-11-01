@@ -297,99 +297,47 @@ const FooterCharacterSlot = ({
         </div>
       ) : null}
       <div className="footer-character-slot__main">
-        <div className="footer-character-slot__portrait">
-          <div className="footer-character-slot__portrait-ring">
-            {figurineImageUrl ? (
-              <img
-                src={figurineImageUrl}
-                alt={
-                  characterName
-                    ? `${characterName} figurine`
-                    : 'Selected character figurine'
-                }
-                className="footer-character-slot__figurine-image"
-              />
-            ) : (
-              <div className="footer-character-slot__figurine-placeholder" aria-hidden="true">
-                <i className="fas fa-chess-king" />
-              </div>
-            )}
-            <span className="footer-character-slot__portrait-gloss" />
-          </div>
-          <div
-            className="footer-character-slot__armor-class"
-            aria-live="polite"
-            aria-label={armorClassAriaLabel}
-          >
-            <span className="footer-character-slot__armor-class-label">AC</span>
-            <span className="footer-character-slot__armor-class-value">{displayArmorClass}</span>
-          </div>
-        </div>
-        <div className="footer-character-slot__details">
+        <div className="footer-character-slot__profile">
           {characterName ? (
-            <div className="footer-character-slot__header">
-              <span className="footer-character-slot__name" title={characterName}>
-                {characterName}
-              </span>
-            </div>
+            <span className="footer-character-slot__name" title={characterName}>
+              {characterName}
+            </span>
           ) : null}
-          <div className="footer-character-slot__health">
-            <div className="footer-character-slot__health-top">
-              <div className="footer-character-slot__health-summary">
-                <span className="footer-character-slot__health-label">Health</span>
-                <div className="footer-character-slot__health-readout" aria-live="polite">
-                  {isUpdating ? (
-                    <Spinner animation="border" role="status" size="sm">
-                      <span className="visually-hidden">Updating health…</span>
-                    </Spinner>
-                  ) : (
-                    <>
-                      <span className="footer-character-slot__health-current">{displayCurrent}</span>
-                      {displayMax !== '—' && (
-                        <span className="footer-character-slot__health-max">/ {displayMax}</span>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className={damageClassName} role="status" aria-live="polite">
-                <div className="footer-character-slot__damage-header">
-                  <span className="footer-character-slot__damage-label">Damage</span>
-                  {typeof onToggleCritical === 'function' ? (
-                    <Button
-                      type="button"
-                      variant="outline-light"
-                      size="sm"
-                      className={`footer-character-slot__crit-button ${
-                        damageIsCritical ? 'is-active' : ''
-                      }`}
-                      onClick={handleCritButtonClick}
-                      aria-pressed={damageIsCritical}
-                      aria-label={
-                        damageIsCritical
-                          ? 'Critical damage roll enabled. Click to roll normally.'
-                          : 'Click to enable a critical damage roll on your next roll.'
-                      }
-                      title={
-                        damageIsCritical
-                          ? 'Critical damage roll enabled. Click to roll normally.'
-                          : 'Click to enable a critical damage roll on your next roll.'
-                      }
-                    >
-                      Crit
-                    </Button>
-                  ) : null}
-                </div>
-                <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
-              </div>
-            </div>
-            <div className="footer-character-slot__health-track" role="presentation">
-              <div className="footer-character-slot__health-track-base">
-                <div
-                  className="footer-character-slot__health-track-fill"
-                  style={{ width: `${healthPercent}%` }}
-                />
-                <div className="footer-character-slot__health-track-border" />
+          <div
+            className="footer-character-slot__health-inline"
+            role="group"
+            aria-label="Character health controls"
+          >
+            <button
+              type="button"
+              className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--decrease"
+              onClick={() => handleAdjustHealth(-1)}
+              disabled={!canDecrease}
+              aria-label="Decrease health"
+            >
+              <i className="fas fa-minus" aria-hidden="true" />
+            </button>
+            <div className="footer-character-slot__health-track footer-character-slot__health-track--compact" role="presentation">
+              <div className="footer-character-slot__health-track-base" />
+              <div
+                className="footer-character-slot__health-track-fill"
+                style={{ width: `${healthPercent}%` }}
+              />
+              <div className="footer-character-slot__health-track-border" />
+              <div className="footer-character-slot__health-readout" aria-live="polite">
+                <span className="visually-hidden">Health</span>
+                {isUpdating ? (
+                  <Spinner animation="border" role="status" size="sm">
+                    <span className="visually-hidden">Updating health…</span>
+                  </Spinner>
+                ) : (
+                  <span className="footer-character-slot__health-readout-values">
+                    <span className="footer-character-slot__health-current">{displayCurrent}</span>
+                    {displayMax !== '—' && (
+                      <span className="footer-character-slot__health-max">/ {displayMax}</span>
+                    )}
+                  </span>
+                )}
               </div>
               <input
                 type="range"
@@ -401,7 +349,12 @@ const FooterCharacterSlot = ({
                 onTouchEnd={handleSliderCommit}
                 onBlur={handleSliderCommit}
                 onKeyUp={(event) => {
-                  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+                  if (
+                    event.key === 'ArrowLeft' ||
+                    event.key === 'ArrowRight' ||
+                    event.key === 'Home' ||
+                    event.key === 'End'
+                  ) {
                     handleSliderCommit();
                   }
                 }}
@@ -412,31 +365,78 @@ const FooterCharacterSlot = ({
                 aria-valuenow={numericCurrent}
               />
             </div>
-          </div>
-          <div className="footer-character-slot__health-controls" role="group" aria-label="Character health controls">
-            <Button
+            <button
               type="button"
-              variant="outline-light"
-              className="footer-character-slot__health-button footer-character-slot__health-button--decrease"
-              onClick={() => handleAdjustHealth(-1)}
-              disabled={!canDecrease}
-              aria-label="Decrease health"
-            >
-              <i className="fas fa-minus" aria-hidden="true" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline-light"
-              className="footer-character-slot__health-button footer-character-slot__health-button--increase"
+              className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--increase"
               onClick={() => handleAdjustHealth(1)}
               disabled={!canIncrease}
               aria-label="Increase health"
             >
               <i className="fas fa-plus" aria-hidden="true" />
-            </Button>
+            </button>
+          </div>
+          <div className="footer-character-slot__portrait">
+            <div className="footer-character-slot__portrait-ring">
+              {figurineImageUrl ? (
+                <img
+                  src={figurineImageUrl}
+                  alt={
+                    characterName
+                      ? `${characterName} figurine`
+                      : 'Selected character figurine'
+                  }
+                  className="footer-character-slot__figurine-image"
+                />
+              ) : (
+                <div className="footer-character-slot__figurine-placeholder" aria-hidden="true">
+                  <i className="fas fa-chess-king" />
+                </div>
+              )}
+              <span className="footer-character-slot__portrait-gloss" />
+            </div>
+            <div
+              className="footer-character-slot__armor-class"
+              aria-live="polite"
+              aria-label={armorClassAriaLabel}
+            >
+              <span className="footer-character-slot__armor-class-label">AC</span>
+              <span className="footer-character-slot__armor-class-value">{displayArmorClass}</span>
+            </div>
           </div>
           <div className="footer-character-slot__error" role="status" aria-live="polite">
             {error}
+          </div>
+        </div>
+        <div className="footer-character-slot__details">
+          <div className={damageClassName} role="status" aria-live="polite">
+            <div className="footer-character-slot__damage-header">
+              <span className="footer-character-slot__damage-label">Damage</span>
+              {typeof onToggleCritical === 'function' ? (
+                <Button
+                  type="button"
+                  variant="outline-light"
+                  size="sm"
+                  className={`footer-character-slot__crit-button ${
+                    damageIsCritical ? 'is-active' : ''
+                  }`}
+                  onClick={handleCritButtonClick}
+                  aria-pressed={damageIsCritical}
+                  aria-label={
+                    damageIsCritical
+                      ? 'Critical damage roll enabled. Click to roll normally.'
+                      : 'Click to enable a critical damage roll on your next roll.'
+                  }
+                  title={
+                    damageIsCritical
+                      ? 'Critical damage roll enabled. Click to roll normally.'
+                      : 'Click to enable a critical damage roll on your next roll.'
+                  }
+                >
+                  Crit
+                </Button>
+              ) : null}
+            </div>
+            <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
           </div>
         </div>
         {actions ? (
