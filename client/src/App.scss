@@ -3809,7 +3809,7 @@ h1 {
 
 
 .footer-character-slot {
-  --footer-character-portrait-size: clamp(120px, 15vw, 180px);
+  --footer-character-portrait-size: clamp(96px, 13vw, 156px);
   position: relative;
   display: flex;
   align-items: flex-end;
@@ -3825,7 +3825,7 @@ h1 {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: calc(var(--footer-character-portrait-size) + 26px);
+  width: calc(var(--footer-character-portrait-size) + 20px);
   padding: 0 12px 2px;
   background: none;
   border-radius: 16px;
@@ -3841,8 +3841,8 @@ h1 {
   align-items: stretch;
   justify-content: flex-end;
   gap: 0;
-  flex: 1 1 420px;
-  width: clamp(280px, 56vw, 540px);
+  flex: 1 1 380px;
+  width: clamp(260px, 52vw, 520px);
   max-width: 100%;
 }
 
@@ -3946,7 +3946,7 @@ h1 {
 
 .footer-character-slot__portrait-health {
   position: absolute;
-  bottom: clamp(12px, 1.8vw, 20px);
+  bottom: clamp(8px, 1.4vw, 16px);
   left: 50%;
   transform: translateX(-50%);
   width: 88%;
@@ -3957,20 +3957,20 @@ h1 {
 
 .footer-character-slot__armor-class {
   position: absolute;
-  bottom: clamp(10px, 1.6vw, 18px);
-  right: clamp(10px, 1.6vw, 18px);
+  top: clamp(10px, 1.6vw, 18px);
+  right: clamp(6px, 1.2vw, 16px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  padding: 4px 7px;
-  border-radius: 10px;
+  min-width: 36px;
+  padding: 3px 6px;
+  border-radius: 9px;
   background: rgba(10, 16, 34, 0.85);
   border: 1px solid rgba(132, 176, 248, 0.55);
   box-shadow: 0 6px 14px rgba(4, 6, 14, 0.6);
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
   color: rgba(230, 236, 255, 0.95);
   z-index: 3;
 }
@@ -3983,7 +3983,7 @@ h1 {
 
 .footer-character-slot__armor-class-value {
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   line-height: 1;
   color: #f7f9ff;
 }
@@ -4309,11 +4309,11 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    --footer-character-portrait-size: clamp(130px, 50vw, 170px);
+    --footer-character-portrait-size: clamp(108px, 46vw, 148px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 22px);
+    width: calc(var(--footer-character-portrait-size) + 18px);
   }
 
   .footer-character-slot__footer-rail {
@@ -4363,11 +4363,11 @@ h1 {
 
   .footer-character-slot {
     gap: 0.5rem;
-    --footer-character-portrait-size: clamp(150px, calc(8vw + 110px), 210px);
+    --footer-character-portrait-size: clamp(132px, calc(6vw + 94px), 184px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 30px);
+    width: calc(var(--footer-character-portrait-size) + 24px);
     padding: 0 12px 4px;
   }
 
