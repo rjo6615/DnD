@@ -6108,7 +6108,9 @@ export default function ZombiesCharacterSheet() {
             fixed="bottom"
             data-bs-theme="dark"
             style={{ backgroundColor: 'transparent' }}
-            className={overlaySurfaceClassName || undefined}
+            className={[overlaySurfaceClassName, 'footer-navbar']
+              .filter(Boolean)
+              .join(' ')}
             aria-label="Character sheet footer actions"
           >
             <Container className="footer-container">
