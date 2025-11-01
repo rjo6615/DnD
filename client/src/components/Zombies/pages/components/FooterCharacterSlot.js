@@ -114,7 +114,8 @@ const FooterCharacterSlot = ({
     ? `${damageSummaryValue}`
     : '—';
 
-  const hasFooterContent = Boolean(spellSlots) || Boolean(actions);
+  const hasSpellSlots = Boolean(spellSlots);
+  const hasActions = Boolean(actions);
 
   const damageClassName = [
     'footer-character-slot__damage',
@@ -404,7 +405,14 @@ const FooterCharacterSlot = ({
             {error}
           </div>
         </div>
-        <div className="footer-character-slot__details">
+      </div>
+      <div className="footer-character-slot__rail-stack" data-allow-pointer-events="true">
+        {hasSpellSlots ? (
+          <div className="footer-character-slot__slots-rail" data-allow-pointer-events="true">
+            <div className="footer-character-slot__slots">{spellSlots}</div>
+          </div>
+        ) : null}
+        <div className="footer-character-slot__footer-rail" data-allow-pointer-events="true">
           <div className={damageClassName} role="status" aria-live="polite">
             <div className="footer-character-slot__damage-header">
               <span className="footer-character-slot__damage-label">Damage</span>
@@ -435,6 +443,11 @@ const FooterCharacterSlot = ({
             </div>
             <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
           </div>
+          {hasActions ? (
+            <div className="footer-character-slot__actions" data-allow-pointer-events="true">
+              {actions}
+            </div>
+          ) : null}
         </div>
       </div>
       {hasFooterContent ? (
