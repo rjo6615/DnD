@@ -114,6 +114,8 @@ const FooterCharacterSlot = ({
     ? `${damageSummaryValue}`
     : '—';
 
+  const hasFooterContent = Boolean(spellSlots) || Boolean(actions);
+
   const damageClassName = [
     'footer-character-slot__damage',
     damageHighlightClass,
@@ -288,15 +290,7 @@ const FooterCharacterSlot = ({
 
   return (
     <div className="footer-character-slot" data-allow-pointer-events="true">
-      {spellSlots ? (
-        <div
-          className="footer-character-slot__slots-wrapper"
-          data-allow-pointer-events="true"
-        >
-          <div className="footer-character-slot__slots">{spellSlots}</div>
-        </div>
-      ) : null}
-      <div className="footer-character-slot__main">
+      <div className="footer-character-slot__profile-card">
         <div className="footer-character-slot__profile">
           {characterName ? (
             <span className="footer-character-slot__name" title={characterName}>
@@ -317,7 +311,10 @@ const FooterCharacterSlot = ({
             >
               <i className="fas fa-minus" aria-hidden="true" />
             </button>
-            <div className="footer-character-slot__health-track footer-character-slot__health-track--compact" role="presentation">
+            <div
+              className="footer-character-slot__health-track footer-character-slot__health-track--compact"
+              role="presentation"
+            >
               <div className="footer-character-slot__health-track-base" />
               <div
                 className="footer-character-slot__health-track-fill"
@@ -439,15 +436,27 @@ const FooterCharacterSlot = ({
             <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
           </div>
         </div>
-        {actions ? (
-          <div
-            className="footer-character-slot__actions"
-            data-allow-pointer-events="true"
-          >
-            {actions}
-          </div>
-        ) : null}
       </div>
+      {hasFooterContent ? (
+        <div className="footer-character-slot__footer-rail" data-allow-pointer-events="true">
+          {spellSlots ? (
+            <div
+              className="footer-character-slot__slots-wrapper"
+              data-allow-pointer-events="true"
+            >
+              <div className="footer-character-slot__slots">{spellSlots}</div>
+            </div>
+          ) : null}
+          {actions ? (
+            <div
+              className="footer-character-slot__actions"
+              data-allow-pointer-events="true"
+            >
+              {actions}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 };
