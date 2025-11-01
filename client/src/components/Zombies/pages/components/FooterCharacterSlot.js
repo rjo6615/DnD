@@ -114,6 +114,9 @@ const FooterCharacterSlot = ({
     ? `${damageSummaryValue}`
     : '—';
 
+  const hasSpellSlots = Boolean(spellSlots);
+  const hasActions = Boolean(actions);
+
   const damageClassName = [
     'footer-character-slot__damage',
     damageHighlightClass,
@@ -288,15 +291,7 @@ const FooterCharacterSlot = ({
 
   return (
     <div className="footer-character-slot" data-allow-pointer-events="true">
-      {spellSlots ? (
-        <div
-          className="footer-character-slot__slots-wrapper"
-          data-allow-pointer-events="true"
-        >
-          <div className="footer-character-slot__slots">{spellSlots}</div>
-        </div>
-      ) : null}
-      <div className="footer-character-slot__main">
+      <div className="footer-character-slot__profile-card">
         <div className="footer-character-slot__profile">
           {characterName ? (
             <span className="footer-character-slot__name" title={characterName}>
@@ -317,7 +312,10 @@ const FooterCharacterSlot = ({
             >
               <i className="fas fa-minus" aria-hidden="true" />
             </button>
-            <div className="footer-character-slot__health-track footer-character-slot__health-track--compact" role="presentation">
+            <div
+              className="footer-character-slot__health-track footer-character-slot__health-track--compact"
+              role="presentation"
+            >
               <div className="footer-character-slot__health-track-base" />
               <div
                 className="footer-character-slot__health-track-fill"
@@ -407,7 +405,14 @@ const FooterCharacterSlot = ({
             {error}
           </div>
         </div>
-        <div className="footer-character-slot__details">
+      </div>
+      <div className="footer-character-slot__rail-stack" data-allow-pointer-events="true">
+        {hasSpellSlots ? (
+          <div className="footer-character-slot__slots-rail" data-allow-pointer-events="true">
+            <div className="footer-character-slot__slots">{spellSlots}</div>
+          </div>
+        ) : null}
+        <div className="footer-character-slot__footer-rail" data-allow-pointer-events="true">
           <div className={damageClassName} role="status" aria-live="polite">
             <div className="footer-character-slot__damage-header">
               <span className="footer-character-slot__damage-label">Damage</span>
@@ -438,15 +443,12 @@ const FooterCharacterSlot = ({
             </div>
             <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
           </div>
+          {hasActions ? (
+            <div className="footer-character-slot__actions" data-allow-pointer-events="true">
+              {actions}
+            </div>
+          ) : null}
         </div>
-        {actions ? (
-          <div
-            className="footer-character-slot__actions"
-            data-allow-pointer-events="true"
-          >
-            {actions}
-          </div>
-        ) : null}
       </div>
     </div>
   );
