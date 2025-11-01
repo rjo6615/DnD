@@ -266,7 +266,7 @@
 }
 
 .combat-turn-header {
-  --combat-turn-header-height: clamp(112px, 20vw, 148px);
+  --combat-turn-header-height: clamp(88px, 15vw, 120px);
   display: block;
   overflow-x: auto;
   margin-bottom: 12px;
@@ -349,8 +349,8 @@
 
 .combat-turn-header__card {
   flex: 0 0 auto;
-  width: clamp(160px, 22vw, 240px);
-  min-width: clamp(160px, 22vw, 240px);
+  width: clamp(140px, 18vw, 200px);
+  min-width: clamp(140px, 18vw, 200px);
   min-height: var(--combat-turn-header-height);
 }
 
@@ -3700,8 +3700,8 @@ h1 {
 }
 
 .footer-btn {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   box-sizing: border-box;
   line-height: 1;
@@ -3735,8 +3735,8 @@ h1 {
 }
 
 .footer-btn--attack {
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   margin-top: 0;
   border: none;
@@ -3756,7 +3756,7 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(44px, 10vw, 48px);
+  --footer-dice-size: clamp(36px, 8vw, 44px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   display: flex;
@@ -4330,7 +4330,7 @@ h1 {
 }
 
 .footer-pass-log-button {
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 4px 14px;
@@ -4375,7 +4375,7 @@ h1 {
   width: 100%;
   display: flex;
   justify-content: center;
-  padding: 6px 14px calc(6px + env(safe-area-inset-bottom, 0));
+  padding: 4px 12px calc(4px + env(safe-area-inset-bottom, 0));
 }
 
 .footer-nav {
@@ -4471,7 +4471,7 @@ h1 {
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(88px, 32vw, 120px);
+    --footer-dice-size: clamp(72px, 28vw, 96px);
     margin-top: 0;
   }
 
