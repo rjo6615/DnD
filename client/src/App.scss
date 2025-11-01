@@ -3811,7 +3811,7 @@ h1 {
   position: relative;
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 2px;
   padding: 0;
   margin: 0;
   min-height: 0;
@@ -3823,9 +3823,9 @@ h1 {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  width: clamp(190px, 32vw, 240px);
+  width: clamp(140px, 26vw, 180px);
   aspect-ratio: 1;
-  padding: 20px 18px 16px;
+  padding: 16px 14px 12px;
   background: rgba(15, 22, 43, 0.9);
   border-radius: 50%;
   border: 1px solid rgba(104, 144, 216, 0.35);
@@ -3839,9 +3839,9 @@ h1 {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-end;
-  gap: 10px;
-  flex: 1 1 auto;
-  width: clamp(260px, 48vw, 380px);
+  gap: 0;
+  flex: 1 1 420px;
+  width: clamp(280px, 56vw, 540px);
   max-width: 100%;
 }
 
@@ -3850,7 +3850,7 @@ h1 {
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 10px 18px;
   border-radius: 10px;
   border: 1px solid rgba(104, 144, 216, 0.35);
   background: rgba(10, 16, 34, 0.92);
@@ -3864,7 +3864,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: nowrap;
   width: 100%;
   min-width: 0;
@@ -3883,8 +3883,8 @@ h1 {
 
 .footer-character-slot__portrait {
   position: relative;
-  width: 68px;
-  height: 68px;
+  width: 58px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3987,13 +3987,6 @@ h1 {
   justify-content: center;
   width: 100%;
   margin: 0;
-}
-
-.footer-character-slot__slots-wrapper {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin: 8px 0 4px;
 }
 
 .footer-character-slot__slots {
@@ -4297,11 +4290,11 @@ h1 {
   .footer-character-slot {
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .footer-character-slot__profile-card {
-    width: clamp(200px, 80vw, 240px);
+    width: clamp(180px, 74vw, 220px);
   }
 
   .footer-character-slot__footer-rail {
@@ -4350,26 +4343,26 @@ h1 {
   }
 
   .footer-character-slot {
-    gap: 24px;
+    gap: 6px;
   }
 
   .footer-character-slot__profile-card {
-    width: clamp(220px, 18vw, 280px);
-    padding: 26px 28px 18px;
+    width: clamp(160px, 14vw, 210px);
+    padding: 18px 20px 14px;
   }
 
   .footer-character-slot__portrait {
-    width: 92px;
-    height: 92px;
+    width: 72px;
+    height: 72px;
   }
 
   .footer-character-slot__footer-rail {
-    padding: 14px 22px;
-    gap: 16px;
+    padding: 14px 24px;
+    gap: 12px;
   }
 
   .footer-character-slot__footer-rail-body {
-    gap: 16px;
+    gap: 18px;
   }
 
   .footer-character-slot__actions {
