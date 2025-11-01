@@ -450,6 +450,26 @@ const FooterCharacterSlot = ({
           ) : null}
         </div>
       </div>
+      {hasFooterContent ? (
+        <div className="footer-character-slot__footer-rail" data-allow-pointer-events="true">
+          {spellSlots ? (
+            <div
+              className="footer-character-slot__slots-wrapper"
+              data-allow-pointer-events="true"
+            >
+              <div className="footer-character-slot__slots">{spellSlots}</div>
+            </div>
+          ) : null}
+          {actions ? (
+            <div
+              className="footer-character-slot__actions"
+              data-allow-pointer-events="true"
+            >
+              {actions}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 };
