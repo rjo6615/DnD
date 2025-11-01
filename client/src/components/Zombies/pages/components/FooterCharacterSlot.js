@@ -119,6 +119,7 @@ const FooterCharacterSlot = ({
   const hasDamageDisplay =
     hasDamageValue || typeof onToggleCritical === 'function';
   const hasFooterContent = hasActions || hasDamageDisplay;
+  const hasRail = hasSpellSlots || hasFooterContent;
 
   const damageClassName = [
     'footer-character-slot__damage',
@@ -409,70 +410,52 @@ const FooterCharacterSlot = ({
           </div>
         </div>
       </div>
-      <div className="footer-character-slot__rail-stack" data-allow-pointer-events="true">
-        {hasSpellSlots ? (
-          <div className="footer-character-slot__slots-rail" data-allow-pointer-events="true">
-            <div className="footer-character-slot__slots">{spellSlots}</div>
-          </div>
-        ) : null}
-        {hasFooterContent ? (
-          <div className="footer-character-slot__footer-rail" data-allow-pointer-events="true">
-            {hasDamageDisplay ? (
-              <div className={damageClassName} role="status" aria-live="polite">
-                <div className="footer-character-slot__damage-header">
-                  <span className="footer-character-slot__damage-label">Damage</span>
-                  {typeof onToggleCritical === 'function' ? (
-                    <Button
-                      type="button"
-                      variant="outline-light"
-                      size="sm"
-                      className={`footer-character-slot__crit-button ${
-                        damageIsCritical ? 'is-active' : ''
-                      }`}
-                      onClick={handleCritButtonClick}
-                      aria-pressed={damageIsCritical}
-                      aria-label={
-                        damageIsCritical
-                          ? 'Critical damage roll enabled. Click to roll normally.'
-                          : 'Click to enable a critical damage roll on your next roll.'
-                      }
-                      title={
-                        damageIsCritical
-                          ? 'Critical damage roll enabled. Click to roll normally.'
-                          : 'Click to enable a critical damage roll on your next roll.'
-                      }
-                    >
-                      Crit
-                    </Button>
-                  ) : null}
-                </div>
-                <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
-              </div>
-            ) : null}
-            {hasActions ? (
-              <div className="footer-character-slot__actions" data-allow-pointer-events="true">
-                {actions}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-      {hasFooterContent ? (
+      {hasRail ? (
         <div className="footer-character-slot__footer-rail" data-allow-pointer-events="true">
-          {spellSlots ? (
-            <div
-              className="footer-character-slot__slots-wrapper"
-              data-allow-pointer-events="true"
-            >
+          {hasSpellSlots ? (
+            <div className="footer-character-slot__footer-rail-header">
               <div className="footer-character-slot__slots">{spellSlots}</div>
             </div>
           ) : null}
-          {actions ? (
-            <div
-              className="footer-character-slot__actions"
-              data-allow-pointer-events="true"
-            >
-              {actions}
+          {hasFooterContent ? (
+            <div className="footer-character-slot__footer-rail-body">
+              {hasDamageDisplay ? (
+                <div className={damageClassName} role="status" aria-live="polite">
+                  <div className="footer-character-slot__damage-header">
+                    <span className="footer-character-slot__damage-label">Damage</span>
+                    {typeof onToggleCritical === 'function' ? (
+                      <Button
+                        type="button"
+                        variant="outline-light"
+                        size="sm"
+                        className={`footer-character-slot__crit-button ${
+                          damageIsCritical ? 'is-active' : ''
+                        }`}
+                        onClick={handleCritButtonClick}
+                        aria-pressed={damageIsCritical}
+                        aria-label={
+                          damageIsCritical
+                            ? 'Critical damage roll enabled. Click to roll normally.'
+                            : 'Click to enable a critical damage roll on your next roll.'
+                        }
+                        title={
+                          damageIsCritical
+                            ? 'Critical damage roll enabled. Click to roll normally.'
+                            : 'Click to enable a critical damage roll on your next roll.'
+                        }
+                      >
+                        Crit
+                      </Button>
+                    ) : null}
+                  </div>
+                  <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
+                </div>
+              ) : null}
+              {hasActions ? (
+                <div className="footer-character-slot__actions" data-allow-pointer-events="true">
+                  {actions}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
