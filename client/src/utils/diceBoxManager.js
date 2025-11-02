@@ -951,6 +951,18 @@ export const warmupDiceBox = () => {
   });
 };
 
+export const clearDiceBoxResults = () => {
+  if (diceBoxInstance && typeof diceBoxInstance.clear === 'function') {
+    try {
+      diceBoxInstance.clear();
+    } catch (error) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('Failed to clear dice box results', error);
+      }
+    }
+  }
+};
+
 export const rollDiceWithBox = (requests) => {
   if (!Array.isArray(requests) || requests.length === 0) {
     return Promise.resolve({
@@ -1074,6 +1086,7 @@ export default {
   subscribeToDiceBoxAvailability,
   isDiceBoxReady,
   hasDiceBoxFailed,
+  clearDiceBoxResults,
   rollDiceWithBox,
   setDiceBoxThemeColor,
   setDiceBoxTheme,

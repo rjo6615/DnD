@@ -3785,6 +3785,76 @@ h1 {
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
 }
 
+.footer-btn--clear-dice {
+  position: relative;
+  width: clamp(40px, 8vw, 58px);
+  height: clamp(40px, 8vw, 58px);
+  padding: 0;
+  border: none;
+  background: transparent !important;
+  color: #f1f5ff !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.footer-btn__clear-dice-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 74%;
+  height: 74%;
+  color: inherit;
+}
+
+.footer-btn__clear-dice-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  box-sizing: border-box;
+  background: radial-gradient(circle, rgba(12, 20, 42, 0.65) 0%, transparent 68%);
+}
+
+.footer-btn__clear-dice-icon::after {
+  content: '';
+  position: absolute;
+  width: max(2px, 0.18em);
+  height: 120%;
+  background-color: currentColor;
+  transform: rotate(45deg);
+  border-radius: 999px;
+  box-shadow: 0 0 6px rgba(12, 20, 42, 0.45);
+}
+
+.footer-btn__clear-dice-icon-die {
+  position: relative;
+  font-size: clamp(0.95rem, 0.8vw + 0.55rem, 1.25rem);
+  color: currentColor;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+.footer-btn--clear-dice:hover,
+.footer-btn--clear-dice:focus-visible {
+  transform: translateY(-1px) scale(1.05);
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(240, 244, 255, 0.6);
+}
+
+.footer-btn--clear-dice:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(180, 208, 255, 0.4);
+  border-radius: 999px;
+}
+
+.footer-btn--clear-dice:active {
+  transform: translateY(0);
+}
+
 .footer-btn__dice-icon {
   display: block;
   width: 1.1em;
@@ -4427,6 +4497,11 @@ h1 {
     height: 28px;
   }
 
+  .footer-btn--clear-dice {
+    width: clamp(38px, 6vw, 54px);
+    height: clamp(38px, 6vw, 54px);
+  }
+
   .footer-btn--dice {
     --footer-dice-size: clamp(68px, 5.5vw, 92px);
   }
@@ -4579,6 +4654,11 @@ h1 {
     line-height: 1;
     margin: 0 2px;
     font-size: 0.85rem;
+  }
+
+  .footer-btn--clear-dice {
+    width: clamp(32px, 18vw, 46px);
+    height: clamp(32px, 18vw, 46px);
   }
 
   .footer-btn--attack {
