@@ -489,6 +489,7 @@ const CampaignMapBoard = ({
   const rotationOverridesRef = useRef({});
   const [draggingRotationTokenId, setDraggingRotationTokenId] = useState(null);
   const [mapPanOffset, setMapPanOffset] = useState({ x: 0, y: 0 });
+  const [mapImageMetrics, setMapImageMetrics] = useState(null);
   const mapPanOffsetRef = useRef(mapPanOffset);
   const mapPanStateRef = useRef(null);
   const [isMapPanning, setIsMapPanning] = useState(false);
@@ -539,6 +540,15 @@ const CampaignMapBoard = ({
     [map]
   );
   const stageAspectRatio = useMemo(() => {
+    const metricsWidth = Number(mapImageMetrics?.width);
+    const metricsHeight = Number(mapImageMetrics?.height);
+
+    if (Number.isFinite(metricsWidth) && Number.isFinite(metricsHeight)) {
+      if (metricsWidth > 0 && metricsHeight > 0) {
+        return `${metricsWidth} / ${metricsHeight}`;
+      }
+    }
+
     if (!Number.isFinite(gridColumns) || !Number.isFinite(gridRows)) {
       return null;
     }
@@ -551,12 +561,42 @@ const CampaignMapBoard = ({
     }
 
     return `${safeColumns} / ${safeRows}`;
-  }, [gridColumns, gridRows]);
+  }, [gridColumns, gridRows, mapImageMetrics?.height, mapImageMetrics?.width]);
   const metadataSquareSize = useMemo(() => resolveSquareSizeFromMetadata(map), [map]);
 
   useEffect(() => {
     mapPanOffsetRef.current = mapPanOffset;
   }, [mapPanOffset]);
+
+  useEffect(() => {
+    setMapImageMetrics(null);
+  }, [imageSrc]);
+
+  const handleMapImageLoad = useCallback((event) => {
+    const target = event?.target;
+    if (!target) {
+      return;
+    }
+
+    const nextWidth = Number(target.naturalWidth);
+    const nextHeight = Number(target.naturalHeight);
+
+    if (!Number.isFinite(nextWidth) || !Number.isFinite(nextHeight)) {
+      return;
+    }
+
+    if (nextWidth <= 0 || nextHeight <= 0) {
+      return;
+    }
+
+    setMapImageMetrics((prev) => {
+      if (prev && prev.width === nextWidth && prev.height === nextHeight) {
+        return prev;
+      }
+
+      return { width: nextWidth, height: nextHeight };
+    });
+  }, []);
 
   const panStyle = useMemo(() => {
     const style = {
@@ -1690,7 +1730,12 @@ const CampaignMapBoard = ({
       {imageSrc ? (
         <div className="campaign-map-board__stage" style={panStyle}>
           <div className="campaign-map-board__image-wrapper">
-            <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
+            <img
+              src={imageSrc}
+              alt={altText}
+              className="campaign-map-board__image"
+              onLoad={handleMapImageLoad}
+            />
             <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
             <div
               className={classNames(
