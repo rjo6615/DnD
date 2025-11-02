@@ -3735,7 +3735,7 @@ h1 {
 }
 
 .footer-btn--attack {
-  --footer-attack-size: clamp(30px, 6.5vw, 40px);
+  --footer-attack-size: clamp(44px, 9vw, 60px);
   width: var(--footer-attack-size);
   height: var(--footer-attack-size);
   padding: 0;
@@ -3757,7 +3757,7 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(32px, 7vw, 44px);
+  --footer-dice-size: clamp(52px, 10vw, 72px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   display: flex;
@@ -4414,12 +4414,13 @@ h1 {
   }
 
   .footer-btn--dice {
-    --footer-dice-size: 36px;
+    --footer-dice-size: clamp(56px, 5vw, 76px);
   }
 
   .footer-btn--attack {
-    width: 36px;
-    height: 36px;
+    --footer-attack-size: clamp(48px, 7vw, 66px);
+    width: var(--footer-attack-size);
+    height: var(--footer-attack-size);
   }
 }
 
@@ -4567,12 +4568,13 @@ h1 {
   }
 
   .footer-btn--attack {
-    width: 30px;
-    height: 30px;
+    --footer-attack-size: clamp(38px, 24vw, 52px);
+    width: var(--footer-attack-size);
+    height: var(--footer-attack-size);
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(30px, 24vw, 42px);
+    --footer-dice-size: clamp(44px, 28vw, 60px);
     margin-top: 0;
   }
 
