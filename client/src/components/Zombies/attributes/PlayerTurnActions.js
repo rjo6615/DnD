@@ -18,7 +18,11 @@ import weaponTypeMasteries from '../../../data/weaponTypeMasteries';
 import { rollSkillWithDiceBox } from './Skills';
 import DamageDiceCanvas from './DamageDiceCanvas';
 import DiceRollerModal from '../common/DiceRollerModal';
-import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
+import {
+  clearDiceBoxResults,
+  rollDiceWithBox,
+  setDiceBoxThemeColor,
+} from '../../../utils/diceBoxManager';
 import {
   collectRollValues,
   normalizeRollValue,
@@ -1984,6 +1988,11 @@ const triggerDiceAnimation = useCallback((diceDetails = []) => {
   setActiveDice(nextDice);
 }, []);
 
+const clearDamageDice = useCallback(() => {
+  setActiveDice([]);
+  clearDiceBoxResults();
+}, []);
+
 const preparedDice = useMemo(
   () =>
     activeDice.map((die) => {
@@ -2076,8 +2085,9 @@ useImperativeHandle(
     openDamageLog: () => setShowLog(true),
     toggleCritical: handleDamageClick,
     setCritical: setCriticalState,
+    clearDamageDice,
   }),
-  [handleShowAttack, handleShowDiceRoller, handleDamageClick, setCriticalState],
+  [handleShowAttack, handleShowDiceRoller, handleDamageClick, setCriticalState, clearDamageDice],
 );
 
 const [pulseClass, setPulseClass] = useState('');
