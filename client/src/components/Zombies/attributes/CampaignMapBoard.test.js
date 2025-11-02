@@ -123,6 +123,7 @@ describe('CampaignMapBoard pointer interactions', () => {
       cancelable: true,
     });
     fireEvent(layer, pointerDownEvent);
+    expect(pointerDownEvent.defaultPrevented).toBe(true);
 
     const pointerUpEvent = createEvent.pointerUp(layer, {
       button: 0,
@@ -232,6 +233,148 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(pointerUpEvent.defaultPrevented).toBe(true);
   });
 
+  it('clamps map panning to the viewport bounds', async () => {
+    const { container } = renderBoard();
+
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    const stage = container.querySelector('.campaign-map-board__stage');
+
+    expect(layer).not.toBeNull();
+    expect(stage).not.toBeNull();
+
+    if (!layer || !stage) {
+      return;
+    }
+
+    layer.setPointerCapture = jest.fn();
+    layer.releasePointerCapture = jest.fn();
+
+    const baseRect = {
+      left: -200,
+      top: -150,
+      width: 1400,
+      height: 1000,
+    };
+
+    const parsePanValue = (property) => {
+      const raw = stage.style.getPropertyValue(property);
+      const parsed = Number.parseFloat(raw);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    layer.getBoundingClientRect = () => {
+      const offsetX = parsePanValue('--campaign-map-pan-x');
+      const offsetY = parsePanValue('--campaign-map-pan-y');
+
+      return {
+        left: baseRect.left + offsetX,
+        right: baseRect.left + offsetX + baseRect.width,
+        top: baseRect.top + offsetY,
+        bottom: baseRect.top + offsetY + baseRect.height,
+        width: baseRect.width,
+        height: baseRect.height,
+      };
+    };
+
+    const mouseDownEvent = createEvent.mouseDown(layer, {
+      button: 0,
+      clientX: 400,
+      clientY: 300,
+      pageX: 400,
+      pageY: 300,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, mouseDownEvent);
+
+    const mouseMoveRight = createEvent.mouseMove(layer, {
+      button: 0,
+      clientX: 1200,
+      clientY: 300,
+      pageX: 1200,
+      pageY: 300,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, mouseMoveRight);
+    expect(mouseMoveRight.defaultPrevented).toBe(true);
+
+    await waitFor(() => {
+      const panX = Number.parseFloat(stage.style.getPropertyValue('--campaign-map-pan-x'));
+      expect(panX).toBeCloseTo(-baseRect.left, 5);
+    });
+
+    const mouseMoveLeft = createEvent.mouseMove(layer, {
+      button: 0,
+      clientX: -1200,
+      clientY: 300,
+      pageX: -1200,
+      pageY: 300,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, mouseMoveLeft);
+    expect(mouseMoveLeft.defaultPrevented).toBe(true);
+
+    await waitFor(() => {
+      const panX = Number.parseFloat(stage.style.getPropertyValue('--campaign-map-pan-x'));
+      const expectedMinX = window.innerWidth - (baseRect.left + baseRect.width);
+      expect(panX).toBeCloseTo(expectedMinX, 5);
+    });
+
+    const mouseMoveDown = createEvent.mouseMove(layer, {
+      button: 0,
+      clientX: -1200,
+      clientY: 1200,
+      pageX: -1200,
+      pageY: 1200,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, mouseMoveDown);
+    expect(mouseMoveDown.defaultPrevented).toBe(true);
+
+    await waitFor(() => {
+      const panY = Number.parseFloat(stage.style.getPropertyValue('--campaign-map-pan-y'));
+      expect(panY).toBeCloseTo(-baseRect.top, 5);
+    });
+
+    const mouseMoveUp = createEvent.mouseMove(layer, {
+      button: 0,
+      clientX: -1200,
+      clientY: -1200,
+      pageX: -1200,
+      pageY: -1200,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, mouseMoveUp);
+    expect(mouseMoveUp.defaultPrevented).toBe(true);
+
+    await waitFor(() => {
+      const panY = Number.parseFloat(stage.style.getPropertyValue('--campaign-map-pan-y'));
+      const expectedMinY = window.innerHeight - (baseRect.top + baseRect.height);
+      expect(panY).toBeCloseTo(expectedMinY, 5);
+    });
+
+    const mouseUpEvent = createEvent.mouseUp(layer, {
+      button: 0,
+      clientX: -1200,
+      clientY: -1200,
+      pageX: -1200,
+      pageY: -1200,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, mouseUpEvent);
+  });
+
   it('marks the last dragged token and enables rotation controls', async () => {
     const onTokenPositionChange = jest.fn();
     const { container, findByRole } = renderBoard({ onTokenPositionChange });
@@ -300,12 +443,18 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(tokenElement).not.toBeNull();
 
     if (tokenElement) {
-      const pointerOverEvent = createEvent.pointerOver(tokenElement, {
-        pointerId: 3,
-        bubbles: true,
-        cancelable: true,
-      });
-      fireEvent(tokenElement, pointerOverEvent);
+      const pointerEventsSupported = 'PointerEvent' in window;
+      const hoverEvent = pointerEventsSupported
+        ? createEvent.pointerOver(tokenElement, {
+            pointerId: 3,
+            bubbles: true,
+            cancelable: true,
+          })
+        : createEvent.mouseOver(tokenElement, {
+            bubbles: true,
+            cancelable: true,
+          });
+      fireEvent(tokenElement, hoverEvent);
     }
 
     const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
@@ -324,39 +473,69 @@ describe('CampaignMapBoard pointer interactions', () => {
       });
     }
 
-    const pointerDownHandle = createEvent.pointerDown(rotationHandle, {
-      button: 0,
-      pointerId: 2,
-      bubbles: true,
-      cancelable: true,
-    });
-    Object.defineProperty(pointerDownHandle, 'clientX', { value: 180 });
-    Object.defineProperty(pointerDownHandle, 'clientY', { value: 140 });
-    Object.defineProperty(pointerDownHandle, 'pointerType', { value: 'mouse' });
-    Object.defineProperty(pointerDownHandle, 'buttons', { value: 1, configurable: true });
-    fireEvent(rotationHandle, pointerDownHandle);
+    const pointerEventsSupported = 'PointerEvent' in window;
 
-    const pointerUpWithoutDrag = createEvent.pointerUp(document.body, {
-      pointerId: 2,
-      bubbles: true,
-      cancelable: true,
-    });
-    Object.defineProperty(pointerUpWithoutDrag, 'clientX', { value: 120 });
-    Object.defineProperty(pointerUpWithoutDrag, 'clientY', { value: 180 });
-    Object.defineProperty(pointerUpWithoutDrag, 'pointerType', { value: 'mouse' });
-    fireEvent(document.body, pointerUpWithoutDrag);
+    if (pointerEventsSupported) {
+      const pointerDownHandle = createEvent.pointerDown(rotationHandle, {
+        button: 0,
+        pointerId: 2,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(pointerDownHandle, 'clientX', { value: 180 });
+      Object.defineProperty(pointerDownHandle, 'clientY', { value: 140 });
+      Object.defineProperty(pointerDownHandle, 'pointerType', { value: 'mouse' });
+      Object.defineProperty(pointerDownHandle, 'buttons', { value: 1, configurable: true });
+      fireEvent(rotationHandle, pointerDownHandle);
 
-    const pointerMoveAfterRelease = createEvent.pointerMove(document.body, {
-      pointerId: 2,
-      bubbles: true,
-      cancelable: true,
-      buttons: 0,
-    });
-    Object.defineProperty(pointerMoveAfterRelease, 'clientX', { value: 120 });
-    Object.defineProperty(pointerMoveAfterRelease, 'clientY', { value: 180 });
-    Object.defineProperty(pointerMoveAfterRelease, 'pointerType', { value: 'mouse' });
-    Object.defineProperty(pointerMoveAfterRelease, 'buttons', { value: 0, configurable: true });
-    fireEvent(document.body, pointerMoveAfterRelease);
+      const pointerUpWithoutDrag = createEvent.pointerUp(document.body, {
+        pointerId: 2,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(pointerUpWithoutDrag, 'clientX', { value: 120 });
+      Object.defineProperty(pointerUpWithoutDrag, 'clientY', { value: 180 });
+      Object.defineProperty(pointerUpWithoutDrag, 'pointerType', { value: 'mouse' });
+      fireEvent(document.body, pointerUpWithoutDrag);
+
+      const pointerMoveAfterRelease = createEvent.pointerMove(document.body, {
+        pointerId: 2,
+        bubbles: true,
+        cancelable: true,
+        buttons: 0,
+      });
+      Object.defineProperty(pointerMoveAfterRelease, 'clientX', { value: 120 });
+      Object.defineProperty(pointerMoveAfterRelease, 'clientY', { value: 180 });
+      Object.defineProperty(pointerMoveAfterRelease, 'pointerType', { value: 'mouse' });
+      Object.defineProperty(pointerMoveAfterRelease, 'buttons', { value: 0, configurable: true });
+      fireEvent(document.body, pointerMoveAfterRelease);
+    } else {
+      const mouseDownHandle = createEvent.mouseDown(rotationHandle, {
+        button: 0,
+        clientX: 180,
+        clientY: 140,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(rotationHandle, mouseDownHandle);
+
+      const mouseUpWithoutDrag = createEvent.mouseUp(document.body, {
+        clientX: 120,
+        clientY: 180,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(document.body, mouseUpWithoutDrag);
+
+      const mouseMoveAfterRelease = createEvent.mouseMove(document.body, {
+        clientX: 120,
+        clientY: 180,
+        bubbles: true,
+        cancelable: true,
+        buttons: 0,
+      });
+      fireEvent(document.body, mouseMoveAfterRelease);
+    }
 
     await waitFor(() => {
       const latestToken = container.querySelector('[data-token-id="char-1"]');
@@ -364,39 +543,67 @@ describe('CampaignMapBoard pointer interactions', () => {
       expect(Number(latestToken?.getAttribute('data-rotation'))).toBeCloseTo(0, 3);
     });
 
-    const pointerDownHandleActive = createEvent.pointerDown(rotationHandle, {
-      button: 0,
-      pointerId: 4,
-      bubbles: true,
-      cancelable: true,
-    });
-    Object.defineProperty(pointerDownHandleActive, 'clientX', { value: 180 });
-    Object.defineProperty(pointerDownHandleActive, 'clientY', { value: 140 });
-    Object.defineProperty(pointerDownHandleActive, 'pointerType', { value: 'mouse' });
-    Object.defineProperty(pointerDownHandleActive, 'buttons', { value: 1, configurable: true });
-    fireEvent(rotationHandle, pointerDownHandleActive);
+    if (pointerEventsSupported) {
+      const pointerDownHandleActive = createEvent.pointerDown(rotationHandle, {
+        button: 0,
+        pointerId: 4,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(pointerDownHandleActive, 'clientX', { value: 180 });
+      Object.defineProperty(pointerDownHandleActive, 'clientY', { value: 140 });
+      Object.defineProperty(pointerDownHandleActive, 'pointerType', { value: 'mouse' });
+      Object.defineProperty(pointerDownHandleActive, 'buttons', { value: 1, configurable: true });
+      fireEvent(rotationHandle, pointerDownHandleActive);
 
-    const pointerMoveHandle = createEvent.pointerMove(document.body, {
-      pointerId: 4,
-      bubbles: true,
-      cancelable: true,
-      buttons: 1,
-    });
-    Object.defineProperty(pointerMoveHandle, 'clientX', { value: 140 });
-    Object.defineProperty(pointerMoveHandle, 'clientY', { value: 180 });
-    Object.defineProperty(pointerMoveHandle, 'pointerType', { value: 'mouse' });
-    Object.defineProperty(pointerMoveHandle, 'buttons', { value: 1, configurable: true });
-    fireEvent(document.body, pointerMoveHandle);
+      const pointerMoveHandle = createEvent.pointerMove(document.body, {
+        pointerId: 4,
+        bubbles: true,
+        cancelable: true,
+        buttons: 1,
+      });
+      Object.defineProperty(pointerMoveHandle, 'clientX', { value: 140 });
+      Object.defineProperty(pointerMoveHandle, 'clientY', { value: 180 });
+      Object.defineProperty(pointerMoveHandle, 'pointerType', { value: 'mouse' });
+      Object.defineProperty(pointerMoveHandle, 'buttons', { value: 1, configurable: true });
+      fireEvent(document.body, pointerMoveHandle);
 
-    const pointerUpHandle = createEvent.pointerUp(document.body, {
-      pointerId: 4,
-      bubbles: true,
-      cancelable: true,
-    });
-    Object.defineProperty(pointerUpHandle, 'clientX', { value: 140 });
-    Object.defineProperty(pointerUpHandle, 'clientY', { value: 180 });
-    Object.defineProperty(pointerUpHandle, 'pointerType', { value: 'mouse' });
-    fireEvent(document.body, pointerUpHandle);
+      const pointerUpHandle = createEvent.pointerUp(document.body, {
+        pointerId: 4,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(pointerUpHandle, 'clientX', { value: 140 });
+      Object.defineProperty(pointerUpHandle, 'clientY', { value: 180 });
+      Object.defineProperty(pointerUpHandle, 'pointerType', { value: 'mouse' });
+      fireEvent(document.body, pointerUpHandle);
+    } else {
+      const mouseDownHandleActive = createEvent.mouseDown(rotationHandle, {
+        button: 0,
+        clientX: 180,
+        clientY: 140,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(rotationHandle, mouseDownHandleActive);
+
+      const mouseMoveHandle = createEvent.mouseMove(document.body, {
+        clientX: 140,
+        clientY: 180,
+        bubbles: true,
+        cancelable: true,
+        buttons: 1,
+      });
+      fireEvent(document.body, mouseMoveHandle);
+
+      const mouseUpHandle = createEvent.mouseUp(document.body, {
+        clientX: 140,
+        clientY: 180,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(document.body, mouseUpHandle);
+    }
 
     expect(onTokenPositionChange).toHaveBeenCalledWith(
       expect.objectContaining({
