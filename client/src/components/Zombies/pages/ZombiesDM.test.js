@@ -189,6 +189,9 @@ describe('ZombiesDM AI generation', () => {
     const modal = await screen.findByTestId('map-editor-modal');
     const modalQueries = within(modal);
 
+    const gridSelect = modalQueries.getByLabelText('Grid Size');
+    expect(gridSelect).toHaveValue('24');
+
     const folderInput = modalQueries.getByLabelText(/^Folder/);
     expect(folderInput).not.toBeRequired();
 
@@ -278,11 +281,23 @@ describe('ZombiesDM AI generation', () => {
       expect(modalQueries.queryByText('Alt text is required.')).not.toBeInTheDocument()
     );
 
+    await userEvent.selectOptions(gridSelect, '64');
+    expect(gridSelect).toHaveValue('64');
+
     await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(getMapPostCalls()).toHaveLength(1);
     });
+
+    const [, firstRequestOptions] = getMapPostCalls()[0];
+    const parsedRequestBody = JSON.parse(firstRequestOptions?.body || '{}');
+    expect(parsedRequestBody.map?.gridColumns).toBe(64);
+    expect(parsedRequestBody.map?.gridRows).toBe(64);
+    expect(parsedRequestBody.map?.gridDimensions).toBe('64x64');
+    expect(parsedRequestBody.map?.gridSize).toBe('64x64');
+    expect(parsedRequestBody.map?.grid?.columns).toBe(64);
+    expect(parsedRequestBody.map?.grid?.rows).toBe(64);
   });
 
   test('map folder selection persists and manager groups maps by folder', async () => {
@@ -330,12 +345,24 @@ describe('ZombiesDM AI generation', () => {
             mapPostBodies.push(parsedBody);
             const createdIndex = mapPostBodies.length;
             const createdMapId = createdIndex === 1 ? 'forest-map' : `forest-map-${createdIndex}`;
+            const createdGridColumns = parsedBody.map?.gridColumns ?? 24;
+            const createdGridRows = parsedBody.map?.gridRows ?? createdGridColumns;
+            const createdGridDimensions =
+              parsedBody.map?.gridDimensions ||
+              parsedBody.map?.gridSize ||
+              `${createdGridColumns}x${createdGridRows}`;
+
             const createdMap = {
               mapId: createdMapId,
               title: parsedBody.map?.title || 'Forest Map',
               folder: parsedBody.map?.folder,
               imageUrl: parsedBody.map?.imageUrl || 'https://example.com/forest.png',
               altText: parsedBody.map?.altText || 'Forest map',
+              gridColumns: createdGridColumns,
+              gridRows: createdGridRows,
+              gridDimensions: createdGridDimensions,
+              gridSize: createdGridDimensions,
+              grid: parsedBody.map?.grid,
               createdAt: now,
               updatedAt: now,
             };
@@ -390,6 +417,9 @@ describe('ZombiesDM AI generation', () => {
       'https://example.com/forest.png'
     );
     await userEvent.type(modalQueries.getByLabelText(/^Alt Text/), 'Forest clearing');
+    const gridSelect = modalQueries.getByLabelText('Grid Size');
+    expect(gridSelect).toHaveValue('24');
+    await userEvent.selectOptions(gridSelect, '64');
 
     await userEvent.click(modalQueries.getByTestId('map-editor-submit-button'));
 
@@ -398,6 +428,9 @@ describe('ZombiesDM AI generation', () => {
     });
 
     expect(mapPostBodies[0].map.folder).toBe('Forest Encounters');
+    expect(mapPostBodies[0].map.gridColumns).toBe(64);
+    expect(mapPostBodies[0].map.gridRows).toBe(64);
+    expect(mapPostBodies[0].map.gridDimensions).toBe('64x64');
 
     await waitFor(() =>
       expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
