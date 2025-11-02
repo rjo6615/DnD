@@ -325,6 +325,8 @@ const toFiniteNumberOrNull = (value) => {
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
+const MAP_GRID_DIMENSION_OPTIONS = [24, 64];
+const DEFAULT_MAP_GRID_DIMENSION = MAP_GRID_DIMENSION_OPTIONS[0];
 
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
@@ -357,6 +359,79 @@ const normalizeCreatureSize = (value) => {
 
 const normalizeMapId = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+
+const parseMapGridDimensionCandidate = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const rounded = Math.round(value);
+    return MAP_GRID_DIMENSION_OPTIONS.includes(rounded) ? rounded : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const pairMatch = trimmed.match(/(\d+)\s*[x×]/i);
+    if (pairMatch) {
+      const parsed = Number.parseInt(pairMatch[1], 10);
+      if (Number.isFinite(parsed) && MAP_GRID_DIMENSION_OPTIONS.includes(parsed)) {
+        return parsed;
+      }
+    }
+
+    const numeric = Number.parseInt(trimmed, 10);
+    if (Number.isFinite(numeric) && MAP_GRID_DIMENSION_OPTIONS.includes(numeric)) {
+      return numeric;
+    }
+  }
+
+  return null;
+};
+
+const resolveMapGridSelection = (map) => {
+  if (!map || typeof map !== 'object') {
+    return `${DEFAULT_MAP_GRID_DIMENSION}`;
+  }
+
+  const candidateValues = [
+    map.gridColumns,
+    map.gridRows,
+    map.gridSize,
+    map.gridDimensions,
+    map.dimensions,
+    map.size,
+    map.mapSize,
+  ];
+
+  const nestedCandidates = [map.grid, map.meta, map.metadata, map.settings, map.details];
+
+  nestedCandidates.forEach((entry) => {
+    if (entry && typeof entry === 'object') {
+      candidateValues.push(
+        entry.columns,
+        entry.rows,
+        entry.size,
+        entry.dimensions,
+        entry.gridSize,
+        entry.gridDimensions
+      );
+    }
+  });
+
+  for (const candidate of candidateValues) {
+    const parsed = parseMapGridDimensionCandidate(candidate);
+    if (parsed !== null) {
+      return `${parsed}`;
+    }
+  }
+
+  return `${DEFAULT_MAP_GRID_DIMENSION}`;
+};
 
 const sanitizeTestIdValue = (value, fallback = 'item') => {
   if (typeof value !== 'string') {
@@ -1288,6 +1363,7 @@ export default function ZombiesDM() {
       imageBase64: '',
       imageType: '',
       altText: '',
+      gridSelection: `${DEFAULT_MAP_GRID_DIMENSION}`,
       activateOnSave: true,
       fileInputKey: 0,
     });
@@ -4297,6 +4373,8 @@ export default function ZombiesDM() {
           ? lastMapFolder
           : '';
 
+      const defaultGridSelection = resolveMapGridSelection(safeMap);
+
       const shouldUseExistingOption =
         defaultFolder && availableMapFolders.includes(defaultFolder);
 
@@ -4315,6 +4393,7 @@ export default function ZombiesDM() {
         imageBase64: '',
         imageType: '',
         altText: '',
+        gridSelection: defaultGridSelection,
         activateOnSave: maps.length === 0,
         fileInputKey: Date.now(),
       });
@@ -4357,6 +4436,7 @@ export default function ZombiesDM() {
         imageType:
           typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        gridSelection: resolveMapGridSelection(safeMap),
         activateOnSave: false,
         fileInputKey: Date.now(),
       });
@@ -4460,6 +4540,7 @@ export default function ZombiesDM() {
           imageBase64,
           imageType,
           altText,
+          gridSelection,
           activateOnSave,
         } = mapEditorState;
 
@@ -4531,6 +4612,32 @@ export default function ZombiesDM() {
           if (trimmedImageType) {
             payloadMap.imageType = trimmedImageType;
           }
+        }
+
+        const parsedGridSelection = Number.parseInt(gridSelection, 10);
+        const resolvedGridDimension = MAP_GRID_DIMENSION_OPTIONS.includes(parsedGridSelection)
+          ? parsedGridSelection
+          : DEFAULT_MAP_GRID_DIMENSION;
+
+        if (Number.isFinite(resolvedGridDimension) && resolvedGridDimension > 0) {
+          const gridDimensionString = `${resolvedGridDimension}x${resolvedGridDimension}`;
+          payloadMap.gridColumns = resolvedGridDimension;
+          payloadMap.gridRows = resolvedGridDimension;
+          payloadMap.gridDimensions = gridDimensionString;
+          payloadMap.gridSize = gridDimensionString;
+
+          const existingGrid =
+            payloadMap.grid && typeof payloadMap.grid === 'object' ? payloadMap.grid : {};
+
+          payloadMap.grid = {
+            ...existingGrid,
+            columns: resolvedGridDimension,
+            rows: resolvedGridDimension,
+            dimensions: gridDimensionString,
+            size: gridDimensionString,
+            gridSize: gridDimensionString,
+            gridDimensions: gridDimensionString,
+          };
         }
 
         if (mode === 'create') {
@@ -6415,157 +6522,158 @@ const resolveIcon = (category, iconMap, fallback) => {
                             </Button>
                           </div>
                         </div>
-                        {groupedMaps.length > 0 ? (
-                          <ListGroup
-                            variant="flush"
-                            className="bg-transparent map-list"
-                            data-testid="map-list"
-                          >
-                            {groupedMaps.map((group) => {
-                              const folderTestId = sanitizeTestIdValue(
-                                group.key === UNGROUPED_FOLDER_KEY ? 'ungrouped' : group.key,
-                                'folder'
-                              );
-                              const isExpanded =
-                                typeof mapFolderExpansion[group.key] === 'boolean'
-                                  ? mapFolderExpansion[group.key]
-                                  : group.key === UNGROUPED_FOLDER_KEY;
+                        <div data-testid="map-list">
+                          {groupedMaps.length > 0 ? (
+                            <ListGroup
+                              variant="flush"
+                              className="bg-transparent map-list"
+                            >
+                              {groupedMaps.map((group) => {
+                                const folderTestId = sanitizeTestIdValue(
+                                  group.key === UNGROUPED_FOLDER_KEY ? 'ungrouped' : group.key,
+                                  'folder'
+                                );
+                                const isExpanded =
+                                  typeof mapFolderExpansion[group.key] === 'boolean'
+                                    ? mapFolderExpansion[group.key]
+                                    : group.key === UNGROUPED_FOLDER_KEY;
 
-                              return (
-                                <React.Fragment key={group.key}>
-                                  <ListGroup.Item
-                                    className="bg-dark text-light border-secondary"
-                                    data-testid={`map-folder-${folderTestId}-header`}
-                                  >
-                                    <div className="d-flex align-items-center justify-content-between gap-2">
-                                      <button
-                                        type="button"
-                                        className="btn btn-link text-light text-decoration-none p-0 d-flex align-items-center gap-2"
-                                        onClick={() => handleToggleMapFolder(group.key)}
-                                        aria-expanded={isExpanded}
-                                        data-testid={`map-folder-toggle-${folderTestId}`}
-                                      >
-                                        <span
-                                          className="d-inline-flex align-items-center justify-content-center"
-                                          aria-hidden="true"
+                                return (
+                                  <React.Fragment key={group.key}>
+                                    <ListGroup.Item
+                                      className="bg-dark text-light border-secondary"
+                                      data-testid={`map-folder-${folderTestId}-header`}
+                                    >
+                                      <div className="d-flex align-items-center justify-content-between gap-2">
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-light text-decoration-none p-0 d-flex align-items-center gap-2"
+                                          onClick={() => handleToggleMapFolder(group.key)}
+                                          aria-expanded={isExpanded}
+                                          data-testid={`map-folder-toggle-${folderTestId}`}
                                         >
-                                          {isExpanded ? (
-                                            <FiChevronDown aria-hidden="true" />
-                                          ) : (
-                                            <FiChevronRight aria-hidden="true" />
-                                          )}
-                                        </span>
-                                        <span className="fw-semibold text-start">
-                                          {group.label}
-                                        </span>
-                                      </button>
-                                      <Badge
-                                        bg="secondary"
-                                        pill
-                                        data-testid={`map-folder-count-${folderTestId}`}
-                                      >
-                                        {group.maps.length}
-                                        <span className="visually-hidden"> maps</span>
-                                      </Badge>
-                                    </div>
-                                  </ListGroup.Item>
-                                  {isExpanded &&
-                                    group.maps.map((mapItem, index) => {
-                                      const mapIdValue = normalizeMapId(mapItem?.mapId);
-                                      const mapKey = mapIdValue || `map-${group.key}-${index}`;
-                                      const isActive = Boolean(
-                                        mapIdValue && mapIdValue === normalizedActiveMapId
-                                      );
-                                      const isSelected = Boolean(
-                                        mapIdValue && normalizedSelectedMapId === mapIdValue
-                                      );
-                                      const isProcessing = Boolean(
-                                        mapIdValue && mapActionLoadingId === mapIdValue
-                                      );
-                                      const title = getMapDisplayTitle(
-                                        mapItem,
-                                        DEFAULT_MAP_TITLE
-                                      );
-                                      const mapTestId = `map-list-item-${mapKey}`;
-
-                                      return (
-                                        <ListGroup.Item
-                                          key={mapKey}
-                                          action={Boolean(mapIdValue)}
-                                          active={isSelected}
-                                          onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
-                                          className="bg-dark text-light border-secondary ps-4"
-                                          data-testid={mapTestId}
-                                          data-folder-key={group.key}
-                                        >
-                                          <div className="d-flex justify-content-between align-items-start">
-                                            <div className="fw-semibold">{title}</div>
-                                            {isActive && (
-                                              <Badge
-                                                bg="success"
-                                                className="ms-2"
-                                                data-testid={`map-active-badge-${mapKey}`}
-                                              >
-                                                Active
-                                              </Badge>
+                                          <span
+                                            className="d-inline-flex align-items-center justify-content-center"
+                                            aria-hidden="true"
+                                          >
+                                            {isExpanded ? (
+                                              <FiChevronDown aria-hidden="true" />
+                                            ) : (
+                                              <FiChevronRight aria-hidden="true" />
                                             )}
-                                          </div>
-                                          <div className="d-flex flex-wrap gap-2 mt-3">
-                                            <Button
-                                              variant="outline-light"
-                                              size="sm"
-                                              disabled={!mapIdValue || isProcessing}
-                                              onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (mapIdValue) {
-                                                  openRenameMapModal(mapItem);
-                                                }
-                                              }}
-                                              data-testid={`map-rename-button-${mapKey}`}
-                                            >
-                                              Rename
-                                            </Button>
-                                            <Button
-                                              variant="outline-light"
-                                              size="sm"
-                                              disabled={!mapIdValue || isActive || isProcessing}
-                                              onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (mapIdValue) {
-                                                  handleActivateMap(mapIdValue);
-                                                }
-                                              }}
-                                              data-testid={`map-activate-button-${mapKey}`}
-                                            >
-                                              {isActive ? 'Active' : 'Set Active'}
-                                            </Button>
-                                            <Button
-                                              variant="outline-danger"
-                                              size="sm"
-                                              disabled={!mapIdValue || isProcessing}
-                                              onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (mapIdValue) {
-                                                  handleDeleteMap(mapIdValue);
-                                                }
-                                              }}
-                                              data-testid={`map-delete-button-${mapKey}`}
-                                            >
-                                              Delete
-                                            </Button>
-                                          </div>
-                                        </ListGroup.Item>
-                                      );
-                                    })}
-                                </React.Fragment>
-                              );
-                            })}
+                                          </span>
+                                          <span className="fw-semibold text-start">
+                                            {group.label}
+                                          </span>
+                                        </button>
+                                        <Badge
+                                          bg="secondary"
+                                          pill
+                                          data-testid={`map-folder-count-${folderTestId}`}
+                                        >
+                                          {group.maps.length}
+                                          <span className="visually-hidden"> maps</span>
+                                        </Badge>
+                                      </div>
+                                    </ListGroup.Item>
+                                    {isExpanded &&
+                                      group.maps.map((mapItem, index) => {
+                                        const mapIdValue = normalizeMapId(mapItem?.mapId);
+                                        const mapKey = mapIdValue || `map-${group.key}-${index}`;
+                                        const isActive = Boolean(
+                                          mapIdValue && mapIdValue === normalizedActiveMapId
+                                        );
+                                        const isSelected = Boolean(
+                                          mapIdValue && normalizedSelectedMapId === mapIdValue
+                                        );
+                                        const isProcessing = Boolean(
+                                          mapIdValue && mapActionLoadingId === mapIdValue
+                                        );
+                                        const title = getMapDisplayTitle(
+                                          mapItem,
+                                          DEFAULT_MAP_TITLE
+                                        );
+                                        const mapTestId = `map-list-item-${mapKey}`;
+
+                                        return (
+                                          <ListGroup.Item
+                                            key={mapKey}
+                                            action={Boolean(mapIdValue)}
+                                            active={isSelected}
+                                            onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
+                                            className="bg-dark text-light border-secondary ps-4"
+                                            data-testid={mapTestId}
+                                            data-folder-key={group.key}
+                                          >
+                                            <div className="d-flex justify-content-between align-items-start">
+                                              <div className="fw-semibold">{title}</div>
+                                              {isActive && (
+                                                <Badge
+                                                  bg="success"
+                                                  className="ms-2"
+                                                  data-testid={`map-active-badge-${mapKey}`}
+                                                >
+                                                  Active
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <div className="d-flex flex-wrap gap-2 mt-3">
+                                              <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                disabled={!mapIdValue || isProcessing}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  if (mapIdValue) {
+                                                    openRenameMapModal(mapItem);
+                                                  }
+                                                }}
+                                                data-testid={`map-rename-button-${mapKey}`}
+                                              >
+                                                Rename
+                                              </Button>
+                                              <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                disabled={!mapIdValue || isActive || isProcessing}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  if (mapIdValue) {
+                                                    handleActivateMap(mapIdValue);
+                                                  }
+                                                }}
+                                                data-testid={`map-activate-button-${mapKey}`}
+                                              >
+                                                {isActive ? 'Active' : 'Set Active'}
+                                              </Button>
+                                              <Button
+                                                variant="outline-danger"
+                                                size="sm"
+                                                disabled={!mapIdValue || isProcessing}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  if (mapIdValue) {
+                                                    handleDeleteMap(mapIdValue);
+                                                  }
+                                                }}
+                                                data-testid={`map-delete-button-${mapKey}`}
+                                              >
+                                                Delete
+                                              </Button>
+                                            </div>
+                                          </ListGroup.Item>
+                                        );
+                                      })}
+                                  </React.Fragment>
+                                );
+                              })}
                           </ListGroup>
                         ) : (
                           <div className="text-muted small" data-testid="map-list-empty">
                             No maps saved yet.
                           </div>
                         )}
+                        </div>
                       </Col>
                       <Col md={8} className="text-start">
                         <div className="mb-4 p-3 bg-dark rounded" data-testid="map-preview-card">
@@ -6751,7 +6859,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                       </Form.Group>
                     </Col>
                     <Col md={12} lg={4}>
-                      <Form.Group>
+                      <Form.Group controlId="monster-select">
                         <Form.Label className="text-light">Select Monster</Form.Label>
                         <Form.Select
                           value={selectedMonsterIndex}
@@ -8201,6 +8309,22 @@ const resolveIcon = (category, iconMap, fallback) => {
               ) : null}
               <Form.Text id="map-editor-folder-help" className="text-muted">
                 Choose an existing folder or create a new one.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-grid-size">
+              <Form.Label>Grid Size</Form.Label>
+              <Form.Select
+                value={mapEditorState.gridSelection}
+                onChange={handleMapEditorInputChange('gridSelection')}
+                disabled={mapEditorSaving}
+                data-testid="map-editor-grid-select"
+              >
+                {MAP_GRID_DIMENSION_OPTIONS.map((dimension) => (
+                  <option value={`${dimension}`} key={dimension}>{`${dimension} × ${dimension}`}</option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">
+                Select the number of squares along each side of the map grid.
               </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
