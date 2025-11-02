@@ -3730,13 +3730,14 @@ h1 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 14px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .footer-btn--attack {
-  width: 32px;
-  height: 32px;
+  --footer-attack-size: clamp(30px, 6.5vw, 40px);
+  width: var(--footer-attack-size);
+  height: var(--footer-attack-size);
   padding: 0;
   margin-top: 0;
   border: none;
@@ -3751,12 +3752,12 @@ h1 {
 
 .footer-btn--attack:focus-visible .footer-btn__attack-image {
   box-shadow: 0 0 0 3px rgba(44, 110, 255, 0.35);
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(24px, 6vw, 32px);
+  --footer-dice-size: clamp(32px, 7vw, 44px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   display: flex;
