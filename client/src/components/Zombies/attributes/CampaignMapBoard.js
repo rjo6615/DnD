@@ -538,19 +538,38 @@ const CampaignMapBoard = ({
     () => resolveGridDimensions(map),
     [map]
   );
+  const stageAspectRatio = useMemo(() => {
+    if (!Number.isFinite(gridColumns) || !Number.isFinite(gridRows)) {
+      return null;
+    }
+
+    const safeColumns = Math.max(1, Math.round(gridColumns));
+    const safeRows = Math.max(1, Math.round(gridRows));
+
+    if (safeColumns <= 0 || safeRows <= 0) {
+      return null;
+    }
+
+    return `${safeColumns} / ${safeRows}`;
+  }, [gridColumns, gridRows]);
   const metadataSquareSize = useMemo(() => resolveSquareSizeFromMetadata(map), [map]);
 
   useEffect(() => {
     mapPanOffsetRef.current = mapPanOffset;
   }, [mapPanOffset]);
 
-  const panStyle = useMemo(
-    () => ({
+  const panStyle = useMemo(() => {
+    const style = {
       '--campaign-map-pan-x': `${mapPanOffset.x}px`,
       '--campaign-map-pan-y': `${mapPanOffset.y}px`,
-    }),
-    [mapPanOffset.x, mapPanOffset.y]
-  );
+    };
+
+    if (stageAspectRatio) {
+      style['--campaign-map-stage-aspect-ratio'] = stageAspectRatio;
+    }
+
+    return style;
+  }, [mapPanOffset.x, mapPanOffset.y, stageAspectRatio]);
 
   useEffect(() => {
     mapPanStateRef.current = null;
