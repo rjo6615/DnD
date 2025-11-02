@@ -3757,7 +3757,7 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(60px, 11vw, 86px);
+  --footer-dice-size: clamp(60px, 11vw, 90px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   display: flex;
@@ -3767,7 +3767,7 @@ h1 {
   border: none;
   background: transparent !important;
   color: #ffffff !important;
-  font-size: calc(var(--footer-dice-size) * 0.78);
+  font-size: calc(var(--footer-dice-size) * 0.92);
   line-height: 1;
   box-shadow: none;
   transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
@@ -3775,8 +3775,8 @@ h1 {
 
 .footer-btn__dice-icon {
   display: block;
-  width: 1em;
-  height: 1em;
+  width: 1.1em;
+  height: 1.1em;
   color: inherit;
   fill: currentColor;
   transition: inherit;
@@ -4416,7 +4416,7 @@ h1 {
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(64px, 5.5vw, 88px);
+    --footer-dice-size: clamp(68px, 5.5vw, 92px);
   }
 
   .footer-btn--attack {
@@ -4576,7 +4576,7 @@ h1 {
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(52px, 30vw, 70px);
+    --footer-dice-size: clamp(56px, 30vw, 74px);
     margin-top: 0;
   }
 
