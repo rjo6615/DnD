@@ -544,6 +544,123 @@ const CampaignMapBoard = ({
     mapPanOffsetRef.current = mapPanOffset;
   }, [mapPanOffset]);
 
+  const clampMapPanOffset = useCallback((desiredX, desiredY) => {
+    const layerElement = layerRef.current;
+
+    const normalizeDesired = (value) =>
+      Number.isFinite(value) ? value : 0;
+
+    if (!layerElement || typeof layerElement.getBoundingClientRect !== 'function') {
+      return {
+        x: normalizeDesired(desiredX),
+        y: normalizeDesired(desiredY),
+      };
+    }
+
+    const rect = layerElement.getBoundingClientRect();
+    if (
+      !rect ||
+      !Number.isFinite(rect.left) ||
+      !Number.isFinite(rect.top) ||
+      !Number.isFinite(rect.right) ||
+      !Number.isFinite(rect.bottom)
+    ) {
+      return {
+        x: normalizeDesired(desiredX),
+        y: normalizeDesired(desiredY),
+      };
+    }
+
+    const currentOffset = mapPanOffsetRef.current || { x: 0, y: 0 };
+    const safeCurrentX = Number.isFinite(currentOffset.x) ? currentOffset.x : 0;
+    const safeCurrentY = Number.isFinite(currentOffset.y) ? currentOffset.y : 0;
+
+    const baseLeft = rect.left - safeCurrentX;
+    const baseRight = rect.right - safeCurrentX;
+    const baseTop = rect.top - safeCurrentY;
+    const baseBottom = rect.bottom - safeCurrentY;
+
+    const docElement = layerElement.ownerDocument?.documentElement;
+    const fallbackWidth = Number.isFinite(docElement?.clientWidth)
+      ? docElement.clientWidth
+      : Number.isFinite(rect.width)
+      ? rect.width
+      : 0;
+    const fallbackHeight = Number.isFinite(docElement?.clientHeight)
+      ? docElement.clientHeight
+      : Number.isFinite(rect.height)
+      ? rect.height
+      : 0;
+
+    let viewportWidth = fallbackWidth;
+    let viewportHeight = fallbackHeight;
+
+    if (typeof window !== 'undefined') {
+      const { innerWidth, innerHeight } = window;
+      if (Number.isFinite(innerWidth) && innerWidth > 0) {
+        viewportWidth = innerWidth;
+      }
+      if (Number.isFinite(innerHeight) && innerHeight > 0) {
+        viewportHeight = innerHeight;
+      }
+    }
+
+    if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) {
+      viewportWidth = fallbackWidth;
+    }
+    if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) {
+      viewportHeight = fallbackHeight;
+    }
+
+    const normalizedBaseLeft = Number.isFinite(baseLeft) ? baseLeft : 0;
+    const normalizedBaseRight = Number.isFinite(baseRight)
+      ? baseRight
+      : normalizedBaseLeft + (Number.isFinite(rect.width) ? rect.width : 0);
+    const normalizedBaseTop = Number.isFinite(baseTop) ? baseTop : 0;
+    const normalizedBaseBottom = Number.isFinite(baseBottom)
+      ? baseBottom
+      : normalizedBaseTop + (Number.isFinite(rect.height) ? rect.height : 0);
+
+    const safeDesiredX = normalizeDesired(desiredX);
+    const safeDesiredY = normalizeDesired(desiredY);
+
+    let minX = viewportWidth - normalizedBaseRight;
+    let maxX = -normalizedBaseLeft;
+    if (!Number.isFinite(minX)) {
+      minX = safeDesiredX;
+    }
+    if (!Number.isFinite(maxX)) {
+      maxX = safeDesiredX;
+    }
+    if (minX > maxX) {
+      const midpoint = (minX + maxX) / 2;
+      minX = midpoint;
+      maxX = midpoint;
+    }
+
+    let minY = viewportHeight - normalizedBaseBottom;
+    let maxY = -normalizedBaseTop;
+    if (!Number.isFinite(minY)) {
+      minY = safeDesiredY;
+    }
+    if (!Number.isFinite(maxY)) {
+      maxY = safeDesiredY;
+    }
+    if (minY > maxY) {
+      const midpoint = (minY + maxY) / 2;
+      minY = midpoint;
+      maxY = midpoint;
+    }
+
+    const clampedX = Math.min(Math.max(safeDesiredX, minX), maxX);
+    const clampedY = Math.min(Math.max(safeDesiredY, minY), maxY);
+
+    return {
+      x: Number.isFinite(clampedX) ? clampedX : 0,
+      y: Number.isFinite(clampedY) ? clampedY : 0,
+    };
+  }, []);
+
   const panStyle = useMemo(
     () => ({
       '--campaign-map-pan-x': `${mapPanOffset.x}px`,
@@ -982,17 +1099,19 @@ const CampaignMapBoard = ({
 
     const nextX = panState.originX + deltaX;
     const nextY = panState.originY + deltaY;
+    const clampedOffset = clampMapPanOffset(nextX, nextY);
+    const currentOffset = mapPanOffsetRef.current || { x: 0, y: 0 };
 
     if (
-      nextX === mapPanOffsetRef.current.x &&
-      nextY === mapPanOffsetRef.current.y
+      clampedOffset.x === currentOffset.x &&
+      clampedOffset.y === currentOffset.y
     ) {
       return;
     }
 
-    mapPanOffsetRef.current = { x: nextX, y: nextY };
-    setMapPanOffset({ x: nextX, y: nextY });
-  }, []);
+    mapPanOffsetRef.current = clampedOffset;
+    setMapPanOffset(clampedOffset);
+  }, [clampMapPanOffset]);
 
   const handleLayerPointerUp = useCallback(
     (event) => {
