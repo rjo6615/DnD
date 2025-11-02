@@ -1728,7 +1728,13 @@ const CampaignMapBoard = ({
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
-        <div className="campaign-map-board__stage" style={panStyle}>
+        <div
+          className={classNames(
+            'campaign-map-board__stage',
+            isMapPanning && 'campaign-map-board__stage--panning'
+          )}
+          style={panStyle}
+        >
           <div className="campaign-map-board__image-wrapper">
             <img
               src={imageSrc}

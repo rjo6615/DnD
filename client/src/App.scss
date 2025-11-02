@@ -4787,6 +4787,14 @@ h1 {
     cursor: grabbing;
   }
 
+  &__stage--panning {
+    .campaign-map-board__image,
+    .campaign-map-board__grid-overlay,
+    .campaign-map-board__tokens-layer {
+      transition: none;
+    }
+  }
+
   &__token {
     --figurine-base-size: calc(var(--map-square-size) * var(--figurine-size-scale, 1));
     --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
