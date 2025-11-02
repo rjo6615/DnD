@@ -3757,7 +3757,7 @@ h1 {
 
 .footer-btn--dice {
   position: relative;
-  --footer-dice-size: clamp(52px, 10vw, 72px);
+  --footer-dice-size: clamp(60px, 11vw, 86px);
   width: var(--footer-dice-size);
   height: var(--footer-dice-size);
   display: flex;
@@ -4416,7 +4416,7 @@ h1 {
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(56px, 5vw, 76px);
+    --footer-dice-size: clamp(64px, 5.5vw, 88px);
   }
 
   .footer-btn--attack {
@@ -4576,7 +4576,7 @@ h1 {
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(44px, 28vw, 60px);
+    --footer-dice-size: clamp(52px, 30vw, 70px);
     margin-top: 0;
   }
 
