@@ -281,8 +281,8 @@ describe('ZombiesDM AI generation', () => {
       expect(modalQueries.queryByText('Alt text is required.')).not.toBeInTheDocument()
     );
 
-    await userEvent.selectOptions(gridSelect, '64');
-    expect(gridSelect).toHaveValue('64');
+    await userEvent.selectOptions(gridSelect, '120');
+    expect(gridSelect).toHaveValue('120');
 
     await userEvent.click(submitButton);
 
@@ -292,12 +292,12 @@ describe('ZombiesDM AI generation', () => {
 
     const [, firstRequestOptions] = getMapPostCalls()[0];
     const parsedRequestBody = JSON.parse(firstRequestOptions?.body || '{}');
-    expect(parsedRequestBody.map?.gridColumns).toBe(64);
-    expect(parsedRequestBody.map?.gridRows).toBe(64);
-    expect(parsedRequestBody.map?.gridDimensions).toBe('64x64');
-    expect(parsedRequestBody.map?.gridSize).toBe('64x64');
-    expect(parsedRequestBody.map?.grid?.columns).toBe(64);
-    expect(parsedRequestBody.map?.grid?.rows).toBe(64);
+    expect(parsedRequestBody.map?.gridColumns).toBe(120);
+    expect(parsedRequestBody.map?.gridRows).toBe(120);
+    expect(parsedRequestBody.map?.gridDimensions).toBe('120x120');
+    expect(parsedRequestBody.map?.gridSize).toBe('120x120');
+    expect(parsedRequestBody.map?.grid?.columns).toBe(120);
+    expect(parsedRequestBody.map?.grid?.rows).toBe(120);
   });
 
   test('map folder selection persists and manager groups maps by folder', async () => {

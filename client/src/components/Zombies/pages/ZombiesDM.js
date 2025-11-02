@@ -325,7 +325,7 @@ const toFiniteNumberOrNull = (value) => {
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
-const MAP_GRID_DIMENSION_OPTIONS = [24, 64];
+const MAP_GRID_DIMENSION_OPTIONS = [24, 64, 120];
 const DEFAULT_MAP_GRID_DIMENSION = MAP_GRID_DIMENSION_OPTIONS[0];
 
 const normalizeCreatureSize = (value) => {
