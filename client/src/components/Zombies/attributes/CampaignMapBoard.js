@@ -21,6 +21,22 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const clamp = (value, min, max) => {
+  if (!Number.isFinite(value)) {
+    return value;
+  }
+
+  if (value < min) {
+    return min;
+  }
+
+  if (value > max) {
+    return max;
+  }
+
+  return value;
+};
+
 const getHealthColor = (ratio) => {
   const clampedRatio = clamp01(ratio);
   if (clampedRatio === null) {
@@ -489,8 +505,11 @@ const CampaignMapBoard = ({
   const rotationOverridesRef = useRef({});
   const [draggingRotationTokenId, setDraggingRotationTokenId] = useState(null);
   const [mapPanOffset, setMapPanOffset] = useState({ x: 0, y: 0 });
+  const [mapImageMetrics, setMapImageMetrics] = useState(null);
+  const [mapStageSize, setMapStageSize] = useState({ width: 0, height: 0 });
   const mapPanOffsetRef = useRef(mapPanOffset);
   const mapPanStateRef = useRef(null);
+  const mapPanBoundsRef = useRef({ maxX: Infinity, maxY: Infinity });
   const [isMapPanning, setIsMapPanning] = useState(false);
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
@@ -538,19 +557,77 @@ const CampaignMapBoard = ({
     () => resolveGridDimensions(map),
     [map]
   );
+  const stageAspectRatio = useMemo(() => {
+    const metricsWidth = Number(mapImageMetrics?.width);
+    const metricsHeight = Number(mapImageMetrics?.height);
+
+    if (Number.isFinite(metricsWidth) && Number.isFinite(metricsHeight)) {
+      if (metricsWidth > 0 && metricsHeight > 0) {
+        return `${metricsWidth} / ${metricsHeight}`;
+      }
+    }
+
+    if (!Number.isFinite(gridColumns) || !Number.isFinite(gridRows)) {
+      return null;
+    }
+
+    const safeColumns = Math.max(1, Math.round(gridColumns));
+    const safeRows = Math.max(1, Math.round(gridRows));
+
+    if (safeColumns <= 0 || safeRows <= 0) {
+      return null;
+    }
+
+    return `${safeColumns} / ${safeRows}`;
+  }, [gridColumns, gridRows, mapImageMetrics?.height, mapImageMetrics?.width]);
   const metadataSquareSize = useMemo(() => resolveSquareSizeFromMetadata(map), [map]);
 
   useEffect(() => {
     mapPanOffsetRef.current = mapPanOffset;
   }, [mapPanOffset]);
 
-  const panStyle = useMemo(
-    () => ({
+  useEffect(() => {
+    setMapImageMetrics(null);
+  }, [imageSrc]);
+
+  const handleMapImageLoad = useCallback((event) => {
+    const target = event?.target;
+    if (!target) {
+      return;
+    }
+
+    const nextWidth = Number(target.naturalWidth);
+    const nextHeight = Number(target.naturalHeight);
+
+    if (!Number.isFinite(nextWidth) || !Number.isFinite(nextHeight)) {
+      return;
+    }
+
+    if (nextWidth <= 0 || nextHeight <= 0) {
+      return;
+    }
+
+    setMapImageMetrics((prev) => {
+      if (prev && prev.width === nextWidth && prev.height === nextHeight) {
+        return prev;
+      }
+
+      return { width: nextWidth, height: nextHeight };
+    });
+  }, []);
+
+  const panStyle = useMemo(() => {
+    const style = {
       '--campaign-map-pan-x': `${mapPanOffset.x}px`,
       '--campaign-map-pan-y': `${mapPanOffset.y}px`,
-    }),
-    [mapPanOffset.x, mapPanOffset.y]
-  );
+    };
+
+    if (stageAspectRatio) {
+      style['--campaign-map-stage-aspect-ratio'] = stageAspectRatio;
+    }
+
+    return style;
+  }, [mapPanOffset.x, mapPanOffset.y, stageAspectRatio]);
 
   useEffect(() => {
     mapPanStateRef.current = null;
@@ -617,6 +694,17 @@ const CampaignMapBoard = ({
         (value) => Number.isFinite(value) && value > 0
       );
 
+      setMapStageSize((prev) => {
+        const nextWidth = Number(rect.width) || 0;
+        const nextHeight = Number(rect.height) || 0;
+
+        if (prev.width === nextWidth && prev.height === nextHeight) {
+          return prev;
+        }
+
+        return { width: nextWidth, height: nextHeight };
+      });
+
       if (candidates.length === 0) {
         boardElement.style.removeProperty('--campaign-map-square-size');
         return;
@@ -653,6 +741,79 @@ const CampaignMapBoard = ({
       cleanupGridVariables();
     };
   }, [gridColumns, gridRows, layerNode, metadataSquareSize]);
+
+  const mapPanBounds = useMemo(() => {
+    const stageWidth = Number(mapStageSize.width);
+    const stageHeight = Number(mapStageSize.height);
+    const imageWidth = Number(mapImageMetrics?.width);
+    const imageHeight = Number(mapImageMetrics?.height);
+
+    if (
+      !Number.isFinite(stageWidth) ||
+      !Number.isFinite(stageHeight) ||
+      stageWidth <= 0 ||
+      stageHeight <= 0
+    ) {
+      return { maxX: Infinity, maxY: Infinity };
+    }
+
+    let displayWidth = stageWidth;
+    let displayHeight = stageHeight;
+
+    if (Number.isFinite(imageWidth) && Number.isFinite(imageHeight) && imageWidth > 0 && imageHeight > 0) {
+      const scale = Math.min(stageWidth / imageWidth, stageHeight / imageHeight);
+      if (Number.isFinite(scale) && scale > 0) {
+        displayWidth = imageWidth * scale;
+        displayHeight = imageHeight * scale;
+      }
+    } else if (
+      Number.isFinite(gridColumns) &&
+      Number.isFinite(gridRows) &&
+      gridColumns > 0 &&
+      gridRows > 0
+    ) {
+      const ratio = gridColumns / gridRows;
+      if (Number.isFinite(ratio) && ratio > 0) {
+        const stageRatio = stageWidth / stageHeight;
+
+        if (Number.isFinite(stageRatio) && stageRatio > 0) {
+          if (ratio >= stageRatio) {
+            displayWidth = stageWidth;
+            displayHeight = stageWidth / ratio;
+          } else {
+            displayHeight = stageHeight;
+            displayWidth = stageHeight * ratio;
+          }
+        }
+      }
+    }
+
+    const maxX = Math.abs(displayWidth - stageWidth) / 2;
+    const maxY = Math.abs(displayHeight - stageHeight) / 2;
+
+    return {
+      maxX: Number.isFinite(maxX) ? Math.max(0, maxX) : Infinity,
+      maxY: Number.isFinite(maxY) ? Math.max(0, maxY) : Infinity,
+    };
+  }, [gridColumns, gridRows, mapImageMetrics?.height, mapImageMetrics?.width, mapStageSize.height, mapStageSize.width]);
+
+  useEffect(() => {
+    mapPanBoundsRef.current = mapPanBounds;
+
+    setMapPanOffset((prev) => {
+      const { maxX, maxY } = mapPanBounds;
+      const clampedX = Number.isFinite(maxX) ? clamp(prev.x, -maxX, maxX) : prev.x;
+      const clampedY = Number.isFinite(maxY) ? clamp(prev.y, -maxY, maxY) : prev.y;
+
+      if (clampedX === prev.x && clampedY === prev.y) {
+        return prev;
+      }
+
+      const next = { x: clampedX, y: clampedY };
+      mapPanOffsetRef.current = next;
+      return next;
+    });
+  }, [mapPanBounds]);
 
   const tokenPositions = useMemo(() => {
     if (!Array.isArray(tokens)) {
@@ -983,15 +1144,19 @@ const CampaignMapBoard = ({
     const nextX = panState.originX + deltaX;
     const nextY = panState.originY + deltaY;
 
+    const { maxX, maxY } = mapPanBoundsRef.current;
+    const clampedX = Number.isFinite(maxX) ? clamp(nextX, -maxX, maxX) : nextX;
+    const clampedY = Number.isFinite(maxY) ? clamp(nextY, -maxY, maxY) : nextY;
+
     if (
-      nextX === mapPanOffsetRef.current.x &&
-      nextY === mapPanOffsetRef.current.y
+      clampedX === mapPanOffsetRef.current.x &&
+      clampedY === mapPanOffsetRef.current.y
     ) {
       return;
     }
 
-    mapPanOffsetRef.current = { x: nextX, y: nextY };
-    setMapPanOffset({ x: nextX, y: nextY });
+    mapPanOffsetRef.current = { x: clampedX, y: clampedY };
+    setMapPanOffset({ x: clampedX, y: clampedY });
   }, []);
 
   const handleLayerPointerUp = useCallback(
@@ -1671,7 +1836,12 @@ const CampaignMapBoard = ({
       {imageSrc ? (
         <div className="campaign-map-board__stage" style={panStyle}>
           <div className="campaign-map-board__image-wrapper">
-            <img src={imageSrc} alt={altText} className="campaign-map-board__image" />
+            <img
+              src={imageSrc}
+              alt={altText}
+              className="campaign-map-board__image"
+              onLoad={handleMapImageLoad}
+            />
             <div className="campaign-map-board__grid-overlay" aria-hidden="true" />
             <div
               className={classNames(
