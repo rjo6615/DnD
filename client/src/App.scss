@@ -217,6 +217,18 @@
   pointer-events: auto;
 }
 
+.zombies-character-sheet-layout--map-interaction-active {
+  .damage-roller__dice-wrapper,
+  .damage-roller__dice-area,
+  .damage-dice-canvas,
+  .damage-dice-canvas__box,
+  .damage-dice-canvas__box *,
+  #damage-dice-box,
+  #damage-dice-box * {
+    pointer-events: none !important;
+  }
+}
+
 .map-display__grid-overlay,
 .campaign-map-board__grid-overlay {
   position: absolute;
