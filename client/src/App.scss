@@ -4204,9 +4204,9 @@ h1 {
 .footer-character-slot__damage {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 14px;
   border-radius: 10px;
   background: rgba(18, 32, 63, 0.82);
@@ -4233,18 +4233,22 @@ h1 {
 
 .footer-character-slot__damage-value {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.6rem;
   color: rgba(247, 249, 255, 0.95);
-  line-height: 1.05;
+  line-height: 1.1;
+  text-align: center;
 }
 
 .footer-character-slot__damage-log-button {
   display: inline-flex;
+  align-self: center;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 6px 12px;
-  margin-top: 4px;
+  width: auto;
+  min-width: 0;
+  padding: 4px 10px;
+  margin-top: 2px;
+  font-size: 0.75rem;
 }
 
 .footer-character-slot__damage--critical .footer-character-slot__damage-value {
