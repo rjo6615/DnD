@@ -6075,6 +6075,7 @@ export default function ZombiesCharacterSheet() {
                   armorClass={footerArmorClass}
                   onHealthChange={handleHealthChange}
                   damageSummary={footerDamageSummary}
+                  onOpenDamageLog={() => handleFooterQuickAction(openDamageLog)}
                   spellSlots={
                     form ? (
                       <SpellSlots
@@ -6117,16 +6118,6 @@ export default function ZombiesCharacterSheet() {
                           title="Pass turn"
                         >
                           Pass ➔
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline-light"
-                          className="footer-pass-log-button"
-                          onClick={() => handleFooterQuickAction(openDamageLog)}
-                          aria-label="Open damage log"
-                          title="Damage log"
-                        >
-                          ⚔️ Log
                         </Button>
                         <Button
                           variant="link"
