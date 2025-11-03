@@ -6090,28 +6090,28 @@ export default function ZombiesCharacterSheet() {
                   }
                   actions={
                     <div className="footer-actions-wrapper">
-                    <div className="footer-actions-inline">
-                      <Button
-                        variant="link"
-                        className="footer-btn footer-btn--clear-dice"
-                        type="button"
-                        onClick={() => handleFooterQuickAction(clearDamageDice)}
-                        aria-label="Clear rolled dice"
-                        title="Clear dice"
-                      >
-                        <span className="footer-btn__clear-dice-icon" aria-hidden="true">
-                          <FaDiceD20
-                            className="footer-btn__clear-dice-icon-die"
-                            aria-hidden="true"
-                            focusable="false"
-                          />
-                        </span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline-light"
-                        className="footer-pass-log-button"
-                        disabled={passDisabled}
+                      <div className="footer-actions-inline">
+                        <Button
+                          variant="link"
+                          className="footer-btn footer-btn--clear-dice"
+                          type="button"
+                          onClick={() => handleFooterQuickAction(clearDamageDice)}
+                          aria-label="Clear rolled dice"
+                          title="Clear dice"
+                        >
+                          <span className="footer-btn__clear-dice-icon" aria-hidden="true">
+                            <FaDiceD20
+                              className="footer-btn__clear-dice-icon-die"
+                              aria-hidden="true"
+                              focusable="false"
+                            />
+                          </span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline-light"
+                          className="footer-pass-log-button"
+                          disabled={passDisabled}
                           onClick={() => handleFooterQuickAction(handlePassTurn)}
                           aria-label="Pass turn"
                           title="Pass turn"
