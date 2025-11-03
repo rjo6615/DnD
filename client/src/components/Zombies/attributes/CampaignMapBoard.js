@@ -97,6 +97,37 @@ const resolveRotationHandleDistanceScale = (figurineScale) => {
 
 const DEFAULT_GRID_DIMENSION = 24;
 
+const resolveElementScale = (element) => {
+  if (!element || typeof element.getBoundingClientRect !== 'function') {
+    return { x: 1, y: 1 };
+  }
+
+  const rect = element.getBoundingClientRect();
+  const layoutWidth = Number(element.offsetWidth) || Number(element.clientWidth);
+  const layoutHeight = Number(element.offsetHeight) || Number(element.clientHeight);
+
+  let scaleX = 1;
+  let scaleY = 1;
+
+  if (rect && Number.isFinite(rect.width) && rect.width > 0 && layoutWidth > 0) {
+    scaleX = rect.width / layoutWidth;
+  }
+
+  if (rect && Number.isFinite(rect.height) && rect.height > 0 && layoutHeight > 0) {
+    scaleY = rect.height / layoutHeight;
+  }
+
+  if (!Number.isFinite(scaleX) || scaleX <= 0) {
+    scaleX = 1;
+  }
+
+  if (!Number.isFinite(scaleY) || scaleY <= 0) {
+    scaleY = 1;
+  }
+
+  return { x: scaleX, y: scaleY };
+};
+
 const parsePositiveNumber = (value) => {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
     return value;
@@ -979,6 +1010,8 @@ const CampaignMapBoard = ({
           ? getNormalizedCoordinates(startX, startY)
           : null;
 
+      const { x: scaleX, y: scaleY } = resolveElementScale(event.currentTarget);
+
       mapPanStateRef.current = {
         pointerId: event.pointerId,
         startClientX: resolvedStartX,
@@ -988,6 +1021,8 @@ const CampaignMapBoard = ({
         initialCoords: initialCoords || null,
         hasDragged: false,
         allowBackgroundClick: typeof onBackgroundClick === 'function',
+        scaleX,
+        scaleY,
       };
 
       if (event.currentTarget.setPointerCapture) {
@@ -1023,11 +1058,11 @@ const CampaignMapBoard = ({
       return;
     }
 
-    const deltaX = currentX - panState.startClientX;
-    const deltaY = currentY - panState.startClientY;
+    const rawDeltaX = currentX - panState.startClientX;
+    const rawDeltaY = currentY - panState.startClientY;
 
     if (!panState.hasDragged) {
-      const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+      const distanceSquared = rawDeltaX * rawDeltaX + rawDeltaY * rawDeltaY;
       if (distanceSquared < MAP_PAN_DRAG_THRESHOLD_SQUARED) {
         return;
       }
@@ -1038,6 +1073,18 @@ const CampaignMapBoard = ({
 
     event.preventDefault();
     event.stopPropagation();
+
+    const scaleX =
+      panState && Number.isFinite(panState.scaleX) && panState.scaleX > 0
+        ? panState.scaleX
+        : 1;
+    const scaleY =
+      panState && Number.isFinite(panState.scaleY) && panState.scaleY > 0
+        ? panState.scaleY
+        : 1;
+
+    const deltaX = rawDeltaX / scaleX;
+    const deltaY = rawDeltaY / scaleY;
 
     const nextX = panState.originX + deltaX;
     const nextY = panState.originY + deltaY;
