@@ -1839,9 +1839,12 @@ const CampaignMapBoard = ({
                 const hasFigurineImage = Boolean(figurineImageUrl);
                 const figurineMetricKey = figurineImageUrl || characterId || `token-${tokenIndex}`;
                 const metrics = figurineMetricKey ? figurineImageMetrics[figurineMetricKey] : null;
-                const imageFootprint = hasFigurineImage
-                  ? resolveFigurineSquaresFromImageSize(metrics, metadataSquareSize)
-                  : null;
+                const hasMetadataSquareSize =
+                  Number.isFinite(metadataSquareSize) && metadataSquareSize > 0;
+                const imageFootprint =
+                  hasFigurineImage && hasMetadataSquareSize
+                    ? resolveFigurineSquaresFromImageSize(metrics, metadataSquareSize)
+                    : null;
                 const sizeKey = resolveFigurineSizeKey(size);
                 const hasExplicitSize = typeof size === 'string' && size.trim() !== '';
                 const baseFigurineScale =

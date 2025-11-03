@@ -516,7 +516,7 @@ describe('CampaignMapBoard pointer interactions', () => {
     }
   });
 
-  it('falls back to image dimensions when metadata is unavailable', async () => {
+  it('defaults to medium figurine scale when metadata is unavailable', async () => {
     const { container } = render(
       <CampaignMapBoard
         map={baseMap}
@@ -549,7 +549,7 @@ describe('CampaignMapBoard pointer interactions', () => {
       fireEvent.load(figurineImage);
 
       await waitFor(() => {
-        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('2');
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('1');
       });
     }
   });
