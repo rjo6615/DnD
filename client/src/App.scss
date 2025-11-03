@@ -5201,10 +5201,18 @@ h1 {
   }
 
   &__figurine-label {
+    --figurine-label-zoom-adjustment: clamp(
+      0.25,
+      calc(1 / var(--map-modal-background-scale, 1)),
+      1
+    );
+    --figurine-label-scale: calc(0.82 * var(--figurine-label-zoom-adjustment));
+    --figurine-label-active-scale: calc(0.9 * var(--figurine-label-zoom-adjustment));
     position: absolute;
     bottom: calc(100% + clamp(0.15rem, calc(var(--figurine-base-size) * 0.16), 0.6rem));
     left: 50%;
-    transform: translate(-50%, calc(var(--figurine-base-size) * 0.04)) scale(0.82);
+    transform: translate(-50%, calc(var(--figurine-base-size) * 0.04))
+      scale(var(--figurine-label-scale));
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -5269,7 +5277,7 @@ h1 {
   &__token:hover .campaign-map-board__figurine-label,
   &__token:focus-visible .campaign-map-board__figurine-label {
     opacity: 1;
-    transform: translate(-50%, 0) scale(0.9);
+    transform: translate(-50%, 0) scale(var(--figurine-label-active-scale));
   }
 
   &__token:focus-visible .campaign-map-board__figurine {
