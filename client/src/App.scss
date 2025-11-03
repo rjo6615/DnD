@@ -4901,23 +4901,29 @@ h1 {
       --campaign-map-board-health-color,
       #51cf66
     );
-    --figurine-health-zoom-adjustment: clamp(
-      0.35,
+    --campaign-map-board-health-zoom-adjustment: clamp(
+      0.85,
       calc(1 / var(--map-modal-background-scale, 1)),
-      1
+      1.1
     );
-    --figurine-health-scale: var(--figurine-health-zoom-adjustment);
+    --campaign-map-board-health-scale: calc(
+      0.92 * var(--campaign-map-board-health-zoom-adjustment)
+    );
     position: absolute;
-    top: calc(50% - var(--figurine-base-size) * 0.68);
+    top: calc(50% - var(--figurine-base-size) * 0.7);
     left: 50%;
-    width: calc(var(--figurine-base-size) * 0.95);
+    width: clamp(
+      1.65rem,
+      calc(var(--figurine-base-size) * 1.08),
+      6rem
+    );
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
-    transform-origin: center bottom;
-    transform: translate(-50%, -50%) scale(var(--figurine-health-scale));
+    filter: drop-shadow(0 0.18rem 0.35rem rgba(0, 0, 0, 0.65));
+    transform-origin: 50% 50%;
+    transform: translate(-50%, -50%) scale(var(--campaign-map-board-health-scale));
     pointer-events: none;
     z-index: 1;
   }
@@ -4933,12 +4939,15 @@ h1 {
   &__health-track {
     position: relative;
     width: 100%;
-    height: clamp(4px, calc(var(--figurine-base-size) * 0.22), 8px);
+    height: clamp(6px, calc(var(--figurine-base-size) * 0.28), 14px);
     background: rgba(0, 0, 0, 0.6);
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: clamp(1px, calc(var(--figurine-base-size) * 0.02), 2px) solid
+      rgba(255, 255, 255, 0.18);
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.75);
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.75),
+      0 0.1rem 0.25rem rgba(0, 0, 0, 0.35);
   }
 
   &__health-fill {
