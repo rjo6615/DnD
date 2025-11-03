@@ -6109,17 +6109,6 @@ export default function ZombiesCharacterSheet() {
                           </span>
                         </Button>
                         <Button
-                          type="button"
-                          variant="outline-light"
-                          className="footer-pass-log-button"
-                          disabled={passDisabled}
-                          onClick={() => handleFooterQuickAction(handlePassTurn)}
-                          aria-label="Pass turn"
-                          title="Pass turn"
-                        >
-                          Pass ➔
-                        </Button>
-                        <Button
                           variant="link"
                           className="footer-btn footer-btn--dice"
                           type="button"
@@ -6147,6 +6136,17 @@ export default function ZombiesCharacterSheet() {
                             aria-hidden="true"
                             className="footer-btn__attack-image"
                           />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline-light"
+                          className="footer-pass-log-button"
+                          disabled={passDisabled}
+                          onClick={() => handleFooterQuickAction(handlePassTurn)}
+                          aria-label="Pass turn"
+                          title="Pass turn"
+                        >
+                          Pass ➔
                         </Button>
                       </div>
                       <div className="footer-actions-menu">
