@@ -29,6 +29,7 @@ const FooterCharacterSlot = ({
   spellSlots,
   damageSummary,
   onToggleCritical,
+  onOpenDamageLog,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -111,7 +112,9 @@ const FooterCharacterSlot = ({
   const hasSpellSlots = Boolean(spellSlots);
   const hasActions = Boolean(actions);
   const hasDamageDisplay =
-    hasDamageValue || typeof onToggleCritical === 'function';
+    hasDamageValue ||
+    typeof onToggleCritical === 'function' ||
+    typeof onOpenDamageLog === 'function';
   const hasFooterContent = hasActions || hasDamageDisplay;
   const hasHudContent = hasSpellSlots || hasFooterContent;
 
@@ -128,6 +131,11 @@ const FooterCharacterSlot = ({
       onToggleCritical();
     }
   }, [onToggleCritical]);
+  const handleDamageLogClick = useCallback(() => {
+    if (typeof onOpenDamageLog === 'function') {
+      onOpenDamageLog();
+    }
+  }, [onOpenDamageLog]);
   const canDecrease = !isUpdating && numericCurrent > 0;
   const canIncrease =
     !isUpdating &&
@@ -364,6 +372,18 @@ const FooterCharacterSlot = ({
                       ) : null}
                     </div>
                     <span className="footer-character-slot__damage-value">{displayDamageValue}</span>
+                    {typeof onOpenDamageLog === 'function' ? (
+                      <Button
+                        type="button"
+                        variant="outline-light"
+                        className="footer-character-slot__damage-log-button footer-pass-log-button"
+                        onClick={handleDamageLogClick}
+                        aria-label="Open damage log"
+                        title="Damage log"
+                      >
+                        ⚔️ Log
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
                 {hasActions ? (
@@ -404,6 +424,7 @@ FooterCharacterSlot.propTypes = {
     timestamp: PropTypes.number,
   }),
   onToggleCritical: PropTypes.func,
+  onOpenDamageLog: PropTypes.func,
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -418,6 +439,7 @@ FooterCharacterSlot.defaultProps = {
   spellSlots: null,
   damageSummary: null,
   onToggleCritical: undefined,
+  onOpenDamageLog: undefined,
 };
 
 export default FooterCharacterSlot;

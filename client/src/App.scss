@@ -3927,12 +3927,12 @@ h1 {
 .footer-character-slot__hud {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-end;
   gap: 0;
-  flex: 1 1 560px;
-  width: clamp(320px, 62vw, 780px);
-  max-width: 100%;
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: clamp(320px, 62vw, 780px);
 }
 
 .footer-character-slot__footer-rail {
@@ -3947,15 +3947,17 @@ h1 {
   box-shadow: 0 10px 20px rgba(6, 10, 20, 0.45);
   backdrop-filter: blur(4px);
   min-height: 0;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
+  align-self: center;
 }
 
 .footer-character-slot__footer-rail-body {
   display: flex;
   align-items: stretch;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 12px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   width: 100%;
   min-width: 0;
 }
@@ -4083,9 +4085,9 @@ h1 {
   align-items: stretch;
   gap: 12px;
   margin-left: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
-  width: 100%;
+  width: auto;
 }
 
 .footer-character-slot__actions > * {
@@ -4203,15 +4205,14 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 8px;
   padding: 10px 14px;
   border-radius: 10px;
   background: rgba(18, 32, 63, 0.82);
   box-shadow: inset 0 0 0 1px rgba(123, 149, 219, 0.32);
   min-width: 110px;
   max-width: 220px;
-  height: 100%;
 }
 
 .footer-character-slot__damage-header {
@@ -4235,6 +4236,15 @@ h1 {
   font-size: 1rem;
   color: rgba(247, 249, 255, 0.95);
   line-height: 1.05;
+}
+
+.footer-character-slot__damage-log-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 6px 12px;
+  margin-top: 4px;
 }
 
 .footer-character-slot__damage--critical .footer-character-slot__damage-value {
@@ -4387,7 +4397,7 @@ h1 {
   justify-content: flex-start;
   padding: 0;
   gap: 6px;
-  width: 100%;
+  width: auto;
   height: 100%;
 }
 
@@ -4397,7 +4407,7 @@ h1 {
   justify-content: flex-start;
   gap: 4px;
   flex-wrap: nowrap;
-  width: 100%;
+  width: auto;
   max-width: min(640px, 100%);
   margin: 0;
   overflow-x: auto;
@@ -4457,7 +4467,7 @@ h1 {
   .footer-actions-inline {
     flex-wrap: nowrap;
     gap: 6px;
-    width: 100%;
+    width: auto;
     overflow: visible;
     justify-content: flex-start;
     margin: 0;
