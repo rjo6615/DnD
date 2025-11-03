@@ -4204,7 +4204,7 @@ h1 {
 .footer-character-slot__damage {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
   gap: 10px;
   padding: 10px 14px;
@@ -4246,9 +4246,16 @@ h1 {
   justify-content: center;
   width: auto;
   min-width: 0;
-  padding: 4px 10px;
+  padding: 2px 6px;
   margin-top: 2px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
+}
+
+.footer-character-slot__damage .footer-pass-log-button {
+  font-size: 0.62rem;
+  padding: 2px 8px;
+  letter-spacing: 0.08em;
+  box-shadow: 0 3px 8px rgba(12, 20, 42, 0.35);
 }
 
 .footer-character-slot__damage--critical .footer-character-slot__damage-value {
