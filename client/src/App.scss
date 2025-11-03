@@ -240,19 +240,20 @@
     linear-gradient(
       to right,
       rgba(255, 255, 255, 0.42) 0,
-      rgba(255, 255, 255, 0.42) 1px,
-      transparent 1px,
+      rgba(255, 255, 255, 0.42) var(--campaign-map-grid-line-width, 0.75px),
+      transparent var(--campaign-map-grid-line-width, 0.75px),
       transparent 100%
     ),
     linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0.42) 0,
-      rgba(255, 255, 255, 0.42) 1px,
-      transparent 1px,
+      rgba(255, 255, 255, 0.42) var(--campaign-map-grid-line-width, 0.75px),
+      transparent var(--campaign-map-grid-line-width, 0.75px),
       transparent 100%
     );
-  background-size: var(--campaign-map-grid-cell-width, calc(100% / 24))
-    var(--campaign-map-grid-cell-height, calc(100% / 24));
+  background-size:
+    calc(100% / var(--campaign-map-grid-columns, 24))
+    calc(100% / var(--campaign-map-grid-rows, 24));
   background-repeat: repeat;
   mix-blend-mode: screen;
   z-index: 1;
