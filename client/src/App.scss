@@ -3899,7 +3899,7 @@ h1 {
   position: relative;
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: flex-end;
   gap: 0;
   padding: 0;
@@ -4564,8 +4564,8 @@ h1 {
   padding: 0;
   display: inline-flex;
   align-items: flex-end;
-  justify-content: flex-start;
-  margin: 0;
+  justify-content: center;
+  margin: 0 auto;
 }
 
 .footer-btn__image {
@@ -5306,5 +5306,9 @@ h1 {
   padding: 0;
   --bs-navbar-padding-y: 0;
   min-height: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 
