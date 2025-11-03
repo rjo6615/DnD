@@ -3721,7 +3721,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 3px;
+  margin: 0 1px;
   flex-shrink: 0;
 }
 
@@ -4386,7 +4386,7 @@ h1 {
   align-items: stretch;
   justify-content: flex-start;
   padding: 0;
-  gap: 10px;
+  gap: 6px;
   width: 100%;
   height: 100%;
 }
@@ -4394,12 +4394,12 @@ h1 {
 .footer-actions-inline {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 4px;
   flex-wrap: nowrap;
   width: 100%;
   max-width: min(640px, 100%);
-  margin: 0 auto;
+  margin: 0;
   overflow-x: auto;
   padding: 0 2px;
   scrollbar-width: none;
@@ -4413,7 +4413,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 @media (min-width: 992px) {
@@ -4451,24 +4451,25 @@ h1 {
   }
 
   .footer-actions-wrapper {
-    gap: 12px;
+    gap: 8px;
   }
 
   .footer-actions-inline {
     flex-wrap: nowrap;
-    gap: 12px;
+    gap: 6px;
     width: 100%;
     overflow: visible;
-    justify-content: space-between;
+    justify-content: flex-start;
+    margin: 0;
   }
 
   .footer-actions-menu {
-    gap: 12px;
+    gap: 6px;
     justify-content: flex-start;
   }
 
   .footer-pass-log-button {
-    padding: 5px 12px;
+    padding: 4px 10px;
     font-size: 0.76rem;
   }
 
@@ -4497,7 +4498,7 @@ h1 {
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
   line-height: 1.1;
   white-space: nowrap;
@@ -4537,24 +4538,24 @@ h1 {
 }
 
 .footer-container {
-  width: auto;
-  max-width: none;
-  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 18px;
+  gap: 12px;
   padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0));
   margin: 0 auto;
 }
 
 .footer-nav {
-  width: auto;
-  max-width: none;
+  width: fit-content;
+  max-width: 100%;
   padding: 0;
-  display: flex;
+  display: inline-flex;
   align-items: flex-end;
-  justify-content: center;
-  margin: 0 auto;
+  justify-content: flex-start;
+  margin: 0;
 }
 
 .footer-btn__image {
@@ -4578,7 +4579,7 @@ h1 {
   }
 
   .footer-actions-inline {
-    gap: 6px;
+    gap: 3px;
     align-items: center;
   }
 
@@ -4588,7 +4589,7 @@ h1 {
     padding: 0;
     box-sizing: border-box;
     line-height: 1;
-    margin: 0 2px;
+    margin: 0 1px;
     font-size: 0.85rem;
   }
 
