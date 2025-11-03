@@ -5040,15 +5040,15 @@ h1 {
     border: 1px solid rgba(51, 154, 240, 0.6);
     color: #f8f9fa;
     border-radius: 50%;
-    width: clamp(1rem, calc(var(--figurine-base-size) * 0.55), 2.25rem);
-    height: clamp(1rem, calc(var(--figurine-base-size) * 0.55), 2.25rem);
+    width: clamp(0.8rem, calc(var(--figurine-base-size) * 0.4), 1.75rem);
+    height: clamp(0.8rem, calc(var(--figurine-base-size) * 0.4), 1.75rem);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: grab;
     transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease,
       box-shadow 0.15s ease;
-    box-shadow: 0 0.35rem 0.85rem rgba(8, 11, 19, 0.4);
+    box-shadow: 0 0.25rem 0.65rem rgba(8, 11, 19, 0.4);
     padding: 0;
     pointer-events: auto;
   }
@@ -5091,75 +5091,54 @@ h1 {
     z-index: 2;
   }
 
-  &__figurine-image__scale-up-300 {
-    scale: 2.7;
+  &__figurine-image,
+  &__figurine-image__scale-up-133,
+  &__figurine-image__scale-up-150,
+  &__figurine-image__scale-up-166,
+  &__figurine-image__scale-up-200,
+  &__figurine-image__scale-up-233,
+  &__figurine-image__scale-up-300,
+  &__figurine-image__scale-up-333 {
+    --figurine-image-scale: 1;
     width: 100%;
     height: 100%;
     max-width: none;
     max-height: none;
     object-fit: contain;
+    display: block;
+    transform-origin: center bottom;
+    transform: translateZ(0) scale(var(--figurine-image-scale));
+    will-change: transform;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
   }
 
   &__figurine-image__scale-up-133 {
-    scale: 1.33;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+    --figurine-image-scale: 1.33;
   }
 
   &__figurine-image__scale-up-150 {
-    scale: 1.5;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+    --figurine-image-scale: 1.5;
   }
 
   &__figurine-image__scale-up-166 {
-    scale: 1.66;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+    --figurine-image-scale: 1.66;
   }
 
   &__figurine-image__scale-up-200 {
-    scale: 2;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+    --figurine-image-scale: 2;
   }
 
   &__figurine-image__scale-up-233 {
-    scale: 2.33;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+    --figurine-image-scale: 2.33;
+  }
+
+  &__figurine-image__scale-up-300 {
+    --figurine-image-scale: 2.7;
   }
 
   &__figurine-image__scale-up-333 {
-    scale: 3.33;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
-  }
-
-  &__figurine-image {
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+    --figurine-image-scale: 3.33;
   }
 
 
@@ -5223,19 +5202,19 @@ h1 {
 
   &__figurine-label {
     position: absolute;
-    bottom: calc(100% + clamp(0.25rem, calc(var(--figurine-base-size) * 0.3), 1.1rem));
+    bottom: calc(100% + clamp(0.2rem, calc(var(--figurine-base-size) * 0.22), 0.85rem));
     left: 50%;
-    transform: translate(-50%, calc(var(--figurine-base-size) * 0.12)) scale(0.96);
+    transform: translate(-50%, calc(var(--figurine-base-size) * 0.06)) scale(0.92);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: clamp(0.18rem, calc(var(--figurine-base-size) * 0.18), 0.6rem)
-      clamp(0.4rem, calc(var(--figurine-base-size) * 0.35), 1.1rem);
+    padding: clamp(0.14rem, calc(var(--figurine-base-size) * 0.15), 0.45rem)
+      clamp(0.32rem, calc(var(--figurine-base-size) * 0.28), 0.85rem);
     border-radius: 999px;
     background: linear-gradient(180deg, rgba(18, 21, 29, 0.95), rgba(18, 21, 29, 0.85));
     color: #f8f9fa;
     font-weight: 600;
-    font-size: clamp(0.6rem, calc(var(--figurine-base-size) * 0.28), 1.05rem);
+    font-size: clamp(0.52rem, calc(var(--figurine-base-size) * 0.22), 0.85rem);
     line-height: 1.2;
     white-space: nowrap;
     pointer-events: none;
