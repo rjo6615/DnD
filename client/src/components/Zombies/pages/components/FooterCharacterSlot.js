@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Spinner } from 'react-bootstrap';
 
@@ -33,7 +33,6 @@ const FooterCharacterSlot = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [pendingHealth, setPendingHealth] = useState(null);
-  const pendingCommitRef = useRef(null);
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
 
   const { resolvedCurrent, resolvedMax } = useMemo(() => {
@@ -53,11 +52,6 @@ const FooterCharacterSlot = ({
 
   const effectiveCurrent = pendingHealth ?? resolvedCurrent;
   const numericCurrent = Number.isFinite(effectiveCurrent) ? effectiveCurrent : 0;
-  const sliderMax =
-    resolvedMax !== null && Number.isFinite(resolvedMax) && resolvedMax > 0
-      ? resolvedMax
-      : Math.max(numericCurrent + 20, 20);
-  const healthPercent = sliderMax > 0 ? Math.min((numericCurrent / sliderMax) * 100, 100) : 0;
   const displayCurrent = Number.isFinite(effectiveCurrent) ? Math.round(effectiveCurrent) : '—';
   const displayMax = Number.isFinite(resolvedMax) ? Math.round(resolvedMax) : '—';
   const displayArmorClass = useMemo(() => {
@@ -195,22 +189,12 @@ const FooterCharacterSlot = ({
         console.error(err);
         setError('Failed to update health.');
         setPendingHealth(null);
-        pendingCommitRef.current = null;
       } finally {
         setIsUpdating(false);
       }
     },
     [characterId, clampHealthValue, onHealthChange, resolvedCurrent]
   );
-
-  const commitPendingUpdate = useCallback(() => {
-    if (pendingCommitRef.current === null) {
-      return;
-    }
-    const valueToCommit = pendingCommitRef.current;
-    pendingCommitRef.current = null;
-    updateHealth(valueToCommit);
-  }, [updateHealth]);
 
   const handleAdjustHealth = (offset) => {
     if (!Number.isFinite(Number(offset)) || Number(offset) === 0) {
@@ -230,31 +214,6 @@ const FooterCharacterSlot = ({
     updateHealth(next);
   };
 
-  const handleSliderInput = useCallback(
-    (event) => {
-      const rawValue = Number(event.target.value);
-      if (Number.isNaN(rawValue)) {
-        return;
-      }
-
-      const next = clampHealthValue(rawValue);
-      if (next === null) {
-        return;
-      }
-
-      setPendingHealth(next);
-      pendingCommitRef.current = next;
-    },
-    [clampHealthValue]
-  );
-
-  const handleSliderCommit = useCallback(() => {
-    if (isUpdating) {
-      return;
-    }
-    commitPendingUpdate();
-  }, [commitPendingUpdate, isUpdating]);
-
   useEffect(() => {
     if (
       pendingHealth !== null &&
@@ -265,12 +224,6 @@ const FooterCharacterSlot = ({
       setPendingHealth(null);
     }
   }, [pendingHealth, resolvedCurrent]);
-
-  useEffect(() => {
-    if (!isUpdating) {
-      commitPendingUpdate();
-    }
-  }, [commitPendingUpdate, isUpdating]);
 
   useEffect(() => {
     if (!damageTimestamp) {
@@ -331,56 +284,20 @@ const FooterCharacterSlot = ({
                 >
                   <i className="fas fa-minus" aria-hidden="true" />
                 </button>
-                <div
-                  className="footer-character-slot__health-track footer-character-slot__health-track--compact"
-                  role="presentation"
-                >
-                  <div className="footer-character-slot__health-track-base" />
-                  <div
-                    className="footer-character-slot__health-track-fill"
-                    style={{ width: `${healthPercent}%` }}
-                  />
-                  <div className="footer-character-slot__health-track-border" />
-                  <div className="footer-character-slot__health-readout" aria-live="polite">
-                    <span className="visually-hidden">Health</span>
-                    {isUpdating ? (
-                      <Spinner animation="border" role="status" size="sm">
-                        <span className="visually-hidden">Updating health…</span>
-                      </Spinner>
-                    ) : (
-                      <span className="footer-character-slot__health-readout-values">
-                        <span className="footer-character-slot__health-current">{displayCurrent}</span>
-                        {displayMax !== '—' && (
-                          <span className="footer-character-slot__health-max">/ {displayMax}</span>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max={sliderMax}
-                    value={numericCurrent}
-                    onChange={handleSliderInput}
-                    onMouseUp={handleSliderCommit}
-                    onTouchEnd={handleSliderCommit}
-                    onBlur={handleSliderCommit}
-                    onKeyUp={(event) => {
-                      if (
-                        event.key === 'ArrowLeft' ||
-                        event.key === 'ArrowRight' ||
-                        event.key === 'Home' ||
-                        event.key === 'End'
-                      ) {
-                        handleSliderCommit();
-                      }
-                    }}
-                    className="footer-character-slot__health-slider"
-                    aria-label="Adjust health"
-                    aria-valuemin={0}
-                    aria-valuemax={sliderMax}
-                    aria-valuenow={numericCurrent}
-                  />
+                <div className="footer-character-slot__health-readout" aria-live="polite">
+                  <span className="visually-hidden">Health</span>
+                  {isUpdating ? (
+                    <Spinner animation="border" role="status" size="sm">
+                      <span className="visually-hidden">Updating health…</span>
+                    </Spinner>
+                  ) : (
+                    <span className="footer-character-slot__health-readout-values">
+                      <span className="footer-character-slot__health-current">{displayCurrent}</span>
+                      {displayMax !== '—' && (
+                        <span className="footer-character-slot__health-max">/ {displayMax}</span>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
