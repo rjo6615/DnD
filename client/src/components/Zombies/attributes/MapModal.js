@@ -35,7 +35,7 @@ const EMPTY_IDENTIFIER_SET = new Set();
 
 const BACKGROUND_ZOOM_DEFAULT = 1;
 const BACKGROUND_ZOOM_MIN = 0.5;
-const BACKGROUND_ZOOM_MAX = 4;
+const BACKGROUND_ZOOM_MAX = 6;
 
 const clampBackgroundZoom = (value) => {
   if (!Number.isFinite(value)) {
