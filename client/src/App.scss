@@ -4901,6 +4901,12 @@ h1 {
       --campaign-map-board-health-color,
       #51cf66
     );
+    --figurine-health-zoom-adjustment: clamp(
+      0.35,
+      calc(1 / var(--map-modal-background-scale, 1)),
+      1
+    );
+    --figurine-health-scale: var(--figurine-health-zoom-adjustment);
     position: absolute;
     top: calc(50% - var(--figurine-base-size) * 0.68);
     left: 50%;
@@ -4910,8 +4916,8 @@ h1 {
     align-items: center;
     justify-content: flex-end;
     filter: drop-shadow(0 0.1rem 0.25rem rgba(0, 0, 0, 0.65));
-    transform-origin: 50% 50%;
-    transform: translate(-50%, -50%);
+    transform-origin: center bottom;
+    transform: translate(-50%, -50%) scale(var(--figurine-health-scale));
     pointer-events: none;
     z-index: 1;
   }
