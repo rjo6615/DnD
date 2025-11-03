@@ -3930,8 +3930,8 @@ h1 {
   align-items: stretch;
   justify-content: flex-end;
   gap: 0;
-  flex: 1 1 380px;
-  width: clamp(260px, 52vw, 520px);
+  flex: 1 1 560px;
+  width: clamp(320px, 62vw, 780px);
   max-width: 100%;
 }
 
@@ -3952,7 +3952,7 @@ h1 {
 
 .footer-character-slot__footer-rail-body {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   gap: 16px;
   flex-wrap: nowrap;
@@ -4079,9 +4079,10 @@ h1 {
 
 .footer-character-slot__actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-left: auto;
+  width: 100%;
 }
 
 .footer-character-slot__slots-wrapper {
@@ -4355,6 +4356,7 @@ h1 {
   }
 
   .footer-character-slot__footer-rail-body {
+    align-items: center;
     justify-content: center;
   }
 
@@ -4370,10 +4372,11 @@ h1 {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
   padding: 0;
   gap: 10px;
+  width: 100%;
 }
 
 .footer-actions-inline {
@@ -4381,7 +4384,21 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex-wrap: nowrap;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.footer-actions-inline::-webkit-scrollbar {
+  display: none;
+}
+
+.footer-actions-menu {
+  display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
 }
 
 .footer-actions-menu {
@@ -4432,6 +4449,12 @@ h1 {
   .footer-actions-inline {
     flex-wrap: nowrap;
     gap: 10px;
+    width: auto;
+    overflow: visible;
+  }
+
+  .footer-actions-menu {
+    gap: 10px;
   }
 
   .footer-actions-menu {
@@ -4471,6 +4494,7 @@ h1 {
   padding: 3px 10px;
   border-radius: 999px;
   line-height: 1.1;
+  white-space: nowrap;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease,
     color 0.2s ease, opacity 0.2s ease;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
