@@ -2302,8 +2302,6 @@ export default function ZombiesCharacterSheet() {
   ]);
 
   const playerTurnActionsRef = useRef(null);
-  const footerMenuRef = useRef(null);
-  const footerToggleRef = useRef(null);
   const speakWithAnimalsPendingRef = useRef(false);
   const socketRef = useRef(null);
 
@@ -2313,9 +2311,6 @@ export default function ZombiesCharacterSheet() {
   const combatHeaderRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
-  const [showFooterActions, setShowFooterActions] = useState(
-    () => process.env.NODE_ENV === 'test'
-  );
 
   useEffect(() => {
     if (!usageResetInitializedRef.current.long) {
@@ -5468,60 +5463,13 @@ export default function ZombiesCharacterSheet() {
   const shouldShowDiceLoadingOverlay =
     isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
 
-  useEffect(() => {
-    if (!showFooterActions) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setShowFooterActions(false);
-      }
-    };
-
-    const handlePointerEvent = (event) => {
-      const menu = footerMenuRef.current;
-      const toggle = footerToggleRef.current;
-      if (!menu || !toggle) {
-        return;
-      }
-
-      if (!menu.contains(event.target) && !toggle.contains(event.target)) {
-        setShowFooterActions(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousedown', handlePointerEvent);
-    document.addEventListener('touchstart', handlePointerEvent);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handlePointerEvent);
-      document.removeEventListener('touchstart', handlePointerEvent);
-    };
-  }, [showFooterActions]);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'test') {
-      return;
-    }
-
-    if (!isFormReady && showFooterActions) {
-      setShowFooterActions(false);
-    }
-  }, [isFormReady, showFooterActions]);
-
-  const footerActionTabIndex = showFooterActions ? undefined : -1;
-
   const handleFooterQuickAction = useCallback(
     (action) => {
-      setShowFooterActions(false);
       if (typeof action === 'function') {
         action();
       }
     },
-    [setShowFooterActions]
+    []
   );
 
   const openAttackModal = useCallback(() => {
@@ -6209,40 +6157,8 @@ export default function ZombiesCharacterSheet() {
                             className="footer-btn__attack-image"
                           />
                         </Button>
-                        <Button
-                          ref={footerToggleRef}
-                          onClick={() => setShowFooterActions((prev) => !prev)}
-                          aria-expanded={showFooterActions}
-                          aria-controls="footer-actions-panel"
-                          aria-label={
-                            showFooterActions
-                              ? 'Hide footer actions'
-                              : 'Show footer actions'
-                          }
-                          title={
-                            showFooterActions
-                              ? 'Hide footer actions'
-                              : 'Show footer actions'
-                          }
-                          className={`footer-btn footer-menu-toggle ${
-                            showFooterActions ? 'is-open' : ''
-                          }`}
-                          variant="secondary"
-                        >
-                          <i
-                            className={`fas ${showFooterActions ? 'fa-xmark' : 'fa-bars'}`}
-                            aria-hidden="true"
-                          ></i>
-                        </Button>
                       </div>
-                      <div
-                        ref={footerMenuRef}
-                        id="footer-actions-panel"
-                        className={`footer-actions-popover ${
-                          showFooterActions ? 'is-open' : ''
-                        }`}
-                        aria-hidden={!showFooterActions}
-                      >
+                      <div className="footer-actions-menu">
                         {footerMenuButtons.map((action) => (
                           <Button
                             key={action.key}
@@ -6250,7 +6166,6 @@ export default function ZombiesCharacterSheet() {
                             className={action.className}
                             style={action.style}
                             onClick={() => handleFooterQuickAction(action.onClick)}
-                            tabIndex={footerActionTabIndex}
                             aria-label={action.ariaLabel}
                             title={action.title}
                           >

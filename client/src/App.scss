@@ -4369,11 +4369,11 @@ h1 {
 .footer-actions-wrapper {
   position: relative;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 0;
-  gap: 6px;
+  gap: 10px;
 }
 
 .footer-actions-inline {
@@ -4382,6 +4382,13 @@ h1 {
   justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.footer-actions-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
 }
 
 @media (min-width: 992px) {
@@ -4419,14 +4426,15 @@ h1 {
   }
 
   .footer-actions-wrapper {
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
+    gap: 14px;
   }
 
   .footer-actions-inline {
     flex-wrap: nowrap;
+    gap: 10px;
+  }
+
+  .footer-actions-menu {
     gap: 10px;
   }
 
@@ -4517,58 +4525,6 @@ h1 {
   align-items: flex-end;
   justify-content: center;
   margin: 0 auto;
-}
-
-.footer-menu-toggle {
-  margin-top: 0;
-}
-
-.footer-menu-toggle.btn-secondary,
-.footer-menu-toggle.btn-secondary:hover,
-.footer-menu-toggle.btn-secondary:active {
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  box-shadow: none;
-}
-
-.footer-menu-toggle.btn-secondary:focus,
-.footer-menu-toggle.btn-secondary:focus-visible {
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(136, 188, 255, 0.55);
-}
-
-.footer-actions-popover {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translate(-50%, 12px);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px;
-  background: rgba(5, 10, 24, 0.92);
-  border-radius: 14px;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
-  max-width: min(600px, calc(100vw - 24px));
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 10;
-}
-
-.footer-actions-popover.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translate(-50%, 0);
-}
-
-.footer-actions-popover .footer-btn {
-  margin-top: 0;
-  margin: 3px;
 }
 
 .footer-btn__image {
