@@ -4401,6 +4401,13 @@ h1 {
   gap: 6px;
 }
 
+.footer-actions-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
 @media (min-width: 992px) {
   .footer-container {
     padding: 6px 32px calc(6px + env(safe-area-inset-bottom, 0));
@@ -4444,6 +4451,10 @@ h1 {
     gap: 10px;
     width: auto;
     overflow: visible;
+  }
+
+  .footer-actions-menu {
+    gap: 10px;
   }
 
   .footer-actions-menu {
