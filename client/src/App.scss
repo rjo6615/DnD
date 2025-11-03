@@ -4394,12 +4394,12 @@ h1 {
 .footer-actions-inline {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
   flex-wrap: nowrap;
   width: 100%;
   max-width: min(640px, 100%);
-  margin: 0 auto;
+  margin: 0;
   overflow-x: auto;
   padding: 0 2px;
   scrollbar-width: none;
@@ -4459,7 +4459,8 @@ h1 {
     gap: 6px;
     width: 100%;
     overflow: visible;
-    justify-content: center;
+    justify-content: flex-start;
+    margin: 0;
   }
 
   .footer-actions-menu {
@@ -4537,9 +4538,9 @@ h1 {
 }
 
 .footer-container {
-  width: auto;
-  max-width: none;
-  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
   align-items: flex-end;
   justify-content: center;
   gap: 12px;
@@ -4548,13 +4549,13 @@ h1 {
 }
 
 .footer-nav {
-  width: auto;
-  max-width: none;
+  width: fit-content;
+  max-width: 100%;
   padding: 0;
-  display: flex;
+  display: inline-flex;
   align-items: flex-end;
-  justify-content: center;
-  margin: 0 auto;
+  justify-content: flex-start;
+  margin: 0;
 }
 
 .footer-btn__image {
