@@ -4,6 +4,7 @@ import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import resolveMapImageSource from '../utils/mapImages';
+import clampMapZoom, { MAP_ZOOM_DEFAULT } from '../utils/mapZoom';
 import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
 import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
@@ -496,6 +497,7 @@ const CampaignMapBoard = ({
   disabled,
   className,
   children,
+  allowWheelZoom,
 }) => {
   const pointerEventsSupported = usePointerEventsSupported();
   const safeMap = map && typeof map === 'object' ? map : {};
@@ -527,6 +529,8 @@ const CampaignMapBoard = ({
   const tokenPositionsRef = useRef([]);
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
+  const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT);
+  const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
   const rotationUpHandlerRef = useRef(null);
@@ -652,7 +656,84 @@ const CampaignMapBoard = ({
       return { x: 0, y: 0 };
     });
     mapPanOffsetRef.current = { x: 0, y: 0 };
+    setMapZoom(MAP_ZOOM_DEFAULT);
   }, [imageSrc]);
+
+  useEffect(() => {
+    if (!allowWheelZoom) {
+      setMapZoom(MAP_ZOOM_DEFAULT);
+    }
+  }, [allowWheelZoom]);
+
+  const boardStyle = useMemo(() => {
+    if (!allowWheelZoom) {
+      return undefined;
+    }
+
+    const zoomValue = resolvedMapZoom;
+    return {
+      '--campaign-map-zoom': `${zoomValue}`,
+      '--map-modal-background-scale': `${zoomValue}`,
+    };
+  }, [allowWheelZoom, resolvedMapZoom]);
+
+  const handleWheel = useCallback(
+    (event) => {
+      if (!allowWheelZoom) {
+        return;
+      }
+
+      const wheelEvent = event?.nativeEvent ?? event;
+      if (!wheelEvent || typeof wheelEvent.deltaY !== 'number' || wheelEvent.deltaY === 0) {
+        return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      if (typeof event?.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+
+      const { deltaY, ctrlKey, deltaMode } = wheelEvent;
+
+      const deltaPixels = (() => {
+        if (typeof deltaMode !== 'number') {
+          return deltaY;
+        }
+
+        if (deltaMode === 1) {
+          return deltaY * 16;
+        }
+
+        if (deltaMode === 2) {
+          return deltaY * 800;
+        }
+
+        return deltaY;
+      })();
+
+      if (!Number.isFinite(deltaPixels) || deltaPixels === 0) {
+        return;
+      }
+
+      const normalizedDelta = Math.max(-1, Math.min(1, deltaPixels / 120));
+      const zoomStrength = ctrlKey ? 0.12 : 0.2;
+      const zoomMultiplier = 1 - normalizedDelta * zoomStrength;
+
+      if (!Number.isFinite(zoomMultiplier) || zoomMultiplier <= 0) {
+        return;
+      }
+
+      setMapZoom((previousZoom) => {
+        const safePrevious = clampMapZoom(previousZoom);
+        const nextZoom = safePrevious * zoomMultiplier;
+        return clampMapZoom(nextZoom);
+      });
+    },
+    [allowWheelZoom]
+  );
 
   useEffect(() => {
     const boardElement = boardRef.current;
@@ -1772,6 +1853,8 @@ const CampaignMapBoard = ({
         className,
         interactionDisabled && 'campaign-map-board--disabled'
       )}
+      style={boardStyle}
+      onWheel={handleWheel}
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
@@ -2410,6 +2493,7 @@ CampaignMapBoard.propTypes = {
   disabled: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,
+  allowWheelZoom: PropTypes.bool,
 };
 
 CampaignMapBoard.defaultProps = {
@@ -2424,6 +2508,7 @@ CampaignMapBoard.defaultProps = {
   disabled: false,
   className: '',
   children: null,
+  allowWheelZoom: false,
 };
 
 export default CampaignMapBoard;

@@ -6682,6 +6682,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               map={displayedMap}
                               tokens={boardTokens}
                               disabled={!shouldShowCampaignTokens}
+                              allowWheelZoom
                               onTokenPositionChange={
                                 shouldShowCampaignTokens ? handleTokenPositionChange : undefined
                               }

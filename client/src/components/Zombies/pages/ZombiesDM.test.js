@@ -1658,6 +1658,7 @@ describe('ZombiesDM AI generation', () => {
       .find((props) => props && props.map && props.map.mapId === 'map-1');
 
     expect(initialBoardCall).toBeDefined();
+    expect(initialBoardCall.allowWheelZoom).toBe(true);
     expect(initialBoardCall.disabled).toBe(false);
     expect(initialBoardCall.tokens).toEqual(
       expect.arrayContaining([
@@ -1713,6 +1714,7 @@ describe('ZombiesDM AI generation', () => {
 
     const latestBoardProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
     expect(typeof latestBoardProps.onTokenRemove).toBe('function');
+    expect(latestBoardProps.allowWheelZoom).toBe(true);
 
     await act(async () => {
       const result = await latestBoardProps.onTokenRemove({
@@ -1735,6 +1737,7 @@ describe('ZombiesDM AI generation', () => {
         (token) => token.characterId === 'hero-1'
       );
       expect(hasHeroToken).toBe(false);
+      expect(updatedProps.allowWheelZoom).toBe(true);
     });
   });
 
