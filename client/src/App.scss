@@ -4676,6 +4676,7 @@ h1 {
 .campaign-map-board {
   --map-square-size: var(--campaign-map-square-size, clamp(48px, 10vw, 80px));
   --figurine-size-scale: 1;
+  --campaign-map-zoom: var(--map-modal-background-scale, 1);
 
   position: relative;
   background: rgba(18, 16, 14, 0.85);
@@ -4706,6 +4707,16 @@ h1 {
     aspect-ratio: var(--campaign-map-stage-aspect-ratio, 1 / 1);
   }
 
+  &__grid-overlay {
+    transform: translate(
+        var(--campaign-map-pan-x, 0),
+        var(--campaign-map-pan-y, 0)
+      )
+      scale(var(--campaign-map-zoom, 1));
+    transition: transform 0.08s ease-out;
+    will-change: transform;
+  }
+
   &__image {
     display: block;
     width: 100%;
@@ -4715,7 +4726,8 @@ h1 {
     transform: translate(
       var(--campaign-map-pan-x, 0),
       var(--campaign-map-pan-y, 0)
-    );
+    )
+      scale(var(--campaign-map-zoom, 1));
     transition: transform 0.08s ease-out;
     will-change: transform;
   }
@@ -4736,7 +4748,8 @@ h1 {
     transform: translate(
       var(--campaign-map-pan-x, 0),
       var(--campaign-map-pan-y, 0)
-    );
+    )
+      scale(var(--campaign-map-zoom, 1));
     transition: transform 0.08s ease-out;
     will-change: transform;
   }

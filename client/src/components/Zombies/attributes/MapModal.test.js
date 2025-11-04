@@ -211,6 +211,7 @@ describe('MapModal figurine imagery', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'hero',
@@ -260,6 +261,7 @@ describe('MapModal figurine imagery', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'hero',
@@ -296,6 +298,7 @@ describe('MapModal figurine imagery', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'CHAR-1',
@@ -329,6 +332,7 @@ describe('MapModal figurine imagery', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'characters/hero',
@@ -368,6 +372,7 @@ describe('MapModal figurine imagery', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'hero',
@@ -424,6 +429,7 @@ describe('MapModal background interaction resolution', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(false);
 
     expect(boardProps.onTokenPositionChange).toEqual(expect.any(Function));
     expect(boardProps.onBackgroundClick).toEqual(expect.any(Function));
@@ -478,6 +484,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(false);
     expect(boardProps.tokens).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ characterId: 'hero', label: 'Hero' }),
@@ -534,6 +541,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(false);
 
     await act(async () => {
       boardProps.onTokenPositionChange?.({ characterId: 'hero', x: 0.4, y: 0.6 });
@@ -584,6 +592,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(false);
     expect(typeof boardProps.onTokenPositionChange).toBe('function');
 
     await act(async () => {
@@ -632,6 +641,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(false);
     expect(boardProps.tokens).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ characterId: 'rogue', label: 'Rogue', isMovable: true }),
@@ -681,6 +691,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'ally',
@@ -709,6 +720,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'lone',
@@ -739,6 +751,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({
       characterId: 'rogue',
@@ -771,6 +784,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(true);
     expect(boardProps.tokens).toHaveLength(1);
     expect(boardProps.tokens[0]).toMatchObject({ characterId: 'pc-rogue', isMovable: true });
 
@@ -816,6 +830,7 @@ describe('MapModal background interactions', () => {
 
     await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
     const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.allowWheelZoom).toBe(false);
 
     expect(boardProps.map).toEqual(backgroundMap);
   });

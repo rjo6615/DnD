@@ -591,4 +591,45 @@ describe('CampaignMapBoard pointer interactions', () => {
       });
     }
   });
+
+  it('ignores wheel input when zooming is disabled', async () => {
+    const { container } = render(
+      <CampaignMapBoard map={baseMap} tokens={[baseToken]} allowWheelZoom={false} />
+    );
+
+    const boardElement = container.querySelector('.campaign-map-board');
+    expect(boardElement).not.toBeNull();
+    if (!boardElement) {
+      return;
+    }
+
+    expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('');
+
+    fireEvent.wheel(boardElement, { deltaY: -240 });
+
+    await waitFor(() => {
+      expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('');
+    });
+  });
+
+  it('applies zoom styling when wheel input is allowed', async () => {
+    const { container } = render(
+      <CampaignMapBoard map={baseMap} tokens={[baseToken]} allowWheelZoom />
+    );
+
+    const boardElement = container.querySelector('.campaign-map-board');
+    expect(boardElement).not.toBeNull();
+    if (!boardElement) {
+      return;
+    }
+
+    expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('1');
+
+    fireEvent.wheel(boardElement, { deltaY: -240 });
+
+    await waitFor(() => {
+      const zoomValue = boardElement.style.getPropertyValue('--campaign-map-zoom');
+      expect(parseFloat(zoomValue)).toBeGreaterThan(1);
+    });
+  });
 });
