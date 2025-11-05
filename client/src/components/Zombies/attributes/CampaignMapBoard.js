@@ -531,7 +531,7 @@ const CampaignMapBoard = ({
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
   const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT);
   const mapZoomRafRef = useRef(null);
-  const queuedMapZoomRef = useRef(MAP_ZOOM_DEFAULT);
+  const mapZoomTargetRef = useRef(MAP_ZOOM_DEFAULT);
   const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
@@ -606,7 +606,9 @@ const CampaignMapBoard = ({
   }, [mapPanOffset]);
 
   useEffect(() => {
-    queuedMapZoomRef.current = mapZoom;
+    if (mapZoomRafRef.current === null) {
+      mapZoomTargetRef.current = mapZoom;
+    }
   }, [mapZoom]);
 
   useEffect(() => {
@@ -622,6 +624,7 @@ const CampaignMapBoard = ({
 
       if (cancelFrame && mapZoomRafRef.current !== null) {
         cancelFrame(mapZoomRafRef.current);
+        mapZoomRafRef.current = null;
       }
     };
   }, []);
@@ -652,42 +655,71 @@ const CampaignMapBoard = ({
     });
   }, []);
 
-  const scheduleMapZoomUpdate = useCallback((nextZoom) => {
-    if (!Number.isFinite(nextZoom)) {
-      return;
-    }
+  const animateMapZoomTowardsTarget = useCallback(() => {
+    mapZoomRafRef.current = null;
 
-    const clampedNextZoom = clampMapZoom(nextZoom);
-    queuedMapZoomRef.current = clampedNextZoom;
+    setMapZoom((previous) => {
+      const targetZoom = clampMapZoom(mapZoomTargetRef.current);
 
-    const requestFrame =
-      typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
-        ? window.requestAnimationFrame
-        : null;
+      if (!Number.isFinite(targetZoom)) {
+        return previous;
+      }
 
-    const flushPendingZoom = () => {
-      mapZoomRafRef.current = null;
-      setMapZoom((previous) => {
-        const pendingZoom = queuedMapZoomRef.current;
-        if (!Number.isFinite(pendingZoom) || pendingZoom === previous) {
-          return previous;
-        }
+      const difference = targetZoom - previous;
+      const differenceMagnitude = Math.abs(difference);
 
-        return pendingZoom;
-      });
-    };
+      if (differenceMagnitude <= 0.001) {
+        return targetZoom;
+      }
 
-    if (!requestFrame) {
-      flushPendingZoom();
-      return;
-    }
+      const easedNextZoom = clampMapZoom(previous + difference * 0.25);
 
-    if (mapZoomRafRef.current !== null) {
-      return;
-    }
+      if (Math.abs(targetZoom - easedNextZoom) <= 0.001) {
+        return targetZoom;
+      }
 
-    mapZoomRafRef.current = requestFrame(flushPendingZoom);
+      const requestFrame =
+        typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+          ? window.requestAnimationFrame
+          : null;
+
+      if (requestFrame) {
+        mapZoomRafRef.current = requestFrame(animateMapZoomTowardsTarget);
+      } else {
+        return targetZoom;
+      }
+
+      return easedNextZoom;
+    });
   }, []);
+
+  const scheduleMapZoomUpdate = useCallback(
+    (nextZoom) => {
+      if (!Number.isFinite(nextZoom)) {
+        return;
+      }
+
+      const clampedNextZoom = clampMapZoom(nextZoom);
+      mapZoomTargetRef.current = clampedNextZoom;
+
+      const requestFrame =
+        typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+          ? window.requestAnimationFrame
+          : null;
+
+      if (!requestFrame) {
+        setMapZoom(clampedNextZoom);
+        return;
+      }
+
+      if (mapZoomRafRef.current !== null) {
+        return;
+      }
+
+      mapZoomRafRef.current = requestFrame(animateMapZoomTowardsTarget);
+    },
+    [animateMapZoomTowardsTarget]
+  );
 
   const panStyle = useMemo(() => {
     const style = {
@@ -712,11 +744,29 @@ const CampaignMapBoard = ({
       return { x: 0, y: 0 };
     });
     mapPanOffsetRef.current = { x: 0, y: 0 };
+    const cancelFrame =
+      typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+        ? window.cancelAnimationFrame
+        : null;
+    if (cancelFrame && mapZoomRafRef.current !== null) {
+      cancelFrame(mapZoomRafRef.current);
+      mapZoomRafRef.current = null;
+    }
+    mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
     setMapZoom(MAP_ZOOM_DEFAULT);
   }, [imageSrc]);
 
   useEffect(() => {
     if (!allowWheelZoom) {
+      const cancelFrame =
+        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+          ? window.cancelAnimationFrame
+          : null;
+      if (cancelFrame && mapZoomRafRef.current !== null) {
+        cancelFrame(mapZoomRafRef.current);
+        mapZoomRafRef.current = null;
+      }
+      mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
       setMapZoom(MAP_ZOOM_DEFAULT);
     }
   }, [allowWheelZoom]);
@@ -782,7 +832,7 @@ const CampaignMapBoard = ({
         return;
       }
 
-      const safePrevious = clampMapZoom(queuedMapZoomRef.current);
+      const safePrevious = clampMapZoom(mapZoomTargetRef.current);
       const nextZoom = clampMapZoom(safePrevious * zoomMultiplier);
       scheduleMapZoomUpdate(nextZoom);
     },
