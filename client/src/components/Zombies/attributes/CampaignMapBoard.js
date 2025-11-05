@@ -97,6 +97,8 @@ const resolveRotationHandleDistanceScale = (figurineScale) => {
 };
 
 const DEFAULT_GRID_DIMENSION = 24;
+const MAP_ZOOM_EPSILON = 0.0005;
+const MAP_ZOOM_ANIMATION_TIME_CONSTANT_MS = 90;
 
 const resolveElementScale = (element) => {
   if (!element || typeof element.getBoundingClientRect !== 'function') {
@@ -530,6 +532,9 @@ const CampaignMapBoard = ({
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
   const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT);
+  const mapZoomRafRef = useRef(null);
+  const mapZoomTargetRef = useRef(MAP_ZOOM_DEFAULT);
+  const mapZoomAnimationStateRef = useRef({ lastTimestamp: null });
   const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
@@ -604,8 +609,29 @@ const CampaignMapBoard = ({
   }, [mapPanOffset]);
 
   useEffect(() => {
+    if (mapZoomRafRef.current === null) {
+      mapZoomTargetRef.current = mapZoom;
+    }
+  }, [mapZoom]);
+
+  useEffect(() => {
     setMapImageMetrics(null);
   }, [imageSrc]);
+
+  useEffect(() => {
+    return () => {
+      const cancelFrame =
+        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+          ? window.cancelAnimationFrame
+          : null;
+
+      if (cancelFrame && mapZoomRafRef.current !== null) {
+        cancelFrame(mapZoomRafRef.current);
+        mapZoomRafRef.current = null;
+      }
+      mapZoomAnimationStateRef.current.lastTimestamp = null;
+    };
+  }, []);
 
   const handleMapImageLoad = useCallback((event) => {
     const target = event?.target;
@@ -633,6 +659,92 @@ const CampaignMapBoard = ({
     });
   }, []);
 
+  const handleMapZoomAnimationFrame = useCallback(
+    (timestamp) => {
+      mapZoomRafRef.current = null;
+
+      const state = mapZoomAnimationStateRef.current;
+      const targetZoom = clampMapZoom(mapZoomTargetRef.current);
+
+      if (!Number.isFinite(targetZoom)) {
+        state.lastTimestamp = null;
+        return;
+      }
+
+      const lastTimestamp = state.lastTimestamp ?? timestamp;
+      const deltaMilliseconds = Math.max(0, timestamp - lastTimestamp);
+      state.lastTimestamp = timestamp;
+
+      let shouldContinue = false;
+
+      setMapZoom((previous) => {
+        const difference = targetZoom - previous;
+        const differenceMagnitude = Math.abs(difference);
+
+        if (differenceMagnitude <= MAP_ZOOM_EPSILON) {
+          state.lastTimestamp = null;
+          return targetZoom;
+        }
+
+        const clampedDeltaMs = Math.min(deltaMilliseconds, 200);
+        const smoothingFactor = 1 - Math.exp(-clampedDeltaMs / MAP_ZOOM_ANIMATION_TIME_CONSTANT_MS);
+        const easedNextZoom = clampMapZoom(previous + difference * smoothingFactor);
+
+        if (Math.abs(targetZoom - easedNextZoom) <= MAP_ZOOM_EPSILON) {
+          state.lastTimestamp = null;
+          return targetZoom;
+        }
+
+        shouldContinue = true;
+        return easedNextZoom;
+      });
+
+      if (shouldContinue) {
+        const requestFrame =
+          typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+            ? window.requestAnimationFrame
+            : null;
+
+        if (requestFrame) {
+          mapZoomRafRef.current = requestFrame(handleMapZoomAnimationFrame);
+        } else {
+          mapZoomAnimationStateRef.current.lastTimestamp = null;
+          setMapZoom(clampMapZoom(mapZoomTargetRef.current));
+        }
+      }
+    },
+    [setMapZoom]
+  );
+
+  const scheduleMapZoomUpdate = useCallback(
+    (nextZoom) => {
+      if (!Number.isFinite(nextZoom)) {
+        return;
+      }
+
+      const clampedNextZoom = clampMapZoom(nextZoom);
+      mapZoomTargetRef.current = clampedNextZoom;
+
+      const requestFrame =
+        typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+          ? window.requestAnimationFrame
+          : null;
+
+      if (!requestFrame) {
+        setMapZoom(clampedNextZoom);
+        return;
+      }
+
+      if (mapZoomRafRef.current !== null) {
+        return;
+      }
+
+      mapZoomAnimationStateRef.current.lastTimestamp = null;
+      mapZoomRafRef.current = requestFrame(handleMapZoomAnimationFrame);
+    },
+    [handleMapZoomAnimationFrame, setMapZoom]
+  );
+
   const panStyle = useMemo(() => {
     const style = {
       '--campaign-map-pan-x': `${mapPanOffset.x}px`,
@@ -656,11 +768,31 @@ const CampaignMapBoard = ({
       return { x: 0, y: 0 };
     });
     mapPanOffsetRef.current = { x: 0, y: 0 };
+    const cancelFrame =
+      typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+        ? window.cancelAnimationFrame
+        : null;
+    if (cancelFrame && mapZoomRafRef.current !== null) {
+      cancelFrame(mapZoomRafRef.current);
+      mapZoomRafRef.current = null;
+    }
+    mapZoomAnimationStateRef.current.lastTimestamp = null;
+    mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
     setMapZoom(MAP_ZOOM_DEFAULT);
   }, [imageSrc]);
 
   useEffect(() => {
     if (!allowWheelZoom) {
+      const cancelFrame =
+        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+          ? window.cancelAnimationFrame
+          : null;
+      if (cancelFrame && mapZoomRafRef.current !== null) {
+        cancelFrame(mapZoomRafRef.current);
+        mapZoomRafRef.current = null;
+      }
+      mapZoomAnimationStateRef.current.lastTimestamp = null;
+      mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
       setMapZoom(MAP_ZOOM_DEFAULT);
     }
   }, [allowWheelZoom]);
@@ -726,13 +858,11 @@ const CampaignMapBoard = ({
         return;
       }
 
-      setMapZoom((previousZoom) => {
-        const safePrevious = clampMapZoom(previousZoom);
-        const nextZoom = safePrevious * zoomMultiplier;
-        return clampMapZoom(nextZoom);
-      });
+      const safePrevious = clampMapZoom(mapZoomTargetRef.current);
+      const nextZoom = clampMapZoom(safePrevious * zoomMultiplier);
+      scheduleMapZoomUpdate(nextZoom);
     },
-    [allowWheelZoom]
+    [allowWheelZoom, scheduleMapZoomUpdate]
   );
 
   useEffect(() => {
