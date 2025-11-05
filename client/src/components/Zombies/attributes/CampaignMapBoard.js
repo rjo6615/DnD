@@ -530,6 +530,8 @@ const CampaignMapBoard = ({
   const [layerNode, setLayerNode] = useState(null);
   const [figurineImageMetrics, setFigurineImageMetrics] = useState({});
   const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT);
+  const mapZoomRafRef = useRef(null);
+  const mapZoomTargetRef = useRef(MAP_ZOOM_DEFAULT);
   const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
@@ -604,8 +606,28 @@ const CampaignMapBoard = ({
   }, [mapPanOffset]);
 
   useEffect(() => {
+    if (mapZoomRafRef.current === null) {
+      mapZoomTargetRef.current = mapZoom;
+    }
+  }, [mapZoom]);
+
+  useEffect(() => {
     setMapImageMetrics(null);
   }, [imageSrc]);
+
+  useEffect(() => {
+    return () => {
+      const cancelFrame =
+        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+          ? window.cancelAnimationFrame
+          : null;
+
+      if (cancelFrame && mapZoomRafRef.current !== null) {
+        cancelFrame(mapZoomRafRef.current);
+        mapZoomRafRef.current = null;
+      }
+    };
+  }, []);
 
   const handleMapImageLoad = useCallback((event) => {
     const target = event?.target;
@@ -633,6 +655,72 @@ const CampaignMapBoard = ({
     });
   }, []);
 
+  const animateMapZoomTowardsTarget = useCallback(() => {
+    mapZoomRafRef.current = null;
+
+    setMapZoom((previous) => {
+      const targetZoom = clampMapZoom(mapZoomTargetRef.current);
+
+      if (!Number.isFinite(targetZoom)) {
+        return previous;
+      }
+
+      const difference = targetZoom - previous;
+      const differenceMagnitude = Math.abs(difference);
+
+      if (differenceMagnitude <= 0.001) {
+        return targetZoom;
+      }
+
+      const easedNextZoom = clampMapZoom(previous + difference * 0.25);
+
+      if (Math.abs(targetZoom - easedNextZoom) <= 0.001) {
+        return targetZoom;
+      }
+
+      const requestFrame =
+        typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+          ? window.requestAnimationFrame
+          : null;
+
+      if (requestFrame) {
+        mapZoomRafRef.current = requestFrame(animateMapZoomTowardsTarget);
+      } else {
+        return targetZoom;
+      }
+
+      return easedNextZoom;
+    });
+  }, []);
+
+  const scheduleMapZoomUpdate = useCallback(
+    (nextZoom) => {
+      if (!Number.isFinite(nextZoom)) {
+        return;
+      }
+
+      const clampedNextZoom = clampMapZoom(nextZoom);
+      mapZoomTargetRef.current = clampedNextZoom;
+
+      const requestFrame =
+        typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+          ? window.requestAnimationFrame
+          : null;
+
+      if (!requestFrame) {
+        setMapZoom(clampedNextZoom);
+        return;
+      }
+
+      if (mapZoomRafRef.current !== null) {
+        return;
+      }
+
+      mapZoomRafRef.current = requestFrame(animateMapZoomTowardsTarget);
+    },
+    [animateMapZoomTowardsTarget]
+  );
+
   const panStyle = useMemo(() => {
     const style = {
       '--campaign-map-pan-x': `${mapPanOffset.x}px`,
@@ -656,11 +744,29 @@ const CampaignMapBoard = ({
       return { x: 0, y: 0 };
     });
     mapPanOffsetRef.current = { x: 0, y: 0 };
+    const cancelFrame =
+      typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+        ? window.cancelAnimationFrame
+        : null;
+    if (cancelFrame && mapZoomRafRef.current !== null) {
+      cancelFrame(mapZoomRafRef.current);
+      mapZoomRafRef.current = null;
+    }
+    mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
     setMapZoom(MAP_ZOOM_DEFAULT);
   }, [imageSrc]);
 
   useEffect(() => {
     if (!allowWheelZoom) {
+      const cancelFrame =
+        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+          ? window.cancelAnimationFrame
+          : null;
+      if (cancelFrame && mapZoomRafRef.current !== null) {
+        cancelFrame(mapZoomRafRef.current);
+        mapZoomRafRef.current = null;
+      }
+      mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
       setMapZoom(MAP_ZOOM_DEFAULT);
     }
   }, [allowWheelZoom]);
@@ -726,13 +832,11 @@ const CampaignMapBoard = ({
         return;
       }
 
-      setMapZoom((previousZoom) => {
-        const safePrevious = clampMapZoom(previousZoom);
-        const nextZoom = safePrevious * zoomMultiplier;
-        return clampMapZoom(nextZoom);
-      });
+      const safePrevious = clampMapZoom(mapZoomTargetRef.current);
+      const nextZoom = clampMapZoom(safePrevious * zoomMultiplier);
+      scheduleMapZoomUpdate(nextZoom);
     },
-    [allowWheelZoom]
+    [allowWheelZoom, scheduleMapZoomUpdate]
   );
 
   useEffect(() => {
