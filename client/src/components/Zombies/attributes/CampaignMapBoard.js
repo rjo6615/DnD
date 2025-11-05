@@ -97,6 +97,8 @@ const resolveRotationHandleDistanceScale = (figurineScale) => {
 };
 
 const DEFAULT_GRID_DIMENSION = 24;
+const MAP_ZOOM_EPSILON = 0.0005;
+const MAP_ZOOM_ANIMATION_TIME_CONSTANT_MS = 90;
 
 const resolveElementScale = (element) => {
   if (!element || typeof element.getBoundingClientRect !== 'function') {
@@ -532,6 +534,7 @@ const CampaignMapBoard = ({
   const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT);
   const mapZoomRafRef = useRef(null);
   const mapZoomTargetRef = useRef(MAP_ZOOM_DEFAULT);
+  const mapZoomAnimationStateRef = useRef({ lastTimestamp: null });
   const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
@@ -626,6 +629,7 @@ const CampaignMapBoard = ({
         cancelFrame(mapZoomRafRef.current);
         mapZoomRafRef.current = null;
       }
+      mapZoomAnimationStateRef.current.lastTimestamp = null;
     };
   }, []);
 
@@ -655,43 +659,62 @@ const CampaignMapBoard = ({
     });
   }, []);
 
-  const animateMapZoomTowardsTarget = useCallback(() => {
-    mapZoomRafRef.current = null;
+  const handleMapZoomAnimationFrame = useCallback(
+    (timestamp) => {
+      mapZoomRafRef.current = null;
 
-    setMapZoom((previous) => {
+      const state = mapZoomAnimationStateRef.current;
       const targetZoom = clampMapZoom(mapZoomTargetRef.current);
 
       if (!Number.isFinite(targetZoom)) {
-        return previous;
+        state.lastTimestamp = null;
+        return;
       }
 
-      const difference = targetZoom - previous;
-      const differenceMagnitude = Math.abs(difference);
+      const lastTimestamp = state.lastTimestamp ?? timestamp;
+      const deltaMilliseconds = Math.max(0, timestamp - lastTimestamp);
+      state.lastTimestamp = timestamp;
 
-      if (differenceMagnitude <= 0.001) {
-        return targetZoom;
+      let shouldContinue = false;
+
+      setMapZoom((previous) => {
+        const difference = targetZoom - previous;
+        const differenceMagnitude = Math.abs(difference);
+
+        if (differenceMagnitude <= MAP_ZOOM_EPSILON) {
+          state.lastTimestamp = null;
+          return targetZoom;
+        }
+
+        const clampedDeltaMs = Math.min(deltaMilliseconds, 200);
+        const smoothingFactor = 1 - Math.exp(-clampedDeltaMs / MAP_ZOOM_ANIMATION_TIME_CONSTANT_MS);
+        const easedNextZoom = clampMapZoom(previous + difference * smoothingFactor);
+
+        if (Math.abs(targetZoom - easedNextZoom) <= MAP_ZOOM_EPSILON) {
+          state.lastTimestamp = null;
+          return targetZoom;
+        }
+
+        shouldContinue = true;
+        return easedNextZoom;
+      });
+
+      if (shouldContinue) {
+        const requestFrame =
+          typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+            ? window.requestAnimationFrame
+            : null;
+
+        if (requestFrame) {
+          mapZoomRafRef.current = requestFrame(handleMapZoomAnimationFrame);
+        } else {
+          mapZoomAnimationStateRef.current.lastTimestamp = null;
+          setMapZoom(clampMapZoom(mapZoomTargetRef.current));
+        }
       }
-
-      const easedNextZoom = clampMapZoom(previous + difference * 0.25);
-
-      if (Math.abs(targetZoom - easedNextZoom) <= 0.001) {
-        return targetZoom;
-      }
-
-      const requestFrame =
-        typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
-          ? window.requestAnimationFrame
-          : null;
-
-      if (requestFrame) {
-        mapZoomRafRef.current = requestFrame(animateMapZoomTowardsTarget);
-      } else {
-        return targetZoom;
-      }
-
-      return easedNextZoom;
-    });
-  }, []);
+    },
+    [setMapZoom]
+  );
 
   const scheduleMapZoomUpdate = useCallback(
     (nextZoom) => {
@@ -716,9 +739,10 @@ const CampaignMapBoard = ({
         return;
       }
 
-      mapZoomRafRef.current = requestFrame(animateMapZoomTowardsTarget);
+      mapZoomAnimationStateRef.current.lastTimestamp = null;
+      mapZoomRafRef.current = requestFrame(handleMapZoomAnimationFrame);
     },
-    [animateMapZoomTowardsTarget]
+    [handleMapZoomAnimationFrame, setMapZoom]
   );
 
   const panStyle = useMemo(() => {
@@ -752,6 +776,7 @@ const CampaignMapBoard = ({
       cancelFrame(mapZoomRafRef.current);
       mapZoomRafRef.current = null;
     }
+    mapZoomAnimationStateRef.current.lastTimestamp = null;
     mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
     setMapZoom(MAP_ZOOM_DEFAULT);
   }, [imageSrc]);
@@ -766,6 +791,7 @@ const CampaignMapBoard = ({
         cancelFrame(mapZoomRafRef.current);
         mapZoomRafRef.current = null;
       }
+      mapZoomAnimationStateRef.current.lastTimestamp = null;
       mapZoomTargetRef.current = MAP_ZOOM_DEFAULT;
       setMapZoom(MAP_ZOOM_DEFAULT);
     }
