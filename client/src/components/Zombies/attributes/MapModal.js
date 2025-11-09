@@ -1361,26 +1361,7 @@ const MapModal = ({
           lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
         );
 
-        const hasCharacterContext = Boolean(
-          readOnly &&
-            currentCharacterIdCandidatesLower &&
-            currentCharacterIdCandidatesLower.size > 0
-        );
-
-        const matchesCurrentCharacter = hasCharacterContext
-          ? tokenMatchesCurrentCharacter(token)
-          : false;
-
-        const canCurrentlyManipulate = canManipulateTokens && !placementPending;
-
-        let isMovable =
-          canCurrentlyManipulate && (!hasCharacterContext || matchesCurrentCharacter);
-
-        if (token.isMovable === true) {
-          isMovable = canCurrentlyManipulate;
-        } else if (token.isMovable === false) {
-          isMovable = false;
-        }
+        const matchesCurrentCharacter = tokenMatchesCurrentCharacter(token);
 
         const lookupVariant =
           typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
@@ -1420,6 +1401,32 @@ const MapModal = ({
           } else if (entityType === 'character' || entityType !== 'enemy') {
             variant = 'ally';
           }
+        }
+
+        const normalizedVariant =
+          typeof variant === 'string' && variant.trim() !== ''
+            ? variant.trim().toLowerCase()
+            : null;
+
+        const canCurrentlyManipulate = canManipulateTokens && !placementPending;
+        const isEnemyToken = normalizedVariant === 'enemy' || entityType === 'enemy';
+
+        let isMovable = canCurrentlyManipulate && (!readOnly || matchesCurrentCharacter);
+
+        if (readOnly && isEnemyToken) {
+          isMovable = false;
+        }
+
+        if (token.isMovable === true) {
+          if (!readOnly) {
+            isMovable = canCurrentlyManipulate;
+          } else if (!isEnemyToken && matchesCurrentCharacter) {
+            isMovable = canCurrentlyManipulate;
+          } else {
+            isMovable = false;
+          }
+        } else if (token.isMovable === false) {
+          isMovable = false;
         }
 
         const baseColor = lookup.color || token.color || null;
