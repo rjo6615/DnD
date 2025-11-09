@@ -261,7 +261,6 @@
     var(--campaign-map-pan-x, 0),
     var(--campaign-map-pan-y, 0)
   );
-  transition: transform 0.08s ease-out;
   will-change: transform;
 }
 
@@ -4713,7 +4712,6 @@ h1 {
         var(--campaign-map-pan-y, 0)
       )
       scale(var(--campaign-map-zoom, 1));
-    transition: transform 0.08s ease-out;
     will-change: transform;
   }
 
@@ -4728,7 +4726,6 @@ h1 {
       var(--campaign-map-pan-y, 0)
     )
       scale(var(--campaign-map-zoom, 1));
-    transition: transform 0.08s ease-out;
     will-change: transform;
   }
 
@@ -4750,7 +4747,6 @@ h1 {
       var(--campaign-map-pan-y, 0)
     )
       scale(var(--campaign-map-zoom, 1));
-    transition: transform 0.08s ease-out;
     will-change: transform;
   }
 
