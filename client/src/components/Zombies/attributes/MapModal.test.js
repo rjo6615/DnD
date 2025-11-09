@@ -929,6 +929,45 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('prevents read-only players from dragging other controlled characters', async () => {
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            hero: {
+              characterId: 'hero',
+              x: 0.1,
+              y: 0.2,
+            },
+            cleric: {
+              characterId: 'cleric',
+              x: 0.3,
+              y: 0.4,
+            },
+          },
+        }}
+        currentCharacterId="hero"
+        characterLookup={{
+          hero: { label: 'Hero', entityType: 'character' },
+          cleric: { label: 'Cleric', entityType: 'character' },
+        }}
+        onTokenMove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(boardProps.tokens).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ characterId: 'hero', isMovable: true }),
+        expect.objectContaining({ characterId: 'cleric', isMovable: false }),
+      ])
+    );
+  });
+
   it('allows the DM map to drag enemy tokens', async () => {
     render(
       <MapModal

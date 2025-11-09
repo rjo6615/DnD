@@ -1001,10 +1001,6 @@ const MapModal = ({
   }, [characterLookup]);
 
   const currentCharacterIdCandidatesLower = useMemo(() => {
-    if (readOnly && controlledCharacterIdentifiersLower.size > 0) {
-      return new Set(controlledCharacterIdentifiersLower);
-    }
-
     const candidates = new Set();
 
     const addCandidate = (candidate) => {
@@ -1014,9 +1010,43 @@ const MapModal = ({
       }
     };
 
-    addCandidate(normalizedCurrentCharacterId);
+    const normalizedCurrentLower =
+      typeof normalizedCurrentCharacterId === 'string'
+        ? normalizedCurrentCharacterId.toLowerCase()
+        : null;
+    const normalizedActiveLower =
+      typeof normalizedActiveCharacterId === 'string'
+        ? normalizedActiveCharacterId.toLowerCase()
+        : null;
 
-    if (!normalizedCurrentCharacterId) {
+    const currentIsControlled = Boolean(
+      normalizedCurrentLower && controlledCharacterIdentifiersLower.has(normalizedCurrentLower)
+    );
+
+    const shouldIncludeCurrent = Boolean(
+      normalizedCurrentCharacterId &&
+        (!readOnly ||
+          controlledCharacterIdentifiersLower.size === 0 ||
+          currentIsControlled)
+    );
+
+    if (shouldIncludeCurrent) {
+      addCandidate(normalizedCurrentCharacterId);
+    }
+
+    const activeIsControlled = Boolean(
+      normalizedActiveLower && controlledCharacterIdentifiersLower.has(normalizedActiveLower)
+    );
+
+    const shouldIncludeActive = Boolean(
+      normalizedActiveCharacterId &&
+        (!normalizedCurrentCharacterId || !shouldIncludeCurrent) &&
+        (!readOnly ||
+          controlledCharacterIdentifiersLower.size === 0 ||
+          activeIsControlled)
+    );
+
+    if (shouldIncludeActive) {
       addCandidate(normalizedActiveCharacterId);
     }
 
@@ -1047,6 +1077,10 @@ const MapModal = ({
           });
         }
       });
+    }
+
+    if (candidates.size === 0 && readOnly && controlledCharacterIdentifiersLower.size > 0) {
+      return new Set(controlledCharacterIdentifiersLower);
     }
 
     return candidates;
@@ -1214,32 +1248,25 @@ const MapModal = ({
         return false;
       }
 
-      let hasControlledMatch = false;
-      if (readOnly && controlledCharacterIdentifiersLower.size > 0) {
-        for (const identifier of identifiers) {
-          if (controlledCharacterIdentifiersLower.has(identifier)) {
-            hasControlledMatch = true;
-            break;
-          }
-        }
-      }
-
-      if (
-        (!currentCharacterIdCandidatesLower || currentCharacterIdCandidatesLower.size === 0) &&
-        !hasControlledMatch
-      ) {
-        return false;
-      }
-
       if (currentCharacterIdCandidatesLower && currentCharacterIdCandidatesLower.size > 0) {
         for (const identifier of identifiers) {
           if (currentCharacterIdCandidatesLower.has(identifier)) {
             return true;
           }
         }
+
+        return false;
       }
 
-      return hasControlledMatch;
+      if (readOnly && controlledCharacterIdentifiersLower.size > 0) {
+        for (const identifier of identifiers) {
+          if (controlledCharacterIdentifiersLower.has(identifier)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
     },
     [
       controlledCharacterIdentifiersLower,
@@ -1258,38 +1285,39 @@ const MapModal = ({
 
       const normalizedLower = normalizedId.toLowerCase();
 
-      if (
-        readOnly &&
-        controlledCharacterIdentifiersLower.size > 0 &&
-        !controlledCharacterIdentifiersLower.has(normalizedLower)
-      ) {
-        return false;
-      }
-
-      if (!currentCharacterIdCandidatesLower || currentCharacterIdCandidatesLower.size === 0) {
-        if (!readOnly || controlledCharacterIdentifiersLower.size === 0) {
+      if (currentCharacterIdCandidatesLower && currentCharacterIdCandidatesLower.size > 0) {
+        if (currentCharacterIdCandidatesLower.has(normalizedLower)) {
           return true;
         }
 
-        return controlledCharacterIdentifiersLower.has(normalizedLower);
+        if (tokenIdentifierLookup.has(normalizedLower)) {
+          const identifiers = tokenIdentifierLookup.get(normalizedLower);
+          for (const identifier of identifiers) {
+            if (currentCharacterIdCandidatesLower.has(identifier)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
       }
 
-      if (currentCharacterIdCandidatesLower.has(normalizedLower)) {
+      if (!readOnly) {
         return true;
       }
 
-      if (readOnly && controlledCharacterIdentifiersLower.has(normalizedLower)) {
+      if (controlledCharacterIdentifiersLower.size === 0) {
+        return false;
+      }
+
+      if (controlledCharacterIdentifiersLower.has(normalizedLower)) {
         return true;
       }
 
       if (tokenIdentifierLookup.has(normalizedLower)) {
         const identifiers = tokenIdentifierLookup.get(normalizedLower);
         for (const identifier of identifiers) {
-          if (currentCharacterIdCandidatesLower.has(identifier)) {
-            return true;
-          }
-
-          if (readOnly && controlledCharacterIdentifiersLower.has(identifier)) {
+          if (controlledCharacterIdentifiersLower.has(identifier)) {
             return true;
           }
         }
