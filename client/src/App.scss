@@ -4766,8 +4766,8 @@ h1 {
     --figurine-base-size: calc(var(--map-square-size) * var(--figurine-size-scale, 1));
     --figurine-body-width: calc(var(--figurine-base-size) * 0.6);
     --figurine-rotation: 0deg;
-    --figurine-rotation-origin-y: calc(var(--figurine-base-size) * 0.575);
-    --figurine-rotation-origin-y-token: var(--figurine-rotation-origin-y);
+    --figurine-rotation-origin-y: calc(var(--figurine-base-size) * 0.35);
+    --figurine-rotation-origin-y-token: calc(var(--figurine-base-size) * 0.8);
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
