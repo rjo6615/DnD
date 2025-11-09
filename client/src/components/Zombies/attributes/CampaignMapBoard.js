@@ -4,7 +4,7 @@ import classNames from '../../../utils/classNames';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import resolveMapImageSource from '../utils/mapImages';
-import clampMapZoom, { MAP_ZOOM_DEFAULT } from '../utils/mapZoom';
+import clampMapZoom, { MAP_ZOOM_DEFAULT, MAP_ZOOM_MIN, MAP_ZOOM_MAX } from '../utils/mapZoom';
 import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
 import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
 
@@ -798,12 +798,20 @@ const CampaignMapBoard = ({
   }, [allowWheelZoom]);
 
   const boardStyle = useMemo(() => {
+    const zoomValue = Number.isFinite(resolvedMapZoom) ? resolvedMapZoom : MAP_ZOOM_DEFAULT;
+    const normalizedZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, zoomValue));
+    const gridLineWidth = Math.max(0.35, Math.min(0.75, 0.75 / normalizedZoom));
+
+    const baseStyle = {
+      '--campaign-map-grid-line-width': `${gridLineWidth}px`,
+    };
+
     if (!allowWheelZoom) {
-      return undefined;
+      return baseStyle;
     }
 
-    const zoomValue = resolvedMapZoom;
     return {
+      ...baseStyle,
       '--campaign-map-zoom': `${zoomValue}`,
       '--map-modal-background-scale': `${zoomValue}`,
     };
