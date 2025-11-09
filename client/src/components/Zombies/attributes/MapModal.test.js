@@ -665,6 +665,136 @@ describe('MapModal background interactions', () => {
     );
   });
 
+  it('allows placing the targeted token when other tokens are present on the map', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            hero: {
+              characterId: 'hero',
+              x: 0.1,
+              y: 0.2,
+            },
+          },
+        }}
+        currentCharacterId="enemy-1"
+        activeCharacterId="hero"
+        characterLookup={{
+          'enemy-1': { label: 'Goblin' },
+          hero: { label: 'Hero' },
+        }}
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+        readOnly={false}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(typeof boardProps.onBackgroundClick).toBe('function');
+
+    await act(async () => {
+      boardProps.onBackgroundClick?.({ x: 0.45, y: 0.55 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mapId: 'map-1',
+          characterId: 'enemy-1',
+          x: 0.45,
+          y: 0.55,
+        })
+      )
+    );
+  });
+
+  it('prevents read-only viewers from placing targeted enemy figurines', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {
+            hero: {
+              characterId: 'hero',
+              x: 0.1,
+              y: 0.2,
+            },
+          },
+        }}
+        currentCharacterId="enemy-1"
+        activeCharacterId="hero"
+        characterLookup={{
+          hero: { label: 'Hero' },
+        }}
+        readOnly
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(typeof boardProps.onBackgroundClick).toBe('function');
+
+    await act(async () => {
+      boardProps.onBackgroundClick?.({ x: 0.45, y: 0.55 });
+    });
+
+    expect(handleTokenMove).not.toHaveBeenCalled();
+  });
+
+  it('allows read-only viewers to place their own figurine when another token is targeted', async () => {
+    const handleTokenMove = jest.fn().mockResolvedValue(true);
+
+    render(
+      <MapModal
+        show
+        map={{ mapId: 'map-1', title: 'Dungeon', imageUrl: 'https://example.com/map.png' }}
+        activeMapId="map-1"
+        tokensByMapId={{
+          'map-1': {},
+        }}
+        currentCharacterId="enemy-1"
+        activeCharacterId="hero"
+        characterLookup={{
+          hero: { label: 'Hero' },
+        }}
+        readOnly
+        onTokenMove={handleTokenMove}
+        onTokenRemove={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mockCapturedBoardProps.length).toBeGreaterThan(0));
+    const boardProps = mockCapturedBoardProps[mockCapturedBoardProps.length - 1];
+    expect(typeof boardProps.onBackgroundClick).toBe('function');
+
+    await act(async () => {
+      boardProps.onBackgroundClick?.({ x: 0.35, y: 0.65 });
+    });
+
+    await waitFor(() =>
+      expect(handleTokenMove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mapId: 'map-1',
+          characterId: 'hero',
+          x: 0.35,
+          y: 0.65,
+        })
+      )
+    );
+  });
+
   it('keeps tokens movable when provided mobility flags override read-only restrictions', async () => {
     render(
       <MapModal
