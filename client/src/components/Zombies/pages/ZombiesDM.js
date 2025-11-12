@@ -3976,24 +3976,6 @@ export default function ZombiesDM() {
       [campaignMap, displayedMap, persistTokenPosition, shouldShowCampaignTokens]
     );
 
-    const handleOpenMapPlacement = useCallback((enemyId, enemyName) => {
-      const normalizedId =
-        typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
-
-      if (!normalizedId) {
-        return;
-      }
-
-      const normalizedName =
-        typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
-
-      setMapPlacementState({
-        show: true,
-        enemyId: normalizedId,
-        enemyName: normalizedName,
-      });
-    }, []);
-
     const handleCloseMapPlacement = useCallback(() => {
       setMapPlacementState({ show: false, enemyId: null, enemyName: null });
     }, []);
@@ -4104,6 +4086,29 @@ export default function ZombiesDM() {
 
       setActiveResourceTab((current) => (current === key ? null : key));
     }, []);
+
+    const handleOpenMapPlacement = useCallback(
+      (enemyId, enemyName) => {
+        const normalizedId =
+          typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
+
+        if (!normalizedId) {
+          return;
+        }
+
+        const normalizedName =
+          typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
+
+        setMapPlacementState({
+          show: true,
+          enemyId: normalizedId,
+          enemyName: normalizedName,
+        });
+
+        setActiveResourceTab((current) => (current === 'enemies' ? null : current));
+      },
+      [setActiveResourceTab, setMapPlacementState]
+    );
 
     useEffect(() => {
       if (

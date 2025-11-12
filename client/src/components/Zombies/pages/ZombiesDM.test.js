@@ -1977,6 +1977,11 @@ describe('ZombiesDM AI generation', () => {
     const placeButton = within(enemiesCard).getByRole('button', { name: 'Place on Map' });
     CampaignMapBoard.mockClear();
     await userEvent.click(placeButton);
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('resource-enemies-card')).not.toBeInTheDocument()
+    );
+
     const overlay = await screen.findByTestId('map-placement-overlay');
     expect(overlay).toHaveTextContent('Click the map to place Goblin.');
 
