@@ -735,6 +735,13 @@
   flex-wrap: wrap;
 }
 
+.zombies-dm-active-enemies__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .zombies-dm-active-enemies__label {
   text-transform: uppercase;
   letter-spacing: 0.08em;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Badge } from 'react-bootstrap';
-import { FiList } from 'react-icons/fi';
+import { FiList, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
 export function ActiveEnemyQuickCard({
@@ -215,8 +215,19 @@ export function ActiveEnemyQuickList({
     return null;
   }
 
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const collapseButtonLabel = isCollapsed
+    ? 'Expand active enemy display'
+    : 'Collapse active enemy display';
+  const listId = 'active-map-enemies-list';
+
   return (
-    <div className="zombies-dm-active-enemies" data-testid="active-map-enemies" aria-live="polite">
+    <div
+      className="zombies-dm-active-enemies"
+      data-testid="active-map-enemies"
+      aria-live="polite"
+      aria-expanded={!isCollapsed}
+    >
       <div className="zombies-dm-active-enemies__header">
         <div>
           <div className="zombies-dm-active-enemies__label">Active Map Enemies</div>
@@ -227,17 +238,36 @@ export function ActiveEnemyQuickList({
             {activeMapTitle ? ` • ${activeMapTitle}` : ''}
           </div>
         </div>
-        <Button
-          variant="outline-light"
-          size="sm"
-          onClick={onManageEnemies}
-          className="d-inline-flex align-items-center gap-2"
-        >
-          <FiList aria-hidden="true" />
-          <span>Manage Enemies</span>
-        </Button>
+        <div className="zombies-dm-active-enemies__actions">
+          <Button
+            variant="outline-light"
+            size="sm"
+            onClick={onManageEnemies}
+            className="d-inline-flex align-items-center gap-2"
+          >
+            <FiList aria-hidden="true" />
+            <span>Manage Enemies</span>
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={() => setIsCollapsed((value) => !value)}
+            aria-label={collapseButtonLabel}
+            aria-expanded={!isCollapsed}
+            aria-controls={listId}
+            className="d-inline-flex align-items-center gap-2"
+          >
+            {isCollapsed ? <FiChevronDown aria-hidden="true" /> : <FiChevronUp aria-hidden="true" />}
+            <span>{isCollapsed ? 'Expand' : 'Collapse'}</span>
+          </Button>
+        </div>
       </div>
-      <div className="zombies-dm-active-enemies__list">
+      <div
+        className="zombies-dm-active-enemies__list"
+        id={listId}
+        data-testid="active-map-enemies-list"
+        hidden={isCollapsed}
+      >
         {summaries.map((summary) => (
           <ActiveEnemyQuickCard
             key={summary.enemy.enemyId || summary.enemy._id}

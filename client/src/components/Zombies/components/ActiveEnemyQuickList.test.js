@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ActiveEnemyQuickList } from './ActiveEnemyQuickList';
 
@@ -44,6 +44,29 @@ describe('ActiveEnemyQuickList', () => {
     await userEvent.click(screen.getByRole('button', { name: /Manage Enemies/i }));
 
     expect(props.onManageEnemies).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows the condensed list to be collapsed and expanded', async () => {
+    renderList();
+
+    const list = screen.getByTestId('active-map-enemies-list');
+    expect(list).toBeVisible();
+
+    const collapseButton = screen.getByRole('button', {
+      name: /Collapse active enemy display/i,
+    });
+    await act(async () => {
+      await userEvent.click(collapseButton);
+    });
+
+    expect(screen.getByRole('button', { name: /Expand active enemy display/i })).toBeInTheDocument();
+    expect(list).not.toBeVisible();
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /Expand active enemy display/i }));
+    });
+
+    expect(list).toBeVisible();
   });
 
   it('exposes health controls for the condensed cards', async () => {
