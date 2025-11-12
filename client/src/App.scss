@@ -710,13 +710,21 @@
 }
 
 .zombies-dm-active-enemies {
-  background-color: rgba(10, 10, 10, 0.85);
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+  transform: translateX(-50%);
+  width: min(1040px, calc(100vw - 2.5rem));
+  max-width: 100%;
+  background-color: rgba(10, 10, 10, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1rem;
   padding: 1rem;
-  margin-top: 1rem;
   color: #fff;
   box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  z-index: 6;
+  pointer-events: auto;
 }
 
 .zombies-dm-active-enemies__header {
