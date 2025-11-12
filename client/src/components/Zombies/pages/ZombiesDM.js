@@ -4972,6 +4972,14 @@ export default function ZombiesDM() {
 //--------------------------------------------Campaign Section------------------------------
 const [campaignDM, setCampaignDM] = useState({ players: [] });
 
+const campaignTitle = useMemo(
+  () =>
+    campaignDM && campaignDM.campaignName
+      ? campaignDM.campaignName
+      : params.campaign ?? '',
+  [campaignDM, params.campaign]
+);
+
 // Fetch CampaignsDM
 useEffect(() => {
   if (!user) {
@@ -5988,17 +5996,11 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Alert>
         )}
 
-        <div className="zombies-dm-page__title">
-          <h2 className="text-white text-center mb-0">
-            {campaignDM.campaignName ?? params.campaign}
-          </h2>
-        </div>
-
-        {displayedMap && (
+        {campaignTitle && (
           <div className="zombies-dm-page__map-heading">
-            <span className="zombies-dm-page__map-heading-label">Active Map</span>
+            <span className="zombies-dm-page__map-heading-label">Campaign</span>
             <span className="zombies-dm-page__map-heading-title">
-              {getMapDisplayTitle(displayedMap, DEFAULT_MAP_TITLE)}
+              {campaignTitle}
             </span>
           </div>
         )}
