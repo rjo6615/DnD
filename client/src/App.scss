@@ -279,45 +279,96 @@
 
 .zombies-dm-page {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  min-height: 100vh;
+  display: block;
 }
 
-.zombies-dm-page__content {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  padding: 5rem 1rem calc(7rem + env(safe-area-inset-bottom, 0px));
-  gap: 1.25rem;
-}
-
-.zombies-dm-page__map-area {
-  flex: 1 1 auto;
-  min-height: 0;
+.zombies-dm-page__map-surface {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
   display: flex;
   align-items: stretch;
   justify-content: center;
-  position: relative;
+  overflow: hidden;
+}
+
+.zombies-dm-page__map-board {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.zombies-dm-page__map-empty {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  background: rgba(12, 10, 8, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.zombies-dm-page__chrome {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.zombies-dm-page__status-alert {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90vw, 540px);
+  pointer-events: auto;
+  z-index: 3;
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+}
+
+.zombies-dm-page__title {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 5.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  text-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.55);
+}
+
+.zombies-dm-page__title h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .zombies-dm-page__map-heading {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 2;
-  padding: 0.5rem 1rem;
-  border-radius: 0.75rem;
+  top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
+  left: clamp(1rem, 3vw, 2.75rem);
+  z-index: 3;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.85rem;
   background: rgba(0, 0, 0, 0.65);
   color: #ffffff;
   font-weight: 600;
   letter-spacing: 0.02em;
-  max-width: min(85%, 28rem);
+  max-width: min(90vw, 28rem);
   text-align: left;
-  backdrop-filter: blur(2px);
-  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(3px);
+  box-shadow: 0 0.5rem 1.8rem rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  pointer-events: auto;
 }
 
 .zombies-dm-page__map-heading-label {
@@ -328,33 +379,9 @@
 }
 
 .zombies-dm-page__map-heading-title {
-  font-size: clamp(1rem, 2.1vw, 1.5rem);
+  font-size: clamp(1rem, 2.1vw, 1.65rem);
   font-weight: 700;
   line-height: 1.2;
-}
-
-.zombies-dm-page__map-area > .campaign-map-board {
-  width: min(100%, 1100px);
-  height: clamp(320px, 70vh, calc(100vh - 13rem));
-  max-height: 100%;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4);
-}
-
-.zombies-dm-page__map-empty {
-  width: min(100%, 1000px);
-  min-height: clamp(240px, 55vh, 520px);
-  margin: 0 auto;
-  border-radius: 1rem;
-  background: rgba(12, 10, 8, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
 }
 
 .zombies-dm-bottom-bar {
@@ -396,13 +423,18 @@
 }
 
 @media (max-width: 992px) {
-  .zombies-dm-page__content {
-    padding: 4rem 0.75rem calc(7.5rem + env(safe-area-inset-bottom, 0px));
+  .zombies-dm-page__status-alert {
+    width: min(92vw, 480px);
   }
 
-  .zombies-dm-page__map-area > .campaign-map-board {
-    width: 100%;
-    height: clamp(280px, 60vh, calc(100vh - 11rem));
+  .zombies-dm-page__title {
+    top: calc(env(safe-area-inset-top, 0px) + 4.75rem);
+  }
+
+  .zombies-dm-page__map-heading {
+    top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+    left: clamp(0.75rem, 4vw, 2rem);
+    padding: 0.65rem 1rem;
   }
 }
 
@@ -412,12 +444,20 @@
     min-width: 0;
   }
 
+  .zombies-dm-page__title {
+    top: calc(env(safe-area-inset-top, 0px) + 4.25rem);
+  }
+
+  .zombies-dm-page__title h2 {
+    font-size: clamp(1.5rem, 6vw, 2.15rem);
+  }
+
   .zombies-dm-page__map-heading {
-    max-width: 90%;
+    max-width: 92%;
   }
 
   .zombies-dm-page__map-heading-title {
-    font-size: clamp(0.95rem, 4vw, 1.25rem);
+    font-size: clamp(0.95rem, 4vw, 1.3rem);
   }
 }
 
