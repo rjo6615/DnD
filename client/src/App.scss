@@ -322,6 +322,52 @@
   pointer-events: none;
 }
 
+.zombies-dm-page__map-placement-overlay {
+  position: absolute;
+  bottom: clamp(1.5rem, 6vh, 3rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  max-width: min(90vw, 420px);
+  width: calc(100% - 2rem);
+  background: rgba(0, 0, 0, 0.72);
+  color: #f8f9fa;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.zombies-dm-page__map-placement-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.zombies-dm-page__map-placement-error {
+  width: 100%;
+  background: rgba(220, 53, 69, 0.2);
+  color: #ffc9c9;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+}
+
+.zombies-dm-page__map-placement-actions {
+  display: flex;
+  justify-content: center;
+}
+
 .zombies-dm-page__status-alert {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
