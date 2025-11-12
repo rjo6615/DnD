@@ -277,6 +277,150 @@
   padding-right: 1rem;
 }
 
+.zombies-dm-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.zombies-dm-page__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 5rem 1rem calc(7rem + env(safe-area-inset-bottom, 0px));
+  gap: 1.25rem;
+}
+
+.zombies-dm-page__map-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  position: relative;
+}
+
+.zombies-dm-page__map-heading {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 2;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  max-width: min(85%, 28rem);
+  text-align: left;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.zombies-dm-page__map-heading-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+}
+
+.zombies-dm-page__map-heading-title {
+  font-size: clamp(1rem, 2.1vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.zombies-dm-page__map-area > .campaign-map-board {
+  width: min(100%, 1100px);
+  height: clamp(320px, 70vh, calc(100vh - 13rem));
+  max-height: 100%;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4);
+}
+
+.zombies-dm-page__map-empty {
+  width: min(100%, 1000px);
+  min-height: clamp(240px, 55vh, 520px);
+  margin: 0 auto;
+  border-radius: 1rem;
+  background: rgba(12, 10, 8, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
+}
+
+.zombies-dm-bottom-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0.75rem 1rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+  background: linear-gradient(180deg, rgba(9, 8, 7, 0.2), rgba(9, 8, 7, 0.85));
+  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  z-index: 5;
+}
+
+.zombies-dm-bottom-bar__button {
+  min-width: 120px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.zombies-dm-resource-modal .modal-content {
+  background: rgba(18, 16, 14, 0.96);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.zombies-dm-resource-modal .modal-header,
+.zombies-dm-resource-modal .modal-footer {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.zombies-dm-resource-modal .modal-body {
+  max-height: calc(80vh - 3rem);
+  overflow-y: auto;
+}
+
+@media (max-width: 992px) {
+  .zombies-dm-page__content {
+    padding: 4rem 0.75rem calc(7.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .zombies-dm-page__map-area > .campaign-map-board {
+    width: 100%;
+    height: clamp(280px, 60vh, calc(100vh - 11rem));
+  }
+}
+
+@media (max-width: 576px) {
+  .zombies-dm-bottom-bar__button {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 0;
+  }
+
+  .zombies-dm-page__map-heading {
+    max-width: 90%;
+  }
+
+  .zombies-dm-page__map-heading-title {
+    font-size: clamp(0.95rem, 4vw, 1.25rem);
+  }
+}
+
 .combat-turn-header {
   --combat-turn-header-height: clamp(60px, 10vw, 88px);
   display: block;

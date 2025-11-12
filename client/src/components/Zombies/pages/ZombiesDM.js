@@ -12,9 +12,6 @@ import {
   Card,
   Alert,
   Spinner,
-  Nav,
-  Tab,
-  CloseButton,
   ListGroup,
   Badge,
 } from "react-bootstrap";
@@ -4057,17 +4054,15 @@ export default function ZombiesDM() {
       ],
       [calculateCharacterInitiative]
     );
-    const [activeResourceTab, setActiveResourceTab] = useState('characters');
+    const [activeResourceTab, setActiveResourceTab] = useState(null);
 
-    const handleSelectResourceTab = useCallback(
-      (key) => {
-        if (!key || key === activeResourceTab) {
-          return;
-        }
-        setActiveResourceTab(key);
-      },
-      [activeResourceTab]
-    );
+    const handleSelectResourceTab = useCallback((key) => {
+      if (!key) {
+        return;
+      }
+
+      setActiveResourceTab((current) => (current === key ? null : key));
+    }, []);
 
     useEffect(() => {
       if (
@@ -5952,62 +5947,95 @@ const resolveIcon = (category, iconMap, fallback) => {
 // -----------------------------------Display-----------------------------------------------------------------------------
   return (
     <div
-      className="pt-2 text-center"
+      className="zombies-dm-page pt-2 text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
         backgroundImage: `url(${loginbg})`,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         minHeight: '100vh',
-        paddingBottom: '5rem',
       }}
     >
-      <div style={{ paddingTop: '5rem' }}></div>
-      {status && (
-        <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
-          {status.message}
-        </Alert>
-      )}
+      <div className="zombies-dm-page__content">
+        <div style={{ paddingTop: '5rem' }}></div>
+        {status && (
+          <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
+            {status.message}
+          </Alert>
+        )}
 
-      <Container className="zombies-dm-container zombies-dm-container--spaced">
-        <Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
-          <div
-            className="d-flex justify-content-center mb-2"
-            style={{ position: 'relative', zIndex: '4' }}
+        <div
+          className="zombies-dm-page__title"
+          style={{ position: 'relative', zIndex: '4' }}
+        >
+          <h2 className="text-white text-center mb-0">
+            {campaignDM.campaignName ?? params.campaign}
+          </h2>
+        </div>
+
+        <div className="zombies-dm-page__map-area">
+          {displayedMap ? (
+            <>
+              <div className="zombies-dm-page__map-heading">
+                <span className="zombies-dm-page__map-heading-label">Active Map</span>
+                <span className="zombies-dm-page__map-heading-title">
+                  {getMapDisplayTitle(displayedMap, DEFAULT_MAP_TITLE)}
+                </span>
+              </div>
+              <CampaignMapBoard
+                map={displayedMap}
+                tokens={boardTokens}
+                disabled={!shouldShowCampaignTokens}
+                allowWheelZoom
+                onTokenPositionChange={
+                  shouldShowCampaignTokens ? handleTokenPositionChange : undefined
+                }
+                onTokenRemove={handleMapTokenRemove}
+              />
+            </>
+          ) : (
+            <div className="zombies-dm-page__map-empty text-light">
+              No map selected.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="zombies-dm-bottom-bar"
+        role="toolbar"
+        aria-label="Dungeon Master resources"
+      >
+        {RESOURCE_TABS.map(({ key, title }) => (
+          <Button
+            key={key}
+            type="button"
+            variant={activeResourceTab === key ? 'primary' : 'outline-light'}
+            className="zombies-dm-bottom-bar__button"
+            onClick={() => handleSelectResourceTab(key)}
+            aria-pressed={activeResourceTab === key}
           >
-            <h2 className="text-white text-center mb-0">
-              {campaignDM.campaignName ?? params.campaign}
-            </h2>
-          </div>
-          <div
-            className="d-flex justify-content-center mb-3"
-            style={{ position: 'relative', zIndex: '4' }}
-          >
-            <Nav variant="tabs" className="flex-wrap">
-              {RESOURCE_TABS.map(({ key, title }) => (
-                <Nav.Item key={key}>
-                  <Nav.Link eventKey={key}>{title}</Nav.Link>
-                </Nav.Item>
-              ))}
-            </Nav>
-          </div>
-          <Tab.Content>
-    <Tab.Pane eventKey="characters">
+            {title}
+          </Button>
+        ))}
+      </div>
+
+          <Modal
+        show={activeResourceTab === 'characters'}
+        onHide={() => handleCloseResourceTab('characters')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Characters</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'characters' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-characters-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('characters')}
-                    aria-label="Close characters tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -6377,23 +6405,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="players">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'players'}
+        onHide={() => handleCloseResourceTab('players')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Players</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'players' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-players-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('players')}
-                    aria-label="Close players tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -6460,23 +6489,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="map">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'map'}
+        onHide={() => handleCloseResourceTab('map')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Map</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'map' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-map-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('map')}
-                    aria-label="Close map tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -6790,23 +6820,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="enemies">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'enemies'}
+        onHide={() => handleCloseResourceTab('enemies')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Enemies</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'enemies' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-enemies-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('enemies')}
-                    aria-label="Close enemies tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -7159,43 +7190,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="weapons">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'weapons'}
+        onHide={() => handleCloseResourceTab('weapons')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Weapons</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'weapons' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-weapons-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingWeapon((prev) => !prev)}
-                    aria-label={
-                      isCreatingWeapon ? 'View weapons list' : 'Create a new weapon'
-                    }
-                  >
-                    {isCreatingWeapon ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Weapons
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Weapon</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('weapons')}
-                  aria-label="Close weapons tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -7397,43 +7409,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="armor">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'armor'}
+        onHide={() => handleCloseResourceTab('armor')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Armor</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'armor' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-armor-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingArmor((prev) => !prev)}
-                    aria-label={
-                      isCreatingArmor ? 'View armor list' : 'Create new armor'
-                    }
-                  >
-                    {isCreatingArmor ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Armor
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Armor</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('armor')}
-                  aria-label="Close armor tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ maxHeight: '70vh', overflowY: 'auto' }}
@@ -7666,45 +7659,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="accessories">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'accessories'}
+        onHide={() => handleCloseResourceTab('accessories')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Accessories</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'accessories' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-accessories-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingAccessory((prev) => !prev)}
-                    aria-label={
-                      isCreatingAccessory
-                        ? 'View accessories list'
-                        : 'Create new accessory'
-                    }
-                  >
-                    {isCreatingAccessory ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Accessories
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Accessory</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('accessories')}
-                  aria-label="Close accessories tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -7941,43 +7913,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="items">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'items'}
+        onHide={() => handleCloseResourceTab('items')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Items</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'items' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-items-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingItem((prev) => !prev)}
-                    aria-label={
-                      isCreatingItem ? 'View items list' : 'Create new item'
-                    }
-                  >
-                    {isCreatingItem ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Items
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Item</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('items')}
-                  aria-label="Close items tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -8188,22 +8141,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="shop">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'shop'}
+        onHide={() => handleCloseResourceTab('shop')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Shop</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'shop' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-shop-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="flex-grow-1" />
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('shop')}
-                  aria-label="Close shop tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area text-start"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -8219,27 +8174,25 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-  </Tab.Content>
-        </Tab.Container>
-        <TokenPickerModal
-          show={showEnemyTokenPicker}
-          onHide={handleCloseEnemyTokenPicker}
-          campaignId={campaignId || undefined}
-          onSelect={handleEnemyTokenSelected}
-          filterScope={enemyTokenFilterScope}
-          allowClear={Boolean(
-            enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
-          )}
-          onClear={() => handleEnemyTokenSelected(null)}
-          isDm
-        />
-        <D20RollerModal
-          show={showDiceRoller}
-          onHide={() => setShowDiceRoller(false)}
-          diceColor={activeDiceColor}
-        />
-      </Container>
+            </Modal.Body>
+      </Modal>
+      <TokenPickerModal
+        show={showEnemyTokenPicker}
+        onHide={handleCloseEnemyTokenPicker}
+        campaignId={campaignId || undefined}
+        onSelect={handleEnemyTokenSelected}
+        filterScope={enemyTokenFilterScope}
+        allowClear={Boolean(
+          enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+        )}
+        onClear={() => handleEnemyTokenSelected(null)}
+        isDm
+      />
+      <D20RollerModal
+        show={showDiceRoller}
+        onHide={() => setShowDiceRoller(false)}
+        diceColor={activeDiceColor}
+      />
 
       <Modal
         show={mapEditorState.show}
@@ -8480,74 +8433,74 @@ const resolveIcon = (category, iconMap, fallback) => {
       />
 
       <Modal
-      className="dnd-modal"
-      size="sm"
-      centered
-      show={currencyModalState.show}
-      onHide={closeCurrencyModal}
-    >
-      <Form onSubmit={handleCurrencySubmit}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            Adjust Currency{currencyModalState.character ? ` - ${currencyModalState.character.characterName}` : ''}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3" controlId="currencyCopper">
-            <Form.Label>Copper</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.cp}
-              onChange={(event) => updateCurrencyInput('cp', event.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="currencySilver">
-            <Form.Label>Silver</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.sp}
-              onChange={(event) => updateCurrencyInput('sp', event.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="currencyGold">
-            <Form.Label>Gold</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.gp}
-              onChange={(event) => updateCurrencyInput('gp', event.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-0" controlId="currencyPlatinum">
-            <Form.Label>Platinum</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.pp}
-              onChange={(event) => updateCurrencyInput('pp', event.target.value)}
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeCurrencyModal} disabled={currencySubmitting}>
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit" disabled={currencySubmitting}>
-            Update Currency
-          </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
-  <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
-    <Card className="dnd-background">
-      <Card.Header>
-        <Card.Title>Notes</Card.Title>
-      </Card.Header>
-      <Card.Body>{currentItemNote}</Card.Body>
-    </Card>
-  </Modal>
-      </div>
-    )
+        className="dnd-modal"
+        size="sm"
+        centered
+        show={currencyModalState.show}
+        onHide={closeCurrencyModal}
+      >
+        <Form onSubmit={handleCurrencySubmit}>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Adjust Currency{currencyModalState.character ? ` - ${currencyModalState.character.characterName}` : ''}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3" controlId="currencyCopper">
+              <Form.Label>Copper</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.cp}
+                onChange={(event) => updateCurrencyInput('cp', event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="currencySilver">
+              <Form.Label>Silver</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.sp}
+                onChange={(event) => updateCurrencyInput('sp', event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="currencyGold">
+              <Form.Label>Gold</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.gp}
+                onChange={(event) => updateCurrencyInput('gp', event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-0" controlId="currencyPlatinum">
+              <Form.Label>Platinum</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.pp}
+                onChange={(event) => updateCurrencyInput('pp', event.target.value)}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={closeCurrencyModal} disabled={currencySubmitting}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={currencySubmitting}>
+              Update Currency
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+      <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
+        <Card className="dnd-background">
+          <Card.Header>
+            <Card.Title>Notes</Card.Title>
+          </Card.Header>
+          <Card.Body>{currentItemNote}</Card.Body>
+        </Card>
+      </Modal>
+    </div>
+  );
 }
