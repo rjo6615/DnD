@@ -1383,6 +1383,8 @@ export default function ZombiesDM() {
       enemyId: null,
       enemyName: null,
     });
+    const [mapPlacementSaving, setMapPlacementSaving] = useState(false);
+    const [mapPlacementError, setMapPlacementError] = useState(null);
     const [showDiceRoller, setShowDiceRoller] = useState(false);
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
@@ -3785,43 +3787,6 @@ export default function ZombiesDM() {
       );
     }, [activeMapId, campaignMap, displayedMap, generatedMap]);
 
-    const modalTokensByMapId = useMemo(() => {
-      const sanitizedMapTokens = sanitizeTokensByMapId(mapTokens);
-      const merged = { ...sanitizedMapTokens };
-
-      const campaignMapId =
-        typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
-          ? campaignMap.mapId.trim()
-          : null;
-
-      if (campaignMapId) {
-        const campaignTokens = sanitizeTokenDictionary(campaignMap?.tokens);
-        if (Object.keys(campaignTokens).length > 0) {
-          merged[campaignMapId] = {
-            ...(merged[campaignMapId] || {}),
-            ...campaignTokens,
-          };
-        }
-      }
-
-      const normalizedActiveMapId =
-        typeof activeMapId === 'string' && activeMapId.trim() !== ''
-          ? activeMapId.trim()
-          : null;
-
-      if (normalizedActiveMapId) {
-        const normalizedActiveTokens = sanitizeTokenDictionary(activeMapTokens);
-        if (Object.keys(normalizedActiveTokens).length > 0) {
-          merged[normalizedActiveMapId] = {
-            ...(merged[normalizedActiveMapId] || {}),
-            ...normalizedActiveTokens,
-          };
-        }
-      }
-
-      return merged;
-    }, [activeMapId, activeMapTokens, campaignMap, mapTokens]);
-
     const boardTokens = useMemo(() => {
       const activeCharacterId =
         typeof activeParticipant?.characterId === 'string' &&
@@ -3957,6 +3922,29 @@ export default function ZombiesDM() {
       tokenMetaById,
     ]);
 
+    const placementEnemyName = useMemo(() => {
+      if (typeof mapPlacementState.enemyName === 'string' && mapPlacementState.enemyName.trim() !== '') {
+        return mapPlacementState.enemyName.trim();
+      }
+      return null;
+    }, [mapPlacementState.enemyName]);
+
+    const mapPlacementInstruction = useMemo(() => {
+      if (!mapPlacementState.show) {
+        return '';
+      }
+
+      if (!shouldShowCampaignTokens) {
+        return 'Activate the campaign map to place this enemy.';
+      }
+
+      if (placementEnemyName) {
+        return `Click the map to place ${placementEnemyName}.`;
+      }
+
+      return 'Click the map to place the enemy.';
+    }, [mapPlacementState.show, placementEnemyName, shouldShowCampaignTokens]);
+
     const handleTokenPositionChange = useCallback(
       ({ characterId, x, y, rotation }) => {
         const normalizedDisplayedMapId =
@@ -3988,36 +3976,34 @@ export default function ZombiesDM() {
       [campaignMap, displayedMap, persistTokenPosition, shouldShowCampaignTokens]
     );
 
-    const handleOpenMapPlacement = useCallback((enemyId, enemyName) => {
-      const normalizedId =
-        typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
-
-      if (!normalizedId) {
-        return;
-      }
-
-      const normalizedName =
-        typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
-
-      setMapPlacementState({
-        show: true,
-        enemyId: normalizedId,
-        enemyName: normalizedName,
-      });
-    }, []);
-
     const handleCloseMapPlacement = useCallback(() => {
       setMapPlacementState({ show: false, enemyId: null, enemyName: null });
     }, []);
 
-    const handleMapModalTokenMove = useCallback(
-      async ({ mapId, characterId, x, y, rotation }) => {
-        const normalizedMapId =
-          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+    useEffect(() => {
+      if (!mapPlacementState.show) {
+        setMapPlacementSaving(false);
+        setMapPlacementError(null);
+      }
+    }, [mapPlacementState.show]);
+
+    const commitEnemyMapPlacement = useCallback(
+      async ({ mapId, x, y, rotation }) => {
+        if (!mapPlacementState.show || !shouldShowCampaignTokens) {
+          return false;
+        }
+
         const normalizedCharacterId =
-          typeof characterId === 'string' && characterId.trim() !== ''
-            ? characterId.trim()
-            : mapPlacementState.enemyId;
+          typeof mapPlacementState.enemyId === 'string' && mapPlacementState.enemyId.trim() !== ''
+            ? mapPlacementState.enemyId.trim()
+            : null;
+        const candidateMapId =
+          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+        const normalizedDisplayedMapId =
+          typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
+            ? displayedMap.mapId.trim()
+            : null;
+        const normalizedMapId = candidateMapId || normalizedDisplayedMapId;
         const clampedX = clamp01(x);
         const clampedY = clamp01(y);
         const normalizedRotation = normalizeRotation(rotation);
@@ -4036,7 +4022,44 @@ export default function ZombiesDM() {
 
         return true;
       },
-      [mapPlacementState.enemyId, persistTokenPosition]
+      [
+        displayedMap,
+        mapPlacementState.enemyId,
+        mapPlacementState.show,
+        persistTokenPosition,
+        shouldShowCampaignTokens,
+      ]
+    );
+
+    const handleMapBackgroundPlacement = useCallback(
+      async ({ x, y }) => {
+        if (!mapPlacementState.show || mapPlacementSaving) {
+          return false;
+        }
+
+        setMapPlacementSaving(true);
+        setMapPlacementError(null);
+
+        try {
+          const result = await commitEnemyMapPlacement({ x, y });
+          if (!result) {
+            setMapPlacementError('Unable to update figurine position.');
+            return false;
+          }
+
+          handleCloseMapPlacement();
+          return true;
+        } catch (error) {
+          const message =
+            (error && typeof error.message === 'string' && error.message.trim()) ||
+            'Failed to update figurine position.';
+          setMapPlacementError(message);
+          return false;
+        } finally {
+          setMapPlacementSaving(false);
+        }
+      },
+      [commitEnemyMapPlacement, handleCloseMapPlacement, mapPlacementSaving, mapPlacementState.show]
     );
 
 
@@ -4063,6 +4086,29 @@ export default function ZombiesDM() {
 
       setActiveResourceTab((current) => (current === key ? null : key));
     }, []);
+
+    const handleOpenMapPlacement = useCallback(
+      (enemyId, enemyName) => {
+        const normalizedId =
+          typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
+
+        if (!normalizedId) {
+          return;
+        }
+
+        const normalizedName =
+          typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
+
+        setMapPlacementState({
+          show: true,
+          enemyId: normalizedId,
+          enemyName: normalizedName,
+        });
+
+        setActiveResourceTab((current) => (current === 'enemies' ? null : current));
+      },
+      [setActiveResourceTab, setMapPlacementState]
+    );
 
     useEffect(() => {
       if (
@@ -5970,12 +6016,19 @@ const resolveIcon = (category, iconMap, fallback) => {
             className="zombies-dm-page__map-board"
             map={displayedMap}
             tokens={boardTokens}
-            disabled={!shouldShowCampaignTokens}
+            disabled={!shouldShowCampaignTokens || mapPlacementSaving}
             allowWheelZoom
             onTokenPositionChange={
-              shouldShowCampaignTokens ? handleTokenPositionChange : undefined
+              shouldShowCampaignTokens && !mapPlacementSaving
+                ? handleTokenPositionChange
+                : undefined
             }
             onTokenRemove={handleMapTokenRemove}
+            onBackgroundClick={
+              mapPlacementState.show && shouldShowCampaignTokens && !mapPlacementSaving
+                ? handleMapBackgroundPlacement
+                : undefined
+            }
           />
         ) : (
           <div className="zombies-dm-page__map-empty text-light">
@@ -5994,6 +6047,52 @@ const resolveIcon = (category, iconMap, fallback) => {
           >
             {status.message}
           </Alert>
+        )}
+
+        {mapPlacementState.show && (
+          <div
+            className="zombies-dm-page__map-placement-overlay"
+            data-testid="map-placement-overlay"
+          >
+            <div
+              className="zombies-dm-page__map-placement-message"
+              aria-live="polite"
+            >
+              {mapPlacementSaving ? (
+                <>
+                  <Spinner
+                    animation="border"
+                    role="status"
+                    size="sm"
+                    className="me-2"
+                  >
+                    <span className="visually-hidden">Saving figurine position…</span>
+                  </Spinner>
+                  <span>Saving figurine position…</span>
+                </>
+              ) : (
+                <span>{mapPlacementInstruction}</span>
+              )}
+            </div>
+            {mapPlacementError && (
+              <div
+                className="zombies-dm-page__map-placement-error"
+                role="alert"
+              >
+                {mapPlacementError}
+              </div>
+            )}
+            <div className="zombies-dm-page__map-placement-actions">
+              <Button
+                variant="outline-light"
+                size="sm"
+                onClick={handleCloseMapPlacement}
+                disabled={mapPlacementSaving}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         )}
 
         {campaignTitle && (
@@ -8422,29 +8521,6 @@ const resolveIcon = (category, iconMap, fallback) => {
         actionInProgressId={mapActionLoadingId}
         activeCharacterId={activeParticipant?.characterId}
       />
-
-      <MapModal
-        show={mapPlacementState.show}
-        onHide={handleCloseMapPlacement}
-        title={
-          mapPlacementState.enemyName
-            ? `Place ${mapPlacementState.enemyName}`
-            : 'Place Enemy on Map'
-        }
-        maps={maps}
-        map={campaignMap}
-        activeMapId={activeMapId}
-        selectedMapId={selectedMapId}
-        onSelectMap={handleSelectMap}
-        tokensByMapId={modalTokensByMapId}
-        currentCharacterId={mapPlacementState.enemyId}
-        activeCharacterId={activeParticipant?.characterId}
-        characterLookup={tokenMetaById}
-        onTokenMove={handleMapModalTokenMove}
-        onTokenRemove={handleMapTokenRemove}
-        readOnly={false}
-      />
-
       <Modal
         className="dnd-modal"
         size="sm"

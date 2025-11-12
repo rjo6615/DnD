@@ -1912,7 +1912,7 @@ describe('ZombiesDM AI generation', () => {
     ).toContain('Hero');
   });
 
-  test('opens map placement modal for enemies and persists placement moves', async () => {
+  test('allows the DM to place enemies directly on the campaign map surface', async () => {
     const enemies = [
       {
         enemyId: 'enemy-1',
@@ -1975,32 +1975,27 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(within(enemiesCard).getByText('Goblin')).toBeInTheDocument());
 
     const placeButton = within(enemiesCard).getByRole('button', { name: 'Place on Map' });
-
-    MapModal.mockClear();
-
+    CampaignMapBoard.mockClear();
     await userEvent.click(placeButton);
 
-    let placementProps;
-    await waitFor(() => {
-      const placementCalls = MapModal.mock.calls
-        .map(([props]) => props)
-        .filter((props) => props && props.readOnly === false && typeof props.onTokenMove === 'function');
-      expect(placementCalls.length).toBeGreaterThan(0);
-      placementProps = placementCalls[placementCalls.length - 1];
-      expect(placementProps.show).toBe(true);
-      expect(placementProps.currentCharacterId).toBe('enemy-1');
-    });
+    await waitFor(() =>
+      expect(screen.queryByTestId('resource-enemies-card')).not.toBeInTheDocument()
+    );
+
+    const overlay = await screen.findByTestId('map-placement-overlay');
+    expect(overlay).toHaveTextContent('Click the map to place Goblin.');
+
+    const boardCalls = CampaignMapBoard.mock.calls;
+    expect(boardCalls.length).toBeGreaterThan(0);
+    const placementBoardProps = boardCalls[boardCalls.length - 1][0];
+    expect(typeof placementBoardProps.onBackgroundClick).toBe('function');
+    expect(typeof placementBoardProps.onTokenRemove).toBe('function');
 
     apiFetch.mockClear();
 
-    await expect(
-      placementProps.onTokenMove({
-        mapId: 'map-123',
-        characterId: 'enemy-1',
-        x: 1.7,
-        y: -0.3,
-      })
-    ).resolves.toBe(true);
+    await act(async () => {
+      await placementBoardProps.onBackgroundClick({ x: 1.7, y: -0.3 });
+    });
 
     await waitFor(() => {
       expect(apiFetch).toHaveBeenCalledWith(
@@ -2013,10 +2008,16 @@ describe('ZombiesDM AI generation', () => {
       );
     });
 
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-placement-overlay')).not.toBeInTheDocument()
+    );
+
     apiFetch.mockClear();
 
+    const latestBoardProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+
     await expect(
-      placementProps.onTokenRemove({
+      latestBoardProps.onTokenRemove({
         mapId: 'map-123',
         characterId: 'enemy-1',
       })
