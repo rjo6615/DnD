@@ -5947,7 +5947,7 @@ const resolveIcon = (category, iconMap, fallback) => {
 // -----------------------------------Display-----------------------------------------------------------------------------
   return (
     <div
-      className="zombies-dm-page pt-2 text-center"
+      className="zombies-dm-page text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
         backgroundImage: `url(${loginbg})`,
@@ -5956,49 +5956,52 @@ const resolveIcon = (category, iconMap, fallback) => {
         minHeight: '100vh',
       }}
     >
-      <div className="zombies-dm-page__content">
-        <div style={{ paddingTop: '5rem' }}></div>
+      <div className="zombies-dm-page__map-surface" role="presentation">
+        {displayedMap ? (
+          <CampaignMapBoard
+            className="zombies-dm-page__map-board"
+            map={displayedMap}
+            tokens={boardTokens}
+            disabled={!shouldShowCampaignTokens}
+            allowWheelZoom
+            onTokenPositionChange={
+              shouldShowCampaignTokens ? handleTokenPositionChange : undefined
+            }
+            onTokenRemove={handleMapTokenRemove}
+          />
+        ) : (
+          <div className="zombies-dm-page__map-empty text-light">
+            No map selected.
+          </div>
+        )}
+      </div>
+
+      <div className="zombies-dm-page__chrome">
         {status && (
-          <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
+          <Alert
+            variant={status.type}
+            dismissible
+            onClose={() => setStatus(null)}
+            className="zombies-dm-page__status-alert"
+          >
             {status.message}
           </Alert>
         )}
 
-        <div
-          className="zombies-dm-page__title"
-          style={{ position: 'relative', zIndex: '4' }}
-        >
+        <div className="zombies-dm-page__title">
           <h2 className="text-white text-center mb-0">
             {campaignDM.campaignName ?? params.campaign}
           </h2>
         </div>
 
-        <div className="zombies-dm-page__map-area">
-          {displayedMap ? (
-            <>
-              <div className="zombies-dm-page__map-heading">
-                <span className="zombies-dm-page__map-heading-label">Active Map</span>
-                <span className="zombies-dm-page__map-heading-title">
-                  {getMapDisplayTitle(displayedMap, DEFAULT_MAP_TITLE)}
-                </span>
-              </div>
-              <CampaignMapBoard
-                map={displayedMap}
-                tokens={boardTokens}
-                disabled={!shouldShowCampaignTokens}
-                allowWheelZoom
-                onTokenPositionChange={
-                  shouldShowCampaignTokens ? handleTokenPositionChange : undefined
-                }
-                onTokenRemove={handleMapTokenRemove}
-              />
-            </>
-          ) : (
-            <div className="zombies-dm-page__map-empty text-light">
-              No map selected.
-            </div>
-          )}
-        </div>
+        {displayedMap && (
+          <div className="zombies-dm-page__map-heading">
+            <span className="zombies-dm-page__map-heading-label">Active Map</span>
+            <span className="zombies-dm-page__map-heading-title">
+              {getMapDisplayTitle(displayedMap, DEFAULT_MAP_TITLE)}
+            </span>
+          </div>
+        )}
       </div>
 
       <div
@@ -6006,18 +6009,26 @@ const resolveIcon = (category, iconMap, fallback) => {
         role="toolbar"
         aria-label="Dungeon Master resources"
       >
-        {RESOURCE_TABS.map(({ key, title }) => (
-          <Button
-            key={key}
-            type="button"
-            variant={activeResourceTab === key ? 'primary' : 'outline-light'}
-            className="zombies-dm-bottom-bar__button"
-            onClick={() => handleSelectResourceTab(key)}
-            aria-pressed={activeResourceTab === key}
-          >
-            {title}
-          </Button>
-        ))}
+        {RESOURCE_TABS.map(({ key, title }) => {
+          const isActiveTab = activeResourceTab === key;
+          const tabClassName = `zombies-dm-bottom-bar__button btn ${
+            isActiveTab ? 'btn-primary' : 'btn-outline-light'
+          }`;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              className={tabClassName}
+              onClick={() => handleSelectResourceTab(key)}
+              role="tab"
+              aria-selected={isActiveTab}
+              aria-pressed={isActiveTab}
+            >
+              {title}
+            </button>
+          );
+        })}
       </div>
 
           <Modal
