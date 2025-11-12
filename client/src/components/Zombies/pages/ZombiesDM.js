@@ -66,7 +66,9 @@ import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
+import ActiveEnemyQuickList from '../components/ActiveEnemyQuickList';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
+import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -871,6 +873,129 @@ const normalizeCombatState = (state) => {
   return { participants: sortedParticipants, activeTurn };
 };
 
+export const createActiveMapEnemySummaries = ({
+  activeMapTokens,
+  enemies,
+  tokenMetaById = {},
+  participantLookup,
+  formatArmorClass,
+  formatChallengeRatingValue,
+}) => {
+  if (
+    !Array.isArray(enemies) ||
+    enemies.length === 0 ||
+    !activeMapTokens ||
+    typeof activeMapTokens !== 'object'
+  ) {
+    return [];
+  }
+
+  const activeEnemyIds = new Set();
+  Object.entries(activeMapTokens).forEach(([key, token]) => {
+    const candidateId =
+      (typeof key === 'string' && key.trim()) ||
+      (typeof token?.characterId === 'string' && token.characterId.trim()) ||
+      null;
+    if (!candidateId) {
+      return;
+    }
+
+    const meta = tokenMetaById?.[candidateId];
+    if (meta?.entityType === 'enemy') {
+      activeEnemyIds.add(candidateId);
+    }
+  });
+
+  if (activeEnemyIds.size === 0) {
+    return [];
+  }
+
+  const summaries = enemies
+    .filter((enemy) => {
+      if (!enemy || typeof enemy.enemyId !== 'string') {
+        return false;
+      }
+      const trimmedId = enemy.enemyId.trim();
+      if (!trimmedId) {
+        return false;
+      }
+      return activeEnemyIds.has(trimmedId);
+    })
+    .map((enemy) => {
+      const resolvedChallengeValue =
+        typeof formatChallengeRatingValue === 'function'
+          ? formatChallengeRatingValue(enemy.challengeRating)
+          : enemy.challengeRating;
+      const challengeText =
+        enemy.challengeRating !== null && enemy.challengeRating !== undefined
+          ? `CR ${resolvedChallengeValue}`
+          : null;
+      const sizeDisplay = enemy.size || enemy.displayType || '—';
+      const armorClassDisplay =
+        typeof formatArmorClass === 'function'
+          ? formatArmorClass(enemy.armorClass)
+          : '—';
+      const maxHpValue = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+      const currentHpCandidate =
+        enemy.currentHp !== undefined
+          ? toFiniteNumberOrNull(enemy.currentHp)
+          : null;
+      const resolvedCurrentHp =
+        currentHpCandidate !== null
+          ? currentHpCandidate
+          : maxHpValue !== null
+            ? maxHpValue
+            : null;
+      const healthSummary =
+        maxHpValue !== null
+          ? `${resolvedCurrentHp !== null ? resolvedCurrentHp : '—'} / ${maxHpValue}`
+          : resolvedCurrentHp !== null
+            ? `${resolvedCurrentHp}`
+            : '—';
+
+      let inCombat = false;
+      if (enemy.enemyId) {
+        if (participantLookup && typeof participantLookup.get === 'function') {
+          inCombat = Boolean(participantLookup.get(enemy.enemyId));
+        } else if (
+          participantLookup &&
+          typeof participantLookup === 'object' &&
+          enemy.enemyId in participantLookup
+        ) {
+          inCombat = Boolean(participantLookup[enemy.enemyId]);
+        }
+      }
+
+      return {
+        enemy,
+        challengeText,
+        sizeDisplay,
+        armorClassDisplay,
+        maxHpValue,
+        resolvedCurrentHp,
+        healthSummary,
+        inCombat,
+      };
+    });
+
+  summaries.sort((a, b) => {
+    const nameA = (a.enemy?.name || '').toLowerCase();
+    const nameB = (b.enemy?.name || '').toLowerCase();
+    if (nameA && nameB) {
+      return nameA.localeCompare(nameB);
+    }
+    if (nameA) {
+      return -1;
+    }
+    if (nameB) {
+      return 1;
+    }
+    return 0;
+  });
+
+  return summaries;
+};
+
 const applyDerivedInitiativesToParticipants = (participants, initiativeMap) => {
   if (!Array.isArray(participants) || !initiativeMap || initiativeMap.size === 0) {
     return participants;
@@ -1048,13 +1173,6 @@ const getNormalizedIdentifiers = (entity) => {
     identifiers.push(entity.characterId.trim());
   }
   return Array.from(new Set(identifiers));
-};
-
-const sanitizeIdentifierForTestId = (value, fallback) => {
-  if (typeof value === 'string' && value.trim() !== '') {
-    return value.trim().replace(/[^0-9A-Za-z_-]/g, '-');
-  }
-  return fallback;
 };
 
 export const matchesCharacterIdentifier = (record, normalizedCharacterId) => {
@@ -3759,6 +3877,21 @@ export default function ZombiesDM() {
 
     const displayedMap = generatedMap || previewMap || campaignMap;
 
+    const activeMapTitle = useMemo(() => {
+      if (campaignMap) {
+        return getMapDisplayTitle(campaignMap, DEFAULT_MAP_TITLE);
+      }
+      if (
+        displayedMap &&
+        typeof displayedMap.mapId === 'string' &&
+        typeof activeMapId === 'string' &&
+        displayedMap.mapId.trim() === activeMapId.trim()
+      ) {
+        return getMapDisplayTitle(displayedMap, DEFAULT_MAP_TITLE);
+      }
+      return null;
+    }, [activeMapId, campaignMap, displayedMap]);
+
     const shouldShowCampaignTokens = useMemo(() => {
       const normalizedDisplayedMapId =
         typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
@@ -3921,6 +4054,26 @@ export default function ZombiesDM() {
       mapTokens,
       tokenMetaById,
     ]);
+
+    const activeMapEnemySummaries = useMemo(
+      () =>
+        createActiveMapEnemySummaries({
+          activeMapTokens,
+          enemies,
+          tokenMetaById,
+          participantLookup,
+          formatArmorClass,
+          formatChallengeRatingValue,
+        }),
+      [
+        activeMapTokens,
+        enemies,
+        formatArmorClass,
+        formatChallengeRatingValue,
+        participantLookup,
+        tokenMetaById,
+      ]
+    );
 
     const placementEnemyName = useMemo(() => {
       if (typeof mapPlacementState.enemyName === 'string' && mapPlacementState.enemyName.trim() !== '') {
@@ -4086,6 +4239,10 @@ export default function ZombiesDM() {
 
       setActiveResourceTab((current) => (current === key ? null : key));
     }, []);
+
+    const handleShowEnemiesTab = useCallback(() => {
+      setActiveResourceTab('enemies');
+    }, [setActiveResourceTab]);
 
     const handleOpenMapPlacement = useCallback(
       (enemyId, enemyName) => {
@@ -6103,6 +6260,20 @@ const resolveIcon = (category, iconMap, fallback) => {
             </span>
           </div>
         )}
+
+        <ActiveEnemyQuickList
+          summaries={activeMapEnemySummaries}
+          activeMapTitle={activeMapTitle}
+          onManageEnemies={handleShowEnemiesTab}
+          onToggleParticipant={handleToggleParticipant}
+          onOpenMapPlacement={handleOpenMapPlacement}
+          onViewDetails={handleShowEnemiesTab}
+          enemyHealthAdjustments={enemyHealthAdjustments}
+          enemyHealthSaving={enemyHealthSaving}
+          onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
+          onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
+          onResetEnemyHealth={handleResetEnemyHealth}
+        />
       </div>
 
       <div
