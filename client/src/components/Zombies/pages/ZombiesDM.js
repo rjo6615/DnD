@@ -881,6 +881,7 @@ export const createActiveMapEnemySummaries = ({
   participantLookup,
   formatArmorClass,
   formatChallengeRatingValue,
+  activeParticipantId,
 }) => {
   if (
     !Array.isArray(enemies) ||
@@ -910,6 +911,11 @@ export const createActiveMapEnemySummaries = ({
   if (activeEnemyIds.size === 0) {
     return [];
   }
+
+  const normalizedActiveParticipantId =
+    typeof activeParticipantId === 'string' && activeParticipantId.trim() !== ''
+      ? activeParticipantId.trim()
+      : null;
 
   const summaries = enemies
     .filter((enemy) => {
@@ -967,6 +973,15 @@ export const createActiveMapEnemySummaries = ({
         }
       }
 
+      const normalizedEnemyId =
+        typeof enemy.enemyId === 'string' && enemy.enemyId.trim() !== ''
+          ? enemy.enemyId.trim()
+          : null;
+      const isActiveTurn =
+        normalizedEnemyId &&
+        normalizedActiveParticipantId &&
+        normalizedEnemyId === normalizedActiveParticipantId;
+
       return {
         enemy,
         challengeText,
@@ -976,6 +991,7 @@ export const createActiveMapEnemySummaries = ({
         resolvedCurrentHp,
         healthSummary,
         inCombat,
+        ...(isActiveTurn ? { isActiveTurn: true } : {}),
       };
     });
 
@@ -4180,6 +4196,7 @@ export default function ZombiesDM() {
           participantLookup,
           formatArmorClass,
           formatChallengeRatingValue,
+          activeParticipantId: activeParticipant?.characterId,
         }),
       [
         activeMapTokens,
@@ -4187,6 +4204,7 @@ export default function ZombiesDM() {
         formatArmorClass,
         formatChallengeRatingValue,
         participantLookup,
+        activeParticipant?.characterId,
         tokenMetaById,
       ]
     );
