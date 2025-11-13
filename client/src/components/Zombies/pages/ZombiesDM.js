@@ -7496,6 +7496,19 @@ const resolveIcon = (category, iconMap, fallback) => {
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
             >
               <div className="text-center">
+                {!isCreatingWeapon && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingWeapon(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Weapon
+                    </Button>
+                  </div>
+                )}
                 {isCreatingWeapon ? (
                   <Form onSubmit={onSubmit2} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -7715,6 +7728,19 @@ const resolveIcon = (category, iconMap, fallback) => {
               style={{ maxHeight: '70vh', overflowY: 'auto' }}
             >
               <div className="text-center">
+                {!isCreatingArmor && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingArmor(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Armor
+                    </Button>
+                  </div>
+                )}
                 {isCreatingArmor ? (
                   <Form onSubmit={onSubmit3} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -7965,6 +7991,19 @@ const resolveIcon = (category, iconMap, fallback) => {
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
             >
               <div className="text-center">
+                {!isCreatingAccessory && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingAccessory(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Accessory
+                    </Button>
+                  </div>
+                )}
                 {isCreatingAccessory ? (
                   <Form onSubmit={onSubmitAccessory} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -8219,6 +8258,19 @@ const resolveIcon = (category, iconMap, fallback) => {
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
             >
               <div className="text-center">
+                {!isCreatingItem && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingItem(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Item
+                    </Button>
+                  </div>
+                )}
                 {isCreatingItem ? (
                   <Form onSubmit={onSubmit4} className="px-5">
                     <Form.Group className="mb-3 pt-3">
