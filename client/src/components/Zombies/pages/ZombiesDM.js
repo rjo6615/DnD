@@ -6388,6 +6388,10 @@ const resolveIcon = (category, iconMap, fallback) => {
           summaries={activeMapEnemySummaries}
           activeMapTitle={activeMapTitle}
           onManageEnemies={handleShowEnemiesTab}
+          onResetInitiative={handleResetInitiative}
+          onRollInitiative={handleRollInitiative}
+          onAdvanceTurn={handleAdvanceTurn}
+          combatControlsDisabled={combatParticipantCount === 0}
           onToggleParticipant={handleToggleParticipant}
           onOpenMapPlacement={handleOpenMapPlacement}
           onViewDetails={handleShowEnemiesTab}

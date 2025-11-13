@@ -202,6 +202,10 @@ export function ActiveEnemyQuickList({
   summaries,
   activeMapTitle,
   onManageEnemies,
+  onResetInitiative,
+  onRollInitiative,
+  onAdvanceTurn,
+  combatControlsDisabled = false,
   onToggleParticipant,
   onOpenMapPlacement,
   onViewDetails,
@@ -240,6 +244,50 @@ export function ActiveEnemyQuickList({
           </div>
         </div>
         <div className="zombies-dm-active-enemies__actions">
+          {(onResetInitiative || onRollInitiative || onAdvanceTurn) && (
+            <div className="d-inline-flex align-items-center gap-2 me-2">
+              {onResetInitiative && (
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={onResetInitiative}
+                  disabled={combatControlsDisabled}
+                >
+                  Clear Initiative
+                </Button>
+              )}
+              {onRollInitiative && (
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={onRollInitiative}
+                  disabled={combatControlsDisabled}
+                >
+                  Roll Initiative
+                </Button>
+              )}
+              {onAdvanceTurn && (
+                <>
+                  <Button
+                    variant="outline-light"
+                    size="sm"
+                    onClick={() => onAdvanceTurn(-1)}
+                    disabled={combatControlsDisabled}
+                  >
+                    Previous Turn
+                  </Button>
+                  <Button
+                    variant="outline-light"
+                    size="sm"
+                    onClick={() => onAdvanceTurn(1)}
+                    disabled={combatControlsDisabled}
+                  >
+                    Next Turn
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           <Button
             variant="outline-light"
             size="sm"
