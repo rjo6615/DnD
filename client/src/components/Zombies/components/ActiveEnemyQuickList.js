@@ -12,6 +12,7 @@ export function ActiveEnemyQuickCard({
   resolvedCurrentHp,
   healthSummary,
   inCombat,
+  isActiveTurn = false,
   onToggleParticipant,
   onOpenMapPlacement,
   onViewDetails,
@@ -52,13 +53,23 @@ export function ActiveEnemyQuickCard({
   const healthText = healthSummary;
   const identifier = sanitizeIdentifierForTestId(normalizedEnemyId, 'active-enemy');
   const label = enemy.name || enemy.displayType || normalizedEnemyId || 'enemy';
+  const cardClassName = [
+    'resource-card',
+    'enemy-card',
+    'enemy-quick-card',
+    'text-start',
+    isActiveTurn ? 'enemy-quick-card--active-turn' : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <Card
-      className="resource-card enemy-card enemy-quick-card text-start"
+      className={cardClassName}
       data-testid="active-map-enemy-card"
       data-enemy-id={normalizedEnemyId || undefined}
       id={identifier ? `active-enemy-${identifier}` : undefined}
+      aria-current={isActiveTurn ? 'true' : undefined}
     >
       <Card.Body className="d-flex flex-column gap-2">
         <div className="enemy-quick-card__header">
@@ -68,9 +79,16 @@ export function ActiveEnemyQuickCard({
               {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
             </Card.Subtitle>
           </div>
-          <Badge bg="secondary" className="enemy-quick-card__badge">
-            AC {armorClassDisplay}
-          </Badge>
+          <div className="enemy-quick-card__badges">
+            {isActiveTurn && (
+              <Badge bg="warning" text="dark" className="enemy-quick-card__active-badge">
+                Active Turn
+              </Badge>
+            )}
+            <Badge bg="secondary" className="enemy-quick-card__badge">
+              AC {armorClassDisplay}
+            </Badge>
+          </div>
         </div>
         <div className="enemy-quick-card__meta-line">
           <span className="enemy-card__summary-label">Size:</span>
@@ -332,12 +350,13 @@ export function ActiveEnemyQuickList({
             onOpenMapPlacement={onOpenMapPlacement}
             onViewDetails={onViewDetails}
             enemyHealthAdjustments={enemyHealthAdjustments}
-            enemyHealthSaving={enemyHealthSaving}
-            onEnemyAdjustmentInputChange={onEnemyAdjustmentInputChange}
-            onApplyEnemyHealthAdjustment={onApplyEnemyHealthAdjustment}
-            onResetEnemyHealth={onResetEnemyHealth}
-          />
-        ))}
+          enemyHealthSaving={enemyHealthSaving}
+          onEnemyAdjustmentInputChange={onEnemyAdjustmentInputChange}
+          onApplyEnemyHealthAdjustment={onApplyEnemyHealthAdjustment}
+          onResetEnemyHealth={onResetEnemyHealth}
+          isActiveTurn={summary.isActiveTurn}
+        />
+      ))}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ describe('createActiveMapEnemySummaries', () => {
     participantLookup: new Map(),
     formatArmorClass: () => '—',
     formatChallengeRatingValue: (value) => value,
+    activeParticipantId: null,
   };
 
   it('returns an empty array when no enemy tokens exist on the active map', () => {
@@ -59,6 +60,31 @@ describe('createActiveMapEnemySummaries', () => {
       healthSummary: '12 / 12',
       inCombat: true,
     });
+    expect(results[0].isActiveTurn).not.toBe(true);
+  });
+
+  it('marks the enemy whose turn is active', () => {
+    const results = createActiveMapEnemySummaries({
+      ...baseOptions,
+      activeParticipantId: 'enemy-2',
+      activeMapTokens: {
+        'enemy-1': { characterId: 'enemy-1' },
+        'enemy-2': { characterId: 'enemy-2' },
+      },
+      tokenMetaById: {
+        'enemy-1': { entityType: 'enemy' },
+        'enemy-2': { entityType: 'enemy' },
+      },
+      enemies: [
+        { enemyId: 'enemy-1', name: 'Goblin', hitPoints: 7 },
+        { enemyId: 'enemy-2', name: 'Orc', hitPoints: 15 },
+      ],
+    });
+
+    const active = results.find((entry) => entry.enemy.enemyId === 'enemy-2');
+    expect(active?.isActiveTurn).toBe(true);
+    const inactive = results.find((entry) => entry.enemy.enemyId === 'enemy-1');
+    expect(inactive?.isActiveTurn).not.toBe(true);
   });
 
   it('sorts summaries alphabetically by enemy name', () => {

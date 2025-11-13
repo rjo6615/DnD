@@ -793,8 +793,25 @@
   align-items: flex-start;
 }
 
+.enemy-quick-card__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
 .enemy-quick-card__badge {
   font-size: 0.75rem;
+}
+
+.enemy-quick-card__active-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-inline: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.35);
 }
 
 .enemy-quick-card__meta-line {
@@ -802,6 +819,15 @@
   justify-content: space-between;
   gap: 0.5rem;
   font-size: 0.85rem;
+}
+
+.enemy-quick-card--active-turn {
+  border-color: rgba(255, 193, 7, 0.85);
+  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.3);
+}
+
+.enemy-quick-card--active-turn .enemy-card__health-bar-fill {
+  background: var(--bs-warning);
 }
 
 .enemy-quick-card__actions {

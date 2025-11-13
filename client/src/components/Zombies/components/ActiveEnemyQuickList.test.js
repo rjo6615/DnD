@@ -124,4 +124,12 @@ describe('ActiveEnemyQuickList', () => {
     renderList({ summaries: [] });
     expect(screen.queryByTestId('active-map-enemies')).not.toBeInTheDocument();
   });
+
+  it('highlights the active enemy card', () => {
+    renderList({ summaries: [{ ...baseSummary, isActiveTurn: true }] });
+
+    const card = screen.getByTestId('active-map-enemy-card');
+    expect(card).toHaveClass('enemy-quick-card--active-turn');
+    expect(screen.getByText('Active Turn')).toBeInTheDocument();
+  });
 });
