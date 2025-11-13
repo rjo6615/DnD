@@ -223,6 +223,17 @@ export function ActiveEnemyQuickCard({
             Reset
           </Button>
         </div>
+        {Array.isArray(enemy?.actions) && enemy.actions.length > 0 && (
+          <EnemyQuickAttacksSection
+            enemy={enemy}
+            actions={enemy.actions}
+            normalizedEnemyId={normalizedEnemyId}
+            onEnemyDamageRoll={onEnemyDamageRoll}
+            formatAttackBonus={formatAttackBonus}
+            getEnemyActionDamageString={getEnemyActionDamageString}
+            latestEnemyRoll={latestEnemyRoll}
+          />
+        )}
         <div className="enemy-quick-card__actions">
           <Button
             variant={inCombat ? 'success' : 'outline-primary'}
