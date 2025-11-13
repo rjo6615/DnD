@@ -32,6 +32,10 @@ describe('ActiveEnemyQuickList', () => {
       onEnemyAdjustmentInputChange: jest.fn(),
       onApplyEnemyHealthAdjustment: jest.fn(),
       onResetEnemyHealth: jest.fn(),
+      formatAttackBonus: undefined,
+      getEnemyActionDamageString: undefined,
+      onEnemyDamageRoll: undefined,
+      latestEnemyRoll: undefined,
       ...overrides,
     };
 
@@ -131,5 +135,52 @@ describe('ActiveEnemyQuickList', () => {
     const card = screen.getByTestId('active-map-enemy-card');
     expect(card).toHaveClass('enemy-quick-card--active-turn');
     expect(screen.getByText('Active Turn')).toBeInTheDocument();
+  });
+
+  it('displays attack actions with roll controls when available', async () => {
+    const formatAttackBonus = jest.fn((bonus) => (bonus >= 0 ? `+${bonus}` : `${bonus}`));
+    const getEnemyActionDamageString = jest.fn((action) =>
+      action?.name === 'Scimitar' ? '1d6 slashing' : null
+    );
+    const onEnemyDamageRoll = jest.fn();
+    const latestEnemyRoll = {
+      enemyId: 'enemy-1',
+      actionName: 'Scimitar',
+      total: 11,
+      breakdown: '1d6 (8) + 3',
+    };
+
+    const props = renderList({
+      formatAttackBonus,
+      getEnemyActionDamageString,
+      onEnemyDamageRoll,
+      latestEnemyRoll,
+      summaries: [
+        {
+          ...baseSummary,
+          enemy: {
+            ...baseSummary.enemy,
+            actions: [
+              { name: 'Scimitar', attack_bonus: 4 },
+              { name: 'Hide' },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(screen.getByText('Attacks')).toBeInTheDocument();
+    expect(screen.getByText('Scimitar')).toBeInTheDocument();
+    expect(screen.getByText('Attack Bonus: +4')).toBeInTheDocument();
+    expect(screen.getByText('Damage: 1d6 slashing')).toBeInTheDocument();
+
+    const rollButton = screen.getByRole('button', { name: /^Roll$/i });
+    await userEvent.click(rollButton);
+
+    expect(props.onEnemyDamageRoll).toHaveBeenCalledWith(
+      expect.objectContaining({ enemyId: 'enemy-1' }),
+      expect.objectContaining({ name: 'Scimitar' })
+    );
+    expect(screen.getByText('Result: 11 damage (1d6 (8) + 3)')).toBeInTheDocument();
   });
 });
