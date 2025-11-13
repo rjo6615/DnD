@@ -222,15 +222,6 @@ export function ActiveEnemyQuickCard({
             Reset
           </Button>
         </div>
-        {hasQuickAttacks && (
-          <EnemyQuickAttacksSection
-            quickAttacks={quickAttacks}
-            enemy={enemy}
-            normalizedEnemyId={normalizedEnemyId}
-            onEnemyDamageRoll={onEnemyDamageRoll}
-            latestEnemyRoll={latestEnemyRoll}
-          />
-        )}
         <div className="enemy-quick-card__actions">
           <Button
             variant={inCombat ? 'success' : 'outline-primary'}
@@ -302,56 +293,6 @@ function FormControlButtonInput({ value, disabled, onChange }) {
       onChange={onChange}
       aria-label="Health adjustment"
     />
-  );
-}
-
-function EnemyQuickAttacksSection({
-  quickAttacks,
-  enemy,
-  normalizedEnemyId,
-  onEnemyDamageRoll,
-  latestEnemyRoll,
-}) {
-  if (!Array.isArray(quickAttacks) || quickAttacks.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="enemy-card__quick-attacks" aria-label="Enemy quick attacks">
-      <div className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
-        Attacks
-      </div>
-      <div className="d-flex flex-column gap-2">
-        {quickAttacks.map(
-          ({ action, actionLabel, attackBonusDisplay, damageDisplay, actionKey, isLatestRoll }) => (
-            <div key={actionKey} className="enemy-card__attack enemy-card__attack--compact">
-              <div className="enemy-card__attack-header">
-                <div className="fw-semibold small text-body">{actionLabel}</div>
-                <div className="small text-muted">Attack Bonus: {attackBonusDisplay ?? '—'}</div>
-                <div className="small text-muted">Damage: {damageDisplay || '—'}</div>
-              </div>
-              <div className="enemy-card__attack-actions">
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() =>
-                    normalizedEnemyId && onEnemyDamageRoll && onEnemyDamageRoll(enemy, action)
-                  }
-                  disabled={!onEnemyDamageRoll || !normalizedEnemyId}
-                >
-                  Roll
-                </Button>
-              </div>
-              {isLatestRoll && latestEnemyRoll?.breakdown && (
-                <div className="mt-2 small fw-semibold text-primary">
-                  {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
-                </div>
-              )}
-            </div>
-          )
-        )}
-      </div>
-    </div>
   );
 }
 
