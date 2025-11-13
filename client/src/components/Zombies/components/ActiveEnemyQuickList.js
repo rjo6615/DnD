@@ -21,6 +21,10 @@ export function ActiveEnemyQuickCard({
   onEnemyAdjustmentInputChange,
   onApplyEnemyHealthAdjustment,
   onResetEnemyHealth,
+  onEnemyDamageRoll,
+  formatAttackBonus,
+  getEnemyActionDamageString,
+  latestEnemyRoll,
 }) {
   if (!enemy) {
     return null;
@@ -164,6 +168,17 @@ export function ActiveEnemyQuickCard({
             Reset
           </Button>
         </div>
+        {Array.isArray(enemy?.actions) && enemy.actions.length > 0 && (
+          <EnemyQuickAttacksSection
+            enemy={enemy}
+            actions={enemy.actions}
+            normalizedEnemyId={normalizedEnemyId}
+            onEnemyDamageRoll={onEnemyDamageRoll}
+            formatAttackBonus={formatAttackBonus}
+            getEnemyActionDamageString={getEnemyActionDamageString}
+            latestEnemyRoll={latestEnemyRoll}
+          />
+        )}
         <div className="enemy-quick-card__actions">
           <Button
             variant={inCombat ? 'success' : 'outline-primary'}
@@ -216,6 +231,102 @@ function FormControlButtonInput({ value, disabled, onChange }) {
   );
 }
 
+function EnemyQuickAttacksSection({
+  enemy,
+  actions,
+  normalizedEnemyId,
+  onEnemyDamageRoll,
+  formatAttackBonus,
+  getEnemyActionDamageString,
+  latestEnemyRoll,
+}) {
+  const quickAttacks = React.useMemo(() => {
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return [];
+    }
+
+    return actions
+      .map((action, index) => {
+        const actionLabel = action?.name || 'Action';
+        const damageDisplay =
+          typeof getEnemyActionDamageString === 'function'
+            ? getEnemyActionDamageString(action)
+            : null;
+
+        if (!damageDisplay) {
+          return null;
+        }
+
+        const attackBonusDisplay =
+          typeof formatAttackBonus === 'function'
+            ? formatAttackBonus(action?.attack_bonus)
+            : null;
+        const actionKey = `${normalizedEnemyId || 'enemy'}-${actionLabel}-${index}`;
+        const isLatestRoll =
+          latestEnemyRoll &&
+          latestEnemyRoll.enemyId === normalizedEnemyId &&
+          latestEnemyRoll.actionName === actionLabel;
+
+        return {
+          action,
+          actionLabel,
+          attackBonusDisplay,
+          damageDisplay,
+          actionKey,
+          isLatestRoll,
+        };
+      })
+      .filter(Boolean);
+  }, [actions, formatAttackBonus, getEnemyActionDamageString, latestEnemyRoll, normalizedEnemyId]);
+
+  if (quickAttacks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="enemy-quick-card__attacks">
+      <div className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
+        Attacks
+      </div>
+      <div className="d-flex flex-column gap-2">
+        {quickAttacks.map(({
+          action,
+          actionLabel,
+          attackBonusDisplay,
+          damageDisplay,
+          actionKey,
+          isLatestRoll,
+        }) => (
+          <div key={actionKey} className="enemy-card__attack enemy-card__attack--compact">
+            <div className="enemy-card__attack-header">
+              <div className="fw-semibold small text-body">{actionLabel}</div>
+              <div className="small text-muted">Attack Bonus: {attackBonusDisplay ?? '—'}</div>
+              <div className="small text-muted">Damage: {damageDisplay || '—'}</div>
+            </div>
+            <div className="enemy-card__attack-actions">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() =>
+                  normalizedEnemyId && onEnemyDamageRoll && onEnemyDamageRoll(enemy, action)
+                }
+                disabled={!onEnemyDamageRoll || !normalizedEnemyId}
+              >
+                Roll
+              </Button>
+            </div>
+            {isLatestRoll && latestEnemyRoll?.breakdown && (
+              <div className="mt-2 small fw-semibold text-primary">
+                {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ActiveEnemyQuickList({
   summaries,
   activeMapTitle,
@@ -232,6 +343,10 @@ export function ActiveEnemyQuickList({
   onEnemyAdjustmentInputChange,
   onApplyEnemyHealthAdjustment,
   onResetEnemyHealth,
+  onEnemyDamageRoll,
+  formatAttackBonus,
+  getEnemyActionDamageString,
+  latestEnemyRoll,
 }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
@@ -350,13 +465,17 @@ export function ActiveEnemyQuickList({
             onOpenMapPlacement={onOpenMapPlacement}
             onViewDetails={onViewDetails}
             enemyHealthAdjustments={enemyHealthAdjustments}
-          enemyHealthSaving={enemyHealthSaving}
-          onEnemyAdjustmentInputChange={onEnemyAdjustmentInputChange}
-          onApplyEnemyHealthAdjustment={onApplyEnemyHealthAdjustment}
-          onResetEnemyHealth={onResetEnemyHealth}
-          isActiveTurn={summary.isActiveTurn}
-        />
-      ))}
+            enemyHealthSaving={enemyHealthSaving}
+            onEnemyAdjustmentInputChange={onEnemyAdjustmentInputChange}
+            onApplyEnemyHealthAdjustment={onApplyEnemyHealthAdjustment}
+            onResetEnemyHealth={onResetEnemyHealth}
+            isActiveTurn={summary.isActiveTurn}
+            onEnemyDamageRoll={onEnemyDamageRoll}
+            formatAttackBonus={formatAttackBonus}
+            getEnemyActionDamageString={getEnemyActionDamageString}
+            latestEnemyRoll={latestEnemyRoll}
+          />
+        ))}
       </div>
     </div>
   );

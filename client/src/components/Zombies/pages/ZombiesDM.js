@@ -6418,6 +6418,10 @@ const resolveIcon = (category, iconMap, fallback) => {
           onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
           onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
           onResetEnemyHealth={handleResetEnemyHealth}
+          onEnemyDamageRoll={handleEnemyDamageRoll}
+          formatAttackBonus={formatAttackBonus}
+          getEnemyActionDamageString={getEnemyActionDamageString}
+          latestEnemyRoll={latestEnemyRoll}
         />
       </div>
 
