@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ActiveEnemyQuickList } from './ActiveEnemyQuickList';
 
@@ -32,6 +32,10 @@ describe('ActiveEnemyQuickList', () => {
       onEnemyAdjustmentInputChange: jest.fn(),
       onApplyEnemyHealthAdjustment: jest.fn(),
       onResetEnemyHealth: jest.fn(),
+      formatAttackBonus: undefined,
+      getEnemyActionDamageString: undefined,
+      onEnemyDamageRoll: undefined,
+      latestEnemyRoll: undefined,
       ...overrides,
     };
 
@@ -131,5 +135,60 @@ describe('ActiveEnemyQuickList', () => {
     const card = screen.getByTestId('active-map-enemy-card');
     expect(card).toHaveClass('enemy-quick-card--active-turn');
     expect(screen.getByText('Active Turn')).toBeInTheDocument();
+  });
+
+  it('displays attack actions within a modal when available', async () => {
+    const formatAttackBonus = jest.fn((bonus) => (bonus >= 0 ? `+${bonus}` : `${bonus}`));
+    const getEnemyActionDamageString = jest.fn((action) =>
+      action?.name === 'Scimitar' ? '1d6 slashing' : null
+    );
+    const onEnemyDamageRoll = jest.fn();
+    const latestEnemyRoll = {
+      enemyId: 'enemy-1',
+      actionName: 'Scimitar',
+      total: 11,
+      breakdown: '1d6 (8) + 3',
+    };
+
+    const props = renderList({
+      formatAttackBonus,
+      getEnemyActionDamageString,
+      onEnemyDamageRoll,
+      latestEnemyRoll,
+      summaries: [
+        {
+          ...baseSummary,
+          enemy: {
+            ...baseSummary.enemy,
+            actions: [
+              { name: 'Scimitar', attack_bonus: 4 },
+              { name: 'Hide' },
+            ],
+          },
+        },
+      ],
+    });
+
+    const attacksButton = screen.getByRole('button', { name: /View Attacks/i });
+    await act(async () => {
+      await userEvent.click(attacksButton);
+    });
+
+    const dialog = await screen.findByRole('dialog', { name: /Goblin Attacks/i });
+    expect(within(dialog).getByText('Attacks')).toBeInTheDocument();
+    expect(within(dialog).getByText('Scimitar')).toBeInTheDocument();
+    expect(within(dialog).getByText('Attack Bonus: +4')).toBeInTheDocument();
+    expect(within(dialog).getByText('Damage: 1d6 slashing')).toBeInTheDocument();
+
+    const rollButton = within(dialog).getByRole('button', { name: /^Roll$/i });
+    await act(async () => {
+      await userEvent.click(rollButton);
+    });
+
+    expect(props.onEnemyDamageRoll).toHaveBeenCalledWith(
+      expect.objectContaining({ enemyId: 'enemy-1' }),
+      expect.objectContaining({ name: 'Scimitar' })
+    );
+    expect(within(dialog).getByText('Result: 11 damage (1d6 (8) + 3)')).toBeInTheDocument();
   });
 });
