@@ -20,6 +20,10 @@ describe('ActiveEnemyQuickList', () => {
       summaries: [baseSummary],
       activeMapTitle: 'Dungeon Entrance',
       onManageEnemies: jest.fn(),
+      onResetInitiative: jest.fn(),
+      onRollInitiative: jest.fn(),
+      onAdvanceTurn: jest.fn(),
+      combatControlsDisabled: false,
       onToggleParticipant: jest.fn(),
       onOpenMapPlacement: jest.fn(),
       onViewDetails: jest.fn(),
@@ -67,6 +71,22 @@ describe('ActiveEnemyQuickList', () => {
     });
 
     expect(list).toBeVisible();
+  });
+
+  it('exposes combat control buttons when callbacks are provided', async () => {
+    const props = renderList();
+
+    await userEvent.click(screen.getByRole('button', { name: /Clear Initiative/i }));
+    expect(props.onResetInitiative).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /Roll Initiative/i }));
+    expect(props.onRollInitiative).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /Previous Turn/i }));
+    expect(props.onAdvanceTurn).toHaveBeenCalledWith(-1);
+
+    await userEvent.click(screen.getByRole('button', { name: /Next Turn/i }));
+    expect(props.onAdvanceTurn).toHaveBeenCalledWith(1);
   });
 
   it('exposes health controls for the condensed cards', async () => {
