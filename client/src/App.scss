@@ -432,7 +432,7 @@
 
 .zombies-dm-page__combat-header {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + clamp(4.5rem, 11vh, 6.75rem));
+  top: calc(env(safe-area-inset-top, 0px) + clamp(3.5rem, 1vh, 6.75rem));
   left: 50%;
   transform: translateX(-50%);
   width: min(92vw, 1100px);
