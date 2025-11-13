@@ -1865,6 +1865,10 @@ describe('ZombiesDM AI generation', () => {
 
     await screen.findByRole('heading', { name: /Combat Tracker/i });
 
+    const combatTurnOrder = await screen.findByRole('group', {
+      name: /Combat turn order/i,
+    });
+
     const combatHeader = await screen.findByRole('columnheader', { name: /In Combat/i });
     const combatTable = combatHeader.closest('table');
     if (!combatTable) {
@@ -1893,6 +1897,10 @@ describe('ZombiesDM AI generation', () => {
       activeTurn: null,
     });
 
+    await waitFor(() => {
+      expect(within(combatTurnOrder).getByText('Hero')).toBeInTheDocument();
+    });
+
     const heroSetTurnButton = within(heroRow).getByRole('button', {
       name: /Set Turn/i,
     });
@@ -1900,6 +1908,12 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => expect(combatUpdates).toHaveLength(2));
     expect(combatUpdates[1].activeTurn).toBe(0);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('status', { name: /Current Turn: Hero/i })
+      ).toBeInTheDocument(),
+    );
 
     const nextTurnButton = screen.getByRole('button', { name: /Next Turn/i });
     await userEvent.click(nextTurnButton);

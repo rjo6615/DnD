@@ -67,6 +67,7 @@ import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
 import ActiveEnemyQuickList from '../components/ActiveEnemyQuickList';
+import CombatTurnHeader from '../components/CombatTurnHeader';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
@@ -3268,6 +3269,121 @@ export default function ZombiesDM() {
       [characterLookup]
     );
 
+    const combatHeaderParticipants = useMemo(() => {
+      const participants = Array.isArray(combatState.participants)
+        ? combatState.participants
+        : [];
+
+      if (participants.length === 0) {
+        return [];
+      }
+
+      const activeTurnIndex =
+        Number.isInteger(combatState.activeTurn) && combatState.activeTurn >= 0
+          ? combatState.activeTurn
+          : null;
+
+      const activeParticipantId =
+        activeTurnIndex !== null &&
+        activeTurnIndex < participants.length &&
+        participants[activeTurnIndex]
+          ? participants[activeTurnIndex].characterId
+          : null;
+
+      return participants
+        .slice()
+        .sort((a, b) => b.initiative - a.initiative)
+        .map((participant) => {
+          const characterId = participant.characterId;
+          const entity = characterLookup.get(characterId);
+          const displayName =
+            resolveDisplayName(characterId) ||
+            (typeof participant.displayName === 'string' &&
+            participant.displayName.trim() !== ''
+              ? participant.displayName.trim()
+              : null) ||
+            characterId;
+
+          const participantCurrentHp = toFiniteNumberOrNull(
+            participant.currentHp ?? participant.hpCurrent,
+          );
+          const participantMaxHp = toFiniteNumberOrNull(
+            participant.maxHp ?? participant.hpMax,
+          );
+
+          let normalizedCurrentHp = participantCurrentHp;
+          let normalizedMaxHp = participantMaxHp;
+
+          if (entity && entity.entityType !== 'enemy') {
+            const { currentHp: derivedCurrent, maxHp: derivedMax } =
+              calculateCharacterHitPoints(entity);
+            const resolvedCurrent = toFiniteNumberOrNull(derivedCurrent);
+            const resolvedMax = toFiniteNumberOrNull(derivedMax);
+
+            if (resolvedMax !== null) {
+              normalizedMaxHp = resolvedMax;
+              if (normalizedCurrentHp === null) {
+                normalizedCurrentHp =
+                  resolvedCurrent !== null ? resolvedCurrent : resolvedMax;
+              }
+            } else if (resolvedCurrent !== null && normalizedCurrentHp === null) {
+              normalizedCurrentHp = resolvedCurrent;
+            }
+
+            if (normalizedCurrentHp === null && normalizedMaxHp === null) {
+              const fallbackMax = toFiniteNumberOrNull(
+                entity.maxHp ?? entity.hpMax ?? entity.health,
+              );
+              if (fallbackMax !== null) {
+                normalizedMaxHp = fallbackMax;
+                if (normalizedCurrentHp === null) {
+                  normalizedCurrentHp = fallbackMax;
+                }
+              }
+            }
+          } else {
+            const enemyHealth = resolveParticipantHealth(characterId);
+            const enemyCurrent = toFiniteNumberOrNull(enemyHealth.currentHp);
+            const enemyMax = toFiniteNumberOrNull(enemyHealth.maxHp);
+            if (enemyMax !== null) {
+              normalizedMaxHp = enemyMax;
+              if (normalizedCurrentHp === null) {
+                normalizedCurrentHp =
+                  enemyCurrent !== null ? enemyCurrent : enemyMax;
+              }
+            } else if (enemyCurrent !== null && normalizedCurrentHp === null) {
+              normalizedCurrentHp = enemyCurrent;
+            }
+          }
+
+          let hpDisplay = '—';
+          if (normalizedCurrentHp !== null && normalizedMaxHp !== null) {
+            hpDisplay = `${normalizedCurrentHp}/${normalizedMaxHp}`;
+          } else if (normalizedCurrentHp !== null) {
+            hpDisplay = `${normalizedCurrentHp}`;
+          } else if (normalizedMaxHp !== null) {
+            hpDisplay = `${normalizedMaxHp}`;
+          }
+
+          return {
+            characterId,
+            name: displayName,
+            hpCurrent: normalizedCurrentHp,
+            hpMax: normalizedMaxHp,
+            hpDisplay,
+            initiative: participant.initiative,
+            isActive:
+              activeParticipantId !== null && characterId === activeParticipantId,
+          };
+        });
+    }, [
+      combatState.participants,
+      combatState.activeTurn,
+      characterLookup,
+      resolveDisplayName,
+      resolveParticipantHealth,
+    ]);
+
     const calculateEntityInitiative = useCallback(
       (entity) => {
         if (!entity || typeof entity !== 'object') {
@@ -6260,6 +6376,13 @@ const resolveIcon = (category, iconMap, fallback) => {
             </span>
           </div>
         )}
+
+        <div className="zombies-dm-page__combat-header">
+          <CombatTurnHeader
+            participants={combatHeaderParticipants}
+            tokenLookup={tokenMetaById}
+          />
+        </div>
 
         <ActiveEnemyQuickList
           summaries={activeMapEnemySummaries}
