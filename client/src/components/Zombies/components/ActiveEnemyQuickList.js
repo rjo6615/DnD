@@ -26,16 +26,10 @@ export function ActiveEnemyQuickCard({
   getEnemyActionDamageString,
   latestEnemyRoll,
 }) {
-  if (!enemy) {
-    return null;
-  }
-
   const [showAttacksModal, setShowAttacksModal] = React.useState(false);
 
-  const normalizedEnemyId =
-    typeof enemy.enemyId === 'string' && enemy.enemyId.trim() !== ''
-      ? enemy.enemyId.trim()
-      : null;
+  const rawEnemyId = typeof enemy?.enemyId === 'string' ? enemy.enemyId : '';
+  const normalizedEnemyId = rawEnemyId.trim() !== '' ? rawEnemyId.trim() : null;
   const adjustmentValue = normalizedEnemyId
     ? enemyHealthAdjustments?.[normalizedEnemyId] ?? ''
     : '';
@@ -58,16 +52,6 @@ export function ActiveEnemyQuickCard({
 
   const healthText = healthSummary;
   const identifier = sanitizeIdentifierForTestId(normalizedEnemyId, 'active-enemy');
-  const label = enemy.name || enemy.displayType || normalizedEnemyId || 'enemy';
-  const cardClassName = [
-    'resource-card',
-    'enemy-card',
-    'enemy-quick-card',
-    'text-start',
-    isActiveTurn ? 'enemy-quick-card--active-turn' : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
 
   const quickAttacks = React.useMemo(() => {
     if (!Array.isArray(enemy?.actions) || enemy.actions.length === 0) {
@@ -121,6 +105,21 @@ export function ActiveEnemyQuickCard({
       setShowAttacksModal(false);
     }
   }, [hasQuickAttacks, showAttacksModal]);
+
+  if (!enemy) {
+    return null;
+  }
+
+  const label = enemy.name || enemy.displayType || normalizedEnemyId || 'enemy';
+  const cardClassName = [
+    'resource-card',
+    'enemy-card',
+    'enemy-quick-card',
+    'text-start',
+    isActiveTurn ? 'enemy-quick-card--active-turn' : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <Card
@@ -223,14 +222,12 @@ export function ActiveEnemyQuickCard({
             Reset
           </Button>
         </div>
-        {Array.isArray(enemy?.actions) && enemy.actions.length > 0 && (
+        {hasQuickAttacks && (
           <EnemyQuickAttacksSection
+            quickAttacks={quickAttacks}
             enemy={enemy}
-            actions={enemy.actions}
             normalizedEnemyId={normalizedEnemyId}
             onEnemyDamageRoll={onEnemyDamageRoll}
-            formatAttackBonus={formatAttackBonus}
-            getEnemyActionDamageString={getEnemyActionDamageString}
             latestEnemyRoll={latestEnemyRoll}
           />
         )}
@@ -305,6 +302,56 @@ function FormControlButtonInput({ value, disabled, onChange }) {
       onChange={onChange}
       aria-label="Health adjustment"
     />
+  );
+}
+
+function EnemyQuickAttacksSection({
+  quickAttacks,
+  enemy,
+  normalizedEnemyId,
+  onEnemyDamageRoll,
+  latestEnemyRoll,
+}) {
+  if (!Array.isArray(quickAttacks) || quickAttacks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="enemy-card__quick-attacks" aria-label="Enemy quick attacks">
+      <div className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
+        Attacks
+      </div>
+      <div className="d-flex flex-column gap-2">
+        {quickAttacks.map(
+          ({ action, actionLabel, attackBonusDisplay, damageDisplay, actionKey, isLatestRoll }) => (
+            <div key={actionKey} className="enemy-card__attack enemy-card__attack--compact">
+              <div className="enemy-card__attack-header">
+                <div className="fw-semibold small text-body">{actionLabel}</div>
+                <div className="small text-muted">Attack Bonus: {attackBonusDisplay ?? '—'}</div>
+                <div className="small text-muted">Damage: {damageDisplay || '—'}</div>
+              </div>
+              <div className="enemy-card__attack-actions">
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() =>
+                    normalizedEnemyId && onEnemyDamageRoll && onEnemyDamageRoll(enemy, action)
+                  }
+                  disabled={!onEnemyDamageRoll || !normalizedEnemyId}
+                >
+                  Roll
+                </Button>
+              </div>
+              {isLatestRoll && latestEnemyRoll?.breakdown && (
+                <div className="mt-2 small fw-semibold text-primary">
+                  {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
+                </div>
+              )}
+            </div>
+          )
+        )}
+      </div>
+    </div>
   );
 }
 
