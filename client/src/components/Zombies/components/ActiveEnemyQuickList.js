@@ -211,11 +211,12 @@ export function ActiveEnemyQuickList({
   onApplyEnemyHealthAdjustment,
   onResetEnemyHealth,
 }) {
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+
   if (!Array.isArray(summaries) || summaries.length === 0) {
     return null;
   }
 
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
   const collapseButtonLabel = isCollapsed
     ? 'Expand active enemy display'
     : 'Collapse active enemy display';
