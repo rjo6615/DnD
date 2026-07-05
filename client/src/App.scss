@@ -4867,7 +4867,7 @@ h1 {
   }
 
   .footer-character-slot__slots-wrapper {
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .footer-character-slot__slots {
@@ -5108,14 +5108,15 @@ h1 {
   }
 
   .footer-character-slot__damage {
-    width: min(100%, 300px);
+    width: min(100%, 220px);
     min-width: 0;
     max-width: none;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: 1fr auto auto;
     align-items: center;
-    padding: 4px 7px;
-    gap: 6px;
+    justify-self: center;
+    padding: 5px 8px;
+    gap: 4px 7px;
   }
 
   .footer-character-slot__damage-header {
@@ -5123,30 +5124,35 @@ h1 {
   }
 
   .footer-character-slot__damage-label {
-    font-size: 0.48rem;
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
   }
 
   .footer-character-slot__crit-button.btn {
     order: 3;
-    padding: 1px 7px;
-    font-size: 0.48rem;
+    padding: 2px 7px;
+    font-size: 0.5rem;
   }
 
   .footer-character-slot__damage-value {
     order: 2;
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1;
   }
 
   .footer-character-slot__damage-log-button {
     order: 4;
-    padding: 1px 6px;
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(100%, 150px);
+    padding: 2px 8px;
     margin-top: 0;
-    font-size: 0.55rem;
+    font-size: 0.62rem;
   }
 
   .footer-actions-wrapper {
-    gap: 3px;
+    align-items: center;
+    gap: 4px;
   }
 
   .footer-actions-inline {
@@ -5182,7 +5188,39 @@ h1 {
   }
 
   .footer-actions-menu {
-    gap: 3px;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .footer-btn--clear-dice,
+  .footer-btn--dice,
+  .footer-btn--attack {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .footer-btn__clear-dice-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .footer-btn__clear-dice-icon-die {
+    font-size: 0.82rem;
+  }
+
+  .footer-btn__dice-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+  }
+
+  .footer-btn__attack-image {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    border-radius: 8px;
   }
 
   .footer-pass-log-button {
