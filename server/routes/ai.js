@@ -346,7 +346,25 @@ module.exports = (router) => {
         requestPayload.quality = quality;
       }
 
-      const response = await openai.images.generate(requestPayload);
+      let response;
+      try {
+        response = await openai.images.generate(requestPayload);
+      } catch (error) {
+        const unknownStyleParameter =
+          requestPayload.style &&
+          (error?.status === 400 || error?.code === 'unknown_parameter') &&
+          typeof error?.message === 'string' &&
+          error.message.toLowerCase().includes('style');
+
+        if (!unknownStyleParameter) {
+          throw error;
+        }
+
+        const retryPayload = { ...requestPayload };
+        delete retryPayload.style;
+        response = await openai.images.generate(retryPayload);
+      }
+
       const image = Array.isArray(response?.data) ? response.data[0] : null;
 
       if (!image) {
