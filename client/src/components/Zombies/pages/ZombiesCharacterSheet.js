@@ -5107,6 +5107,117 @@ export default function ZombiesCharacterSheet() {
     },
   );
 
+
+  const normalizeFooterCollection = useCallback((value) => {
+    if (!value) return [];
+    const source = Array.isArray(value) ? value : Object.values(value);
+    return source
+      .filter(Boolean)
+      .map((entry, index) => {
+        if (typeof entry === 'string') {
+          return { id: `${entry}-${index}`, name: entry };
+        }
+        return {
+          id: entry.id || entry.key || entry.name || entry.label || index,
+          icon: entry.icon || entry.symbol || '✦',
+          name: entry.name || entry.label || entry.type || 'Resource',
+          current: entry.current ?? entry.remaining ?? entry.value ?? entry.count,
+          max: entry.max ?? entry.total,
+          duration: entry.duration ?? entry.remainingDuration,
+          color: entry.color,
+        };
+      })
+      .filter((entry) => entry.name);
+  }, []);
+
+  const footerClassResources = useMemo(
+    () => normalizeFooterCollection(form?.classResources || form?.resources),
+    [form?.classResources, form?.resources, normalizeFooterCollection]
+  );
+  const footerActiveBonuses = useMemo(
+    () => normalizeFooterCollection(form?.activeBonuses || form?.bonuses || form?.activeEffects),
+    [form?.activeBonuses, form?.bonuses, form?.activeEffects, normalizeFooterCollection]
+  );
+  const footerConditions = useMemo(
+    () => normalizeFooterCollection(form?.conditions || form?.statusConditions),
+    [form?.conditions, form?.statusConditions, normalizeFooterCollection]
+  );
+
+  const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
+    const name = (cls.Name || cls.Occupation || '').toLowerCase();
+    return name === 'warlock' && (Number(cls.Level) || 0) > 0;
+  });
+
+  const footerHiddenResourceCount =
+    footerClassResources.length + footerActiveBonuses.length + footerConditions.length +
+    (hasFooterSpellSlots ? 1 : 0);
+
+  const footerResourcesDrawer = form && footerHiddenResourceCount > 0 ? (
+    <div className="footer-resources-drawer-content">
+      {hasFooterSpellSlots && (
+        <section className="footer-resources-section footer-resources-section--spell-slots">
+          <h3>Spell Slots</h3>
+          <SpellSlots
+            form={form}
+            used={usedSlots}
+            onToggleSlot={handleCastSpell}
+            showTurnSlots={false}
+            showFocusSlot={false}
+          />
+        </section>
+      )}
+      {footerClassResources.length > 0 && (
+        <section className="footer-resources-section">
+          <h3>Class Resources</h3>
+          <div className="footer-resources-list">
+            {footerClassResources.map((resource) => (
+              <div className="footer-resource-row" key={resource.id}>
+                <span className="footer-resource-row__icon" style={{ color: resource.color }}>{resource.icon}</span>
+                <span className="footer-resource-row__name">{resource.name}</span>
+                <span className="footer-resource-row__pips" aria-hidden="true">
+                  {Number.isFinite(Number(resource.max)) && Array.from({ length: Math.min(Number(resource.max), 8) }).map((_, i) => (
+                    <span key={i} className={i < Number(resource.current || 0) ? 'is-filled' : ''} />
+                  ))}
+                </span>
+                <span className="footer-resource-row__value">
+                  {resource.current ?? '—'}{resource.max ? `/${resource.max}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {footerActiveBonuses.length > 0 && (
+        <section className="footer-resources-section">
+          <h3>Active Bonuses</h3>
+          <div className="footer-resources-list">
+            {footerActiveBonuses.map((bonus) => (
+              <div className="footer-resource-row" key={bonus.id}>
+                <span className="footer-resource-row__icon" style={{ color: bonus.color }}>{bonus.icon}</span>
+                <span className="footer-resource-row__name">{bonus.name}</span>
+                <span className="footer-resource-row__duration">{bonus.duration || '—'}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {footerConditions.length > 0 && (
+        <section className="footer-resources-section">
+          <h3>Conditions</h3>
+          <div className="footer-resources-list">
+            {footerConditions.map((condition) => (
+              <div className="footer-resource-row" key={condition.id}>
+                <span className="footer-resource-row__icon" style={{ color: condition.color }}>{condition.icon}</span>
+                <span className="footer-resource-row__name">{condition.name}</span>
+                <span className="footer-resource-row__duration">{condition.duration || '—'}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  ) : null;
+
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
       characterInfo: {
@@ -5590,9 +5701,13 @@ export default function ZombiesCharacterSheet() {
                         longRestCount={longRestCount}
                         shortRestCount={shortRestCount}
                         onActionSurge={handleActionSurge}
+                        showSpellSlots={false}
+                        showFocusSlot={false}
                       />
                     ) : null
                   }
+                  resourcesDrawer={footerResourcesDrawer}
+                  hiddenResourceCount={footerHiddenResourceCount}
                   actions={
                     <div className="footer-actions-wrapper">
                       <div className="footer-actions-inline">

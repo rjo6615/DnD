@@ -5932,3 +5932,382 @@ h1 {
   align-items: flex-end;
 }
 
+
+.footer-character-slot__resources-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: min(96vw, 980px);
+  max-height: min(52vh, 430px);
+  transform: translate(-50%, 18px) scale(0.98);
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(104, 144, 216, 0.38);
+  background: linear-gradient(145deg, rgba(10, 18, 38, 0.98), rgba(13, 26, 54, 0.96));
+  box-shadow: 0 20px 38px rgba(3, 6, 14, 0.55), inset 0 0 0 1px rgba(128, 166, 236, 0.08);
+  backdrop-filter: blur(10px);
+  transition: opacity 0.22s ease, transform 0.24s ease;
+  z-index: 5;
+}
+
+.footer-character-slot--resources-open .footer-character-slot__resources-drawer {
+  transform: translate(-50%, 0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.footer-character-slot__resources-scroll {
+  max-height: inherit;
+  overflow-y: auto;
+  padding: 28px 18px 18px;
+  scrollbar-width: thin;
+}
+
+.footer-character-slot__resources-grip {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 42px;
+  height: 4px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(190, 204, 238, 0.28);
+}
+
+.footer-character-slot__resources-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(130, 166, 238, 0.45);
+  background: rgba(20, 34, 68, 0.8);
+  color: rgba(245, 248, 255, 0.96);
+  z-index: 2;
+}
+
+.footer-resources-drawer-content {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 0;
+  min-height: 220px;
+}
+
+.footer-resources-section {
+  padding: 0 18px;
+  border-left: 1px solid rgba(114, 143, 202, 0.28);
+  min-width: 0;
+}
+
+.footer-resources-section:first-child {
+  border-left: 0;
+}
+
+.footer-resources-section h3 {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(248, 250, 255, 0.95);
+}
+
+.footer-resources-section--spell-slots .spell-slot-container {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.footer-resources-section--spell-slots .spell-slot {
+  width: 38px;
+  height: 60px;
+}
+
+.footer-resources-list {
+  display: grid;
+  gap: 12px;
+}
+
+.footer-resource-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  color: rgba(242, 246, 255, 0.94);
+  font-size: 0.92rem;
+}
+
+.footer-resource-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  color: #65a8ff;
+}
+
+.footer-resource-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer-resource-row__pips {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.footer-resource-row__pips span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.55;
+}
+
+.footer-resource-row__pips span.is-filled {
+  background: currentColor;
+  opacity: 1;
+}
+
+.footer-resource-row__value,
+.footer-resource-row__duration {
+  color: rgba(205, 214, 235, 0.72);
+  font-weight: 700;
+}
+
+.footer-character-slot__resources-toggle.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.footer-character-slot__resources-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(185, 36, 216, 0.95), rgba(109, 38, 190, 0.95));
+  box-shadow: inset 0 0 0 1px rgba(245, 206, 255, 0.3);
+  font-weight: 800;
+}
+
+.footer-character-slot__resources-chevron {
+  transition: transform 0.22s ease;
+}
+
+.footer-character-slot--resources-open .footer-character-slot__resources-chevron {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 760px) {
+  .footer-character-slot__resources-drawer {
+    width: min(96vw, 560px);
+    max-height: min(58vh, 420px);
+  }
+
+  .footer-resources-drawer-content {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    row-gap: 22px;
+  }
+
+  .footer-resources-section:nth-child(odd) {
+    border-left: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .footer-character-slot {
+    min-height: 116px;
+    max-height: 116px;
+  }
+
+  .footer-character-slot__resources-toggle.btn {
+    min-height: 34px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+
+  .footer-character-slot__resources-count {
+    min-width: 24px;
+    min-height: 24px;
+  }
+}
+
+/* Mobile combat footer redesign overrides: keep the collapsed footer short and complete. */
+@media (max-width: 600px) {
+  .footer-container {
+    width: min(100%, calc(100vw - 12px));
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0));
+  }
+
+  .footer-nav {
+    width: 100%;
+  }
+
+  .footer-character-slot {
+    --footer-character-portrait-size: clamp(58px, 17vw, 72px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    height: 108px;
+    min-height: 108px;
+    max-height: 108px;
+    padding: 8px 10px;
+    overflow: visible;
+  }
+
+  .footer-character-slot__profile-card {
+    flex: 0 0 calc(var(--footer-character-portrait-size) + 4px);
+    width: calc(var(--footer-character-portrait-size) + 4px);
+    margin: 0;
+    align-self: center;
+  }
+
+  .footer-character-slot__profile,
+  .footer-character-slot__portrait {
+    height: var(--footer-character-portrait-size);
+  }
+
+  .footer-character-slot__hud {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    display: grid;
+    grid-template-columns: auto minmax(92px, 1fr) auto auto;
+    grid-template-areas: 'turns damage pass resources';
+    align-items: center;
+    justify-content: stretch;
+    gap: 6px;
+  }
+
+  .footer-character-slot__slots-wrapper {
+    grid-area: turns;
+    width: auto;
+    min-width: 54px;
+  }
+
+  .footer-character-slot__slots {
+    padding: 3px 5px;
+    border-radius: 14px;
+    max-width: none;
+  }
+
+  .footer-character-slot__slots > .spell-slot-container {
+    gap: 4px;
+  }
+
+  .footer-character-slot__slots > .spell-slot-container .spell-slot {
+    width: 24px;
+    height: 42px;
+  }
+
+  .footer-character-slot__slots > .spell-slot-container .spell-slot .slot-level {
+    font-size: 0.9rem;
+  }
+
+  .footer-character-slot__footer-rail {
+    display: contents;
+  }
+
+  .footer-character-slot__footer-rail-body {
+    display: contents;
+  }
+
+  .footer-character-slot__damage {
+    grid-area: damage;
+    width: 100%;
+    min-width: 92px;
+    max-width: none;
+    padding: 6px 8px;
+    gap: 4px 6px;
+  }
+
+  .footer-character-slot__actions {
+    grid-area: pass;
+    width: auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .footer-actions-wrapper,
+  .footer-actions-inline {
+    display: contents;
+  }
+
+  .footer-btn--clear-dice,
+  .footer-btn--dice,
+  .footer-btn--attack,
+  .footer-actions-menu {
+    display: none !important;
+  }
+
+  .footer-actions-inline > .footer-pass-log-button {
+    grid-area: pass;
+    min-width: 58px;
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    justify-self: center;
+  }
+
+  .footer-character-slot__resources-toggle.btn {
+    grid-area: resources;
+    min-width: 86px;
+    min-height: 38px;
+    padding: 6px 8px;
+    gap: 5px;
+    font-size: 0.74rem;
+    justify-self: end;
+  }
+
+  .footer-character-slot__resources-count {
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 430px) {
+  .footer-character-slot {
+    --footer-character-portrait-size: 54px;
+    gap: 4px;
+    padding: 7px 8px;
+  }
+
+  .footer-character-slot__hud {
+    grid-template-columns: auto minmax(82px, 1fr) auto;
+    grid-template-areas:
+      'turns damage resources'
+      'turns pass resources';
+    gap: 4px 5px;
+  }
+
+  .footer-character-slot__damage {
+    padding: 5px 7px;
+  }
+
+  .footer-character-slot__damage-log-button {
+    width: auto;
+    min-width: 76px;
+  }
+
+  .footer-actions-inline > .footer-pass-log-button,
+  .footer-character-slot__resources-toggle.btn {
+    min-height: 32px;
+    font-size: 0.68rem;
+  }
+}

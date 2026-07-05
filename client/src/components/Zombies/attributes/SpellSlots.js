@@ -21,6 +21,9 @@ export default function SpellSlots({
   onToggleSlot,
   actionCount: propActionCount,
   bonusCount: propBonusCount,
+  showTurnSlots = true,
+  showSpellSlots = true,
+  showFocusSlot = true,
 }) {
 
   const occupations = form.occupation || [];
@@ -150,6 +153,7 @@ export default function SpellSlots({
       role="group"
       aria-label="Spell slots and action tracking"
     >
+      {showTurnSlots && (
       <div className="spell-slot action-slot">
           <div className="slot-level">A</div>
           <div className="slot-boxes">
@@ -169,6 +173,8 @@ export default function SpellSlots({
             })}
           </div>
         </div>
+      )}
+      {showTurnSlots && (
       <div className="spell-slot bonus-slot">
         <div className="slot-level">B</div>
         <div className="slot-boxes">
@@ -188,7 +194,8 @@ export default function SpellSlots({
           })}
         </div>
       </div>
-      {hasMonkFocus && (
+      )}
+      {showFocusSlot && hasMonkFocus && (
         <div className="spell-slot focus-slot">
           <div
             className="focus-icon-wrapper"
@@ -217,8 +224,8 @@ export default function SpellSlots({
           </div>
         </div>
       )}
-      {regularLevels.length > 0 && renderGroup(slotData, 'regular')}
-      {warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
+      {showSpellSlots && regularLevels.length > 0 && renderGroup(slotData, 'regular')}
+      {showSpellSlots && warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
     </div>
   );
 }
