@@ -4779,74 +4779,114 @@ h1 {
 
 @media (max-width: 600px) {
   .footer-character-slot {
-    flex-direction: column;
+    --footer-character-portrait-size: clamp(50px, 15vw, 62px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'profile hud';
     align-items: center;
-    gap: 0;
-    --footer-character-portrait-size: clamp(56px, 18vw, 70px);
+    justify-content: stretch;
+    gap: 6px;
+    width: min(100%, calc(100vw - 16px));
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(104, 144, 216, 0.35);
+    background: rgba(10, 16, 34, 0.92);
+    box-shadow: 0 10px 20px rgba(6, 10, 20, 0.45);
+    backdrop-filter: blur(4px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 6px);
+    grid-area: profile;
+    width: calc(var(--footer-character-portrait-size) + 4px);
     padding: 0;
-    margin-bottom: -8px;
+    margin: 0;
     z-index: 2;
   }
 
+  .footer-character-slot__hud {
+    grid-area: hud;
+    align-items: stretch;
+    gap: 4px;
+    max-width: none;
+    min-width: 0;
+  }
+
   .footer-character-slot__portrait-ring {
-    padding: 4px;
+    padding: 3px;
   }
 
   .footer-character-slot__portrait-health {
-    bottom: 4px;
-    width: 92%;
+    bottom: 3px;
+    width: 94%;
   }
 
   .footer-character-slot__health-inline {
-    gap: 4px;
-    padding: 2px 5px;
+    gap: 3px;
+    padding: 1px 4px;
   }
 
   .footer-character-slot__health-mini-button {
-    width: 18px;
-    height: 18px;
-    font-size: 0.65rem;
+    width: 16px;
+    height: 16px;
+    font-size: 0.58rem;
   }
 
   .footer-character-slot__health-readout {
-    min-width: 44px;
+    min-width: 40px;
     gap: 2px;
     padding: 0;
-    font-size: 0.68rem;
+    font-size: 0.62rem;
   }
 
   .footer-character-slot__health-readout-values {
-    gap: 3px;
+    gap: 2px;
   }
 
   .footer-character-slot__health-current {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
   }
 
   .footer-character-slot__health-max {
-    font-size: 0.64rem;
+    font-size: 0.58rem;
   }
 
   .footer-character-slot__armor-class {
-    min-width: 24px;
+    min-width: 22px;
     padding: 0 3px;
-    top: 4px;
-    right: 2px;
+    top: 2px;
+    right: 0;
+    font-size: 0.5rem;
+  }
+
+  .footer-character-slot__armor-class-label {
+    font-size: 0.46rem;
+  }
+
+  .footer-character-slot__armor-class-value {
+    font-size: 0.62rem;
+  }
+
+  .footer-character-slot__slots-wrapper {
+    justify-content: flex-start;
+  }
+
+  .footer-character-slot__slots {
+    padding: 2px 6px;
   }
 
   .footer-character-slot__footer-rail {
     width: 100%;
     justify-content: center;
     gap: 4px;
-    padding: 7px 8px 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .footer-character-slot__footer-rail-body {
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     gap: 5px;
   }
@@ -4857,6 +4897,7 @@ h1 {
     gap: 4px;
   }
 }
+
 
 
 
