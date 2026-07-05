@@ -421,6 +421,25 @@ describe('AI map route', () => {
     expect(payload.style).toBeUndefined();
   });
 
+  test('omits style for dall-e-2 by default', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'dall-e-2';
+    delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'classic map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.style).toBeUndefined();
+  });
+
   test('includes style when explicitly enabled for model', async () => {
     process.env.OPENAI_IMAGE_MODEL = 'dall-e-3';
     process.env.OPENAI_IMAGE_STYLE_MODELS = 'dall-e-3, gpt-image-1';

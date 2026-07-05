@@ -332,15 +332,11 @@ module.exports = (router) => {
         .split(',')
         .map((value) => value.trim())
         .filter(Boolean);
-
-      let includeStyle = Boolean(configuredStyle);
-      if (includeStyle) {
-        if (styleModelList.length > 0) {
-          includeStyle = styleModelList.includes(model);
-        } else {
-          includeStyle = model !== 'gpt-image-1';
-        }
-      }
+      const defaultStyleModels = ['dall-e-3'];
+      const styleSupportedModels =
+        styleModelList.length > 0 ? styleModelList : defaultStyleModels;
+      const includeStyle =
+        Boolean(configuredStyle) && styleSupportedModels.includes(model);
 
       if (includeStyle) {
         requestPayload.style = configuredStyle;
