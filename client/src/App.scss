@@ -615,9 +615,19 @@
 }
 
 @media (max-width: 576px) {
+  .combat-turn-header {
+    --combat-turn-header-height: 52px;
+    margin-bottom: 4px;
+    padding-bottom: 0;
+  }
+
+  .combat-turn-header__track {
+    gap: 6px;
+  }
+
   .combat-turn-header__card {
-    width: clamp(88px, 28vw, 33.333%);
-    min-width: clamp(88px, 28vw, 33.333%);
+    width: clamp(76px, 23vw, 96px);
+    min-width: clamp(76px, 23vw, 96px);
     min-height: var(--combat-turn-header-height);
   }
 }
@@ -632,8 +642,8 @@
 
 @media (max-width: 576px) {
   .combat-turn-header__placeholder {
-    width: clamp(88px, 28vw, 33.333%);
-    min-width: clamp(88px, 28vw, 33.333%);
+    width: clamp(76px, 23vw, 96px);
+    min-width: clamp(76px, 23vw, 96px);
   }
 }
 
@@ -709,6 +719,39 @@
 
 .combat-turn-header__active-name {
   font-size: 0.85rem;
+}
+
+
+@media (max-width: 576px) {
+  .combat-turn-header__figurine-area {
+    margin-top: 0.25rem;
+  }
+
+  .combat-turn-header__figurine {
+    width: 30px;
+    height: 30px;
+  }
+
+  .combat-turn-header__figurine-initial {
+    font-size: 0.75rem;
+  }
+
+  .combat-turn-header__active-indicator {
+    gap: 0.25rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .combat-turn-header__active-label {
+    font-size: 0.56rem;
+  }
+
+  .combat-turn-header__active-name {
+    font-size: 0.72rem;
+    max-width: 58vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .zombies-dm-container--spaced {
@@ -4736,33 +4779,125 @@ h1 {
 
 @media (max-width: 600px) {
   .footer-character-slot {
-    flex-direction: column;
+    --footer-character-portrait-size: clamp(50px, 15vw, 62px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'profile hud';
     align-items: center;
-    gap: 10px;
-    --footer-character-portrait-size: clamp(88px, 44vw, 132px);
+    justify-content: stretch;
+    gap: 6px;
+    width: min(100%, calc(100vw - 16px));
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(104, 144, 216, 0.35);
+    background: rgba(10, 16, 34, 0.92);
+    box-shadow: 0 10px 20px rgba(6, 10, 20, 0.45);
+    backdrop-filter: blur(4px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 10px);
+    grid-area: profile;
+    width: calc(var(--footer-character-portrait-size) + 4px);
     padding: 0;
-    margin-bottom: 0;
+    margin: 0;
+    z-index: 2;
+  }
+
+  .footer-character-slot__hud {
+    grid-area: hud;
+    align-items: stretch;
+    gap: 4px;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .footer-character-slot__portrait-ring {
+    padding: 3px;
+  }
+
+  .footer-character-slot__portrait-health {
+    bottom: 3px;
+    width: 94%;
+  }
+
+  .footer-character-slot__health-inline {
+    gap: 3px;
+    padding: 1px 4px;
+  }
+
+  .footer-character-slot__health-mini-button {
+    width: 16px;
+    height: 16px;
+    font-size: 0.58rem;
+  }
+
+  .footer-character-slot__health-readout {
+    min-width: 40px;
+    gap: 2px;
+    padding: 0;
+    font-size: 0.62rem;
+  }
+
+  .footer-character-slot__health-readout-values {
+    gap: 2px;
+  }
+
+  .footer-character-slot__health-current {
+    font-size: 0.72rem;
+  }
+
+  .footer-character-slot__health-max {
+    font-size: 0.58rem;
+  }
+
+  .footer-character-slot__armor-class {
+    min-width: 22px;
+    padding: 0 3px;
+    top: 2px;
+    right: 0;
+    font-size: 0.5rem;
+  }
+
+  .footer-character-slot__armor-class-label {
+    font-size: 0.46rem;
+  }
+
+  .footer-character-slot__armor-class-value {
+    font-size: 0.62rem;
+  }
+
+  .footer-character-slot__slots-wrapper {
+    justify-content: flex-start;
+  }
+
+  .footer-character-slot__slots {
+    padding: 2px 6px;
   }
 
   .footer-character-slot__footer-rail {
     width: 100%;
     justify-content: center;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .footer-character-slot__footer-rail-body {
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
+    gap: 5px;
   }
 
   .footer-character-slot__actions {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 4px;
   }
 }
+
 
 
 
@@ -4954,46 +5089,105 @@ h1 {
 }
 
 @media (max-width: 576px) {
-  .footer-character-slot__damage {
+  .footer-container {
+    width: min(100%, calc(100vw - 16px));
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0));
+  }
+
+  .footer-nav,
+  .footer-character-slot {
     width: 100%;
+  }
+
+  .footer-character-slot__hud {
+    max-width: min(100%, 480px);
+  }
+
+  .footer-character-slot__footer-rail-body {
+    flex-direction: column;
+  }
+
+  .footer-character-slot__damage {
+    width: min(100%, 300px);
     min-width: 0;
     max-width: none;
-    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 4px 7px;
+    gap: 6px;
+  }
+
+  .footer-character-slot__damage-header {
+    display: contents;
+  }
+
+  .footer-character-slot__damage-label {
+    font-size: 0.48rem;
+  }
+
+  .footer-character-slot__crit-button.btn {
+    order: 3;
+    padding: 1px 7px;
+    font-size: 0.48rem;
+  }
+
+  .footer-character-slot__damage-value {
+    order: 2;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .footer-character-slot__damage-log-button {
+    order: 4;
+    padding: 1px 6px;
+    margin-top: 0;
+    font-size: 0.55rem;
   }
 
   .footer-actions-wrapper {
-    gap: 2px;
+    gap: 3px;
   }
 
   .footer-actions-inline {
-    gap: 3px;
+    justify-content: center;
+    gap: 2px;
     align-items: center;
   }
 
   .footer-btn {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     padding: 0;
     box-sizing: border-box;
     line-height: 1;
     margin: 0 1px;
-    font-size: 0.85rem;
+    font-size: 0.72rem;
   }
 
   .footer-btn--clear-dice {
-    width: clamp(32px, 18vw, 46px);
-    height: clamp(32px, 18vw, 46px);
+    width: 26px;
+    height: 26px;
   }
 
   .footer-btn--attack {
-    --footer-attack-size: clamp(38px, 24vw, 52px);
+    --footer-attack-size: 30px;
     width: var(--footer-attack-size);
     height: var(--footer-attack-size);
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(56px, 30vw, 74px);
+    --footer-dice-size: 34px;
     margin-top: 0;
+  }
+
+  .footer-actions-menu {
+    gap: 3px;
+  }
+
+  .footer-pass-log-button {
+    padding: 2px 7px;
+    font-size: 0.64rem;
   }
 
   .footer-actions-popover {
