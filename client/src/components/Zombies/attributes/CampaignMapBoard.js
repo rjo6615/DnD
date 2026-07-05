@@ -164,8 +164,8 @@ const parseGridDimensionsFromValue = (value) => {
       const resolvedSecond = secondNumber ?? firstNumber;
       if (resolvedFirst !== null) {
         return {
-          columns: Math.max(1, Math.round(resolvedFirst)),
-          rows: Math.max(1, Math.round(resolvedSecond ?? resolvedFirst)),
+          columns: Math.max(1, resolvedFirst),
+          rows: Math.max(1, resolvedSecond ?? resolvedFirst),
         };
       }
     }
@@ -175,8 +175,8 @@ const parseGridDimensionsFromValue = (value) => {
 
   const numericValue = parsePositiveNumber(value);
   if (numericValue !== null) {
-    const rounded = Math.max(1, Math.round(numericValue));
-    return { columns: rounded, rows: rounded };
+    const safeValue = Math.max(1, numericValue);
+    return { columns: safeValue, rows: safeValue };
   }
 
   if (typeof value === 'string') {
@@ -185,11 +185,11 @@ const parseGridDimensionsFromValue = (value) => {
       return null;
     }
 
-    const pairMatch = trimmed.match(/(\d+)\s*[x×]\s*(\d+)/i);
+    const pairMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
     if (pairMatch) {
       const [, columnMatch, rowMatch] = pairMatch;
-      const parsedColumns = Number.parseInt(columnMatch, 10);
-      const parsedRows = Number.parseInt(rowMatch, 10);
+      const parsedColumns = Number.parseFloat(columnMatch);
+      const parsedRows = Number.parseFloat(rowMatch);
       if (Number.isFinite(parsedColumns) && Number.isFinite(parsedRows)) {
         return {
           columns: Math.max(1, parsedColumns),
@@ -213,8 +213,8 @@ const resolveGridDimensions = (map) => {
       return current;
     }
 
-    const rounded = Math.max(1, Math.round(parsed));
-    return current ?? rounded;
+    const safeValue = Math.max(1, parsed);
+    return current ?? safeValue;
   };
 
   let columns = null;
@@ -593,8 +593,8 @@ const CampaignMapBoard = ({
       return null;
     }
 
-    const safeColumns = Math.max(1, Math.round(gridColumns));
-    const safeRows = Math.max(1, Math.round(gridRows));
+    const safeColumns = Math.max(1, Number(gridColumns));
+    const safeRows = Math.max(1, Number(gridRows));
 
     if (safeColumns <= 0 || safeRows <= 0) {
       return null;
