@@ -6141,3 +6141,173 @@ h1 {
     min-height: 24px;
   }
 }
+
+/* Mobile combat footer redesign overrides: keep the collapsed footer short and complete. */
+@media (max-width: 600px) {
+  .footer-container {
+    width: min(100%, calc(100vw - 12px));
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0));
+  }
+
+  .footer-nav {
+    width: 100%;
+  }
+
+  .footer-character-slot {
+    --footer-character-portrait-size: clamp(58px, 17vw, 72px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    height: 108px;
+    min-height: 108px;
+    max-height: 108px;
+    padding: 8px 10px;
+    overflow: visible;
+  }
+
+  .footer-character-slot__profile-card {
+    flex: 0 0 calc(var(--footer-character-portrait-size) + 4px);
+    width: calc(var(--footer-character-portrait-size) + 4px);
+    margin: 0;
+    align-self: center;
+  }
+
+  .footer-character-slot__profile,
+  .footer-character-slot__portrait {
+    height: var(--footer-character-portrait-size);
+  }
+
+  .footer-character-slot__hud {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    display: grid;
+    grid-template-columns: auto minmax(92px, 1fr) auto auto;
+    grid-template-areas: 'turns damage pass resources';
+    align-items: center;
+    justify-content: stretch;
+    gap: 6px;
+  }
+
+  .footer-character-slot__slots-wrapper {
+    grid-area: turns;
+    width: auto;
+    min-width: 54px;
+  }
+
+  .footer-character-slot__slots {
+    padding: 3px 5px;
+    border-radius: 14px;
+    max-width: none;
+  }
+
+  .footer-character-slot__slots > .spell-slot-container {
+    gap: 4px;
+  }
+
+  .footer-character-slot__slots > .spell-slot-container .spell-slot {
+    width: 24px;
+    height: 42px;
+  }
+
+  .footer-character-slot__slots > .spell-slot-container .spell-slot .slot-level {
+    font-size: 0.9rem;
+  }
+
+  .footer-character-slot__footer-rail {
+    display: contents;
+  }
+
+  .footer-character-slot__footer-rail-body {
+    display: contents;
+  }
+
+  .footer-character-slot__damage {
+    grid-area: damage;
+    width: 100%;
+    min-width: 92px;
+    max-width: none;
+    padding: 6px 8px;
+    gap: 4px 6px;
+  }
+
+  .footer-character-slot__actions {
+    grid-area: pass;
+    width: auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .footer-actions-wrapper,
+  .footer-actions-inline {
+    display: contents;
+  }
+
+  .footer-btn--clear-dice,
+  .footer-btn--dice,
+  .footer-btn--attack,
+  .footer-actions-menu {
+    display: none !important;
+  }
+
+  .footer-actions-inline > .footer-pass-log-button {
+    grid-area: pass;
+    min-width: 58px;
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    justify-self: center;
+  }
+
+  .footer-character-slot__resources-toggle.btn {
+    grid-area: resources;
+    min-width: 86px;
+    min-height: 38px;
+    padding: 6px 8px;
+    gap: 5px;
+    font-size: 0.74rem;
+    justify-self: end;
+  }
+
+  .footer-character-slot__resources-count {
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 430px) {
+  .footer-character-slot {
+    --footer-character-portrait-size: 54px;
+    gap: 4px;
+    padding: 7px 8px;
+  }
+
+  .footer-character-slot__hud {
+    grid-template-columns: auto minmax(82px, 1fr) auto;
+    grid-template-areas:
+      'turns damage resources'
+      'turns pass resources';
+    gap: 4px 5px;
+  }
+
+  .footer-character-slot__damage {
+    padding: 5px 7px;
+  }
+
+  .footer-character-slot__damage-log-button {
+    width: auto;
+    min-width: 76px;
+  }
+
+  .footer-actions-inline > .footer-pass-log-button,
+  .footer-character-slot__resources-toggle.btn {
+    min-height: 32px;
+    font-size: 0.68rem;
+  }
+}
