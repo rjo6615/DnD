@@ -4781,18 +4781,19 @@ h1 {
   .footer-character-slot {
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    --footer-character-portrait-size: clamp(74px, 24vw, 92px);
+    gap: 0;
+    --footer-character-portrait-size: clamp(56px, 18vw, 70px);
   }
 
   .footer-character-slot__profile-card {
-    width: calc(var(--footer-character-portrait-size) + 8px);
+    width: calc(var(--footer-character-portrait-size) + 6px);
     padding: 0;
-    margin-bottom: -2px;
+    margin-bottom: -8px;
+    z-index: 2;
   }
 
   .footer-character-slot__portrait-ring {
-    padding: 6px;
+    padding: 4px;
   }
 
   .footer-character-slot__portrait-health {
@@ -4801,21 +4802,21 @@ h1 {
   }
 
   .footer-character-slot__health-inline {
-    gap: 6px;
-    padding: 4px 7px;
+    gap: 4px;
+    padding: 2px 5px;
   }
 
   .footer-character-slot__health-mini-button {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     font-size: 0.65rem;
   }
 
   .footer-character-slot__health-readout {
-    min-width: 52px;
-    gap: 3px;
-    padding: 1px 0;
-    font-size: 0.76rem;
+    min-width: 44px;
+    gap: 2px;
+    padding: 0;
+    font-size: 0.68rem;
   }
 
   .footer-character-slot__health-readout-values {
@@ -4823,16 +4824,16 @@ h1 {
   }
 
   .footer-character-slot__health-current {
-    font-size: 0.86rem;
+    font-size: 0.78rem;
   }
 
   .footer-character-slot__health-max {
-    font-size: 0.72rem;
+    font-size: 0.64rem;
   }
 
   .footer-character-slot__armor-class {
-    min-width: 28px;
-    padding: 1px 4px;
+    min-width: 24px;
+    padding: 0 3px;
     top: 4px;
     right: 2px;
   }
@@ -4840,20 +4841,20 @@ h1 {
   .footer-character-slot__footer-rail {
     width: 100%;
     justify-content: center;
-    gap: 6px;
-    padding: 8px 10px;
+    gap: 4px;
+    padding: 7px 8px 6px;
   }
 
   .footer-character-slot__footer-rail-body {
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 5px;
   }
 
   .footer-character-slot__actions {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
   }
 }
 
@@ -5061,51 +5062,91 @@ h1 {
     max-width: min(100%, 480px);
   }
 
+  .footer-character-slot__footer-rail-body {
+    flex-direction: column;
+  }
+
   .footer-character-slot__damage {
-    width: min(100%, 270px);
+    width: min(100%, 300px);
     min-width: 0;
     max-width: none;
-    padding: 7px 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 4px 7px;
     gap: 6px;
   }
 
+  .footer-character-slot__damage-header {
+    display: contents;
+  }
+
+  .footer-character-slot__damage-label {
+    font-size: 0.48rem;
+  }
+
+  .footer-character-slot__crit-button.btn {
+    order: 3;
+    padding: 1px 7px;
+    font-size: 0.48rem;
+  }
+
   .footer-character-slot__damage-value {
-    font-size: 1.25rem;
+    order: 2;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .footer-character-slot__damage-log-button {
+    order: 4;
+    padding: 1px 6px;
+    margin-top: 0;
+    font-size: 0.55rem;
   }
 
   .footer-actions-wrapper {
-    gap: 2px;
+    gap: 3px;
   }
 
   .footer-actions-inline {
-    gap: 3px;
+    justify-content: center;
+    gap: 2px;
     align-items: center;
   }
 
   .footer-btn {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     padding: 0;
     box-sizing: border-box;
     line-height: 1;
     margin: 0 1px;
-    font-size: 0.85rem;
+    font-size: 0.72rem;
   }
 
   .footer-btn--clear-dice {
-    width: clamp(32px, 18vw, 46px);
-    height: clamp(32px, 18vw, 46px);
+    width: 26px;
+    height: 26px;
   }
 
   .footer-btn--attack {
-    --footer-attack-size: clamp(38px, 24vw, 52px);
+    --footer-attack-size: 30px;
     width: var(--footer-attack-size);
     height: var(--footer-attack-size);
   }
 
   .footer-btn--dice {
-    --footer-dice-size: clamp(56px, 30vw, 74px);
+    --footer-dice-size: 34px;
     margin-top: 0;
+  }
+
+  .footer-actions-menu {
+    gap: 3px;
+  }
+
+  .footer-pass-log-button {
+    padding: 2px 7px;
+    font-size: 0.64rem;
   }
 
   .footer-actions-popover {
