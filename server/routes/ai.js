@@ -332,15 +332,11 @@ module.exports = (router) => {
         .split(',')
         .map((value) => value.trim())
         .filter(Boolean);
-
-      let includeStyle = Boolean(configuredStyle);
-      if (includeStyle) {
-        if (styleModelList.length > 0) {
-          includeStyle = styleModelList.includes(model);
-        } else {
-          includeStyle = model !== 'gpt-image-1';
-        }
-      }
+      const defaultStyleModels = ['dall-e-3'];
+      const styleSupportedModels =
+        styleModelList.length > 0 ? styleModelList : defaultStyleModels;
+      const includeStyle =
+        Boolean(configuredStyle) && styleSupportedModels.includes(model);
 
       if (includeStyle) {
         requestPayload.style = configuredStyle;
@@ -350,7 +346,25 @@ module.exports = (router) => {
         requestPayload.quality = quality;
       }
 
-      const response = await openai.images.generate(requestPayload);
+      let response;
+      try {
+        response = await openai.images.generate(requestPayload);
+      } catch (error) {
+        const unknownStyleParameter =
+          requestPayload.style &&
+          (error?.status === 400 || error?.code === 'unknown_parameter') &&
+          typeof error?.message === 'string' &&
+          error.message.toLowerCase().includes('style');
+
+        if (!unknownStyleParameter) {
+          throw error;
+        }
+
+        const retryPayload = { ...requestPayload };
+        delete retryPayload.style;
+        response = await openai.images.generate(retryPayload);
+      }
+
       const image = Array.isArray(response?.data) ? response.data[0] : null;
 
       if (!image) {
