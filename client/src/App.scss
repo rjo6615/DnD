@@ -4781,10 +4781,10 @@ h1 {
   .footer-character-slot {
     --footer-character-portrait-size: clamp(50px, 15vw, 62px);
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, auto);
     grid-template-areas: 'profile hud';
     align-items: center;
-    justify-content: stretch;
+    justify-content: center;
     gap: 6px;
     width: min(100%, calc(100vw - 16px));
     padding: 6px 8px;
@@ -4805,9 +4805,11 @@ h1 {
 
   .footer-character-slot__hud {
     grid-area: hud;
-    align-items: stretch;
+    align-items: center;
+    justify-self: center;
     gap: 4px;
-    max-width: none;
+    width: auto;
+    max-width: min(100%, 260px);
     min-width: 0;
   }
 
@@ -5100,15 +5102,16 @@ h1 {
   }
 
   .footer-character-slot__hud {
-    max-width: min(100%, 480px);
+    max-width: min(100%, 260px);
   }
 
   .footer-character-slot__footer-rail-body {
+    align-items: center;
     flex-direction: column;
   }
 
   .footer-character-slot__damage {
-    width: min(100%, 220px);
+    width: min(100%, 180px);
     min-width: 0;
     max-width: none;
     display: grid;
@@ -5144,7 +5147,7 @@ h1 {
     order: 4;
     grid-column: 1 / -1;
     justify-self: center;
-    width: min(100%, 150px);
+    width: min(100%, 94px);
     padding: 2px 8px;
     margin-top: 0;
     font-size: 0.62rem;
