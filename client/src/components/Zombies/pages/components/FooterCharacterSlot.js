@@ -27,6 +27,8 @@ const FooterCharacterSlot = ({
   onHealthChange,
   actions,
   spellSlots,
+  resourcesDrawer,
+  hiddenResourceCount,
   damageSummary,
   onToggleCritical,
   onOpenDamageLog,
@@ -35,6 +37,7 @@ const FooterCharacterSlot = ({
   const [error, setError] = useState(null);
   const [pendingHealth, setPendingHealth] = useState(null);
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
+  const [isResourcesOpen, setIsResourcesOpen] = useState(false);
 
   const { resolvedCurrent, resolvedMax } = useMemo(() => {
     const numericCurrent = Number(currentHealth);
@@ -110,12 +113,16 @@ const FooterCharacterSlot = ({
     : '—';
 
   const hasSpellSlots = Boolean(spellSlots);
+  const hasResourcesDrawer = Boolean(resourcesDrawer);
+  const availableHiddenResources = Number.isFinite(Number(hiddenResourceCount))
+    ? Math.max(0, Number(hiddenResourceCount))
+    : 0;
   const hasActions = Boolean(actions);
   const hasDamageDisplay =
     hasDamageValue ||
     typeof onToggleCritical === 'function' ||
     typeof onOpenDamageLog === 'function';
-  const hasFooterContent = hasActions || hasDamageDisplay;
+  const hasFooterContent = hasActions || hasDamageDisplay || hasResourcesDrawer;
   const hasHudContent = hasSpellSlots || hasFooterContent;
 
   const damageClassName = [
@@ -136,6 +143,9 @@ const FooterCharacterSlot = ({
       onOpenDamageLog();
     }
   }, [onOpenDamageLog]);
+  const handleResourcesToggle = useCallback(() => {
+    setIsResourcesOpen((current) => !current);
+  }, []);
   const canDecrease = !isUpdating && numericCurrent > 0;
   const canIncrease =
     !isUpdating &&
@@ -255,7 +265,31 @@ const FooterCharacterSlot = ({
   }, [damageTimestamp]);
 
   return (
-    <div className="footer-character-slot" data-allow-pointer-events="true">
+    <div
+      className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
+      data-allow-pointer-events="true"
+    >
+      {hasResourcesDrawer ? (
+        <div
+          id="footer-resources-drawer"
+          className="footer-character-slot__resources-drawer"
+          aria-hidden={!isResourcesOpen}
+          data-allow-pointer-events="true"
+        >
+          <button
+            type="button"
+            className="footer-character-slot__resources-close"
+            onClick={handleResourcesToggle}
+            aria-label="Collapse bonuses drawer"
+          >
+            <i className="fas fa-times" aria-hidden="true" />
+          </button>
+          <div className="footer-character-slot__resources-grip" aria-hidden="true" />
+          <div className="footer-character-slot__resources-scroll">
+            {resourcesDrawer}
+          </div>
+        </div>
+      ) : null}
       <div className="footer-character-slot__profile-card">
         <div className="footer-character-slot__profile">
           <div className="footer-character-slot__portrait">
@@ -391,6 +425,25 @@ const FooterCharacterSlot = ({
                     {actions}
                   </div>
                 ) : null}
+                {hasResourcesDrawer ? (
+                  <Button
+                    type="button"
+                    variant="outline-light"
+                    className="footer-character-slot__resources-toggle footer-pass-log-button"
+                    onClick={handleResourcesToggle}
+                    aria-expanded={isResourcesOpen}
+                    aria-controls="footer-resources-drawer"
+                    title={isResourcesOpen ? 'Hide resources' : 'Show resources'}
+                  >
+                    <span className="footer-character-slot__resources-toggle-icon" aria-hidden="true">✦</span>
+                    <span>Bonuses</span>
+                    <span className="footer-character-slot__resources-count">
+                      {isResourcesOpen ? '−' : `+${availableHiddenResources}`}
+                    </span>
+                    <i className="fas fa-chevron-up footer-character-slot__resources-chevron" aria-hidden="true" />
+                  </Button>
+                ) : null}
+
               </div>
             </div>
           ) : null}
@@ -417,6 +470,8 @@ FooterCharacterSlot.propTypes = {
   onHealthChange: PropTypes.func,
   actions: PropTypes.node,
   spellSlots: PropTypes.node,
+  resourcesDrawer: PropTypes.node,
+  hiddenResourceCount: PropTypes.number,
   damageSummary: PropTypes.shape({
     value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     isCritical: PropTypes.bool,
@@ -437,6 +492,8 @@ FooterCharacterSlot.defaultProps = {
   onHealthChange: undefined,
   actions: null,
   spellSlots: null,
+  resourcesDrawer: null,
+  hiddenResourceCount: 0,
   damageSummary: null,
   onToggleCritical: undefined,
   onOpenDamageLog: undefined,
