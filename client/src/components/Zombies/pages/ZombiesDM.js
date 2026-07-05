@@ -328,6 +328,74 @@ const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
 const MAP_GRID_DIMENSION_OPTIONS = [24, 64, 120];
 const DEFAULT_MAP_GRID_DIMENSION = MAP_GRID_DIMENSION_OPTIONS[0];
 
+const normalizeGridSquareCount = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return null;
+  }
+
+  const roundedToPrecision = Number(numeric.toFixed(4));
+  return Number.isInteger(roundedToPrecision) ? Math.trunc(roundedToPrecision) : roundedToPrecision;
+};
+
+const resolveAspectMatchedGridRows = (columns, imageWidth, imageHeight) => {
+  const safeColumns = normalizeGridSquareCount(columns);
+  const safeWidth = Number(imageWidth);
+  const safeHeight = Number(imageHeight);
+
+  if (safeColumns === null || !Number.isFinite(safeWidth) || !Number.isFinite(safeHeight)) {
+    return safeColumns;
+  }
+
+  if (safeWidth <= 0 || safeHeight <= 0) {
+    return safeColumns;
+  }
+
+  return normalizeGridSquareCount((safeColumns * safeHeight) / safeWidth) ?? safeColumns;
+};
+
+const formatGridDimensionString = (columns, rows) => `${columns}x${rows}`;
+
+const loadMapEditorImageDimensions = (src, timeoutMs = 250) =>
+  new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = null;
+    const finish = (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      resolve(value);
+    };
+    if (typeof window === 'undefined' || typeof window.Image !== 'function') {
+      finish(null);
+      return;
+    }
+
+    if (typeof src !== 'string' || src.trim() === '') {
+      finish(null);
+      return;
+    }
+
+    timeoutId = window.setTimeout(() => finish(null), timeoutMs);
+
+    const image = new window.Image();
+    image.onload = () => {
+      const width = Number(image.naturalWidth || image.width);
+      const height = Number(image.naturalHeight || image.height);
+      if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+        finish({ width, height });
+        return;
+      }
+      finish(null);
+    };
+    image.onerror = () => finish(null);
+    image.src = src;
+  });
+
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
     return null;
@@ -1494,6 +1562,8 @@ export default function ZombiesDM() {
       imageUrl: '',
       imageBase64: '',
       imageType: '',
+      imageWidth: null,
+      imageHeight: null,
       altText: '',
       gridSelection: `${DEFAULT_MAP_GRID_DIMENSION}`,
       activateOnSave: true,
@@ -4724,6 +4794,8 @@ export default function ZombiesDM() {
         imageUrl: '',
         imageBase64: '',
         imageType: '',
+        imageWidth: null,
+        imageHeight: null,
         altText: '',
         gridSelection: defaultGridSelection,
         activateOnSave: maps.length === 0,
@@ -4767,6 +4839,8 @@ export default function ZombiesDM() {
           typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
         imageType:
           typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
+        imageWidth: Number.isFinite(Number(safeMap.imageWidth)) ? Number(safeMap.imageWidth) : null,
+        imageHeight: Number.isFinite(Number(safeMap.imageHeight)) ? Number(safeMap.imageHeight) : null,
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
         gridSelection: resolveMapGridSelection(safeMap),
         activateOnSave: false,
@@ -4809,6 +4883,8 @@ export default function ZombiesDM() {
           ...prev,
           imageBase64: '',
           imageType: '',
+          imageWidth: null,
+          imageHeight: null,
         }));
         return;
       }
@@ -4821,6 +4897,8 @@ export default function ZombiesDM() {
             ...prev,
             imageBase64: '',
             imageType: '',
+            imageWidth: null,
+            imageHeight: null,
           }));
           return;
         }
@@ -4842,7 +4920,23 @@ export default function ZombiesDM() {
           imageBase64: nextImageBase64,
           imageType: nextImageType,
           imageUrl: '',
+          imageWidth: null,
+          imageHeight: null,
         }));
+
+        const dataUrl = result.startsWith('data:') ? result : `data:${nextImageType || 'image/*'};base64,${nextImageBase64}`;
+
+        loadMapEditorImageDimensions(dataUrl).then((dimensions) => {
+          if (!dimensions) {
+            return;
+          }
+
+          setMapEditorState((prev) => ({
+            ...prev,
+            imageWidth: dimensions.width,
+            imageHeight: dimensions.height,
+          }));
+        });
       };
 
       reader.onerror = () => {
@@ -4850,6 +4944,8 @@ export default function ZombiesDM() {
           ...prev,
           imageBase64: '',
           imageType: '',
+          imageWidth: null,
+          imageHeight: null,
         }));
       };
 
@@ -4871,6 +4967,8 @@ export default function ZombiesDM() {
           imageUrl,
           imageBase64,
           imageType,
+          imageWidth,
+          imageHeight,
           altText,
           gridSelection,
           activateOnSave,
@@ -4952,9 +5050,28 @@ export default function ZombiesDM() {
           : DEFAULT_MAP_GRID_DIMENSION;
 
         if (Number.isFinite(resolvedGridDimension) && resolvedGridDimension > 0) {
-          const gridDimensionString = `${resolvedGridDimension}x${resolvedGridDimension}`;
+          const hasStoredImageDimensions =
+            Number.isFinite(Number(imageWidth)) &&
+            Number.isFinite(Number(imageHeight)) &&
+            Number(imageWidth) > 0 &&
+            Number(imageHeight) > 0;
+          const existingDimensions = hasStoredImageDimensions
+            ? { width: Number(imageWidth), height: Number(imageHeight) }
+            : trimmedImageUrl
+            ? await loadMapEditorImageDimensions(trimmedImageUrl)
+            : null;
+          const resolvedGridRows = resolveAspectMatchedGridRows(
+            resolvedGridDimension,
+            existingDimensions?.width,
+            existingDimensions?.height
+          );
+          const gridDimensionString = formatGridDimensionString(resolvedGridDimension, resolvedGridRows);
           payloadMap.gridColumns = resolvedGridDimension;
-          payloadMap.gridRows = resolvedGridDimension;
+          payloadMap.gridRows = resolvedGridRows;
+          if (existingDimensions) {
+            payloadMap.imageWidth = existingDimensions.width;
+            payloadMap.imageHeight = existingDimensions.height;
+          }
           payloadMap.gridDimensions = gridDimensionString;
           payloadMap.gridSize = gridDimensionString;
 
@@ -4964,7 +5081,7 @@ export default function ZombiesDM() {
           payloadMap.grid = {
             ...existingGrid,
             columns: resolvedGridDimension,
-            rows: resolvedGridDimension,
+            rows: resolvedGridRows,
             dimensions: gridDimensionString,
             size: gridDimensionString,
             gridSize: gridDimensionString,
