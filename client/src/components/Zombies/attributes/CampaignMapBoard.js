@@ -761,6 +761,27 @@ const CampaignMapBoard = ({
     [handleMapZoomAnimationFrame, setMapZoom]
   );
 
+  const applyMapZoomImmediately = useCallback((nextZoom) => {
+    if (!Number.isFinite(nextZoom)) {
+      return;
+    }
+
+    const clampedNextZoom = clampMapZoom(nextZoom);
+    const cancelFrame =
+      typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+        ? window.cancelAnimationFrame
+        : null;
+
+    if (cancelFrame && mapZoomRafRef.current !== null) {
+      cancelFrame(mapZoomRafRef.current);
+    }
+
+    mapZoomRafRef.current = null;
+    mapZoomAnimationStateRef.current.lastTimestamp = null;
+    mapZoomTargetRef.current = clampedNextZoom;
+    setMapZoom(clampedNextZoom);
+  }, []);
+
   const panStyle = useMemo(() => {
     const style = {
       '--campaign-map-pan-x': `${mapPanOffset.x}px`,
@@ -928,9 +949,9 @@ const CampaignMapBoard = ({
       event.preventDefault();
       event.stopPropagation();
       const nextZoom = clampMapZoom(state.zoom * (distance / state.distance));
-      scheduleMapZoomUpdate(nextZoom);
+      applyMapZoomImmediately(nextZoom);
     },
-    [allowWheelZoom, scheduleMapZoomUpdate]
+    [allowWheelZoom, applyMapZoomImmediately]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -967,7 +988,7 @@ const CampaignMapBoard = ({
         return;
       }
 
-      scheduleMapZoomUpdate(clampMapZoom(gestureZoomStartRef.current * scale));
+      applyMapZoomImmediately(clampMapZoom(gestureZoomStartRef.current * scale));
     };
 
     boardElement.addEventListener('touchmove', preventNativePinchZoom, { passive: false });
@@ -979,7 +1000,7 @@ const CampaignMapBoard = ({
       boardElement.removeEventListener('gesturestart', handleGestureStart);
       boardElement.removeEventListener('gesturechange', handleGestureChange);
     };
-  }, [allowWheelZoom, scheduleMapZoomUpdate]);
+  }, [allowWheelZoom, applyMapZoomImmediately]);
 
   useEffect(() => {
     const boardElement = boardRef.current;
@@ -1350,6 +1371,7 @@ const CampaignMapBoard = ({
         allowBackgroundClick: typeof onBackgroundClick === 'function',
         scaleX,
         scaleY,
+        zoom: clampMapZoom(mapZoomTargetRef.current),
       };
 
       if (event.currentTarget.setPointerCapture) {
@@ -1401,13 +1423,14 @@ const CampaignMapBoard = ({
     event.preventDefault();
     event.stopPropagation();
 
+    const panZoom = Number.isFinite(panState.zoom) && panState.zoom > 0 ? panState.zoom : 1;
     const scaleX =
       panState && Number.isFinite(panState.scaleX) && panState.scaleX > 0
-        ? panState.scaleX
+        ? Math.max(0.001, panState.scaleX / panZoom)
         : 1;
     const scaleY =
       panState && Number.isFinite(panState.scaleY) && panState.scaleY > 0
-        ? panState.scaleY
+        ? Math.max(0.001, panState.scaleY / panZoom)
         : 1;
 
     const deltaX = rawDeltaX / scaleX;
