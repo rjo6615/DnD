@@ -45,7 +45,7 @@ import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
 import { FaDiceD20 } from "react-icons/fa";
 import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
-import { Button as HudButton, Dock, IconButton, Panel, ResourceCounter, Toolbar } from "../common/HudPrimitives";
+import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
@@ -5672,6 +5672,22 @@ export default function ZombiesCharacterSheet() {
                 </Panel>
 
                 <Panel className="combat-hud-dock__resources" aria-label="Combat resources">
+                  {footerClassResources.length > 0 && (
+                    <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
+                      {footerClassResources.map((resource) => (
+                        <div
+                          key={resource.id}
+                          className="combat-hud-resource-tile"
+                          style={{ '--hud-resource-accent': resource.color }}
+                          title={`${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
+                        >
+                          <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
+                          <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
+                          <span className="visually-hidden">{resource.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {form && (
                     <SpellSlots
                       form={form}
@@ -5684,22 +5700,6 @@ export default function ZombiesCharacterSheet() {
                       showTurnSlots={false}
                       showFocusSlot
                     />
-                  )}
-                  {footerClassResources.length > 0 && (
-                    <div className="combat-hud-dock__resource-grid">
-                      {footerClassResources.map((resource) => (
-                        <ResourceCounter
-                          key={resource.id}
-                          icon={resource.icon}
-                          name={resource.name}
-                          current={resource.current}
-                          max={resource.max}
-                          accent={resource.color}
-                          onMinus={() => {}}
-                          onPlus={() => {}}
-                        />
-                      ))}
-                    </div>
                   )}
                 </Panel>
 

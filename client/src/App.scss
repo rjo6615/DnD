@@ -7526,3 +7526,177 @@ h1 {
     grid-template-columns: 104px 1fr;
   }
 }
+
+/* Requested compact pass: no portrait, bar-first HP/AC, resources live before spell levels. */
+.combat-hud-dock__status .footer-character-slot__portrait-ring,
+.combat-hud-dock__status .footer-character-slot__portrait-gloss,
+.combat-hud-dock__status .footer-character-slot__armor-class {
+  display: none;
+}
+
+.combat-hud-dock__status .footer-character-slot,
+.combat-hud-dock__status .footer-character-slot__profile-card,
+.combat-hud-dock__status .footer-character-slot__profile,
+.combat-hud-dock__status .footer-character-slot__portrait {
+  width: 100%;
+  height: auto;
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait {
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait-health {
+  position: static;
+  width: 100%;
+  transform: none;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(63, 190, 92, 0.82) 0 var(--footer-character-health-percent, 0%), rgba(18, 25, 38, 0.9) var(--footer-character-health-percent, 0%) 100%);
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline::before {
+  content: "HP";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: rgba(240, 246, 255, 0.72);
+  pointer-events: none;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-readout {
+  min-width: 108px;
+  margin-inline: auto 10px;
+  z-index: 1;
+  text-align: right;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-current {
+  font-size: 1.12rem;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-mini-button {
+  z-index: 2;
+  flex: 0 0 38px;
+}
+
+.combat-hud-dock__status .combat-hud-pill:nth-child(1) {
+  display: none;
+}
+
+.combat-hud-dock__status .combat-hud-pill {
+  border-radius: 12px;
+}
+
+.combat-hud-dock__resources {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.combat-hud-dock__resource-rail {
+  display: grid;
+  grid-template-columns: repeat(2, 72px);
+  grid-auto-rows: 56px;
+  gap: 6px;
+  align-content: start;
+  max-height: 126px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid rgba(228, 211, 169, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.combat-hud-resource-tile {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  min-width: 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--hud-resource-accent, var(--hud-accent)) 52%, transparent);
+  background: radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--hud-resource-accent, var(--hud-accent)) 20%, transparent), rgba(5, 10, 18, 0.8));
+}
+
+.combat-hud-resource-tile__icon {
+  color: var(--hud-resource-accent, var(--hud-accent));
+  font-size: 1.45rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--hud-resource-accent, var(--hud-accent)) 58%, transparent));
+}
+
+.combat-hud-resource-tile__value {
+  max-width: 100%;
+  padding: 0 4px 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: rgba(247, 239, 224, 0.84);
+}
+
+.combat-hud-dock .focus-slot .focus-icon,
+.combat-hud-dock .focus-slot .focus-icon--glow {
+  font-size: 1.65rem;
+  padding-top: 12px;
+}
+
+.combat-hud-dock .spell-slot-section {
+  grid-template-rows: 18px repeat(2, 56px);
+}
+
+.combat-hud-dock .spell-slot-section__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 56px);
+  grid-auto-rows: 56px;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, 56px);
+}
+
+.combat-hud-dock .spell-slot .slot-boxes {
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-auto-rows: 10px;
+  max-height: none;
+}
+
+@media (min-width: 901px) {
+  .combat-hud-dock {
+    grid-template-columns: 300px minmax(620px, 860px) auto minmax(224px, 320px);
+  }
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock__resources {
+    grid-template-columns: 1fr;
+  }
+
+  .combat-hud-dock__resource-rail {
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+  }
+
+  .combat-hud-resource-tile {
+    min-width: 72px;
+    min-height: 56px;
+  }
+
+  .combat-hud-dock .spell-slot-section__grid {
+    grid-template-columns: repeat(3, 56px);
+  }
+}

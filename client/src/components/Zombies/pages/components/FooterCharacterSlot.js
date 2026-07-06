@@ -59,6 +59,14 @@ const FooterCharacterSlot = ({
   const numericCurrent = Number.isFinite(effectiveCurrent) ? effectiveCurrent : 0;
   const displayCurrent = Number.isFinite(effectiveCurrent) ? Math.round(effectiveCurrent) : '—';
   const displayMax = Number.isFinite(resolvedMax) ? Math.round(resolvedMax) : '—';
+  const healthPercent = useMemo(() => {
+    if (!Number.isFinite(numericCurrent) || !Number.isFinite(resolvedMax) || resolvedMax <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((numericCurrent / resolvedMax) * 100)));
+  }, [numericCurrent, resolvedMax]);
+
   const displayArmorClass = useMemo(() => {
     if (armorClass === null || armorClass === undefined) {
       return '—';
@@ -389,6 +397,7 @@ const FooterCharacterSlot = ({
             <div className="footer-character-slot__portrait-health">
               <div
                 className="footer-character-slot__health-inline"
+                style={{ '--footer-character-health-percent': `${healthPercent}%` }}
                 role="group"
                 aria-label="Character health controls. Drag left or right to adjust health."
                 title="Drag left or right to adjust health"
