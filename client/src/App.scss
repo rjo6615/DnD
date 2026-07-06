@@ -7879,3 +7879,159 @@ h1 {
     justify-self: stretch;
   }
 }
+
+/* Compact HUD pass: reduce vertical waste, fit spell levels, and shrink single-slot pact magic. */
+.hud-footer-navbar.footer-navbar.navbar {
+  padding-bottom: 8px;
+}
+
+.combat-hud-dock {
+  padding: 8px 12px;
+  border-radius: 22px;
+}
+
+.combat-hud-dock::before {
+  inset: 6px;
+  border-radius: 18px;
+}
+
+.combat-hud-dock__status,
+.combat-hud-dock__resources,
+.combat-hud-dock__primary,
+.combat-hud-dock__secondary {
+  min-height: 124px;
+  padding: 8px;
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait {
+  min-height: 50px;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline {
+  min-height: 48px;
+}
+
+.combat-hud-dock__resources {
+  min-height: 124px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.combat-hud-dock__resource-rail {
+  grid-template-columns: repeat(2, 68px);
+  grid-auto-rows: 54px;
+  max-height: 116px;
+  height: 116px;
+  padding: 4px;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.combat-hud-resource-tile {
+  min-height: 54px;
+  padding: 4px;
+}
+
+.combat-hud-resource-tile__icon {
+  font-size: 1.45rem;
+}
+
+.combat-hud-resource-tile__name {
+  font-size: 0.54rem;
+}
+
+.combat-hud-resource-tile__value {
+  font-size: 0.62rem;
+}
+
+.combat-hud-dock .spell-slot-container {
+  min-height: 116px;
+  height: 116px;
+  gap: 8px;
+  padding: 6px;
+  overflow-x: hidden;
+}
+
+.combat-hud-dock .spell-slot-section {
+  grid-template-rows: 16px repeat(2, 48px);
+  gap: 4px;
+}
+
+.combat-hud-dock .spell-slot-section__label {
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.combat-hud-dock .spell-slot-section__grid {
+  grid-template-columns: repeat(5, 48px);
+  grid-template-rows: repeat(2, 48px);
+  grid-auto-rows: 48px;
+  gap: 4px;
+}
+
+.combat-hud-dock .spell-slot,
+.combat-hud-dock .spell-slot.focus-slot {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 5px;
+  grid-template-columns: 16px 1fr;
+}
+
+.combat-hud-dock .spell-slot .slot-level {
+  font-size: 0.78rem;
+}
+
+.combat-hud-dock .spell-slot .slot-boxes {
+  grid-template-columns: repeat(2, 9px);
+  grid-auto-rows: 9px;
+  gap: 3px;
+}
+
+.combat-hud-dock .spell-slot .slot-small,
+.combat-hud-dock .spell-slot .action-circle,
+.combat-hud-dock .spell-slot .bonus-circle {
+  width: 9px;
+  height: 9px;
+  min-width: 9px;
+  min-height: 9px;
+}
+
+.combat-hud-dock .spell-slot-section--pact {
+  width: 58px;
+  min-width: 58px;
+  max-width: 58px;
+  overflow: hidden;
+}
+
+.combat-hud-dock .spell-slot-section--pact .spell-slot-section__grid {
+  grid-template-columns: 48px;
+  grid-template-rows: 48px;
+  grid-auto-flow: row;
+}
+
+.combat-hud-dock .spell-slot-section--pact .spell-slot-section__label {
+  max-width: 54px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-action-button.btn,
+.combat-hud-dock__secondary .footer-btn {
+  width: 48px;
+  min-height: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+.hud-action-button--attack.btn,
+.hud-pass-turn-button.btn {
+  min-height: 56px;
+  height: 56px;
+}
+
+@media (min-width: 901px) {
+  .combat-hud-dock {
+    grid-template-columns: 360px minmax(568px, 720px) auto minmax(204px, 292px);
+  }
+}
